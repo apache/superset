@@ -24,7 +24,12 @@ from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
-from superset.models.core import Database, DatabaseUserOAuth2Tokens, LlmConnection, LlmContextOptions
+from superset.models.core import (
+    Database,
+    DatabaseUserOAuth2Tokens,
+    LlmConnection,
+    LlmContextOptions,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState

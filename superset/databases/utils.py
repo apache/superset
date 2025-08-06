@@ -163,10 +163,18 @@ def get_database_metadata(
         if tables and (len(tables) > 0) and (schema not in schemas):
             logger.info(f"Skipping schema {schema} not in schemas")
             continue
-        schema_info = get_schema_metadata(database, schema, tables=tables, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
+        schema_info = get_schema_metadata(
+            database,
+            schema,
+            tables=tables,
+            include_indexes=include_indexes,
+            top_k=top_k,
+            top_k_limit=top_k_limit,
+        )
         schemas_info.append(schema_info)
 
     return schemas_info
+
 
 def get_schema_metadata(
     database: Any,
@@ -186,16 +194,22 @@ def get_schema_metadata(
     db_tables = database.get_all_table_names_in_schema(catalog=catalog, schema=schema)
     relations = []
 
-    for (table, schema, catalog) in db_tables:
+    for table, schema, catalog in db_tables:
         if tables and len(tables) > 0 and f"{schema}.{table}" not in tables:
             logger.info(f"Skipping table {table} not in tables")
             continue
         t = Table(catalog=catalog, schema=schema, table=table)
-        table_metadata = get_table_relation_metadata(database, t, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
+        table_metadata = get_table_relation_metadata(
+            database,
+            t,
+            include_indexes=include_indexes,
+            top_k=top_k,
+            top_k_limit=top_k_limit,
+        )
         relations.append(table_metadata)
 
     views = database.get_all_view_names_in_schema(catalog=catalog, schema=schema)
-    for (view, schema, catalog) in views:
+    for view, schema, catalog in views:
         v = Table(catalog=catalog, schema=schema, table=view)
         view_metadata = get_view_relation_metadata(database, v)
         relations.append(view_metadata)
@@ -240,10 +254,17 @@ def get_table_relation_metadata(
     for col in columns:
         dtype = get_col_type(col)
         dtype = dtype.split("(")[0] if "(" in dtype else dtype
-        
+
         top_k_values = None
         if dtype in ["CHAR", "VARCHAR", "TEXT", "STRING", "NVARCHAR"]:
-            top_k_values = get_column_top_k_values(database, table, col["column_name"], table.schema, top_k=top_k, top_k_limit=top_k_limit)
+            top_k_values = get_column_top_k_values(
+                database,
+                table,
+                col["column_name"],
+                table.schema,
+                top_k=top_k,
+                top_k_limit=top_k_limit,
+            )
 
         column_metadata = {
             "column_name": col["column_name"],
@@ -266,7 +287,8 @@ def get_table_relation_metadata(
     if include_indexes:
         result["indexes"] = indexes
 
-    return result 
+    return result
+
 
 def get_column_top_k_values(
     database: Any,
@@ -290,7 +312,7 @@ def get_column_top_k_values(
 
     db_engine_spec = database.db_engine_spec
 
-    with database.get_raw_connection(catalog='', schema=schema) as conn:
+    with database.get_raw_connection(catalog="", schema=schema) as conn:
         cursor = conn.cursor()
         mutated_query = database.mutate_sql_based_on_config(query)
         try:
@@ -298,7 +320,9 @@ def get_column_top_k_values(
             db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor)
         except Exception as e:
-            logging.error(f"Unable to retrieve top_k values on {schema}/{table}, column {column_name}: {e}")
+            logging.error(
+                f"Unable to retrieve top_k values on {schema}/{table}, column {column_name}: {e}"
+            )
             return []
 
     return [value for (value, _) in result]
@@ -328,6 +352,7 @@ def get_foreign_keys_relation_data(
         ret.append(result)
     return ret
 
+
 def get_indexes_relation_data(
     database: Any,
     table: Table,
@@ -344,8 +369,9 @@ def get_indexes_relation_data(
     return ret
 
 
-from pydantic import BaseModel, Field
 from typing import List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class FKey(BaseModel):
@@ -353,9 +379,7 @@ class FKey(BaseModel):
     Contains information about a foreign key contraints.
     """
 
-    constraint_name: str = Field(
-        description="Name of the the foreign key constraint."
-    )
+    constraint_name: str = Field(description="Name of the the foreign key constraint.")
     column_name: str = Field(
         description="Name of the column to which the foreign key constraint is applied."
     )
@@ -368,42 +392,30 @@ class Index(BaseModel):
     """
     Contains information about an index.
     """
-    
-    index_name: str = Field(
-        description="Name of the index."
-    )
-    is_unique: bool = Field(
-        description="Whether the index is a unique constraint."
-    )
+
+    index_name: str = Field(description="Name of the index.")
+    is_unique: bool = Field(description="Whether the index is a unique constraint.")
     column_names: List[str] = Field(
         description="Name of the column(s) constituting the index."
     )
-    index_definition: Optional[str] = Field(
-        description="CREATE INDEX statement."
-    )
+    index_definition: Optional[str] = Field(description="CREATE INDEX statement.")
 
 
 class Column(BaseModel):
     """
     Contains information about a column.
     """
-    
-    column_name: str = Field(
-        description="Name of the column."
-    )
-    data_type: str = Field(
-        description="Column data type."
-    )
+
+    column_name: str = Field(description="Name of the column.")
+    data_type: str = Field(description="Column data type.")
     is_nullable: bool = Field(
         description="Whether the column has or not a NOT NULL constraint."
     )
     column_description: Optional[str] = Field(
-        default=None,
-        description="SQL comment associated with the column."
+        default=None, description="SQL comment associated with the column."
     )
     most_common_values: Optional[List] = Field(
-        default=None,
-        description="Most common values in the last many records."
+        default=None, description="Most common values in the last many records."
     )
 
 
@@ -412,27 +424,20 @@ class Relation(BaseModel):
     Contains information about a relation, which is a table, a view or a materialized view. This includes columns, indexes and foreign keys.
     """
 
-    rel_name: str = Field(
-        description="Name of the relation."
-    )
-    rel_kind: str = Field(
-        description="Type of relation, such as 'table' or 'view'."
-    )
+    rel_name: str = Field(description="Name of the relation.")
+    rel_kind: str = Field(description="Type of relation, such as 'table' or 'view'.")
     rel_description: Optional[str] = Field(
-        default=None,
-        description="SQL comment associated with the relation."
+        default=None, description="SQL comment associated with the relation."
     )
     indexes: Optional[List[Index]] = Field(
-        default = None,
-        description="Indexes associated with columns of the relation."
+        default=None, description="Indexes associated with columns of the relation."
     )
     foreign_keys: Optional[List[FKey]] = Field(
-        default = None,
-        description="Foreign keys associated with columns of the relation."
+        default=None,
+        description="Foreign keys associated with columns of the relation.",
     )
     columns: List[Column] = Field(
-        default = [],
-        description="Columns belonging to the relation."
+        default=[], description="Columns belonging to the relation."
     )
 
 
@@ -441,14 +446,10 @@ class Schema(BaseModel):
     Contains information about a schema, including its relations.
     """
 
-    schema_name: str = Field(
-        description="Name of the schema."
-    )
+    schema_name: str = Field(description="Name of the schema.")
     schema_description: Optional[str] = Field(
-        default=None,
-        description="SQL comment associated with the schema."
+        default=None, description="SQL comment associated with the schema."
     )
     relations: List[Relation] = Field(
-        default=[],
-        description="Relations belonging to the schema."
+        default=[], description="Relations belonging to the schema."
     )

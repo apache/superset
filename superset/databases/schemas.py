@@ -81,7 +81,7 @@ database_tables_query_schema = {
         "schema_name": {
             "oneOf": [
                 {"type": "string"},
-                {"type": "array", "items": {"type": "string"}}
+                {"type": "array", "items": {"type": "string"}},
             ]
         },
         "catalog_name": {"type": "string"},
@@ -483,23 +483,17 @@ class LlmContextOptionsSchema(Schema):
     refresh_interval = fields.Integer(
         required=False,
         allow_none=True,
-        metadata={
-            "description": "The interval in hours to refresh the LLM context"
-        },
+        metadata={"description": "The interval in hours to refresh the LLM context"},
     )
     schemas = fields.String(
         required=False,
         allow_none=True,
-        metadata={
-            "description": "A list of schemas to include in the LLM context"
-        },
+        metadata={"description": "A list of schemas to include in the LLM context"},
     )
     include_indexes = fields.Boolean(
         required=False,
         allow_none=True,
-        metadata={
-            "description": "Whether to include indexes in the LLM context"
-        },
+        metadata={"description": "Whether to include indexes in the LLM context"},
     )
     top_k = fields.Integer(
         required=False,
@@ -1428,6 +1422,7 @@ class QualifiedSchemaSchema(Schema):
 
     Catalog can be ommited to fallback to default value.
     """
+
     schema = fields.String(
         required=True,
         metadata={"description": "The schema"},

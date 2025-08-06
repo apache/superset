@@ -1148,8 +1148,8 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         "check_for_expired_llm_context": {
             "task": "check_for_expired_llm_context",
-            "schedule": crontab(minute='*/5'),
-        }
+            "schedule": crontab(minute="*/5"),
+        },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
         #     "task": "prune_query",

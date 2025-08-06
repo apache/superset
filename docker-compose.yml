@@ -261,7 +261,7 @@ services:
     volumes: *superset-volumes
     healthcheck:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
-  
+
   celery-flower:
     build:
       <<: *common-build

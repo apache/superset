@@ -386,7 +386,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     @property
     def llm_available(self) -> bool:
         c = self.llm_connection
-        return bool(c.provider) and bool(c.model) and bool(c.api_key) and bool(c.enabled)
+        return (
+            bool(c.provider) and bool(c.model) and bool(c.api_key) and bool(c.enabled)
+        )
 
     @property
     def llm_connection(self) -> LlmConnection:
@@ -1284,7 +1286,9 @@ class LlmConnection(Model, AuditMixinNullable):
     provider = Column(String(255), nullable=False)
     model = Column(String(255), nullable=False)
     api_key = Column(Text, nullable=True)
-    database = relationship("Database", backref=backref("llm_connection", uselist=False), uselist=False)
+    database = relationship(
+        "Database", backref=backref("llm_connection", uselist=False), uselist=False
+    )
 
 
 class LlmContextOptions(Model, AuditMixinNullable):
@@ -1297,4 +1301,6 @@ class LlmContextOptions(Model, AuditMixinNullable):
     top_k = Column(Integer, default=10)
     top_k_limit = Column(Integer, default=10000)
     instructions = Column(utils.MediumText(), nullable=True)
-    database = relationship("Database", backref=backref("llm_context_options", uselist=False))
+    database = relationship(
+        "Database", backref=backref("llm_context_options", uselist=False)
+    )

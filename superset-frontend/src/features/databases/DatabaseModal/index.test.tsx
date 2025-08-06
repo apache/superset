@@ -734,7 +734,7 @@ describe('DatabaseModal', () => {
       // <SSHTunnelForm> - Basic tab's SSH Tunnel Form
       const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
       userEvent.click(SSHTunnelingToggle);
-    
+
       const SSHTunnelServerAddressInput = await screen.findByTestId(
         'ssh-tunnel-server_address-input',
       );
@@ -1716,19 +1716,14 @@ describe('DatabaseModal', () => {
     it('enters step 2 of 2 when proper database is selected', async () => {
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
-    it('enters step 2 of 2 when proper database is selected', async () => {
-      setup({ dbEngine: 'Google Sheets' });
-      const step2of2text = await screen.findByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
     it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
-      setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
-      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
       userEvent.click(screen.getByTestId('security-label-test'));

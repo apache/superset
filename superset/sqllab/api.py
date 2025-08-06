@@ -18,7 +18,6 @@ import logging
 from typing import Any, cast, Optional
 from urllib import parse
 
-from celery.result import AsyncResult
 from flask import request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -50,12 +49,12 @@ from superset.sqllab.schemas import (
     EstimateQueryCostSchema,
     ExecutePayloadSchema,
     FormatQueryPayloadSchema,
-    QueryExecutionResponseSchema,
-    sql_lab_get_results_schema,
-    sql_lab_get_assistant_status_schema,
-    SQLLabBootstrapSchema,
-    GenerateSqlSchema,
     GenerateDbContextSchema,
+    GenerateSqlSchema,
+    QueryExecutionResponseSchema,
+    sql_lab_get_assistant_status_schema,
+    sql_lab_get_results_schema,
+    SQLLabBootstrapSchema,
 )
 from superset.sqllab.sql_json_executer import (
     ASynchronousSqlJsonExecutor,
@@ -430,8 +429,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".generate_sql",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate_sql",
         log_to_statsd=False,
     )
     def generate_sql_with_ai(self) -> FlaskResponse:
@@ -469,9 +467,13 @@ class SqlLabRestApi(BaseSupersetApi):
         logging.info(f"User prompt: {params['user_prompt']}")
         logging.info(f"Prior context: {params.get('prior_context')}")
         logging.info(f"Schemas: {params.get('schemas')}")
-        generated = dispatcher.generate_sql(params["database_id"], params["user_prompt"], params.get("prior_context"), params.get("schemas"))
+        generated = dispatcher.generate_sql(
+            params["database_id"],
+            params["user_prompt"],
+            params.get("prior_context"),
+            params.get("schemas"),
+        )
         return json_success(json.dumps({"sql": generated}), 200)
-
 
     @expose("/generate_db_context/", methods=("POST",))
     @protect()
@@ -525,33 +527,33 @@ class SqlLabRestApi(BaseSupersetApi):
     )
     def db_context_status(self, **kwargs: Any) -> FlaskResponse:
         """Get the status of the AI assistant.
-          ---
-          get:
-            summary: Get the status of the AI assistant.
-            parameters:
-            - in: query
-              name: q
+        ---
+        get:
+          summary: Get the status of the AI assistant.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/sql_lab_get_assistant_status_schema'
+          responses:
+            200:
+              description: Current state of the AI assistant
               content:
                 application/json:
                   schema:
-                    $ref: '#/components/schemas/sql_lab_get_assistant_status_schema'
-            responses:
-              200:
-                description: Current state of the AI assistant
-                content:
-                  application/json:
-                    schema:
-                      $ref: '#/components/schemas/AiAssistantStatusResponseSchema'
-              400:
-                $ref: '#/components/responses/400'
-              401:
-                $ref: '#/components/responses/401'
-              403:
-                $ref: '#/components/responses/403'
-              410:
-                $ref: '#/components/responses/410'
-              500:
-                $ref: '#/components/responses/500'
+                    $ref: '#/components/schemas/AiAssistantStatusResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            410:
+              $ref: '#/components/responses/410'
+            500:
+              $ref: '#/components/responses/500'
         """
         params = kwargs["rison"]
         pk = params.get("pk")

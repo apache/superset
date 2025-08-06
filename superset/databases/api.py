@@ -32,6 +32,9 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
+from superset.commands.database.bulk_schema_tables import (
+    BulkSchemaTablesDatabaseCommand,
+)
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
@@ -54,7 +57,6 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
-from superset.commands.database.bulk_schema_tables import BulkSchemaTablesDatabaseCommand
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
@@ -94,8 +96,8 @@ from superset.databases.schemas import (
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
-    QualifiedTableSchema,
     QualifiedSchemaSchema,
+    QualifiedTableSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableExtraMetadataResponseSchema,
@@ -106,7 +108,7 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
-from superset.databases.utils import get_table_metadata, get_database_metadata
+from superset.databases.utils import get_database_metadata, get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -269,7 +271,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "uuid",
         "llm_available",
     ]
-    search_filters = { "allow_file_upload": [DatabaseUploadEnabledFilter] }
+    search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
     allowed_rel_fields = {"changed_by", "created_by"}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
@@ -888,10 +890,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         schema_name = kwargs["rison"].get("schema_name", "")
 
         if type(schema_name) == str:
-          command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
+            command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
         elif type(schema_name) == list:
-          command = BulkSchemaTablesDatabaseCommand(pk, catalog_name, schema_name, force)
-        
+            command = BulkSchemaTablesDatabaseCommand(
+                pk, catalog_name, schema_name, force
+            )
+
         payload = command.run()
         return self.response(200, **payload)
 
@@ -901,7 +905,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".schema_tables",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schema_tables",
         log_to_statsd=False,
     )
     def schema_tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -923,12 +927,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
 
             def get_tables(pk, catalog, schema, force):
-                tables_result = TablesDatabaseCommand(pk, catalog, schema, force).run()["result"]
+                tables_result = TablesDatabaseCommand(pk, catalog, schema, force).run()[
+                    "result"
+                ]
                 return [result["value"] for result in tables_result]
 
             schema_tables = {
-                schema: get_tables(pk, catalog, schema, False)
-                for schema in schemas
+                schema: get_tables(pk, catalog, schema, False) for schema in schemas
             }
             return self.response(200, result=schema_tables)
         except OperationalError:
@@ -1072,47 +1077,46 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/llm_schema/", methods=["GET"])
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".llm_schema",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.llm_schema",
         log_to_statsd=False,
     )
     def llm_schema(self, pk: int) -> FlaskResponse:
         # Construct a JSON representation of the schema for the entire database and put it in this format:
         # {[
         #     {
-        #         schema_name  = 
-        #         schema_description = 
+        #         schema_name  =
+        #         schema_description =
         #         relations = [
         #             {
-        #                 rel_name = 
-        #                 rel_kind = 
-        #                 rel_description = 
+        #                 rel_name =
+        #                 rel_kind =
+        #                 rel_description =
         #                 indexes = [
         #                     {
-        #                         index_name = 
-        #                         is_unique = 
-        #                         column_names = 
-        #                         index_definition = 
+        #                         index_name =
+        #                         is_unique =
+        #                         column_names =
+        #                         index_definition =
         #                     },
-                            
+
         #                 ]
         #                 foregin_keys = [
         #                     {
-        #                         constraint_name = 
-        #                         column_name = 
-        #                         referenced_column = 
+        #                         constraint_name =
+        #                         column_name =
+        #                         referenced_column =
         #                     },
-                            
+
         #                 ]
         #                 columns = [
         #                     {
-        #                         column_name = 
-        #                         data_type = 
-        #                         is_nullable = 
-        #                         column_description = 
-        #                         most_common_values = 
+        #                         column_name =
+        #                         data_type =
+        #                         is_nullable =
+        #                         column_description =
+        #                         most_common_values =
         #                     },
-                            
+
         #                 ]
         #             },
         #         ]
@@ -1124,7 +1128,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = QualifiedSchemaSchema().load(request.args)
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
-        
+
         database = DatabaseDAO.find_by_id(pk)
         if not database:
             return self.response_404()
@@ -1135,10 +1139,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         top_k = context_settings.get("top_k", 10)
         top_k_limit = context_settings.get("top_k_limit", 10000)
 
-        schemas = get_database_metadata(database, parameters["catalog"], selected_schemas, include_indexes, top_k, top_k_limit)
+        schemas = get_database_metadata(
+            database,
+            parameters["catalog"],
+            selected_schemas,
+            include_indexes,
+            top_k,
+            top_k_limit,
+        )
         schema_response = None
 
         if parameters["minify"]:
+
             def reduce_json_token_count(data):
                 """
                 Reduces the token count of a JSON string.
@@ -1147,7 +1159,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
                 return data
 
-            schema_response = reduce_json_token_count(json.dumps([schema.model_dump() for schema in schemas]))
+            schema_response = reduce_json_token_count(
+                json.dumps([schema.model_dump() for schema in schemas])
+            )
         else:
             schema_response = [schema.model_dump() for schema in schemas]
 
@@ -2251,12 +2265,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".llm_defaults",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.llm_defaults",
         log_to_statsd=False,
     )
     def llm_defaults(self, pk: int) -> Response:
         return self.response(
             200,
-            **dispatcher.get_default_options(pk)  # type: ignore[operator]  # noqa: E501,
+            **dispatcher.get_default_options(pk),  # type: ignore[operator]  # noqa: E501,
         )
