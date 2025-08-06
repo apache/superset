@@ -179,10 +179,16 @@ class MssqlEngineSpec(BaseEngineSpec):
             has_order_by = getattr(qry, "_order_by", None) is not None
 
             if has_offset and not has_order_by:
-                # Add a default ORDER BY clause using a string literal
-                # that works with window functions
-                # This preserves data order without permutation
-                qry = qry.order_by(cast(literal("1"), String))
+                # Add a default ORDER BY clause using the first column
+                # If no columns are available, fall back to a string literal
+                columns = list(qry.selected_columns)
+                if columns:
+                    # Use the first actual column for ordering
+                    qry = qry.order_by(columns[0])
+                else:
+                    # Fallback to a string literal that works with window functions
+                    # This preserves data order without permutation
+                    qry = qry.order_by(cast(literal("1"), String))
         except (AttributeError, IndexError):
             # If we can't inspect the query safely, just return it unchanged
             pass
