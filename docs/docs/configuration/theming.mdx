@@ -62,12 +62,13 @@ THEME_DARK = {
     }
 }
 
-# Theme behavior settings
-THEME_SETTINGS = {
-    "enforced": False,          # If True, forces default theme always
-    "allowSwitching": True,     # Allow users to switch between themes
-    "allowOSPreference": True,  # Auto-detect system theme preference
-}
+# Enable UI-based theme administration for admins
+ENABLE_UI_THEME_ADMINISTRATION = True
+
+# To force a single theme on all users, set THEME_DARK = None
+# When both THEME_DEFAULT and THEME_DARK are defined:
+# - Users can manually switch between themes
+# - OS preference detection is automatically enabled
 ```
 
 ### Copying Themes from CRUD Interface

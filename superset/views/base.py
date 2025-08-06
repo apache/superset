@@ -56,6 +56,7 @@ from superset import (
     security_manager,
 )
 from superset.connectors.sqla import models
+from superset.daos.theme import ThemeDAO
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
@@ -63,19 +64,12 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.themes.utils import (
     is_valid_theme,
-    is_valid_theme_settings,
 )
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
-
-DEFAULT_THEME_SETTINGS = {
-    "enforced": False,
-    "allowSwitching": True,
-    "allowOSPreference": True,
-}
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -308,39 +302,65 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     """
     Returns the theme data to be sent to the client.
     """
-    # Get theme configs
-    default_theme_config = get_config_value("THEME_DEFAULT")
-    dark_theme_config = get_config_value("THEME_DARK")
-    theme_settings = get_config_value("THEME_SETTINGS")
+    # Check if UI theme administration is enabled
+    enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
+
+    if enable_ui_admin:
+        # Try to load themes from database
+        default_theme_model = ThemeDAO.find_system_default()
+        dark_theme_model = ThemeDAO.find_system_dark()
+
+        # Parse theme JSON from database models
+        default_theme = {}
+        if default_theme_model:
+            try:
+                default_theme = json.loads(default_theme_model.json_data)
+            except json.JSONDecodeError:
+                logger.error(
+                    f"Invalid JSON in system default theme {default_theme_model.id}"
+                )
+                # Fallback to config
+                default_theme = get_config_value("THEME_DEFAULT")
+        else:
+            # No system default theme in database, use config
+            default_theme = get_config_value("THEME_DEFAULT")
+
+        dark_theme = {}
+        if dark_theme_model:
+            try:
+                dark_theme = json.loads(dark_theme_model.json_data)
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON in system dark theme {dark_theme_model.id}")
+                # Fallback to config
+                dark_theme = get_config_value("THEME_DARK")
+        else:
+            # No system dark theme in database, use config
+            dark_theme = get_config_value("THEME_DARK")
+    else:
+        # UI theme administration disabled, use config-based themes
+        default_theme = get_config_value("THEME_DEFAULT")
+        dark_theme = get_config_value("THEME_DARK")
 
     # Validate theme configurations
-    default_theme = default_theme_config
     if not is_valid_theme(default_theme):
         logger.warning(
-            "Invalid THEME_DEFAULT configuration: %s, using empty theme",
-            default_theme_config,
+            "Invalid default theme configuration: %s, using empty theme",
+            default_theme,
         )
         default_theme = {}
 
-    dark_theme = dark_theme_config
     if not is_valid_theme(dark_theme):
         logger.warning(
-            "Invalid THEME_DARK configuration: %s, using empty theme",
-            dark_theme_config,
+            "Invalid dark theme configuration: %s, using empty theme",
+            dark_theme,
         )
         dark_theme = {}
-
-    if not is_valid_theme_settings(theme_settings):
-        logger.warning(
-            "Invalid THEME_SETTINGS configuration: %s, using defaults", theme_settings
-        )
-        theme_settings = DEFAULT_THEME_SETTINGS
 
     return {
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
-            "settings": theme_settings,
+            "enableUiThemeAdministration": enable_ui_admin,
         }
     }
 

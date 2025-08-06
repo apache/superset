@@ -18,12 +18,11 @@
 
 import pytest
 
-from superset.themes.types import ThemeMode, ThemeSettingsKey
+from superset.themes.types import ThemeMode
 from superset.themes.utils import (
     _is_valid_algorithm,
     _is_valid_theme_mode,
     is_valid_theme,
-    is_valid_theme_settings,
 )
 
 
@@ -76,18 +75,3 @@ def test_is_valid_algorithm(algorithm, expected):
 )
 def test_is_valid_theme(theme, expected):
     assert is_valid_theme(theme) is expected
-
-
-@pytest.mark.parametrize(
-    "settings, expected",
-    [
-        ([], False),  # not a dict
-        ("string", False),
-        ({}, True),  # empty
-        ({key.value: True for key in ThemeSettingsKey}, True),
-        ({"enforced": True, "foo": False}, False),  # invalid key
-        ({"enforced": "yes"}, False),  # invalid value type
-    ],
-)
-def test_is_valid_theme_settings(settings, expected):
-    assert is_valid_theme_settings(settings) is expected

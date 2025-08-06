@@ -1,5 +1,3 @@
-import Owner from 'src/types/Owner';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,16 +16,24 @@ import Owner from 'src/types/Owner';
  * specific language governing permissions and limitations
  * under the License.
  */
-export type ThemeObject = {
-  id?: number;
-  uuid?: string;
-  is_system?: boolean;
-  is_system_default?: boolean;
-  is_system_dark?: boolean;
-  changed_on_delta_humanized?: string;
-  created_on?: string;
-  changed_by?: Owner;
-  created_by?: Owner;
-  json_data?: string;
-  theme_name: string;
-};
+import { SupersetClient } from '@superset-ui/core';
+
+export const setSystemDefaultTheme = (themeId: number) =>
+  SupersetClient.put({
+    endpoint: `/api/v1/theme/${themeId}/set_system_default`,
+  });
+
+export const setSystemDarkTheme = (themeId: number) =>
+  SupersetClient.put({
+    endpoint: `/api/v1/theme/${themeId}/set_system_dark`,
+  });
+
+export const unsetSystemDefaultTheme = () =>
+  SupersetClient.delete({
+    endpoint: `/api/v1/theme/unset_system_default`,
+  });
+
+export const unsetSystemDarkTheme = () =>
+  SupersetClient.delete({
+    endpoint: `/api/v1/theme/unset_system_dark`,
+  });

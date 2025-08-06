@@ -29,3 +29,59 @@ class ThemeDAO(BaseDAO[Theme]):
     def find_by_uuid(cls, uuid: str) -> Optional[Theme]:
         """Find theme by UUID."""
         return db.session.query(Theme).filter(Theme.uuid == uuid).first()
+
+    @classmethod
+    def find_system_default(cls) -> Optional[Theme]:
+        """Find the current system default theme.
+
+        First looks for a theme with is_system_default=True.
+        If not found or multiple found, falls back to is_system=True theme
+        with name 'THEME_DEFAULT'.
+        """
+        system_defaults = (
+            db.session.query(Theme).filter(Theme.is_system_default.is_(True)).all()
+        )
+
+        if len(system_defaults) == 1:
+            return system_defaults[0]
+
+        if len(system_defaults) > 1:
+            logger.warning(
+                f"Multiple system default themes found ({len(system_defaults)}), "
+                "falling back to config theme"
+            )
+
+        # Fallback to is_system=True theme with name 'THEME_DEFAULT'
+        return (
+            db.session.query(Theme)
+            .filter(Theme.is_system.is_(True), Theme.theme_name == "THEME_DEFAULT")
+            .first()
+        )
+
+    @classmethod
+    def find_system_dark(cls) -> Optional[Theme]:
+        """Find the current system dark theme.
+
+        First looks for a theme with is_system_dark=True.
+        If not found or multiple found, falls back to is_system=True theme
+        with name 'THEME_DARK'.
+        """
+        system_darks = (
+            db.session.query(Theme).filter(Theme.is_system_dark.is_(True)).all()
+        )
+
+        if len(system_darks) == 1:
+            return system_darks[0]
+
+        if len(system_darks) > 1:
+            logger.warning(
+                f"Multiple system dark themes found ({len(system_darks)}), "
+                "falling back to config theme"
+            )
+
+        # Fallback to is_system=True theme with name 'THEME_DARK'
+        return (
+            db.session.query(Theme)
+            .filter(Theme.is_system.is_(True), Theme.theme_name == "THEME_DARK")
+            .first()
+        )
