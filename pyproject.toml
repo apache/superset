@@ -45,7 +45,7 @@ dependencies = [
     "cron-descriptor",
     "cryptography>=42.0.4, <45.0.0",
     "deprecation>=2.1.0, <2.2.0",
-    "flask>=2.2.5, <4.0.0",
+    "flask>=2.2.5, <3.0.0",
     "flask-appbuilder==5.0.0a9",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",

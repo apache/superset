@@ -178,7 +178,7 @@ et-xmlfile==2.0.0
     #   openpyxl
 filelock==3.12.2
     # via virtualenv
-flask==3.1.1
+flask==2.3.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -199,7 +199,7 @@ flask-appbuilder==5.0.0a9
     # via
     #   -c requirements/base.txt
     #   apache-superset
-flask-babel==4.0.0
+flask-babel==3.1.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
