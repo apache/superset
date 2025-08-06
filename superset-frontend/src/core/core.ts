@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType, sqlLab as sqlLabType } from '@apache-superset/core';
+import type {
+  core as coreType,
+  sqlLab as sqlLabType,
+} from '@apache-superset/core';
 import { getExtensionsContextValue } from '../extensions/ExtensionsContextUtils';
 
 export class Column implements coreType.Column {

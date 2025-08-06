@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { core } from '@apache-superset/core';
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
-import { Disposable } from '.';
 
 export function createActionListener<V, S>(
   predicate: AnyListenerPredicate<S>,
   listener: (v: V) => void,
   valueParser: (action: AnyAction, state: RootState) => V,
   thisArgs?: any,
-): Disposable {
+): core.Disposable {
   const boundListener = thisArgs ? listener.bind(thisArgs) : listener;
 
   const unsubscribe = listenerMiddleware.startListening({

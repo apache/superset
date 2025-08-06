@@ -97,13 +97,12 @@ const UploadModal = ({ show, onHide, onUploadSuccess }: UploadProps) => {
       primaryButtonLoading={isUploading}
       onHandledPrimaryAction={onUpload}
       onHide={handleHide}
-      width="500px"
+      width="550px"
       height="100px"
       primaryButtonName="Upload"
-      centered
       show={show}
       title={t('Upload Extension')}
-      destroyOnClose
+      destroyOnHidden
     >
       <Upload
         name="modelFile"

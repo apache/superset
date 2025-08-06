@@ -17,14 +17,8 @@
  * under the License.
  */
 /**
- * Namespace for authentication-related utilities and functions.
- * Provides methods to handle authentication mechanisms such as CSRF tokens.
+ * Retrieves the CSRF token used for securing requests against cross-site request forgery attacks.
+ *
+ * @returns The CSRF token as a string, or undefined if not available.
  */
-export declare namespace authentication {
-  /**
-   * Retrieves the CSRF token used for securing requests against cross-site request forgery attacks.
-   *
-   * @returns The CSRF token as a string, or undefined if not available.
-   */
-  export function getCSRFToken(): Promise<string | undefined>;
-}
+export declare function getCSRFToken(): Promise<string | undefined>;

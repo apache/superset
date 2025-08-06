@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extensions as extensionsType } from '@apache-superset/core';
+import type { extensions as extensionsType } from '@apache-superset/core';
 
 const getExtension: typeof extensionsType.getExtension = id => undefined;
 

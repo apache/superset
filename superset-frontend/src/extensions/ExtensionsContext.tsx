@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   createContext,
   useContext,
   useState,
   ReactElement,
   useEffect,
+  useMemo,
 } from 'react';
 import { setExtensionsContextValue } from './ExtensionsContextUtils';
 
@@ -54,10 +55,13 @@ export const ExtensionsProvider: React.FC = ({ children }) => {
     });
   };
 
+  const contextValue = useMemo(
+    () => ({ viewProviders, registerViewProvider, unregisterViewProvider }),
+    [viewProviders],
+  );
+
   return (
-    <ExtensionsContext.Provider
-      value={{ viewProviders, registerViewProvider, unregisterViewProvider }}
-    >
+    <ExtensionsContext.Provider value={contextValue}>
       {children}
     </ExtensionsContext.Provider>
   );

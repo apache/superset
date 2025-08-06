@@ -19,8 +19,7 @@
 import { Event, Extension } from './core';
 
 /**
- * Namespace for dealing with installed extensions. Extensions are represented
- * by an {@link Extension}-interface which enables reflection on them.
+ * Extensions are represented by an {@link Extension}-interface which enables reflection on them.
  *
  * Extension writers can provide APIs to other extensions by returning their API public
  * surface from the `activate`-call.
@@ -40,33 +39,34 @@ import { Event, Extension } from './core';
  * }
  * ```
  * When depending on the API of another extension add an `extensionDependencies`-entry
- * to `package.json`, and use the {@link extensions.getExtension getExtension}-function
+ * to `package.json`, and use the {@link getExtension getExtension}-function
  * and the {@link Extension.exports exports}-property, like below:
  *
  * ```javascript
- * let mathExt = extensions.getExtension('genius.math');
+ * let mathExt = getExtension('genius.math');
  * let importedApi = mathExt.exports;
  *
  * console.log(importedApi.mul(42, 1));
  * ```
  */
-export declare namespace extensions {
-  /**
-   * Get an extension by its full identifier in the form of: `publisher.name`.
-   *
-   * @param extensionId An extension identifier.
-   * @returns An extension or `undefined`.
-   */
-  export function getExtension(extensionId: string): Extension | undefined;
 
-  /**
-   * All extensions currently known to the system.
-   */
-  export const all: readonly Extension[];
+/**
+ * Get an extension by its full identifier in the form of: `publisher.name`.
+ *
+ * @param extensionId An extension identifier.
+ * @returns An extension or `undefined`.
+ */
+export declare function getExtension(
+  extensionId: string,
+): Extension | undefined;
 
-  /**
-   * An event which fires when `extensions.all` changes. This can happen when extensions are
-   * installed, uninstalled, enabled or disabled.
-   */
-  export const onDidChange: Event<void>;
-}
+/**
+ * All extensions currently known to the system.
+ */
+export declare const all: readonly Extension[];
+
+/**
+ * An event which fires when `all` changes. This can happen when extensions are
+ * installed, uninstalled, enabled or disabled.
+ */
+export declare const onDidChange: Event<void>;

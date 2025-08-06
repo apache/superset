@@ -23,6 +23,7 @@ import {
   ConfirmStatusChange,
   Tooltip,
   Icons,
+  Popconfirm,
 } from '@superset-ui/core/components';
 import {
   ListView,
@@ -33,7 +34,6 @@ import {
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonModal } from 'src/components/JsonModal';
-import { Popconfirm } from 'antd';
 import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 import ExtensionsManager from './ExtensionsManager';
 import UploadModal from './UploadModal';

@@ -22,12 +22,7 @@ import {
   isFeatureEnabled,
   logging,
 } from '@superset-ui/core';
-import {
-  CommandContribution,
-  MenuContribution,
-  ViewContribution,
-  core,
-} from '@apache-superset/core';
+import type { contributions, core } from '@apache-superset/core';
 import rison from 'rison';
 import { ExtensionContext } from '../core/core';
 
@@ -41,14 +36,16 @@ class ExtensionsManager {
   private extensionContributions: Map<
     string,
     {
-      menus?: Record<string, MenuContribution>;
-      views?: Record<string, ViewContribution[]>;
-      commands?: CommandContribution[];
+      menus?: Record<string, contributions.MenuContribution>;
+      views?: Record<string, contributions.ViewContribution[]>;
+      commands?: contributions.CommandContribution[];
     }
   > = new Map();
 
   // eslint-disable-next-line no-useless-constructor
-  private constructor() {}
+  private constructor() {
+    // Private constructor for singleton pattern
+  }
 
   /**
    * Singleton instance getter.
@@ -98,13 +95,14 @@ class ExtensionsManager {
    * @param extension The extension to initialize.
    */
   public async initializeExtension(extension: core.Extension) {
+    let loadedExtension = extension;
     if (extension.remoteEntry) {
-      extension = await this.loadModule(extension);
-      if (extension.enabled) {
-        await this.enableExtension(extension);
+      loadedExtension = await this.loadModule(extension);
+      if (loadedExtension.enabled) {
+        await this.enableExtension(loadedExtension);
       }
     }
-    this.extensionIndex.set(extension.id, extension);
+    this.extensionIndex.set(loadedExtension.id, loadedExtension);
   }
 
   /**
@@ -125,11 +123,12 @@ class ExtensionsManager {
       this.indexContributions(extension);
 
       if (!extension.enabled) {
-        extension.enabled = true;
+        const updatedExtension = { ...extension, enabled: true };
+        this.extensionIndex.set(updatedExtension.id, updatedExtension);
         await SupersetClient.put({
           endpoint: `/api/v1/extensions/${extension.id}`,
           jsonPayload: {
-            enabled: extension.enabled,
+            enabled: true,
           },
         });
       }
@@ -146,6 +145,7 @@ class ExtensionsManager {
       return this.enableExtension(extension);
     }
     logging.warn(`Extension with id ${id} not found`);
+    return Promise.resolve();
   }
 
   private deactivateAndCleanupExtension(extension: core.Extension) {
@@ -163,17 +163,19 @@ class ExtensionsManager {
     if (extension) {
       this.deactivateAndCleanupExtension(extension);
       if (extension.enabled) {
-        extension.enabled = false;
+        const updatedExtension = { ...extension, enabled: false };
+        this.extensionIndex.set(updatedExtension.id, updatedExtension);
         await SupersetClient.put({
           endpoint: `/api/v1/extensions/${extension.id}`,
           jsonPayload: {
-            enabled: extension.enabled,
+            enabled: false,
           },
         });
       }
     } else {
       logging.warn(`Extension with id ${id} not found`);
     }
+    return Promise.resolve();
   }
 
   /**
@@ -307,8 +309,10 @@ class ExtensionsManager {
    * @param key The key of the menu contributions.
    * @returns The menu contributions matching the key, or undefined if not found.
    */
-  public getMenuContributions(key: string): MenuContribution | undefined {
-    const merged: MenuContribution = {
+  public getMenuContributions(
+    key: string,
+  ): contributions.MenuContribution | undefined {
+    const merged: contributions.MenuContribution = {
       context: [],
       primary: [],
       secondary: [],
@@ -336,8 +340,10 @@ class ExtensionsManager {
    * @param key The key of the view contributions.
    * @returns An array of view contributions matching the key, or undefined if not found.
    */
-  public getViewContributions(key: string): ViewContribution[] | undefined {
-    let result: ViewContribution[] = [];
+  public getViewContributions(
+    key: string,
+  ): contributions.ViewContribution[] | undefined {
+    let result: contributions.ViewContribution[] = [];
     for (const ext of this.extensionContributions.values()) {
       if (ext.views && ext.views[key]) {
         result = result.concat(ext.views[key]);
@@ -350,8 +356,8 @@ class ExtensionsManager {
    * Retrieves all command contributions.
    * @returns An array of all command contributions.
    */
-  public getCommandContributions(): CommandContribution[] {
-    const result: CommandContribution[] = [];
+  public getCommandContributions(): contributions.CommandContribution[] {
+    const result: contributions.CommandContribution[] = [];
     for (const ext of this.extensionContributions.values()) {
       if (ext.commands) {
         result.push(...ext.commands);
@@ -365,7 +371,9 @@ class ExtensionsManager {
    * @param key The key of the command contribution.
    * @returns The command contribution matching the key, or undefined if not found.
    */
-  public getCommandContribution(key: string): CommandContribution | undefined {
+  public getCommandContribution(
+    key: string,
+  ): contributions.CommandContribution | undefined {
     for (const ext of this.extensionContributions.values()) {
       if (ext.commands) {
         const found = ext.commands.find(cmd => cmd.command === key);

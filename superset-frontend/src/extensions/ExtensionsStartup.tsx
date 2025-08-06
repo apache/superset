@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
+// eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
 import {
   authentication,

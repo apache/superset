@@ -18,114 +18,112 @@
  */
 import { Event, Database } from './core';
 
-export declare namespace sqlLab {
-  export interface Editor {
-    /**
-     * The content of the editor.
-     */
-    content: string;
-
-    /**
-     * The database id associated with the editor.
-     */
-    databaseId: number;
-
-    /**
-     * The catalog name associated with the editor.
-     */
-    catalog: string | null;
-
-    /**
-     * The schema name associated with the editor.
-     */
-    schema: string;
-
-    /**
-     * The table name associated with the editor.
-     */
-    table: string | null; // TODO: Revisit if we actually need the table property
-  }
-
-  export interface Panel {
-    /**
-     * The unique identifier of the panel.
-     */
-    id: string;
-  }
-
-  export interface Tab {
-    /**
-     * The unique identifier of the tab.
-     */
-    id: string;
-
-    /**
-     * The title of the tab.
-     */
-    title: string;
-
-    /**
-     * The editor of the tab.
-     */
-    editor: Editor;
-
-    /**
-     * The panels associated with the tab.
-     */
-    panels: Panel[];
-  }
+export interface Editor {
+  /**
+   * The content of the editor.
+   */
+  content: string;
 
   /**
-   * Events and functions that are available in the context of a tab.
+   * The database id associated with the editor.
    */
-
-  export const getCurrentTab: () => Tab | undefined;
-
-  export const onDidChangeEditorContent: Event<string>;
-
-  export const onDidChangeEditorDatabase: Event<number>;
-
-  export const onDidChangeEditorCatalog: Event<string>;
-
-  export const onDidChangeEditorSchema: Event<string>;
-
-  export const onDidChangeEditorTable: Event<string>;
-
-  export const onDidClosePanel: Event<Panel>;
-
-  export const onDidChangeActivePanel: Event<Panel>;
-
-  export const onDidChangeTabTitle: Event<string>;
-
-  export const onDidQueryRun: Event<Editor>;
-
-  export const onDidQueryStop: Event<Editor>;
-
-  // TODO: Check what's the state object for onDidQueryFail and onDidQuerySuccess.
-  // Now it's a string, but it should be an object with
-  // properties like queryId, status, etc.
-
-  export const onDidQueryFail: Event<string>;
-
-  export const onDidQuerySuccess: Event<string>;
+  databaseId: number;
 
   /**
-   * Events and functions that are globally available in the context of SQL Lab.
+   * The catalog name associated with the editor.
    */
+  catalog: string | null;
 
-  export const getDatabases: () => Database[];
+  /**
+   * The schema name associated with the editor.
+   */
+  schema: string;
 
-  export const getTabs: () => Tab[];
-
-  export const onDidCloseTab: Event<Tab>;
-
-  export const onDidChangeActiveTab: Event<Tab>;
-
-  export const onDidRefreshDatabases: Event<void>;
-
-  export const onDidRefreshCatalogs: Event<void>;
-
-  export const onDidRefreshSchemas: Event<void>;
-
-  export const onDidRefreshTables: Event<void>;
+  /**
+   * The table name associated with the editor.
+   */
+  table: string | null; // TODO: Revisit if we actually need the table property
 }
+
+export interface Panel {
+  /**
+   * The unique identifier of the panel.
+   */
+  id: string;
+}
+
+export interface Tab {
+  /**
+   * The unique identifier of the tab.
+   */
+  id: string;
+
+  /**
+   * The title of the tab.
+   */
+  title: string;
+
+  /**
+   * The editor of the tab.
+   */
+  editor: Editor;
+
+  /**
+   * The panels associated with the tab.
+   */
+  panels: Panel[];
+}
+
+/**
+ * Events and functions that are available in the context of a tab.
+ */
+
+export declare const getCurrentTab: () => Tab | undefined;
+
+export declare const onDidChangeEditorContent: Event<string>;
+
+export declare const onDidChangeEditorDatabase: Event<number>;
+
+export declare const onDidChangeEditorCatalog: Event<string>;
+
+export declare const onDidChangeEditorSchema: Event<string>;
+
+export declare const onDidChangeEditorTable: Event<string>;
+
+export declare const onDidClosePanel: Event<Panel>;
+
+export declare const onDidChangeActivePanel: Event<Panel>;
+
+export declare const onDidChangeTabTitle: Event<string>;
+
+export declare const onDidQueryRun: Event<Editor>;
+
+export declare const onDidQueryStop: Event<Editor>;
+
+// TODO: Check what's the state object for onDidQueryFail and onDidQuerySuccess.
+// Now it's a string, but it should be an object with
+// properties like queryId, status, etc.
+
+export declare const onDidQueryFail: Event<string>;
+
+export declare const onDidQuerySuccess: Event<string>;
+
+/**
+ * Events and functions that are globally available in the context of SQL Lab.
+ */
+
+export declare const getDatabases: () => Database[];
+
+export declare const getTabs: () => Tab[];
+
+export declare const onDidCloseTab: Event<Tab>;
+
+export declare const onDidChangeActiveTab: Event<Tab>;
+
+export declare const onDidRefreshDatabases: Event<void>;
+
+export declare const onDidRefreshCatalogs: Event<void>;
+
+export declare const onDidRefreshSchemas: Event<void>;
+
+export declare const onDidRefreshTables: Event<void>;

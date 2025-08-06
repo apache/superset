@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sqlLab as sqlLabType } from '@apache-superset/core';
+import type { sqlLab as sqlLabType } from '@apache-superset/core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,

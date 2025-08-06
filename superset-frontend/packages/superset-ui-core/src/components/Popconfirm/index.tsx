@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * as authentication from './authentication';
-export * as commands from './commands';
-export * as contributions from './contributions';
-export * as core from './core';
-export * as environment from './environment';
-export * as extensions from './extensions';
-export * as sqlLab from './sqlLab';
+import { Popconfirm as AntdPopconfirm } from 'antd';
+import { PopconfirmProps as AntdPopconfirmProps } from 'antd/es/popconfirm';
+
+export interface PopconfirmProps extends AntdPopconfirmProps {}
+
+export const Popconfirm = (props: PopconfirmProps) => (
+  <AntdPopconfirm {...props} />
+);
