@@ -71,7 +71,7 @@ dependencies = [
     "nh3>=0.2.11, <0.3",
     "numpy>1.23.5, <2.3",
     "packaging",
-    "Pillow==10.3.0",
+    "Pillow==11.3.0",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
     "pandas[excel]>=2.0.3, <2.1",
@@ -182,7 +182,7 @@ tdengine = [
     "taos-ws-py>=0.3.8"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
-thumbnails = ["Pillow>=10.0.1, <11"]
+thumbnails = ["Pillow>=10.0.1, <12"]
 vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
