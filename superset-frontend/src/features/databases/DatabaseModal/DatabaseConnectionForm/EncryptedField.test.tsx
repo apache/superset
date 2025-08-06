@@ -59,7 +59,7 @@ describe('EncryptedField', () => {
   // Helper function to assert onParametersChange calls
   const expectParametersChange = (
     changeMethods: ReturnType<typeof createMockChangeMethods>,
-    fieldName: string | undefined,
+    fieldName: string | null | undefined,
     value: string,
     callIndex = 0,
   ) => {
@@ -122,16 +122,16 @@ describe('EncryptedField', () => {
     });
 
     it.each([
-      ['null engine', null],
-      ['undefined engine', undefined],
-      ['empty string engine', ''],
-    ])('handles %s gracefully', (_description, engine) => {
+      ['null engine', null, null],
+      ['undefined engine', undefined, undefined],
+      ['empty string engine', '', ''],
+    ])('handles %s gracefully', (_description, engine, expectedName) => {
       const mockDb = createMockDb(engine);
       const props = { ...defaultProps, db: mockDb };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      expectParametersChange(props.changeMethods, undefined, '');
+      expectParametersChange(props.changeMethods, expectedName, '');
       expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
     });
   });
@@ -225,12 +225,13 @@ describe('EncryptedField', () => {
 
       render(<EncryptedField {...props} />);
 
+      // When editNewDb is true and isEditMode is false, both select and textarea are shown
       expect(
-        screen.queryByText(
+        screen.getByText(
           'How do you want to enter service account credentials?',
         ),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
   });

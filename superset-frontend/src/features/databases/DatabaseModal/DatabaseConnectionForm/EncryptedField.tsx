@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { SupersetTheme, css, t } from '@superset-ui/core';
 import {
   Input,
@@ -66,77 +66,13 @@ export const EncryptedField = ({
       ? JSON.stringify(paramValue)
       : paramValue;
 
-  const isMountedRef = useRef(true);
-
-  useEffect(
-    () => () => {
-      isMountedRef.current = false;
-    },
-    [],
-  );
-
-  const readTextFile = useCallback(
-    (file: File): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (isMountedRef.current) {
-            resolve(reader.result as string);
-          }
-        };
-        reader.onerror = error => {
-          if (isMountedRef.current) {
-            reject(error);
-          }
-        };
-        reader.readAsText(file);
-      }),
-    [],
-  );
-
-  const handleRemove = useCallback(() => {
-    setFileList([]);
-    changeMethods.onParametersChange({
-      target: {
-        name: encryptedField,
-        value: '',
-      },
+  const readTextFile = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
     });
-    return true;
-  }, [changeMethods, encryptedField]);
-
-  const handleChange = useCallback(
-    async info => {
-      const file = info.fileList?.[0]?.originFileObj;
-      if (file) {
-        try {
-          const fileContent = await readTextFile(file);
-          changeMethods.onParametersChange({
-            target: {
-              type: null,
-              name: encryptedField,
-              value: fileContent,
-              checked: false,
-            },
-          });
-          setFileList(info.fileList);
-        } catch (error) {
-          setFileList([]);
-          addDangerToast(
-            t('Unable to read the file, please refresh and try again.'),
-          );
-        }
-      } else {
-        changeMethods.onParametersChange({
-          target: {
-            name: encryptedField,
-            value: '',
-          },
-        });
-      }
-    },
-    [changeMethods, encryptedField, readTextFile, addDangerToast],
-  );
 
   useEffect(() => {
     changeMethods.onParametersChange({
@@ -145,7 +81,7 @@ export const EncryptedField = ({
         value: '',
       },
     });
-  }, [changeMethods, encryptedField]);
+  }, []);
 
   return (
     <CredentialInfoForm>
@@ -204,8 +140,47 @@ export const EncryptedField = ({
               fileList={fileList}
               // avoid automatic upload
               beforeUpload={() => false}
-              onRemove={handleRemove}
-              onChange={handleChange}
+              onRemove={() => {
+                setFileList([]);
+                changeMethods.onParametersChange({
+                  target: {
+                    name: encryptedField,
+                    value: '',
+                  },
+                });
+                return true;
+              }}
+              onChange={async info => {
+                const file = info.fileList?.[0]?.originFileObj;
+                if (file) {
+                  try {
+                    const fileContent = await readTextFile(file);
+                    changeMethods.onParametersChange({
+                      target: {
+                        type: null,
+                        name: encryptedField,
+                        value: fileContent,
+                        checked: false,
+                      },
+                    });
+                    setFileList(info.fileList);
+                  } catch (error) {
+                    setFileList([]);
+                    addDangerToast(
+                      t(
+                        'Unable to read the file, please refresh and try again.',
+                      ),
+                    );
+                  }
+                } else {
+                  changeMethods.onParametersChange({
+                    target: {
+                      name: encryptedField,
+                      value: '',
+                    },
+                  });
+                }
+              }}
             >
               <Button icon={<Icons.LinkOutlined iconSize="m" />}>
                 {t('Upload credentials')}
