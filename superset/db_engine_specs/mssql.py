@@ -23,7 +23,7 @@ from re import Pattern
 from typing import Any, Optional
 
 from flask_babel import gettext as __
-from sqlalchemy import literal, types
+from sqlalchemy import cast, literal, String, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 from sqlalchemy.sql import Select
 
@@ -179,9 +179,11 @@ class MssqlEngineSpec(BaseEngineSpec):
             has_order_by = getattr(qry, "_order_by", None) is not None
 
             if has_offset and not has_order_by:
-                # Add a default ORDER BY clause using literal(1) for consistent ordering
-                qry = qry.order_by(literal(1))
-        except AttributeError:
+                # Add a default ORDER BY clause using a string literal
+                # that works with window functions
+                # This preserves data order without permutation
+                qry = qry.order_by(cast(literal("1"), String))
+        except (AttributeError, IndexError):
             # If we can't inspect the query safely, just return it unchanged
             pass
 
