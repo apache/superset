@@ -112,7 +112,11 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     """
     Simple test querying a table.
     """
-    mocker.patch("superset.security_manager")
+    # Mock the security_manager.raise_for_access to allow access
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
 
     # Mock Flask g.user for security checks
     # In Python 3.8+, we can't directly patch flask.g
@@ -148,7 +152,12 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
     """
     # Note: We don't patch flask.current_app.config directly anymore
     # The @with_config decorator handles the config patching
-    mocker.patch("superset.security_manager")
+
+    # Mock the security_manager.raise_for_access to allow access
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
 
     # Mock Flask g.user for security checks
     # In Python 3.8+, we can't directly patch flask.g
@@ -179,7 +188,11 @@ def test_superset_joins(
     """
     A test joining across databases.
     """
-    mocker.patch("superset.security_manager")
+    # Mock the security_manager.raise_for_access to allow access
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
 
     # Mock Flask g.user for security checks
     # In Python 3.8+, we can't directly patch flask.g
@@ -219,7 +232,11 @@ def test_dml(
 
     Test that we can update/delete data, only if DML is enabled.
     """
-    mocker.patch("superset.security_manager")
+    # Mock the security_manager.raise_for_access to allow access
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
 
     # Mock Flask g.user for security checks
     # In Python 3.8+, we can't directly patch flask.g
@@ -314,7 +331,11 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     """
     Test that DBs can be restricted.
     """
-    mocker.patch("superset.security_manager")
+    # Mock the security_manager.raise_for_access to allow access
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
 
     # Mock Flask g.user for security checks
     # In Python 3.8+, we can't directly patch flask.g
