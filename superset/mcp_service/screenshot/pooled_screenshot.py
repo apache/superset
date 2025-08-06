@@ -79,6 +79,13 @@ class PooledBaseScreenshot(BaseScreenshot):
         # Use pooled WebDriver
         with pool.get_driver(window_size, user.id) as driver:
             try:
+                # Clear any existing cookies to ensure clean authentication
+                try:
+                    driver.delete_all_cookies()
+                    logger.debug("Cleared all cookies from WebDriver")
+                except Exception as e:
+                    logger.warning(f"Failed to clear cookies: {e}")
+
                 # Authenticate the driver for this user
                 user_name = user.username if user else "None"
                 logger.debug(f"Authenticating WebDriver for user {user_name}")

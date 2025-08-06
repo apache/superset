@@ -54,6 +54,11 @@ else
     echo -e "${GREEN}✓ Frontend dependencies already installed${NC}"
 fi
 
+# Build frontend assets
+echo "Building frontend assets..."
+cd superset-frontend && npm run build && cd ..
+echo -e "${GREEN}✓ Frontend assets built${NC}"
+
 # Run MCP setup command
 echo "Running MCP setup..."
 superset mcp setup "$@"

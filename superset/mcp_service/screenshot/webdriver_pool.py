@@ -269,6 +269,8 @@ class WebDriverPool:
                             self._is_driver_valid(candidate)
                             and candidate.window_size == window_size
                         ):
+                            # Update user_id for the reused driver
+                            candidate.user_id = user_id
                             pooled_driver = candidate
                             break
                         else:
