@@ -195,7 +195,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==5.0.0a9
+flask-appbuilder==5.0.0a10
     # via
     #   -c requirements/base.txt
     #   apache-superset
