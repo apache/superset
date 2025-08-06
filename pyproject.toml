@@ -198,6 +198,7 @@ development = [
     "grpcio>=1.55.3",
     "openapi-spec-validator",
     "parameterized",
+    "pip",
     "pre-commit",
     "progress>=1.5,<2",
     "psutil",

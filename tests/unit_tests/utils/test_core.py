@@ -615,12 +615,19 @@ def test_get_query_source_from_request(
     referrer: str | None,
     expected: QuerySource | None,
     mocker: MockerFixture,
+    app_context: None,
 ) -> None:
     if referrer:
-        request_mock = mocker.patch("superset.utils.core.request")
-        request_mock.referrer = referrer
-
-    assert get_query_source_from_request() == expected
+        # Use has_request_context to mock request when not in a request context
+        with mocker.patch("flask.has_request_context", return_value=True):
+            request_mock = mocker.MagicMock()
+            request_mock.referrer = referrer
+            mocker.patch("superset.utils.core.request", request_mock)
+            assert get_query_source_from_request() == expected
+    else:
+        # When no referrer, test without request context
+        with mocker.patch("flask.has_request_context", return_value=False):
+            assert get_query_source_from_request() == expected
 
 
 @with_config({"USER_AGENT_FUNC": None})

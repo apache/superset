@@ -619,6 +619,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Superset extensions, which allow users to add custom functionality
     # to Superset without modifying the core codebase.
     "ENABLE_EXTENSIONS": False,
+    # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
+    # in addition to relative timeshifts (e.g., "1 day ago")
+    "DATE_RANGE_TIMESHIFTS_ENABLED": False,
 }
 
 # ------------------------------
@@ -1260,8 +1263,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
-    None | (Callable[[Database, models.User, str, str], str])
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
+    Callable[[Database, models.User, str, str], str]
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries

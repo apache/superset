@@ -230,7 +230,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
             original: { start_time },
@@ -253,7 +253,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
             original: { status, start_time, end_time },
@@ -282,7 +282,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -293,7 +293,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -331,7 +331,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },
@@ -354,7 +354,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
-        size: 'md',
+        size: 'sm',
         id: QueryObjectColumns.Rows,
       },
       {
@@ -385,12 +385,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </StyledCodeSyntaxHighlighter>
           </div>
         ),
+        size: 'xxl',
         id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        size: 'sm',
         Cell: ({
           row: {
             original: { id },
