@@ -936,7 +936,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             },
             className: [
               className,
-              value == null || (value instanceof DateWithFormatter && value.input == null) ? 'dt-is-null' : '',
+              value == null ||
+              (value instanceof DateWithFormatter && value.input == null)
+                ? 'dt-is-null'
+                : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
             tabIndex: 0,
