@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import SupersetClient from '@superset-ui/core/connection/SupersetClient';
+import fetchMock from 'fetch-mock';
 import {
   setSystemDefaultTheme,
   setSystemDarkTheme,
@@ -24,36 +24,31 @@ import {
   unsetSystemDarkTheme,
 } from './api';
 
-// Mock SupersetClient
-jest.mock('@superset-ui/core/connection/SupersetClient', () => ({
-  __esModule: true,
-  default: {
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-}));
-
 describe('Theme API', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    fetchMock.reset();
+  });
+
+  afterEach(() => {
+    fetchMock.restore();
   });
 
   describe('setSystemDefaultTheme', () => {
     it('should call the correct endpoint with theme id', async () => {
-      const mockResponse = { json: { id: 1, result: 'success' } };
-      (SupersetClient.put as jest.Mock).mockResolvedValue(mockResponse);
+      const mockResponse = { id: 1, result: 'success' };
+      fetchMock.put('glob:*/api/v1/theme/1/set_system_default', mockResponse);
 
-      const result = await setSystemDefaultTheme(1);
+      await setSystemDefaultTheme(1);
 
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: '/api/v1/theme/1/set_system_default',
-      });
-      expect(result).toEqual(mockResponse);
+      expect(fetchMock.called('glob:*/api/v1/theme/1/set_system_default')).toBe(
+        true,
+      );
     });
 
     it('should handle errors properly', async () => {
-      const error = new Error('API Error');
-      (SupersetClient.put as jest.Mock).mockRejectedValue(error);
+      fetchMock.put('glob:*/api/v1/theme/1/set_system_default', {
+        throws: new Error('API Error'),
+      });
 
       await expect(setSystemDefaultTheme(1)).rejects.toThrow('API Error');
     });
@@ -61,20 +56,20 @@ describe('Theme API', () => {
 
   describe('setSystemDarkTheme', () => {
     it('should call the correct endpoint with theme id', async () => {
-      const mockResponse = { json: { id: 2, result: 'success' } };
-      (SupersetClient.put as jest.Mock).mockResolvedValue(mockResponse);
+      const mockResponse = { id: 2, result: 'success' };
+      fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', mockResponse);
 
-      const result = await setSystemDarkTheme(2);
+      await setSystemDarkTheme(2);
 
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: '/api/v1/theme/2/set_system_dark',
-      });
-      expect(result).toEqual(mockResponse);
+      expect(fetchMock.called('glob:*/api/v1/theme/2/set_system_dark')).toBe(
+        true,
+      );
     });
 
     it('should handle errors properly', async () => {
-      const error = new Error('API Error');
-      (SupersetClient.put as jest.Mock).mockRejectedValue(error);
+      fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', {
+        throws: new Error('API Error'),
+      });
 
       await expect(setSystemDarkTheme(2)).rejects.toThrow('API Error');
     });
@@ -82,20 +77,23 @@ describe('Theme API', () => {
 
   describe('unsetSystemDefaultTheme', () => {
     it('should call the correct endpoint', async () => {
-      const mockResponse = { json: { result: 'success' } };
-      (SupersetClient.delete as jest.Mock).mockResolvedValue(mockResponse);
+      const mockResponse = { result: 'success' };
+      fetchMock.delete(
+        'glob:*/api/v1/theme/unset_system_default',
+        mockResponse,
+      );
 
-      const result = await unsetSystemDefaultTheme();
+      await unsetSystemDefaultTheme();
 
-      expect(SupersetClient.delete).toHaveBeenCalledWith({
-        endpoint: '/api/v1/theme/unset_system_default',
-      });
-      expect(result).toEqual(mockResponse);
+      expect(fetchMock.called('glob:*/api/v1/theme/unset_system_default')).toBe(
+        true,
+      );
     });
 
     it('should handle errors properly', async () => {
-      const error = new Error('API Error');
-      (SupersetClient.delete as jest.Mock).mockRejectedValue(error);
+      fetchMock.delete('glob:*/api/v1/theme/unset_system_default', {
+        throws: new Error('API Error'),
+      });
 
       await expect(unsetSystemDefaultTheme()).rejects.toThrow('API Error');
     });
@@ -103,20 +101,20 @@ describe('Theme API', () => {
 
   describe('unsetSystemDarkTheme', () => {
     it('should call the correct endpoint', async () => {
-      const mockResponse = { json: { result: 'success' } };
-      (SupersetClient.delete as jest.Mock).mockResolvedValue(mockResponse);
+      const mockResponse = { result: 'success' };
+      fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', mockResponse);
 
-      const result = await unsetSystemDarkTheme();
+      await unsetSystemDarkTheme();
 
-      expect(SupersetClient.delete).toHaveBeenCalledWith({
-        endpoint: '/api/v1/theme/unset_system_dark',
-      });
-      expect(result).toEqual(mockResponse);
+      expect(fetchMock.called('glob:*/api/v1/theme/unset_system_dark')).toBe(
+        true,
+      );
     });
 
     it('should handle errors properly', async () => {
-      const error = new Error('API Error');
-      (SupersetClient.delete as jest.Mock).mockRejectedValue(error);
+      fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', {
+        throws: new Error('API Error'),
+      });
 
       await expect(unsetSystemDarkTheme()).rejects.toThrow('API Error');
     });
