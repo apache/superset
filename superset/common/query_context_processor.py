@@ -456,7 +456,7 @@ class QueryContextProcessor:
             return f"{(outer_from_dttm - offset_date).days} days ago"
         return ""
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements # noqa: C901
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -586,17 +586,12 @@ class QueryContextProcessor:
                     }
                     query_object_clone.filter.append(new_temporal_filter)
 
-                    # Log for debugging
-                    logger.debug(
-                        f"Added temporal filter for date range offset: "
-                        f"col={temporal_col}, range={query_object_clone.from_dttm} : {query_object_clone.to_dttm}"
-                    )
                 else:
                     # This should rarely happen with proper fallbacks
                     raise QueryObjectValidationError(
                         _(
-                            "Unable to identify temporal column for date range time comparison. "
-                            "Please ensure your dataset has a properly configured time column."
+                            "Unable to identify temporal column for date range time comparison."  # noqa: E501
+                            "Please ensure your dataset has a properly configured time column."  # noqa: E501
                         )
                     )
 
@@ -624,7 +619,7 @@ class QueryContextProcessor:
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
                 else:
-                    # If it IS a datetime series, we still need to clear conflicting filters
+                    # If it IS a datetime series, we still need to clear conflicts
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
                     # For relative offsets with datetime series, ensure the temporal
@@ -684,7 +679,7 @@ class QueryContextProcessor:
             # to the subquery so we prevent data inconsistency due to missing records
             # in the dataframes when performing the join
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = config["ROW_LIMIT"]
+                query_object_clone_dct["row_limit"] = current_app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             if isinstance(self._qc_datasource, Query):
