@@ -22,7 +22,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 import dateutil
 from flask import current_app, g, has_request_context, request
@@ -39,7 +39,7 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
@@ -109,6 +109,7 @@ class ExtraCache:
         r"current_user_id\([^()]*\)|"
         r"current_username\([^()]*\)|"
         r"current_user_email\([^()]*\)|"
+        r"current_user_rls_rules\([^()]*\)|"
         r"current_user_roles\([^()]*\)|"
         r"cache_key_wrapper\([^()]*\)|"
         r"url_param\([^()]*\)"
@@ -118,12 +119,12 @@ class ExtraCache:
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        extra_cache_keys: Optional[list[Any]] = None,
-        applied_filters: Optional[list[str]] = None,
-        removed_filters: Optional[list[str]] = None,
-        database: Optional[Database] = None,
-        dialect: Optional[Dialect] = None,
-        table: Optional[SqlaTable] = None,
+        extra_cache_keys: list[Any] | None = None,
+        applied_filters: list[str] | None = None,
+        removed_filters: list[str] | None = None,
+        database: Database | None = None,
+        dialect: Dialect | None = None,
+        table: SqlaTable | None = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
@@ -132,7 +133,7 @@ class ExtraCache:
         self.dialect = dialect
         self.table = table
 
-    def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
+    def current_user_id(self, add_to_cache_keys: bool = True) -> int | None:
         """
         Return the user ID of the user who is currently logged in.
 
@@ -146,7 +147,7 @@ class ExtraCache:
             return user_id
         return None
 
-    def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
+    def current_username(self, add_to_cache_keys: bool = True) -> str | None:
         """
         Return the username of the user who is currently logged in.
 
@@ -160,7 +161,7 @@ class ExtraCache:
             return username
         return None
 
-    def current_user_email(self, add_to_cache_keys: bool = True) -> Optional[str]:
+    def current_user_email(self, add_to_cache_keys: bool = True) -> str | None:
         """
         Return the email address of the user who is currently logged in.
 
@@ -193,6 +194,31 @@ class ExtraCache:
         except Exception:  # pylint: disable=broad-except
             return None
 
+    def current_user_rls_rules(self) -> list[str] | None:
+        """
+        Return the row level security rules applied to the current user and dataset.
+        """
+        if not self.table:
+            return None
+
+        rls_rules = (
+            sorted(
+                [
+                    rule["clause"]
+                    for rule in security_manager.get_guest_rls_filters(self.table)
+                ]
+            )
+            if security_manager.is_guest_user()
+            else sorted(
+                [rule.clause for rule in security_manager.get_rls_filters(self.table)]
+            )
+        )
+        if not rls_rules:
+            return None
+
+        self.cache_key_wrapper(json.dumps(rls_rules))
+        return rls_rules
+
     def cache_key_wrapper(self, key: Any) -> Any:
         """
         Adds values to a list that is added to the query object used for calculating a
@@ -213,10 +239,10 @@ class ExtraCache:
     def url_param(
         self,
         param: str,
-        default: Optional[str] = None,
+        default: str | None = None,
         add_to_cache_keys: bool = True,
         escape_result: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Read a url or post parameter and use it in your SQL Lab query.
 
@@ -259,7 +285,7 @@ class ExtraCache:
         return result
 
     def filter_values(
-        self, column: str, default: Optional[str] = None, remove_filter: bool = False
+        self, column: str, default: str | None = None, remove_filter: bool = False
     ) -> list[Any]:
         """Gets a values for a particular filter as a list
 
@@ -378,7 +404,15 @@ class ExtraCache:
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject") == column
-                and val
+                and (
+                    val
+                    # IS_NULL and IS_NOT_NULL operators do not have a value
+                    or op
+                    in (
+                        FilterOperator.IS_NULL,
+                        FilterOperator.IS_NOT_NULL,
+                    )
+                )
             ):
                 if remove_filter:
                     if column not in self.removed_filters:
@@ -387,8 +421,8 @@ class ExtraCache:
                     self.applied_filters.append(column)
 
                 if op in (
-                    FilterOperator.IN.value,
-                    FilterOperator.NOT_IN.value,
+                    FilterOperator.IN,
+                    FilterOperator.NOT_IN,
                 ) and not isinstance(val, list):
                     val = [val]
 
@@ -524,7 +558,7 @@ def validate_context_types(context: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_template_context(
-    engine: Optional[str], context: dict[str, Any]
+    engine: str | None, context: dict[str, Any]
 ) -> dict[str, Any]:
     if engine and engine in context:
         # validate engine context separately to allow for engine-specific methods
@@ -543,7 +577,7 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
     def __call__(
         self,
         values: list[Any],
-        mark: Optional[str] = None,
+        mark: str | None = None,
         default_to_none: bool = False,
     ) -> str | None:
         """
@@ -605,17 +639,17 @@ class BaseTemplateProcessor:
     Base class for database-specific jinja context
     """
 
-    engine: Optional[str] = None
+    engine: str | None = None
 
     # pylint: disable=too-many-arguments
     def __init__(
         self,
         database: "Database",
-        query: Optional["Query"] = None,
-        table: Optional["SqlaTable"] = None,
-        extra_cache_keys: Optional[list[Any]] = None,
-        removed_filters: Optional[list[str]] = None,
-        applied_filters: Optional[list[str]] = None,
+        query: "Query" | None = None,
+        table: "SqlaTable" | None = None,
+        extra_cache_keys: list[Any] | None = None,
+        removed_filters: list[str] | None = None,
+        applied_filters: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         self._database = database
@@ -641,6 +675,12 @@ class BaseTemplateProcessor:
         self._context.update(kwargs)
         self._context.update(context_addons())
 
+    def get_context(self) -> dict[str, Any]:
+        """
+        Returns the current template context.
+        """
+        return self._context.copy()
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
@@ -661,7 +701,7 @@ class BaseTemplateProcessor:
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
-    def _parse_datetime(self, dttm: str) -> Optional[datetime]:
+    def _parse_datetime(self, dttm: str) -> datetime | None:
         """
         Try to parse a datetime and default to None in the worst case.
 
@@ -713,6 +753,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "current_user_roles": partial(
                     safe_proxy, extra_cache.current_user_roles
                 ),
+                "current_user_rls_rules": partial(
+                    safe_proxy, extra_cache.current_user_rls_rules
+                ),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
@@ -757,14 +800,12 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         }
 
     @staticmethod
-    def _schema_table(
-        table_name: str, schema: Optional[str]
-    ) -> tuple[str, Optional[str]]:
+    def _schema_table(table_name: str, schema: str | None) -> tuple[str, str | None]:
         if "." in table_name:
             schema, table_name = table_name.split(".")
         return table_name, schema
 
-    def first_latest_partition(self, table_name: str) -> Optional[str]:
+    def first_latest_partition(self, table_name: str) -> str | None:
         """
         Gets the first value in the array of all latest partitions
 
@@ -776,7 +817,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         latest_partitions = self.latest_partitions(table_name)
         return latest_partitions[0] if latest_partitions else None
 
-    def latest_partitions(self, table_name: str) -> Optional[list[str]]:
+    def latest_partitions(self, table_name: str) -> list[str] | None:
         """
         Gets the array of all latest partitions
 
@@ -858,8 +899,8 @@ def get_template_processors() -> dict[str, Any]:
 
 def get_template_processor(
     database: "Database",
-    table: Optional["SqlaTable"] = None,
-    query: Optional["Query"] = None,
+    table: "SqlaTable" | None = None,
+    query: "Query" | None = None,
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
@@ -874,9 +915,9 @@ def get_template_processor(
 def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
-    columns: Optional[list[str]] = None,
-    from_dttm: Optional[datetime] = None,
-    to_dttm: Optional[datetime] = None,
+    columns: list[str] | None = None,
+    from_dttm: datetime | None = None,
+    to_dttm: datetime | None = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
@@ -958,7 +999,7 @@ def metric_macro(
     env: Environment,
     context: dict[str, Any],
     metric_key: str,
-    dataset_id: Optional[int] = None,
+    dataset_id: int | None = None,
 ) -> str:
     """
     Given a metric key, returns its syntax.

@@ -18,7 +18,6 @@
  */
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import querystring from 'query-string';
 
 import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
@@ -33,20 +32,17 @@ import {
   addDangerToast,
   resetState,
 } from 'src/SqlLab/actions/sqlLab';
-import Button from 'src/components/Button';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
-import Collapse from 'src/components/Collapse';
-import { Icons } from 'src/components/Icons';
+import { Button, EmptyState, Icons } from '@superset-ui/core/components';
+import { type DatabaseObject } from 'src/components';
+import { t, styled, css } from '@superset-ui/core';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
-import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import type { DatabaseObject } from 'src/components/DatabaseSelector';
-import { EmptyState } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
+import { noop } from 'lodash';
 import TableElement from '../TableElement';
 
 export interface SqlEditorLeftBarProps {
@@ -60,29 +56,6 @@ const StyledScrollbarContainer = styled.div`
   overflow: auto;
 `;
 
-const collapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-item {
-    margin-bottom: ${theme.gridUnit * 3}px;
-  }
-  .ant-collapse-header {
-    padding: 0px !important;
-    display: flex;
-    align-items: center;
-  }
-  .ant-collapse-content-box {
-    padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
-  }
-  .ant-collapse-arrow {
-    padding: 0 !important;
-    bottom: ${theme.gridUnit}px !important;
-    right: ${theme.gridUnit * 4}px !important;
-    color: ${theme.colors.primary.dark1} !important;
-    &:hover {
-      color: ${theme.colors.primary.dark2} !important;
-    }
-  }
-`;
-
 const LeftBarStyles = styled.div`
   ${({ theme }) => css`
     height: 100%;
@@ -90,8 +63,8 @@ const LeftBarStyles = styled.div`
     flex-direction: column;
 
     .divider {
-      border-bottom: 1px solid ${theme.colors.grayscale.light4};
-      margin: ${theme.gridUnit * 4}px 0;
+      border-bottom: 1px solid ${theme.colorSplit};
+      margin: ${theme.sizeUnit * 4}px 0;
     }
   `}
 `;
@@ -126,8 +99,10 @@ const SqlEditorLeftBar = ({
     [allSelectedTables, dbId, schema],
   );
 
+  noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
+
   useEffect(() => {
-    const bool = querystring.parse(window.location.search).db;
+    const bool = new URLSearchParams(window.location.search).get('db');
     const userSelected = getItem(
       LocalStorageKeys.Database,
       null,
@@ -194,25 +169,6 @@ const SqlEditorLeftBar = ({
     });
   };
 
-  const renderExpandIconWithTooltip = ({ isActive }: { isActive: boolean }) => (
-    <IconTooltip
-      css={css`
-        transform: rotate(90deg);
-      `}
-      aria-label="Collapse"
-      tooltip={
-        isActive ? t('Collapse table preview') : t('Expand table preview')
-      }
-    >
-      <Icons.RightOutlined
-        iconSize="s"
-        css={css`
-          transform: ${isActive ? 'rotateY(180deg)' : ''};
-        `}
-      />
-    </IconTooltip>
-  );
-
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
@@ -276,20 +232,16 @@ const SqlEditorLeftBar = ({
             height: ${tableMetaDataHeight}px;
           `}
         >
-          <Collapse
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            css={collapseStyles}
-            expandIconPosition="right"
-            ghost
-            onChange={onToggleTable}
-            expandIcon={renderExpandIconWithTooltip}
-          >
-            {tables.map(table => (
-              <TableElement table={table} key={table.id} />
-            ))}
-          </Collapse>
+          {tables.map(table => (
+            <TableElement
+              table={table}
+              key={table.id}
+              activeKey={tables
+                .filter(({ expanded }) => expanded)
+                .map(({ id }) => id)}
+              onChange={onToggleTable}
+            />
+          ))}
         </div>
       </StyledScrollbarContainer>
       {shouldShowReset && (
@@ -298,9 +250,7 @@ const SqlEditorLeftBar = ({
           buttonStyle="danger"
           onClick={handleResetState}
         >
-          {/* TODO: Remove fa-icon */}
-          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-          <i className="fa fa-bomb" /> {t('Reset state')}
+          <Icons.ClearOutlined /> {t('Reset state')}
         </Button>
       )}
     </LeftBarStyles>

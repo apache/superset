@@ -239,6 +239,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "position_json",
         "css",
+        "theme_id",
         "json_metadata",
         "published",
     ]
@@ -254,6 +255,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "slug",
         "tags",
+        "uuid",
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],

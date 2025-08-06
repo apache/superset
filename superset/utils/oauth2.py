@@ -23,7 +23,7 @@ from typing import Any, Iterator, TYPE_CHECKING
 
 import backoff
 import jwt
-from flask import current_app, url_for
+from flask import current_app as app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 
 from superset import db
@@ -128,8 +128,8 @@ def encode_oauth2_state(state: OAuth2State) -> str:
     }
     encoded_state = jwt.encode(
         payload=payload,
-        key=current_app.config["SECRET_KEY"],
-        algorithm=current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
+        key=app.config["SECRET_KEY"],
+        algorithm=app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
     )
 
     # Google OAuth2 needs periods to be escaped.
@@ -175,8 +175,8 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
 
     payload = jwt.decode(
         jwt=encoded_state,
-        key=current_app.config["SECRET_KEY"],
-        algorithms=[current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
+        key=app.config["SECRET_KEY"],
+        algorithms=[app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
     )
     state = oauth2_state_schema.load(payload)
 

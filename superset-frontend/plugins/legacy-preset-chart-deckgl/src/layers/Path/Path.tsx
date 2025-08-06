@@ -18,13 +18,13 @@
  * under the License.
  */
 import { PathLayer } from '@deck.gl/layers';
-import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { createDeckGLComponent } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -42,12 +42,15 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<PathLayer> = function ({
+  formData,
+  payload,
+  onContextMenu,
+  filterState,
+  setDataMask,
+  setTooltip,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
@@ -72,11 +75,20 @@ export function getLayer(
     rounded: true,
     widthScale: 1,
     widthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
+    opacity: filterState?.value ? 0.3 : 1,
   });
-}
+};
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   let points: Point[] = [];
   data.forEach(d => {
     points = points.concat(d.path);
@@ -85,4 +97,40 @@ function getPoints(data: JsonObject[]) {
   return points;
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<PathLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const fixedColor = HIGHLIGHT_COLOR_ARRAY;
+  let data = payload.data.features.map((feature: JsonObject) => ({
+    ...feature,
+    path: feature.path,
+    width: fd.line_width,
+    color: fixedColor,
+  }));
+
+  if (fd.js_data_mutator) {
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+
+  const filteredData = data.filter(
+    (d: JsonObject) =>
+      JSON.stringify(d.path).replaceAll(' ', '') === filterState?.value[0],
+  );
+
+  return new PathLayer({
+    id: `path-highlight-layer-${fd.slice_id}` as const,
+    getColor: () => HIGHLIGHT_COLOR_ARRAY,
+    getPath: (d: any) => d.path,
+    getWidth: (d: any) => d.width,
+    data: filteredData,
+    rounded: true,
+    widthScale: 1,
+    widthUnits: fd.line_width_unit,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

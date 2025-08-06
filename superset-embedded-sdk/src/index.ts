@@ -46,6 +46,7 @@ export type UiConfigType = {
   urlParams?: {
     [key: string]: any;
   };
+  showRowLimitWarning?: boolean;
 };
 
 export type EmbedDashboardParams = {
@@ -89,6 +90,7 @@ export type EmbeddedDashboard = {
     callbackFn: ObserveDataMaskCallbackFn,
   ) => void;
   getDataMask: () => Record<string, any>;
+  setThemeConfig: (themeConfig: Record<string, any>) => void;
 };
 
 /**
@@ -131,6 +133,9 @@ export async function embedDashboard({
       }
       if (dashboardUiConfig.emitDataMasks) {
         configNumber += 16;
+      }
+      if (dashboardUiConfig.showRowLimitWarning) {
+        configNumber += 32;
       }
     }
     return configNumber;
@@ -245,6 +250,18 @@ export async function embedDashboard({
     ourPort.start();
     ourPort.defineMethod('observeDataMask', callbackFn);
   };
+  // TODO: Add proper types once theming branch is merged
+  const setThemeConfig = async (themeConfig: Record<string, any>): Promise<void> => {
+    try {
+      ourPort.emit('setThemeConfig', { themeConfig });
+      log('Theme config sent successfully (or at least message dispatched)');
+    } catch (error) {
+      log(
+        'Error sending theme config. Ensure the iframe side implements the "setThemeConfig" method.',
+      );
+      throw error;
+    }
+  };
 
   return {
     getScrollSize,
@@ -253,5 +270,6 @@ export async function embedDashboard({
     getActiveTabs,
     observeDataMask,
     getDataMask,
+    setThemeConfig
   };
 }

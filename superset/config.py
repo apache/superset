@@ -57,6 +57,7 @@ from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
+from superset.themes.types import Theme
 from superset.utils import core as utils
 from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
@@ -67,7 +68,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
-    from sqlglot import Dialect, Dialects
+    from sqlglot import Dialect, Dialects  # pylint: disable=disallowed-sql-import
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -86,6 +87,10 @@ STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
+
+# This config is used to enable/disable the folowing security menu items:
+# List Users, List Roles, List Groups
+SUPERSET_SECURITY_VIEW_MENU = True
 
 BASE_DIR = str(files("superset"))
 if "SUPERSET_HOME" in os.environ:
@@ -161,6 +166,17 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# SupersetClient HTTP retry configuration
+# Controls retry behavior for all HTTP requests made through SupersetClient
+# This helps handle transient server errors (like 502 Bad Gateway) automatically
+SUPERSET_CLIENT_RETRY_ATTEMPTS = 3  # Maximum number of retry attempts
+SUPERSET_CLIENT_RETRY_DELAY = 1000  # Initial retry delay in milliseconds
+SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER = 2  # Exponential backoff multiplier
+SUPERSET_CLIENT_RETRY_MAX_DELAY = 10000  # Maximum retry delay cap in milliseconds
+SUPERSET_CLIENT_RETRY_JITTER_MAX = 1000  # Maximum random jitter in milliseconds
+# HTTP status codes that should trigger retries (502, 503, 504 gateway errors)
+SUPERSET_CLIENT_RETRY_STATUS_CODES = [502, 503, 504]
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
@@ -211,7 +227,7 @@ SQLALCHEMY_ENGINE_OPTIONS = {}
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
 #
-# e.g.:
+# example:
 # def lookup_password(url):
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
@@ -263,10 +279,11 @@ WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.core.log",
-    "superset.views.core.explore_json",
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    "superset.views.core.explore_json",
+    "superset.views.core.log",
+    "superset.views.datasource.views.samples",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -417,6 +434,28 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
+# Override the default mapbox tiles
+# Default values are equivalent to
+# DECKGL_BASE_MAP = [
+#   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
+#   ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
+#   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+#   ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+#   ['mapbox://styles/mapbox/light-v9', 'Light'],
+#   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+#   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+#   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+# ]
+# for adding your own map tiles, you can use the following format:
+# - tile:// + your_personal_url or openstreetmap_url
+#   example:
+#   DECKGL_BASE_MAP = [
+#       ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
+#    ]
+# Enable CORS and set map url in origins option.
+# Add also map url in connect-src of TALISMAN_CONFIG variable
+DECKGL_BASE_MAP: list[list[str, str]] = None
+
 
 # Override the default d3 locale for time format
 # Default values are equivalent to
@@ -527,6 +566,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # When you open the dashboard, the filter panel will be closed
+    "FILTERBAR_CLOSED_BY_DEFAULT": False,
     # The feature is off by default, and currently only supported in Presto and Postgres,  # noqa: E501
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
@@ -551,7 +592,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
-    # Regardless of database configuration settings, force SQLLAB to run async using Celery  # noqa: E501
+    # Regardless of database configuration settings, force SQLLAB to run async
+    # using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
@@ -559,11 +601,24 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
+    # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
+    # Enables CSS Templates functionality in Settings menu and dashboard forms.
+    # When disabled, users can still add custom CSS to dashboards but cannot use
+    # pre-built CSS templates.
+    "CSS_TEMPLATES": True,
+    # Allow users to optionally specify date formats in email subjects, which will
+    # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
     "DATASET_FOLDERS": False,
+    # Enable Table V2 Viz plugin
+    "AG_GRID_TABLE_ENABLED": False,
+    # Enable Table v2 time comparison feature
+    "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
+    # in addition to relative timeshifts (e.g., "1 day ago")
+    "DATE_RANGE_TIMESHIFTS_ENABLED": False,
 }
 
 # ------------------------------
@@ -658,25 +713,70 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME_OVERRIDES is used for adding custom theme to superset
-# example code for "My theme" custom scheme
-# THEME_OVERRIDES = {
-#   "borderRadius": 4,
-#   "colors": {
-#     "primary": {
-#       "base": 'red',
-#     },
-#     "secondary": {
-#       "base": 'green',
-#     },
-#     "grayscale": {
-#       "base": 'orange',
-#     }
-#   }
+# ---------------------------------------------------
+# Theme Configuration for Superset
+# ---------------------------------------------------
+# Superset supports custom theming through Ant Design's theme structure.
+# This allows users to customize colors, fonts, and other UI elements.
+#
+# Theme Generation:
+# - Use the Ant Design theme editor: https://ant.design/theme-editor
+# - Export or copy the generated theme JSON and assign to the variables below
+# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
+#
+# To expose a JSON theme editor modal that can be triggered from the navbar
+# set the `ENABLE_THEME_EDITOR` feature flag to True.
+#
+# Theme Structure:
+# Each theme should follow Ant Design's theme format.
+# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
+# and copy the generated JSON configuration.
+#
+# Example theme definition:
+# THEME_DEFAULT = {
+#       "token": {
+#            "colorPrimary": "#2893B3",
+#            "colorSuccess": "#5ac189",
+#            "colorWarning": "#fcc700",
+#            "colorError": "#e04355",
+#            "fontFamily": "'Inter', Helvetica, Arial",
+#            ... # other tokens
+#       },
+#       ... # other theme properties
 # }
 
-THEME_OVERRIDES: dict[str, Any] = {}
 
+# Default theme configuration
+# Leave empty to use Superset's default theme
+THEME_DEFAULT: Theme = {"algorithm": "default"}
+
+# Dark theme configuration
+# Applied when user selects dark mode
+THEME_DARK: Theme = {"algorithm": "dark"}
+
+# Theme behavior and user preference settings
+# Controls how themes are applied and what options users have
+# - enforced: Forces the default theme always, overriding all other settings
+# - allowSwitching: Allows users to manually switch between default and dark themes.
+# - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
+#
+# Example:
+THEME_SETTINGS = {
+    "enforced": False,  # If True, forces the default theme and ignores user preferences  # noqa: E501
+    "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
+    "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
+}
+
+# Custom font configuration
+# Load external fonts at runtime without rebuilding the application
+# Example:
+# CUSTOM_FONT_URLS = [
+#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
+# ]
+CUSTOM_FONT_URLS: list[str] = []
+
+# ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
 #     {
@@ -762,10 +862,10 @@ SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 # Event that Playwright waits for when loading a new page
 # Possible values: "load", "commit", "domcontentloaded", "networkidle"
 # Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
-SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "load"
+SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "domcontentloaded"
 # Default timeout for Playwright browser context for all operations
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
-    timedelta(seconds=30).total_seconds() * 1000
+    timedelta(seconds=60).total_seconds() * 1000
 )
 
 # ---------------------------------------------------
@@ -822,8 +922,13 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
-ENABLE_CORS = False
-CORS_OPTIONS: dict[Any, Any] = {}
+ENABLE_CORS = True
+CORS_OPTIONS: dict[Any, Any] = {
+    "origins": [
+        "https://tile.openstreetmap.org",
+        "https://tile.osm.ch",
+    ]
+}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -864,7 +969,7 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
 # note: index option should not be overridden
-CSV_EXPORT = {"encoding": "utf-8"}
+CSV_EXPORT = {"encoding": "utf-8-sig"}
 
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.
@@ -969,6 +1074,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of rows for any query with Server Pagination in Table Viz type
+TABLE_VIZ_MAX_ROW_SERVER = 500000
+
+
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
 # exported CSVs
@@ -1060,7 +1169,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
+CELERY_CONFIG: type[CeleryConfig] | None = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -1295,7 +1404,7 @@ TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
 DB_POLL_INTERVAL_SECONDS: dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow list of custom authentications for each DB engine.
@@ -1361,18 +1470,97 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 # unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
 # names, and the values are sets of disallowed functions.
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
+    # PostgreSQL functions that could reveal sensitive information
     "postgresql": {
-        "database_to_xml",
+        # System information functions
+        "current_database",
+        "current_schema",
+        "current_user",
+        "session_user",
+        "current_setting",
+        "version",
+        # Network/server information functions
         "inet_client_addr",
+        "inet_client_port",
         "inet_server_addr",
+        "inet_server_port",
+        # File system functions
+        "pg_read_file",
+        "pg_ls_dir",
+        "pg_read_binary_file",
+        # XML functions that can execute SQL
+        "database_to_xml",
+        "database_to_xmlschema",
         "query_to_xml",
-        "query_to_xml_and_xmlschema",
+        "query_to_xmlschema",
         "table_to_xml",
         "table_to_xml_and_xmlschema",
-        "version",
+        "query_to_xml_and_xmlschema",
+        "table_to_xmlschema",
+        # Other potentially dangerous functions
+        "pg_sleep",
+        "pg_terminate_backend",
     },
-    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
-    "mysql": {"version"},
+    # MySQL functions and variables that could reveal sensitive information
+    "mysql": {
+        # Functions
+        "database",
+        "schema",
+        "current_user",
+        "session_user",
+        "system_user",
+        "user",
+        "version",
+        "connection_id",
+        "load_file",
+        "sleep",
+        "benchmark",
+        "kill",
+    },
+    # SQLite functions that could reveal sensitive information
+    "sqlite": {
+        "sqlite_version",
+        "sqlite_source_id",
+        "sqlite_offset",
+        "sqlite_compileoption_used",
+        "sqlite_compileoption_get",
+        "load_extension",
+    },
+    # Microsoft SQL Server functions
+    "mssql": {
+        "db_name",
+        "suser_sname",
+        "user_name",
+        "host_name",
+        "host_id",
+        "suser_id",
+        "system_user",
+        "current_user",
+        "original_login",
+        "xp_cmdshell",
+        "xp_regread",
+        "xp_fileexist",
+        "xp_dirtree",
+        "serverproperty",
+        "is_srvrolemember",
+        "has_dbaccess",
+        "fn_virtualfilestats",
+        "fn_servershareddrives",
+    },
+    # Clickhouse functions
+    "clickhouse": {
+        "currentUser",
+        "currentDatabase",
+        "hostName",
+        "currentRoles",
+        "version",
+        "buildID",
+        "url",
+        "filesystemPath",
+        "getOSInformation",
+        "getMacro",
+        "getSetting",
+    },
 }
 
 
@@ -1623,6 +1811,7 @@ CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to
@@ -1640,12 +1829,15 @@ TALISMAN_CONFIG = {
             "https://static.scarf.sh/",
             # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1671,12 +1863,15 @@ TALISMAN_DEV_CONFIG = {
             "https://static.scarf.sh/",
             "https://cdn.brandfolder.io",
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1802,7 +1997,10 @@ GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
-# Guest token audience for the embedded superset, either string or callable
+# Audience for the Superset guest token used in embedded mode.
+# Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
+# When generating the guest token, ensure the
+# payload's `aud` matches GUEST_TOKEN_JWT_AUDIENCE.
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
 # A callable that can be supplied to do extra validation of guest token configuration

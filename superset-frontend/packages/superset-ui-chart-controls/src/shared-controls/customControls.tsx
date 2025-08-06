@@ -41,6 +41,53 @@ import {
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
 
+// Aggregation choices with computation methods for plugins and controls
+export const aggregationChoices = {
+  raw: {
+    label: 'Overall value',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
+  },
+  LAST_VALUE: {
+    label: 'Last Value',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
+  },
+  sum: {
+    label: 'Total (Sum)',
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) : null,
+  },
+  mean: {
+    label: 'Average (Mean)',
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) / data.length : null,
+  },
+  min: {
+    label: 'Minimum',
+    compute: (data: number[]) => (data.length ? Math.min(...data) : null),
+  },
+  max: {
+    label: 'Maximum',
+    compute: (data: number[]) => (data.length ? Math.max(...data) : null),
+  },
+  median: {
+    label: 'Median',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      const sorted = [...data].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    },
+  },
+} as const;
+
 export const contributionModeControl = {
   name: 'contributionMode',
   config: {
@@ -69,15 +116,13 @@ export const aggregationControl = {
     default: 'LAST_VALUE',
     clearable: false,
     renderTrigger: false,
-    choices: [
-      ['LAST_VALUE', t('Last Value')],
-      ['sum', t('Total (Sum)')],
-      ['mean', t('Average (Mean)')],
-      ['min', t('Minimum')],
-      ['max', t('Maximum')],
-      ['median', t('Median')],
-    ],
-    description: t('Select an aggregation method to apply to the metric.'),
+    choices: Object.entries(aggregationChoices).map(([value, { label }]) => [
+      value,
+      t(label),
+    ]),
+    description: t(
+      'Method to compute the displayed value. "Overall value" calculates a single metric across the entire filtered time period, ideal for non-additive metrics like ratios, averages, or distinct counts. Other methods operate over the time series data points.',
+    ),
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data }: ControlPanelState) => ({
       value: form_data.aggregation || 'LAST_VALUE',

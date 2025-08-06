@@ -1,0 +1,66 @@
+{
+  "name": "Apache Superset Development",
+  // Option 1: Use pre-built image directly
+  // "image": "ghcr.io/apache/superset:devcontainer-base",
+
+  // Option 2: Build from Dockerfile with cache (current approach)
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    // Cache from the Apache registry image
+    "cacheFrom": ["ghcr.io/apache/superset:devcontainer-base"]
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "configureZshAsDefaultShell": true
+    },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
+
+  // Forward ports for development
+  "forwardPorts": [9001],
+  "portsAttributes": {
+    "9001": {
+      "label": "Superset (via Webpack Dev Server)",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+
+  // Run commands after container is created
+  "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
+
+  // Auto-start Superset after ensuring Docker is ready
+  // Run in foreground to see any errors, but don't block on failures
+  "postStartCommand": "bash -c 'echo \"Waiting 30s for services to initialize...\"; sleep 30; .devcontainer/start-superset.sh || echo \"⚠️ Auto-start failed - run start-superset manually\"'",
+
+  // Set environment variables
+  "remoteEnv": {
+    // Removed automatic venv activation to prevent startup issues
+    // The setup script will handle this
+  },
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

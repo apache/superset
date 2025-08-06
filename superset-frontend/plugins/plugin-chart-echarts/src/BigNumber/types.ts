@@ -75,9 +75,15 @@ export type BigNumberVizProps = {
   bigNumberFallback?: TimeSeriesDatum;
   headerFormatter: ValueFormatter | TimeFormatter;
   formatTime?: TimeFormatter;
+  metricName?: string;
+  friendlyMetricName?: string;
+  metricNameFontSize?: number;
+  showMetricName?: boolean;
   headerFontSize: number;
   kickerFontSize?: number;
+  subheader?: string;
   subtitle: string;
+  subheaderFontSize: number;
   subtitleFontSize: number;
   showTimestamp?: boolean;
   showTrendLine?: boolean;

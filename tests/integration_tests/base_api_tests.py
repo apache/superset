@@ -231,7 +231,7 @@ class ApiOwnersTestCaseMixin:
             return query.filter_by(username="alpha")
 
         with patch.dict(
-            "superset.views.filters.current_app.config",
+            "flask.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"user": _base_filter}},
         ):
             uri = f"api/v1/{self.resource_name}/related/owners"

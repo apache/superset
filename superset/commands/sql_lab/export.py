@@ -20,19 +20,18 @@ import logging
 from typing import Any, cast, TypedDict
 
 import pandas as pd
+from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import app, db, results_backend, results_backend_use_msgpack
+from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql_parse import ParsedQuery
+from superset.sql.parse import SQLScript
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
 from superset.views.utils import _deserialize_results_payload
-
-config = app.config
 
 logger = logging.getLogger(__name__)
 
@@ -115,10 +114,9 @@ class SqlResultExportCommand(BaseCommand):
                 limit = None
             else:
                 sql = self._query.executed_sql
-                limit = ParsedQuery(
-                    sql,
-                    engine=self._query.database.db_engine_spec.engine,
-                ).limit
+                script = SQLScript(sql, self._query.database.db_engine_spec.engine)
+                # when a query has multiple statements only the last one returns data
+                limit = script.statements[-1].get_limit_value()
             if limit is not None and self._query.limiting_factor in {
                 LimitingFactor.QUERY,
                 LimitingFactor.DROPDOWN,
@@ -132,7 +130,9 @@ class SqlResultExportCommand(BaseCommand):
                 self._query.schema,
             )[:limit]
 
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
+        # Manual encoding using the specified encoding (default to utf-8 if not set)
+        csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])
+        csv_data = csv_string.encode(app.config["CSV_EXPORT"].get("encoding", "utf-8"))
 
         return {
             "query": self._query,

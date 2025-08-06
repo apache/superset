@@ -30,24 +30,27 @@ import {
 } from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
+import {
+  Dropdown,
+  Tooltip,
+  Button,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import {
   ChangeDatasourceModal,
   DatasourceModal,
-} from 'src/components/Datasource';
-import Button from 'src/components/Button';
-import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+  ErrorAlert,
+} from 'src/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
   userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { ErrorMessageWithStackTrace } from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -71,20 +74,31 @@ const defaultProps = {
   isEditable: true,
 };
 
+const getDatasetType = datasource => {
+  if (datasource.type === 'query') {
+    return 'query';
+  }
+  if (datasource.type === 'table' && datasource.sql) {
+    return 'virtual_dataset';
+  }
+  return 'physical_dataset';
+};
+
 const Styles = styled.div`
   .data-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding: ${({ theme }) => 4 * theme.gridUnit}px;
-    padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
+    border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+    padding: ${({ theme }) => 4 * theme.sizeUnit}px;
+    padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
   }
   .error-alert {
-    margin: ${({ theme }) => 2 * theme.gridUnit}px;
+    margin: ${({ theme }) => 2 * theme.sizeUnit}px;
+    min-height: 150px;
   }
-  .antd5-dropdown-trigger {
-    margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
+  .ant-dropdown-trigger {
+    margin-left: ${({ theme }) => 2 * theme.sizeUnit}px;
   }
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
@@ -93,32 +107,30 @@ const Styles = styled.div`
     }
   }
   i.angle {
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
   }
   svg.datasource-modal-trigger {
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     cursor: pointer;
   }
   .title-select {
     flex: 1 1 100%;
     display: inline-block;
-    background-color: ${({ theme }) => theme.colors.grayscale.light3};
-    padding: ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px 0px;
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
   }
   .datasource-svg {
-    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
+    margin-right: ${({ theme }) => 2 * theme.sizeUnit}px;
     flex: none;
   }
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
   span[aria-label='more'] {
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
   }
 `;
 
@@ -134,10 +146,9 @@ const VISIBLE_TITLE_LENGTH = 25;
 
 // Assign icon for each DatasourceType.  If no icon assignment is found in the lookup, no icon will render
 export const datasourceIconLookup = {
-  [DatasourceType.Query]: (
-    <Icons.ConsoleSqlOutlined className="datasource-svg" />
-  ),
-  [DatasourceType.Table]: <Icons.TableOutlined className="datasource-svg" />,
+  query: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
+  physical_dataset: <Icons.TableOutlined className="datasource-svg" />,
+  virtual_dataset: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
@@ -272,7 +283,17 @@ class DatasourceControl extends PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = !datasource?.id;
+    let extra;
+    if (datasource?.extra) {
+      if (typeof datasource.extra === 'string') {
+        try {
+          extra = JSON.parse(datasource.extra);
+        } catch {} // eslint-disable-line no-empty
+      } else {
+        extra = datasource.extra; // eslint-disable-line prefer-destructuring
+      }
+    }
+    const isMissingDatasource = !datasource?.id || Boolean(extra?.error);
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -377,35 +398,25 @@ class DatasourceControl extends PureComponent {
 
     const { health_check_message: healthCheckMessage } = datasource;
 
-    let extra;
-    if (datasource?.extra) {
-      if (typeof datasource.extra === 'string') {
-        try {
-          extra = JSON.parse(datasource.extra);
-        } catch {} // eslint-disable-line no-empty
-      } else {
-        extra = datasource.extra; // eslint-disable-line prefer-destructuring
-      }
-    }
-
-    const titleText = isMissingDatasource
-      ? t('Missing dataset')
-      : getDatasourceTitle(datasource);
+    const titleText =
+      isMissingDatasource && !datasource.name
+        ? t('Missing dataset')
+        : getDatasourceTitle(datasource);
 
     const tooltip = titleText;
 
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          {datasourceIconLookup[datasource?.type]}
+          {datasourceIconLookup[getDatasetType(datasource)]}
           {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
               <Icons.WarningOutlined
                 css={css`
-                  margin-left: ${theme.gridUnit * 2}px;
+                  margin-left: ${theme.sizeUnit * 2}px;
                 `}
-                iconColor={theme.colors.warning.base}
+                iconColor={theme.colorWarning}
               />
             </Tooltip>
           )}
@@ -413,7 +424,7 @@ class DatasourceControl extends PureComponent {
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
-            dropdownRender={() =>
+            popupRender={() =>
               datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu
@@ -422,8 +433,8 @@ class DatasourceControl extends PureComponent {
             data-test="datasource-menu"
           >
             <Icons.MoreOutlined
-              IconSize="xl"
-              iconColor={theme.colors.primary.base}
+              iconSize="xl"
+              iconColor={theme.colorPrimary}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />
@@ -443,23 +454,42 @@ class DatasourceControl extends PureComponent {
         )}
         {isMissingDatasource && !isMissingParams && (
           <div className="error-alert">
-            <ErrorAlert
-              level="warning"
-              errorType={t('Missing dataset')}
-              description={
-                <>
-                  {t('The dataset linked to this chart may have been deleted.')}
-                  <Button
-                    buttonStyle="primary"
-                    onClick={() =>
-                      this.handleMenuItemClick({ key: CHANGE_DATASET })
-                    }
-                  >
-                    {t('Swap dataset')}
-                  </Button>
-                </>
-              }
-            />
+            {extra?.error ? (
+              <ErrorMessageWithStackTrace
+                title={extra.error.statusText || extra.error.message}
+                subtitle={
+                  extra.error.statusText ? extra.error.message : undefined
+                }
+                error={extra.error}
+                source="explore"
+              />
+            ) : (
+              <ErrorAlert
+                type="warning"
+                errorType={t('Missing dataset')}
+                descriptionPre={false}
+                descriptionDetailsCollapsed={false}
+                descriptionDetails={
+                  <>
+                    <p>
+                      {t(
+                        'The dataset linked to this chart may have been deleted.',
+                      )}
+                    </p>
+                    <p>
+                      <Button
+                        buttonStyle="warning"
+                        onClick={() =>
+                          this.handleMenuItemClick({ key: CHANGE_DATASET })
+                        }
+                      >
+                        {t('Swap dataset')}
+                      </Button>
+                    </p>
+                  </>
+                }
+              />
+            )}
           </div>
         )}
         {showEditDatasourceModal && (

@@ -583,9 +583,9 @@ class TagRestApi(BaseSupersetModelRestApi):
             if tag_ids:
                 # priotize using ids for lookups vs. names mainly using this
                 # for backward compatibility
-                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_ids(tag_ids, types)
             else:
-                tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_names(tags, types)
 
             result = [
                 self.object_entity_response_schema.dump(tagged_object)
