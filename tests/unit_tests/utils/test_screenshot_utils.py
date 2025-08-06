@@ -116,18 +116,19 @@ class TestTakeTiledScreenshot:
 
         # Mock element info - simulating a 5000px tall dashboard
         element_info = {"height": 5000, "top": 100, "left": 50, "width": 800}
-        page.evaluate.return_value = element_info
-
-        # Mock element box for each tile
         element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
 
-        # Set up side_effect to return element_info first,
-        # then element_box for each tile
+        # For 3 tiles (5000px / 2000px = 2.5, rounded up to 3):
+        # 1 initial call + 3 scroll + 3 element box + 1 reset scroll = 8 calls
         page.evaluate.side_effect = [
-            element_info,  # First call for dashboard dimensions
-            element_box,  # Subsequent calls for element position after scroll
-            element_box,
-            element_box,
+            element_info,  # Initial call for dashboard dimensions
+            None,  # First scroll call
+            element_box,  # First element box call
+            None,  # Second scroll call
+            element_box,  # Second element box call
+            None,  # Third scroll call
+            element_box,  # Third element box call
+            None,  # Final reset scroll call
         ]
 
         # Mock screenshot method
@@ -172,10 +173,15 @@ class TestTakeTiledScreenshot:
         element_info = {"height": 3500, "top": 100, "left": 50, "width": 800}
         element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
 
+        # For 2 tiles (3500px / 2000px = 1.75, rounded up to 2):
+        # 1 initial call + 2 scroll + 2 element box + 1 reset scroll = 6 calls
         mock_page.evaluate.side_effect = [
             element_info,
-            element_box,
-            element_box,  # Two tiles needed for 3500px height
+            None,  # First scroll call
+            element_box,  # First element box call
+            None,  # Second scroll call
+            element_box,  # Second element box call
+            None,  # Reset scroll call
         ]
 
         with patch(
@@ -190,6 +196,21 @@ class TestTakeTiledScreenshot:
 
     def test_scroll_positions_calculated_correctly(self, mock_page):
         """Test that scroll positions are calculated correctly."""
+        # Override the fixture's side_effect for this specific test
+        element_info = {"height": 5000, "top": 100, "left": 50, "width": 800}
+        element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+
+        mock_page.evaluate.side_effect = [
+            element_info,  # Initial call for dashboard dimensions
+            None,  # First scroll call
+            element_box,  # First element box call
+            None,  # Second scroll call
+            element_box,  # Second element box call
+            None,  # Third scroll call
+            element_box,  # Third element box call
+            None,  # Reset scroll call
+        ]
+
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
 
@@ -208,12 +229,27 @@ class TestTakeTiledScreenshot:
             ]
             actual_scrolls = [call[0][0] for call in scroll_calls]
 
-            assert len(actual_scrolls) == 3
+            assert len(actual_scrolls) == 4  # 3 tile scrolls + 1 reset
             for expected in expected_scrolls:
                 assert expected in actual_scrolls
 
     def test_reset_scroll_position(self, mock_page):
         """Test that scroll position is reset after screenshot."""
+        # Override the fixture's side_effect for this specific test
+        element_info = {"height": 5000, "top": 100, "left": 50, "width": 800}
+        element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+
+        mock_page.evaluate.side_effect = [
+            element_info,  # Initial call for dashboard dimensions
+            None,  # First scroll call
+            element_box,  # First element box call
+            None,  # Second scroll call
+            element_box,  # Second element box call
+            None,  # Third scroll call
+            element_box,  # Third element box call
+            None,  # Reset scroll call
+        ]
+
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
 
