@@ -735,7 +735,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         is_virtual: bool = False,
     ) -> str:
         # Allow engine specs to modify queries before compilation
-        if hasattr(self.db_engine_spec, "adjust_query_for_offset"):
+        if (
+            hasattr(self.db_engine_spec, "adjust_query_for_offset")
+            and getattr(qry, "_offset", None) is not None
+        ):
             qry = self.db_engine_spec.adjust_query_for_offset(qry)
 
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:

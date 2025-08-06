@@ -176,7 +176,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         try:
             # Try to access the internal query structure safely
             has_offset = getattr(qry, "_offset", None) is not None
-            has_order_by = getattr(qry, "_order_by", None) is not None
+            has_order_by = bool(getattr(qry, "_order_by_clauses", ()))
 
             if has_offset and not has_order_by:
                 # Add a default ORDER BY clause using a string literal
