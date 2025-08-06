@@ -133,11 +133,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
         window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${currentSQL}`,
+          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
           '_blank',
         );
       } else {
-        history.push('/sqllab', { state: { requestedQuery } });
+        history.push({ pathname: '/sqllab', state: { requestedQuery } });
       }
     },
     [history, datasource, currentSQL],
