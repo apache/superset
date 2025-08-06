@@ -195,7 +195,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.7.0
+flask-appbuilder==4.8.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -212,7 +212,9 @@ flask-compress==1.17
     #   -c requirements/base.txt
     #   apache-superset
 flask-cors==4.0.2
-    # via apache-superset
+    # via
+    #   -c requirements/base.txt
+    #   apache-superset
 flask-jwt-extended==4.7.1
     # via
     #   -c requirements/base.txt
@@ -424,6 +426,7 @@ markupsafe==3.0.2
 marshmallow==3.26.1
     # via
     #   -c requirements/base.txt
+    #   apache-superset
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==1.4.0
@@ -792,14 +795,14 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-bigquery
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.12.0
+sqlalchemy-bigquery==1.15.0
     # via apache-superset
 sqlalchemy-utils==0.38.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.28.1
+sqlglot==27.3.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -839,6 +842,8 @@ typing-extensions==4.14.0
     #   apache-superset
     #   cattrs
     #   limits
+    #   pyopenssl
+    #   referencing
     #   selenium
     #   shillelagh
 tzdata==2025.2
@@ -852,7 +857,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base.txt
     #   requests-cache
-urllib3==1.26.20
+urllib3==2.5.0
     # via
     #   -c requirements/base.txt
     #   docker

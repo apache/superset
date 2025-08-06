@@ -18,17 +18,15 @@
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
 import {
-  Datasource,
   getMetricLabel,
   JsonObject,
   QueryFormData,
   t,
 } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
-import { TooltipProps } from '../../components/Tooltip';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
 
 interface ScatterDataItem {
@@ -72,13 +70,16 @@ function setTooltipContent(
   return createTooltipContent(formData, defaultTooltipGenerator);
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  datasource: Datasource,
-) {
+export const getLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  setDataMask,
+  filterState,
+  onContextMenu,
+  datasource,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const dataWithRadius = payload.data.features.map((d: JsonObject) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
@@ -104,8 +105,16 @@ export function getLayer(
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: setTooltipContent(fd, datasource?.verboseMap),
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export default createCategoricalDeckGLComponent(getLayer, getPoints);

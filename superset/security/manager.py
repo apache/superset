@@ -95,6 +95,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+def get_conf() -> Any:
+    return current_app.config
+
+
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
@@ -652,7 +657,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
-        return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
+        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource"
@@ -670,6 +675,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             extra={
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.id,
+                "datasource_name": datasource.name,
             },
         )
 
@@ -712,7 +718,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
-        return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
+        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_user_datasources(self) -> list["BaseDatasource"]:
         """
@@ -1113,9 +1119,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
         # Configure public role
-        if current_app.config["PUBLIC_ROLE_LIKE"]:
+        if get_conf()["PUBLIC_ROLE_LIKE"]:
             self.copy_role(
-                current_app.config["PUBLIC_ROLE_LIKE"],
+                get_conf()["PUBLIC_ROLE_LIKE"],
                 self.auth_role_public,
                 merge=True,
             )
@@ -2473,7 +2479,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not user:
             user = g.user
         if user.is_anonymous:
-            public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
+            public_role = get_conf().get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
         return super().get_user_roles(user)
 
@@ -2590,7 +2596,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_guest_token_jwt_audience() -> str:
-        audience = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
+        audience = get_conf()["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
         if callable(audience):
             audience = audience()
         return audience
@@ -2619,9 +2625,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         resources: GuestTokenResources,
         rls: list[GuestTokenRlsRule],
     ) -> bytes:
-        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
-        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
+        secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
+        algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
+        exp_seconds = get_conf()["GUEST_TOKEN_JWT_EXP_SECONDS"]
         audience = self._get_guest_token_jwt_audience()
         # calculate expiration time
         now = self._get_current_epoch_time()
@@ -2648,7 +2654,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: A guest user object
         """
         raw_token = req.headers.get(
-            current_app.config["GUEST_TOKEN_HEADER_NAME"]
+            get_conf()["GUEST_TOKEN_HEADER_NAME"]
         ) or req.form.get("guest_token")
         if raw_token is None:
             return None
@@ -2674,7 +2680,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
             token=token,
-            roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            roles=[self.find_role(get_conf()["GUEST_ROLE_NAME"])],
         )
 
     def parse_jwt_guest_token(self, raw_token: str) -> dict[str, Any]:
@@ -2683,8 +2689,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param raw_token: the token gotten from the request
         :return: the same token that was passed in, tested but unchanged
         """
-        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
-        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+        secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
+        algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
         audience = self._get_guest_token_jwt_audience()
         return self.pyjwt_for_guest_token.decode(
             raw_token, secret, algorithms=[algo], audience=audience
@@ -2779,7 +2785,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the current user is an admin user
         """
 
-        return current_app.config["AUTH_ROLE_ADMIN"] in [
+        return get_conf()["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
 

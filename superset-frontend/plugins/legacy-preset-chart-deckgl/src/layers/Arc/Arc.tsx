@@ -17,10 +17,10 @@
  * under the License.
  */
 import { ArcLayer } from '@deck.gl/layers';
-import { HandlerFunction, JsonObject, QueryFormData } from '@superset-ui/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
-import { TooltipProps } from '../../components/Tooltip';
+import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import { Point } from '../../types';
 import {
   createTooltipContent,
@@ -57,36 +57,58 @@ function setTooltipContent(formData: QueryFormData) {
   return createTooltipContent(formData, defaultTooltipGenerator);
 }
 
-export function getLayer(
-  fd: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  emitCrossFilters,
+}) {
+  const fd = formData;
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
 
+  const colorSchemeType = fd.color_scheme_type;
+
   return new ArcLayer({
     data,
-    getSourceColor: (d: ArcDataItem): [number, number, number, number] =>
-      (d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a]) as [
+    getSourceColor: (d: ArcDataItem): [number, number, number, number] => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [sc.r, sc.g, sc.b, 255 * sc.a];
+      }
+      return (d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a]) as [
         number,
         number,
         number,
         number,
-      ],
-    getTargetColor: (d: ArcDataItem): [number, number, number, number] =>
-      (d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a]) as [
+      ];
+    },
+    getTargetColor: (d: ArcDataItem): [number, number, number, number] => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [tc.r, tc.g, tc.b, 255 * tc.a];
+      }
+      return (d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a]) as [
         number,
         number,
         number,
         number,
-      ],
+      ];
+    },
     id: `path-layer-${fd.slice_id}` as const,
     getWidth: fd.stroke_width ? fd.stroke_width : 3,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: setTooltipContent(fd),
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export default createCategoricalDeckGLComponent(getLayer, getPoints);

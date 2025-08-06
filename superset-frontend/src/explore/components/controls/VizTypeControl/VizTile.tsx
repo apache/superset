@@ -124,7 +124,7 @@ export const VizTile = ({
       >
         <span
           css={css`
-            padding: 0px ${theme.sizeUnit}px;
+            padding: 0px ${theme.sizeUnit * 1.25}px;
           `}
         >
           {vizMeta.icon}
@@ -136,6 +136,7 @@ export const VizTile = ({
             font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
+            line-height: 1;
           `}
           ref={chartNameRef}
         >

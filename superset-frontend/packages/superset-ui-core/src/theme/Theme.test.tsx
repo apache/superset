@@ -18,7 +18,7 @@
  */
 import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
-import { AnyThemeConfig } from './types';
+import { AnyThemeConfig, ThemeAlgorithm } from './types';
 
 // Mock emotion's cache to avoid actual DOM operations
 jest.mock('@emotion/cache', () => ({
@@ -44,7 +44,7 @@ describe('Theme', () => {
       const parsedJson = JSON.parse(jsonString);
 
       expect(parsedJson.token?.colorPrimary).toBe('#ff0000');
-      expect(parsedJson.algorithm).toBe('dark');
+      expect(parsedJson.algorithm).toBe(ThemeAlgorithm.DARK);
     });
   });
 
@@ -91,7 +91,7 @@ describe('Theme', () => {
 
       // Verify dark mode by using the serialized config from the public method
       const serialized = theme.toSerializedConfig();
-      expect(serialized.algorithm).toBe('dark');
+      expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
     });
   });
 
@@ -137,7 +137,7 @@ describe('Theme', () => {
 
       // Verify the algorithm was updated
       const serialized = theme.toSerializedConfig();
-      expect(serialized.algorithm).toBe('dark');
+      expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
     });
   });
 
@@ -150,7 +150,7 @@ describe('Theme', () => {
 
       // Verify dark algorithm is used
       const serialized = theme.toSerializedConfig();
-      expect(serialized.algorithm).toBe('dark');
+      expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
     });
 
     it('switches to default algorithm when toggling dark mode off', () => {
@@ -164,7 +164,7 @@ describe('Theme', () => {
 
       // Verify default algorithm is used
       const serialized = theme.toSerializedConfig();
-      expect(serialized.algorithm).toBe('default');
+      expect(serialized.algorithm).toBe(ThemeAlgorithm.DEFAULT);
     });
 
     it('preserves other algorithms when toggling dark mode', () => {
@@ -181,28 +181,11 @@ describe('Theme', () => {
 
       // Verify default algorithm replaces dark but compact is preserved
       const serialized = theme.toSerializedConfig();
+
       expect(Array.isArray(serialized.algorithm)).toBe(true);
-      expect(serialized.algorithm).toContain('default');
-      expect(serialized.algorithm).toContain('compact');
-      expect(serialized.algorithm).not.toContain('dark');
-    });
-  });
-
-  describe('getFontSize', () => {
-    it('returns correct font size for given key', () => {
-      const theme = Theme.fromConfig();
-
-      // Test different font size keys
-      expect(theme.getFontSize('xs')).toBe('8');
-      expect(theme.getFontSize('m')).toBeTruthy();
-      expect(theme.getFontSize('xxl')).toBe('28');
-    });
-
-    it('defaults to medium font size when no key is provided', () => {
-      const theme = Theme.fromConfig();
-      const mediumSize = theme.getFontSize('m');
-
-      expect(theme.getFontSize()).toBe(mediumSize);
+      expect(serialized.algorithm).toContain(ThemeAlgorithm.DEFAULT);
+      expect(serialized.algorithm).toContain(ThemeAlgorithm.COMPACT);
+      expect(serialized.algorithm).not.toContain(ThemeAlgorithm.DARK);
     });
   });
 
@@ -218,7 +201,7 @@ describe('Theme', () => {
       const serialized = theme.toSerializedConfig();
 
       expect(serialized.token?.colorPrimary).toBe('#ff0000');
-      expect(serialized.algorithm).toBe('dark');
+      expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
     });
   });
 });

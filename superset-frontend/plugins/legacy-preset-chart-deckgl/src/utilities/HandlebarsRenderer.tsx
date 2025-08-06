@@ -18,6 +18,7 @@
  */
 import { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
+import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';
 import dayjs from 'dayjs';
 import { isPlainObject } from 'lodash';
@@ -41,6 +42,13 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = ({
 }) => {
   const [renderedTemplate, setRenderedTemplate] = useState('');
   const [error, setError] = useState('');
+  const appContainer = document.getElementById('app');
+  const { common } = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '{}',
+  );
+  const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
+  const htmlSchemaOverrides =
+    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
   useEffect(() => {
     try {
@@ -61,14 +69,19 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = ({
   if (renderedTemplate || renderedTemplate === '') {
     return (
       <div
-        dangerouslySetInnerHTML={{ __html: renderedTemplate || '' }}
         style={{
           maxWidth: '300px',
           wordWrap: 'break-word',
           fontSize: '12px',
           lineHeight: '1.4',
         }}
-      />
+      >
+        <SafeMarkdown
+          source={renderedTemplate || ''}
+          htmlSanitization={htmlSanitization}
+          htmlSchemaOverrides={htmlSchemaOverrides}
+        />
+      </div>
     );
   }
 

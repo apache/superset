@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -101,7 +101,6 @@ from superset.views.base_api import (
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
-config = app.config
 
 
 class ChartRestApi(BaseSupersetModelRestApi):

@@ -148,6 +148,7 @@ export {
   Typography,
   type TypographyProps,
   type ParagraphProps,
+  type TitleProps,
 } from './Typography';
 
 export { Image, type ImageProps } from './Image';
@@ -163,5 +164,8 @@ export * from './Steps';
 export * from './Table';
 export * from './TableView';
 export * from './Tag';
+export * from './TelemetryPixel';
+export * from './ThemeSubMenu';
+export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';

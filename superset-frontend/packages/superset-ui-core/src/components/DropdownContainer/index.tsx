@@ -17,8 +17,10 @@
  * under the License.
  */
 import {
+  CSSProperties,
   cloneElement,
   forwardRef,
+  ReactElement,
   RefObject,
   useEffect,
   useImperativeHandle,
@@ -26,17 +28,85 @@ import {
   useMemo,
   useState,
   useRef,
+  ReactNode,
+  useCallback,
 } from 'react';
 
 import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { Badge, Icons, Button, Tooltip, Popover } from '..';
-import type {
-  DropdownContainerProps,
-  DropdownItem,
-  DropdownRef,
-} from './types';
+/**
+ * Container item.
+ */
+export interface DropdownItem {
+  /**
+   * String that uniquely identifies the item.
+   */
+  id: string;
+  /**
+   * The element to be rendered.
+   */
+  element: ReactElement;
+}
+
+/**
+ * Horizontal container that displays overflowed items in a dropdown.
+ * It shows an indicator of how many items are currently overflowing.
+ */
+export interface DropdownContainerProps {
+  /**
+   * Array of items. The id property is used to uniquely identify
+   * the elements when rendering or dealing with event handlers.
+   */
+  items: DropdownItem[];
+  /**
+   * Event handler called every time an element moves between
+   * main container and dropdown.
+   */
+  onOverflowingStateChange?: (overflowingState: {
+    notOverflowed: string[];
+    overflowed: string[];
+  }) => void;
+  /**
+   * Option to customize the content of the dropdown.
+   */
+  dropdownContent?: (overflowedItems: DropdownItem[]) => ReactElement;
+  /**
+   * Dropdown ref.
+   */
+  dropdownRef?: RefObject<HTMLDivElement>;
+  /**
+   * Dropdown additional style properties.
+   */
+  dropdownStyle?: CSSProperties;
+  /**
+   * Displayed count in the dropdown trigger.
+   */
+  dropdownTriggerCount?: number;
+  /**
+   * Icon of the dropdown trigger.
+   */
+  dropdownTriggerIcon?: ReactElement;
+  /**
+   * Text of the dropdown trigger.
+   */
+  dropdownTriggerText?: string;
+  /**
+   * Text of the dropdown trigger tooltip
+   */
+  dropdownTriggerTooltip?: ReactNode | null;
+  /**
+   * Main container additional style properties.
+   */
+  style?: CSSProperties;
+  /**
+   * Force render popover content before it's first opened
+   */
+  forceRender?: boolean;
+}
+
+export type DropdownRef = HTMLDivElement & { open: () => void };
 
 const MAX_HEIGHT = 500;
 
@@ -72,6 +142,37 @@ export const DropdownContainer = forwardRef(
     }
 
     const [showOverflow, setShowOverflow] = useState(false);
+
+    // callback to update item widths so that the useLayoutEffect runs whenever
+    // width of any of the child changes
+    const recalculateItemWidths = useCallback(() => {
+      const mainItemsContainerNode = current?.children.item(0);
+      if (mainItemsContainerNode) {
+        const visibleChildrenElements = Array.from(
+          mainItemsContainerNode.children,
+        );
+        setItemsWidth(prevGlobalWidths => {
+          if (prevGlobalWidths.length !== items.length) {
+            return prevGlobalWidths;
+          }
+
+          const newGlobalWidths = [...prevGlobalWidths];
+          let changed = false;
+          visibleChildrenElements.forEach((child, indexInVisible) => {
+            const originalItemIndex = indexInVisible;
+            if (originalItemIndex < newGlobalWidths.length) {
+              const newWidth = child.getBoundingClientRect().width;
+              if (newGlobalWidths[originalItemIndex] !== newWidth) {
+                newGlobalWidths[originalItemIndex] = newWidth;
+                changed = true;
+              }
+            }
+          });
+
+          return changed ? newGlobalWidths : prevGlobalWidths;
+        });
+      }
+    }, [current?.children, items.length]);
 
     const reduceItems = (items: DropdownItem[]): [DropdownItem[], string[]] =>
       items.reduce(
@@ -122,24 +223,7 @@ export const DropdownContainer = forwardRef(
         childrenArray.map(child => resizeObserver.unobserve(child));
         resizeObserver.disconnect();
       };
-    }, [items.length]);
-
-    // callback to update item widths so that the useLayoutEffect runs whenever
-    // width of any of the child changes
-    const recalculateItemWidths = () => {
-      const container = current?.children.item(0);
-      if (container) {
-        const { children } = container;
-        const childrenArray = Array.from(children);
-
-        const currentWidths = childrenArray.map(
-          child => child.getBoundingClientRect().width,
-        );
-
-        // Update state with new widths
-        setItemsWidth(currentWidths);
-      }
-    };
+    }, [items.length, current, recalculateItemWidths]);
 
     useLayoutEffect(() => {
       if (popoverVisible) {
@@ -206,6 +290,7 @@ export const DropdownContainer = forwardRef(
       overflowedItems.length,
       previousWidth,
       width,
+      popoverVisible,
     ]);
 
     useEffect(() => {
@@ -376,5 +461,3 @@ export const DropdownContainer = forwardRef(
     );
   },
 );
-
-export type { DropdownItem, DropdownRef };

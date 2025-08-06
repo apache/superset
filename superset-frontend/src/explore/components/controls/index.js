@@ -56,6 +56,8 @@ import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
 import MapViewControl from './MapViewControl/MapViewControl';
 import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
+import TimeRangeControl from './TimeRangeControl';
+import ColorBreakpointsControl from './ColorBreakpointsControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -80,6 +82,7 @@ const controlMap = {
   DndMetricSelect,
   DndColumnMetricSelect,
   FixedOrMetricControl,
+  ColorBreakpointsControl,
   HiddenControl,
   LayerConfigsControl,
   MapViewControl,
@@ -101,6 +104,7 @@ const controlMap = {
   TimeOffsetControl,
   ZoomConfigControl,
   NumberControl,
+  TimeRangeControl,
   ...sharedControlComponents,
 };
 export default controlMap;

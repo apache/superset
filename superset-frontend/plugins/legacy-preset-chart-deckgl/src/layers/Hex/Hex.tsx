@@ -16,24 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color } from '@deck.gl/core';
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
 import {
   CategoricalColorNamespace,
-  QueryFormData,
   JsonObject,
+  QueryFormData,
 } from '@superset-ui/core';
 
-import { commonLayerProps, getAggFunc } from '../common';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import {
+  commonLayerProps,
+  getAggFunc,
+  getColorForBreakpoints,
+  getColorRange,
+} from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { hexToRGB } from '../../utils/colors';
-import { createDeckGLComponent } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import {
   createTooltipContent,
   CommonTooltipRows,
 } from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 
 function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
   const metricLabel = formData.size?.label || formData.size?.value || 'Height';
@@ -49,18 +52,18 @@ function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<HexagonLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  onContextMenu,
+  filterState,
+  setDataMask,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-  const colorRange = colorScale
-    .range()
-    .map(color => hexToRGB(color)) as Color[];
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
@@ -68,26 +71,55 @@ export function getLayer(
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-  const aggFunc = getAggFunc(fd.js_agg_function, p => p?.weight);
+
+  const colorSchemeType = fd.color_scheme_type;
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    colorBreakpoints: fd.color_breakpoints,
+    fixedColor: fd.color_picker,
+    colorSchemeType,
+    colorScale,
+  });
+
+  const colorBreakpoints = fd.color_breakpoints;
+
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+
+  const colorAggFunc =
+    colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
+      ? (p: number[]) => getColorForBreakpoints(aggFunc, p, colorBreakpoints)
+      : aggFunc;
 
   const tooltipContent = createTooltipContent(fd, (o: JsonObject) =>
     defaultTooltipGenerator(o, fd),
   );
 
   return new HexagonLayer({
-    id: `hex-layer-${fd.slice_id}` as const,
+    id: `hex-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}` as const,
     data,
     radius: fd.grid_size,
     extruded: fd.extruded,
+    colorDomain:
+      colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints && colorRange
+        ? [0, colorRange.length]
+        : undefined,
     colorRange,
     outline: false,
     // @ts-ignore
     getElevationValue: aggFunc,
     // @ts-ignore
-    getColorValue: aggFunc,
-    ...commonLayerProps(fd, setTooltip, tooltipContent),
+    getColorValue: colorAggFunc,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: tooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);

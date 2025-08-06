@@ -21,7 +21,7 @@ import { Position } from '@deck.gl/core';
 import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { createDeckGLComponent, getLayerType } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
 import {
@@ -40,12 +40,15 @@ function defaultTooltipGenerator(o: any) {
     </div>
   );
 }
-export const getLayer: getLayerType<unknown> = function (
+export const getLayer: GetLayerType<ContourLayer> = function ({
   formData,
   payload,
-  onAddFilter,
+  filterState,
+  setDataMask,
+  onContextMenu,
   setTooltip,
-) {
+  emitCrossFilters,
+}) {
   const fd = formData;
   const {
     aggregation = 'SUM',
@@ -54,7 +57,7 @@ export const getLayer: getLayerType<unknown> = function (
     cellSize = '200',
   } = fd;
   let data = payload.data.features;
-  
+
   // Store original data for tooltip access
   const originalDataMap = new Map();
   data.forEach((d: any) => {
@@ -63,7 +66,7 @@ export const getLayer: getLayerType<unknown> = function (
       if (!originalDataMap.has(key)) {
         originalDataMap.set(key, []);
       }
-      originalDataMap.get(key).push(d._originalData || d);
+      originalDataMap.get(key)?.push(d.originalData || d);
     }
   });
 
@@ -105,10 +108,10 @@ export const getLayer: getLayerType<unknown> = function (
       const searchKey = `${Math.floor(o.coordinate[0] * 1000)},${Math.floor(o.coordinate[1] * 1000)}`;
       const points = originalDataMap.get(searchKey) || [];
       nearbyPoints.push(...points);
-      
+
       // Also check neighboring cells for better coverage
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dy = -1; dy <= 1; dy += 1) {
           if (dx !== 0 || dy !== 0) {
             const neighborKey = `${Math.floor(o.coordinate[0] * 1000) + dx},${Math.floor(o.coordinate[1] * 1000) + dy}`;
             const neighborPoints = originalDataMap.get(neighborKey) || [];
@@ -116,19 +119,20 @@ export const getLayer: getLayerType<unknown> = function (
           }
         }
       }
-      
+
       // Enhance the object with nearby points data
       if (nearbyPoints.length > 0) {
-        o.object = {
+        const enhancedObject = {
           ...o.object,
           nearbyPoints: nearbyPoints.slice(0, 5), // Limit to first 5 points
           totalPoints: nearbyPoints.length,
           // Add first point's data at top level for easy access
           ...nearbyPoints[0],
         };
+        Object.assign(o, { object: enhancedObject });
       }
     }
-    
+
     // Use createTooltipContent with the enhanced object
     const baseTooltipContent = createTooltipContent(
       fd,
@@ -146,7 +150,15 @@ export const getLayer: getLayerType<unknown> = function (
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,
     getWeight: (d: { weight: number }) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, tooltipContentGenerator),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: tooltipContentGenerator,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
   });
 };
 

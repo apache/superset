@@ -46,6 +46,10 @@ export function withDeckGLControls(Component: React.ComponentType<any>) {
   return function DeckGLControlWrapper(props: any) {
     const { type, ...otherProps } = props;
     const ExpandedComponent = expandDeckGLControlType(type) || Component;
+    if (typeof ExpandedComponent === 'string') {
+      // If it's a string, it's a built-in control type, use the original Component
+      return <Component {...otherProps} />;
+    }
     return <ExpandedComponent {...otherProps} />;
   };
 }

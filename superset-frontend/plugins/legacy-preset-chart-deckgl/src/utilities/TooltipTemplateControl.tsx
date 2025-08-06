@@ -37,48 +37,48 @@ const StyledContainer = styled.div`
         margin: 0;
         font-size: ${theme.fontSizeSM}px;
         font-weight: bold;
-        color: ${theme.colors.grayscale.dark1};
+        color: ${theme.colorText};
       }
     }
 
     .control-description {
       margin-bottom: ${theme.sizeUnit * 2}px;
       font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextSecondary};
       line-height: 1.4;
     }
 
     .template-status {
       font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextSecondary};
       font-style: italic;
       margin-bottom: ${theme.sizeUnit}px;
     }
 
     .auto-generated-indicator {
-      background-color: ${theme.colors.success.light5};
-      color: ${theme.colors.success.dark1};
+      background-color: ${theme.colorSuccessBg};
+      color: ${theme.colorSuccessText};
       padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-radius: ${theme.sizeUnit}px;
       font-size: ${theme.fontSizeSM}px;
       margin-bottom: ${theme.sizeUnit * 2}px;
-      border: 1px solid ${theme.colors.success.light2};
+      border: 1px solid ${theme.colorSuccessBorder};
     }
 
     .manual-template-indicator {
-      background-color: ${theme.colors.info.light5};
-      color: ${theme.colors.info.dark1};
+      background-color: ${theme.colorInfoBg};
+      color: ${theme.colorInfoText};
       padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-radius: ${theme.sizeUnit}px;
       font-size: ${theme.fontSizeSM}px;
       margin-bottom: ${theme.sizeUnit * 2}px;
-      border: 1px solid ${theme.colors.info.light2};
+      border: 1px solid ${theme.colorInfoBorder};
     }
 
     .reset-button {
       background-color: transparent;
-      border: 1px solid ${theme.colors.grayscale.light2};
-      color: ${theme.colors.grayscale.dark1};
+      border: 1px solid ${theme.colorBorder};
+      color: ${theme.colorText};
       padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-radius: ${theme.sizeUnit}px;
       font-size: ${theme.fontSizeSM}px;
@@ -86,8 +86,8 @@ const StyledContainer = styled.div`
       transition: all 0.2s ease;
 
       &:hover {
-        background-color: ${theme.colors.grayscale.light4};
-        border-color: ${theme.colors.grayscale.light1};
+        background-color: ${theme.colorBgTextHover};
+        border-color: ${theme.colorBorderSecondary};
       }
     }
   `}

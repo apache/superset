@@ -22,7 +22,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
-import { formatSelectOptions } from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES, formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
@@ -44,6 +44,10 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  deckGLCategoricalColorSchemeTypeSelect,
+  deckGLLinearColorSchemeSelect,
+  deckGLColorBreakpointsSelect,
+  breakpointsDefaultColor,
   tooltipContents,
   tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
@@ -100,7 +104,25 @@ const config: ControlPanelConfig = {
       label: t('Polygon Settings'),
       expanded: true,
       controlSetRows: [
-        [fillColorPicker, strokeColorPicker],
+        [
+          {
+            ...deckGLCategoricalColorSchemeTypeSelect,
+            config: {
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
+                [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
+              ],
+              default: COLOR_SCHEME_TYPES.linear_palette,
+            },
+          },
+          fillColorPicker,
+          strokeColorPicker,
+          deckGLLinearColorSchemeSelect,
+          breakpointsDefaultColor,
+          deckGLColorBreakpointsSelect,
+        ],
         [filled, stroked],
         [extruded],
         [multiplier],
@@ -120,7 +142,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['linear_color_scheme'],
         [
           {
             name: 'opacity',
