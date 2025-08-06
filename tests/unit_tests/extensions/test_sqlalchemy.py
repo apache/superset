@@ -115,7 +115,10 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     mocker.patch("superset.security_manager")
 
     # Mock Flask g.user for security checks
-    g = mocker.patch("flask.g")
+    # In Python 3.8+, we can't directly patch flask.g
+    # Instead, we need to ensure g.user exists in the context
+    from flask import g
+
     g.user = mocker.MagicMock()
     g.user.is_anonymous = False
 
@@ -148,7 +151,10 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
     mocker.patch("superset.security_manager")
 
     # Mock Flask g.user for security checks
-    g = mocker.patch("flask.g")
+    # In Python 3.8+, we can't directly patch flask.g
+    # Instead, we need to ensure g.user exists in the context
+    from flask import g
+
     g.user = mocker.MagicMock()
     g.user.is_anonymous = False
 
@@ -176,7 +182,10 @@ def test_superset_joins(
     mocker.patch("superset.security_manager")
 
     # Mock Flask g.user for security checks
-    g = mocker.patch("flask.g")
+    # In Python 3.8+, we can't directly patch flask.g
+    # Instead, we need to ensure g.user exists in the context
+    from flask import g
+
     g.user = mocker.MagicMock()
     g.user.is_anonymous = False
 
@@ -213,7 +222,10 @@ def test_dml(
     mocker.patch("superset.security_manager")
 
     # Mock Flask g.user for security checks
-    g = mocker.patch("flask.g")
+    # In Python 3.8+, we can't directly patch flask.g
+    # Instead, we need to ensure g.user exists in the context
+    from flask import g
+
     g.user = mocker.MagicMock()
     g.user.is_anonymous = False
 
@@ -259,9 +271,10 @@ def test_security_manager(
         pytest.skip("metadb dependencies not available")
 
     # Mock Flask g.user first to avoid AttributeError
-    g = mocker.patch("flask.g")
-    g.user = mocker.MagicMock()
-    g.user.is_anonymous = False
+    # We need to mock the actual g object that's imported by security.manager
+    mock_user = mocker.MagicMock()
+    mock_user.is_anonymous = False
+    mocker.patch("superset.security.manager.g", mocker.MagicMock(user=mock_user))
 
     # Then patch the security_manager to raise an exception
     security_manager = mocker.MagicMock()
@@ -304,7 +317,10 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     mocker.patch("superset.security_manager")
 
     # Mock Flask g.user for security checks
-    g = mocker.patch("flask.g")
+    # In Python 3.8+, we can't directly patch flask.g
+    # Instead, we need to ensure g.user exists in the context
+    from flask import g
+
     g.user = mocker.MagicMock()
     g.user.is_anonymous = False
 
