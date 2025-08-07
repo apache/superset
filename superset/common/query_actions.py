@@ -145,7 +145,7 @@ def _get_samples(
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.metrics = None
+    query_obj.metrics = []
     query_obj.post_processing = []
     qry_obj_cols = []
     for o in datasource.columns:
@@ -168,7 +168,7 @@ def _get_drill_detail(
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.metrics = None
+    query_obj.metrics = []
     query_obj.post_processing = []
     qry_obj_cols = []
     for o in datasource.columns:

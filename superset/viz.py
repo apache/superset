@@ -411,7 +411,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
-            "filter": self.form_data.get("filters", []),
+            "filters": self.form_data.get("filters", []),
             "timeseries_limit": limit,
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,

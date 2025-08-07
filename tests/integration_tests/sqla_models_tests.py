@@ -33,6 +33,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db
+from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
@@ -162,7 +163,7 @@ class TestDatabaseModel(SupersetTestCase):
                 "count_timegrain",
             ],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
             "extras": {"time_grain_sqla": "P1D"},
         }
 
@@ -186,7 +187,8 @@ class TestDatabaseModel(SupersetTestCase):
         )
         db.session.commit()
 
-        sqla_query = table.get_sqla_query(**base_query_obj)
+        query_object = QueryObject(datasource=table, **base_query_obj)
+        sqla_query = table.get_sqla_query(query_object)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
         # assert virtual dataset
@@ -234,12 +236,13 @@ class TestDatabaseModel(SupersetTestCase):
                 },
             ],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
             "extras": {"time_grain_sqla": "P1D"},
         }
         mock_dataset_id_from_context.return_value = table.id
 
-        sqla_query = table.get_sqla_query(**base_query_obj)
+        query_object = QueryObject(datasource=table, **base_query_obj)
+        sqla_query = table.get_sqla_query(query_object)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
         database = table.database
@@ -267,7 +270,7 @@ class TestDatabaseModel(SupersetTestCase):
                 }
             ],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
         }
 
         table = SqlaTable(
@@ -275,8 +278,9 @@ class TestDatabaseModel(SupersetTestCase):
         )
         db.session.commit()
 
+        query_object = QueryObject(datasource=table, **base_query_obj)
         with pytest.raises(QueryObjectValidationError):
-            table.get_sqla_query(**base_query_obj)
+            table.get_sqla_query(query_object)
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -310,7 +314,7 @@ class TestDatabaseModel(SupersetTestCase):
                 "groupby": ["gender"],
                 "metrics": ["count"],
                 "is_timeseries": False,
-                "filter": [
+                "filters": [
                     {
                         "col": filter_.column,
                         "op": filter_.operator,
@@ -319,7 +323,8 @@ class TestDatabaseModel(SupersetTestCase):
                 ],
                 "extras": {},
             }
-            sqla_query = table.get_sqla_query(**query_obj)
+            query_object = QueryObject(datasource=table, **query_obj)
+            sqla_query = table.get_sqla_query(query_object)
             sql = table.database.compile_sqla_query(sqla_query.sqla_query)
             if isinstance(filter_.expected, list):
                 assert any([candidate in sql for candidate in filter_.expected])  # noqa: C419
@@ -344,7 +349,7 @@ class TestDatabaseModel(SupersetTestCase):
             "groupby": ["boolean_gender"],
             "metrics": ["count"],
             "is_timeseries": False,
-            "filter": [
+            "filters": [
                 {
                     "col": "boolean_gender",
                     "op": FilterOperator.IN,
@@ -353,7 +358,8 @@ class TestDatabaseModel(SupersetTestCase):
             ],
             "extras": {},
         }
-        sqla_query = table.get_sqla_query(**query_obj)
+        query_object = QueryObject(datasource=table, **query_obj)
+        sqla_query = table.get_sqla_query(query_object)
         sql = table.database.compile_sqla_query(sqla_query.sqla_query)
         dialect = table.database.get_dialect()
         operand = "(true, false)"
@@ -371,7 +377,7 @@ class TestDatabaseModel(SupersetTestCase):
             "groupby": ["user"],
             "metrics": [],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
             "extras": {},
         }
 
@@ -383,8 +389,9 @@ class TestDatabaseModel(SupersetTestCase):
         )
         # TODO(villebro): make it work with presto
         if get_example_database().backend != "presto":
+            query_object = QueryObject(datasource=table, **query_obj)
             with pytest.raises(QueryObjectValidationError):
-                table.get_sqla_query(**query_obj)
+                table.get_sqla_query(query_object)
 
     def test_query_format_strip_trailing_semicolon(self):
         query_obj = {
@@ -394,7 +401,7 @@ class TestDatabaseModel(SupersetTestCase):
             "groupby": ["user"],
             "metrics": [],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
             "extras": {},
         }
 
@@ -403,7 +410,8 @@ class TestDatabaseModel(SupersetTestCase):
             sql="SELECT * from test_table;",
             database=get_example_database(),
         )
-        sqlaq = table.get_sqla_query(**query_obj)
+        query_object = QueryObject(datasource=table, **query_obj)
+        sqlaq = table.get_sqla_query(query_object)
         sql = table.database.compile_sqla_query(sqlaq.sqla_query)
         assert sql[-1] != ";"
 
@@ -415,7 +423,7 @@ class TestDatabaseModel(SupersetTestCase):
             "groupby": ["grp"],
             "metrics": [],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
         }
 
         table = SqlaTable(
@@ -425,8 +433,9 @@ class TestDatabaseModel(SupersetTestCase):
         )
 
         query_obj = dict(**base_query_obj, extras={})
+        query_object = QueryObject(datasource=table, **query_obj)
         with pytest.raises(QueryObjectValidationError):
-            table.get_sqla_query(**query_obj)
+            table.get_sqla_query(query_object)
 
     def test_dml_statement_raises_exception(self):
         base_query_obj = {
@@ -436,7 +445,7 @@ class TestDatabaseModel(SupersetTestCase):
             "groupby": ["grp"],
             "metrics": [],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
         }
 
         table = SqlaTable(
@@ -446,8 +455,9 @@ class TestDatabaseModel(SupersetTestCase):
         )
 
         query_obj = dict(**base_query_obj, extras={})
+        query_object = QueryObject(datasource=table, **query_obj)
         with pytest.raises(QueryObjectValidationError):
-            table.get_sqla_query(**query_obj)
+            table.get_sqla_query(query_object)
 
     def test_fetch_metadata_for_updated_virtual_table(self):
         table = SqlaTable(
@@ -507,7 +517,7 @@ class TestDatabaseModel(SupersetTestCase):
                 }
             ],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
             "extras": {},
         }
 
@@ -516,7 +526,8 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.add(database)
         db.session.add(table)
         db.session.commit()
-        sqlaq = table.get_sqla_query(**query_obj)
+        query_object = QueryObject(datasource=table, **query_obj)
+        sqlaq = table.get_sqla_query(query_object)
         assert sqlaq.labels_expected == ["user", "COUNT_DISTINCT(user)"]
         sql = table.database.compile_sqla_query(sqlaq.sqla_query)
         assert "COUNT_DISTINCT_user__00db1" in sql
@@ -585,7 +596,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": [NULL_STRING], "op": "IN"}],
+            "filters": [{"col": "foo", "val": [NULL_STRING], "op": "IN"}],
             "is_timeseries": False,
         }
     )
@@ -595,7 +606,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": [None], "op": "IN"}],
+            "filters": [{"col": "foo", "val": [None], "op": "IN"}],
             "is_timeseries": False,
         }
     )
@@ -605,7 +616,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
+            "filters": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
             "is_timeseries": False,
         }
     )
@@ -615,7 +626,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": [""], "op": "IN"}],
+            "filters": [{"col": "foo", "val": [""], "op": "IN"}],
             "is_timeseries": False,
         }
     )
@@ -625,7 +636,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [
+            "filters": [
                 {
                     "col": "foo",
                     "val": [EMPTY_STRING, NULL_STRING, "null", "foo"],
@@ -641,7 +652,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [
+            "filters": [
                 {
                     "col": "foo",
                     "val": ['"text in double quotes"'],
@@ -657,7 +668,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [
+            "filters": [
                 {
                     "col": "foo",
                     "val": ["'text in single quotes'"],
@@ -673,7 +684,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [
+            "filters": [
                 {
                     "col": "foo",
                     "val": ['double quotes " in text'],
@@ -689,7 +700,7 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [
+            "filters": [
                 {
                     "col": "foo",
                     "val": ["single quotes ' in text"],
@@ -726,7 +737,7 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
         {
             "metrics": ["count"],
             "is_timeseries": False,
-            "filter": [],
+            "filters": [],
             "from_dttm": datetime(2022, 1, 1),
             "to_dttm": datetime(2023, 1, 1),
             "granularity": "datetime_col",
@@ -763,7 +774,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         result = physical_dataset.query(
             {
                 "metrics": ["count"],
-                "filter": [{"col": "col4", "val": None, "op": expected["operator"]}],
+                "filters": [{"col": "col4", "val": None, "op": expected["operator"]}],
                 "is_timeseries": False,
             }
         )
@@ -782,7 +793,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             physical_dataset.query(
                 {
                     "metrics": ["count"],
-                    "filter": [{"col": "col4", "val": None, "op": flt.value}],
+                    "filters": [{"col": "col4", "val": None, "op": flt.value}],
                     "is_timeseries": False,
                 }
             )
@@ -871,7 +882,7 @@ def test_extra_cache_keys(
         "groupby": ["id", "username", "email"],
         "metrics": [],
         "is_timeseries": False,
-        "filter": [],
+        "filters": [],
     }
 
     query_obj = dict(**base_query_obj, extras={})
@@ -917,7 +928,7 @@ def test_extra_cache_keys_in_sql_expression(
         "groupby": ["id", "username", "email"],
         "metrics": [],
         "is_timeseries": False,
-        "filter": [],
+        "filters": [],
     }
 
     query_obj = dict(**base_query_obj, extras={"where": sql_expression})
@@ -960,7 +971,7 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
         "metrics": [],
         "columns": [],
         "is_timeseries": False,
-        "filter": [],
+        "filters": [],
     }
 
     items: dict[str, Any] = {
@@ -1014,7 +1025,7 @@ def test_extra_cache_keys_in_dataset_metrics_and_columns(
         "columns": ["username"],
         "metrics": ["variable_profit"],
         "is_timeseries": False,
-        "filter": [],
+        "filters": [],
     }
 
     extra_cache_keys = table.get_extra_cache_keys(query_obj)
@@ -1118,7 +1129,7 @@ def test__temporal_range_operator_in_adhoc_filter(physical_dataset):
     result = physical_dataset.query(
         {
             "columns": ["col1", "col2"],
-            "filter": [
+            "filters": [
                 {
                     "col": "col5",
                     "val": "2000-01-05 : 2000-01-06",
