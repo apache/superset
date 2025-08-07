@@ -115,11 +115,15 @@ export default class SupersetClientClass {
     return this.getCSRFToken();
   }
 
-  async postForm(url: string, payload: Record<string, any>, target = '_blank') {
-    if (url) {
+  async postForm(
+    endpoint: string,
+    payload: Record<string, any>,
+    target = '_blank',
+  ) {
+    if (endpoint) {
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = url;
+      hiddenForm.action = this.getUrl({ endpoint });
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {
