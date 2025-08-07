@@ -22,42 +22,19 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.dashboard.schemas import DashboardInfo
+from superset.mcp_service.dashboard.schemas import (
+    DashboardInfo,
+    GenerateDashboardRequest,
+    GenerateDashboardResponse,
+)
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-class GenerateDashboardRequest(BaseModel):
-    """Request schema for generating a dashboard."""
-
-    chart_ids: List[int] = Field(
-        ..., description="List of chart IDs to include in the dashboard", min_length=1
-    )
-    dashboard_title: str = Field(..., description="Title for the new dashboard")
-    description: Optional[str] = Field(
-        None, description="Description for the dashboard"
-    )
-    published: bool = Field(
-        default=True, description="Whether to publish the dashboard"
-    )
-
-
-class GenerateDashboardResponse(BaseModel):
-    """Response schema for dashboard generation."""
-
-    dashboard: Optional[DashboardInfo] = Field(
-        None, description="The created dashboard info, if successful"
-    )
-    dashboard_url: Optional[str] = Field(None, description="URL to view the dashboard")
-    error: Optional[str] = Field(None, description="Error message, if creation failed")
 
 
 def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:

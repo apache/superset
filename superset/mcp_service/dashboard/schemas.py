@@ -349,3 +349,55 @@ class GetDashboardAvailableFiltersRequest(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class AddChartToDashboardRequest(BaseModel):
+    """Request schema for adding a chart to an existing dashboard."""
+
+    dashboard_id: int = Field(
+        ..., description="ID of the dashboard to add the chart to"
+    )
+    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
+    target_tab: Optional[str] = Field(
+        None, description="Target tab name (if dashboard has tabs)"
+    )
+
+
+class AddChartToDashboardResponse(BaseModel):
+    """Response schema for adding chart to dashboard."""
+
+    dashboard: Optional[DashboardInfo] = Field(
+        None, description="The updated dashboard info, if successful"
+    )
+    dashboard_url: Optional[str] = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    position: Optional[Dict[str, Any]] = Field(
+        None, description="Position information for the added chart"
+    )
+    error: Optional[str] = Field(None, description="Error message, if operation failed")
+
+
+class GenerateDashboardRequest(BaseModel):
+    """Request schema for generating a dashboard."""
+
+    chart_ids: List[int] = Field(
+        ..., description="List of chart IDs to include in the dashboard", min_length=1
+    )
+    dashboard_title: str = Field(..., description="Title for the new dashboard")
+    description: Optional[str] = Field(
+        None, description="Description for the dashboard"
+    )
+    published: bool = Field(
+        default=True, description="Whether to publish the dashboard"
+    )
+
+
+class GenerateDashboardResponse(BaseModel):
+    """Response schema for dashboard generation."""
+
+    dashboard: Optional[DashboardInfo] = Field(
+        None, description="The created dashboard info, if successful"
+    )
+    dashboard_url: Optional[str] = Field(None, description="URL to view the dashboard")
+    error: Optional[str] = Field(None, description="Error message, if creation failed")

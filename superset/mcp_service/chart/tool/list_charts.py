@@ -29,8 +29,8 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
     serialize_chart_object,
 )
-from superset.mcp_service.generic_tools import ModelListTool
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.mcp_core import ModelListCore
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def list_charts(request: ListChartsRequest) -> ChartList:
 
     from superset.daos.chart import ChartDAO
 
-    tool = ModelListTool(
+    tool = ModelListCore(
         dao_class=ChartDAO,  # type: ignore[arg-type]
         output_schema=ChartInfo,
         item_serializer=lambda obj, cols: serialize_chart_object(obj) if obj else None,  # type: ignore[arg-type]
@@ -100,7 +100,7 @@ def list_charts(request: ListChartsRequest) -> ChartList:
         output_list_schema=ChartList,
         logger=logger,
     )
-    return tool.run(
+    return tool.run_tool(
         filters=request.filters,
         search=request.search,
         select_columns=request.select_columns,

@@ -16,19 +16,20 @@
 # under the License.
 
 """
-Generic SQL execution tool for MCP service.
+Generic SQL execution core for MCP service.
 """
 
 import logging
 from typing import Any, Optional
 
+from superset.mcp_service.mcp_core import BaseCore
 from superset.mcp_service.sql_lab.schemas import (
     ExecuteSqlRequest,
     ExecuteSqlResponse,
 )
 
 
-class ExecuteSqlTool:
+class ExecuteSqlCore(BaseCore):
     """
     Generic tool for executing SQL queries with security validation.
 
@@ -50,10 +51,10 @@ class ExecuteSqlTool:
         use_command_mode: bool = False,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        super().__init__(logger)
         self.use_command_mode = use_command_mode
-        self.logger = logger or logging.getLogger(__name__)
 
-    def execute(self, request: ExecuteSqlRequest) -> ExecuteSqlResponse:
+    def run_tool(self, request: ExecuteSqlRequest) -> ExecuteSqlResponse:
         """
         Execute SQL query and return results.
 
@@ -79,7 +80,7 @@ class ExecuteSqlTool:
 
         except Exception as e:
             # Handle errors and return error response with proper error types
-            self.logger.error(f"Error executing SQL: {e}", exc_info=True)
+            self._log_error(e, "executing SQL")
             return self._handle_execution_error(e)
 
     def _execute_simple(
@@ -121,7 +122,7 @@ class ExecuteSqlTool:
         # This would use ExecuteSqlCommand for full SQL Lab features
         # Including query caching, async execution, complex parsing, etc.
         # For now, we'll fall back to simple execution
-        self.logger.info("Command mode not fully implemented, using simple mode")
+        self._log_info("Command mode not fully implemented, using simple mode")
         return self._execute_simple(request, database)
 
         # Future implementation would look like:

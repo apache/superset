@@ -32,8 +32,8 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GetDashboardInfoRequest,
 )
-from superset.mcp_service.generic_tools import ModelGetInfoTool
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.system.schemas import (
     RoleInfo,
     TagInfo,
@@ -116,7 +116,7 @@ def get_dashboard_info(
 
     from superset.daos.dashboard import DashboardDAO
 
-    tool = ModelGetInfoTool(
+    tool = ModelGetInfoCore(
         dao_class=DashboardDAO,  # type: ignore[arg-type]
         output_schema=DashboardInfo,
         error_schema=DashboardError,
@@ -124,4 +124,4 @@ def get_dashboard_info(
         supports_slug=True,  # Dashboards support slugs
         logger=logger,
     )
-    return tool.run(request.identifier)
+    return tool.run_tool(request.identifier)

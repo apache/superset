@@ -33,8 +33,8 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardList,
     ListDashboardsRequest,
 )
-from superset.mcp_service.generic_tools import ModelListTool
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.mcp_core import ModelListCore
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
 
     from superset.daos.dashboard import DashboardDAO
 
-    tool = ModelListTool(
+    tool = ModelListCore(
         dao_class=DashboardDAO,  # type: ignore[arg-type]
         output_schema=DashboardInfo,
         item_serializer=lambda obj, cols: serialize_dashboard_object(obj),
@@ -134,7 +134,7 @@ def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
         output_list_schema=DashboardList,
         logger=logger,
     )
-    return tool.run(
+    return tool.run_tool(
         filters=request.filters,
         search=request.search,
         select_columns=request.select_columns,

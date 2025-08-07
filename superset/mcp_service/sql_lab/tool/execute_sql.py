@@ -26,16 +26,13 @@ import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.sql_lab.execute_sql_core import ExecuteSqlCore
 from superset.mcp_service.sql_lab.schemas import (
     ExecuteSqlRequest,
     ExecuteSqlResponse,
 )
-from superset.mcp_service.sql_lab.tool.execute_sql_tool import ExecuteSqlTool
 
 logger = logging.getLogger(__name__)
-
-# Create a single instance of the tool to reuse
-sql_tool = ExecuteSqlTool(use_command_mode=False, logger=logger)
 
 
 @mcp.tool
@@ -65,5 +62,6 @@ def execute_sql(request: ExecuteSqlRequest) -> ExecuteSqlResponse:
     """
     logger.info(f"Executing SQL query on database ID: {request.database_id}")
 
-    # Use the ExecuteSqlTool to handle all the logic
-    return sql_tool.execute(request)
+    # Use the ExecuteSqlCore to handle all the logic
+    sql_tool = ExecuteSqlCore(use_command_mode=False, logger=logger)
+    return sql_tool.run_tool(request)

@@ -81,3 +81,33 @@ class ExecuteSqlResponse(BaseModel):
     )
     error: Optional[str] = Field(None, description="Error message if query failed")
     error_type: Optional[str] = Field(None, description="Type of error if failed")
+
+
+class OpenSqlLabRequest(BaseModel):
+    """Request schema for opening SQL Lab with context."""
+
+    database_connection_id: int = Field(
+        ..., description="Database connection ID to use in SQL Lab"
+    )
+    schema_name: Optional[str] = Field(
+        None, description="Default schema to select in SQL Lab", alias="schema"
+    )
+    dataset_in_context: Optional[str] = Field(
+        None, description="Dataset name/table to provide as context"
+    )
+    sql: Optional[str] = Field(
+        None, description="SQL query to pre-populate in the editor"
+    )
+    title: Optional[str] = Field(None, description="Title for the SQL Lab tab/query")
+
+
+class SqlLabResponse(BaseModel):
+    """Response schema for SQL Lab URL generation."""
+
+    url: str = Field(..., description="URL to open SQL Lab with context")
+    database_id: int = Field(..., description="Database ID used")
+    schema_name: Optional[str] = Field(
+        None, description="Schema selected", alias="schema"
+    )
+    title: Optional[str] = Field(None, description="Query title")
+    error: Optional[str] = Field(None, description="Error message if failed")

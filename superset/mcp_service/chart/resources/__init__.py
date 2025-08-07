@@ -18,4 +18,4 @@
 """Chart resources for Superset MCP service"""
 
 # Import to register resources when module is imported
-from . import templates  # noqa: F401
+from . import chart_configs  # noqa: F401
