@@ -65,6 +65,7 @@ class UpdateDatabaseCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
 
+        logger.info("Updating database with content:\n%s", self._properties)
         self.validate()
 
         if "masked_encrypted_extra" in self._properties:

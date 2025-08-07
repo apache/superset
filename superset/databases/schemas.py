@@ -78,7 +78,12 @@ database_tables_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
-        "schema_name": {"type": "string"},
+        "schema_name": {
+            "oneOf": [
+                {"type": "string"},
+                {"type": "array", "items": {"type": "string"}},
+            ]
+        },
         "catalog_name": {"type": "string"},
     },
     "required": ["schema_name"],
@@ -451,6 +456,68 @@ class DatabaseSSHTunnel(Schema):
     private_key_password = fields.String(required=False)
 
 
+class LlmConnectionSchema(Schema):
+    provider = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The LLM provider"},
+    )
+    api_key = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The LLM API key"},
+    )
+    model = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The LLM model"},
+    )
+    enabled = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Whether the LLM connection is enabled"},
+    )
+
+
+class LlmContextOptionsSchema(Schema):
+    refresh_interval = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The interval in hours to refresh the LLM context"},
+    )
+    schemas = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "A list of schemas to include in the LLM context"},
+    )
+    include_indexes = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Whether to include indexes in the LLM context"},
+    )
+    top_k = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": "The number of top K results to include in the LLM context"
+        },
+    )
+    top_k_limit = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": "The limit for the top K results to include in the LLM context"
+        },
+    )
+    instructions = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": "Instructions for the LLM to follow when generating SQL"
+        },
+    )
+
+
 class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
@@ -506,6 +573,8 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     external_url = fields.String(allow_none=True)
     uuid = fields.String(required=False)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    llm_connection = fields.Nested(LlmConnectionSchema, allow_none=True)
+    llm_context_options = fields.Nested(LlmContextOptionsSchema, allow_none=True)
 
 
 class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
@@ -563,6 +632,8 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     external_url = fields.String(allow_none=True)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
     uuid = fields.String(required=False)
+    llm_connection = fields.Nested(LlmConnectionSchema, allow_none=True)
+    llm_context_options = fields.Nested(LlmContextOptionsSchema, allow_none=True)
 
 
 class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
@@ -1062,6 +1133,8 @@ class DatabaseConnectionSchema(Schema):
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+    llm_connection = fields.Nested(LlmConnectionSchema, allow_none=True)
+    llm_context_options = fields.Nested(LlmContextOptionsSchema, allow_none=True)
 
 
 class DelimitedListField(fields.List):
@@ -1340,4 +1413,27 @@ class QualifiedTableSchema(Schema):
         required=False,
         load_default=None,
         metadata={"description": "The table catalog"},
+    )
+
+
+class QualifiedSchemaSchema(Schema):
+    """
+    Schema for a qualified schema reference.
+
+    Catalog can be ommited to fallback to default value.
+    """
+
+    schema = fields.String(
+        required=True,
+        metadata={"description": "The schema"},
+    )
+    catalog = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The catalog"},
+    )
+    minify = fields.Boolean(
+        required=False,
+        load_default=False,
+        metadata={"description": "Whether to minify the schema"},
     )

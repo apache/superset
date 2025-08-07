@@ -1130,6 +1130,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.llm_context",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1148,6 +1149,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.prune_log": {
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
+        },
+        "check_for_expired_llm_context": {
+            "task": "check_for_expired_llm_context",
+            "schedule": crontab(minute="*/5"),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {

@@ -64,7 +64,8 @@ def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
         datasource_database = datasource_data.get("database")
         if datasource_database:
             datasource_database["parameters"] = {}
-
+            datasource_database["llm_connection"] = {}
+            datasource_database["llm_context_options"] = {}
     return datasource_data
 
 
