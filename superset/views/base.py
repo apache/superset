@@ -23,7 +23,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable
 
-from babel import Locale
 from flask import (
     abort,
     current_app as app,
@@ -347,7 +346,7 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
 
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
+    user_id: int | None, locale: str | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -383,7 +382,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    language = locale.language if locale else "en"
+    language = locale.split("_")[0] if locale else "en"
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
@@ -438,8 +437,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
+    locale = get_locale()
+    # Convert locale to string for proper cache key hashing
+    locale_str = str(locale) if locale else None
     return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
+        **cached_common_bootstrap_data(utils.get_user_id(), locale_str),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 
