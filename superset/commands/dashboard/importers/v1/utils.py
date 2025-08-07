@@ -168,8 +168,8 @@ def update_cross_filter_scoping(
         }
         # now update scope excluded to use new IDs:
         for chart_config in metadata["chart_configuration"].values():
-            if "id" in chart_config and int(chart_config["id"]) in id_map:
-                chart_config["id"] = id_map[int(chart_config["id"])]
+            if "id" in chart_config and chart_config["id"] in id_map:
+                chart_config["id"] = id_map[chart_config["id"]]
             scope = chart_config.get("crossFilters", {}).get("scope", {})
 
             if not isinstance(scope, dict):
