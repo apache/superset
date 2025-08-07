@@ -37,7 +37,7 @@ x-common-build: &common-build
 
 services:
   redis:
-    image: redis:7
+    image: docker.io/redis:7
     container_name: superset_cache
     restart: unless-stopped
     volumes:
@@ -49,7 +49,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: docker.io/postgres:16
     container_name: superset_db
     restart: unless-stopped
     volumes:
