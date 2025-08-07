@@ -27,7 +27,12 @@ import {
   useTheme,
   VizType,
 } from '@superset-ui/core';
-import { Icons, ModalTrigger, Button } from '@superset-ui/core/components';
+import {
+  Icons,
+  ModalTrigger,
+  Button,
+  Input,
+} from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
@@ -46,7 +51,9 @@ import {
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
-import DashboardsSubMenu from './DashboardsSubMenu';
+import { useDashboardsMenuItems } from './DashboardsSubMenu';
+
+export const SEARCH_THRESHOLD = 10;
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -124,6 +131,7 @@ export const useExploreAdditionalActionsMenu = (
   const { addDangerToast, addSuccessToast } = useToasts();
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
@@ -136,6 +144,15 @@ export const useExploreAdditionalActionsMenu = (
   });
 
   const { datasource } = latestQueryFormData;
+
+  // Get dashboard menu items using the hook
+  const dashboardMenuItems = useDashboardsMenuItems({
+    chartId: slice?.slice_id,
+    dashboards,
+    searchTerm: dashboardSearchTerm,
+  });
+
+  const showDashboardSearch = dashboards?.length > SEARCH_THRESHOLD;
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -225,21 +242,44 @@ export const useExploreAdditionalActionsMenu = (
     }
 
     // On dashboards submenu
+    const dashboardsChildren = [];
+
+    // Add search input if needed
+    if (showDashboardSearch) {
+      dashboardsChildren.push({
+        key: 'dashboard-search',
+        label: (
+          <Input
+            allowClear
+            placeholder={t('Search')}
+            prefix={<Icons.StarOutlined iconSize="l" />}
+            css={css`
+              width: 220px;
+              margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
+            `}
+            value={dashboardSearchTerm}
+            onChange={e => setDashboardSearchTerm(e.currentTarget.value)}
+            onClick={e => e.stopPropagation()}
+          />
+        ),
+        disabled: true, // Prevent clicks on the search input from closing menu
+      });
+    }
+
+    // Add dashboard items
+    dashboardMenuItems.forEach(item => {
+      dashboardsChildren.push(item);
+    });
+
     menuItems.push({
       key: MENU_KEYS.DASHBOARDS_ADDED_TO,
       type: 'submenu',
       label: t('On dashboards'),
-      children: [
-        {
-          key: 'dashboards-content',
-          label: (
-            <DashboardsSubMenu
-              chartId={slice?.slice_id}
-              dashboards={dashboards}
-            />
-          ),
-        },
-      ],
+      children: dashboardsChildren,
+      popupStyle: {
+        maxHeight: '300px',
+        overflow: 'auto',
+      },
     });
 
     // Divider
@@ -479,6 +519,8 @@ export const useExploreAdditionalActionsMenu = (
     canDownloadCSV,
     copyLink,
     dashboards,
+    dashboardMenuItems,
+    dashboardSearchTerm,
     datasource,
     dispatch,
     exportCSV,
@@ -490,6 +532,7 @@ export const useExploreAdditionalActionsMenu = (
     onOpenPropertiesModal,
     reportMenuItem,
     shareByEmail,
+    showDashboardSearch,
     slice,
     theme.sizeUnit,
   ]);
