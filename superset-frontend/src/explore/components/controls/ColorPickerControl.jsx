@@ -20,7 +20,7 @@ import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { SketchPicker } from 'react-color';
 import { getCategoricalSchemeRegistry, styled, css } from '@superset-ui/core';
-import Popover from 'src/components/Popover';
+import { Popover } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -47,7 +47,7 @@ const StyledSwatch = styled.div`
       width: 50px;
       height: 20px;
       position: relative;
-      padding: ${theme.gridUnit}px;
+      padding: ${theme.sizeUnit}px;
       borderRadius: ${theme.borderRadius}px;
       display: inline-block;
       cursor: pointer;
@@ -78,7 +78,7 @@ export default class ColorPickerControl extends Component {
   renderPopover() {
     const presetColors = getCategoricalSchemeRegistry()
       .get()
-      .colors.filter((s, i) => i < 7);
+      .colors.filter((s, i) => i < 9);
     return (
       <div id="filter-popover" className="color-popover">
         <SketchPicker
@@ -87,6 +87,7 @@ export default class ColorPickerControl extends Component {
             padding: 0 !important;
             box-shadow: none !important;
           `}
+          width={235}
           color={this.props.value}
           onChange={this.onChange}
           presetColors={presetColors}

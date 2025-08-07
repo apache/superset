@@ -18,26 +18,25 @@
  */
 import {
   AdhocColumn,
+  BuildQuery,
+  PostProcessingRule,
+  QueryFormOrderBy,
+  QueryMode,
+  QueryObject,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
-  getTimeOffset,
   isPhysicalColumn,
-  parseDttmToDate,
-  QueryMode,
-  QueryObject,
   removeDuplicates,
-  SimpleAdhocFilter,
 } from '@superset-ui/core';
-import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
-import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+
 import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { TableChartFormData } from './types';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -86,47 +85,46 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
-    let postProcessing: PostProcessingRule[] = [];
-    const TimeRangeFilters =
-      formData.adhoc_filters?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
-
-    // In case the viz is using all version of controls, we try to load them
-    const previousCustomTimeRangeFilters: any =
-      formData.adhoc_custom?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
-
-    let previousCustomStartDate = '';
-    if (
-      !isEmpty(previousCustomTimeRangeFilters) &&
-      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-    ) {
-      previousCustomStartDate =
-        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
-    }
-
-    const timeOffsets = ensureIsArray(
-      isTimeComparison(formData, baseQueryObject)
-        ? getTimeOffset({
-            timeRangeFilter: {
-              ...TimeRangeFilters[0],
-              comparator:
-                baseQueryObject?.time_range ??
-                (TimeRangeFilters[0] as any)?.comparator,
-            },
-            shifts: formData.time_compare,
-            startDate:
-              previousCustomStartDate && !formData.start_date_offset
-                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-                : formData.start_date_offset,
-          })
-        : [],
+    const postProcessing: PostProcessingRule[] = [];
+    const nonCustomNorInheritShifts = ensureIsArray(
+      formData.time_compare,
+    ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
+    const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+      (shift: string) => shift === 'custom' || shift === 'inherit',
     );
 
-    let temporalColumAdded = false;
-    let temporalColum = null;
+    let timeOffsets: string[] = [];
+
+    // Shifts for non-custom or non inherit time comparison
+    if (
+      isTimeComparison(formData, baseQueryObject) &&
+      !isEmpty(nonCustomNorInheritShifts)
+    ) {
+      timeOffsets = nonCustomNorInheritShifts;
+    }
+
+    // Shifts for custom or inherit time comparison
+    if (
+      isTimeComparison(formData, baseQueryObject) &&
+      !isEmpty(customOrInheritShifts)
+    ) {
+      if (customOrInheritShifts.includes('custom')) {
+        timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+      }
+      if (customOrInheritShifts.includes('inherit')) {
+        timeOffsets = timeOffsets.concat(['inherit']);
+      }
+    }
+
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
+    let temporalColumnAdded = false;
+    let temporalColumn = null;
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
@@ -139,6 +137,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
+      type PercentMetricCalculationMode = 'row_limit' | 'all_records';
+
+      const calculationMode: PercentMetricCalculationMode =
+        (formData.percent_metric_calculation as PercentMetricCalculationMode) ||
+        'row_limit';
+
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
           formData,
@@ -149,6 +153,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               timeOffsets,
             )
           : percentMetrics.map(getMetricLabel);
+
         const percentMetricLabels = removeDuplicates(
           percentMetricsLabelsWithTimeComparison,
         );
@@ -156,16 +161,26 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
+
+        if (calculationMode === 'all_records') {
+          postProcessing.push({
             operation: 'contribution',
             options: {
               columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
+              rename_columns: percentMetricLabels.map(m => `%${m}`),
             },
-          },
-        ];
+          });
+        } else {
+          postProcessing.push({
+            operation: 'contribution',
+            options: {
+              columns: percentMetricLabels,
+              rename_columns: percentMetricLabels.map(m => `%${m}`),
+            },
+          });
+        }
       }
+
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
         postProcessing.push(timeCompareOperator(formData, baseQueryObject));
@@ -180,40 +195,62 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           time_grain_sqla &&
           temporalColumnsLookup?.[col];
 
-        if (shouldBeAdded && !temporalColumAdded) {
-          temporalColum = {
+        if (shouldBeAdded && !temporalColumnAdded) {
+          temporalColumn = {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
           } as AdhocColumn;
-          temporalColumAdded = true;
+          temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
         }
         return true;
       });
 
       // So we ensure the temporal column is added first
-      if (temporalColum) {
-        columns = [temporalColum, ...columns];
+      if (temporalColumn) {
+        columns = [temporalColumn, ...columns];
       }
     }
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    if (formDataCopy.server_pagination) {
-      moreProps.row_limit =
-        ownState.pageSize ?? formDataCopy.server_page_length;
-      moreProps.row_offset =
-        (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+    // Build Query flag to check if its for either download as csv, excel or json
+    const isDownloadQuery =
+      ['csv', 'xlsx'].includes(formData?.result_format || '') ||
+      (formData?.result_format === 'json' &&
+        formData?.result_type === 'results');
+
+    if (isDownloadQuery) {
+      moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
+      moreProps.row_offset = 0;
+    }
+
+    if (!isDownloadQuery && formDataCopy.server_pagination) {
+      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
+      const currentPage = ownState.currentPage ?? 0;
+
+      moreProps.row_limit = pageSize;
+      moreProps.row_offset = currentPage * pageSize;
+    }
+
+    // getting sort by in case of server pagination from own state
+    let sortByFromOwnState: QueryFormOrderBy[] | undefined;
+    if (Array.isArray(ownState?.sortBy) && ownState?.sortBy.length > 0) {
+      const sortByItem = ownState?.sortBy[0];
+      sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
     let queryObject = {
       ...baseQueryObject,
       columns,
-      extras: !isEmpty(timeOffsets) && !temporalColum ? {} : extras,
-      orderby,
+      extras,
+      orderby:
+        formData.server_pagination && sortByFromOwnState
+          ? sortByFromOwnState
+          : orderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
@@ -227,11 +264,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         JSON.stringify(queryObject.filters)
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
-      updateExternalFormData(
-        options?.hooks?.setDataMask,
-        0,
-        queryObject.row_limit ?? 0,
-      );
+      const modifiedOwnState = {
+        ...(options?.ownState || {}),
+        currentPage: 0,
+        pageSize: queryObject.row_limit ?? 0,
+      };
+      updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
     // Because we use same buildQuery for all table on the page we need split them by id
     options?.hooks?.setCachedChanges({
@@ -239,6 +277,26 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     });
 
     const extraQueries: QueryObject[] = [];
+
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+      });
+    }
+
     if (
       metrics?.length &&
       formData.show_totals &&
@@ -250,9 +308,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
-        extras: undefined, // we don't need time grain here
-        order_desc: undefined, // we don't need orderby stuff here,
-        orderby: undefined, // because this query will be used for get total aggregation.
+        order_desc: undefined,
+        orderby: undefined,
       });
     }
 
@@ -264,12 +321,32 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (formData.server_pagination) {
+      // Add search filter if search text exists
+      if (ownState.searchText && ownState?.searchColumn) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            {
+              col: ownState?.searchColumn,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            },
+          ],
+        };
+      }
+    }
+
+    // Now since row limit control is always visible even
+    // in case of server pagination
+    // we must use row limit from form data
+    if (formData.server_pagination && !isDownloadQuery) {
       return [
         { ...queryObject },
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: 0,
+          row_limit: Number(formData?.row_limit) ?? 0,
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,

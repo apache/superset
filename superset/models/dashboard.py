@@ -22,6 +22,7 @@ from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -41,7 +42,7 @@ from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -53,12 +54,11 @@ from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
-config = app.config
 logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
+    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
@@ -136,6 +136,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(utils.MediumText())
+    theme_id = Column(Integer, ForeignKey("themes.id"), nullable=True)
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
@@ -155,8 +156,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
         secondaryjoin="TaggedObject.tag_id == Tag.id",
-        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
+    theme = relationship("Theme", foreign_keys=[theme_id])
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
@@ -172,6 +174,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         "json_metadata",
         "description",
         "css",
+        "theme_id",
         "slug",
         "certified_by",
         "certification_details",
@@ -225,16 +228,19 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
-    def digest(self) -> str:
+    def digest(self) -> str | None:
         return get_dashboard_digest(self)
 
     @property
-    def thumbnail_url(self) -> str:
+    def thumbnail_url(self) -> str | None:
         """
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        if digest := self.digest:
+            return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+
+        return None
 
     @property
     def changed_by_name(self) -> str:

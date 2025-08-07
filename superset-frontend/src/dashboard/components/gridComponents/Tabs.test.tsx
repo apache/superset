@@ -17,15 +17,18 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
-import { Tabs } from './Tabs';
+import Tabs from './Tabs';
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(props => (
@@ -121,22 +124,27 @@ beforeEach(() => {
 test('Should render editMode:true', () => {
   const props = createProps();
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
-  expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(Draggable).toBeCalledTimes(1);
-  expect(DashboardComponent).toBeCalledTimes(4);
-  expect(DeleteComponentButton).toBeCalledTimes(1);
-  expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
-  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(2);
+  expect(
+    screen
+      .getAllByRole('tab')
+      .filter(tab => !tab.classList.contains('ant-tabs-tab-remove')),
+  ).toHaveLength(3);
+  expect(screen.getAllByRole('tab', { name: 'remove' })).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(1);
+  expect(DashboardComponent).toHaveBeenCalledTimes(4);
+  expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
 });
 
 test('Should render editMode:false', () => {
   const props = createProps();
   props.editMode = false;
-  render(<Tabs {...props} />, { useRedux: true, useDnd: true });
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(Draggable).toBeCalledTimes(1);
-  expect(DashboardComponent).toBeCalledTimes(4);
-  expect(DeleteComponentButton).not.toBeCalled();
+  expect(DashboardComponent).toHaveBeenCalledTimes(4);
+  expect(DeleteComponentButton).not.toHaveBeenCalled();
   expect(
     screen.queryByRole('button', { name: 'remove' }),
   ).not.toBeInTheDocument();
@@ -153,11 +161,11 @@ test('Update component props', () => {
     useRedux: true,
     useDnd: true,
   });
-  expect(DeleteComponentButton).not.toBeCalled();
+  expect(DeleteComponentButton).not.toHaveBeenCalled();
 
   props.editMode = true;
   rerender(<Tabs {...props} />);
-  expect(DeleteComponentButton).toBeCalledTimes(1);
+  expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
 });
 
 test('Clicking on "DeleteComponentButton"', () => {
@@ -167,9 +175,12 @@ test('Clicking on "DeleteComponentButton"', () => {
     useDnd: true,
   });
 
-  expect(props.deleteComponent).not.toBeCalled();
+  expect(props.deleteComponent).not.toHaveBeenCalled();
   userEvent.click(screen.getByTestId('DeleteComponentButton'));
-  expect(props.deleteComponent).toBeCalledWith('TABS-L-d9eyOE-b', 'GRID_ID');
+  expect(props.deleteComponent).toHaveBeenCalledWith(
+    'TABS-L-d9eyOE-b',
+    'GRID_ID',
+  );
 });
 
 test('Add new tab', () => {
@@ -179,9 +190,9 @@ test('Add new tab', () => {
     useDnd: true,
   });
 
-  expect(props.createComponent).not.toBeCalled();
+  expect(props.createComponent).not.toHaveBeenCalled();
   userEvent.click(screen.getAllByRole('button', { name: 'Add tab' })[0]);
-  expect(props.createComponent).toBeCalled();
+  expect(props.createComponent).toHaveBeenCalled();
 });
 
 test('Removing a tab', async () => {
@@ -191,16 +202,16 @@ test('Removing a tab', async () => {
     useDnd: true,
   });
 
-  expect(props.deleteComponent).not.toBeCalled();
+  expect(props.deleteComponent).not.toHaveBeenCalled();
   expect(screen.queryByText('Delete dashboard tab?')).not.toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: 'remove' })[0]);
-  expect(props.deleteComponent).not.toBeCalled();
+  userEvent.click(screen.getAllByRole('tab', { name: 'remove' })[0]);
+  expect(props.deleteComponent).not.toHaveBeenCalled();
 
   expect(await screen.findByText('Delete dashboard tab?')).toBeInTheDocument();
 
-  expect(props.deleteComponent).not.toBeCalled();
+  expect(props.deleteComponent).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('button', { name: 'DELETE' }));
-  expect(props.deleteComponent).toBeCalled();
+  expect(props.deleteComponent).toHaveBeenCalled();
 });
 
 test('Switching tabs', () => {
@@ -210,11 +221,11 @@ test('Switching tabs', () => {
     useDnd: true,
   });
 
-  expect(props.logEvent).not.toBeCalled();
-  expect(props.onChangeTab).not.toBeCalled();
+  expect(props.logEvent).not.toHaveBeenCalled();
+  expect(props.onChangeTab).not.toHaveBeenCalled();
   userEvent.click(screen.getAllByRole('tab')[2]);
-  expect(props.logEvent).toBeCalled();
-  expect(props.onChangeTab).toBeCalled();
+  expect(props.logEvent).toHaveBeenCalled();
+  expect(props.onChangeTab).toHaveBeenCalled();
 });
 
 test('Call "DashboardComponent.onDropOnTab"', async () => {
@@ -224,12 +235,12 @@ test('Call "DashboardComponent.onDropOnTab"', async () => {
     useDnd: true,
   });
 
-  expect(props.logEvent).not.toBeCalled();
-  expect(props.onChangeTab).not.toBeCalled();
+  expect(props.logEvent).not.toHaveBeenCalled();
+  expect(props.onChangeTab).not.toHaveBeenCalled();
   userEvent.click(screen.getAllByText('DashboardComponent')[0]);
 
   await waitFor(() => {
-    expect(props.logEvent).toBeCalled();
-    expect(props.onChangeTab).toBeCalled();
+    expect(props.logEvent).toHaveBeenCalled();
+    expect(props.onChangeTab).toHaveBeenCalled();
   });
 });

@@ -37,6 +37,7 @@ def contribution(
     columns: list[str] | None = None,
     time_shifts: list[str] | None = None,
     rename_columns: list[str] | None = None,
+    contribution_totals: dict[str, float] | None = None,
 ) -> DataFrame:
     """
     Calculate cell contribution to row/column total for numeric columns.
@@ -75,17 +76,26 @@ def contribution(
     if len(rename_columns) != len(actual_columns):
         raise InvalidPostProcessingError(
             _(
-                "`rename_columns` must have the same length as `columns` + `time_shift_columns`."
+                "`rename_columns` must have the same length as `columns` + `time_shift_columns`."  # noqa: E501
             )
         )
     # limit to selected columns
     numeric_df_view = numeric_df[actual_columns]
 
     if orientation == PostProcessingContributionOrientation.COLUMN:
-        numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
-            axis=0, keepdims=True
-        )
-        contribution_df[rename_columns] = numeric_df_view
+        if contribution_totals:
+            for i, col in enumerate(numeric_df_view.columns):
+                total = contribution_totals.get(col)
+                rename_col = rename_columns[i]
+                if total is None or total == 0:
+                    contribution_df[rename_col] = 0
+                else:
+                    contribution_df[rename_col] = numeric_df_view[col] / total
+        else:
+            numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
+                axis=0, keepdims=True
+            )
+            contribution_df[rename_columns] = numeric_df_view
         return contribution_df
 
     result = get_column_groups(numeric_df_view, time_shifts, rename_columns)
@@ -110,7 +120,7 @@ def get_column_groups(
     maps to a tuple of original and renamed columns without a time shift. 'time_shifts' maps
     to a dictionary where each key is a time shift and each value is a tuple of original and
     renamed columns with that time shift.
-    """
+    """  # noqa: E501
     result: dict[str, Any] = {
         "non_time_shift": ([], []),  # take the form of ([A, B, C], [X, Y, Z])
         "time_shifts": {},  # take the form of {A: ([X], [Y]), B: ([Z], [W])}
@@ -146,7 +156,7 @@ def calculate_row_contribution(
     :param df: The DataFrame to calculate contributions for.
     :param columns: A list of column names to calculate contributions for.
     :param rename_columns: A list of new column names for the contribution columns.
-    """
+    """  # noqa: E501
     # calculate the row sum considering only the selected columns
     row_sum_except_selected = df.loc[:, columns].sum(axis=1)
 

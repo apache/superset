@@ -18,9 +18,11 @@
 
 import prison
 import pytest
-from flask import escape  # noqa: F401
+from flask import (
+    current_app,
+    escape,  # noqa: F401
+)
 
-from superset import app
 from superset.daos.dashboard import DashboardDAO
 from superset.utils import json
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
@@ -37,7 +39,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.fixture
     def load_dashboard(self):
-        with app.app_context():
+        with current_app.app_context():
             table = (
                 db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()  # noqa: F405
             )
@@ -85,7 +87,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         }
 
         # assert
-        for dashboard_url, get_dashboard_response in responses_by_url.items():
+        for dashboard_url, get_dashboard_response in responses_by_url.items():  # noqa: B007
             self.assert200(get_dashboard_response)
 
     def test_get_dashboards__users_are_dashboards_owners(self):
@@ -109,8 +111,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)  # noqa: F405
 
         # assert
-        self.assertIn(my_owned_dashboard.url, get_dashboards_response)
-        self.assertNotIn(not_my_owned_dashboard.url, get_dashboards_response)
+        assert my_owned_dashboard.url in get_dashboards_response
+        assert not_my_owned_dashboard.url not in get_dashboards_response
 
     def test_get_dashboards__owners_can_view_empty_dashboard(self):
         # arrange
@@ -123,7 +125,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)  # noqa: F405
 
         # assert
-        self.assertNotIn(dashboard_url, get_dashboards_response)
+        assert dashboard_url not in get_dashboards_response
 
     def test_get_dashboards__user_can_not_view_unpublished_dash(self):
         # arrange
@@ -139,9 +141,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         get_dashboards_response_as_gamma = self.get_resp(DASHBOARDS_API_URL)  # noqa: F405
 
         # assert
-        self.assertNotIn(
-            admin_and_draft_dashboard.url, get_dashboards_response_as_gamma
-        )
+        assert admin_and_draft_dashboard.url not in get_dashboards_response_as_gamma
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_get_dashboards__users_can_view_permitted_dashboard(self):
@@ -172,8 +172,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
             get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)  # noqa: F405
 
             # assert
-            self.assertIn(second_dash.url, get_dashboards_response)
-            self.assertIn(first_dash.url, get_dashboards_response)
+            assert second_dash.url in get_dashboards_response
+            assert first_dash.url in get_dashboards_response
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
@@ -193,5 +193,5 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         rv = self.client.get(uri)
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(0, data["count"])
+        assert 0 == data["count"]
         DashboardDAO.delete([dashboard])

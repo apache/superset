@@ -56,9 +56,11 @@ from superset.queries.saved_queries.schemas import (
 from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    RelatedFieldFilter,
     requires_form_data,
     statsd_metrics,
 )
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -179,8 +181,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "database": "database_name",
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
+    base_related_field_filters = {
+        "database": [["id", DatabaseFilter, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
     allowed_rel_fields = {"database", "changed_by", "created_by"}
     allowed_distinct_fields = {"catalog", "schema"}
 

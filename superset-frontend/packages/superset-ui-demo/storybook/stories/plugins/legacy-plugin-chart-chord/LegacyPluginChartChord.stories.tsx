@@ -17,21 +17,21 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import data from './data';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
-new ChordChartPlugin().configure({ key: 'chord' }).register();
+new ChordChartPlugin().configure({ key: VizType.Chord }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-chord',
   decorators: [withResizableChartDemo],
 };
 
-export const basic = ({ width, height }) => (
+export const basic = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
-    chartType="chord"
+    chartType={VizType.Chord}
     width={width}
     height={height}
     queriesData={[{ data }]}

@@ -35,7 +35,6 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
-  NumberFormats,
   QueryFormData,
   QueryFormMetric,
   TimeseriesChartDataResponseResult,
@@ -44,7 +43,8 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
-import { EChartsCoreOption, SeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesChartTransformedProps,
@@ -62,6 +62,7 @@ import {
   extractDataTotalValues,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
@@ -77,6 +78,7 @@ import {
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
   rebaseForecastDatum,
+  reorderForecastSeries,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
@@ -91,11 +93,11 @@ import {
 import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
-  getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+import { getMetricDisplayName } from '../utils/metricDisplayName';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -152,6 +154,7 @@ export default function transformProps(
     areaB,
     annotationLayers,
     colorScheme,
+    timeShiftColor,
     contributionMode,
     legendOrientation,
     legendType,
@@ -170,6 +173,8 @@ export default function transformProps(
     showLegend,
     showValue,
     showValueB,
+    onlyTotal,
+    onlyTotalB,
     stack,
     stackB,
     truncateXAxis,
@@ -190,6 +195,7 @@ export default function transformProps(
     tooltipSortByMetric,
     xAxisBounds,
     xAxisLabelRotation,
+    xAxisLabelInterval,
     groupby,
     groupbyB,
     xAxis: xAxisOrig,
@@ -200,8 +206,13 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     sliceId,
+    sortSeriesType,
+    sortSeriesTypeB,
+    sortSeriesAscending,
+    sortSeriesAscendingB,
     timeGrainSqla,
     percentageThreshold,
+    showQueryIdentifiers = false,
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
@@ -220,21 +231,48 @@ export default function transformProps(
   }
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
-  const [rawSeriesA] = extractSeries(rebasedDataA, {
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedDataA,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol: xAxisLabel,
+    },
+  );
+
+  const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
+  const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
+
+  const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
+    sortSeriesType,
+    sortSeriesAscending,
+    stack,
+    totalStackedValues,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
-  const [rawSeriesB] = extractSeries(rebasedDataB, {
+  const {
+    totalStackedValues: totalStackedValuesB,
+    thresholdValues: thresholdValuesB,
+  } = extractDataTotalValues(rebasedDataB, {
+    stack: Boolean(stackB),
+    percentageThreshold,
+    xAxisCol: xAxisLabel,
+  });
+  const [rawSeriesB, sortedTotalValuesB] = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
     xAxis: xAxisLabel,
+    sortSeriesType: sortSeriesTypeB,
+    sortSeriesAscending: sortSeriesAscendingB,
+    stack: Boolean(stackB),
+    totalStackedValues: totalStackedValuesB,
   });
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
   const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
-  const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormat?.symbol
@@ -286,25 +324,11 @@ export default function transformProps(
   );
   const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
     stack,
+    onlyTotal,
   });
   const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
     stack,
-  });
-  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
-    rebasedDataA,
-    {
-      stack,
-      percentageThreshold,
-      xAxisCol: xAxisLabel,
-    },
-  );
-  const {
-    totalStackedValues: totalStackedValuesB,
-    thresholdValues: thresholdValuesB,
-  } = extractDataTotalValues(rebasedDataB, {
-    stack: Boolean(stackB),
-    percentageThreshold,
-    xAxisCol: xAxisLabel,
+    onlyTotal,
   });
 
   annotationLayers
@@ -372,6 +396,19 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
+    let displayName: string;
+
+    if (groupby.length > 0) {
+      // When we have groupby, format as "metric, dimension"
+      const metricPart = showQueryIdentifiers
+        ? `${MetricDisplayNameA} (Query A)`
+        : MetricDisplayNameA;
+      displayName = `${metricPart}, ${entryName}`;
+    } else {
+      // When no groupby, format as just the entry name with optional query identifier
+      displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
+    }
+
     const seriesFormatter = getFormatter(
       customFormatters,
       formatter,
@@ -381,7 +418,10 @@ export default function transformProps(
     );
 
     const transformedSeries = transformSeries(
-      entry,
+      {
+        ...entry,
+        id: `${displayName || ''}`,
+      },
       colorScale,
       colorScaleKey,
       {
@@ -391,6 +431,7 @@ export default function transformProps(
         areaOpacity: opacity,
         seriesType,
         showValue,
+        onlyTotal,
         stack: Boolean(stack),
         stackIdSuffix: '\na',
         yAxisIndex,
@@ -405,9 +446,10 @@ export default function transformProps(
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
+        totalStackedValues: sortedTotalValuesA,
         showValueIndexes: showValueIndexesA,
-        totalStackedValues,
         thresholdValues,
+        timeShiftColor,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -419,6 +461,19 @@ export default function transformProps(
     const seriesName = `${seriesEntry} (1)`;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
+    let displayName: string;
+
+    if (groupbyB.length > 0) {
+      // When we have groupby, format as "metric, dimension"
+      const metricPart = showQueryIdentifiers
+        ? `${MetricDisplayNameB} (Query B)`
+        : MetricDisplayNameB;
+      displayName = `${metricPart}, ${entryName}`;
+    } else {
+      // When no groupby, format as just the entry name with optional query identifier
+      displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
+    }
+
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
       formatterSecondary,
@@ -428,7 +483,11 @@ export default function transformProps(
     );
 
     const transformedSeries = transformSeries(
-      entry,
+      {
+        ...entry,
+        id: `${displayName || ''}`,
+      },
+
       colorScale,
       colorScaleKey,
       {
@@ -438,13 +497,12 @@ export default function transformProps(
         areaOpacity: opacityB,
         seriesType: seriesTypeB,
         showValue: showValueB,
+        onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
         stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,
         filterState,
-        seriesKey: primarySeries.has(entry.name as string)
-          ? `${entry.name} (1)`
-          : entry.name,
+        seriesKey: entry.name,
         sliceId,
         queryIndex: 1,
         formatter:
@@ -454,9 +512,10 @@ export default function transformProps(
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
+        totalStackedValues: sortedTotalValuesB,
         showValueIndexes: showValueIndexesB,
-        totalStackedValues: totalStackedValuesB,
         thresholdValues: thresholdValuesB,
+        timeShiftColor,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -511,11 +570,14 @@ export default function transformProps(
       axisLabel: {
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
+        interval: xAxisLabelInterval,
       },
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla
-          ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
           : 0,
       ...getMinAndMaxFromBounds(
         xAxisType,
@@ -583,76 +645,61 @@ export default function transformProps(
           : params.value[0];
         const forecastValue: any[] = richTooltip ? params : [params];
 
-        if (richTooltip && tooltipSortByMetric) {
-          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
-        }
+        const sortedKeys = extractTooltipKeys(
+          forecastValue,
+          // horizontal mode is not supported in mixed series chart
+          1,
+          richTooltip,
+          tooltipSortByMetric,
+        );
 
         const rows: string[][] = [];
         const forecastValues =
           extractForecastValuesFromTooltipParams(forecastValue);
 
-        const isForecast = Object.values(forecastValues).some(
-          value =>
-            value.forecastTrend || value.forecastLower || value.forecastUpper,
-        );
-
-        const total = Object.values(forecastValues).reduce(
-          (acc, value) =>
-            value.observation !== undefined ? acc + value.observation : acc,
-          0,
-        );
-        const showTotal = richTooltip && !isForecast;
         const keys = Object.keys(forecastValues);
-        keys.forEach(key => {
-          const value = forecastValues[key];
-          // if there are no dimensions, key is a verbose name of a metric,
-          // otherwise it is a comma separated string where the first part is metric name
-          let formatterKey;
-          if (primarySeries.has(key)) {
-            formatterKey =
-              groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
-          } else {
-            formatterKey =
-              groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
-          }
-          const tooltipFormatter = getFormatter(
-            customFormatters,
-            formatter,
-            metrics,
-            formatterKey,
-            !!contributionMode,
-          );
-          const tooltipFormatterSecondary = getFormatter(
-            customFormattersSecondary,
-            formatterSecondary,
-            metricsB,
-            formatterKey,
-            !!contributionMode,
-          );
-          const row = formatForecastTooltipSeries({
-            ...value,
-            seriesName: key,
-            formatter: primarySeries.has(key)
-              ? tooltipFormatter
-              : tooltipFormatterSecondary,
+        let focusedRow;
+        sortedKeys
+          .filter(key => keys.includes(key))
+          .forEach(key => {
+            const value = forecastValues[key];
+            // if there are no dimensions, key is a verbose name of a metric,
+            // otherwise it is a comma separated string where the first part is metric name
+            let formatterKey;
+            if (primarySeries.has(key)) {
+              formatterKey =
+                groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+            } else {
+              formatterKey =
+                groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+            }
+            const tooltipFormatter = getFormatter(
+              customFormatters,
+              formatter,
+              metrics,
+              formatterKey,
+              !!contributionMode,
+            );
+            const tooltipFormatterSecondary = getFormatter(
+              customFormattersSecondary,
+              formatterSecondary,
+              metricsB,
+              formatterKey,
+              !!contributionMode,
+            );
+            const row = formatForecastTooltipSeries({
+              ...value,
+              seriesName: key,
+              formatter: primarySeries.has(key)
+                ? tooltipFormatter
+                : tooltipFormatterSecondary,
+            });
+            rows.push(row);
+            if (key === focusedSeries) {
+              focusedRow = rows.length - 1;
+            }
           });
-          if (showTotal && value.observation !== undefined) {
-            row.push(percentFormatter.format(value.observation / (total || 1)));
-          }
-          rows.push(row);
-        });
-        if (showTotal) {
-          rows.push([
-            'Total',
-            formatter.format(total),
-            percentFormatter.format(1),
-          ]);
-        }
-        return tooltipHtml(
-          rows,
-          tooltipFormatter(xValue),
-          keys.findIndex(key => key === focusedSeries),
-        );
+        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
       },
     },
     legend: {
@@ -664,17 +711,16 @@ export default function transformProps(
         zoomable,
       ),
       // @ts-ignore
-      data: rawSeriesA
-        .concat(rawSeriesB)
+      data: series
         .filter(
           entry =>
             extractForecastSeriesContext((entry.name || '') as string).type ===
             ForecastSeriesEnum.Observation,
         )
-        .map(entry => entry.name || '')
+        .map(entry => entry.id || entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
     },
-    series: dedupSeries(series),
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,

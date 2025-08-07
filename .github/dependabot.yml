@@ -1,4 +1,5 @@
 version: 2
+enable-beta-ecosystems: true
 updates:
 
   - package-ecosystem: "github-actions"
@@ -8,8 +9,13 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      # not until  node >= 18.12.0
-      - dependency-name: "css-minimizer-webpack-plugin"
+      # not until React >= 18.0.0
+      - dependency-name: "storybook"
+      - dependency-name: "@storybook*"
+      # JSDOM v30 doesn't play well with Jest v30
+      # Source: https://jestjs.io/blog#known-issues
+      # GH thread: https://github.com/jsdom/jsdom/issues/3492
+      - dependency-name: "jest-environment-jsdom"
     directory: "/superset-frontend/"
     schedule:
       interval: "monthly"
@@ -20,10 +26,16 @@ updates:
     versioning-strategy: increase
 
 
-  # - package-ecosystem: "pip"
-  # NOTE: as dependabot isn't compatible with our python
-  # dependency setup (pip-compile-multi), we'll be using
-  # `supersetbot` instead
+  # NOTE: `uv` support is in beta, more details here:
+  # https://github.com/dependabot/dependabot-core/pull/10040#issuecomment-2696978430
+  - package-ecosystem: "uv"
+    directory: "requirements/"
+    open-pull-requests-limit: 10
+    schedule:
+      interval: "weekly"
+    labels:
+      - uv
+      - dependabot
 
   - package-ecosystem: "npm"
     directory: ".github/actions"
@@ -322,6 +334,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-core/"
+    ignore:
+      # not until React >= 18.0.0
+      - dependency-name: "react-markdown"
+      - dependency-name: "remark-gfm"
     schedule:
       interval: "monthly"
     labels:

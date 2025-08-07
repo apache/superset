@@ -23,10 +23,10 @@ describe.skip('SqlLab datasource panel', () => {
     cy.visit('/sqllab');
   });
 
-  // TODO the test bellow is flaky, and has been disabled for the time being
+  // TODO the test below is flaky, and has been disabled for the time being
   // (notice the `it.skip`)
   it('creates a table preview when a database, schema, and table are selected', () => {
-    cy.intercept('/superset/table/**').as('tableMetadata');
+    cy.intercept('**/superset/table/**').as('tableMetadata');
 
     // it should have dropdowns to select database, schema, and table
     cy.get('.sql-toolbar .Select').should('have.length', 3);

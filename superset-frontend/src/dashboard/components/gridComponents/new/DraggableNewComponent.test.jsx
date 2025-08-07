@@ -16,18 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
+
+import { render, screen } from 'spec/helpers/testing-library';
+
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
-import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
-import {
-  NEW_COMPONENT_SOURCE_TYPE,
-  CHART_TYPE,
-} from 'src/dashboard/util/componentTypes';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 
+// TODO: rewrite to rtl
 describe('DraggableNewComponent', () => {
   const props = {
     id: 'id',
@@ -37,49 +34,43 @@ describe('DraggableNewComponent', () => {
   };
 
   function setup(overrideProps) {
-    // We have to wrap provide DragDropContext for the underlying DragDroppable
-    // otherwise we cannot assert on DragDroppable children
-    const wrapper = mount(
+    return render(
       <DndProvider backend={HTML5Backend}>
         <DraggableNewComponent {...props} {...overrideProps} />
       </DndProvider>,
     );
-    return wrapper;
   }
 
+  beforeEach(() => {
+    setup();
+  });
+
   it('should render a DragDroppable', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toExist();
+    expect(screen.getByTestId('dragdroppable-object')).toBeInTheDocument();
   });
 
   it('should pass component={ type, id } to DragDroppable', () => {
-    const wrapper = setup();
-    const dragdroppable = wrapper.find(DragDroppable);
-    expect(dragdroppable.prop('component')).toEqual({
-      id: props.id,
-      type: props.type,
-    });
+    const dragComponent = screen.getByTestId('dragdroppable-object');
+    expect(dragComponent).toHaveClass(
+      'dragdroppable dragdroppable--edit-mode dragdroppable-row',
+    );
   });
 
   it('should pass appropriate parent source and id to DragDroppable', () => {
-    const wrapper = setup();
-    const dragdroppable = wrapper.find(DragDroppable);
-    expect(dragdroppable.prop('parentComponent')).toEqual({
-      id: NEW_COMPONENTS_SOURCE_ID,
-      type: NEW_COMPONENT_SOURCE_TYPE,
-    });
+    const dragComponent = screen.getByTestId('new-component');
+    expect(dragComponent).toHaveAttribute('draggable', 'true');
   });
 
   it('should render the passed label', () => {
-    const wrapper = setup();
-    expect(
-      wrapper.find('[data-test="new-component"]').at(0).childAt(0).text(),
-    ).toBe(props.label);
+    expect(screen.getByText(props.label)).toBeInTheDocument();
   });
 
   it('should add the passed className', () => {
-    const wrapper = setup();
-    const className = `.new-component-placeholder.${props.className}`;
-    expect(wrapper.find(className)).toExist();
+    const component = screen
+      .getByTestId('new-component')
+      .querySelector('.new-component-placeholder');
+    expect(component).toHaveClass(
+      `new-component-placeholder ${props.className}`,
+    );
   });
 });

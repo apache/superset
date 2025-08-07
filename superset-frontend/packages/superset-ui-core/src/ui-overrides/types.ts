@@ -51,7 +51,7 @@ export type LoadDrillByOptions = (
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
@@ -134,13 +134,21 @@ export interface SQLFormExtensionProps {
   startQuery: (ctasArg?: any, ctas_method?: any) => void;
 }
 
-export interface SQLResultTableExtentionProps {
+export interface SQLResultTableExtensionProps {
   queryId: string;
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
   filterText?: string;
   expandedColumns?: string[];
+  allowHTML?: boolean;
+}
+
+export interface SQLTablePreviewExtensionProps {
+  dbId: number;
+  catalog?: string;
+  schema: string;
+  tableName: string;
 }
 
 /**
@@ -201,6 +209,16 @@ export interface CustomAutocomplete extends AutocompleteItem {
   insertMatch?: (editor: Editor, data: AutocompleteItem) => void;
 }
 
+export interface DateFilterControlProps {
+  name: string;
+  onChange: (timeRange: string) => void;
+  value?: string;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+  isOverflowingFilterBar?: boolean;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': ComponentType;
   'load.drillby.options': LoadDrillByOptions;
@@ -223,9 +241,14 @@ export type Extensions = Partial<{
   'database.delete.related': ComponentType<DatabaseDeleteRelatedExtensionProps>;
   'dataset.delete.related': ComponentType<DatasetDeleteRelatedExtensionProps>;
   'sqleditor.extension.form': ComponentType<SQLFormExtensionProps>;
-  'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtentionProps>;
+  'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtensionProps>;
   'dashboard.slice.header': ComponentType<SliceHeaderExtension>;
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;
+  'sqleditor.extension.tablePreview': [
+    string,
+    ComponentType<SQLTablePreviewExtensionProps>,
+  ][];
+  'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
 }>;

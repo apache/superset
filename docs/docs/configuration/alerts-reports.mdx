@@ -25,6 +25,9 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
+- Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
+    - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
+    - If no date code is provided, the original string will be used as the email subject.
 
 ##### Disable dry-run mode
 
@@ -53,11 +56,14 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
    - `incoming-webhook`
    - `files:write`
    - `chat:write`
+   - `channels:read`
+   - `groups:read`
 4. At the top of the "OAuth and Permissions" section, click "install to workspace".
 5. Select a default channel for your app and continue.
    (You can post to any channel by inviting your Superset app into that channel).
 6. The app should now be installed in your workspace, and a "Bot User OAuth Access Token" should have been created. Copy that token in the `SLACK_API_TOKEN` variable of your `superset_config.py`.
-7. Restart the service (or run `superset init`) to pull in the new configuration.
+7. Ensure the feature flag `ALERT_REPORT_SLACK_V2` is set to True in `superset_config.py`
+8. Restart the service (or run `superset init`) to pull in the new configuration.
 
 Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
 
@@ -86,6 +92,7 @@ You can find documentation about each field in the default `config.py` in the Gi
 You need to replace default values with your custom Redis, Slack and/or SMTP config.
 
 Superset uses Celery beat and Celery worker(s) to send alerts and reports.
+
 - The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report.
 - The worker will process the  tasks that need to be performed when an alert or report is fired.
 
@@ -137,7 +144,7 @@ SLACK_API_TOKEN = "xoxb-"
 SMTP_HOST = "smtp.sendgrid.net" # change to your host
 SMTP_PORT = 2525 # your port, e.g. 587
 SMTP_STARTTLS = True
-SMTP_SSL_SERVER_AUTH = True # If your using an SMTP server with a valid certificate
+SMTP_SSL_SERVER_AUTH = True # If you're using an SMTP server with a valid certificate
 SMTP_SSL = False
 SMTP_USER = "your_user" # use the empty string "" if using an unauthenticated SMTP server
 SMTP_PASSWORD = "your_password" # use the empty string "" if using an unauthenticated SMTP server
@@ -174,14 +181,12 @@ By default, Alerts and Reports are executed as the owner of the alert/report obj
 just change the config as follows (`admin` in this example):
 
 ```python
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import FixedExecutor
 
-THUMBNAIL_SELENIUM_USER = 'admin'
-ALERT_REPORTS_EXECUTE_AS = [ExecutorType.SELENIUM]
+ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 ```
 
 Please refer to `ExecutorType` in the codebase for other executor types.
-
 
 **Important notes**
 
@@ -193,7 +198,6 @@ Please refer to `ExecutorType` in the codebase for other executor types.
   done using the `queue` field in `task_annotations`.
 - Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
   its default value of `http://0.0.0.0:8080/`.
-
 
 It's also possible to specify a minimum interval between each report's execution through the config file:
 
@@ -251,15 +255,18 @@ FROM apache/superset:3.1.0
 USER root
 
 RUN apt-get update && \
-    wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get install -y wget zip libaio1
+
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
+    wget -O google-chrome-stable_current_amd64.deb -q http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROMEDRIVER_VERSION}-1_amd64.deb && \
     apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
     rm -f google-chrome-stable_current_amd64.deb
 
-RUN export CHROMEDRIVER_VERSION=$(curl --silent https://chromedriver.storage.googleapis.com/LATEST_RELEASE_102) && \
-    wget -q https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip -d /usr/bin && \
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
+    wget -q https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip && \
+    unzip -j chromedriver-linux64.zip -d /usr/bin && \
     chmod 755 /usr/bin/chromedriver && \
-    rm -f chromedriver_linux64.zip
+    rm -f chromedriver-linux64.zip
 
 RUN pip install --no-cache gevent psycopg2 redis
 
@@ -297,6 +304,7 @@ One symptom of an invalid connection to an email server is receiving an error of
 Confirm via testing that your outbound email configuration is correct.  Here is the simplest test, for an un-authenticated email SMTP email service running on port 25.  If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
 
 Start Python in your worker environment, replace all example values, and run:
+
 ```python
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -318,6 +326,7 @@ mailserver.quit()
 This should send an email.
 
 Possible fixes:
+
 - Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam.  For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
 - Use another set of SMTP credentials that you verify works in this setup.
 

@@ -16,40 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { Input } from '@superset-ui/core/components';
 
-import { render, screen } from 'spec/helpers/testing-library';
-import { shallow } from 'enzyme';
-import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import Field from './Field';
 
-describe('Field', () => {
-  const defaultProps = {
-    fieldKey: 'mock',
-    value: '',
-    label: 'mock',
-    description: 'description',
-    control: <TextAreaControl />,
-    onChange: jest.fn(),
-    compact: false,
-    inline: false,
-  };
+const defaultProps = {
+  fieldKey: 'mock',
+  value: '',
+  label: 'mock',
+  description: 'description',
+  control: <Input data-test="mock-text-control" />,
+  onChange: jest.fn(),
+  compact: false,
+  inline: false,
+  additionalControl: (
+    <input type="button" data-test="mock-text-aditional-control" />
+  ),
+};
 
-  it('should render', () => {
-    const { container } = render(<Field {...defaultProps} />);
-    expect(container).toBeInTheDocument();
-  });
+test('should render', () => {
+  const { container } = render(<Field {...defaultProps} />);
+  expect(container).toBeInTheDocument();
+});
+test('should render with aditional control', () => {
+  const { getByTestId } = render(<Field {...defaultProps} />);
+  const additionalControl = getByTestId('mock-text-aditional-control');
+  expect(additionalControl).toBeInTheDocument();
+});
+test('should call onChange', () => {
+  const { getByTestId } = render(<Field {...defaultProps} />);
+  const textArea = getByTestId('mock-text-control');
+  fireEvent.change(textArea, { target: { value: 'x' } });
+  expect(defaultProps.onChange).toHaveBeenCalled();
+});
 
-  it('should call onChange', () => {
-    const wrapper = shallow(<Field {...defaultProps} />);
-    const textArea = wrapper.find(TextAreaControl);
-    textArea.simulate('change', { target: { value: 'x' } });
-    expect(defaultProps.onChange).toHaveBeenCalled();
-  });
-
-  it('should render compact', () => {
-    render(<Field {...defaultProps} compact />);
-    expect(
-      screen.queryByText(defaultProps.description),
-    ).not.toBeInTheDocument();
-  });
+test('should render compact', () => {
+  render(<Field {...defaultProps} compact />);
+  expect(screen.queryByText(defaultProps.description)).not.toBeInTheDocument();
+});
+test('shiuld render error message', () => {
+  const { getByText } = render(
+    <Field {...defaultProps} errorMessage="error message" />,
+  );
+  expect(getByText('error message')).toBeInTheDocument();
 });

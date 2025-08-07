@@ -119,7 +119,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     output.update(
         {
             "module": spec.__module__,
-            "limit_method": spec.limit_method.upper(),
+            "limit_method": spec.limit_method.value,
             "joins": spec.allows_joins,
             "subqueries": spec.allows_subqueries,
             "alias_in_select": spec.allows_alias_in_select,
@@ -129,7 +129,6 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "order_by_not_in_select": spec.allows_hidden_orderby_agg,
             "expressions_in_orderby": spec.allows_hidden_cc_in_orderby,
             "cte_in_subquery": spec.allows_cte_in_subquery,
-            "limit_clause": spec.allow_limit_clause,
             "max_column_name": spec.max_column_name_length,
             "sql_comments": spec.allows_sql_comments,
             "escaped_colons": spec.allows_escaped_colons,
@@ -140,6 +139,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "user_impersonation": (
                 has_custom_method(spec, "update_impersonation_config")
                 or has_custom_method(spec, "get_url_for_impersonation")
+                or has_custom_method(spec, "impersonate_user")
             ),
             "file_upload": spec.supports_file_upload,
             "get_extra_table_metadata": has_custom_method(
@@ -222,7 +222,7 @@ def generate_table() -> list[list[Any]]:
 
     rows = []  # pylint: disable=redefined-outer-name
     rows.append(["Feature"] + list(info))  # header row
-    rows.append(["Module"] + list(db_info["module"] for db_info in info.values()))
+    rows.append(["Module"] + [db_info["module"] for db_info in info.values()])
 
     # descriptive
     keys = [
@@ -243,14 +243,14 @@ def generate_table() -> list[list[Any]]:
     ]
     for key in keys:
         rows.append(
-            [DATABASE_DETAILS[key]] + list(db_info[key] for db_info in info.values())
+            [DATABASE_DETAILS[key]] + [db_info[key] for db_info in info.values()]
         )
 
     # basic
     for time_grain in TimeGrain:
         rows.append(
             [f"Has time grain {time_grain.name}"]
-            + list(db_info["time_grains"][time_grain.name] for db_info in info.values())
+            + [db_info["time_grains"][time_grain.name] for db_info in info.values()]
         )
     keys = [
         "masked_encrypted_extra",
@@ -258,9 +258,7 @@ def generate_table() -> list[list[Any]]:
         "function_names",
     ]
     for key in keys:
-        rows.append(
-            [BASIC_FEATURES[key]] + list(db_info[key] for db_info in info.values())
-        )
+        rows.append([BASIC_FEATURES[key]] + [db_info[key] for db_info in info.values()])
 
     # nice to have
     keys = [
@@ -279,8 +277,7 @@ def generate_table() -> list[list[Any]]:
     ]
     for key in keys:
         rows.append(
-            [NICE_TO_HAVE_FEATURES[key]]
-            + list(db_info[key] for db_info in info.values())
+            [NICE_TO_HAVE_FEATURES[key]] + [db_info[key] for db_info in info.values()]
         )
 
     # advanced
@@ -291,10 +288,10 @@ def generate_table() -> list[list[Any]]:
     ]
     for key in keys:
         rows.append(
-            [ADVANCED_FEATURES[key]] + list(db_info[key] for db_info in info.values())
+            [ADVANCED_FEATURES[key]] + [db_info[key] for db_info in info.values()]
         )
 
-    rows.append(["Score"] + list(db_info["score"] for db_info in info.values()))
+    rows.append(["Score"] + [db_info["score"] for db_info in info.values()])
 
     return rows
 

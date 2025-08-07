@@ -16,11 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
-
-import { Avatar } from 'src/components';
-import FacePile from '.';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+  cleanup,
+} from 'spec/helpers/testing-library';
+import { store } from 'src/views/store';
+import { isFeatureEnabled } from '@superset-ui/core';
+import { FacePile } from '.';
 import { getRandomColor } from './utils';
+
+// Mock the feature flag
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
 
 const users = [...new Array(10)].map((_, i) => ({
   first_name: 'user',
@@ -28,19 +45,101 @@ const users = [...new Array(10)].map((_, i) => ({
   id: i,
 }));
 
+beforeEach(() => {
+  jest.useFakeTimers();
+  // Default to Slack avatars disabled
+  mockIsFeatureEnabled.mockImplementation(() => false);
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  mockIsFeatureEnabled.mockReset();
+  cleanup();
+});
+
 describe('FacePile', () => {
-  const wrapper = mount(<FacePile users={users} />);
+  it('renders empty state with no users', () => {
+    const { container } = render(<FacePile users={[]} />, { store });
 
-  it('is a valid element', () => {
-    expect(wrapper.find(FacePile)).toExist();
+    expect(container.querySelector('.ant-avatar-group')).toBeInTheDocument();
+    expect(container.querySelectorAll('.ant-avatar')).toHaveLength(0);
   });
 
-  it('renders an Avatar', () => {
-    expect(wrapper.find(Avatar)).toExist();
+  it('renders single user without truncation', () => {
+    const { container } = render(<FacePile users={users.slice(0, 1)} />, {
+      store,
+    });
+
+    const avatars = container.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(1);
+    expect(within(container).getByText('U0')).toBeInTheDocument();
+    expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
   });
 
-  it('hides overflow', () => {
-    expect(wrapper.find(Avatar).length).toBe(5);
+  it('renders multiple users no truncation', () => {
+    const { container } = render(<FacePile users={users.slice(0, 4)} />, {
+      store,
+    });
+
+    const avatars = container.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(4);
+    expect(within(container).getByText('U0')).toBeInTheDocument();
+    expect(within(container).getByText('U1')).toBeInTheDocument();
+    expect(within(container).getByText('U2')).toBeInTheDocument();
+    expect(within(container).getByText('U3')).toBeInTheDocument();
+    expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
+  });
+
+  it('renders multiple users with truncation', () => {
+    const { container } = render(<FacePile users={users} />, { store });
+
+    // Should show 4 avatars + 1 overflow indicator = 5 total elements
+    const avatars = container.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(5);
+
+    // Should show first 4 users
+    expect(within(container).getByText('U0')).toBeInTheDocument();
+    expect(within(container).getByText('U1')).toBeInTheDocument();
+    expect(within(container).getByText('U2')).toBeInTheDocument();
+    expect(within(container).getByText('U3')).toBeInTheDocument();
+
+    // Should show overflow count (+6 because 10 total - 4 shown)
+    expect(within(container).getByText('+6')).toBeInTheDocument();
+  });
+
+  it('displays user tooltip on hover', () => {
+    const { container } = render(<FacePile users={users.slice(0, 2)} />, {
+      store,
+    });
+
+    const firstAvatar = within(container).getByText('U0');
+    fireEvent.mouseEnter(firstAvatar);
+    act(() => jest.runAllTimers());
+
+    expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
+  });
+
+  it('displays avatar images when Slack avatars are enabled', () => {
+    // Enable Slack avatars feature flag
+    mockIsFeatureEnabled.mockImplementation(
+      feature => feature === 'SLACK_ENABLE_AVATARS',
+    );
+
+    const { container: testContainer } = render(
+      <FacePile users={users.slice(0, 2)} />,
+      {
+        store,
+      },
+    );
+
+    const avatars = testContainer.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(2);
+
+    // Should have img elements with correct src attributes
+    const imgs = testContainer.querySelectorAll('.ant-avatar img');
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0]).toHaveAttribute('src', '/api/v1/user/0/avatar.png');
+    expect(imgs[1]).toHaveAttribute('src', '/api/v1/user/1/avatar.png');
   });
 });
 

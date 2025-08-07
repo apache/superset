@@ -20,7 +20,12 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-import { DatasourceType, QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  QueryFormData,
+  SimpleAdhocFilter,
+  VizType,
+} from '@superset-ui/core';
 import {
   createDashboard,
   createSlice,
@@ -31,6 +36,7 @@ import {
   getSlicePayload,
   PayloadSlice,
 } from './saveModalActions';
+import { Operators } from '../constants';
 
 // Define test constants and mock data using imported types
 const sliceId = 10;
@@ -414,7 +420,7 @@ const getDashboardSlicesReturnValue = [21, 22, 23];
  * Tests getSliceDashboards action
  */
 
-const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(columns:!(dashboards.id))`;
+const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(select_columns:!(dashboards.id))`;
 test('getSliceDashboards with slice handles success', async () => {
   fetchMock.reset();
   fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload);
@@ -465,14 +471,14 @@ describe('getSlicePayload', () => {
   const sliceName = 'Test Slice';
   const formDataWithNativeFilters = {
     datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: 'pie',
+    viz_type: VizType.Pie,
     adhoc_filters: [],
   };
   const dashboards = [5];
   const owners = [0];
   const formDataFromSlice: QueryFormData = {
     datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: 'pie',
+    viz_type: VizType.Pie,
     adhoc_filters: [
       {
         clause: 'WHERE',
@@ -485,8 +491,8 @@ describe('getSlicePayload', () => {
     dashboards: [],
   };
 
-  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', () => {
-    const result = getSlicePayload(
+  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', async () => {
+    const result = await getSlicePayload(
       sliceName,
       formDataWithNativeFilters,
       dashboards,
@@ -509,7 +515,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', () => {
+  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', async () => {
     const formDataWithAdhocFilters: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -522,7 +528,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFilters,
       dashboards,
@@ -545,7 +551,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', async () => {
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -558,7 +564,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -581,7 +587,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', async () => {
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters_b: [
@@ -594,9 +600,10 @@ describe('getSlicePayload', () => {
         },
       ],
     };
+
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
-      viz_type: 'mixed_timeseries',
+      viz_type: VizType.MixedTimeseries,
       adhoc_filters: [
         {
           clause: 'WHERE',
@@ -618,18 +625,104 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
       owners as [],
       formDataFromSliceWithAdhocFilterB,
     );
+
     expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters,
     );
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters_b).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
     );
+  });
+
+  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
+    const formDataFromSliceWithAdhocFilterB: QueryFormData = {
+      ...formDataFromSlice,
+      adhoc_filters: [],
+      adhoc_filters_b: [],
+    };
+
+    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
+      ...formDataWithNativeFilters,
+      viz_type: VizType.MixedTimeseries,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+      adhoc_filters_b: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithAdhocFiltersWithExtra,
+      dashboards,
+      owners as [],
+      formDataFromSliceWithAdhocFilterB,
+    );
+
+    const hasTemporalRange = (
+      JSON.parse(result.params as string).adhoc_filters_b || []
+    ).some(
+      (filter: SimpleAdhocFilter) =>
+        filter.operator === Operators.TemporalRange,
+    );
+
+    expect(hasTemporalRange).toBe(true);
+  });
+
+  test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
+    const formDataWithTemporalFilterWithExtra: QueryFormData = {
+      ...formDataWithNativeFilters,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: '2004 : ',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithTemporalFilterWithExtra,
+      dashboards,
+      owners as [],
+      {} as QueryFormData,
+    );
+
+    const savedFilters = JSON.parse(result.params as string).adhoc_filters;
+
+    expect(savedFilters).toHaveLength(1);
+    expect(savedFilters[0]).toMatchObject({
+      clause: 'WHERE',
+      subject: 'year',
+      operator: 'TEMPORAL_RANGE',
+      comparator: 'No filter',
+      expressionType: 'SIMPLE',
+      isExtra: false,
+    });
   });
 });

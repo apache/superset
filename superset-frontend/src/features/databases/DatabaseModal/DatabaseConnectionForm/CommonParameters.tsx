@@ -17,9 +17,11 @@
  * under the License.
  */
 import { SupersetTheme, t } from '@superset-ui/core';
-import { AntdSwitch } from 'src/components';
-import InfoTooltip from 'src/components/InfoTooltip';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import { Switch } from '@superset-ui/core/components/Switch';
+import {
+  InfoTooltip,
+  LabeledErrorBoundInput as ValidatedInput,
+} from '@superset-ui/core/components';
 import { FieldPropTypes } from '../../types';
 import { toggleStyle, infoTooltip } from '../styles';
 
@@ -29,8 +31,10 @@ export const hostField = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
+    isValidating={isValidating}
     id="host"
     name="host"
     value={db?.parameters?.host}
@@ -54,12 +58,14 @@ export const portField = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <>
     <ValidatedInput
       id="port"
       name="port"
       type="number"
+      isValidating={isValidating}
       required={required}
       value={db?.parameters?.port as number}
       validationMethods={{ onBlur: getValidation }}
@@ -77,10 +83,12 @@ export const httpPath = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => {
   const extraJson = JSON.parse(db?.extra || '{}');
   return (
     <ValidatedInput
+      isValidating={isValidating}
       id="http_path"
       name="http_path"
       required={required}
@@ -101,8 +109,10 @@ export const databaseField = ({
   validationErrors,
   placeholder,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
+    isValidating={isValidating}
     id="database"
     name="database"
     required={required}
@@ -121,8 +131,10 @@ export const defaultCatalogField = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
+    isValidating={isValidating}
     id="default_catalog"
     name="default_catalog"
     required={required}
@@ -141,11 +153,13 @@ export const defaultSchemaField = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="default_schema"
     name="default_schema"
     required={required}
+    isValidating={isValidating}
     value={db?.parameters?.default_schema}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.default_schema}
@@ -161,34 +175,35 @@ export const httpPathField = ({
   getValidation,
   validationErrors,
   db,
-}: FieldPropTypes) => {
-  console.error(db);
-  return (
-    <ValidatedInput
-      id="http_path_field"
-      name="http_path_field"
-      required={required}
-      value={db?.parameters?.http_path_field}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.http_path}
-      placeholder={t('e.g. sql/protocolv1/o/12345')}
-      label="HTTP Path"
-      onChange={changeMethods.onParametersChange}
-      helpText={t('Copy the name of the HTTP Path of your cluster.')}
-    />
-  );
-};
+  isValidating,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="http_path_field"
+    name="http_path_field"
+    required={required}
+    isValidating={isValidating}
+    value={db?.parameters?.http_path_field}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.http_path}
+    placeholder={t('e.g. sql/protocolv1/o/12345')}
+    label="HTTP Path"
+    onChange={changeMethods.onParametersChange}
+    helpText={t('Copy the name of the HTTP Path of your cluster.')}
+  />
+);
 export const usernameField = ({
   required,
   changeMethods,
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="username"
     name="username"
     required={required}
+    isValidating={isValidating}
     value={db?.parameters?.username}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.username}
@@ -204,11 +219,13 @@ export const passwordField = ({
   validationErrors,
   db,
   isEditMode,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="password"
     name="password"
     required={required}
+    isValidating={isValidating}
     visibilityToggle={!isEditMode}
     value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
@@ -252,12 +269,14 @@ export const displayField = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <>
     <ValidatedInput
       id="database_name"
       name="database_name"
       required
+      isValidating={isValidating}
       value={db?.database_name}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.database_name}
@@ -277,11 +296,13 @@ export const queryField = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="query_input"
     name="query_input"
     required={required}
+    isValidating={isValidating}
     value={db?.query_input || ''}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
@@ -299,7 +320,7 @@ export const forceSSLField = ({
   sslForced,
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <AntdSwitch
+    <Switch
       disabled={sslForced && !isEditMode}
       checked={db?.parameters?.encryption || sslForced}
       onChange={changed => {
@@ -317,7 +338,30 @@ export const forceSSLField = ({
     <InfoTooltip
       tooltip={t('SSL Mode "require" will be used.')}
       placement="right"
-      viewBox="0 -5 24 24"
     />
   </div>
+);
+
+export const projectIdfield = ({
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+  isValidating,
+}: FieldPropTypes) => (
+  <>
+    <ValidatedInput
+      id="project_id"
+      name="project_id"
+      required
+      isValidating={isValidating}
+      value={db?.parameters?.project_id}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.project_id}
+      placeholder="your-project-1234-a1"
+      label={t('Project Id')}
+      onChange={changeMethods.onParametersChange}
+      helpText={t('Enter the unique project id for your database.')}
+    />
+  </>
 );

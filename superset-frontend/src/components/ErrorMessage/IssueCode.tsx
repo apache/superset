@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Icons } from '@superset-ui/core/components';
+import { useTheme } from '@superset-ui/core';
+
 interface IssueCodeProps {
   code: number;
   message: string;
 }
 
-export default function IssueCode({ code, message }: IssueCodeProps) {
+export function IssueCode({ code, message }: IssueCodeProps) {
+  const theme = useTheme();
   return (
     <>
       {message}{' '}
@@ -29,8 +33,9 @@ export default function IssueCode({ code, message }: IssueCodeProps) {
         href={`https://superset.apache.org/docs/using-superset/issue-codes#issue-${code}`}
         rel="noopener noreferrer"
         target="_blank"
+        aria-label="Superset docs link"
       >
-        <i className="fa fa-external-link" />
+        <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
       </a>
     </>
   );

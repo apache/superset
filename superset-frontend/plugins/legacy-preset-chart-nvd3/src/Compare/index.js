@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.jpg';
@@ -29,6 +29,7 @@ const metadata = new ChartMetadata({
     'Visualizes many different time-series objects in a single chart. This chart is being deprecated and we recommend using the Time-series Chart instead.',
   ),
   exampleGallery: [{ url: example }],
+  label: ChartLabel.Deprecated,
   name: t('Time-series Percent Change'),
   tags: [
     t('Legacy'),

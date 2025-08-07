@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
+from uuid import UUID
+
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -47,6 +49,7 @@ def test_export(session: Session) -> None:
             type="INTEGER",
             expression="revenue-expenses",
             extra=json.dumps({"certified_by": "User"}),
+            uuid=UUID("00000000-0000-0000-0000-000000000005"),
         ),
     ]
     metrics = [
@@ -54,6 +57,7 @@ def test_export(session: Session) -> None:
             metric_name="cnt",
             expression="COUNT(*)",
             extra=json.dumps({"warning_markdown": None}),
+            uuid=UUID("00000000-0000-0000-0000-000000000004"),
         ),
     ]
 
@@ -61,6 +65,46 @@ def test_export(session: Session) -> None:
         table_name="my_table",
         columns=columns,
         metrics=metrics,
+        folders=[
+            {
+                "uuid": "00000000-0000-0000-0000-000000000000",
+                "type": "folder",
+                "name": "Engineering",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000001",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000004",
+                                "type": "metric",
+                                "name": "cnt",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "uuid": "00000000-0000-0000-0000-000000000002",
+                "type": "folder",
+                "name": "Sales",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000003",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000005",
+                                "type": "column",
+                                "name": "profit",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
         main_dttm_col="ds",
         database=database,
         offset=-8,
@@ -126,7 +170,30 @@ extra:
   warning_markdown: '*WARNING*'
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: {payload['uuid']}
+folders:
+- uuid: 00000000-0000-0000-0000-000000000000
+  type: folder
+  name: Engineering
+  children:
+  - uuid: 00000000-0000-0000-0000-000000000001
+    type: folder
+    name: Core
+    children:
+    - uuid: 00000000-0000-0000-0000-000000000004
+      type: metric
+      name: cnt
+- uuid: 00000000-0000-0000-0000-000000000002
+  type: folder
+  name: Sales
+  children:
+  - uuid: 00000000-0000-0000-0000-000000000003
+    type: folder
+    name: Core
+    children:
+    - uuid: 00000000-0000-0000-0000-000000000005
+      type: column
+      name: profit
+uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt
   verbose_name: null
@@ -220,6 +287,7 @@ extra:
   engine_params: {{}}
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
+impersonate_user: false
 uuid: {database.uuid}
 version: 1.0.0
 """,

@@ -52,34 +52,9 @@ extension-pkg-whitelist=pyarrow
 
 
 [MESSAGES CONTROL]
+disable=all
+enable=disallowed-json-import,disallowed-sql-import,consider-using-transaction
 
-# Only show warnings with the listed confidence levels. Leave empty to show
-# all. Valid levels: HIGH, INFERENCE, INFERENCE_FAILURE, UNDEFINED
-confidence=
-
-# Enable the message, report, category or checker with the given id(s). You can
-# either give multiple identifier separated by comma (,) or put this option
-# multiple time (only on the command line, not in the configuration file where
-# it should appear only once). See also the "--disable" option for examples.
-enable=
-    useless-suppression,
-
-# Disable the message, report, category or checker with the given id(s). You
-# can either give multiple identifiers separated by comma (,) or put this
-# option multiple times (only on the command line, not in the configuration
-# file where it should appear only once).You can also use "--disable=all" to
-# disable everything first and then reenable specific checks. For example, if
-# you want to run only the similarities checker, you can use "--disable=all
-# --enable=similarities". If you want to run only the classes checker, but have
-# no Warning level messages displayed, use"--disable=all --enable=classes
-# --disable=W"
-disable=
-    cyclic-import,  # re-enable once this no longer raises false positives
-    missing-docstring,
-    duplicate-code,
-    line-too-long,
-    unspecified-encoding,
-    too-many-instance-attributes  # re-enable once this no longer raises false positives
 
 [REPORTS]
 

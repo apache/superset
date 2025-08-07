@@ -80,5 +80,5 @@ def test_form_data_to_adhoc_generates_deterministic_values():
 def test_form_data_to_adhoc_incorrect_clause_type():
     form_data = {"where": "1 = 1", "having": "count(*) > 1"}
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         form_data_to_adhoc(form_data, "foobar")

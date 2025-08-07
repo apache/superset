@@ -131,6 +131,6 @@ describe('dashboardFilters reducer', () => {
 
     // when UPDATE_DASHBOARD_FILTERS_SCOPE is changed, applicable filters to a chart
     // might be changed.
-    expect(activeDashboardFilters.buildActiveFilters).toBeCalled();
+    expect(activeDashboardFilters.buildActiveFilters).toHaveBeenCalled();
   });
 });

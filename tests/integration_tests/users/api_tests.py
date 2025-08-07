@@ -21,11 +21,12 @@ from unittest.mock import patch
 
 from superset import security_manager
 from superset.utils import json, slack  # noqa: F401
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 
-meUri = "/api/v1/me/"
+meUri = "/api/v1/me/"  # noqa: N816
 AVATAR_URL = "/internal/avatar.png"
 
 
@@ -35,36 +36,67 @@ class TestCurrentUserApi(SupersetTestCase):
 
         rv = self.client.get(meUri)
 
-        self.assertEqual(200, rv.status_code)
+        assert 200 == rv.status_code
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual("admin", response["result"]["username"])
-        self.assertEqual(True, response["result"]["is_active"])
-        self.assertEqual(False, response["result"]["is_anonymous"])
+        assert "admin" == response["result"]["username"]
+        assert True is response["result"]["is_active"]
+        assert False is response["result"]["is_anonymous"]
 
     def test_get_me_with_roles(self):
         self.login(ADMIN_USERNAME)
 
         rv = self.client.get(meUri + "roles/")
-        self.assertEqual(200, rv.status_code)
+        assert 200 == rv.status_code
         response = json.loads(rv.data.decode("utf-8"))
         roles = list(response["result"]["roles"].keys())
-        self.assertEqual("Admin", roles.pop())
+        assert "Admin" == roles.pop()
 
     @patch("superset.security.manager.g")
     def test_get_my_roles_anonymous(self, mock_g):
         mock_g.user = security_manager.get_anonymous_user
         rv = self.client.get(meUri + "roles/")
-        self.assertEqual(401, rv.status_code)
+        assert 401 == rv.status_code
 
     def test_get_me_unauthorized(self):
         rv = self.client.get(meUri)
-        self.assertEqual(401, rv.status_code)
+        assert 401 == rv.status_code
 
     @patch("superset.security.manager.g")
     def test_get_me_anonymous(self, mock_g):
         mock_g.user = security_manager.get_anonymous_user
         rv = self.client.get(meUri)
-        self.assertEqual(401, rv.status_code)
+        assert 401 == rv.status_code
+
+    def test_update_me_success(self):
+        self.login(ADMIN_USERNAME)
+
+        payload = {
+            "first_name": "UpdatedFirst",
+            "last_name": "UpdatedLast",
+        }
+
+        rv = self.client.put("/api/v1/me/", json=payload)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"]["first_name"] == "UpdatedFirst"
+        assert data["result"]["last_name"] == "UpdatedLast"
+
+    def test_update_me_unauthenticated(self):
+        rv = self.client.put("/api/v1/me/", json={"first_name": "Hacker"})
+        assert rv.status_code == 401
+
+    def test_update_me_invalid_payload(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put("/api/v1/me/", json={"first_name": 123})
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "first_name" in data["message"]
+
+    def test_update_me_empty_payload(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put("/api/v1/me/", json={})
+        assert rv.status_code == 400
 
 
 class TestUserApi(SupersetTestCase):
@@ -81,7 +113,8 @@ class TestUserApi(SupersetTestCase):
         response = self.client.get("/api/v1/user/1/avatar.png", follow_redirects=False)
         assert response.status_code == 204
 
-    @with_config({"SLACK_API_TOKEN": "dummy", "SLACK_ENABLE_AVATARS": True})
+    @with_config({"SLACK_API_TOKEN": "dummy"})
+    @with_feature_flags(SLACK_ENABLE_AVATARS=True)
     @patch("superset.views.users.api.get_user_avatar", return_value=AVATAR_URL)
     def test_avatar_with_valid_user(self, mock):
         self.login(ADMIN_USERNAME)

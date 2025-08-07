@@ -31,18 +31,17 @@ install new database drivers into your Superset configuration.
 
 ### Supported Databases and Dependencies
 
-
 Some of the recommended packages are shown below. Please refer to
 [pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml) for the versions that
 are compatible with Superset.
 
 | <div style={{width: '150px'}}>Database</div>                   | PyPI package                                                                       | Connection String                                                                                                                                      |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [AWS Athena](/docs/configuration/databases#aws-athena)                   | `pip install pyathena[pandas]` , `pip install PyAthenaJDBC`                        | `awsathena+rest://{access_key_id}:{access_key}@athena.{region}.amazonaws.com/{schema}?s3_staging_dir={s3_staging_dir}&... `   |
+| [AWS Athena](/docs/configuration/databases#aws-athena)                   | `pip install pyathena[pandas]` , `pip install PyAthenaJDBC`                        | `awsathena+rest://{access_key_id}:{access_key}@athena.{region}.amazonaws.com/{schema}?s3_staging_dir={s3_staging_dir}&...`   |
 | [AWS DynamoDB](/docs/configuration/databases#aws-dynamodb)               | `pip install pydynamodb`                                                           | `dynamodb://{access_key_id}:{secret_access_key}@dynamodb.{region_name}.amazonaws.com?connector=superset`                                               |
-| [AWS Redshift](/docs/configuration/databases#aws-redshift)               | `pip install sqlalchemy-redshift`                                                  | ` redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>`                                                                    |
+| [AWS Redshift](/docs/configuration/databases#aws-redshift)               | `pip install sqlalchemy-redshift`                                                  | `redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>`                                                                    |
 | [Apache Doris](/docs/configuration/databases#apache-doris)                     | `pip install pydoris`                                                              | `doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                            |
-| [Apache Drill](/docs/configuration/databases#apache-drill)                     | `pip install sqlalchemy-drill`                                                     | `drill+sadrill:// For JDBC drill+jdbc://`                                                                                                              |
+| [Apache Drill](/docs/configuration/databases#apache-drill)                     | `pip install sqlalchemy-drill`                                                     | `drill+sadrill://<username>:<password>@<host>:<port>/<storage_plugin>`, often useful: `?use_ssl=True/False`                                                                                                              |
 | [Apache Druid](/docs/configuration/databases#apache-druid)                     | `pip install pydruid`                                                              | `druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql`                                                                                    |
 | [Apache Hive](/docs/configuration/databases#hive)                       | `pip install pyhive`                                                               | `hive://hive@{hostname}:{port}/{database}`                                                                                                             |
 | [Apache Impala](/docs/configuration/databases#apache-impala)                   | `pip install impyla`                                                               | `impala://{hostname}:{port}/{database}`                                                                                                                |
@@ -54,8 +53,10 @@ are compatible with Superset.
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
-| [CouchbaseDB](/docs/configuration/databases#couchbaseDB)                | `pip install couchbase-sqlalchemy`                                                          | `couchbasedb://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
-| [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    | `dremio://user:pwd@host:31010/`                                                                                                                        |
+| [Couchbase](/docs/configuration/databases#couchbase)                | `pip install couchbase-sqlalchemy`                                                          | `couchbase://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
+| [CrateDB](/docs/configuration/databases#cratedb)                        | `pip install sqlalchemy-cratedb`                                                   | `crate://{username}:{password}@{hostname}:{port}`, often useful: `?ssl=true/false` or `?schema=testdrive`.                                             |
+| [Denodo](/docs/configuration/databases#denodo)                          | `pip install denodo-sqlalchemy`                                                    | `denodo://{username}:{password}@{hostname}:{port}/{database}`                                                                                          |
+| [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    |`dremio+flight://{username}:{password}@{host}:32010`, often useful: `?UseEncryption=true/false`. For Legacy ODBC: `dremio+pyodbc://{username}:{password}@{host}:31010`                                                                                                                           |
 | [Elasticsearch](/docs/configuration/databases#elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                                                                  |
 | [Exasol](/docs/configuration/databases#exasol)                          | `pip install sqlalchemy-exasol`                                                    | `exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC`                                            |
 | [Google BigQuery](/docs/configuration/databases#google-bigquery)                     | `pip install sqlalchemy-bigquery`                                                  | `bigquery://{project_id}`                                                                                                                              |
@@ -66,20 +67,24 @@ are compatible with Superset.
 | [IBM Netezza Performance Server](/docs/configuration/databases#ibm-netezza-performance-server) | `pip install nzalchemy`                                                            | `netezza+nzpy://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                               |
 | [MySQL](/docs/configuration/databases#mysql)                            | `pip install mysqlclient`                                                          | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
 | [OceanBase](/docs/configuration/databases#oceanbase)                    | `pip install oceanbase_py`                                                         | `oceanbase://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
-| [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://`                                                                                                                                            |
+| [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://<username>:<password>@<hostname>:<port>`                                                                                                                                            |
+| [Parseable](/docs/configuration/databases#parseable)                    | `pip install sqlalchemy-parseable`                                                 | `parseable://<UserName>:<DBPassword>@<Database Host>/<Stream Name>`                                                                                    |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
-| [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                                                            |
-| [Rockset](/docs/configuration/databases#rockset)                        | `pip install rockset-sqlalchemy`                                                   | `rockset://<api_key>:@<api_server>`                                                                                                                    |
-| [SAP Hana](/docs/configuration/databases#hana)                          | `pip install hdbcli sqlalchemy-hana` or `pip install apache-superset[hana]`          | `hana://{username}:{password}@{host}:{port}`                                                                                                           |
+| [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://{username}:{password}@{hostname}:{port}/{database}`                                                                                                                                            |
+| [SAP Hana](/docs/configuration/databases#hana) | `pip install hdbcli sqlalchemy-hana` or `pip install apache_superset[hana]` | `hana://{username}:{password}@{host}:{port}` |
+| [SingleStore](/docs/configuration/databases#singlestore)                | `pip install sqlalchemy-singlestoredb`                                               | `singlestoredb://{username}:{password}@{host}:{port}/{database}`                                                                                     |
 | [StarRocks](/docs/configuration/databases#starrocks)                    | `pip install starrocks`                                                            | `starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                                                                     |
 | [Snowflake](/docs/configuration/databases#snowflake)                    | `pip install snowflake-sqlalchemy`                                                 | `snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}`                                                        |
 | SQLite                                                    | No additional library needed                                                       | `sqlite://path/to/file.db?check_same_thread=false`                                                                                                     |
-| [SQL Server](/docs/configuration/databases#sql-server)                  | `pip install pymssql`                                                              | `mssql+pymssql://`                                                                                                                                     |
+| [SQL Server](/docs/configuration/databases#sql-server)                  | `pip install pymssql`                                                              | `mssql+pymssql://<Username>:<Password>@<Host>:<Port-default:1433>/<Database Name>`                                                                                                                                     |
+| [TDengine](/docs/configuration/databases#tdengine)                      | `pip install taospy`  `pip install taos-ws-py`                                     | `taosws://<user>:<password>@<host>:<port>`                                                                                                             |
 | [Teradata](/docs/configuration/databases#teradata)                      | `pip install teradatasqlalchemy`                                                   | `teradatasql://{user}:{password}@{host}`                                                                                                               |
 | [TimescaleDB](/docs/configuration/databases#timescaledb)                | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>:<Port>/<Database Name>`                                                                          |
 | [Trino](/docs/configuration/databases#trino)                            | `pip install trino`                                                                | `trino://{username}:{password}@{hostname}:{port}/{catalog}`                                                                                            |
 | [Vertica](/docs/configuration/databases#vertica)                        | `pip install sqlalchemy-vertica-python`                                            | `vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                     |
+| [YDB](/docs/configuration/databases#ydb)                                | `pip install ydb-sqlalchemy`                                                       | `ydb://{host}:{port}/{database_name}`                                                                                                                  |
 | [YugabyteDB](/docs/configuration/databases#yugabytedb)                  | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
+
 ---
 
 Note that many other databases are supported, the main criteria being the existence of a functional
@@ -180,7 +185,6 @@ purposes of isolating the problem.
 
 Repeat this process for each type of database you want Superset to connect to.
 
-
 ### Database-specific Instructions
 
 #### Ascend.io
@@ -206,13 +210,11 @@ You'll need the following setting values to form the connection string:
 - **Catalog**: Catalog Name
 - **Database**: Database Name
 
-
 Here's what the connection string looks like:
 
 ```
 doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>
 ```
-
 
 #### AWS Athena
 
@@ -243,6 +245,7 @@ awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name
 ```
 
 The PyAthena library also allows to assume a specific IAM role which you can define by adding following parameters in Superset's Athena database connection UI under ADVANCED --> Other --> ENGINE PARAMETERS.
+
 ```json
 {
     "connect_args": {
@@ -265,7 +268,6 @@ dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.am
 
 To get more documentation, please visit: [PyDynamoDB WIKI](https://github.com/passren/PyDynamoDB/wiki/5.-Superset).
 
-
 #### AWS Redshift
 
 The [sqlalchemy-redshift](https://pypi.org/project/sqlalchemy-redshift/) library is the recommended
@@ -281,7 +283,6 @@ You'll need to set the following values to form the connection string:
 - **Database Name**: Database Name
 - **Port**: default 5439
 
-
 ##### psycopg2
 
 Here's what the SQLALCHEMY URI looks like:
@@ -289,7 +290,6 @@ Here's what the SQLALCHEMY URI looks like:
 ```
 redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>
 ```
-
 
 ##### redshift_connector
 
@@ -299,8 +299,7 @@ Here's what the SQLALCHEMY URI looks like:
 redshift+redshift_connector://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>
 ```
 
-
-###### Using IAM-based credentials with Redshift cluster:
+###### Using IAM-based credentials with Redshift cluster
 
 [Amazon redshift cluster](https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html) also supports generating temporary IAM-based database user credentials.
 
@@ -311,10 +310,10 @@ You have to define the following arguments in Superset's redshift database conne
 ```
 {"connect_args":{"iam":true,"database":"<database>","cluster_identifier":"<cluster_identifier>","db_user":"<db_user>"}}
 ```
+
 and SQLALCHEMY URI should be set to `redshift+redshift_connector://`
 
-
-###### Using IAM-based credentials with Redshift serverless:
+###### Using IAM-based credentials with Redshift serverless
 
 [Redshift serverless](https://docs.aws.amazon.com/redshift/latest/mgmt/serverless-whatis.html) supports connection using IAM roles.
 
@@ -325,8 +324,6 @@ You have to define the following arguments in Superset's redshift database conne
 ```
 {"connect_args":{"iam":true,"is_serverless":true,"serverless_acct_id":"<aws account number>","serverless_work_group":"<redshift work group>","database":"<database>","user":"IAMR:<superset iam role name>"}}
 ```
-
-
 
 #### ClickHouse
 
@@ -360,8 +357,6 @@ uses the default user without a password (and doesn't encrypt the connection):
 clickhousedb://localhost/default
 ```
 
-
-
 #### CockroachDB
 
 The recommended connector library for CockroachDB is
@@ -373,12 +368,12 @@ The expected connection string is formatted as follows:
 cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable
 ```
 
+#### Couchbase
 
-
-#### CouchbaseDB
-
-The recommended connector library for CouchbaseDB is
+The Couchbase's Superset connection is designed to support two services: Couchbase Analytics and Couchbase Columnar.
+The recommended connector library for couchbase is
 [couchbase-sqlalchemy](https://github.com/couchbase/couchbase-sqlalchemy).
+
 ```
 pip install couchbase-sqlalchemy
 ```
@@ -386,28 +381,43 @@ pip install couchbase-sqlalchemy
 The expected connection string is formatted as follows:
 
 ```
-couchbasedb://{username}:{password}@{hostname}:{port}?truststorepath={certificate path}?ssl={true/false}
+couchbase://{username}:{password}@{hostname}:{port}?truststorepath={certificate path}?ssl={true/false}
 ```
-
 
 #### CrateDB
 
-The recommended connector library for CrateDB is
-[crate](https://pypi.org/project/crate/).
-You need to install the extras as well for this library.
-We recommend adding something like the following
-text to your requirements file:
+The connector library for CrateDB is [sqlalchemy-cratedb].
+We recommend to add the following item to your `requirements.txt` file:
 
 ```
-crate[sqlalchemy]==0.26.0
+sqlalchemy-cratedb>=0.40.1,<1
 ```
 
-The expected connection string is formatted as follows:
+An SQLAlchemy connection string for [CrateDB Self-Managed] on localhost,
+for evaluation purposes, looks like this:
 
 ```
 crate://crate@127.0.0.1:4200
 ```
 
+An SQLAlchemy connection string for connecting to [CrateDB Cloud] looks like
+this:
+
+```
+crate://<username>:<password>@<clustername>.cratedb.net:4200/?ssl=true
+```
+
+Follow the steps [here](/docs/configuration/databases#installing-database-drivers)
+to install the CrateDB connector package when setting up Superset locally using
+Docker Compose.
+
+```
+echo "sqlalchemy-cratedb" >> ./docker/requirements-local.txt
+```
+
+[CrateDB Cloud]: https://cratedb.com/product/cloud
+[CrateDB Self-Managed]: https://cratedb.com/product/self-managed
+[sqlalchemy-cratedb]: https://pypi.org/project/sqlalchemy-cratedb/
 
 #### Databend
 
@@ -425,7 +435,6 @@ Here's a connection string example of Superset connecting to a Databend database
 ```
 databend://user:password@localhost:8000/default?secure=false
 ```
-
 
 #### Databricks
 
@@ -510,8 +519,16 @@ For a connection to a SQL endpoint you need to use the HTTP path from the endpoi
 {"connect_args": {"http_path": "/sql/1.0/endpoints/****", "driver_path": "/path/to/odbc/driver"}}
 ```
 
+#### Denodo
 
+The recommended connector library for Denodo is
+[denodo-sqlalchemy](https://pypi.org/project/denodo-sqlalchemy/).
 
+The expected connection string is formatted as follows (default port is 9996):
+
+```
+denodo://{username}:{password}@{hostname}:{port}/{database}
+```
 
 #### Dremio
 
@@ -521,7 +538,7 @@ The recommended connector library for Dremio is
 The expected connection string for ODBC (Default port is 31010) is formatted as follows:
 
 ```
-dremio://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
+dremio+pyodbc://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
 ```
 
 The expected connection string for Arrow Flight (Dremio 4.9.1+. Default port is 32010) is formatted as follows:
@@ -532,7 +549,6 @@ dremio+flight://{username}:{password}@{host}:{port}/dremio
 
 This [blog post by Dremio](https://www.dremio.com/tutorials/dremio-apache-superset/) has some
 additional helpful instructions on connecting Superset to Dremio.
-
 
 #### Apache Drill
 
@@ -575,8 +591,6 @@ We recommend reading the
 the [GitHub README](https://github.com/JohnOmernik/sqlalchemy-drill#usage-with-odbc) to learn how to
 work with Drill through ODBC.
 
-
-
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
 #### Apache Druid
@@ -590,6 +604,7 @@ The connection string looks like:
 ```
 druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql
 ```
+
 Here's a breakdown of the key components of this connection string:
 
 - `User`: username portion of the credentials needed to connect to your database
@@ -618,7 +633,7 @@ To disable SSL verification, add the following to the **Extras** field:
 ```
 engine_params:
 {"connect_args":
-	{"scheme": "https", "ssl_verify_cert": false}}
+ {"scheme": "https", "ssl_verify_cert": false}}
 ```
 
 ##### Aggregations
@@ -641,7 +656,6 @@ Druid supports post aggregation and this works in Superset. All you have to do i
 much like you would create an aggregation manually, but specify `postagg` as a `Metric Type`. You
 then have to provide a valid json post-aggregation definition (as specified in the Druid docs) in
 the JSON field.
-
 
 #### Elasticsearch
 
@@ -691,7 +705,7 @@ Then register your table with the alias name logstash_all
 By default, Superset uses UTC time zone for elasticsearch query. If you need to specify a time zone,
 please edit your Database and enter the settings of your specified time zone in the Other > ENGINE PARAMETERS:
 
-```
+```json
 {
     "connect_args": {
         "time_zone": "Asia/Shanghai"
@@ -713,8 +727,6 @@ To disable SSL verification, add the following to the **SQLALCHEMY URI** field:
 elasticsearch+https://{user}:{password}@{host}:9200/?verify_certs=False
 ```
 
-
-
 #### Exasol
 
 The recommended connector library for Exasol is
@@ -725,7 +737,6 @@ The connection string for Exasol looks like this:
 ```
 exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC
 ```
-
 
 #### Firebird
 
@@ -743,7 +754,6 @@ Here's a connection string example of Superset connecting to a local Firebird da
 ```
 firebird+fdb://SYSDBA:masterkey@192.168.86.38:3050//Library/Frameworks/Firebird.framework/Versions/A/Resources/examples/empbuild/employee.fdb
 ```
-
 
 #### Firebolt
 
@@ -775,7 +785,7 @@ The recommended connector library for BigQuery is
 Follow the steps [here](/docs/configuration/databases#installing-drivers-in-docker-images) about how to
 install new database drivers when setting up Superset locally via docker compose.
 
-```
+```bash
 echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt
 ```
 
@@ -788,7 +798,7 @@ credentials file (as a JSON).
    appropriate BigQuery datasets, and download the JSON configuration file for the service account.
 2. In Superset, you can either upload that JSON or add the JSON blob in the following format (this should be the content of your credential JSON file):
 
-```
+```json
 {
         "type": "service_account",
         "project_id": "...",
@@ -816,7 +826,7 @@ credentials file (as a JSON).
    Go to the **Advanced** tab, Add a JSON blob to the **Secure Extra** field in the database configuration form with
    the following format:
 
-   ```
+   ```json
    {
    "credentials_info": <contents of credentials JSON file>
    }
@@ -824,7 +834,7 @@ credentials file (as a JSON).
 
    The resulting file should have this structure:
 
-   ```
+   ```json
    {
     "credentials_info": {
         "type": "service_account",
@@ -851,8 +861,6 @@ To be able to upload CSV or Excel files to BigQuery in Superset, you'll need to 
 Currently, the Google BigQuery Python SDK is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you deploy Superset with `gunicorn` server, you have to use worker type except `gevent`.
 
-
-
 #### Google Sheets
 
 Google Sheets has a very limited
@@ -862,7 +870,6 @@ connector library for Google Sheets is [shillelagh](https://github.com/betodealm
 There are a few steps involved in connecting Superset to Google Sheets. This
 [tutorial](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/) has the most up to date
 instructions on setting up this connection.
-
 
 #### Hana
 
@@ -874,7 +881,6 @@ The connection string is formatted as follows:
 hana://{username}:{password}@{host}:{port}
 ```
 
-
 #### Apache Hive
 
 The [pyhive](https://pypi.org/project/PyHive/) library is the recommended way to connect to Hive through SQLAlchemy.
@@ -884,7 +890,6 @@ The expected connection string is formatted as follows:
 ```
 hive://hive@{hostname}:{port}/{database}
 ```
-
 
 #### Hologres
 
@@ -904,7 +909,6 @@ The connection string looks like:
 postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}
 ```
 
-
 #### IBM DB2
 
 The [IBM_DB_SA](https://github.com/ibmdb/python-ibmdbsa/tree/master/ibm_db_sa) library provides a
@@ -922,7 +926,6 @@ There are two DB2 dialect versions implemented in SQLAlchemy. If you are connect
 ibm_db_sa://{username}:{passport}@{hostname}:{port}/{database}
 ```
 
-
 #### Apache Impala
 
 The recommended connector library to Apache Impala is [impyla](https://github.com/cloudera/impyla).
@@ -932,7 +935,6 @@ The expected connection string is formatted as follows:
 ```
 impala://{hostname}:{port}/{database}
 ```
-
 
 #### Kusto
 
@@ -954,7 +956,6 @@ kustokql+https://{cluster_url}/{database}?azure_ad_client_id={azure_ad_client_id
 Make sure the user has privileges to access and use all required
 databases/tables/views.
 
-
 #### Apache Kylin
 
 The recommended connector library for Apache Kylin is
@@ -965,10 +966,6 @@ The expected connection string is formatted as follows:
 ```
 kylin://<username>:<password>@<hostname>:<port>/<project>?<param1>=<value1>&<param2>=<value2>
 ```
-
-
-
-
 
 #### MySQL
 
@@ -994,7 +991,6 @@ One problem with `mysqlclient` is that it will fail to connect to newer MySQL da
 mysql+mysqlconnector://{username}:{password}@{host}/{database}
 ```
 
-
 #### IBM Netezza Performance Server
 
 The [nzalchemy](https://pypi.org/project/nzalchemy/) library provides a
@@ -1011,13 +1007,11 @@ netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}
 The [sqlalchemy-oceanbase](https://pypi.org/project/oceanbase_py/) library is the recommended
 way to connect to OceanBase through SQLAlchemy.
 
-
 The connection string for OceanBase looks like this:
 
 ```
 oceanbase://<User>:<Password>@<Host>:<Port>/<Database>
 ```
-
 
 #### Ocient DB
 
@@ -1025,7 +1019,7 @@ The recommended connector library for Ocient is [sqlalchemy-ocient](https://pypi
 
 ##### Install the Ocient Driver
 
-```
+```bash
 pip install sqlalchemy-ocient
 ```
 
@@ -1048,8 +1042,25 @@ The connection string is formatted as follows:
 oracle://<username>:<password>@<hostname>:<port>
 ```
 
+#### Parseable
 
+[Parseable](https://www.parseable.io) is a distributed log analytics database that provides SQL-like query interface for log data. The recommended connector library is [sqlalchemy-parseable](https://github.com/parseablehq/sqlalchemy-parseable).
 
+The connection string is formatted as follows:
+
+```
+parseable://<username>:<password>@<hostname>:<port>/<stream_name>
+```
+
+For example:
+
+```
+parseable://admin:admin@demo.parseable.com:443/ingress-nginx
+```
+
+Note: The stream_name in the URI represents the Parseable logstream you want to query. You can use both HTTP (port 80) and HTTPS (port 443) connections.
+
+>>>>>>>
 #### Apache Pinot
 
 The recommended connector library for Apache Pinot is [pinotdb](https://pypi.org/project/pinotdb/).
@@ -1068,7 +1079,8 @@ pinot://<username>:<password>@<pinot-broker-host>:<pinot-broker-port>/query/sql?
 
 If you want to use explore view or joins, window functions, etc. then enable [multi-stage query engine](https://docs.pinot.apache.org/reference/multi-stage-engine).
 Add below argument while creating database connection in Advanced -> Other -> ENGINE PARAMETERS
-```
+
+```json
 {"connect_args":{"use_multistage_engine":"true"}}
 ```
 
@@ -1108,7 +1120,6 @@ More information about PostgreSQL connection options can be found in the
 and the
 [PostgreSQL docs](https://www.postgresql.org/docs/9.1/libpq-connect.html#LIBPQ-PQCONNECTDBPARAMS).
 
-
 #### Presto
 
 The [pyhive](https://pypi.org/project/PyHive/) library is the recommended way to connect to Presto through SQLAlchemy.
@@ -1134,7 +1145,7 @@ presto://datascientist:securepassword@presto.example.com:8080/hive
 By default Superset assumes the most recent version of Presto is being used when querying the
 datasource. If you’re using an older version of Presto, you can configure it in the extra parameter:
 
-```
+```json
 {
     "version": "0.123"
 }
@@ -1142,7 +1153,7 @@ datasource. If you’re using an older version of Presto, you can configure it i
 
 SSL Secure extra add json config to extra connection information.
 
-```
+```json
    {
      "connect_args":
     {"protocol": "https",
@@ -1150,8 +1161,6 @@ SSL Secure extra add json config to extra connection information.
   }
 }
 ```
-
-
 
 #### RisingWave
 
@@ -1164,27 +1173,6 @@ The expected connection string is formatted as follows:
 risingwave://root@{hostname}:{port}/{database}?sslmode=disable
 ```
 
-
-#### Rockset
-
-The connection string for Rockset is:
-
-```
-rockset://{api key}:@{api server}
-```
-
-Get your API key from the [Rockset console](https://console.rockset.com/apikeys).
-Find your API server from the [API reference](https://rockset.com/docs/rest-api/#introduction). Omit the `https://` portion of the URL.
-
-To target to a specific virtual instance, use this URI format:
-
-```
-rockset://{api key}:@{api server}/{VI ID}
-```
-
-For more complete instructions, we recommend the [Rockset documentation](https://docs.rockset.com/apache-superset/).
-
-
 #### Snowflake
 
 ##### Install Snowflake Driver
@@ -1192,7 +1180,7 @@ For more complete instructions, we recommend the [Rockset documentation](https:/
 Follow the steps [here](/docs/configuration/databases#installing-database-drivers) about how to
 install new database drivers when setting up Superset locally via docker compose.
 
-```
+```bash
 echo "snowflake-sqlalchemy" >> ./docker/requirements-local.txt
 ```
 
@@ -1225,7 +1213,7 @@ To connect Snowflake with Key Pair Authentication, you need to add the following
 
 ***Please note that you need to merge multi-line private key content to one line and insert `\n` between each line***
 
-```
+```json
 {
      "auth_method": "keypair",
      "auth_params": {
@@ -1237,7 +1225,7 @@ To connect Snowflake with Key Pair Authentication, you need to add the following
 
 If your private key is stored on server, you can replace "privatekey_body" with “privatekey_path” in parameter.
 
-```
+```json
 {
     "auth_method": "keypair",
     "auth_params": {
@@ -1258,7 +1246,6 @@ The connection string for Solr looks like this:
 solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]
 ```
 
-
 #### Apache Spark SQL
 
 The recommended connector library for Apache Spark SQL [pyhive](https://pypi.org/project/PyHive/).
@@ -1276,14 +1263,32 @@ The recommended connector library for SQL Server is [pymssql](https://github.com
 The connection string for SQL Server looks like this:
 
 ```
-mssql+pymssql://<Username>:<Password>@<Host>:<Port-default:1433>/<Database Name>/?Encrypt=yes
+mssql+pymssql://<Username>:<Password>@<Host>:<Port-default:1433>/<Database Name>
 ```
 
 It is also possible to connect using [pyodbc](https://pypi.org/project/pyodbc) with the parameter [odbc_connect](https://docs.sqlalchemy.org/en/14/dialects/mssql.html#pass-through-exact-pyodbc-string)
 
 The connection string for SQL Server looks like this:
+
 ```
 mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3Cmy_server%3E%2C1433%3BDatabase%3Dmy_database%3BUid%3Dmy_user_name%3BPwd%3Dmy_password%3BEncrypt%3Dyes%3BConnection+Timeout%3D30
+```
+
+:::note
+You might have noticed that some special charecters are used in the above connection string. For example see the `odbc_connect` parameter. The value is `Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B` which is a URL-encoded form of `Driver={ODBC+Driver+17+for+SQL+Server};`. It's important to give the connection string is URL encoded.
+
+For more information about this check the [sqlalchemy documentation](https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords). Which says `When constructing a fully formed URL string to pass to create_engine(), special characters such as those that may be used in the user and password need to be URL encoded to be parsed correctly. This includes the @ sign.`
+:::
+
+#### SingleStore
+
+The recommended connector library for SingleStore is
+[sqlalchemy-singlestoredb](https://github.com/singlestore-labs/sqlalchemy-singlestoredb).
+
+The expected connection string is formatted as follows:
+
+```
+singlestoredb://{username}:{password}@{host}:{port}/{database}
 ```
 
 #### StarRocks
@@ -1304,6 +1309,28 @@ Here's what the connection string looks like:
 
 ```
 starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>
+```
+
+:::note
+StarRocks maintains their Superset docuementation [here](https://docs.starrocks.io/docs/integrations/BI_integrations/Superset/).
+:::
+
+#### TDengine
+
+[TDengine](https://www.tdengine.com) is a High-Performance, Scalable Time-Series Database for Industrial IoT and provides SQL-like query interface.
+
+The recommended connector library for TDengine is [taospy](https://pypi.org/project/taospy/) and [taos-ws-py](https://pypi.org/project/taos-ws-py/)
+
+The expected connection string is formatted as follows:
+
+```
+taosws://<user>:<password>@<host>:<port>
+```
+
+For example:
+
+```
+taosws://root:taosdata@127.0.0.1:6041
 ```
 
 #### Teradata
@@ -1327,7 +1354,7 @@ here: https://downloads.teradata.com/download/connectivity/odbc-driver/linux
 
 Here are the required environment variables:
 
-```
+```bash
 export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
 export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
 ```
@@ -1336,8 +1363,8 @@ We recommend using the first library because of the
  lack of requirement around ODBC drivers and
  because it's more regularly updated.
 
-
 #### TimescaleDB
+
 [TimescaleDB](https://www.timescale.com) is the open-source relational database for time-series and analytics to build powerful data-intensive applications.
 TimescaleDB is a PostgreSQL extension, and you can use the standard PostgreSQL connector library, [psycopg2](https://www.psycopg.org/docs/), to connect to the database.
 
@@ -1369,31 +1396,38 @@ postgresql://{username}:{password}@{host}:{port}/{database name}?sslmode=require
 
 [Learn more about TimescaleDB!](https://docs.timescale.com/)
 
-
 #### Trino
 
 Supported trino version 352 and higher
 
 ##### Connection String
+
 The connection string format is as follows:
+
 ```
 trino://{username}:{password}@{hostname}:{port}/{catalog}
 ```
 
 If you are running Trino with docker on local machine, please use the following connection URL
+
 ```
 trino://trino@host.docker.internal:8080
 ```
 
 ##### Authentications
+
 ###### 1. Basic Authentication
+
 You can provide `username`/`password` in the connection string or in the `Secure Extra` field at `Advanced / Security`
-* In Connection String
+
+- In Connection String
+
     ```
     trino://{username}:{password}@{hostname}:{port}/{catalog}
     ```
 
-* In `Secure Extra` field
+- In `Secure Extra` field
+
     ```json
     {
         "auth_method": "basic",
@@ -1407,7 +1441,9 @@ You can provide `username`/`password` in the connection string or in the `Secure
 NOTE: if both are provided, `Secure Extra` always takes higher priority.
 
 ###### 2. Kerberos Authentication
+
 In `Secure Extra` field, config as following example:
+
 ```json
 {
     "auth_method": "kerberos",
@@ -1424,7 +1460,9 @@ All fields in `auth_params` are passed directly to the [`KerberosAuthentication`
 NOTE: Kerberos authentication requires installing the [`trino-python-client`](https://github.com/trinodb/trino-python-client) locally with either the `all` or `kerberos` optional features, i.e., installing `trino[all]` or `trino[kerberos]` respectively.
 
 ###### 3. Certificate Authentication
+
 In `Secure Extra` field, config as following example:
+
 ```json
 {
     "auth_method": "certificate",
@@ -1438,7 +1476,9 @@ In `Secure Extra` field, config as following example:
 All fields in `auth_params` are passed directly to the [`CertificateAuthentication`](https://github.com/trinodb/trino-python-client/blob/0.315.0/trino/auth.py#L416) class.
 
 ###### 4. JWT Authentication
+
 Config `auth_method` and provide token in `Secure Extra` field
+
 ```json
 {
     "auth_method": "jwt",
@@ -1449,8 +1489,10 @@ Config `auth_method` and provide token in `Secure Extra` field
 ```
 
 ###### 5. Custom Authentication
+
 To use custom authentication, first you need to add it into
 `ALLOWED_EXTRA_AUTHENTICATIONS` allow list in Superset config file:
+
 ```python
 from your.module import AuthClass
 from another.extra import auth_method
@@ -1464,6 +1506,7 @@ ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {
 ```
 
 Then in `Secure Extra` field:
+
 ```json
 {
     "auth_method": "custom_auth",
@@ -1479,8 +1522,8 @@ or factory function (which returns an `Authentication` instance) to `auth_method
 All fields in `auth_params` are passed directly to your class/function.
 
 **Reference**:
-* [Trino-Superset-Podcast](https://trino.io/episodes/12.html)
 
+- [Trino-Superset-Podcast](https://trino.io/episodes/12.html)
 
 #### Vertica
 
@@ -1507,6 +1550,76 @@ Other parameters:
 
 - Load Balancer - Backup Host
 
+#### YDB
+
+The recommended connector library for [YDB](https://ydb.tech/) is
+[ydb-sqlalchemy](https://pypi.org/project/ydb-sqlalchemy/).
+
+##### Connection String
+
+The connection string for YDB looks like this:
+
+```
+ydb://{host}:{port}/{database_name}
+```
+
+##### Protocol
+
+You can specify `protocol` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "protocol": "grpcs"
+}
+```
+
+Default is `grpc`.
+
+##### Authentication Methods
+
+###### Static Credentials
+
+To use `Static Credentials` you should provide `username`/`password` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "username": "...",
+        "password": "..."
+    }
+}
+```
+
+###### Access Token Credentials
+
+To use `Access Token Credentials` you should provide `token` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "token": "...",
+    }
+}
+```
+
+##### Service Account Credentials
+
+To use Service Account Credentials, you should provide `service_account_json` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "service_account_json": {
+            "id": "...",
+            "service_account_id": "...",
+            "created_at": "...",
+            "key_algorithm": "...",
+            "public_key": "...",
+            "private_key": "..."
+        }
+    }
+}
+```
 
 #### YugabyteDB
 
@@ -1521,8 +1634,6 @@ The connection string looks like:
 ```
 postgresql://{username}:{password}@{host}:{port}/{database}
 ```
-
-
 
 ## Connecting through the UI
 
@@ -1596,9 +1707,6 @@ For databases like MySQL and Postgres that use the standard format of `engine+dr
 
 For other databases you need to implement these methods yourself. The BigQuery DB engine spec is a good example of how to do that.
 
-
-
-
 ### Extra Database Settings
 
 ##### Deeper SQLAlchemy Integration
@@ -1662,9 +1770,7 @@ You can use the `Extra` field in the **Edit Databases** form to configure SSL:
 }
 ```
 
-
-
-## Misc.
+## Misc
 
 ### Querying across databases
 

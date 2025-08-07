@@ -58,7 +58,6 @@ ul.dropdown__menu svg {
   --ifm-code-font-size: 95%;
   --ifm-menu-link-padding-vertical: 12px;
   --doc-sidebar-width: 350px !important;
-  --ifm-navbar-height: none;
   --ifm-font-family-base: Roboto;
   --ifm-footer-background-color: #173036;
   --ifm-footer-color: #87939a;
@@ -68,4 +67,16 @@ ul.dropdown__menu svg {
   --ifm-secondary-text: #5f5f5f;
   --ifm-code-padding-vertical: 3px;
   --ifm-code-padding-horizontal: 5px;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-font-base-color: #bbb5ac;
+  --ifm-border-color: #797063;
 }

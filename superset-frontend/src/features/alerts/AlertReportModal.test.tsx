@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
-import { AlertObject } from './types';
+import { AlertObject, NotificationMethodOption } from './types';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -30,7 +35,7 @@ jest.mock('@superset-ui/core', () => ({
 
 jest.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
-    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack'],
+    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
   }),
 }));
 
@@ -89,7 +94,7 @@ const generateMockPayload = (dashboard = true) => {
     chart: {
       id: 1,
       slice_name: 'Test Chart',
-      viz_type: 'table',
+      viz_type: VizType.Table,
     },
   };
 };
@@ -106,11 +111,18 @@ const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
+const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
 fetchMock.get(ownersEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
+fetchMock.get(tabsEndpoint, {
+  result: {
+    all_tabs: {},
+    tab_tree: [],
+  },
+});
 
 // Create a valid alert with all required fields entered for validation check
 
@@ -135,7 +147,7 @@ const validAlert: AlertObject = {
   ],
   recipients: [
     {
-      type: 'Email',
+      type: NotificationMethodOption.Email,
       recipient_config_json: { target: 'test@user.com' },
     },
   ],
@@ -179,10 +191,8 @@ const comboboxSelect = async (
 ) => {
   expect(element).toBeInTheDocument();
   userEvent.type(element, `${value}{enter}`);
-  await waitFor(() => {
-    const element = newElementQuery();
-    expect(element).toBeInTheDocument();
-  });
+  const newElement = newElementQuery();
+  expect(newElement).toBeInTheDocument();
 };
 
 // --------------- TEST SECTION ------------------
@@ -355,7 +365,7 @@ test('renders all Alert Condition fields', async () => {
   });
   userEvent.click(screen.getByTestId('alert-condition-panel'));
   const database = screen.getByRole('combobox', { name: /database/i });
-  const sql = screen.getAllByRole('textbox')[2];
+  const sql = screen.getByRole('textbox');
   const condition = screen.getByRole('combobox', { name: /condition/i });
   const threshold = screen.getByRole('spinbutton');
   expect(database).toBeInTheDocument();
@@ -413,6 +423,21 @@ test('renders screenshot options when dashboard is selected', async () => {
   ).toBeInTheDocument();
 });
 
+test('renders tab selection when Dashboard is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  expect(
+    screen.getByRole('combobox', { name: /select content type/i }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: /dashboard/i }),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/select tab/i)).toBeInTheDocument();
+});
+
 test('changes to content options when chart is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
     useRedux: true,
@@ -455,7 +480,7 @@ test('removes ignore cache checkbox when chart is selected', async () => {
     screen.queryByRole('checkbox', {
       name: /ignore cache when generating report/i,
     }),
-  ).toBe(null);
+  ).not.toBeInTheDocument();
 });
 
 test('does not show screenshot width when csv is selected', async () => {
@@ -531,11 +556,12 @@ test('shows CRON Expression when CRON is selected', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  await comboboxSelect(
+  userEvent.click(screen.getByRole('combobox', { name: /schedule type/i }));
+  userEvent.type(
     screen.getByRole('combobox', { name: /schedule type/i }),
-    'cron schedule',
-    () => screen.getByPlaceholderText(/cron expression/i),
+    'cron schedule{enter}',
   );
+  expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
   expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
 });
 test('defaults to day when CRON is not selected', async () => {
@@ -575,6 +601,7 @@ test('renders all notification fields', async () => {
   expect(recipients).toBeInTheDocument();
   expect(addNotificationMethod).toBeInTheDocument();
 });
+
 test('adds another notification method section after clicking add notification method', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,

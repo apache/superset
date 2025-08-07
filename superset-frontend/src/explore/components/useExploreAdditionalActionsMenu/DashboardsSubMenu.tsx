@@ -18,9 +18,9 @@
  */
 import { useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import Icons from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
+import { Input } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { Link } from 'react-router-dom';
 
 export interface DashboardsSubMenuProps {
@@ -57,10 +57,10 @@ const DashboardsSubMenu = ({
         <Input
           allowClear
           placeholder={t('Search')}
-          prefix={<Icons.Search iconSize="l" />}
+          prefix={<Icons.StarOutlined iconSize="l" />}
           css={css`
             width: ${WIDTH}px;
-            margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+            margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
           `}
           value={dashboardSearch}
           onChange={e => setDashboardSearch(e.currentTarget.value)}
@@ -105,9 +105,8 @@ const DashboardsSubMenu = ({
                 </div>
                 <Icons.Full
                   iconSize="l"
-                  iconColor={theme.colors.grayscale.base}
                   css={css`
-                    margin-left: ${theme.gridUnit * 2}px;
+                    margin-left: ${theme.sizeUnit * 2}px;
                     visibility: ${hoveredItem === dashboard.id
                       ? 'visible'
                       : 'hidden'};
@@ -120,8 +119,8 @@ const DashboardsSubMenu = ({
         {noResultsFound && (
           <div
             css={css`
-              margin-left: ${theme.gridUnit * 3}px;
-              margin-bottom: ${theme.gridUnit}px;
+              margin-left: ${theme.sizeUnit * 3}px;
+              margin-bottom: ${theme.sizeUnit}px;
             `}
           >
             {t('No results found')}

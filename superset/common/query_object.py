@@ -24,6 +24,7 @@ from typing import Any, NamedTuple, TYPE_CHECKING
 
 from flask import g
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
 from pandas import DataFrame
 
 from superset import feature_flag_manager
@@ -33,7 +34,8 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
-from superset.sql_parse import sanitize_clause
+from superset.extensions import event_logger
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
@@ -129,6 +131,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_columns: list[Column] | None = None,
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
+        group_others_when_limit_reached: bool = False,
         time_range: str | None = None,
         time_shift: str | None = None,
         **kwargs: Any,
@@ -152,6 +155,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._init_series_columns(series_columns, metrics, is_timeseries)
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
+        self.group_others_when_limit_reached = group_others_when_limit_reached
         self.time_range = time_range
         self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
@@ -257,7 +261,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     @property
     def metric_names(self) -> list[str]:
         """Return metrics names (labels), coerce adhoc metrics to strings."""
-        return get_metric_names(self.metrics or [])
+        return get_metric_names(
+            self.metrics or [],
+            (
+                self.datasource.verbose_map
+                if self.datasource and hasattr(self.datasource, "verbose_map")
+                else None
+            ),
+        )
 
     @property
     def column_names(self) -> list[str]:
@@ -272,6 +283,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         try:
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
+            self._validate_time_offsets()
             self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
@@ -291,12 +303,57 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             )
 
+    def _validate_time_offsets(self) -> None:
+        """Validate time_offsets configuration"""
+        if not self.time_offsets:
+            return
+
+        for offset in self.time_offsets:
+            # Check if this is a date range offset (YYYY-MM-DD : YYYY-MM-DD format)
+            if self._is_valid_date_range(offset):
+                if not feature_flag_manager.is_feature_enabled(
+                    "DATE_RANGE_TIMESHIFTS_ENABLED"
+                ):
+                    raise QueryObjectValidationError(
+                        "Date range timeshifts are not enabled. "
+                        "Please contact your administrator to enable the "
+                        "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
+                    )
+
+    def _is_valid_date_range(self, date_range: str) -> bool:
+        """Check if string is a valid date range in YYYY-MM-DD : YYYY-MM-DD format"""
+        try:
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            start_date, end_date = date_range.split(":")
+            datetime.strptime(start_date.strip(), "%Y-%m-%d")
+            datetime.strptime(end_date.strip(), "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            return False
+
     def _sanitize_filters(self) -> None:
+        from superset.jinja_context import get_template_processor
+
         for param in ("where", "having"):
             clause = self.extras.get(param)
-            if clause:
+            if clause and self.datasource:
                 try:
-                    sanitized_clause = sanitize_clause(clause)
+                    database = self.datasource.database
+                    processor = get_template_processor(database=database)
+                    try:
+                        clause = processor.process_template(clause, force=True)
+                    except TemplateError as ex:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Error in jinja expression in WHERE clause: %(msg)s",
+                                msg=ex.message,
+                            )
+                        ) from ex
+                    engine = database.db_engine_spec.engine
+                    sanitized_clause = sanitize_clause(clause, engine)
                     if sanitized_clause != clause:
                         self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
@@ -333,6 +390,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_columns": self.series_columns,
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
+            "group_others_when_limit_reached": self.group_others_when_limit_reached,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
         }
@@ -346,7 +404,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             default=str,
         )
 
-    def cache_key(self, **extra: Any) -> str:
+    def cache_key(self, **extra: Any) -> str:  # noqa: C901
         """
         The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`
@@ -428,19 +486,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                  is incorrect
         """
         logger.debug("post_processing: \n %s", pformat(self.post_processing))
-        for post_process in self.post_processing:
-            operation = post_process.get("operation")
-            if not operation:
-                raise InvalidPostProcessingError(
-                    _("`operation` property of post processing object undefined")
-                )
-            if not hasattr(pandas_postprocessing, operation):
-                raise InvalidPostProcessingError(
-                    _(
-                        "Unsupported post processing operation: %(operation)s",
-                        type=operation,
+        with event_logger.log_context(f"{self.__class__.__name__}.post_processing"):
+            for post_process in self.post_processing:
+                operation = post_process.get("operation")
+                if not operation:
+                    raise InvalidPostProcessingError(
+                        _("`operation` property of post processing object undefined")
                     )
-                )
-            options = post_process.get("options", {})
-            df = getattr(pandas_postprocessing, operation)(df, **options)
-        return df
+                if not hasattr(pandas_postprocessing, operation):
+                    raise InvalidPostProcessingError(
+                        _(
+                            "Unsupported post processing operation: %(operation)s",
+                            type=operation,
+                        )
+                    )
+                options = post_process.get("options", {})
+                df = getattr(pandas_postprocessing, operation)(df, **options)
+            return df

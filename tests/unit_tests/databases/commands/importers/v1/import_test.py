@@ -19,6 +19,7 @@
 import copy
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -37,6 +38,7 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -44,7 +46,8 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     config = copy.deepcopy(database_config)
     database = import_database(config)
     assert database.database_name == "imported_database"
-    assert database.sqlalchemy_uri == "someengine://user:pass@host1"
+    assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+    assert database.password == "pass"  # noqa: S105
     assert database.cache_timeout is None
     assert database.expose_in_sqllab is True
     assert database.allow_run_async is False
@@ -67,18 +70,40 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     assert database.allow_dml is False
 
 
+def test_import_database_no_creds(mocker: MockerFixture, session: Session) -> None:
+    """
+    Test importing a database.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config_no_creds
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_no_creds)
+    database = import_database(config)
+    assert database.database_name == "imported_database_no_creds"
+    assert database.sqlalchemy_uri == "bigquery://test-db/"
+    assert database.extra == "{}"
+    assert database.uuid == "2ff17edc-f3fa-4609-a5ac-b484281225bc"
+
+
 def test_import_database_sqlite_invalid(
     mocker: MockerFixture, session: Session
 ) -> None:
     """
     Test importing a database.
     """
-    from superset import app, security_manager
+    from superset import security_manager
     from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config_sqlite
 
-    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+    current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -89,10 +114,10 @@ def test_import_database_sqlite_invalid(
         _ = import_database(config)
     assert (
         str(excinfo.value)
-        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
+        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."  # noqa: E501
     )
     # restore app config
-    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+    current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
 
 
 def test_import_database_managed_externally(
@@ -108,6 +133,7 @@ def test_import_database_managed_externally(
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -158,6 +184,7 @@ def test_import_database_with_version(mocker: MockerFixture, session: Session) -
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -166,3 +193,27 @@ def test_import_database_with_version(mocker: MockerFixture, session: Session) -
     config["extra"]["version"] = "1.1.1"
     database = import_database(config)
     assert json.loads(database.extra)["version"] == "1.1.1"
+
+
+def test_import_database_with_user_impersonation(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a database that is managed externally.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    config["impersonate_user"] = True
+
+    database = import_database(config)
+    assert database.impersonate_user is True

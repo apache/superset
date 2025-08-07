@@ -151,14 +151,14 @@ describe('customTimeRangeDecode', () => {
   it('7) default', () => {
     const SEVEN_DAYS_AGO = new Date();
     const MIDNIGHT = new Date();
-    SEVEN_DAYS_AGO.setUTCHours(0, 0, 0, 0);
-    MIDNIGHT.setUTCHours(0, 0, 0, 0);
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+    MIDNIGHT.setHours(0, 0, 0, 0);
     expect(
       customTimeRangeDecode('now : DATEADD(DATETIME("TODAY"), -7, day)'),
     ).toEqual({
       customRange: {
-        sinceDatetime: SEVEN_DAYS_AGO.setUTCDate(
-          SEVEN_DAYS_AGO.getUTCDate() - 7,
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
         ).toString(),
         sinceMode: 'relative',
         sinceGrain: 'day',
@@ -176,18 +176,96 @@ describe('customTimeRangeDecode', () => {
 
   it('8) relative : relative return default', () => {
     const SEVEN_DAYS_AGO = new Date();
-    SEVEN_DAYS_AGO.setUTCHours(0, 0, 0, 0);
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
 
     const MIDNIGHT = new Date();
-    MIDNIGHT.setUTCHours(0, 0, 0, 0);
+    MIDNIGHT.setHours(0, 0, 0, 0);
     expect(
       customTimeRangeDecode(
         'DATEADD(DATETIME("2021-01-26T00:00:00"), -55, day) : DATEADD(DATETIME("2021-01-27T00:00:00"), 7, day)',
       ),
     ).toEqual({
       customRange: {
-        sinceDatetime: SEVEN_DAYS_AGO.setUTCDate(
-          SEVEN_DAYS_AGO.getUTCDate() - 7,
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  it('9) empty string returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  it('10) both undefined returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('undefined : undefined')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  it('11) 1 side undefined returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('undefined : now')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
         ).toString(),
         sinceMode: 'relative',
         sinceGrain: 'day',

@@ -88,9 +88,19 @@ class DatabaseExtraValidationError(ValidationError):
         )
 
 
+class DatabaseConnectionSyncPermissionsError(CommandException):
+    status = 500
+    message = _("Unable to sync permissions for this database connection.")
+
+
 class DatabaseNotFoundError(CommandException):
     status = 404
     message = _("Database not found.")
+
+
+class UserNotFoundInSessionError(CommandException):
+    status = 500
+    message = _("Could not validate the user in the current session.")
 
 
 class DatabaseSchemaUploadNotAllowed(CommandException):
@@ -128,6 +138,15 @@ class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
     message = _("Connection failed, please check your connection settings")
 
 
+class MissingOAuth2TokenError(DatabaseUpdateFailedError):
+    """
+    Exception for when the connection is missing an OAuth2 token
+    and it's not possible to initiate an OAuth2 dance.
+    """
+
+    message = _("Missing OAuth2 token")
+
+
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
     message = _("Cannot delete a database that has datasets attached")
 
@@ -158,7 +177,7 @@ class DatabaseTestConnectionUnexpectedError(SupersetErrorsException):
     message = _("Unexpected error occurred, please check your logs for details")
 
 
-class DatabaseTablesUnexpectedError(Exception):
+class DatabaseTablesUnexpectedError(CommandException):
     status = 422
     message = _("Unexpected error occurred, please check your logs for details")
 
@@ -202,3 +221,15 @@ class DatabaseOfflineError(SupersetErrorException):
 
 class InvalidParametersError(SupersetErrorsException):
     status = 422
+
+
+class DatasetValidationError(CommandException):
+    status = 422
+
+    def __init__(self, err: Exception) -> None:
+        super().__init__(
+            _(
+                "Dataset schema is invalid, caused by: %(error)s",
+                error=str(err),
+            )
+        )

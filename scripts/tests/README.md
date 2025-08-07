@@ -19,7 +19,7 @@ under the License.
 
 # Utility script to run tests faster
 
-By default tests will be run using the Postgres container defined at the `docker-compose` file on the root of the repo,
+By default tests will be run using the Postgres container defined at the `docker compose` file (`docker-compose.yml`) on the root of the repo,
 so prior to using this script make sure to launch the dev containers.
 
 You can use a different DB backend by defining `SUPERSET__SQLALCHEMY_DATABASE_URI` env var.

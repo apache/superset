@@ -45,6 +45,7 @@ from superset.exceptions import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.log import get_logger_from_status
 
 if typing.TYPE_CHECKING:
     from superset.views.base import BaseSupersetView
@@ -108,8 +109,8 @@ def handle_api_exception(
             logger.warning("SupersetErrorException", exc_info=True)
             return json_error_response([ex.error], status=ex.status)
         except SupersetException as ex:
-            if ex.status >= 500:
-                logger.exception(ex)
+            logger_func, _ = get_logger_from_status(ex.status)
+            logger_func(ex.message, exc_info=True)
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=ex.status
             )
@@ -128,7 +129,7 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def set_app_error_handlers(app: Flask) -> None:
+def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     """
     Set up error handlers for the Flask app
     Refer to SIP-40 and SIP-41 for more details on the error handling strategy
@@ -157,6 +158,7 @@ def set_app_error_handlers(app: Flask) -> None:
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
         logger.warning("HTTPException", exc_info=True)
+
         if (
             "text/html" in request.accept_mimetypes
             and not app.config["DEBUG"]
@@ -184,6 +186,7 @@ def set_app_error_handlers(app: Flask) -> None:
         or SupersetErrorsException, with a specific status code and error type
         """
         logger.warning("CommandException", exc_info=True)
+
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500
@@ -207,6 +210,7 @@ def set_app_error_handlers(app: Flask) -> None:
         """Catch-all, to ensure all errors from the backend conform to SIP-40"""
         logger.warning("Exception", exc_info=True)
         logger.exception(ex)
+
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500

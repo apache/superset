@@ -16,15 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryMode, TimeGranularity } from '@superset-ui/core';
+import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
 import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
-  viz_type: 'table',
+  viz_type: VizType.Table,
   datasource: '11__table',
 };
 
+const extraQueryFormData: TableChartFormData = {
+  ...basicFormData,
+  time_grain_sqla: TimeGranularity.MONTH,
+  groupby: ['col1'],
+  query_mode: QueryMode.Aggregate,
+  show_totals: true,
+  metrics: ['aaa', 'aaa'],
+  adhoc_filters: [
+    {
+      expressionType: 'SQL',
+      sqlExpression: "status IN ('In Process')",
+      clause: 'WHERE',
+      subject: null,
+      operator: null,
+      comparator: null,
+      isExtra: false,
+      isNew: false,
+      datasourceWarning: false,
+      filterOptionName: 'filter_v8m9t9oq5re_ndzk6g5am7',
+    } as any,
+  ],
+};
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     it('should add post-processing and ignore duplicate metrics', () => {
@@ -112,6 +134,105 @@ describe('plugin-chart-table', () => {
         sqlExpression: 'col1',
         label: 'col1',
         expressionType: 'SQL',
+      });
+    });
+    it('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
+      const { queries } = buildQuery({
+        ...extraQueryFormData,
+        temporal_columns_lookup: { col1: true },
+      });
+      // Extras in regular query
+      expect(queries[0].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
+      expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
+      // Extras in summary query
+      expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
+      expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
+    });
+
+    describe('Percent Metric Calculation Modes', () => {
+      const baseFormDataWithPercents: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        percent_metrics: ['sum_sales'],
+        groupby: ['category'],
+      };
+
+      it('should default to row_limit mode with single query', () => {
+        const { queries } = buildQuery(baseFormDataWithPercents);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+      });
+
+      it('should create extra query in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(2);
+
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+          row_limit: 0,
+          row_offset: 0,
+          orderby: [],
+          is_timeseries: false,
+        });
+      });
+
+      it('should work with show_totals in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(3);
+        expect(queries[1].metrics).toEqual(['sum_sales']);
+        expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
+      });
+
+      it('should handle empty percent_metrics in all_records mode', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          percent_metric_calculation: 'all_records',
+          groupby: ['category'],
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].post_processing).toEqual([]);
       });
     });
   });

@@ -18,8 +18,7 @@
  */
 import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
   ToastProps,
@@ -27,32 +26,20 @@ import withToasts, {
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colorPrimary};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  color: ${({ theme }) => theme.colorTextLabel};
+  font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 16px 0;
 `;
 
 const StyledModal = styled(Modal)`
-  .ant-modal-content {
-  }
-
   .ant-modal-body {
     padding: 24px;
-  }
-
-  pre {
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    line-height: ${({ theme }) => theme.typography.sizes.l}px;
-    height: 375px;
-    border: none;
   }
 `;
 
@@ -96,6 +83,7 @@ const SavedQueryPreviewModal: FunctionComponent<
         onHide={onHide}
         show={show}
         title={t('Query preview')}
+        width={800}
         footer={
           <>
             <Button

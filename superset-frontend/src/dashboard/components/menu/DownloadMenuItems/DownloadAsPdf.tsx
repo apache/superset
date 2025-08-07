@@ -18,23 +18,23 @@
  */
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF } from 'src/logger/LogUtils';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 export default function DownloadAsPdf({
   text,
   logEvent,
   dashboardTitle,
-  addDangerToast,
-  ...rest
+  ...props
 }: {
   text: string;
-  addDangerToast: Function;
   dashboardTitle: string;
   logEvent?: Function;
 }) {
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+  const { addDangerToast } = useToasts();
   const onDownloadPdf = async (e: SyntheticEvent) => {
     try {
       downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
@@ -46,10 +46,14 @@ export default function DownloadAsPdf({
   };
 
   return (
-    <Menu.Item key="download-pdf" {...rest}>
-      <div onClick={onDownloadPdf} role="button" tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-pdf"
+      onClick={e => {
+        onDownloadPdf(e.domEvent);
+      }}
+      {...props}
+    >
+      {text}
     </Menu.Item>
   );
 }

@@ -37,7 +37,7 @@ ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ```
 
 Docker compose deployments handle application configuration differently using specific conventions.
-Refer to the [docker-compose tips & configuration](/docs/installation/docker-compose#docker-compose-tips--configuration)
+Refer to the [docker compose tips & configuration](/docs/installation/docker-compose#docker-compose-tips--configuration)
 for details.
 
 The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
@@ -117,7 +117,7 @@ Your deployment must use a complex, unique key.
 ### Rotating to a newer SECRET_KEY
 
 If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as
-`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`. You can find your current SECRET_KEY with these
+`PREVIOUS_SECRET_KEY =`and provide your new key as `SECRET_KEY =`. You can find your current SECRET_KEY with these
 commands - if running Superset with Docker, execute from within the Superset application container:
 
 ```python
@@ -141,10 +141,10 @@ database engine on a separate host or container.
 
 Superset supports the following database engines/versions:
 
-| Database Engine                           | Supported Versions                 |
-| ----------------------------------------- | ---------------------------------- |
-| [PostgreSQL](https://www.postgresql.org/) | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X |
-| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                           |
+| Database Engine                           | Supported Versions                       |
+| ----------------------------------------- | ---------------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/) | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X, 16.X |
+| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                                 |
 
 Use the following database drivers and connection strings:
 
@@ -215,6 +215,45 @@ In case the reverse proxy is used for providing SSL encryption, an explicit defi
 RequestHeader set X-Forwarded-Proto "https"
 ```
 
+## Configuring the application root
+
+*Please be advised that this feature is in BETA.*
+
+Superset supports running the application under a non-root path. The root path
+prefix can be specified in one of two ways:
+
+- Setting the `SUPERSET_APP_ROOT` environment variable to the desired prefix.
+- Customizing the [Flask entrypoint](https://github.com/apache/superset/blob/master/superset/app.py#L29)
+  by passing the `superset_app_root` variable.
+
+Note, the prefix should start with a `/`.
+
+### Customizing the Flask entrypoint
+
+To configure a prefix, e.g `/analytics`, pass the `superset_app_root` argument to
+`create_app` when calling flask run either through the `FLASK_APP`
+environment variable:
+
+```sh
+FLASK_APP="superset:create_app(superset_app_root='/analytics')"
+```
+
+or as part of the `--app` argument to `flask run`:
+
+```sh
+flask --app "superset.app:create_app(superset_app_root='/analytics')"
+```
+
+### Docker builds
+
+The [docker compose](/docs/installation/docker-compose#configuring-further) developer
+configuration includes an additional environmental variable,
+[`SUPERSET_APP_ROOT`](https://github.com/apache/superset/blob/master/docker/.env),
+to simplify the process of setting up a non-default root path across the services.
+
+In `docker/.env-local` set `SUPERSET_APP_ROOT` to the desired prefix and then bring the
+services up with `docker compose up --detach`.
+
 ## Custom OAuth2 Configuration
 
 Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
@@ -263,6 +302,15 @@ AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "Public"
 ```
 
+In case you want to assign the `Admin` role on new user registration, it can be assigned as follows:
+```python
+AUTH_USER_REGISTRATION_ROLE = "Admin"
+```
+If you encounter the [issue](https://github.com/apache/superset/issues/13243) of not being able to list users from the Superset main page settings, although a newly registered user has an `Admin` role, please re-run `superset init` to sync the required permissions. Below is the command to re-run `superset init` using docker compose.
+```
+docker-compose exec superset superset init
+```
+
 Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides
 `oauth_user_info`:
 
@@ -283,7 +331,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
     ...
 ```
 
-This file must be located at the same directory than `superset_config.py` with the name
+This file must be located in the same directory as `superset_config.py` with the name
 `custom_sso_security_manager.py`. Finally, add the following 2 lines to `superset_config.py`:
 
 ```
@@ -300,6 +348,7 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 - If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
   document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other
   required options like user info endpoint, jwks uri etc. For instance:
+
   ```python
   OAUTH_PROVIDERS = [
     {   'name':'egaSSO',
@@ -313,12 +362,15 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
     }
   ]
   ```
-### Keycloak-Specific Configuration using Flask-OIDC
-If you are using Keycloak as OpenID Connect 1.0 Provider, the above configuration based on [`Authlib`](https://authlib.org/) might not work. In this case using [`Flask-OIDC`](https://https://pypi.org/project/flask-oidc/) is a viable option.
 
-Make sure the pip package [`Flask-OIDC`](https://https://pypi.org/project/flask-oidc/) is installed on the webserver. This was succesfully tested using version 2.2.0. This package requires [`Flask-OpenID`](https://pypi.org/project/Flask-OpenID/) as a dependency.
+### Keycloak-Specific Configuration using Flask-OIDC
+
+If you are using Keycloak as OpenID Connect 1.0 Provider, the above configuration based on [`Authlib`](https://authlib.org/) might not work. In this case using [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is a viable option.
+
+Make sure the pip package [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is installed on the webserver. This was successfully tested using version 2.2.0. This package requires [`Flask-OpenID`](https://pypi.org/project/Flask-OpenID/) as a dependency.
 
 The following code defines a new security manager.  Add it to a new file named `keycloak_security_manager.py`, placed in the same directory as your `superset_config.py` file.
+
 ```python
 from flask_appbuilder.security.manager import AUTH_OID
 from superset.security import SupersetSecurityManager
@@ -373,7 +425,9 @@ class AuthOIDCView(AuthOIDView):
         return redirect(
             oidc.client_secrets.get('issuer') + '/protocol/openid-connect/logout?redirect_uri=' + quote(redirect_url))
 ```
+
 Then add to your `superset_config.py` file:
+
 ```python
 from keycloak_security_manager import OIDCSecurityManager
 from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH
@@ -393,7 +447,9 @@ AUTH_USER_REGISTRATION = True
 # The default user self registration role
 AUTH_USER_REGISTRATION_ROLE = 'Public'
 ```
+
 Store your client-specific OpenID information in a file called `client_secret.json`. Create this file in the same directory as `superset_config.py`:
+
 ```json
 {
     "<myOpenIDProvider>": {
@@ -410,6 +466,7 @@ Store your client-specific OpenID information in a file called `client_secret.js
   }
 }
 ```
+
 ## LDAP Authentication
 
 FAB supports authenticating user credentials against an LDAP server.
@@ -432,6 +489,7 @@ AUTH_ROLES_MAPPING = {
 "superset_admins": ["Admin"],
 }
 ```
+
 ### Mapping LDAP groups to Superset roles
 
 The following `AUTH_ROLES_MAPPING` dictionary would map the LDAP DN "cn=superset_users,ou=groups,dc=example,dc=com" to the Superset roles "Gamma" as well as "Alpha", and the LDAP DN "cn=superset_admins,ou=groups,dc=example,dc=com" to the Superset role "Admin".
@@ -442,6 +500,7 @@ AUTH_ROLES_MAPPING = {
 "cn=superset_admins,ou=groups,dc=example,dc=com": ["Admin"],
 }
 ```
+
 Note: This requires `AUTH_LDAP_SEARCH` to be set. For more details, please see the [FAB Security documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html).
 
 ### Syncing roles at login
@@ -475,7 +534,7 @@ def FLASK_APP_MUTATOR(app: Flask) -> None:
 
 To support a diverse set of users, Superset has some features that are not enabled by default. For
 example, some users have stronger security restrictions, while some others may not. So Superset
-allow users to enable or disable some features by config. For feature owners, you can add optional
+allows users to enable or disable some features by config. For feature owners, you can add optional
 functionalities in Superset, but will be only affected by a subset of users.
 
 You can enable or disable features with flag from `superset_config.py`:

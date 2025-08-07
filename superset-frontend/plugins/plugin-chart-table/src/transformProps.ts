@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import {
   ComparisonType,
   CurrencyFormatter,
+  Currency,
   DataRecord,
   ensureIsArray,
   extractTimegrain,
@@ -34,9 +35,6 @@ import {
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
-  SimpleAdhocFilter,
-  getTimeOffset,
-  parseDttmToDate,
 } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -44,7 +42,7 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, merge } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -53,6 +51,7 @@ import {
   DataColumnMeta,
   TableChartProps,
   TableChartTransformedProps,
+  TableColumnConfig,
 } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
@@ -90,6 +89,15 @@ const processDataRecords = memoizeOne(function processDataRecords(
   }
   return data;
 });
+
+// Create a map to store cached values per slice
+const sliceCache = new Map<
+  number,
+  {
+    cachedServerLength: number;
+    passedColumns?: DataColumnMeta[];
+  }
+>();
 
 const calculateDifferences = (
   originalValue: number,
@@ -268,7 +276,7 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        formatter = currency
+        formatter = currency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
               currency,
@@ -293,6 +301,48 @@ const processColumns = memoizeOne(function processColumns(
   ];
 }, isEqualColumns);
 
+const getComparisonColConfig = (
+  label: string,
+  parentColKey: string,
+  columnConfig: Record<string, TableColumnConfig>,
+) => {
+  const comparisonKey = `${label} ${parentColKey}`;
+  const comparisonColConfig = columnConfig[comparisonKey] || {};
+  return comparisonColConfig;
+};
+
+const getComparisonColFormatter = (
+  label: string,
+  parentCol: DataColumnMeta,
+  columnConfig: Record<string, TableColumnConfig>,
+  savedFormat: string | undefined,
+  savedCurrency: Currency | undefined,
+) => {
+  const currentColConfig = getComparisonColConfig(
+    label,
+    parentCol.key,
+    columnConfig,
+  );
+  const hasCurrency = currentColConfig.currencyFormat?.symbol;
+  const currentColNumberFormat =
+    // fallback to parent's number format if not set
+    currentColConfig.d3NumberFormat || parentCol.config?.d3NumberFormat;
+  let { formatter } = parentCol;
+  if (label === '%') {
+    formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
+  } else if (currentColNumberFormat || hasCurrency) {
+    const currency = currentColConfig.currencyFormat || savedCurrency;
+    const numberFormat = currentColNumberFormat || savedFormat;
+    formatter = currency
+      ? new CurrencyFormatter({
+          d3Format: numberFormat,
+          currency,
+        })
+      : getNumberFormatter(numberFormat);
+  }
+  return formatter;
+};
+
 const processComparisonColumns = (
   columns: DataColumnMeta[],
   props: TableChartProps,
@@ -301,12 +351,12 @@ const processComparisonColumns = (
   columns
     .map(col => {
       const {
-        datasource: { columnFormats },
+        datasource: { columnFormats, currencyFormats },
         rawFormData: { column_config: columnConfig = {} },
       } = props;
-      const config = columnConfig[col.key] || {};
       const savedFormat = columnFormats?.[col.key];
-      const numberFormat = config.d3NumberFormat || savedFormat;
+      const savedCurrency = currencyFormats?.[col.key];
+      const originalLabel = col.label;
       if (
         (col.isMetric || col.isPercentMetric) &&
         !col.key.includes(comparisonSuffix) &&
@@ -315,24 +365,59 @@ const processComparisonColumns = (
         return [
           {
             ...col,
+            originalLabel,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
+            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              t('Main'),
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
           {
             ...col,
+            originalLabel,
             label: `#`,
             key: `# ${col.key}`,
+            config: getComparisonColConfig(`#`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `#`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
           {
             ...col,
+            originalLabel,
             label: `△`,
             key: `△ ${col.key}`,
+            config: getComparisonColConfig(`△`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `△`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
           {
             ...col,
-            formatter: getNumberFormatter(numberFormat || PERCENT_3_POINT),
+            originalLabel,
             label: `%`,
             key: `% ${col.key}`,
+            config: getComparisonColConfig(`%`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `%`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
         ];
       }
@@ -374,7 +459,7 @@ const transformProps = (
   const {
     height,
     width,
-    rawFormData: formData,
+    rawFormData: originalFormData,
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
@@ -385,6 +470,12 @@ const transformProps = (
     },
     emitCrossFilters,
   } = chartProps;
+
+  const formData = merge(
+    {},
+    originalFormData,
+    originalFormData.extra_form_data,
+  );
 
   const {
     align_pn: alignPositiveNegative = true,
@@ -404,6 +495,7 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     comparison_type,
+    slice_id,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -523,37 +615,29 @@ const transformProps = (
   };
 
   const timeGrain = extractTimegrain(formData);
-  const TimeRangeFilters =
-    chartProps.rawFormData?.adhoc_filters?.filter(
-      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-    ) || [];
-  const previousCustomTimeRangeFilters: any =
-    chartProps.rawFormData?.adhoc_custom?.filter(
-      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-    ) || [];
 
-  let previousCustomStartDate = '';
-  if (
-    !isEmpty(previousCustomTimeRangeFilters) &&
-    previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-  ) {
-    previousCustomStartDate =
-      previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+  const nonCustomNorInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift !== 'custom' && shift !== 'inherit',
+  );
+  const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift === 'custom' || shift === 'inherit',
+  );
+
+  let timeOffsets: string[] = [];
+
+  if (isUsingTimeComparison && !isEmpty(nonCustomNorInheritShifts)) {
+    timeOffsets = nonCustomNorInheritShifts;
   }
 
-  const timeOffsets = getTimeOffset({
-    timeRangeFilter: {
-      ...TimeRangeFilters[0],
-      comparator:
-        formData?.extra_form_data?.time_range ??
-        (TimeRangeFilters[0] as any)?.comparator,
-    },
-    shifts: formData.time_compare,
-    startDate:
-      previousCustomStartDate && !formData.start_date_offset
-        ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-        : formData.start_date_offset,
-  });
+  // Shifts for custom or inherit time comparison
+  if (isUsingTimeComparison && !isEmpty(customOrInheritShifts)) {
+    if (customOrInheritShifts.includes('custom')) {
+      timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+    }
+    if (customOrInheritShifts.includes('inherit')) {
+      timeOffsets = timeOffsets.concat(['inherit']);
+    }
+  }
   const comparisonSuffix = isUsingTimeComparison
     ? ensureIsArray(timeOffsets)[0]
     : '';
@@ -607,6 +691,26 @@ const transformProps = (
     conditionalFormatting,
   );
 
+  // Get cached values for this slice
+  const cachedValues = sliceCache.get(slice_id);
+  let hasServerPageLengthChanged = false;
+
+  if (
+    cachedValues?.cachedServerLength !== undefined &&
+    cachedValues.cachedServerLength !== serverPageLength
+  ) {
+    hasServerPageLengthChanged = true;
+  }
+
+  // Update cache with new values
+  sliceCache.set(slice_id, {
+    cachedServerLength: serverPageLength,
+    passedColumns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns,
+  });
+
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   return {
     height,
@@ -614,7 +718,10 @@ const transformProps = (
     isRawRecords: queryMode === QueryMode.Raw,
     data: passedData,
     totals,
-    columns: passedColumns,
+    columns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns || [],
     serverPagination,
     metrics,
     percentMetrics,
@@ -629,7 +736,9 @@ const transformProps = (
     includeSearch,
     rowCount,
     pageSize: serverPagination
-      ? serverPageLength
+      ? serverPaginationData?.pageSize
+        ? serverPaginationData?.pageSize
+        : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
     emitCrossFilters,
@@ -643,6 +752,9 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
+    hasServerPageLengthChanged,
+    serverPageLength,
+    slice_id,
   };
 };
 

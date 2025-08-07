@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// @ts-nocheck
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, JSX } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import { Carousel } from 'antd';
@@ -28,8 +27,6 @@ import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
 import '../styles/main.less';
-
-// @ts-ignore
 
 const features = [
   {
@@ -207,7 +204,6 @@ const StyledFeaturesList = styled('ul')`
   .item {
     text-align: left;
     border: 1px solid var(--ifm-border-color);
-    background-color: #ffffff;
     border-radius: 10px;
     overflow: hidden;
     display: flex;
@@ -230,7 +226,6 @@ const StyledFeaturesList = styled('ul')`
     }
     .title {
       font-size: 24px;
-      color: var(--ifm-primary-text);
       margin: 10px 0 0;
       ${mq[1]} {
         font-size: 23px;
@@ -240,7 +235,6 @@ const StyledFeaturesList = styled('ul')`
     .description {
       font-size: 17px;
       line-height: 23px;
-      color: var(--ifm-secondary-text);
       margin: 5px 0 0;
       ${mq[1]} {
         font-size: 16px;
@@ -647,7 +641,10 @@ export default function Home(): JSX.Element {
               </div>
             </Carousel>
             <video autoPlay muted controls loop>
-              <source src="https://superset.staged.apache.org/superset-video-4k.mp4" type="video/mp4" />
+              <source
+                src="https://superset.staged.apache.org/superset-video-4k.mp4"
+                type="video/mp4"
+              />
             </video>
           </StyledSliderSection>
           <StyledKeyFeatures>

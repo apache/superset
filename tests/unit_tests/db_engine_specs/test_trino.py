@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from __future__ import annotations
+
 import copy
 from collections import namedtuple
 from datetime import datetime
@@ -23,9 +25,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
+from flask import g, has_app_context
 from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from sqlalchemy import sql, text, types
+from sqlalchemy import column, sql, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import NoSuchTableError
@@ -34,15 +37,20 @@ from trino.sqlalchemy import datatype
 from trino.sqlalchemy.dialect import TrinoDialect
 
 import superset.config
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql_parse import Table
-from superset.superset_typing import ResultSetColumnType, SQLAColumnType, SQLType
+from superset.sql.parse import Table
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    ResultSetColumnType,
+    SQLAColumnType,
+    SQLType,
+)
 from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -73,7 +81,7 @@ def _assert_columns_equal(actual_cols, expected_cols) -> None:
 @pytest.mark.parametrize(
     "extra,expected",
     [
-        ({}, {"engine_params": {"connect_args": {"source": USER_AGENT}}}),
+        ({}, {"engine_params": {"connect_args": {"source": "Apache Superset"}}}),
         (
             {
                 "first": 1,
@@ -102,7 +110,7 @@ def test_get_extra_params(extra: dict[str, Any], expected: dict[str, Any]) -> No
     assert TrinoEngineSpec.get_extra_params(database) == expected
 
 
-@patch("superset.utils.core.create_ssl_cert_file")
+@patch("superset.db_engine_specs.trino.create_ssl_cert_file")
 def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
@@ -110,6 +118,7 @@ def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> N
 
     database.extra = json.dumps({})
     database.server_cert = "TEST_CERT"
+    database.db_engine_spec = TrinoEngineSpec
     mock_create_ssl_cert_file.return_value = "/path/to/tls.crt"
     extra = TrinoEngineSpec.get_extra_params(database)
 
@@ -232,7 +241,7 @@ def test_auth_custom_auth_denied() -> None:
 
     superset.config.ALLOWED_EXTRA_AUTHENTICATIONS = {}
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError) as excinfo:  # noqa: PT011
         TrinoEngineSpec.update_params_from_encrypted_extra(database, {})
 
     assert str(excinfo.value) == (
@@ -283,7 +292,7 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec  # noqa: N813
 
     assert_column_spec(
         spec,
@@ -418,21 +427,52 @@ def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
     def _mock_execute(*args, **kwargs):
         mock_cursor.query_id = query_id
 
-    mock_cursor.execute.side_effect = _mock_execute
-    with patch.dict(
-        "superset.config.DISALLOWED_SQL_FUNCTIONS",
-        {},
-        clear=True,
-    ):
-        TrinoEngineSpec.execute_with_cursor(
-            cursor=mock_cursor,
-            sql="SELECT 1 FROM foo",
-            query=mock_query,
-        )
+    with app.test_request_context("/some/place/"):
+        mock_cursor.execute.side_effect = _mock_execute
 
-        mock_query.set_extra_json_key.assert_called_once_with(
-            key=QUERY_CANCEL_KEY, value=query_id
-        )
+        with patch.dict(
+            "superset.config.DISALLOWED_SQL_FUNCTIONS",
+            {},
+            clear=True,
+        ):
+            TrinoEngineSpec.execute_with_cursor(
+                cursor=mock_cursor,
+                sql="SELECT 1 FROM foo",
+                query=mock_query,
+            )
+
+            mock_query.set_extra_json_key.assert_called_once_with(
+                key=QUERY_CANCEL_KEY, value=query_id
+            )
+
+
+def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
+    """Test that `execute_with_cursor` still contains the current app context"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+
+    mock_query = mocker.MagicMock()
+
+    def _mock_execute(*args, **kwargs):
+        assert has_app_context()
+        assert g.some_value == "some_value"
+
+    with app.test_request_context("/some/place/"):
+        g.some_value = "some_value"
+
+        with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+            with patch.dict(
+                "superset.config.DISALLOWED_SQL_FUNCTIONS",
+                {},
+                clear=True,
+            ):
+                TrinoEngineSpec.execute_with_cursor(
+                    cursor=mock_cursor,
+                    sql="SELECT 1 FROM foo",
+                    query=mock_query,
+                )
 
 
 def test_get_columns(mocker: MockerFixture):
@@ -691,7 +731,15 @@ def test_adjust_engine_params_catalog_only() -> None:
     assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
 
 
-def test_get_default_catalog() -> None:
+@pytest.mark.parametrize(
+    "sqlalchemy_uri,result",
+    [
+        ("trino://user:pass@localhost:8080/system", "system"),
+        ("trino://user:pass@localhost:8080/system/default", "system"),
+        ("trino://trino@localhost:8081", None),
+    ],
+)
+def test_get_default_catalog(sqlalchemy_uri: str, result: str | None) -> None:
     """
     Test the ``get_default_catalog`` method.
     """
@@ -700,15 +748,9 @@ def test_get_default_catalog() -> None:
 
     database = Database(
         database_name="my_db",
-        sqlalchemy_uri="trino://user:pass@localhost:8080/system",
+        sqlalchemy_uri=sqlalchemy_uri,
     )
-    assert TrinoEngineSpec.get_default_catalog(database) == "system"
-
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="trino://user:pass@localhost:8080/system/default",
-    )
-    assert TrinoEngineSpec.get_default_catalog(database) == "system"
+    assert TrinoEngineSpec.get_default_catalog(database) == result
 
 
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.latest_partition")
@@ -750,5 +792,122 @@ def test_where_latest_partition(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""
+        == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""  # noqa: S608
     )
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for Trino OAuth2.
+    """
+    return {
+        "id": "trino",
+        "secret": "very-secret",
+        "scope": "",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://trino.auth.server.example/realms/master/protocol/openid-connect/auth",
+        "token_request_uri": "https://trino.auth.server.example/master/protocol/openid-connect/token",
+        "request_content_type": "data",
+    }
+
+
+def test_get_oauth2_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert TrinoEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://trino.auth.server.example/master/protocol/openid-connect/token",
+        data={
+            "code": "code",
+            "client_id": "trino",
+            "client_secret": "very-secret",
+            "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+            "grant_type": "authorization_code",
+        },
+        timeout=30.0,
+    )
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected_result",
+    [
+        ("PT1S", "date_trunc('second', CAST(col AS TIMESTAMP))"),
+        (
+            "PT5S",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 5)",  # noqa: E501
+        ),
+        (
+            "PT30S",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 30)",  # noqa: E501
+        ),
+        ("PT1M", "date_trunc('minute', CAST(col AS TIMESTAMP))"),
+        (
+            "PT5M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 5)",  # noqa: E501
+        ),
+        (
+            "PT10M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 10)",  # noqa: E501
+        ),
+        (
+            "PT15M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 15)",  # noqa: E501
+        ),
+        (
+            "PT0.5H",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 30)",  # noqa: E501
+        ),
+        ("PT1H", "date_trunc('hour', CAST(col AS TIMESTAMP))"),
+        (
+            "PT6H",
+            "date_trunc('hour', CAST(col AS TIMESTAMP)) - interval '1' hour * (hour(CAST(col AS TIMESTAMP)) % 6)",  # noqa: E501
+        ),
+        ("P1D", "date_trunc('day', CAST(col AS TIMESTAMP))"),
+        ("P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
+        ("P1M", "date_trunc('month', CAST(col AS TIMESTAMP))"),
+        ("P3M", "date_trunc('quarter', CAST(col AS TIMESTAMP))"),
+        ("P1Y", "date_trunc('year', CAST(col AS TIMESTAMP))"),
+        (
+            "1969-12-28T00:00:00Z/P1W",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) - interval '1' day",  # noqa: E501
+        ),
+        ("1969-12-29T00:00:00Z/P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
+        (
+            "P1W/1970-01-03T00:00:00Z",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) + interval '5' day",  # noqa: E501
+        ),
+        (
+            "P1W/1970-01-04T00:00:00Z",
+            "date_trunc('week', CAST(col AS TIMESTAMP)) + interval '6' day",
+        ),
+    ],
+)
+def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec  # noqa: N813
+
+    actual = str(
+        spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
+    )
+    assert actual == expected_result

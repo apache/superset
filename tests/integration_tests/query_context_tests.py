@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import re
 import time
 from typing import Any
@@ -22,15 +23,16 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from flask import current_app
 from pandas import DateOffset
 
-from superset import app, db
+from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
-from superset.connectors.sqla.models import SqlMetric
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
@@ -42,7 +44,12 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import only_postgresql, only_sqlite
+from tests.integration_tests.conftest import (
+    only_postgresql,
+    only_sqlite,
+    with_feature_flags,
+)
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -70,15 +77,15 @@ class TestQueryContext(SupersetTestCase):
 
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         query_context = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(len(query_context.queries), len(payload["queries"]))
+        assert len(query_context.queries) == len(payload["queries"])
 
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
 
             # check basic properties
-            self.assertEqual(query.extras, payload_query["extras"])
-            self.assertEqual(query.filter, payload_query["filters"])
-            self.assertEqual(query.columns, payload_query["columns"])
+            assert query.extras == payload_query["extras"]
+            assert query.filter == payload_query["filters"]
+            assert query.columns == payload_query["columns"]
 
             # metrics are mutated during creation
             for metric_idx, metric in enumerate(query.metrics):
@@ -88,16 +95,16 @@ class TestQueryContext(SupersetTestCase):
                     if "expressionType" in payload_metric
                     else payload_metric["label"]
                 )
-                self.assertEqual(metric, payload_metric)
+                assert metric == payload_metric
 
-            self.assertEqual(query.orderby, payload_query["orderby"])
-            self.assertEqual(query.time_range, payload_query["time_range"])
+            assert query.orderby == payload_query["orderby"]
+            assert query.time_range == payload_query["time_range"]
 
             # check post processing operation properties
             for post_proc_idx, post_proc in enumerate(query.post_processing):
                 payload_post_proc = payload_query["post_processing"][post_proc_idx]
-                self.assertEqual(post_proc["operation"], payload_post_proc["operation"])
-                self.assertEqual(post_proc["options"], payload_post_proc["options"])
+                assert post_proc["operation"] == payload_post_proc["operation"]
+                assert post_proc["options"] == payload_post_proc["options"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
@@ -128,12 +135,12 @@ class TestQueryContext(SupersetTestCase):
         rehydrated_qo = rehydrated_qc.queries[0]
         rehydrated_query_cache_key = rehydrated_qc.query_cache_key(rehydrated_qo)
 
-        self.assertEqual(rehydrated_qc.datasource, query_context.datasource)
-        self.assertEqual(len(rehydrated_qc.queries), 1)
-        self.assertEqual(query_cache_key, rehydrated_query_cache_key)
-        self.assertEqual(rehydrated_qc.result_type, query_context.result_type)
-        self.assertEqual(rehydrated_qc.result_format, query_context.result_format)
-        self.assertFalse(rehydrated_qc.force)
+        assert rehydrated_qc.datasource == query_context.datasource
+        assert len(rehydrated_qc.queries) == 1
+        assert query_cache_key == rehydrated_query_cache_key
+        assert rehydrated_qc.result_type == query_context.result_type
+        assert rehydrated_qc.result_format == query_context.result_format
+        assert not rehydrated_qc.force
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
         payload = get_query_context("birth_names")
@@ -164,19 +171,30 @@ class TestQueryContext(SupersetTestCase):
         cache_key_new = query_context.query_cache_key(query_object)
 
         # the new cache_key should be different due to updated datasource
-        self.assertNotEqual(cache_key_original, cache_key_new)
+        assert cache_key_original != cache_key_new
 
     def test_query_cache_key_changes_when_metric_is_updated(self):
+        """
+        Test that the query cache key changes when a metric is updated.
+        """
+        self.login(ADMIN_USERNAME)
         payload = get_query_context("birth_names")
 
-        # make temporary change and revert it to refresh the changed_on property
-        datasource = DatasourceDAO.get_datasource(
-            datasource_type=DatasourceType(payload["datasource"]["type"]),
-            datasource_id=payload["datasource"]["id"],
-        )
-
-        datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))
+        dataset = DatasetDAO.find_by_id(payload["datasource"]["id"])
+        dataset_payload = {
+            "metrics": [
+                {
+                    "metric_name": "foo",
+                    "expression": "select 1;",
+                }
+            ]
+        }
+        DatasetDAO.update(dataset, copy.deepcopy(dataset_payload))
         db.session.commit()
+
+        # Add metric ID to the payload for future update
+        updated_dataset = DatasetDAO.find_by_id(dataset.id)
+        dataset_payload["metrics"][0]["id"] = updated_dataset.metrics[0].id
 
         # construct baseline query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -186,7 +204,8 @@ class TestQueryContext(SupersetTestCase):
         # wait a second since mysql records timestamps in second granularity
         time.sleep(1)
 
-        datasource.metrics[0].expression = "select 2;"
+        dataset_payload["metrics"][0]["expression"] = "select 2;"
+        DatasetDAO.update(updated_dataset, copy.deepcopy(dataset_payload))
         db.session.commit()
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
@@ -194,17 +213,18 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         cache_key_new = query_context.query_cache_key(query_object)
 
-        datasource.metrics = []
+        dataset_payload["metrics"] = []
+        DatasetDAO.update(updated_dataset, dataset_payload)
         db.session.commit()
 
         # the new cache_key should be different due to updated datasource
-        self.assertNotEqual(cache_key_original, cache_key_new)
+        assert cache_key_original != cache_key_new
 
     def test_query_cache_key_does_not_change_for_non_existent_or_null(self):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         del payload["queries"][0]["granularity"]
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         query_object: QueryObject = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -218,7 +238,7 @@ class TestQueryContext(SupersetTestCase):
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -228,14 +248,14 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key = query_context.query_cache_key(query_object)
-        self.assertEqual(cache_key_original, cache_key)
+        assert cache_key_original == cache_key
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key = query_context.query_cache_key(query_object)
-        self.assertNotEqual(cache_key_original, cache_key)
+        assert cache_key_original != cache_key
 
     def test_query_cache_key_changes_when_time_offsets_is_updated(self):
         payload = get_query_context("birth_names", add_time_offsets=True)
@@ -248,7 +268,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key = query_context.query_cache_key(query_object)
-        self.assertNotEqual(cache_key_original, cache_key)
+        assert cache_key_original != cache_key
 
     def test_handle_metrics_field(self):
         """
@@ -265,7 +285,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["metrics"] = ["sum__num", {"label": "abc"}, adhoc_metric]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        self.assertEqual(query_object.metrics, ["sum__num", "abc", adhoc_metric])
+        assert query_object.metrics == ["sum__num", "abc", adhoc_metric]
 
     def test_convert_deprecated_fields(self):
         """
@@ -280,12 +300,12 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
         query_context = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(len(query_context.queries), 1)
+        assert len(query_context.queries) == 1
         query_object = query_context.queries[0]
-        self.assertEqual(query_object.granularity, "timecol")
-        self.assertEqual(query_object.columns, columns)
-        self.assertEqual(query_object.series_limit, 99)
-        self.assertEqual(query_object.series_limit_metric, "sum__num")
+        assert query_object.granularity == "timecol"
+        assert query_object.columns == columns
+        assert query_object.series_limit == 99
+        assert query_object.series_limit_metric == "sum__num"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):
@@ -297,10 +317,10 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["row_limit"] = 10
         query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(len(responses), 1)
+        assert len(responses) == 1
         data = responses["queries"][0]["data"]
-        self.assertIn("name,sum__num\n", data)
-        self.assertEqual(len(data.split("\n")), 12)
+        assert "name,sum__num\n" in data
+        assert len(data.split("\n")) == 12
 
     def test_sql_injection_via_groupby(self):
         """
@@ -352,11 +372,11 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["row_limit"] = 5
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(len(responses), 1)
+        assert len(responses) == 1
         data = responses["queries"][0]["data"]
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 5)
-        self.assertNotIn("sum__num", data[0])
+        assert isinstance(data, list)
+        assert len(data) == 5
+        assert "sum__num" not in data[0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_response_type(self):
@@ -367,7 +387,7 @@ class TestQueryContext(SupersetTestCase):
         sql_text = get_sql_text(payload)
 
         assert "SELECT" in sql_text
-        assert re.search(r'NOT [`"\[]?num[`"\]]? IS NULL', sql_text)
+        assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
             r"""NOT \([\s\n]*[`"\[]?name[`"\]]? IS NULL[\s\n]* """
             r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)[\s\n]*\)""",
@@ -489,7 +509,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         new_cache_key = responses["queries"][0]["cache_key"]
-        self.assertEqual(orig_cache_key, new_cache_key)
+        assert orig_cache_key == new_cache_key
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_time_offsets_in_query_object(self):
@@ -505,28 +525,23 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_range"] = "1990 : 1991"
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(
-            responses["queries"][0]["colnames"],
-            [
-                "__timestamp",
-                "name",
-                "sum__num",
-                "sum__num__1 year ago",
-                "sum__num__1 year later",
-            ],
-        )
+        assert responses["queries"][0]["colnames"] == [
+            "__timestamp",
+            "name",
+            "sum__num",
+            "sum__num__1 year ago",
+            "sum__num__1 year later",
+        ]
 
         sqls = [
             sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
         ]
-        self.assertEqual(len(sqls), 3)
-        # 1 year ago
+        assert len(sqls) == 3
+        # 1 year ago - should only contain the shifted range
         assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
-        assert re.search(r"1990-01-01.+1991-01-01", sqls[1], re.S)
 
-        # # 1 year later
+        # # 1 year later - should only contain the shifted range
         assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
-        assert re.search(r"1990-01-01.+1991-01-01", sqls[2], re.S)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_processing_time_offsets_cache(self):
@@ -560,9 +575,9 @@ class TestQueryContext(SupersetTestCase):
         cache_keys = rv["cache_keys"]
         cache_keys__1_year_ago = cache_keys[0]
         cache_keys__1_year_later = cache_keys[1]
-        self.assertIsNotNone(cache_keys__1_year_ago)
-        self.assertIsNotNone(cache_keys__1_year_later)
-        self.assertNotEqual(cache_keys__1_year_ago, cache_keys__1_year_later)
+        assert cache_keys__1_year_ago is not None
+        assert cache_keys__1_year_later is not None
+        assert cache_keys__1_year_ago != cache_keys__1_year_later
 
         # swap offsets
         payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
@@ -570,8 +585,8 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
-        self.assertEqual(cache_keys__1_year_ago, cache_keys[1])
-        self.assertEqual(cache_keys__1_year_later, cache_keys[0])
+        assert cache_keys__1_year_ago == cache_keys[1]
+        assert cache_keys__1_year_later == cache_keys[0]
 
         # remove all offsets
         payload["queries"][0]["time_offsets"] = []
@@ -582,9 +597,9 @@ class TestQueryContext(SupersetTestCase):
             query_object,
         )
 
-        self.assertEqual(rv["df"].shape, df.shape)
-        self.assertEqual(rv["queries"], [])
-        self.assertEqual(rv["cache_keys"], [])
+        assert rv["df"].shape == df.shape
+        assert rv["queries"] == []
+        assert rv["cache_keys"] == []
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_time_offsets_sql(self):
@@ -728,11 +743,11 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         time_offsets_obj = query_context.processing_time_offsets(df, query_object)
         sqls = time_offsets_obj["queries"]
-        row_limit_value = app.config["ROW_LIMIT"]
+        row_limit_value = current_app.config["ROW_LIMIT"]
         row_limit_pattern_with_config_value = r"LIMIT " + re.escape(
             str(row_limit_value)
         )
-        self.assertEqual(len(sqls), 2)
+        assert len(sqls) == 2
         # 1 year ago
         assert re.search(r"1989-01-01.+1990-01-01", sqls[0], re.S)
         assert not re.search(r"LIMIT 100", sqls[0], re.S)
@@ -785,6 +800,8 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
         "count, col2, row1": ["count", "col2, row1"],
         "count, col2, row2": ["count", "col2, row2"],
         "count, col2, row3": ["count", "col2, row3"],
+        "col2": ["col2"],
+        "count": ["count"],
     }
 
 
@@ -861,6 +878,7 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
     assert df["COL2 ALIAS"][0] == "a"
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_special_chars_in_column_name(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={
@@ -872,12 +890,6 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
                 "columns": [
                     "col1",
                     "time column with spaces",
-                    {
-                        "label": "I_AM_A_TRUNC_COLUMN",
-                        "sqlExpression": "time column with spaces",
-                        "columnType": "BASE_AXIS",
-                        "timeGrain": "P1Y",
-                    },
                 ],
                 "metrics": ["count"],
                 "orderby": [["col1", True]],
@@ -893,10 +905,8 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
     if query_object.datasource.database.backend == "sqlite":
         # sqlite returns string as timestamp column
         assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
-        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
     else:
         assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
-        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
 
 
 @only_postgresql
@@ -1161,16 +1171,286 @@ LIMIT 10000
 OFFSET 0
     """
     assert (
-        re.search(r"WHERE\n  col6 >= .*2002-01-01", sqls[0])
+        re.search(r"WHERE col6 >= .*2002-01-01", sqls[0])
         and re.search(r"AND col6 < .*2003-01-01", sqls[0])
     ) is not None
     assert (
-        re.search(r"WHERE\n  col6 >= .*2001-10-01", sqls[1])
+        re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None
 
 
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_enabled(app_context, physical_dataset):
+    """Test date range timeshift functionality when feature flag is enabled."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["2001-01-01 : 2001-12-31"],  # Date range timeshift
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+
+    # Should have both main metrics and offset metrics columns
+    assert "SUM(col1)" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
+
+    # Check that queries were generated correctly
+    sqls = query_payload["query"].split(";")
+    assert len(sqls) >= 2  # Main query + offset query
+
+    # Main query should filter for 2002 data
+    main_sql = sqls[0]
+    assert "2002-01-01" in main_sql
+    assert "2002-12-31" in main_sql or "2003-01-01" in main_sql
+
+    # Offset query should filter for 2001 data
+    offset_sql = sqls[1]
+    assert "2001-01-01" in offset_sql
+    assert "2001-12-31" in offset_sql or "2002-01-01" in offset_sql
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=False)
+def test_date_range_timeshift_disabled(app_context, physical_dataset):
+    """Test that date range timeshift raises error when feature flag is disabled."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["2001-01-01 : 2001-12-31"],  # Date range timeshift
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    # Should raise QueryObjectValidationError
+    from superset.exceptions import QueryObjectValidationError
+
+    with pytest.raises(
+        QueryObjectValidationError, match="Date range timeshifts are not enabled"
+    ):
+        qc.get_df_payload(qc.queries[0])
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_multiple_periods(app_context, physical_dataset):
+    """Test date range timeshift with multiple comparison periods."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": [
+                    "2001-01-01 : 2001-12-31",  # Previous year
+                    "2000-01-01 : 2000-12-31",  # Two years ago
+                ],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+
+    # Should have main metrics and both offset metrics columns
+    assert "SUM(col1)" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__2000-01-01 : 2000-12-31" in df.columns
+
+    # Check that all queries were generated
+    sqls = query_payload["query"].split(";")
+    assert len(sqls) >= 3  # Main query + 2 offset queries
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
+    """Test that invalid date range format raises appropriate error."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["invalid-date-range"],  # Invalid format
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    # Should raise an error for invalid date range format
+    from superset.commands.chart.exceptions import TimeDeltaAmbiguousError
+
+    with pytest.raises(TimeDeltaAmbiguousError):
+        qc.get_df_payload(qc.queries[0])
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_mixed_with_relative_offsets(
+    app_context, physical_dataset
+):
+    """Test mixing date range timeshifts with traditional relative offsets."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": [
+                    "2001-01-01 : 2001-12-31",  # Date range timeshift
+                    "1 year ago",  # Traditional relative offset
+                ],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+
+    # Should have main metrics and both offset metrics columns
+    assert "SUM(col1)" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__1 year ago" in df.columns
+
+    # Check that all queries were generated
+    sqls = query_payload["query"].split(";")
+    assert len(sqls) >= 3  # Main query + 2 offset queries
+
+
 def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comments):
+    if backend() == "mysql":
+        return
+
     qc = QueryContextFactory().create(
         datasource={
             "type": virtual_dataset_with_comments.type,

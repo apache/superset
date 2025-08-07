@@ -66,7 +66,7 @@ def test_custom_default_md5_sha():
         "datetime": datetime.datetime.now(),
     }
 
-    serialized_obj = '{"company": "Gobias Industries", "datetime": "<datetime>", "product": "Coffee"}'
+    serialized_obj = '{"company": "Gobias Industries", "datetime": "<datetime>", "product": "Coffee"}'  # noqa: E501
 
     assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(
         obj, default=custom_datetime_serializer

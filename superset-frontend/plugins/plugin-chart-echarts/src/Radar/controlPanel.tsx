@@ -56,6 +56,22 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
   },
 };
 
+const radarMetricMinValue: { name: string; config: ControlFormItemSpec } = {
+  name: 'radarMetricMinValue',
+  config: {
+    controlType: 'InputNumber',
+    label: t('Min'),
+    description: t(
+      'The minimum value of metrics. It is an optional configuration. If not set, it will be the minimum value of the data',
+    ),
+    defaultValue: '0',
+    width: 120,
+    placeholder: t('auto'),
+    debounceDelay: 400,
+    validators: [validateNumber],
+  },
+};
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -164,7 +180,9 @@ const config: ControlPanelConfig = {
               description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
-                [GenericDataType.Numeric]: [[radarMetricMaxValue]],
+                [GenericDataType.Numeric]: [
+                  [radarMetricMinValue, radarMetricMaxValue],
+                ],
               },
               shouldMapStateToProps() {
                 return true;
@@ -179,11 +197,17 @@ const config: ControlPanelConfig = {
                   }
                   return value.label;
                 });
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                const colnames: string[] = _colnames || [];
+                const coltypes: GenericDataType[] = _coltypes || [];
+
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
                   appliedColumnNames: metricColumn,
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },

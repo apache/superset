@@ -17,8 +17,8 @@
  * under the License.
  */
 import { QueryFormData } from '@superset-ui/core';
-import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
-import { SeriesTooltipOption } from 'echarts/types/src/util/types';
+import type { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
+import type { SeriesTooltipOption } from 'echarts/types/src/util/types';
 import {
   BaseChartProps,
   BaseTransformedProps,

@@ -23,9 +23,10 @@ import {
   DataRecordValue,
   tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, GraphSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { GraphSeriesOption } from 'echarts/charts';
+import type { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { extent as d3Extent } from 'd3-array';
-import { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import {
   EchartsGraphFormData,
   EChartGraphNode,
@@ -197,6 +198,7 @@ export default function transformProps(
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const firstColor = colorFn.range()[0];
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];
@@ -206,7 +208,12 @@ export default function transformProps(
    * Get the node id of an existing node,
    * or create a new node if it doesn't exist.
    */
-  function getOrCreateNode(name: string, col: string, category?: string) {
+  function getOrCreateNode(
+    name: string,
+    col: string,
+    category?: string,
+    color?: string,
+  ) {
     if (!(name in nodes)) {
       nodes[name] = echartNodes.length;
       echartNodes.push({
@@ -220,6 +227,7 @@ export default function transformProps(
           ...getDefaultTooltip(refs),
           ...DEFAULT_GRAPH_SERIES_OPTION.tooltip,
         },
+        itemStyle: { color },
       });
     }
     const node = echartNodes[nodes[name]];
@@ -247,8 +255,25 @@ export default function transformProps(
     const targetCategoryName = targetCategory
       ? getCategoryName(targetCategory, link[targetCategory])
       : undefined;
-    const sourceNode = getOrCreateNode(sourceName, source, sourceCategoryName);
-    const targetNode = getOrCreateNode(targetName, target, targetCategoryName);
+    const sourceNodeColor = sourceCategoryName
+      ? colorFn(sourceCategoryName)
+      : firstColor;
+    const targetNodeColor = targetCategoryName
+      ? colorFn(targetCategoryName)
+      : firstColor;
+
+    const sourceNode = getOrCreateNode(
+      sourceName,
+      source,
+      sourceCategoryName,
+      sourceNodeColor,
+    );
+    const targetNode = getOrCreateNode(
+      targetName,
+      target,
+      targetCategoryName,
+      targetNodeColor,
+    );
 
     sourceNode.value += value;
     targetNode.value += value;
@@ -257,7 +282,9 @@ export default function transformProps(
       source: sourceNode.id,
       target: targetNode.id,
       value,
-      lineStyle: {},
+      lineStyle: {
+        color: sourceNodeColor,
+      },
       emphasis: {},
       select: {},
     });
@@ -270,14 +297,15 @@ export default function transformProps(
   });
 
   const categoryList = [...categories];
-
   const series: GraphSeriesOption[] = [
     {
       zoom: DEFAULT_GRAPH_SERIES_OPTION.zoom,
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c, sliceId, colorScheme) },
+        itemStyle: {
+          color: colorFn(c, sliceId),
+        },
       })),
       layout,
       force: {
@@ -297,7 +325,10 @@ export default function transformProps(
       selectedMode,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: DEFAULT_GRAPH_SERIES_OPTION.animation,
-      label: DEFAULT_GRAPH_SERIES_OPTION.label,
+      label: {
+        ...DEFAULT_GRAPH_SERIES_OPTION.label,
+        color: theme.colorText,
+      },
       lineStyle: DEFAULT_GRAPH_SERIES_OPTION.lineStyle,
       emphasis: DEFAULT_GRAPH_SERIES_OPTION.emphasis,
     },

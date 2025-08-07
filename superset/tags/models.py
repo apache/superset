@@ -65,7 +65,7 @@ class TagType(enum.Enum):
     Objects (queries, charts, dashboards, and datasets) will have with implicit tags based
     on metadata: types, owners and who favorited them. This way, user "alice"
     can find all their objects by querying for the tag `owner:alice`.
-    """
+    """  # noqa: E501
 
     # pylint: disable=invalid-name
     # explicit tags, added manually by the owner

@@ -17,9 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import {
   render,
+  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
@@ -86,7 +86,7 @@ describe('SamplesPane', () => {
       useRedux: true,
     });
 
-    expect(await findByText('Error: Bad Request')).toBeVisible();
+    expect(await findByText('Error: Bad request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {

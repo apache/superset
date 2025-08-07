@@ -105,7 +105,7 @@ export type QueryFormExtraFilter = {
     }
 );
 
-/** These properties will be appended to those pre-existing in the form data/query object */
+/** These properties will be appended to those preexisting in the form data/query object */
 export type ExtraFormDataAppend = {
   adhoc_filters?: AdhocFilter[];
   filters?: QueryObjectFilterClause[];
@@ -122,7 +122,7 @@ export type ExtraFormDataAppend = {
  * filter clauses can't be overridden */
 export type ExtraFormDataOverrideExtras = Pick<
   QueryObjectExtras,
-  'relative_start' | 'relative_end' | 'time_grain_sqla'
+  'relative_start' | 'relative_end' | 'time_grain_sqla' | 'time_compare'
 >;
 
 /** These parameters override those already present in the form data/query object */
@@ -131,7 +131,7 @@ export type ExtraFormDataOverrideRegular = Partial<
 > &
   Partial<Pick<SqlaFormData, 'granularity'>> &
   Partial<Pick<BaseFormData, 'time_range'>> &
-  Partial<Pick<QueryObject, 'time_column' | 'time_grain'>>;
+  Partial<Pick<QueryObject, 'time_column' | 'time_grain' | 'time_compare'>>;
 
 /** These parameters override those already present in the form data/query object */
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &

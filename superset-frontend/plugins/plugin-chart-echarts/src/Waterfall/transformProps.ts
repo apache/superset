@@ -29,7 +29,8 @@ import {
   rgbToHex,
   tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsOption, BarSeriesOption } from 'echarts';
+import type { ComposeOption } from 'echarts/core';
+import type { BarSeriesOption } from 'echarts/charts';
 import {
   EchartsWaterfallChartProps,
   ISeriesData,
@@ -42,6 +43,8 @@ import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { getColtypesMapping } from '../utils/series';
 import { Refs } from '../types';
 import { NULL_STRING } from '../constants';
+
+type EChartsOption = ComposeOption<BarSeriesOption>;
 
 function formatTooltip({
   params,
@@ -352,7 +355,13 @@ export default function transformProps(
       disabled: true,
     },
   };
-
+  const labelProps = {
+    show: showValue,
+    formatter: seriesformatter,
+    color: theme.colorText,
+    borderColor: theme.colorBgBase,
+    borderWidth: 1,
+  };
   const barSeries: BarSeriesOption[] = [
     {
       ...seriesProps,
@@ -363,9 +372,8 @@ export default function transformProps(
       ...seriesProps,
       name: LEGEND.INCREASE,
       label: {
-        show: showValue,
+        ...labelProps,
         position: 'top',
-        formatter: seriesformatter,
       },
       itemStyle: {
         color: rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b),
@@ -376,9 +384,8 @@ export default function transformProps(
       ...seriesProps,
       name: LEGEND.DECREASE,
       label: {
-        show: showValue,
+        ...labelProps,
         position: 'bottom',
-        formatter: seriesformatter,
       },
       itemStyle: {
         color: rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b),
@@ -389,9 +396,8 @@ export default function transformProps(
       ...seriesProps,
       name: LEGEND.TOTAL,
       label: {
-        show: showValue,
+        ...labelProps,
         position: 'top',
-        formatter: seriesformatter,
       },
       itemStyle: {
         color: rgbToHex(totalColor.r, totalColor.g, totalColor.b),
@@ -403,10 +409,10 @@ export default function transformProps(
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
-      top: theme.gridUnit * 7,
-      bottom: theme.gridUnit * 7,
-      left: theme.gridUnit * 5,
-      right: theme.gridUnit * 7,
+      top: theme.sizeUnit * 7,
+      bottom: theme.sizeUnit * 7,
+      left: theme.sizeUnit * 5,
+      right: theme.sizeUnit * 7,
     },
     legend: {
       show: showLegend,
@@ -418,7 +424,7 @@ export default function transformProps(
       type: 'category',
       name: xAxisLabel,
       nameTextStyle: {
-        padding: [theme.gridUnit * 4, 0, 0, 0],
+        padding: [theme.sizeUnit * 4, 0, 0, 0],
       },
       nameLocation: 'middle',
       axisLabel,
@@ -427,7 +433,7 @@ export default function transformProps(
       ...defaultYAxis,
       type: 'value',
       nameTextStyle: {
-        padding: [0, 0, theme.gridUnit * 5, 0],
+        padding: [0, 0, theme.sizeUnit * 5, 0],
       },
       nameLocation: 'middle',
       name: yAxisLabel,

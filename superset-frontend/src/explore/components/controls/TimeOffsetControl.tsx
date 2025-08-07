@@ -18,31 +18,38 @@
  */
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { isEmpty, isEqual } from 'lodash';
-import moment, { Moment } from 'moment';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   parseDttmToDate,
   BinaryAdhocFilter,
   SimpleAdhocFilter,
-  css,
   customTimeRangeDecode,
   computeCustomDateTime,
+  fetchTimeRange,
 } from '@superset-ui/core';
-import { DatePicker } from 'antd';
-import { RangePickerProps } from 'antd/lib/date-picker';
+import {
+  DatePicker,
+  type RangePickerProps,
+} from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
+import {
+  DEFAULT_DATE_PATTERN,
+  INVALID_DATE,
+} from '@superset-ui/chart-controls';
+import { Dayjs } from 'dayjs';
 
 export interface TimeOffsetControlsProps {
   label?: ReactNode;
   startDate?: string;
   description?: string;
   hovered?: boolean;
-  value?: Moment;
+  value?: Dayjs;
   onChange: (datetime: string) => void;
 }
-const MOMENT_FORMAT = 'YYYY-MM-DD';
+const DAYJS_FORMAT = 'YYYY-MM-DD';
 
 const isTimeRangeEqual = (
   left: BinaryAdhocFilter[],
@@ -56,16 +63,17 @@ export default function TimeOffsetControls({
   ...props
 }: TimeOffsetControlsProps) {
   const [startDate, setStartDate] = useState<string>('');
-  const [formatedDate, setFormatedDate] = useState<moment.Moment | undefined>(
+  const [formatedDate, setFormatedDate] = useState<Dayjs | undefined>(
     undefined,
   );
   const [customStartDateInFilter, setCustomStartDateInFilter] = useState<
-    moment.Moment | undefined
+    Dayjs | undefined
   >(undefined);
   const [formatedFilterDate, setFormatedFilterDate] = useState<
-    moment.Moment | undefined
+    Dayjs | undefined
   >(undefined);
   const [savedStartDate, setSavedStartDate] = useState<string | null>(null);
+  const [isDateSelected, setIsDateSelected] = useState<boolean>(true);
 
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
@@ -84,7 +92,12 @@ export default function TimeOffsetControls({
   useEffect(() => {
     if (savedStartDate !== currentStartDate) {
       setSavedStartDate(currentStartDate);
-      onChange(moment(currentStartDate).format(MOMENT_FORMAT));
+      if (currentStartDate !== INVALID_DATE) {
+        onChange(extendedDayjs(currentStartDate).format(DAYJS_FORMAT));
+        setIsDateSelected(true);
+      } else {
+        setIsDateSelected(false);
+      }
     }
   }, [currentStartDate]);
 
@@ -120,7 +133,7 @@ export default function TimeOffsetControls({
           );
         }
         customStartDate?.setHours(0, 0, 0, 0);
-        setCustomStartDateInFilter(moment(customStartDate));
+        setCustomStartDateInFilter(extendedDayjs(customStartDate));
       } else {
         setCustomStartDateInFilter(undefined);
       }
@@ -130,12 +143,18 @@ export default function TimeOffsetControls({
 
   useEffect(() => {
     if (!isEmpty(currentTimeRangeFilters)) {
-      customTimeRange(currentTimeRangeFilters[0]?.comparator ?? '');
-      const date = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
-      setFormatedFilterDate(moment(parseDttmToDate(date)));
+      fetchTimeRange(
+        currentTimeRangeFilters[0]?.comparator,
+        currentTimeRangeFilters[0]?.subject,
+      ).then(res => {
+        const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+        const [startDate, endDate] = dates ?? [];
+        customTimeRange(`${startDate} : ${endDate}`);
+        setFormatedFilterDate(extendedDayjs(parseDttmToDate(startDate)));
+      });
     } else {
       setCustomStartDateInFilter(undefined);
-      setFormatedFilterDate(moment(parseDttmToDate('')));
+      setFormatedFilterDate(extendedDayjs(parseDttmToDate('')));
     }
   }, [currentTimeRangeFilters, customTimeRange]);
 
@@ -151,14 +170,16 @@ export default function TimeOffsetControls({
       }
       if (customStartDateInFilter) {
         setStartDate(customStartDateInFilter.toString());
-        setFormatedDate(moment(customStartDateInFilter));
+        setFormatedDate(extendedDayjs(customStartDateInFilter));
       } else if (date) {
         setStartDate(date);
-        setFormatedDate(moment(parseDttmToDate(date)));
+        setFormatedDate(extendedDayjs(parseDttmToDate(date)));
       }
     } else if (savedStartDate) {
-      setStartDate(savedStartDate);
-      setFormatedDate(moment(parseDttmToDate(savedStartDate)));
+      if (savedStartDate !== INVALID_DATE) {
+        setStartDate(savedStartDate);
+        setFormatedDate(extendedDayjs(parseDttmToDate(savedStartDate)));
+      }
     }
   }, [previousCustomFilter, savedStartDate, customStartDateInFilter]);
 
@@ -166,12 +187,13 @@ export default function TimeOffsetControls({
     // When switching offsets from inherit and the previous custom is no longer valid
     if (customStartDateInFilter) {
       if (formatedDate && formatedDate > customStartDateInFilter) {
-        const resetDate = moment
+        const resetDate = extendedDayjs
           .utc(customStartDateInFilter)
           .subtract(1, 'day');
         setStartDate(resetDate.toString());
         setFormatedDate(resetDate);
-        onChange(moment.utc(resetDate).format(MOMENT_FORMAT));
+        onChange(extendedDayjs.utc(resetDate).format(DAYJS_FORMAT));
+        setIsDateSelected(true);
       }
     }
     if (
@@ -179,10 +201,13 @@ export default function TimeOffsetControls({
       formatedFilterDate &&
       formatedDate > formatedFilterDate
     ) {
-      const resetDate = moment.utc(formatedFilterDate).subtract(1, 'day');
+      const resetDate = extendedDayjs
+        .utc(formatedFilterDate)
+        .subtract(1, 'day');
       setStartDate(resetDate.toString());
       setFormatedDate(resetDate);
-      onChange(moment.utc(resetDate).format(MOMENT_FORMAT));
+      onChange(extendedDayjs.utc(resetDate).format(DAYJS_FORMAT));
+      setIsDateSelected(true);
     }
   }, [formatedFilterDate, formatedDate, customStartDateInFilter]);
 
@@ -192,25 +217,22 @@ export default function TimeOffsetControls({
         ? current && current > formatedFilterDate
         : false;
     }
-    return current && current > moment(customStartDateInFilter);
+    return current && current > extendedDayjs(customStartDateInFilter);
   };
 
   return startDate || formatedDate ? (
     <div>
       <ControlHeader {...props} />
       <DatePicker
-        css={css`
-          width: 100%;
-        `}
-        onChange={(datetime: Moment) =>
-          onChange(datetime ? datetime.format(MOMENT_FORMAT) : '')
+        onChange={(datetime: Dayjs) =>
+          onChange(datetime ? datetime.format(DAYJS_FORMAT) : '')
         }
         defaultPickerValue={
-          startDate ? moment(formatedDate).subtract(1, 'day') : undefined
+          startDate ? extendedDayjs(formatedDate).subtract(1, 'day') : undefined
         }
         disabledDate={disabledDate}
-        defaultValue={moment(formatedDate)}
-        value={moment(formatedDate)}
+        defaultValue={extendedDayjs(formatedDate)}
+        value={isDateSelected ? extendedDayjs(formatedDate) : null}
       />
     </div>
   ) : null;

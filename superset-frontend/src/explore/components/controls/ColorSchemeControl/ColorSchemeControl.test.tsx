@@ -23,14 +23,18 @@ import {
   ColorSchemeGroup,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = () => ({
   hasCustomLabelsColor: false,
+  sharedLabelsColors: [],
   label: 'Color scheme',
-  labelMargin: 0,
   name: 'color',
   value: 'supersetDefault',
   clearable: true,
@@ -55,14 +59,14 @@ test('should render', async () => {
 
 test('should display a label', async () => {
   setup();
-  expect(await screen.findByText('Color scheme')).toBeTruthy();
+  expect(await screen.findByText('Color scheme')).toBeInTheDocument();
 });
 
 test('should not display an alert icon if hasCustomLabelsColor=false', async () => {
   setup();
   await waitFor(() => {
     expect(
-      screen.queryByRole('img', { name: 'alert-solid' }),
+      screen.queryByRole('img', { name: 'warning' }),
     ).not.toBeInTheDocument();
   });
 });
@@ -74,9 +78,7 @@ test('should display an alert icon if hasCustomLabelsColor=true', async () => {
   };
   setup(hasCustomLabelsColorProps);
   await waitFor(() => {
-    expect(
-      screen.getByRole('img', { name: 'alert-solid' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'warning' })).toBeInTheDocument();
   });
 });
 
@@ -128,8 +130,8 @@ test('displays color scheme options', async () => {
   });
 });
 
-test('Renders control with dashboard id', () => {
-  setup({ dashboardId: 1 });
+test('Renders control with dashboard id and dashboard color scheme', () => {
+  setup({ dashboardId: 1, hasDashboardColorScheme: true });
   expect(screen.getByText('Dashboard scheme')).toBeInTheDocument();
   expect(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),

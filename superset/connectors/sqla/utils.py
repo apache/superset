@@ -23,7 +23,7 @@ from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy.engine.url import URL as SqlaURL
+from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm.exc import ObjectDeletedError
@@ -34,11 +34,12 @@ from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -105,8 +106,13 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     sql = dataset.get_template_processor().process_template(
         dataset.sql, **dataset.template_params_dict
     )
-    parsed_query = ParsedQuery(sql, engine=db_engine_spec.engine)
-    if not db_engine_spec.is_readonly_query(parsed_query):
+    try:
+        parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+    except SupersetParseError as ex:
+        raise SupersetGenericDBErrorException(
+            message=_("Invalid SQL: %(error)s", error=ex.error.message),
+        ) from ex
+    if parsed_script.has_mutation():
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -114,8 +120,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
                 level=ErrorLevel.ERROR,
             )
         )
-    statements = parsed_query.get_statements()
-    if len(statements) > 1:
+    if len(parsed_script.statements) > 1:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -127,7 +132,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         dataset.database,
         dataset.catalog,
         dataset.schema,
-        statements[0],
+        sql,
     )
 
 
@@ -144,8 +149,9 @@ def get_columns_description(
         with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             query = database.apply_limit_to_sql(query, limit=1)
-            cursor.execute(query)
-            db_engine_spec.execute(cursor, query, database)
+            mutated_query = database.mutate_sql_based_on_config(query)
+            cursor.execute(mutated_query)
+            db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor, limit=1)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
             return result_set.columns

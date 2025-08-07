@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
     with app.app_context():
         pvms = []
-        for old_pvm, new_pvms in pvm_map.items():
+        for old_pvm, new_pvms in pvm_map.items():  # noqa: B007
             pvms.append(
                 security_manager.add_permission_view_menu(
                     old_pvm.permission, old_pvm.view

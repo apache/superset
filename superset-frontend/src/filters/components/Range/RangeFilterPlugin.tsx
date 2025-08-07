@@ -20,120 +20,118 @@ import {
   ensureIsArray,
   getColumnLabel,
   getNumberFormatter,
+  isEqualArray,
   NumberFormats,
   styled,
+  useTheme,
   t,
 } from '@superset-ui/core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { rgba } from 'emotion-rgba';
-import { AntdSlider } from 'src/components';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { PluginFilterRangeProps } from './types';
-import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
+// import Metadata from '@superset-ui/core/components/Metadata';
+import { isNumber } from 'lodash';
+import { InputNumber } from '@superset-ui/core/components/Input';
+import Slider from '@superset-ui/core/components/Slider';
+import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';
+import { PluginFilterRangeProps, RangeDisplayMode } from './types';
+import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
-const LIGHT_BLUE = '#99e7f0';
-const DARK_BLUE = '#6dd3e3';
-const LIGHT_GRAY = '#f5f5f5';
-const DARK_GRAY = '#e1e1e1';
+type InputValue = number | null;
+type RangeValue = [InputValue, InputValue];
 
-const StyledMinSlider = styled(AntdSlider)<{
-  validateStatus?: 'error' | 'warning' | 'info';
-}>`
-  ${({ theme, validateStatus }) => `
-  .ant-slider-rail {
-    background-color: ${
-      validateStatus ? theme.colors[validateStatus]?.light1 : LIGHT_BLUE
-    };
+const StyledDivider = styled.span`
+  margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
+  color: ${({ theme }) => theme.colorSplit};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
+  align-content: center;
+`;
+
+const Wrapper = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+
+  .ant-input-number {
+    min-width: 80px;
+    position: relative;
   }
+`;
 
-  .ant-slider-track {
-    background-color: ${LIGHT_GRAY};
-  }
-
-  &:hover {
-    .ant-slider-rail {
-      background-color: ${
-        validateStatus ? theme.colors[validateStatus]?.base : DARK_BLUE
-      };
-    }
-
-    .ant-slider-track {
-      background-color: ${DARK_GRAY};
-    }
-  }
+const SliderWrapper = styled.div`
+  ${({ theme }) => `
+    margin: ${theme.sizeUnit * 4}px 0;
+    padding: 0 ${theme.sizeUnit}px;
   `}
 `;
 
-const Wrapper = styled.div<{
-  validateStatus?: 'error' | 'warning' | 'info';
-  orientation?: FilterBarOrientation;
-  isOverflowing?: boolean;
-}>`
-  ${({ theme, validateStatus, orientation, isOverflowing }) => `
-    border: 1px solid transparent;
-    &:focus {
-      border: 1px solid
-        ${theme.colors[validateStatus || 'primary']?.base};
-      outline: 0;
-      box-shadow: 0 0 0 3px
-        ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
+const TooltipContainer = styled.div`
+  ${({ theme }) => `
+    position: absolute;
+    top: -${theme.sizeUnit * 10}px;
+    right: 0px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+
+    .tooltip-icon {
+      margin-left: ${theme.sizeUnit * 2}px;
     }
-    & .ant-slider {
-      margin-top: ${
-        orientation === FilterBarOrientation.Horizontal ? 0 : theme.gridUnit
-      }px;
-      margin-bottom: ${
-        orientation === FilterBarOrientation.Horizontal ? 0 : theme.gridUnit * 5
-      }px;
+  `}
+`;
 
-      ${
-        orientation === FilterBarOrientation.Horizontal &&
-        !isOverflowing &&
-        `line-height: 1.2;`
-      }
+const HorizontalLayout = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 4}px;
+    width: 100%;
 
-      & .ant-slider-track {
-        background-color: ${
-          validateStatus && theme.colors[validateStatus]?.light1
-        };
-      }
-      & .ant-slider-handle {
-        border: ${
-          validateStatus && `2px solid ${theme.colors[validateStatus]?.light1}`
-        };
-        &:focus {
-          box-shadow: 0 0 0 3px
-            ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
-        }
-      }
-      & .ant-slider-mark {
-        font-size: ${theme.typography.sizes.s}px;
+    .controls-container {
+      display: flex;
+      align-items: center;
+      gap: ${theme.sizeUnit * 4}px;
+      width: 100%;
+
+      .slider-wrapper {
+        display: flex;
+        align-items: center;
+        flex: 2;
       }
 
-      &:hover {
-        & .ant-slider-track {
-          background-color: ${
-            validateStatus && theme.colors[validateStatus]?.base
-          };
-        }
-        & .ant-slider-handle {
-          border: ${
-            validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`
-          };
-        }
+      .slider-container {
+        flex: 1;
+        min-width: 180px;
       }
+
+      .inputs-container {
+        min-width: 160px;
+        max-width: 200px;
+      }
+
+    }
+
+    .message-container {
+      width: 100%;
+      text-align: center;
+      padding-top: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
 
 const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
 
-const tipFormatter = (value: number) => numberFormatter(value);
-
-const getLabel = (lower: number | null, upper: number | null): string => {
-  if (lower !== null && upper !== null && lower === upper) {
+const getLabel = (
+  lower: number | null,
+  upper: number | null,
+  enableSingleExactValue = false,
+): string => {
+  if (
+    (enableSingleExactValue && lower !== null) ||
+    (lower !== null && lower === upper)
+  ) {
     return `x = ${numberFormatter(lower)}`;
   }
   if (lower !== null && upper !== null) {
@@ -148,21 +146,77 @@ const getLabel = (lower: number | null, upper: number | null): string => {
   return '';
 };
 
-const getMarks = (
-  lower: number | null,
-  upper: number | null,
-): { [key: number]: string } => {
-  const newMarks: { [key: number]: string } = {};
-  if (lower !== null) {
-    newMarks[lower] = numberFormatter(lower);
+const validateRange = (
+  values: RangeValue,
+  min: number,
+  max: number,
+  enableEmptyFilter: boolean,
+  enableSingleValue?: SingleValueType,
+): { isValid: boolean; errorMessage: string | null } => {
+  const [inputMin, inputMax] = values;
+  const requiredError = t('Please provide a valid min or max value');
+  const minMaxError = t('Min value cannot be greater than max value');
+  const rangeError = t('Numbers must be within %(min)s and %(max)s', {
+    min,
+    max,
+  });
+
+  // Single value validation
+  if (enableSingleValue !== undefined) {
+    const isSingleMin =
+      enableSingleValue === SingleValueType.Minimum ||
+      enableSingleValue === SingleValueType.Exact;
+    const value = isSingleMin ? inputMin : inputMax;
+
+    if (!isNumber(value)) {
+      return { isValid: false, errorMessage: requiredError };
+    }
+
+    if (isNumber(value) && (value < min || value > max)) {
+      return { isValid: false, errorMessage: rangeError };
+    }
+
+    return { isValid: true, errorMessage: null };
   }
-  if (upper !== null) {
-    newMarks[upper] = numberFormatter(upper);
+
+  // Range validation
+  // Allow empty ranges if enableEmptyFilter is false
+  if (!enableEmptyFilter && inputMin === null && inputMax === null) {
+    return { isValid: true, errorMessage: null };
   }
-  return newMarks;
+
+  // If enableEmptyFilter is true, at least one value is required
+  if (enableEmptyFilter && inputMin === null && inputMax === null) {
+    return {
+      isValid: false,
+      errorMessage: requiredError,
+    };
+  }
+
+  // Check relationship between min and max when both are provided
+  if (inputMin !== null && inputMax !== null && inputMin > inputMax) {
+    return {
+      isValid: false,
+      errorMessage: minMaxError,
+    };
+  }
+
+  //   Check individual value bounds if provided
+  if (
+    (inputMin !== null && inputMin < min) ||
+    (inputMax !== null && inputMax > max)
+  ) {
+    return {
+      isValid: false,
+      errorMessage: rangeError,
+    };
+  }
+
+  return { isValid: true, errorMessage: null };
 };
 
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
+  const theme = useTheme();
   const {
     data,
     formData,
@@ -176,212 +230,442 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setFilterActive,
     filterState,
     inputRef,
-    filterBarOrientation,
+    filterBarOrientation = FilterBarOrientation.Vertical,
     isOverflowingFilterBar,
   } = props;
+
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, enableSingleValue } = formData;
+  const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
+    formData;
 
-  const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
-  const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
-  const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
-  const rangeValue = enableSingleValue === undefined;
+  // Get the display mode from formData
+  const rangeDisplayMode =
+    formData?.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
 
-  const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
-  const [value, setValue] = useState<[number, number]>(
-    defaultValue ?? [min, enableSingleExactValue ? min : max],
-  );
-  const [marks, setMarks] = useState<{ [key: number]: string }>({});
   const minIndex = 0;
   const maxIndex = 1;
-  const minMax = value ?? [min, max];
 
-  const getBounds = useCallback(
-    (
-      value: [number, number],
-    ): { lower: number | null; upper: number | null } => {
-      const [lowerRaw, upperRaw] = value;
+  const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
 
-      if (enableSingleExactValue) {
-        return { lower: lowerRaw, upper: upperRaw };
-      }
+  const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
-      return {
-        lower: lowerRaw > min ? lowerRaw : null,
-        upper: upperRaw < max ? upperRaw : null,
-      };
-    },
-    [max, min, enableSingleExactValue],
+  const [inputValue, setInputValue] = useState<RangeValue>(
+    filterState.value || defaultValue || [null, null],
   );
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAfterChange = useCallback(
-    (value: [number, number]): void => {
-      setValue(value);
-      const { lower, upper } = getBounds(value);
-      setMarks(getMarks(lower, upper));
+  // Prepare slider value from input value, converting nulls to min/max
+  const sliderValue = useMemo(() => {
+    const [inputMin, inputMax] = inputValue;
 
+    // For single value filters
+    if (
+      enableSingleValue === SingleValueType.Minimum ||
+      enableSingleValue === SingleValueType.Exact
+    ) {
+      return inputMin !== null ? inputMin : min;
+    }
+    if (enableSingleValue === SingleValueType.Maximum) {
+      return inputMax !== null ? inputMax : max;
+    }
+
+    // For range filters - use placeholders when values are null
+    // If only min is provided, set max to the dataset max
+    // If only max is provided, set min to the dataset min
+    const sliderMin = inputMin !== null ? inputMin : min;
+    const sliderMax = inputMax !== null ? inputMax : max;
+
+    return [sliderMin, sliderMax];
+  }, [inputValue, min, max, enableSingleValue]);
+
+  const updateDataMaskError = useCallback(
+    (errorMessage: string | null) => {
       setDataMask({
-        extraFormData: getRangeExtraFormData(col, lower, upper),
+        extraFormData: {},
         filterState: {
-          value: lower !== null || upper !== null ? value : null,
-          label: getLabel(lower, upper),
+          value: null,
+          label: '',
+          validateStatus: 'error',
+          validateMessage: errorMessage || '',
         },
       });
     },
-    [col, getBounds, setDataMask],
+    [setDataMask],
   );
 
-  const handleChange = useCallback((value: [number, number]) => {
-    setValue(value);
-  }, []);
+  const updateDataMaskValue = useCallback(
+    (value: RangeValue) => {
+      const [inputMin, inputMax] = value;
+      setDataMask({
+        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
+        filterState: {
+          value: enableSingleExactValue
+            ? [inputMin, inputMin]
+            : [inputMin, inputMax],
+          label: getLabel(inputMin, inputMax, enableSingleExactValue),
+          validateStatus: undefined,
+          validateMessage: '',
+        },
+      });
+    },
+    [setDataMask],
+  );
 
   useEffect(() => {
-    // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
     if (row?.min === undefined && row?.max === undefined) {
       return;
     }
 
-    let filterStateValue = filterState.value ?? [min, max];
-    if (enableSingleMaxValue) {
-      const filterStateMax =
-        filterStateValue[maxIndex] <= minMax[maxIndex]
-          ? filterStateValue[maxIndex]
-          : minMax[maxIndex];
+    if (filterState.validateStatus === 'error') {
+      setError(filterState.validateMessage);
 
-      filterStateValue = [min, filterStateMax];
-    } else if (enableSingleMinValue) {
-      const filterStateMin =
-        filterStateValue[minIndex] >= minMax[minIndex]
-          ? filterStateValue[minIndex]
-          : minMax[minIndex];
+      // Only re-validate if message changed to prevents redundant validation
+      if (error !== filterState.validateMessage) {
+        const { isValid, errorMessage } = validateRange(
+          inputValue,
+          min,
+          max,
+          enableEmptyFilter,
+          enableSingleValue,
+        );
 
-      filterStateValue = [filterStateMin, max];
-    } else if (enableSingleExactValue) {
-      filterStateValue = [minMax[minIndex], minMax[minIndex]];
+        if (!isValid) {
+          setError(errorMessage);
+          updateDataMaskError(errorMessage);
+        } else {
+          setError(null);
+          updateDataMaskValue(inputValue);
+        }
+      }
+      return;
     }
 
-    handleAfterChange(filterStateValue);
-  }, [
-    enableSingleMaxValue,
-    enableSingleMinValue,
-    enableSingleExactValue,
-    JSON.stringify(filterState.value),
-    JSON.stringify(data),
-  ]);
-
-  const formItemExtra = useMemo(() => {
-    if (filterState.validateMessage) {
-      return (
-        <StatusMessage status={filterState.validateStatus}>
-          {filterState.validateMessage}
-        </StatusMessage>
-      );
+    // Clear all case
+    if (filterState.value === undefined && !filterState.validateStatus) {
+      setInputValue([null, null]);
+      updateDataMaskValue([null, null]);
+      return;
     }
-    return undefined;
-  }, [filterState.validateMessage, filterState.validateStatus]);
 
-  useEffect(() => {
-    if (enableSingleMaxValue) {
-      handleAfterChange([min, minMax[maxIndex]]);
+    if (isEqualArray(defaultValue, inputValue)) {
+      updateDataMaskValue(defaultValue);
+      return;
     }
-  }, [enableSingleMaxValue]);
 
-  useEffect(() => {
-    if (enableSingleMinValue) {
-      handleAfterChange([minMax[minIndex], max]);
+    // Filter state is pre-set case
+    if (filterState.value && !filterState.validateStatus) {
+      setInputValue(filterState.value);
+      updateDataMaskValue(filterState.value);
     }
-  }, [enableSingleMinValue]);
+  }, [JSON.stringify(filterState.value)]);
 
-  useEffect(() => {
-    if (enableSingleExactValue) {
-      handleAfterChange([minMax[minIndex], minMax[minIndex]]);
+  // Get just the filter behavior text without the range information (which is shown in the tooltip)
+  const metadataText = useMemo(() => {
+    switch (enableSingleValue) {
+      case SingleValueType.Minimum:
+        return t('Filters for values greater than or equal.');
+      case SingleValueType.Maximum:
+        return t('Filters for values less than or equal.');
+      case SingleValueType.Exact:
+        return t('Filters for values equal to this exact value.');
+      default:
+        return null;
     }
-  }, [enableSingleExactValue]);
+  }, [enableSingleValue]);
 
-  const MIN_NUM_STEPS = 20;
-  const stepHeuristic = (min: number, max: number) => {
-    const maxStepSize = (max - min) / MIN_NUM_STEPS;
-    // normalizedStepSize: .06 -> .01, .003 -> .001
-    const normalizedStepSize = `1E${Math.floor(Math.log10(maxStepSize))}`;
-    return Math.min(1, parseFloat(normalizedStepSize));
+  const keyPressed = useRef(false);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    keyPressed.current = !!/^[0-9]$/.test(event.key);
   };
 
-  const step = max - min <= 1 ? stepHeuristic(min, max) : 1;
+  const handleChange = useCallback(
+    (newValue: number | null, index: 0 | 1) => {
+      if (row?.min === undefined && row?.max === undefined) {
+        return;
+      }
+
+      // When using increment/decrement buttons on an empty input,
+      // use the dataset min/max as the base value
+      let adjustedValue = newValue;
+      if (newValue !== null && inputValue[index] === null) {
+        if (keyPressed.current) {
+          adjustedValue = newValue;
+          keyPressed.current = false;
+        } else if (index === minIndex && newValue === 1) {
+          adjustedValue = min + 1;
+        } else if (index === minIndex && newValue === -1) {
+          adjustedValue = min - 1;
+        } else if (index === maxIndex && newValue === 1) {
+          adjustedValue = max + 1;
+        } else if (index === maxIndex && newValue === -1) {
+          adjustedValue = max - 1;
+        }
+      }
+
+      const newInputValue: [number | null, number | null] =
+        index === minIndex
+          ? [adjustedValue, inputValue[maxIndex]]
+          : [inputValue[minIndex], adjustedValue];
+
+      setInputValue(newInputValue);
+
+      const { isValid, errorMessage } = validateRange(
+        newInputValue,
+        min,
+        max,
+        enableEmptyFilter,
+        enableSingleValue,
+      );
+
+      if (!isValid) {
+        setError(errorMessage);
+        updateDataMaskError(errorMessage);
+        return;
+      }
+
+      setError(null);
+      updateDataMaskValue(newInputValue);
+    },
+    [
+      min,
+      max,
+      enableEmptyFilter,
+      enableSingleValue,
+      updateDataMaskError,
+      updateDataMaskValue,
+      inputValue,
+    ],
+  );
+
+  // Handler for slider change
+  const handleSliderChange = useCallback(
+    (value: number | number[]) => {
+      let newInputValue: RangeValue;
+
+      if (enableSingleValue !== undefined) {
+        const singleValue =
+          typeof value === 'number'
+            ? value
+            : Array.isArray(value) && value.length > 0
+              ? value[0]
+              : (min + max) / 2;
+
+        if (enableSingleValue === SingleValueType.Minimum) {
+          newInputValue = [singleValue, null];
+        } else if (enableSingleValue === SingleValueType.Maximum) {
+          newInputValue = [null, singleValue];
+        } else {
+          newInputValue = [singleValue, singleValue];
+        }
+      } else {
+        const arrayValue = Array.isArray(value) ? value : [min, max];
+        const [sliderMin, sliderMax] =
+          arrayValue.length >= 2 ? [arrayValue[0], arrayValue[1]] : [min, max];
+        newInputValue = [sliderMin, sliderMax];
+      }
+
+      setInputValue(newInputValue);
+      setError(null);
+      updateDataMaskValue(newInputValue);
+    },
+    [min, max, enableSingleValue, updateDataMaskValue],
+  );
+
+  const getMessageAndStatus = useCallback(() => {
+    const defaultMessage = t('Choose numbers between %(min)s and %(max)s', {
+      min,
+      max,
+    });
+
+    if (error) {
+      return { message: error, status: 'error' as const };
+    }
+
+    if (enableSingleValue !== undefined && metadataText) {
+      return { message: metadataText, status: 'help' as const };
+    }
+
+    return { message: defaultMessage, status: 'help' as const };
+  }, [error, min, max, enableSingleValue, metadataText]);
+
+  const MessageDisplay = useCallback(() => {
+    const { message, status } = getMessageAndStatus();
+
+    if (filterBarOrientation === FilterBarOrientation.Vertical) {
+      return <StatusMessage status={status}>{message}</StatusMessage>;
+    }
+
+    return null;
+  }, [getMessageAndStatus, filterBarOrientation]);
+
+  const InfoTooltip = useCallback(() => {
+    const { message, status } = getMessageAndStatus();
+
+    return (
+      <Tooltip title={message} placement="top">
+        <Icons.InfoCircleOutlined
+          iconSize="m"
+          iconColor={
+            status === 'error'
+              ? theme.colors.error.base
+              : theme.colors.grayscale.base
+          }
+          className="tooltip-icon"
+        />
+      </Tooltip>
+    );
+  }, [getMessageAndStatus]);
+
+  useEffect(() => {
+    if (enableSingleValue !== undefined) {
+      switch (enableSingleValue) {
+        case SingleValueType.Minimum:
+        case SingleValueType.Exact:
+          if (inputValue[maxIndex] !== null) {
+            handleChange(null, maxIndex);
+          }
+          break;
+        case SingleValueType.Maximum:
+          if (inputValue[minIndex] !== null) {
+            handleChange(null, minIndex);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+
+    // Reset data mask when single value mode changes
+    setDataMask({
+      extraFormData: {},
+      filterState: {
+        value: null,
+        label: '',
+      },
+    });
+  }, [enableSingleValue]);
+
+  const renderSlider = () => {
+    if (enableSingleValue !== undefined) {
+      return (
+        <SliderWrapper>
+          <Slider
+            min={min}
+            max={max}
+            value={Array.isArray(sliderValue) ? sliderValue[0] : sliderValue}
+            onChange={handleSliderChange}
+            tooltip={{
+              formatter: val => (val !== null ? numberFormatter(val) : ''),
+            }}
+          />
+        </SliderWrapper>
+      );
+    }
+    return (
+      <SliderWrapper data-test="range-filter-slider">
+        <Slider
+          min={min}
+          max={max}
+          range
+          value={Array.isArray(sliderValue) ? sliderValue : [min, sliderValue]}
+          onChange={handleSliderChange}
+          tooltip={{
+            formatter: val => (val !== null ? numberFormatter(val) : ''),
+          }}
+        />
+      </SliderWrapper>
+    );
+  };
+
+  const renderInputs = () => (
+    <Wrapper
+      tabIndex={-1}
+      ref={inputRef}
+      onFocus={setFocusedFilter}
+      onBlur={unsetFocusedFilter}
+      onMouseEnter={setHoveredFilter}
+      onMouseLeave={unsetHoveredFilter}
+      onMouseDown={() => setFilterActive(true)}
+      onMouseUp={() => setFilterActive(false)}
+    >
+      {/* Conditionally render based on enableSingleValue */}
+      {(enableSingleValue === undefined ||
+        enableSingleValue === SingleValueType.Minimum ||
+        enableSingleValue === SingleValueType.Exact) && (
+        <InputNumber
+          value={inputValue[minIndex]}
+          onChange={val => handleChange(val, minIndex)}
+          onKeyDown={handleKeyDown}
+          placeholder={`${min}`}
+          style={{ width: '100%' }}
+          status={filterState.validateStatus}
+          data-test="range-filter-from-input"
+        />
+      )}
+
+      {enableSingleValue === undefined && <StyledDivider>-</StyledDivider>}
+
+      {(enableSingleValue === undefined ||
+        enableSingleValue === SingleValueType.Maximum) && (
+        <InputNumber
+          value={inputValue[maxIndex]}
+          onChange={val => handleChange(val, maxIndex)}
+          onKeyDown={handleKeyDown}
+          placeholder={`${max}`}
+          style={{ width: '100%' }}
+          data-test="range-filter-to-input"
+          status={filterState.validateStatus}
+        />
+      )}
+    </Wrapper>
+  );
 
   return (
     <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem extra={formItemExtra}>
-          <Wrapper
-            tabIndex={-1}
-            ref={inputRef}
-            validateStatus={filterState.validateStatus}
-            orientation={filterBarOrientation}
-            isOverflowing={isOverflowingFilterBar}
-            onFocus={setFocusedFilter}
-            onBlur={unsetFocusedFilter}
-            onMouseEnter={setHoveredFilter}
-            onMouseLeave={unsetHoveredFilter}
-            onMouseDown={() => setFilterActive(true)}
-            onMouseUp={() => setFilterActive(false)}
-          >
-            {enableSingleMaxValue && (
-              <AntdSlider
-                min={min}
-                max={max}
-                step={step}
-                value={minMax[maxIndex]}
-                tipFormatter={tipFormatter}
-                marks={marks}
-                onAfterChange={value => handleAfterChange([min, value])}
-                onChange={value => handleChange([min, value])}
-              />
-            )}
-            {enableSingleMinValue && (
-              <StyledMinSlider
-                validateStatus={filterState.validateStatus}
-                min={min}
-                max={max}
-                step={step}
-                value={minMax[minIndex]}
-                tipFormatter={tipFormatter}
-                marks={marks}
-                onAfterChange={value => handleAfterChange([value, max])}
-                onChange={value => handleChange([value, max])}
-              />
-            )}
-            {enableSingleExactValue && (
-              <AntdSlider
-                min={min}
-                max={max}
-                step={step}
-                included={false}
-                value={minMax[minIndex]}
-                tipFormatter={tipFormatter}
-                marks={marks}
-                onAfterChange={value => handleAfterChange([value, value])}
-                onChange={value => handleChange([value, value])}
-              />
-            )}
-            {rangeValue && (
-              <AntdSlider
-                range
-                min={min}
-                max={max}
-                step={step}
-                value={minMax}
-                onAfterChange={handleAfterChange}
-                onChange={handleChange}
-                tipFormatter={tipFormatter}
-                marks={marks}
-              />
-            )}
-          </Wrapper>
-        </StyledFormItem>
+        <FormItem aria-labelledby={`filter-name-${formData.nativeFilterId}`}>
+          {filterBarOrientation === FilterBarOrientation.Horizontal &&
+          !isOverflowingFilterBar ? (
+            <HorizontalLayout>
+              <div className="controls-container">
+                <InfoTooltip />
+                {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
+                  <div className="slider-wrapper">
+                    <div className="slider-container">{renderSlider()}</div>
+                  </div>
+                )}
+                {(rangeDisplayMode === RangeDisplayMode.Input ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
+                  <div className="inputs-container">{renderInputs()}</div>
+                )}
+              </div>
+            </HorizontalLayout>
+          ) : (
+            <>
+              <div style={{ position: 'relative' }}>
+                {isOverflowingFilterBar && (
+                  <TooltipContainer>
+                    <InfoTooltip />
+                  </TooltipContainer>
+                )}
+                {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                  renderSlider()}
+                {(rangeDisplayMode === RangeDisplayMode.Input ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                  renderInputs()}
+
+                <MessageDisplay />
+              </div>
+            </>
+          )}
+        </FormItem>
       )}
     </FilterPluginStyle>
   );

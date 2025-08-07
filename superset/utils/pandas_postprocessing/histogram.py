@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import numpy as np
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_numeric
 
 
 # pylint: disable=too-many-arguments
@@ -43,31 +43,34 @@ def histogram(
     Returns:
     DataFrame: A DataFrame where each row corresponds to a group (or the entire DataFrame if no grouping is performed),
                and each column corresponds to a histogram bin. The values are the counts in each bin.
-    """
+    """  # noqa: E501
 
     if groupby is None:
         groupby = []
 
-    # check if the column is numeric
-    if not np.issubdtype(df[column].dtype, np.number):
-        raise ValueError(f"The column '{column}' must be numeric.")
+    # convert to numeric, coercing errors to NaN
+    df[column] = to_numeric(df[column], errors="coerce")
+
+    # check if the column contains non-numeric values
+    if df[column].isna().any():
+        raise ValueError(f"Column '{column}' contains non-numeric values")
 
     # calculate the histogram bin edges
-    bin_edges = np.histogram_bin_edges(df[column].dropna(), bins=bins)
+    bin_edges = np.histogram_bin_edges(df[column], bins=bins)
 
     # convert the bin edges to strings
     bin_edges_str = [
-        f"{int(bin_edges[i])} - {int(bin_edges[i+1])}"
-        for i in range(len(bin_edges) - 1)
+        f"{bin_edges[i]} - {bin_edges[i + 1]}" for i in range(len(bin_edges) - 1)
     ]
 
     def hist_values(series: Series) -> np.ndarray:
+        # we might have NaN values as the result of grouping so we need to drop them
         result = np.histogram(series.dropna(), bins=bin_edges)[0]
         return result if not cumulative else np.cumsum(result)
 
     if len(groupby) == 0:
         # without grouping
-        hist_dict = dict(zip(bin_edges_str, hist_values(df[column])))
+        hist_dict = dict(zip(bin_edges_str, hist_values(df[column]), strict=False))
         histogram_df = DataFrame(hist_dict, index=[0])
     else:
         # with grouping

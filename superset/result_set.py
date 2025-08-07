@@ -100,7 +100,7 @@ def convert_to_string(value: Any) -> str:
 
 
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals  # noqa: C901
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
@@ -122,8 +122,10 @@ class SupersetResultSet:
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
-                tuple([column_name, *list(description)[1:]])
-                for column_name, description in zip(column_names, cursor_description)
+                tuple([column_name, *list(description)[1:]])  # noqa: C409
+                for column_name, description in zip(
+                    column_names, cursor_description, strict=False
+                )
             ]
 
             # generate numpy structured array dtype

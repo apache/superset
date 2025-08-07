@@ -24,7 +24,7 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import Datamap from 'datamaps/dist/datamaps.world.min';
+import Datamap from 'datamaps/dist/datamaps.all.min';
 import { ColorBy } from './utils';
 
 const propTypes = {
@@ -43,6 +43,7 @@ const propTypes = {
   showBubbles: PropTypes.bool,
   linearColorScheme: PropTypes.string,
   color: PropTypes.string,
+  colorScheme: PropTypes.string,
   setDataMask: PropTypes.func,
   onContextMenu: PropTypes.func,
   emitCrossFilters: PropTypes.bool,
@@ -85,24 +86,24 @@ function WorldMap(element, props) {
     .range([1, maxBubbleSize]);
 
   let processedData;
-  let colorScale;
+  let colorFn;
   if (colorBy === ColorBy.Country) {
-    colorScale = CategoricalColorNamespace.getScale(colorScheme);
+    colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: colorScale(d.name, sliceId),
+      fillColor: colorFn(d.name, sliceId),
     }));
   } else {
-    colorScale = getSequentialSchemeRegistry()
+    colorFn = getSequentialSchemeRegistry()
       .get(linearColorScheme)
       .createLinearScale(d3Extent(filteredData, d => d.m1));
 
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: colorScale(d.m1),
+      fillColor: colorFn(d.m1),
     }));
   }
 
@@ -208,7 +209,7 @@ function WorldMap(element, props) {
       popupOnHover: !inContextMenu,
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
-      borderColor: theme.colors.grayscale.light5,
+      borderColor: theme.colorSplit,
       highlightBorderColor: theme.colors.grayscale.light5,
       highlightFillColor: color,
       highlightBorderWidth: 1,
@@ -264,7 +265,7 @@ function WorldMap(element, props) {
         countryFeature =>
           !filterState.selectedValues.includes(countryFeature.id),
       )
-      .style('fill-opacity', theme.opacity.mediumLight);
+      .style('fill-opacity', 0.35);
 
     // hack to ensure that the clicked country's color is preserved
     // sometimes the fill color would get default grey value after applying cross filter

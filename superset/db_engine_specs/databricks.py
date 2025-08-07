@@ -17,26 +17,73 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.constants import TimeGrain, USER_AGENT
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
+from superset.utils.core import get_user_agent, QuerySource
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+
+try:
+    from databricks.sql.utils import ParamEscaper
+except ImportError:
+
+    class ParamEscaper:  # type: ignore
+        """Dummy class."""
+
+
+class DatabricksStringType(types.TypeDecorator):
+    impl = types.String
+    cache_ok = True
+    pe = ParamEscaper()
+
+    def process_literal_param(self, value: Any, dialect: Any) -> str:
+        return self.pe.escape_string(value)
+
+    def literal_processor(self, dialect: Any) -> Callable[[Any], str]:
+        def process(value: Any) -> str:
+            _step1 = self.process_literal_param(value, dialect="databricks")
+            if dialect.identifier_preparer._double_percents:
+                _step2 = _step1.replace("%", "%%")
+            else:
+                _step2 = _step1
+
+            return "%s" % _step2
+
+        return process
+
+
+def monkeypatch_dialect() -> None:
+    """
+    Monkeypatch dialect to correctly escape single quotes.
+
+    The Databricks SQLAlchemy dialect we currently use does not escape single quotes
+    correctly -- it doubles the single quotes, instead of adding a backslash. The fixed
+    version requires SQLAlchemy 2.0, which is not yet available in Superset.
+    """
+    try:
+        from sqlalchemy_databricks._dialect import DatabricksDialect
+
+        DatabricksDialect.colspecs[types.String] = DatabricksStringType
+    except ImportError:
+        pass
 
 
 class DatabricksBaseSchema(Schema):
@@ -198,17 +245,20 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
     }
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         Trim whitespace from connect_args to avoid databricks driver errors
         """
-        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database, source)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
-        connect_args.setdefault("http_headers", [("User-Agent", USER_AGENT)])
-        connect_args.setdefault("_user_agent_entry", USER_AGENT)
+        user_agent = get_user_agent(database, source)
+        connect_args.setdefault("http_headers", [("User-Agent", user_agent)])
+        connect_args.setdefault("_user_agent_entry", user_agent)
 
         # trim whitespace from http_path to avoid databricks errors on connecting
         if http_path := connect_args.get("http_path"):
@@ -288,7 +338,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         if missing := sorted(cls.required_parameters - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -328,8 +378,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             errors.append(
                 SupersetError(
                     message=(
-                        "The port must be an integer between 0 and 65535 "
-                        "(inclusive)."
+                        "The port must be an integer between 0 and 65535 (inclusive)."
                     ),
                     error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
                     level=ErrorLevel.ERROR,
@@ -350,7 +399,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks"
+    engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
 
@@ -370,7 +419,10 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         "extra",
     }
 
-    supports_dynamic_schema = supports_catalog = supports_dynamic_catalog = True
+    supports_dynamic_schema = True
+    supports_catalog = True
+    supports_dynamic_catalog = True
+    supports_cross_catalog_queries = True
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
@@ -430,23 +482,47 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @classmethod
-    def get_default_catalog(
-        cls,
-        database: Database,
-    ) -> str | None:
-        with database.get_inspector() as inspector:
-            return inspector.bind.execute("SELECT current_catalog()").scalar()
+    def get_default_catalog(cls, database: Database) -> str:
+        """
+        Return the default catalog.
+
+        It's optionally specified in `connect_args.catalog`. If not:
+
+        The default behavior for Databricks is confusing. When Unity Catalog is not
+        enabled we have (the DB engine spec hasn't been tested with it enabled):
+
+            > SHOW CATALOGS;
+            spark_catalog
+            > SELECT current_catalog();
+            hive_metastore
+
+        To handle permissions correctly we use the result of `SHOW CATALOGS` when a
+        single catalog is returned.
+        """
+        connect_args = cls.get_extra_params(database)["engine_params"]["connect_args"]
+        if default_catalog := connect_args.get("catalog"):
+            return default_catalog
+
+        with database.get_sqla_engine() as engine:
+            catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
+            if len(catalogs) == 1:
+                return catalogs.pop()
+
+            return engine.execute("SELECT current_catalog()").scalar()
 
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[str]:
         prequeries = []
         if catalog:
+            catalog = f"`{catalog}`" if not catalog.startswith("`") else catalog
             prequeries.append(f"USE CATALOG {catalog}")
         if schema:
+            schema = f"`{schema}`" if not schema.startswith("`") else schema
             prequeries.append(f"USE SCHEMA {schema}")
         return prequeries
 
@@ -461,7 +537,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks Python Connector"
+    engine_name = "Databricks"
     default_driver = "databricks-sql-python"
     drivers = {"databricks-sql-python": "Databricks SQL Python"}
 
@@ -565,3 +641,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             uri = uri.update_query_dict({"schema": schema})
 
         return uri, connect_args
+
+
+# remove once we've upgraded to SQLAlchemy 2.0 and the 2.x databricks-sqlalchemy lib
+monkeypatch_dialect()

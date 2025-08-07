@@ -31,9 +31,9 @@ from superset.commands.dataset.exceptions import (
     TableNotFoundValidationError,
 )
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.extensions import security_manager
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -51,25 +51,30 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         dataset.fetch_metadata()
         return dataset
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
-        schema = self._properties.get("schema")
         catalog = self._properties.get("catalog")
+        schema = self._properties.get("schema")
+        table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
-
-        table = Table(self._properties["table_name"], schema, catalog)
-
-        # Validate uniqueness
-        if not DatasetDAO.validate_uniqueness(database_id, table):
-            exceptions.append(DatasetExistsValidationError(table))
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
         if not database:
             exceptions.append(DatabaseNotFoundValidationError())
         self._properties["database"] = database
+
+        # Validate uniqueness
+        if database:
+            if not catalog:
+                catalog = self._properties["catalog"] = database.get_default_catalog()
+
+            table = Table(table_name, schema, catalog)
+
+            if not DatasetDAO.validate_uniqueness(database, table):
+                exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided
         # This should be validated when the dataset is physical
@@ -90,6 +95,13 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
         try:
             owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners

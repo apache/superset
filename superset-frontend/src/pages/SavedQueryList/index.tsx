@@ -33,30 +33,34 @@ import {
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
-import Popover from 'src/components/Popover';
+import {
+  ConfirmStatusChange,
+  DeleteModal,
+  Loading,
+  Popover,
+  Tooltip,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import {
+  ImportModal as ImportModelsModal,
+  TagType,
+  ModifiedInfo,
+  TagsList,
+  ListView,
+  ListViewActionsBar,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewActionProps,
+  type ListViewFilters,
+} from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
-import ListView, {
-  FilterOperator,
-  Filters,
-  ListViewProps,
-} from 'src/components/ListView';
-import Loading from 'src/components/Loading';
-import DeleteModal from 'src/components/DeleteModal';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { TagsList } from 'src/components/Tags';
-import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
-import copyTextToClipboard from 'src/utils/copy';
-import Tag from 'src/types/TagType';
-import ImportModelsModal from 'src/components/ImportModal/index';
-import { ModifiedInfo } from 'src/components/AuditInfo';
-import { loadTags } from 'src/components/Tags/utils';
-import Icons from 'src/components/Icons';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
+import { loadTags } from 'src/components/Tag/utils';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -88,7 +92,7 @@ interface SavedQueryListProps {
 const StyledTableLabel = styled.div`
   .count {
     margin-left: 5px;
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
     cursor: pointer;
   }
@@ -186,23 +190,6 @@ function SavedQueryList({
 
   const subMenuButtons: Array<ButtonProps> = [];
 
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-    });
-  }
-
-  subMenuButtons.push({
-    name: (
-      <Link to="/sqllab?new=true">
-        <i className="fa fa-plus" /> {t('Query')}
-      </Link>
-    ),
-    buttonStyle: 'primary',
-  });
-
   if (canCreate) {
     subMenuButtons.push({
       name: (
@@ -212,7 +199,7 @@ function SavedQueryList({
           placement="bottomRight"
           data-test="import-tooltip-test"
         >
-          <Icons.Import data-test="import-icon" />
+          <Icons.DownloadOutlined data-test="import-icon" iconSize="l" />
         </Tooltip>
       ),
       buttonStyle: 'link',
@@ -220,6 +207,23 @@ function SavedQueryList({
       'data-test': 'import-button',
     });
   }
+
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  subMenuButtons.push({
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Query'),
+    buttonStyle: 'primary',
+    onClick: () => {
+      history.push('/sqllab?new=true');
+    },
+  });
 
   menuData.buttons = subMenuButtons;
 
@@ -233,16 +237,31 @@ function SavedQueryList({
   };
 
   const copyQueryLink = useCallback(
-    (id: number) => {
-      copyTextToClipboard(() =>
-        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
-      )
-        .then(() => {
-          addSuccessToast(t('Link Copied!'));
-        })
-        .catch(() => {
-          addDangerToast(t('Sorry, your browser does not support copying.'));
+    async (savedQuery: SavedQueryObject) => {
+      try {
+        const payload = {
+          dbId: savedQuery.db_id,
+          name: savedQuery.label,
+          schema: savedQuery.schema,
+          catalog: savedQuery.catalog,
+          sql: savedQuery.sql,
+          autorun: false,
+          templateParams: null,
+        };
+
+        const response = await SupersetClient.post({
+          endpoint: '/api/v1/sqllab/permalink',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+
+        const { url: permalink } = response.json;
+
+        await navigator.clipboard.writeText(permalink);
+        addSuccessToast(t('Link Copied!'));
+      } catch (error) {
+        addDangerToast(t('There was an error generating the permalink.'));
+      }
     },
     [addDangerToast, addSuccessToast],
   );
@@ -296,25 +315,37 @@ function SavedQueryList({
       {
         accessor: 'label',
         Header: t('Name'),
+        size: 'xxl',
+        Cell: ({
+          row: {
+            original: { id, label },
+          },
+        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        id: 'label',
       },
       {
         accessor: 'description',
         Header: t('Description'),
+        size: 'xl',
+        id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
+        id: 'database.database_name',
       },
       {
         accessor: 'database',
         hidden: true,
         disableSortBy: true,
+        id: 'database',
       },
       {
         accessor: 'schema',
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
+        id: 'schema',
       },
       {
         Cell: ({
@@ -351,8 +382,9 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
+        id: 'sql_tables',
       },
       {
         Cell: ({
@@ -361,12 +393,17 @@ function SavedQueryList({
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+          <TagsList
+            tags={tags.filter(
+              (tag: TagType) => tag.type === TagTypeEnum.Custom,
+            )}
+          />
         ),
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -380,6 +417,7 @@ function SavedQueryList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -388,7 +426,7 @@ function SavedQueryList({
           };
           const handleEdit = ({ metaKey }: MouseEvent) =>
             openInSqlLab(original.id, Boolean(metaKey));
-          const handleCopy = () => copyQueryLink(original.id);
+          const handleCopy = () => copyQueryLink(original);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
@@ -404,33 +442,35 @@ function SavedQueryList({
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
-              icon: 'Edit',
+              icon: 'EditOutlined',
               onClick: handleEdit,
             },
             {
               label: 'copy-action',
               tooltip: t('Copy query URL'),
               placement: 'bottom',
-              icon: 'Copy',
+              icon: 'CopyOutlined',
               onClick: handleCopy,
             },
             canExport && {
               label: 'export-action',
               tooltip: t('Export query'),
               placement: 'bottom',
-              icon: 'Share',
+              icon: 'UploadOutlined',
               onClick: handleExport,
             },
             canDelete && {
               label: 'delete-action',
               tooltip: t('Delete query'),
               placement: 'bottom',
-              icon: 'Trash',
+              icon: 'DeleteOutlined',
               onClick: handleDelete,
             },
           ].filter(item => !!item);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -439,12 +479,13 @@ function SavedQueryList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Search'),
@@ -505,7 +546,7 @@ function SavedQueryList({
               fetchSelects: loadTags,
             },
           ]
-        : []) as Filters),
+        : []) as ListViewFilters),
       {
         Header: t('Modified by'),
         key: 'changed_by',
@@ -564,6 +605,7 @@ function SavedQueryList({
         onConfirm={handleBulkQueryDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -598,7 +640,7 @@ function SavedQueryList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
-              enableBulkTag
+              enableBulkTag={enableBulkTag}
               bulkTagResourceName="query"
               refreshData={refreshData}
             />

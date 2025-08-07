@@ -38,7 +38,6 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
-
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import getInitialState from 'src/SqlLab/reducers/getInitialState';
@@ -57,6 +56,7 @@ import { AnyDatasourcesAction } from 'src/explore/actions/datasourcesActions';
 import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
+import databaseReducer from 'src/database/reducers';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -139,9 +139,10 @@ const reducers = {
   reports,
   saveModal,
   explore,
+  database: databaseReducer,
 };
 
-/* In some cases the jinja template injects two seperate React apps into basic.html
+/* In some cases the jinja template injects two separate React apps into basic.html
  * One for the top navigation Menu and one for the application below the Menu
  * The first app to connect to the Redux debugger wins which is the menu blocking
  * the application from being able to connect to the redux debugger.

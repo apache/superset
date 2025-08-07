@@ -91,6 +91,14 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
+    def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.extra_json.like(f"%{slug}%"))
+            .all()
+        )
+
+    @staticmethod
     def validate_unique_creation_method(
         dashboard_id: int | None = None, chart_id: int | None = None
     ) -> bool:

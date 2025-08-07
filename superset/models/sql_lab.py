@@ -25,7 +25,7 @@ from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
@@ -48,7 +48,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -56,7 +56,7 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
+from superset.sql.parse import CTASMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import json
 from superset.utils.core import (
@@ -85,7 +85,7 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
                     self.database,  # type: ignore
                 )
             )
-        except (SupersetSecurityException, TemplateError):
+        except (SupersetSecurityException, SupersetParseError, TemplateError):
             return []
 
 
@@ -128,7 +128,7 @@ class Query(
     )
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
-    ctas_method = Column(String(16), default=CtasMethod.TABLE)
+    ctas_method = Column(String(16), default=CTASMethod.TABLE.name)
 
     progress = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.
@@ -334,7 +334,7 @@ class Query(
         Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
-        transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
+        transform = app.config.get("TRACKING_URL_TRANSFORMER")
         url = self.tracking_url_raw
         if url and transform:
             sig = inspect.signature(transform)
@@ -374,6 +374,7 @@ class Query(
         expression = self._process_sql_expression(
             expression=col["sqlExpression"],
             database_id=self.database_id,
+            engine=self.database.backend,
             schema=self.schema,
             template_processor=template_processor,
         )
@@ -419,7 +420,7 @@ class SavedQuery(
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'query')",
         secondaryjoin="TaggedObject.tag_id == Tag.id",
-        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
 
     export_parent = "database"

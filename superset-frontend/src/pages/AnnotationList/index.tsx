@@ -26,13 +26,16 @@ import {
   SupersetClient,
   getClientErrorObject,
 } from '@superset-ui/core';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import rison from 'rison';
 
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import ListView, { ListViewProps } from 'src/components/ListView';
+import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
+import {
+  ListView,
+  ListViewActionsBar,
+  type ListViewProps,
+  type ListViewActionProps,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -40,6 +43,8 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const PAGE_SIZE = 25;
 
@@ -55,9 +60,9 @@ const StyledHeader = styled.div`
 
     a,
     Link {
-      margin-left: ${theme.gridUnit * 4}px;
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.normal};
+      margin-left: ${theme.sizeUnit * 4}px;
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightNormal};
       text-decoration: underline;
     }
   `}
@@ -160,31 +165,44 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        size: 'xxl',
+        id: 'short_descr',
       },
       {
         accessor: 'long_descr',
         Header: t('Description'),
+        id: 'long_descr',
       },
       {
         Cell: ({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
+        id: 'start_dttm',
       },
       {
         Cell: ({
           row: {
             original: { end_dttm: endDttm },
           },
-        }: any) => moment(new Date(endDttm)).format('ll'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
+        id: 'end_dttm',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({
+          row: { original },
+        }: {
+          row: { original: AnnotationObject };
+        }) => {
           const handleEdit = () => handleAnnotationEdit(original);
           const handleDelete = () => setAnnotationCurrentlyDeleting(original);
           const actions = [
@@ -192,18 +210,20 @@ function AnnotationList({
               label: 'edit-action',
               tooltip: t('Edit annotation'),
               placement: 'bottom',
-              icon: 'Edit',
+              icon: 'EditOutlined',
               onClick: handleEdit,
             },
             {
               label: 'delete-action',
               tooltip: t('Delete annotation'),
               placement: 'bottom',
-              icon: 'Trash',
+              icon: 'DeleteOutlined',
               onClick: handleDelete,
             },
           ];
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -216,11 +236,8 @@ function AnnotationList({
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   subMenuButtons.push({
-    name: (
-      <>
-        <i className="fa fa-plus" /> {t('Annotation')}
-      </>
-    ),
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Annotation'),
     buttonStyle: 'primary',
     onClick: () => {
       handleAnnotationEdit(null);
@@ -251,7 +268,8 @@ function AnnotationList({
     },
     buttonText: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation')}
+        <Icons.PlusOutlined iconSize="m" />
+        {t('Annotation')}
       </>
     ),
   };
@@ -266,7 +284,9 @@ function AnnotationList({
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <a href="/annotationlayer/list/">{t('Back to all')}</a>
+                <Typography.Link href="/annotationlayer/list/">
+                  {t('Back to all')}
+                </Typography.Link>
               )}
             </span>
           </StyledHeader>

@@ -25,15 +25,15 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestPrestoDbEngineSpec(TestDbEngineSpec):
-    @skipUnless(TestDbEngineSpec.is_module_installed("pyhive"), "pyhive not installed")
+class TestPrestoDbEngineSpec(SupersetTestCase):
+    @skipUnless(SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed")
     def test_get_datatype_presto(self):
-        self.assertEqual("STRING", PrestoEngineSpec.get_datatype("string"))
+        assert "STRING" == PrestoEngineSpec.get_datatype("string")
 
     def test_get_view_names_with_schema(self):
         database = mock.MagicMock()
@@ -86,10 +86,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         row.Column, row.Type, row.Null = column
         inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
-        self.assertEqual(len(expected_results), len(results))
-        for expected_result, result in zip(expected_results, results):
-            self.assertEqual(expected_result[0], result["column_name"])
-            self.assertEqual(expected_result[1], str(result["type"]))
+        assert len(expected_results) == len(results)
+        for expected_result, result in zip(expected_results, results, strict=False):
+            assert expected_result[0] == result["column_name"]
+            assert expected_result[1] == str(result["type"])
 
     def test_presto_get_column(self):
         presto_column = ("column_name", "boolean", "")
@@ -191,9 +191,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "label": 'column."quoted.nested obj"',
             },
         ]
-        for actual_result, expected_result in zip(actual_results, expected_results):
-            self.assertEqual(actual_result.element.name, expected_result["column_name"])
-            self.assertEqual(actual_result.name, expected_result["label"])
+        for actual_result, expected_result in zip(
+            actual_results, expected_results, strict=False
+        ):
+            assert actual_result.element.name == expected_result["column_name"]
+            assert actual_result.name == expected_result["label"]
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -260,9 +262,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             }
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -343,9 +345,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             },
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -427,9 +429,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             },
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -548,9 +550,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             },
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     def test_presto_get_extra_table_metadata(self):
         database = mock.Mock()
@@ -582,7 +584,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             columns,
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-        self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
+        assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
     def test_query_cost_formatter(self):
         raw_cost = [
@@ -645,7 +647,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "Network cost": "354 G",
             }
         ]
-        self.assertEqual(formatted_cost, expected)
+        assert formatted_cost == expected
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -752,9 +754,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             },
         ]
 
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
     @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
@@ -905,22 +907,26 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
 
     def test_estimate_statement_cost(self):
+        mock_database = mock.MagicMock()
         mock_cursor = mock.MagicMock()
         estimate_json = {"a": "b"}
         mock_cursor.fetchone.return_value = [
             '{"a": "b"}',
         ]
         result = PrestoEngineSpec.estimate_statement_cost(
-            "SELECT * FROM brth_names", mock_cursor
+            mock_database,
+            "SELECT * FROM brth_names",
+            mock_cursor,
         )
         assert result == estimate_json
 
     def test_estimate_statement_cost_invalid_syntax(self):
+        mock_database = mock.MagicMock()
         mock_cursor = mock.MagicMock()
         mock_cursor.execute.side_effect = Exception()
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             PrestoEngineSpec.estimate_statement_cost(
-                "DROP TABLE brth_names", mock_cursor
+                mock_database, "DROP TABLE brth_names", mock_cursor
             )
 
     def test_get_create_view(self):
@@ -942,7 +948,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         database.get_raw_connection().__enter__().cursor().execute = mock_execute
         schema = "schema"
         table = "table"
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
 
     def test_get_create_view_database_error(self):
@@ -968,7 +974,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec._extract_error_message(exception)
         assert result == "name at location: msg"
 
-    def test_extract_error_message_db_errr(self):
+    def test_extract_error_message_db_error(self):
         from pyhive.exc import DatabaseError
 
         exception = DatabaseError({"message": "Err message"})
@@ -993,7 +999,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1002,
-                            "message": "Issue 1002 - The database returned an unexpected error.",
+                            "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                         }
                     ],
                 },
@@ -1012,11 +1018,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1004,
-                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -1027,7 +1033,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message="The table \"'tpch.tiny.region2'\" does not exist. A valid table must be used to run this query.",
+                message="The table \"'tpch.tiny.region2'\" does not exist. A valid table must be used to run this query.",  # noqa: E501
                 error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -1035,11 +1041,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -1050,7 +1056,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='The schema "tin" does not exist. A valid schema must be used to run this query.',
+                message='The schema "tin" does not exist. A valid schema must be used to run this query.',  # noqa: E501
                 error_type=SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -1058,11 +1064,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1016,
-                            "message": "Issue 1005 - The schema was deleted or renamed in the database.",
+                            "message": "Issue 1005 - The schema was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -1081,14 +1087,14 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
+                            "message": "Issue 1014 - Either the username or the password is wrong.",  # noqa: E501
                         }
                     ],
                 },
             )
         ]
 
-        msg = "Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known"
+        msg = "Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known"  # noqa: E501
         result = PrestoEngineSpec.extract_errors(
             Exception(msg), {"hostname": "badhost"}
         )
@@ -1102,7 +1108,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1007,
-                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            "message": "Issue 1007 - The hostname provided can't be resolved.",  # noqa: E501
                         }
                     ],
                 },
@@ -1115,7 +1121,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
         assert result == [
             SupersetError(
-                message='The host "badhost" might be down, and can\'t be reached on port 12345.',
+                message='The host "badhost" might be down, and can\'t be reached on port 12345.',  # noqa: E501
                 error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -1123,7 +1129,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1009,
-                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",  # noqa: E501
                         }
                     ],
                 },
@@ -1160,25 +1166,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",  # noqa: E501
                         }
                     ],
                 },
             )
         ]
-
-
-def test_is_readonly():
-    def is_readonly(sql: str) -> bool:
-        return PrestoEngineSpec.is_readonly_query(ParsedQuery(sql))
-
-    assert not is_readonly("SET hivevar:desc='Legislators'")
-    assert not is_readonly("UPDATE t1 SET col1 = NULL")
-    assert not is_readonly("INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA")
-    assert is_readonly("SHOW LOCKS test EXTENDED")
-    assert is_readonly("EXPLAIN SELECT 1")
-    assert is_readonly("SELECT 1")
-    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
 
 
 def test_get_catalog_names(app_context: AppContext) -> None:

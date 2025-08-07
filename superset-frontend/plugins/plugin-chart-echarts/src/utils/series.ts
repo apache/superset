@@ -33,8 +33,10 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SortSeriesType } from '@superset-ui/chart-controls';
-import { format, LegendComponentOption, SeriesOption } from 'echarts';
+import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
+import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,
@@ -154,9 +156,15 @@ export function sortAndFilterSeries(
     case SortSeriesType.Avg:
       aggregator = name => ({ name, value: meanBy(rows, name) });
       break;
-    default:
-      aggregator = name => ({ name, value: name.toLowerCase() });
-      break;
+    default: {
+      const collator = new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      return seriesNames.sort((a, b) =>
+        sortSeriesAscending ? collator.compare(a, b) : collator.compare(b, a),
+      );
+    }
   }
 
   const sortedValues = seriesNames.map(aggregator);
@@ -361,7 +369,7 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === 'boolean') {
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.Temporal) {
@@ -423,6 +431,7 @@ export function getLegendProps(
   theme: SupersetTheme,
   zoomable = false,
   legendState?: LegendState,
+  padding?: LegendPaddingType,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -435,19 +444,36 @@ export function getLegendProps(
     selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
-      fontFamily: theme.typography.families.sansSerif,
-      fontSize: theme.typography.sizes.s,
-      color: theme.colors.grayscale.base,
-      borderColor: theme.colors.grayscale.base,
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeSM,
+      color: theme.colorText,
+      borderColor: theme.colorBorder,
     },
   };
+  const MIN_LEGEND_WIDTH = 0;
+  const MARGIN_GUTTER = 45;
+  const getLegendWidth = (paddingWidth: number) =>
+    Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
+      if (padding?.left) {
+        legend.textStyle = {
+          overflow: 'truncate',
+          width: getLegendWidth(padding.left),
+        };
+      }
       break;
     case LegendOrientation.Right:
       legend.right = 0;
       legend.top = zoomable ? TIMESERIES_CONSTANTS.legendRightTopOffset : 0;
+      if (padding?.right) {
+        legend.textStyle = {
+          overflow: 'truncate',
+          width: getLegendWidth(padding.right),
+        };
+      }
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
@@ -465,7 +491,7 @@ export function getChartPadding(
   show: boolean,
   orientation: LegendOrientation,
   margin?: string | number | null,
-  padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  padding?: LegendPaddingType,
   isHorizontal?: boolean,
 ): {
   bottom: number;
@@ -639,4 +665,40 @@ export function getTimeCompareStackId(
       return name?.toString().includes(value);
     }) || defaultId
   );
+}
+
+const TOOLTIP_SERIES_KEY = 'seriesId';
+export function extractTooltipKeys(
+  forecastValue: any[],
+  yIndex: number,
+  richTooltip?: boolean,
+  tooltipSortByMetric?: boolean,
+): string[] {
+  if (richTooltip && tooltipSortByMetric) {
+    return forecastValue
+      .slice()
+      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .map(value => value[TOOLTIP_SERIES_KEY]);
+  }
+  if (richTooltip) {
+    return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
+  }
+  return [forecastValue[0][TOOLTIP_SERIES_KEY]];
+}
+
+export function groupData(data: DataRecord[], by?: string | null) {
+  const seriesMap: Map<DataRecordValue | undefined, DataRecord[]> = new Map();
+  if (by) {
+    data.forEach(datum => {
+      const value = seriesMap.get(datum[by]);
+      if (value) {
+        value.push(datum);
+      } else {
+        seriesMap.set(datum[by], [datum]);
+      }
+    });
+  } else {
+    seriesMap.set(undefined, data);
+  }
+  return seriesMap;
 }

@@ -17,11 +17,13 @@
  * under the License.
  */
 import cx from 'classnames';
-import { Component } from 'react';
+import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, logging } from '@superset-ui/core';
-import { debounce, isEqual } from 'lodash';
-import { withRouter } from 'react-router-dom';
+import { debounce } from 'lodash';
+import { useHistory } from 'react-router-dom';
+import { bindActionCreators } from 'redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -32,13 +34,31 @@ import {
   LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
-import { areObjectsEqual } from 'src/reduxUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
+import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
-import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from '../../../components/MessageToasts/actions';
+import {
+  setFocusedFilterField,
+  toggleExpandSlice,
+  unsetFocusedFilterField,
+} from '../../actions/dashboardState';
+import { changeFilter } from '../../actions/dashboardFilters';
+import { refreshChart } from '../../../components/Chart/chartAction';
+import { logEvent } from '../../../logger/actions';
+import {
+  getActiveFilters,
+  getAppliedFilterValues,
+} from '../../util/activeDashboardFilters';
+import getFormDataWithExtraFilters from '../../util/charts/getFormDataWithExtraFilters';
+import { PLACEHOLDER_DATASOURCE } from '../../constants';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -50,53 +70,15 @@ const propTypes = {
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
   setControlValue: PropTypes.func,
-
-  // from redux
-  chart: chartPropShape.isRequired,
-  formData: PropTypes.object.isRequired,
-  labelsColor: PropTypes.object,
-  labelsColorMap: PropTypes.object,
-  datasource: PropTypes.object,
-  slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
-  timeout: PropTypes.number.isRequired,
-  maxRows: PropTypes.number.isRequired,
-  // all active filter fields in dashboard
-  filters: PropTypes.object.isRequired,
-  refreshChart: PropTypes.func.isRequired,
-  logEvent: PropTypes.func.isRequired,
-  toggleExpandSlice: PropTypes.func.isRequired,
-  changeFilter: PropTypes.func.isRequired,
-  setFocusedFilterField: PropTypes.func.isRequired,
-  unsetFocusedFilterField: PropTypes.func.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  isExpanded: PropTypes.bool.isRequired,
-  isCached: PropTypes.bool,
-  supersetCanExplore: PropTypes.bool.isRequired,
-  supersetCanShare: PropTypes.bool.isRequired,
-  supersetCanCSV: PropTypes.bool.isRequired,
-  addSuccessToast: PropTypes.func.isRequired,
-  addDangerToast: PropTypes.func.isRequired,
-  ownState: PropTypes.object,
-  filterState: PropTypes.object,
-  postTransformProps: PropTypes.func,
-  datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isFullSize: PropTypes.bool,
+  extraControls: PropTypes.object,
   isInView: PropTypes.bool,
-  emitCrossFilters: PropTypes.bool,
-};
-
-const defaultProps = {
-  isCached: false,
-  isComponentVisible: true,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
 // resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 500;
-const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
-  prop =>
-    prop !== 'width' && prop !== 'height' && prop !== 'isComponentVisible',
-);
 const DEFAULT_HEADER_HEIGHT = 22;
 
 const ChartWrapper = styled.div`
@@ -121,421 +103,468 @@ const SliceContainer = styled.div`
   max-height: 100%;
 `;
 
-class Chart extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      width: props.width,
-      height: props.height,
-      descriptionHeight: 0,
-    };
+const EMPTY_OBJECT = {};
 
-    this.changeFilter = this.changeFilter.bind(this);
-    this.handleFilterMenuOpen = this.handleFilterMenuOpen.bind(this);
-    this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
-    this.exportCSV = this.exportCSV.bind(this);
-    this.exportPivotCSV = this.exportPivotCSV.bind(this);
-    this.exportFullCSV = this.exportFullCSV.bind(this);
-    this.exportXLSX = this.exportXLSX.bind(this);
-    this.exportFullXLSX = this.exportFullXLSX.bind(this);
-    this.forceRefresh = this.forceRefresh.bind(this);
-    this.resize = debounce(this.resize.bind(this), RESIZE_TIMEOUT);
-    this.setDescriptionRef = this.setDescriptionRef.bind(this);
-    this.setHeaderRef = this.setHeaderRef.bind(this);
-    this.getChartHeight = this.getChartHeight.bind(this);
-    this.getDescriptionHeight = this.getDescriptionHeight.bind(this);
-  }
+const Chart = props => {
+  const dispatch = useDispatch();
+  const descriptionRef = useRef(null);
+  const headerRef = useRef(null);
 
-  shouldComponentUpdate(nextProps, nextState) {
-    // this logic mostly pertains to chart resizing. we keep a copy of the dimensions in
-    // state so that we can buffer component size updates and only update on the final call
-    // which improves performance significantly
-    if (
-      nextState.width !== this.state.width ||
-      nextState.height !== this.state.height ||
-      nextState.descriptionHeight !== this.state.descriptionHeight ||
-      !isEqual(nextProps.datasource, this.props.datasource)
-    ) {
-      return true;
+  const boundActionCreators = useMemo(
+    () =>
+      bindActionCreators(
+        {
+          addSuccessToast,
+          addDangerToast,
+          toggleExpandSlice,
+          changeFilter,
+          setFocusedFilterField,
+          unsetFocusedFilterField,
+          refreshChart,
+          logEvent,
+        },
+        dispatch,
+      ),
+    [dispatch],
+  );
+
+  const chart = useSelector(state => state.charts[props.id] || EMPTY_OBJECT);
+  const { queriesResponse, chartUpdateEndTime, chartStatus, annotationQuery } =
+    chart;
+
+  const slice = useSelector(
+    state => state.sliceEntities.slices[props.id] || EMPTY_OBJECT,
+  );
+  const editMode = useSelector(state => state.dashboardState.editMode);
+  const isExpanded = useSelector(
+    state => !!state.dashboardState.expandedSlices[props.id],
+  );
+  const supersetCanExplore = useSelector(
+    state => !!state.dashboardInfo.superset_can_explore,
+  );
+  const supersetCanShare = useSelector(
+    state => !!state.dashboardInfo.superset_can_share,
+  );
+  const supersetCanCSV = useSelector(
+    state => !!state.dashboardInfo.superset_can_csv,
+  );
+  const timeout = useSelector(
+    state => state.dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+  );
+  const emitCrossFilters = useSelector(
+    state => !!state.dashboardInfo.crossFiltersEnabled,
+  );
+  const maxRows = useSelector(
+    state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
+  );
+  const datasource = useSelector(
+    state =>
+      (chart &&
+        chart.form_data &&
+        state.datasources[chart.form_data.datasource]) ||
+      PLACEHOLDER_DATASOURCE,
+  );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
+
+  const isCached = useMemo(
+    // eslint-disable-next-line camelcase
+    () => queriesResponse?.map(({ is_cached }) => is_cached) || [],
+    [queriesResponse],
+  );
+
+  const [descriptionHeight, setDescriptionHeight] = useState(0);
+  const [height, setHeight] = useState(props.height);
+  const [width, setWidth] = useState(props.width);
+  const history = useHistory();
+  const resize = useCallback(
+    debounce(() => {
+      const { width, height } = props;
+      setHeight(height);
+      setWidth(width);
+    }, RESIZE_TIMEOUT),
+    [props.width, props.height],
+  );
+
+  const ownColorScheme = chart.form_data?.color_scheme;
+
+  const addFilter = useCallback(
+    (newSelectedValues = {}) => {
+      boundActionCreators.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+        id: chart.id,
+        columns: Object.keys(newSelectedValues).filter(
+          key => newSelectedValues[key] !== null,
+        ),
+      });
+      boundActionCreators.changeFilter(chart.id, newSelectedValues);
+    },
+    [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
+  );
+
+  useEffect(() => {
+    if (isExpanded) {
+      const descriptionHeight =
+        isExpanded && descriptionRef.current
+          ? descriptionRef.current?.offsetHeight
+          : 0;
+      setDescriptionHeight(descriptionHeight);
     }
+  }, [isExpanded]);
 
-    // allow chart to update if the status changed and the previous status was loading.
-    if (
-      this.props?.chart?.chartStatus !== nextProps?.chart?.chartStatus &&
-      this.props?.chart?.chartStatus === 'loading'
-    ) {
-      return true;
-    }
+  useEffect(
+    () => () => {
+      resize.cancel();
+    },
+    [resize],
+  );
 
-    // allow chart update/re-render only if visible:
-    // under selected tab or no tab layout
-    if (nextProps.isComponentVisible) {
-      if (nextProps.chart.triggerQuery) {
-        return true;
-      }
+  useEffect(() => {
+    resize();
+  }, [resize, props.isFullSize]);
 
-      if (nextProps.isFullSize !== this.props.isFullSize) {
-        this.resize();
-        return false;
-      }
-
-      if (
-        nextProps.width !== this.props.width ||
-        nextProps.height !== this.props.height ||
-        nextProps.width !== this.state.width ||
-        nextProps.height !== this.state.height
-      ) {
-        this.resize();
-      }
-
-      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-        // use deep objects equality comparison to prevent
-        // unnecessary updates when objects references change
-        if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
-          return true;
-        }
-      }
-    } else if (
-      // chart should re-render if color scheme or label color was changed
-      nextProps.formData?.color_scheme !== this.props.formData?.color_scheme ||
-      !areObjectsEqual(
-        nextProps.formData?.label_colors,
-        this.props.formData?.label_colors,
-      )
-    ) {
-      return true;
-    }
-
-    // `cacheBusterProp` is jected by react-hot-loader
-    return this.props.cacheBusterProp !== nextProps.cacheBusterProp;
-  }
-
-  componentDidMount() {
-    if (this.props.isExpanded) {
-      const descriptionHeight = this.getDescriptionHeight();
-      this.setState({ descriptionHeight });
-    }
-  }
-
-  componentWillUnmount() {
-    this.resize.cancel();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.isExpanded !== prevProps.isExpanded) {
-      const descriptionHeight = this.getDescriptionHeight();
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({ descriptionHeight });
-    }
-  }
-
-  getDescriptionHeight() {
-    return this.props.isExpanded && this.descriptionRef
-      ? this.descriptionRef.offsetHeight
-      : 0;
-  }
-
-  getChartHeight() {
-    const headerHeight = this.getHeaderHeight();
-    return Math.max(
-      this.state.height - headerHeight - this.state.descriptionHeight,
-      20,
-    );
-  }
-
-  getHeaderHeight() {
-    if (this.headerRef) {
-      const computedStyle = getComputedStyle(this.headerRef).getPropertyValue(
-        'margin-bottom',
-      );
-      const marginBottom = parseInt(computedStyle, 10) || 0;
-      return this.headerRef.offsetHeight + marginBottom;
+  const getHeaderHeight = useCallback(() => {
+    if (headerRef.current) {
+      const computedMarginBottom = getComputedStyle(
+        headerRef.current,
+      ).getPropertyValue('margin-bottom');
+      const marginBottom = parseInt(computedMarginBottom, 10) || 0;
+      const computedHeight = getComputedStyle(
+        headerRef.current,
+      ).getPropertyValue('height');
+      const height = parseInt(computedHeight, 10) || DEFAULT_HEADER_HEIGHT;
+      return height + marginBottom;
     }
     return DEFAULT_HEADER_HEIGHT;
-  }
+  }, [headerRef]);
 
-  setDescriptionRef(ref) {
-    this.descriptionRef = ref;
-  }
+  const getChartHeight = useCallback(() => {
+    const headerHeight = getHeaderHeight();
+    return Math.max(height - headerHeight - descriptionHeight, 20);
+  }, [getHeaderHeight, height, descriptionHeight]);
 
-  setHeaderRef(ref) {
-    this.headerRef = ref;
-  }
+  const handleFilterMenuOpen = useCallback(
+    (chartId, column) => {
+      boundActionCreators.setFocusedFilterField(chartId, column);
+    },
+    [boundActionCreators.setFocusedFilterField],
+  );
 
-  resize() {
-    const { width, height } = this.props;
-    this.setState(() => ({ width, height }));
-  }
+  const handleFilterMenuClose = useCallback(
+    (chartId, column) => {
+      boundActionCreators.unsetFocusedFilterField(chartId, column);
+    },
+    [boundActionCreators.unsetFocusedFilterField],
+  );
 
-  changeFilter(newSelectedValues = {}) {
-    this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
-      id: this.props.chart.id,
-      columns: Object.keys(newSelectedValues).filter(
-        key => newSelectedValues[key] !== null,
-      ),
+  const logExploreChart = useCallback(() => {
+    boundActionCreators.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
+      slice_id: slice.slice_id,
+      is_cached: isCached,
     });
-    this.props.changeFilter(this.props.chart.id, newSelectedValues);
-  }
+  }, [boundActionCreators.logEvent, slice.slice_id, isCached]);
 
-  handleFilterMenuOpen(chartId, column) {
-    this.props.setFocusedFilterField(chartId, column);
-  }
+  const chartConfiguration = useSelector(
+    state => state.dashboardInfo.metadata?.chart_configuration,
+  );
+  const colorScheme = useSelector(state => state.dashboardState.colorScheme);
+  const colorNamespace = useSelector(
+    state => state.dashboardState.colorNamespace,
+  );
+  const datasetsStatus = useSelector(
+    state => state.dashboardState.datasetsStatus,
+  );
+  const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
+  const nativeFilters = useSelector(state => state.nativeFilters?.filters);
+  const dataMask = useSelector(state => state.dataMask);
+  const labelsColor = useSelector(
+    state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
+  );
+  const labelsColorMap = useSelector(
+    state => state.dashboardInfo?.metadata?.map_label_colors || EMPTY_OBJECT,
+  );
+  const sharedLabelsColors = useSelector(state =>
+    enforceSharedLabelsColorsArray(
+      state.dashboardInfo?.metadata?.shared_label_colors,
+    ),
+  );
 
-  handleFilterMenuClose(chartId, column) {
-    this.props.unsetFocusedFilterField(chartId, column);
-  }
-
-  logExploreChart = () => {
-    this.props.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
-      slice_id: this.props.slice.slice_id,
-      is_cached: this.props.isCached,
-    });
-  };
-
-  onExploreChart = async clickEvent => {
-    const isOpenInNewTab =
-      clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
-    try {
-      const lastTabId = window.localStorage.getItem('last_tab_id');
-      const nextTabId = lastTabId
-        ? String(Number.parseInt(lastTabId, 10) + 1)
-        : undefined;
-      const key = await postFormData(
-        this.props.datasource.id,
-        this.props.datasource.type,
-        this.props.formData,
-        this.props.slice.slice_id,
-        nextTabId,
-      );
-      const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-        [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
-      });
-      if (isOpenInNewTab) {
-        window.open(url, '_blank', 'noreferrer');
-      } else {
-        this.props.history.push(url);
-      }
-    } catch (error) {
-      logging.error(error);
-      this.props.addDangerToast(t('An error occurred while opening Explore'));
-    }
-  };
-
-  exportFullCSV() {
-    this.exportCSV(true);
-  }
-
-  exportCSV(isFullCSV = false) {
-    this.exportTable('csv', isFullCSV);
-  }
-
-  exportPivotCSV() {
-    this.exportTable('csv', false, true);
-  }
-
-  exportXLSX() {
-    this.exportTable('xlsx', false);
-  }
-
-  exportFullXLSX() {
-    this.exportTable('xlsx', true);
-  }
-
-  exportTable(format, isFullCSV, isPivot = false) {
-    const logAction =
-      format === 'csv'
-        ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
-        : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
-    this.props.logEvent(logAction, {
-      slice_id: this.props.slice.slice_id,
-      is_cached: this.props.isCached,
-    });
-    exportChart({
-      formData: isFullCSV
-        ? { ...this.props.formData, row_limit: this.props.maxRows }
-        : this.props.formData,
-      resultType: isPivot ? 'post_processed' : 'full',
-      resultFormat: format,
-      force: true,
-      ownState: this.props.ownState,
-    });
-  }
-
-  forceRefresh() {
-    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: this.props.slice.slice_id,
-      is_cached: this.props.isCached,
-    });
-    return this.props.refreshChart(
-      this.props.chart.id,
-      true,
-      this.props.dashboardId,
-    );
-  }
-
-  render() {
-    const {
-      id,
-      componentId,
-      dashboardId,
+  const formData = useMemo(
+    () =>
+      getFormDataWithExtraFilters({
+        chart,
+        chartConfiguration,
+        filters: getAppliedFilterValues(props.id),
+        colorScheme,
+        colorNamespace,
+        sliceId: props.id,
+        nativeFilters,
+        allSliceIds,
+        dataMask,
+        extraControls: props.extraControls,
+        labelsColor,
+        labelsColorMap,
+        sharedLabelsColors,
+        ownColorScheme,
+      }),
+    [
       chart,
-      slice,
-      datasource,
-      isExpanded,
-      editMode,
-      filters,
-      formData,
+      chartConfiguration,
+      props.id,
+      props.extraControls,
+      colorScheme,
+      colorNamespace,
+      nativeFilters,
+      allSliceIds,
+      dataMask,
       labelsColor,
       labelsColorMap,
-      updateSliceName,
-      sliceName,
-      toggleExpandSlice,
-      timeout,
-      supersetCanExplore,
-      supersetCanShare,
-      supersetCanCSV,
-      addSuccessToast,
-      addDangerToast,
-      ownState,
-      filterState,
-      handleToggleFullSize,
-      isFullSize,
-      setControlValue,
-      postTransformProps,
-      datasetsStatus,
-      isInView,
-      emitCrossFilters,
-      logEvent,
-    } = this.props;
+      sharedLabelsColors,
+      ownColorScheme,
+    ],
+  );
 
-    const { width } = this.state;
-    // this prevents throwing in the case that a gridComponent
-    // references a chart that is not associated with the dashboard
-    if (!chart || !slice) {
-      return <MissingChart height={this.getChartHeight()} />;
-    }
+  formData.dashboardId = dashboardInfo.id;
 
-    const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
-    const isLoading = chartStatus === 'loading';
+  const onExploreChart = useCallback(
+    async clickEvent => {
+      const isOpenInNewTab =
+        clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
+      try {
+        const lastTabId = window.localStorage.getItem('last_tab_id');
+        const nextTabId = lastTabId
+          ? String(Number.parseInt(lastTabId, 10) + 1)
+          : undefined;
+        const key = await postFormData(
+          datasource.id,
+          datasource.type,
+          formData,
+          slice.slice_id,
+          nextTabId,
+        );
+        const url = mountExploreUrl(null, {
+          [URL_PARAMS.formDataKey.name]: key,
+          [URL_PARAMS.sliceId.name]: slice.slice_id,
+        });
+        if (isOpenInNewTab) {
+          window.open(url, '_blank', 'noreferrer');
+        } else {
+          history.push(url);
+        }
+      } catch (error) {
+        logging.error(error);
+        boundActionCreators.addDangerToast(
+          t('An error occurred while opening Explore'),
+        );
+      }
+    },
+    [
+      datasource.id,
+      datasource.type,
+      formData,
+      slice.slice_id,
+      boundActionCreators.addDangerToast,
+      history,
+    ],
+  );
+
+  const exportTable = useCallback(
+    (format, isFullCSV, isPivot = false) => {
+      const logAction =
+        format === 'csv'
+          ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+          : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
+      boundActionCreators.logEvent(logAction, {
+        slice_id: slice.slice_id,
+        is_cached: isCached,
+      });
+      exportChart({
+        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
+        resultType: isPivot ? 'post_processed' : 'full',
+        resultFormat: format,
+        force: true,
+        ownState: dataMask[props.id]?.ownState,
+      });
+    },
+    [
+      slice.slice_id,
+      isCached,
+      formData,
+      props.maxRows,
+      dataMask[props.id]?.ownState,
+      boundActionCreators.logEvent,
+    ],
+  );
+
+  const exportCSV = useCallback(() => {
+    exportTable('csv', false);
+  }, [exportTable]);
+
+  const exportFullCSV = useCallback(() => {
+    exportTable('csv', true);
+  }, [exportTable]);
+
+  const exportPivotCSV = useCallback(() => {
+    exportTable('csv', false, true);
+  }, [exportTable]);
+
+  const exportXLSX = useCallback(() => {
+    exportTable('xlsx', false);
+  }, [exportTable]);
+
+  const exportFullXLSX = useCallback(() => {
+    exportTable('xlsx', true);
+  }, [exportTable]);
+
+  const forceRefresh = useCallback(() => {
+    boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: slice.slice_id,
+      is_cached: isCached,
+    });
+    return boundActionCreators.refreshChart(chart.id, true, props.dashboardId);
+  }, [
+    boundActionCreators.refreshChart,
+    chart.id,
+    props.dashboardId,
+    slice.slice_id,
+    isCached,
+    boundActionCreators.logEvent,
+  ]);
+
+  if (chart === EMPTY_OBJECT || slice === EMPTY_OBJECT) {
+    return <MissingChart height={getChartHeight()} />;
+  }
+
+  const isLoading = chartStatus === 'loading';
+  const cachedDttm =
     // eslint-disable-next-line camelcase
-    const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
-    const cachedDttm =
-      // eslint-disable-next-line camelcase
-      queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
-    const initialValues = {};
+    queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
 
-    return (
-      <SliceContainer
-        className="chart-slice"
-        data-test="chart-grid-component"
-        data-test-chart-id={id}
-        data-test-viz-type={slice.viz_type}
-        data-test-chart-name={slice.slice_name}
-      >
-        <SliceHeader
-          innerRef={this.setHeaderRef}
-          slice={slice}
-          isExpanded={isExpanded}
-          isCached={isCached}
-          cachedDttm={cachedDttm}
-          updatedDttm={chartUpdateEndTime}
-          toggleExpandSlice={toggleExpandSlice}
-          forceRefresh={this.forceRefresh}
-          editMode={editMode}
-          annotationQuery={chart.annotationQuery}
-          logExploreChart={this.logExploreChart}
-          logEvent={logEvent}
-          onExploreChart={this.onExploreChart}
-          exportCSV={this.exportCSV}
-          exportPivotCSV={this.exportPivotCSV}
-          exportXLSX={this.exportXLSX}
-          exportFullCSV={this.exportFullCSV}
-          exportFullXLSX={this.exportFullXLSX}
-          updateSliceName={updateSliceName}
-          sliceName={sliceName}
-          supersetCanExplore={supersetCanExplore}
-          supersetCanShare={supersetCanShare}
-          supersetCanCSV={supersetCanCSV}
-          componentId={componentId}
-          dashboardId={dashboardId}
-          filters={filters}
-          addSuccessToast={addSuccessToast}
-          addDangerToast={addDangerToast}
-          handleToggleFullSize={handleToggleFullSize}
-          isFullSize={isFullSize}
-          chartStatus={chart.chartStatus}
-          formData={formData}
-          width={width}
-          height={this.getHeaderHeight()}
-        />
+  return (
+    <SliceContainer
+      className="chart-slice"
+      data-test="chart-grid-component"
+      data-test-chart-id={props.id}
+      data-test-viz-type={slice.viz_type}
+      data-test-chart-name={slice.slice_name}
+    >
+      <SliceHeader
+        ref={headerRef}
+        slice={slice}
+        isExpanded={isExpanded}
+        isCached={isCached}
+        cachedDttm={cachedDttm}
+        updatedDttm={chartUpdateEndTime}
+        toggleExpandSlice={boundActionCreators.toggleExpandSlice}
+        forceRefresh={forceRefresh}
+        editMode={editMode}
+        annotationQuery={annotationQuery}
+        logExploreChart={logExploreChart}
+        logEvent={boundActionCreators.logEvent}
+        onExploreChart={onExploreChart}
+        exportCSV={exportCSV}
+        exportPivotCSV={exportPivotCSV}
+        exportXLSX={exportXLSX}
+        exportFullCSV={exportFullCSV}
+        exportFullXLSX={exportFullXLSX}
+        updateSliceName={props.updateSliceName}
+        sliceName={props.sliceName}
+        supersetCanExplore={supersetCanExplore}
+        supersetCanShare={supersetCanShare}
+        supersetCanCSV={supersetCanCSV}
+        componentId={props.componentId}
+        dashboardId={props.dashboardId}
+        filters={getActiveFilters() || EMPTY_OBJECT}
+        addSuccessToast={boundActionCreators.addSuccessToast}
+        addDangerToast={boundActionCreators.addDangerToast}
+        handleToggleFullSize={props.handleToggleFullSize}
+        isFullSize={props.isFullSize}
+        chartStatus={chartStatus}
+        formData={formData}
+        width={width}
+        height={getHeaderHeight()}
+        exportPivotExcel={exportPivotExcel}
+      />
 
-        {/*
+      {/*
           This usage of dangerouslySetInnerHTML is safe since it is being used to render
           markdown that is sanitized with nh3. See:
              https://github.com/apache/superset/pull/4390
           and
              https://github.com/apache/superset/pull/23862
         */}
-        {isExpanded && slice.description_markeddown && (
-          <div
-            className="slice_description bs-callout bs-callout-default"
-            ref={this.setDescriptionRef}
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-            role="complementary"
+      {isExpanded && slice.description_markeddown && (
+        <div
+          className="slice_description bs-callout bs-callout-default"
+          ref={descriptionRef}
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+          role="complementary"
+        />
+      )}
+
+      <ChartWrapper
+        className={cx('dashboard-chart')}
+        aria-label={slice.description}
+      >
+        {isLoading && (
+          <ChartOverlay
+            style={{
+              width,
+              height: getChartHeight(),
+            }}
           />
         )}
 
-        <ChartWrapper
-          className={cx('dashboard-chart')}
-          aria-label={slice.description}
-        >
-          {isLoading && (
-            <ChartOverlay
-              style={{
-                width,
-                height: this.getChartHeight(),
-              }}
-            />
-          )}
-
-          <ChartContainer
-            width={width}
-            height={this.getChartHeight()}
-            addFilter={this.changeFilter}
-            onFilterMenuOpen={this.handleFilterMenuOpen}
-            onFilterMenuClose={this.handleFilterMenuClose}
-            annotationData={chart.annotationData}
-            chartAlert={chart.chartAlert}
-            chartId={id}
-            chartStatus={chartStatus}
-            datasource={datasource}
-            dashboardId={dashboardId}
-            initialValues={initialValues}
-            formData={formData}
-            labelsColor={labelsColor}
-            labelsColorMap={labelsColorMap}
-            ownState={ownState}
-            filterState={filterState}
-            queriesResponse={chart.queriesResponse}
-            timeout={timeout}
-            triggerQuery={chart.triggerQuery}
-            vizType={slice.viz_type}
-            setControlValue={setControlValue}
-            postTransformProps={postTransformProps}
-            datasetsStatus={datasetsStatus}
-            isInView={isInView}
-            emitCrossFilters={emitCrossFilters}
-          />
-        </ChartWrapper>
-      </SliceContainer>
-    );
-  }
-}
+        <ChartContainer
+          width={width}
+          height={getChartHeight()}
+          addFilter={addFilter}
+          onFilterMenuOpen={handleFilterMenuOpen}
+          onFilterMenuClose={handleFilterMenuClose}
+          annotationData={chart.annotationData}
+          chartAlert={chart.chartAlert}
+          chartId={props.id}
+          chartStatus={chartStatus}
+          datasource={datasource}
+          dashboardId={props.dashboardId}
+          initialValues={EMPTY_OBJECT}
+          formData={formData}
+          labelsColor={labelsColor}
+          labelsColorMap={labelsColorMap}
+          ownState={dataMask[props.id]?.ownState}
+          filterState={dataMask[props.id]?.filterState}
+          queriesResponse={chart.queriesResponse}
+          timeout={timeout}
+          triggerQuery={chart.triggerQuery}
+          vizType={slice.viz_type}
+          setControlValue={props.setControlValue}
+          datasetsStatus={datasetsStatus}
+          isInView={props.isInView}
+          emitCrossFilters={emitCrossFilters}
+        />
+      </ChartWrapper>
+    </SliceContainer>
+  );
+};
 
 Chart.propTypes = propTypes;
-Chart.defaultProps = defaultProps;
 
-export default withRouter(Chart);
+export default memo(Chart, (prevProps, nextProps) => {
+  if (prevProps.cacheBusterProp !== nextProps.cacheBusterProp) {
+    return false;
+  }
+  return (
+    !nextProps.isComponentVisible ||
+    (prevProps.isInView === nextProps.isInView &&
+      prevProps.componentId === nextProps.componentId &&
+      prevProps.id === nextProps.id &&
+      prevProps.dashboardId === nextProps.dashboardId &&
+      prevProps.extraControls === nextProps.extraControls &&
+      prevProps.handleToggleFullSize === nextProps.handleToggleFullSize &&
+      prevProps.isFullSize === nextProps.isFullSize &&
+      prevProps.setControlValue === nextProps.setControlValue &&
+      prevProps.sliceName === nextProps.sliceName &&
+      prevProps.updateSliceName === nextProps.updateSliceName &&
+      prevProps.width === nextProps.width &&
+      prevProps.height === nextProps.height)
+  );
+});

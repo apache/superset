@@ -78,6 +78,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['series_limit'],
         ['series_limit_metric'],
+        ['row_limit'],
         [
           {
             name: 'whiskerOptions',
@@ -94,7 +95,9 @@ const config: ControlPanelConfig = {
                 ['Tukey', t('Tukey')],
                 ['Min/max (no outliers)', t('Min/max (no outliers)')],
                 ['2/98 percentiles', t('2/98 percentiles')],
+                ['5/95 percentiles', t('5/95 percentiles')],
                 ['9/91 percentiles', t('9/91 percentiles')],
+                ['10/90 percentiles', t('10/90 percentiles')],
               ],
             },
           },

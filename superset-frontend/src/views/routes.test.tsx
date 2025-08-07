@@ -28,6 +28,6 @@ describe('isFrontendRoute', () => {
   });
 
   it('returns false if a route does not match', () => {
-    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
+    expect(isFrontendRoute('/nonexistent/path/')).toBe(false);
   });
 });

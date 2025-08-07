@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import { renderHook } from '@testing-library/react-hooks';
 import mockState from 'spec/fixtures/mockState';
@@ -29,7 +29,6 @@ const CONTEXT_MENU_TEST_ID = 'chart-context-menu';
 
 // @ts-ignore
 global.featureFlags = {
-  [FeatureFlag.DashboardCrossFilters]: true,
   [FeatureFlag.DrillToDetail]: true,
   [FeatureFlag.DrillBy]: true,
 };
@@ -48,7 +47,7 @@ const setup = ({
   const { result } = renderHook(() =>
     useContextMenu(
       sliceId,
-      { datasource: '1__table', viz_type: 'pie' },
+      { datasource: '1__table', viz_type: VizType.Pie },
       onSelection,
       displayedItems,
       additionalConfig,
@@ -65,6 +64,7 @@ const setup = ({
             ['can_explore', 'Superset'],
             ['can_samples', 'Datasource'],
             ['can_write', 'ExploreFormDataRestApi'],
+            ['can_get_drill_info', 'Dataset'],
           ],
         },
       },
@@ -93,12 +93,13 @@ test('Context menu contains all displayed items only', () => {
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
-test('Context menu shows "Drill by" with `can_explore` & `can_write` perms', () => {
+test('Context menu shows "Drill by" with `can_drill`, `can_write` & `can_get_drill_info`  perms', () => {
   const result = setup({
     roles: {
       Admin: [
         ['can_write', 'ExploreFormDataRestApi'],
-        ['can_explore', 'Superset'],
+        ['can_drill', 'Dashboard'],
+        ['can_get_drill_info', 'Dataset'],
       ],
     },
   });
@@ -106,26 +107,14 @@ test('Context menu shows "Drill by" with `can_explore` & `can_write` perms', () 
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
-test('Context menu shows "Drill by" with `can_drill` & `can_write` perms', () => {
-  const result = setup({
-    roles: {
-      Admin: [
-        ['can_write', 'ExploreFormDataRestApi'],
-        ['can_drill', 'Dashboard'],
-      ],
-    },
-  });
-  result.current.onContextMenu(0, 0, {});
-  expect(screen.getByText('Drill by')).toBeInTheDocument();
-});
-
-test('Context menu shows "Drill by" with `can_drill` & `can_explore` + `can_write` perms', () => {
+test('Context menu shows "Drill by" with `can_drill`, `can_get_drill_info` & `can_explore` + `can_write` perms', () => {
   const result = setup({
     roles: {
       Admin: [
         ['can_write', 'ExploreFormDataRestApi'],
         ['can_explore', 'Superset'],
         ['can_drill', 'Dashboard'],
+        ['can_get_drill_info', 'Dataset'],
       ],
     },
   });
@@ -153,12 +142,40 @@ test('Context menu does not show "Drill by" with just `can_dril` perm', () => {
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
 });
 
-test('Context menu shows "Drill to detail" with `can_samples` and `can_explore` perms', () => {
+test('Context menu does not show "Drill by" with just `can_dril` & `can_write` perms', () => {
+  const result = setup({
+    roles: {
+      Admin: [
+        ['can_drill', 'Dashboard'],
+        ['can_write', 'ExploreFormDataRestApi'],
+      ],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
+});
+
+test('Context menu does not show "Drill by" with just `can_drill`, `can_explore` & `can_write` perms', () => {
+  const result = setup({
+    roles: {
+      Admin: [
+        ['can_write', 'ExploreFormDataRestApi'],
+        ['can_explore', 'Superset'],
+        ['can_drill', 'Dashboard'],
+      ],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
+});
+
+test('Context menu shows "Drill to detail" with `can_samples`, `can_explore` & `can_get_drill_info` perms', () => {
   const result = setup({
     roles: {
       Admin: [
         ['can_samples', 'Datasource'],
         ['can_explore', 'Superset'],
+        ['can_get_drill_info', 'Dataset'],
       ],
     },
   });
@@ -166,12 +183,13 @@ test('Context menu shows "Drill to detail" with `can_samples` and `can_explore` 
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Context menu shows "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+test('Context menu shows "Drill to detail" with `can_drill`, `can_samples` & `can_get_drill_info` perms', () => {
   const result = setup({
     roles: {
       Admin: [
         ['can_samples', 'Datasource'],
         ['can_drill', 'Dashboard'],
+        ['can_get_drill_info', 'Dataset'],
       ],
     },
   });
@@ -179,13 +197,14 @@ test('Context menu shows "Drill to detail" with `can_drill` & `can_samples` perm
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Context menu shows "Drill to detail" with `can_drill` & `can_explore` + `can_write` perms', () => {
+test('Context menu shows "Drill to detail" with `can_drill`, `can_get_drill_info` & `can_explore` + `can_samples` perms', () => {
   const result = setup({
     roles: {
       Admin: [
         ['can_samples', 'Datasource'],
         ['can_explore', 'Superset'],
         ['can_drill', 'Dashboard'],
+        ['can_get_drill_info', 'Dataset'],
       ],
     },
   });
@@ -203,10 +222,50 @@ test('Context menu does not show "Drill to detail" with neither of required perm
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Context menu does not show "Drill to detail" with just `can_dril` perm', () => {
+test('Context menu does not show "Drill to detail" with just `can_drill` perm', () => {
   const result = setup({
     roles: {
       Admin: [['can_drill', 'Dashboard']],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Context menu does not show "Drill to detail" with just `can_drill` & `can_samples` perms', () => {
+  const result = setup({
+    roles: {
+      Admin: [
+        ['can_drill', 'Dashboard'],
+        ['can_samples', 'Datasource'],
+      ],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Context menu does not show "Drill to detail" with `can_samples` & `can_explore` perms', () => {
+  const result = setup({
+    roles: {
+      Admin: [
+        ['can_samples', 'Datasource'],
+        ['can_explore', 'Superset'],
+      ],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Context menu does not show "Drill to detail" with `can_drill`, `can_explore` + `can_samples` perms', () => {
+  const result = setup({
+    roles: {
+      Admin: [
+        ['can_samples', 'Datasource'],
+        ['can_explore', 'Superset'],
+        ['can_drill', 'Dashboard'],
+      ],
     },
   });
   result.current.onContextMenu(0, 0, {});

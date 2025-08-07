@@ -47,10 +47,16 @@ from superset.row_level_security.schemas import (
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    RelatedFieldFilter,
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedRoles
+from superset.views.filters import (
+    BaseFilterRelatedRoles,
+    BaseFilterRelatedUsers,
+    FilterRelatedOwners,
+    FilterRelatedTables,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,9 +135,14 @@ class RLSRestApi(BaseSupersetModelRestApi):
     edit_model_schema = RLSPutSchema()
 
     allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
+    related_field_filters = {
+        "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+    }
     base_related_field_filters = {
         "tables": [["id", DatasourceFilter, lambda: []]],
         "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
 
     openapi_spec_methods = openapi_spec_methods_override

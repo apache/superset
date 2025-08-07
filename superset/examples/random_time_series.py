@@ -14,21 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 
 import superset.utils.database as database_utils
-from superset import app, db
+from superset import db
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
+    read_example_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_random_time_series_data(
@@ -42,8 +47,9 @@ def load_random_time_series_data(
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("random_time_series.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data(
+                "examples://random_time_series.json.gz", compression="gzip"
+            )
             if database.backend == "presto":
                 pdf.ds = pd.to_datetime(pdf.ds, unit="s")
                 pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
@@ -59,10 +65,10 @@ def load_random_time_series_data(
                 dtype={"ds": DateTime if database.backend != "presto" else String(255)},
                 index=False,
             )
-        print("Done loading table!")
-        print("-" * 80)
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print(f"Creating table [{tbl_name}] reference")
+    logger.debug(f"Creating table [{tbl_name}] reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -76,7 +82,7 @@ def load_random_time_series_data(
 
     slice_data = {
         "granularity_sqla": "ds",
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2019-01-01",
         "until": "2019-02-01",
         "metrics": ["count"],
@@ -85,7 +91,7 @@ def load_random_time_series_data(
         "subdomain_granularity": "day",
     }
 
-    print("Creating a slice")
+    logger.debug("Creating a slice")
     slc = Slice(
         slice_name="Calendar Heatmap",
         viz_type="cal_heatmap",

@@ -30,7 +30,7 @@ const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
 
 describe('Test explore links', () => {
   beforeEach(() => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Open and close view query modal', () => {
@@ -52,11 +52,10 @@ describe('Test explore links', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[aria-label="Menu actions trigger"]').click();
-    cy.get('div[title="Share"]').trigger('mouseover');
-    // need to use [id= syntax, otherwise error gets triggered because of special character in id
-    cy.get('[id="share_submenu$Menu"]').within(() => {
-      cy.contains('Embed code').parent().click();
+    cy.get('div[role="menuitem"]').within(() => {
+      cy.contains('Share').parent().click();
     });
+    cy.getBySel('embed-code-button').click();
     cy.get('#embed-code-popover').within(() => {
       cy.get('textarea[name=embedCode]').contains('iframe');
     });
@@ -117,13 +116,15 @@ describe('Test explore links', () => {
 
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="saveas-radio"]').check();
-    cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
+    cy.get('[data-test="new-chart-name"]').click();
+    cy.get('[data-test="new-chart-name"]').clear();
+    cy.get('[data-test="new-chart-name"]').type(newChartName);
     // Add a new option using the "CreatableSelect" feature
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}`, { force: true });
 
-    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+    cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
       force: true,
     });
 
@@ -147,14 +148,16 @@ describe('Test explore links', () => {
 
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="save-overwrite-radio"]').check();
-    cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
+    cy.get('[data-test="new-chart-name"]').click();
+    cy.get('[data-test="new-chart-name"]').clear();
+    cy.get('[data-test="new-chart-name"]').type(newChartName);
     // This time around, typing the same dashboard name
     // will select the existing one
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('input[aria-label="Select a dashboard"]')
+      .find('input[aria-label^="Select a dashboard"]')
       .type(`${dashboardTitle}{enter}`, { force: true });
 
-    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+    cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
       force: true,
     });
 

@@ -22,6 +22,7 @@ import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
+  ErrorTypeEnum,
   GenericDataType,
   QueryResponse,
   QueryState,
@@ -31,15 +32,16 @@ import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
 
-export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
+export const alert = { bsStyle: 'danger', msg: 'Oops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
   queryEditorId: 'dfsadfs',
   catalog: null,
-  schema: 'superset',
+  schema: 'main',
   name: 'ab_user',
   id: 'r11Vgt60',
+  view: 'SELECT * FROM ab_user',
   dataPreviewQueryId: null,
   partitions: {
     cols: ['username'],
@@ -187,7 +189,7 @@ export const defaultQueryEditor = {
   version: LatestQueryEditorVersion,
   id: 'dfsadfs',
   autorun: false,
-  dbId: undefined,
+  dbId: 1,
   latestQueryId: null,
   selectedText: undefined,
   sql: 'SELECT *\nFROM\nWHERE',
@@ -210,7 +212,7 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
-  sql: 'SELECT *\nFROM\nWHERE\nGROUP BY',
+  sql: '',
   name: 'Untitled Query 3',
 };
 
@@ -531,6 +533,12 @@ export const failedQueryWithErrors = {
       level: 'error',
       extra: null,
     },
+    {
+      message: 'Something else wrong',
+      error_type: 'TEST_ERROR',
+      level: 'error',
+      extra: null,
+    },
   ],
   id: 'ryhMUZCGb',
   progress: 0,
@@ -544,6 +552,20 @@ export const failedQueryWithErrors = {
   state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
+};
+
+export const failedQueryWithFrontendTimeoutErrors = {
+  ...failedQueryWithErrorMessage,
+  errors: [
+    {
+      error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+      message: 'Request timed out',
+      level: 'error',
+      extra: {
+        timeout: 10,
+      },
+    },
+  ],
 };
 
 const baseQuery: QueryResponse = {
