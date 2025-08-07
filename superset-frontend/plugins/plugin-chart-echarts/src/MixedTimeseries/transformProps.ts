@@ -211,6 +211,7 @@ export default function transformProps(
     sortSeriesAscending,
     sortSeriesAscendingB,
     timeGrainSqla,
+    forceMaxInterval,
     percentageThreshold,
     showQueryIdentifiers = false,
     metrics = [],
@@ -579,6 +580,12 @@ export default function transformProps(
               timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : 0,
+      maxInterval:
+        xAxisType === 'time' && timeGrainSqla && forceMaxInterval
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
+          : undefined,
       ...getMinAndMaxFromBounds(
         xAxisType,
         truncateXAxis,
