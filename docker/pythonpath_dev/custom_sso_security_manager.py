@@ -86,6 +86,7 @@ guest_role_pvms = [
     ("can_read", "Query"),
     ("can_warm_up_cache", "Chart"),
     ("can_read", "DashboardFilterStateRestApi"),
+    ("can_write", "DashboardPermalinkRestApi"),
     ("can_get_embedded", "Dashboard"),
     ("can_read", "Tag"),
     ("can_time_range", "Api"),
@@ -93,6 +94,8 @@ guest_role_pvms = [
     ("can_csv", "Superset"),
     ("can_view_chart_as_table", "Dashboard"),          
     ("can_explore_json", "Superset"),
+    ("can_share_dashboard", "Superset"),
+    
 ]
 
 client_admin_pvms = [
