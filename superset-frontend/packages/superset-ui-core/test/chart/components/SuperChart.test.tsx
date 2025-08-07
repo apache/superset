@@ -453,4 +453,139 @@ describe('SuperChart', () => {
       document.body.removeChild(wrapper);
     }, 30000);
   });
+
+  describe('Matrixify with NoResults', () => {
+    let isMatrixifyEnabledMock: jest.Mock;
+
+    beforeEach(() => {
+      // Get the mocked function
+      // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+      const matrixifyModule = require('../../../src/chart/types/matrixify');
+      isMatrixifyEnabledMock = matrixifyModule.isMatrixifyEnabled;
+    });
+
+    afterEach(() => {
+      // Reset the mock after each test
+      isMatrixifyEnabledMock.mockReset();
+    });
+
+    it('renders NoResultsComponent when matrixify is enabled but data is empty', () => {
+      // Enable matrixify for this test
+      isMatrixifyEnabledMock.mockReturnValue(true);
+
+      render(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          queriesData={[{ data: [] }]}
+          enableNoResults
+        />,
+      );
+
+      expect(screen.getByText('No Results')).toBeInTheDocument();
+    });
+
+    it('renders NoResultsComponent when matrixify is enabled but data is null', () => {
+      // Enable matrixify for this test
+      isMatrixifyEnabledMock.mockReturnValue(true);
+
+      render(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          queriesData={[{ data: null }]}
+          enableNoResults
+        />,
+      );
+
+      expect(screen.getByText('No Results')).toBeInTheDocument();
+    });
+
+    it('renders custom noResults component when matrixify is enabled with empty data', () => {
+      // Enable matrixify for this test
+      isMatrixifyEnabledMock.mockReturnValue(true);
+
+      const CustomNoResults = () => <div>Custom No Data Message</div>;
+
+      render(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          queriesData={[{ data: [] }]}
+          enableNoResults
+          noResults={<CustomNoResults />}
+        />,
+      );
+
+      expect(screen.getByText('Custom No Data Message')).toBeInTheDocument();
+    });
+
+    it('renders MatrixifyGridRenderer when matrixify is enabled with valid data', () => {
+      // Enable matrixify for this test
+      isMatrixifyEnabledMock.mockReturnValue(true);
+
+      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
+      const MatrixifyGridRenderer =
+        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
+      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
+
+      render(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          queriesData={[{ data: ['foo', 'bar'] }]}
+          enableNoResults
+        />,
+      );
+
+      // MatrixifyGridRenderer should have been called
+      expect(MatrixifyGridRenderer).toHaveBeenCalled();
+    });
+
+    it('applies error boundary to matrixify with no results', () => {
+      // Enable matrixify for this test
+      isMatrixifyEnabledMock.mockReturnValue(true);
+
+      const onErrorBoundary = jest.fn();
+
+      render(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          queriesData={[{ data: [] }]}
+          enableNoResults
+          onErrorBoundary={onErrorBoundary}
+        />,
+      );
+
+      // Check that error boundary wrapper exists
+      expect(screen.getByText('No Results')).toBeInTheDocument();
+      // Error boundary should not have been triggered for no results
+      expect(onErrorBoundary).not.toHaveBeenCalled();
+    });
+
+    it('disables error boundary when disableErrorBoundary is true with matrixify', () => {
+      // Enable matrixify for this test
+      isMatrixifyEnabledMock.mockReturnValue(true);
+
+      render(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          queriesData={[{ data: [] }]}
+          enableNoResults
+          disableErrorBoundary
+        />,
+      );
+
+      // Should still render no results even without error boundary
+      expect(screen.getByText('No Results')).toBeInTheDocument();
+    });
+  });
 });

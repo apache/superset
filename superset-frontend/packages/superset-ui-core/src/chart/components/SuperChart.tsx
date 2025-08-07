@@ -191,16 +191,40 @@ class SuperChart extends PureComponent<Props, {}> {
     // Check if Matrixify is enabled - use rawFormData (snake_case)
     const matrixifyEnabled = isMatrixifyEnabled(chartProps.rawFormData);
 
+    // Check for no results regardless of matrixify state
+    const noResultQueries =
+      enableNoResults &&
+      (!queriesData ||
+        queriesData
+          .slice(0, this.getQueryCount())
+          .every(
+            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
+          ));
+
     if (matrixifyEnabled) {
-      const matrixifyChart = (
-        <MatrixifyGridRenderer
-          formData={chartProps.rawFormData}
-          datasource={chartProps.datasource}
-          width={width}
-          height={height}
-          hooks={chartProps.hooks}
-        />
-      );
+      let matrixifyChart;
+
+      // Handle no results case for matrixify
+      if (noResultQueries) {
+        matrixifyChart = noResults || (
+          <NoResultsComponent
+            id={id}
+            className={className}
+            height={height}
+            width={width}
+          />
+        );
+      } else {
+        matrixifyChart = (
+          <MatrixifyGridRenderer
+            formData={chartProps.rawFormData}
+            datasource={chartProps.datasource}
+            width={width}
+            height={height}
+            hooks={chartProps.hooks}
+          />
+        );
+      }
 
       // Apply wrapper if provided
       const wrappedChart = Wrapper ? (
@@ -227,15 +251,7 @@ class SuperChart extends PureComponent<Props, {}> {
     }
 
     let chart;
-    // Render the no results component if the query data is null or empty
-    const noResultQueries =
-      enableNoResults &&
-      (!queriesData ||
-        queriesData
-          .slice(0, this.getQueryCount())
-          .every(
-            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
-          ));
+    // noResultQueries check has been moved above for both paths
     if (noResultQueries) {
       chart = noResults || (
         <NoResultsComponent
