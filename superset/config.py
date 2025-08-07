@@ -1318,6 +1318,10 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# Chunk size for reading CSV files during uploads
+# Smaller values use less memory but may be slower for large files
+READ_CSV_CHUNK_SIZE = 1000
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this

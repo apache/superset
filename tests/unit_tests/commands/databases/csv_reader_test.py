@@ -682,9 +682,7 @@ def test_csv_reader_select_optimal_engine():
     # Test 1: PyArrow available, no built-in support
     with patch("superset.commands.database.uploaders.csv_reader.util") as mock_util:
         with patch("superset.commands.database.uploaders.csv_reader.pd") as mock_pd:
-            with patch(
-                "superset.commands.database.uploaders.csv_reader.logger"
-            ) as mock_logger:
+            with patch("superset.commands.database.uploaders.csv_reader.logger"):
                 mock_util.find_spec = MagicMock(
                     return_value=MagicMock()
                 )  # PyArrow found
@@ -697,9 +695,7 @@ def test_csv_reader_select_optimal_engine():
 
     # Test 2: PyArrow not available
     with patch("superset.commands.database.uploaders.csv_reader.util") as mock_util:
-        with patch(
-            "superset.commands.database.uploaders.csv_reader.logger"
-        ) as mock_logger:
+        with patch("superset.commands.database.uploaders.csv_reader.logger"):
             mock_util.find_spec = MagicMock(return_value=None)  # PyArrow not found
 
             result = CSVReader._select_optimal_engine()
@@ -708,9 +704,7 @@ def test_csv_reader_select_optimal_engine():
     # Test 3: Pandas with built-in pyarrow
     with patch("superset.commands.database.uploaders.csv_reader.util") as mock_util:
         with patch("superset.commands.database.uploaders.csv_reader.pd") as mock_pd:
-            with patch(
-                "superset.commands.database.uploaders.csv_reader.logger"
-            ) as mock_logger:
+            with patch("superset.commands.database.uploaders.csv_reader.logger"):
                 mock_util.find_spec = MagicMock(
                     return_value=MagicMock()
                 )  # PyArrow found
@@ -723,9 +717,7 @@ def test_csv_reader_select_optimal_engine():
 
     # Test 4: PyArrow import fails
     with patch("superset.commands.database.uploaders.csv_reader.util") as mock_util:
-        with patch(
-            "superset.commands.database.uploaders.csv_reader.logger"
-        ) as mock_logger:
+        with patch("superset.commands.database.uploaders.csv_reader.logger"):
             mock_util.find_spec = MagicMock(return_value=MagicMock())  # PyArrow found
 
             # Mock import error
@@ -767,9 +759,10 @@ def test_csv_reader_progressive_encoding_detection():
     detected_encoding = CSVReader._detect_encoding(file)
 
     # Should detect the correct encoding
-    assert detected_encoding in ["latin-1", "utf-8"], (
-        f"Should detect valid encoding, got {detected_encoding}"
-    )
+    assert detected_encoding in [
+        "latin-1",
+        "utf-8",
+    ], f"Should detect valid encoding, got {detected_encoding}"
 
     # Should have made multiple read attempts with different sizes
     # (The method tries multiple sample sizes until it finds a working encoding)

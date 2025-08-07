@@ -19,6 +19,7 @@ from importlib import util
 from typing import Any, Optional
 
 import pandas as pd
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from werkzeug.datastructures import FileStorage
 
@@ -32,7 +33,6 @@ from superset.commands.database.uploaders.base import (
 
 logger = logging.getLogger(__name__)
 
-READ_CSV_CHUNK_SIZE = 50000
 ROWS_TO_READ_METADATA = 100
 DEFAULT_ENCODING = "utf-8"
 ENCODING_FALLBACKS = ["utf-8", "latin-1", "cp1252", "iso-8859-1"]
@@ -136,7 +136,7 @@ class CSVReader(BaseDataReader):
         has_unsupported_options = (
             "chunksize" in kwargs
             or "iterator" in kwargs
-            or ("nrows" in kwargs and kwargs.get("nrows") is not None)
+            or kwargs.get("nrows") is not None
             or kwargs.get("parse_dates")  # Has bugs with multiple date columns
             or kwargs.get("na_values")  # Has bugs with missing value handling
         )
@@ -228,8 +228,9 @@ class CSVReader(BaseDataReader):
         :throws DatabaseUploadFailed: if there is an error reading the file
         """
         rows_to_read = self._options.get("rows_to_read")
+        chunk_size = current_app.config.get("READ_CSV_CHUNK_SIZE", 1000)
 
-        use_chunking = rows_to_read is None or rows_to_read > READ_CSV_CHUNK_SIZE * 2
+        use_chunking = rows_to_read is None or rows_to_read > chunk_size * 2
 
         kwargs = {
             "encoding": self._options.get("encoding", DEFAULT_ENCODING),
@@ -263,7 +264,7 @@ class CSVReader(BaseDataReader):
         }
 
         if use_chunking:
-            kwargs["chunksize"] = READ_CSV_CHUNK_SIZE
+            kwargs["chunksize"] = chunk_size
             kwargs["iterator"] = True
 
         return self._read_csv(file, kwargs)
