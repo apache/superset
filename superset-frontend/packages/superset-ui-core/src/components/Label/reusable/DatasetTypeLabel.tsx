@@ -45,7 +45,16 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
   const labelType = datasetType === 'physical' ? 'primary' : 'default';
 
   return (
-    <Label icon={icon} type={labelType}>
+    <Label
+      icon={icon}
+      type={labelType}
+      style={{
+        color:
+          labelType === 'primary'
+            ? theme.colors.primary.dark2
+            : theme.colorPrimary,
+      }}
+    >
       {label}
     </Label>
   );
