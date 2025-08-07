@@ -167,17 +167,17 @@ def update_cross_filter_scoping(
             if int(old_id) in id_map
         }
         # now update scope excluded to use new IDs:
-        for excluded_charts in metadata["chart_configuration"].values():
-            if "id" in excluded_charts and excluded_charts["id"] in id_map:
-                excluded_charts["id"] = id_map[excluded_charts["id"]]
-            scope = excluded_charts.get("crossFilters", {}).get("scope", {})
+        for chart_config in metadata["chart_configuration"].values():
+            if "id" in chart_config and chart_config["id"] in id_map:
+                chart_config["id"] = id_map[chart_config["id"]]
+            scope = chart_config.get("crossFilters", {}).get("scope", {})
 
             if not isinstance(scope, dict):
                 continue
 
             excluded_scope = scope.get("excluded", [])
             if excluded_scope:
-                excluded_charts["crossFilters"]["scope"]["excluded"] = [
+                chart_config["crossFilters"]["scope"]["excluded"] = [
                     id_map[old_id] for old_id in excluded_scope if old_id in id_map
                 ]
     return fixed
