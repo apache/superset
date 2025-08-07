@@ -24,18 +24,19 @@ import {
   QueryFormColumn,
   QueryFormOrderBy,
 } from '@superset-ui/core';
-import { PivotTableQueryFormData } from '../types';
+import { PivotTableQueryFormData, Groupby } from '../types';
+import buildGroupbyCombinations from './utilities';
 
-export default function buildQuery(formData: PivotTableQueryFormData) {
-  const { groupbyColumns = [], groupbyRows = [], extra_form_data } = formData;
-  const time_grain_sqla =
-    extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
-
+function getQueryColumns(
+  groupby: Groupby,
+  formData: PivotTableQueryFormData,
+  time_grain_sqla: any,
+) {
   // TODO: add deduping of AdhocColumns
-  const columns = Array.from(
+  return Array.from(
     new Set([
-      ...ensureIsArray<QueryFormColumn>(groupbyColumns),
-      ...ensureIsArray<QueryFormColumn>(groupbyRows),
+      ...ensureIsArray<QueryFormColumn>(groupby.rows),
+      ...ensureIsArray<QueryFormColumn>(groupby.columns),
     ]),
   ).map(col => {
     if (
@@ -54,6 +55,17 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     }
     return col;
   });
+}
+
+export default function buildQuery(formData: PivotTableQueryFormData) {
+  const { extra_form_data } = formData;
+  const time_grain_sqla =
+    extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
+
+  const groupbyCombinations: Groupby[] = buildGroupbyCombinations(formData);
+  const queriesColumns: Array<QueryFormColumn[]> = groupbyCombinations.map(
+    groupby => getQueryColumns(groupby, formData, time_grain_sqla),
+  );
 
   return buildQueryContext(formData, baseQueryObject => {
     const { series_limit_metric, metrics, order_desc } = baseQueryObject;
@@ -63,12 +75,13 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     } else if (Array.isArray(metrics) && metrics[0]) {
       orderBy = [[metrics[0], !order_desc]];
     }
-    return [
-      {
-        ...baseQueryObject,
-        orderby: orderBy,
-        columns,
-      },
-    ];
+
+    const queryObjects = queriesColumns.map(columns => ({
+      ...baseQueryObject,
+      orderby: orderBy,
+      columns,
+    }));
+
+    return queryObjects;
   });
 }
