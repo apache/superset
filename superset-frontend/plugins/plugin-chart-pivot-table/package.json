@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@babel/types": "^7.28.0",
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^30.0.0",
     "jest": "^30.0.5"
   }
 }
