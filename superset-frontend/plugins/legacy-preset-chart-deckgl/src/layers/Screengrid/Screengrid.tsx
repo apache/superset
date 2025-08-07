@@ -17,28 +17,25 @@
  * under the License.
  */
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { Color } from '@deck.gl/core';
 import {
   JsonObject,
-  JsonValue,
   QueryFormData,
   styled,
   CategoricalColorNamespace,
   t,
 } from '@superset-ui/core';
-import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  isPointInBonds,
+} from '../../utilities/utils';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
-import { GetLayerType } from '../../factory';
-import fitViewport, { Viewport } from '../../utils/fitViewport';
-import {
-  DeckGLContainerHandle,
-  DeckGLContainerStyledWrapper,
-} from '../../DeckGLContainer';
-import { TooltipProps } from '../../components/Tooltip';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 import {
   createTooltipContent,
   CommonTooltipRows,
@@ -216,80 +213,39 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     colorScaleType: colorSchemeType === 'default' ? 'linear' : 'quantize',
     onHover: customOnHover,
     pickable: true,
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
-export type DeckGLScreenGridProps = {
-  formData: QueryFormData;
-  payload: JsonObject;
-  setControlValue: (control: string, value: JsonValue) => void;
-  viewport: Viewport;
-  width: number;
-  height: number;
-  onAddFilter: () => void;
-};
+const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
+  formData,
+  filterState,
+  payload,
+}) {
+  const fd = formData;
+  let data = payload.data.features;
 
-const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
-  const containerRef = useRef<DeckGLContainerHandle>();
-
-  const getAdjustedViewport = useCallback(() => {
-    const features = props.payload.data.features || [];
-
-    const { width, height, formData } = props;
-
-    if (formData.autozoom) {
-      return fitViewport(props.viewport, {
-        width,
-        height,
-        points: getPoints(features),
-      });
-    }
-    return props.viewport;
-  }, [props]);
-
-  const [stateFormData, setStateFormData] = useState(props.payload.form_data);
-  const [viewport, setViewport] = useState(getAdjustedViewport());
-
-  useEffect(() => {
-    if (props.payload.form_data !== stateFormData) {
-      setViewport(getAdjustedViewport());
-      setStateFormData(props.payload.form_data);
-    }
-  }, [getAdjustedViewport, props.payload.form_data, stateFormData]);
-
-  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
-    const { current } = containerRef;
-    if (current) {
-      current.setTooltip(tooltip);
-    }
-  }, []);
-
-  const getLayers = useCallback(() => {
-    const layer = getLayer({
-      formData: props.formData,
-      payload: props.payload,
-      setTooltip,
-    });
-
-    return [layer];
-  }, [props.formData, props.payload, setTooltip]);
-
-  const { formData, payload, setControlValue } = props;
-
-  return (
-    <div>
-      <DeckGLContainerStyledWrapper
-        ref={containerRef}
-        viewport={viewport}
-        layers={getLayers()}
-        setControlValue={setControlValue}
-        mapStyle={formData.mapbox_style}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        width={props.width}
-        height={props.height}
-      />
-    </div>
+  if (fd.js_data_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
   );
+
+  const aggFunc = (d: JsonObject) => d.weight || 0;
+
+  return new ScreenGridLayer({
+    id: `screengrid-highlight-layer-${formData.slice_id}` as const,
+    data: dataInside,
+    cellSizePixels: formData.grid_size,
+    colorDomain: [0, 1],
+    colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
+    outline: false,
+    getWeight: aggFunc,
+    colorScaleType: 'quantize',
+  });
 };
 
-export default memo(DeckGLScreenGrid);
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

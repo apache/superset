@@ -24,11 +24,13 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(formData: QueryFormData) {
   const defaultTooltipGenerator = (o: JsonObject) => {
@@ -161,4 +163,49 @@ export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
+  formData,
+  filterState,
+  payload,
+}) => {
+  const fd = formData;
+  const {
+    intensity = 1,
+    radius_pixels: radiusPixels = 30,
+    aggregation = 'SUM',
+    js_data_mutator: jsFnMutator,
+  } = fd;
+  let data = payload.data.features;
+
+  if (jsFnMutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutatorFunction(data);
+  }
+
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  return new HeatmapLayer({
+    id: `heatmap-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    intensity,
+    radiusPixels,
+    colorRange: [
+      [
+        HIGHLIGHT_COLOR_ARRAY[0],
+        HIGHLIGHT_COLOR_ARRAY[1],
+        HIGHLIGHT_COLOR_ARRAY[2],
+        55,
+      ],
+      HIGHLIGHT_COLOR_ARRAY,
+    ],
+    aggregation: aggregation.toUpperCase(),
+    getPosition: (d: { position: Position; weight: number }) => d.position,
+    getWeight: (d: { position: number[]; weight: number }) =>
+      d.weight ? d.weight : 1,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

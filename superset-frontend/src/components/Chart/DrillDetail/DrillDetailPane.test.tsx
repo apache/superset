@@ -164,7 +164,7 @@ test('should render the "No results" components', async () => {
 
 test('should render the metadata bar', async () => {
   fetchWithNoData();
-  setup();
+  setup({ dataset: MOCKED_DATASET });
   expect(
     await screen.findByText(MOCKED_DATASET.table_name),
   ).toBeInTheDocument();
@@ -178,15 +178,6 @@ test('should render the metadata bar', async () => {
   ).toBeInTheDocument();
   expect(
     await screen.findByText(MOCKED_DATASET.changed_on_humanized),
-  ).toBeInTheDocument();
-});
-
-test('should render an error message when fails to load the metadata', async () => {
-  fetchWithNoData();
-  fetchMock.get(DATASET_ENDPOINT, { status: 400 }, { overwriteRoutes: true });
-  setup();
-  expect(
-    await screen.findByText('There was an error loading the dataset metadata'),
   ).toBeInTheDocument();
 });
 

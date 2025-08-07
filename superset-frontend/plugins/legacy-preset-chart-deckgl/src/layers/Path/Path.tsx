@@ -27,6 +27,7 @@ import {
   createTooltipContent,
   CommonTooltipRows,
 } from '../../utilities/tooltipUtils';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(formData: QueryFormData) {
   const defaultTooltipGenerator = (o: JsonObject) => (
@@ -81,6 +82,7 @@ export const getLayer: GetLayerType<PathLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
@@ -93,4 +95,40 @@ export function getPoints(data: JsonObject[]) {
   return points;
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<PathLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const fixedColor = HIGHLIGHT_COLOR_ARRAY;
+  let data = payload.data.features.map((feature: JsonObject) => ({
+    ...feature,
+    path: feature.path,
+    width: fd.line_width,
+    color: fixedColor,
+  }));
+
+  if (fd.js_data_mutator) {
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+
+  const filteredData = data.filter(
+    (d: JsonObject) =>
+      JSON.stringify(d.path).replaceAll(' ', '') === filterState?.value[0],
+  );
+
+  return new PathLayer({
+    id: `path-highlight-layer-${fd.slice_id}` as const,
+    getColor: () => HIGHLIGHT_COLOR_ARRAY,
+    getPath: (d: any) => d.path,
+    getWidth: (d: any) => d.width,
+    data: filteredData,
+    rounded: true,
+    widthScale: 1,
+    widthUnits: fd.line_width_unit,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

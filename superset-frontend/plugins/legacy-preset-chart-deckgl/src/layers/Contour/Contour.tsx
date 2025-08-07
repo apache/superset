@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ContourLayer } from '@deck.gl/aggregation-layers';
+import { PolygonLayer } from '@deck.gl/layers';
 import { Position } from '@deck.gl/core';
 import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
@@ -28,6 +29,7 @@ import {
   createTooltipContent,
   CommonTooltipRows,
 } from '../../utilities/tooltipUtils';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function defaultTooltipGenerator(o: any) {
   return (
@@ -40,6 +42,22 @@ function defaultTooltipGenerator(o: any) {
     </div>
   );
 }
+
+function setTooltipContent(o: any) {
+  return (
+    <div className="deckgl-tooltip">
+      <TooltipRow
+        label={t('Centroid (Longitude and Latitude): ')}
+        value={`(${o?.coordinate[0]}, ${o?.coordinate[1]})`}
+      />
+      <TooltipRow
+        label={t('Threshold: ')}
+        value={`${o?.object?.contour?.threshold}`}
+      />
+    </div>
+  );
+}
+
 export const getLayer: GetLayerType<ContourLayer> = function ({
   formData,
   payload,
@@ -166,4 +184,56 @@ export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<PolygonLayer> = function ({
+  formData,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  setTooltip,
+  emitCrossFilters,
+}) {
+  const fd = formData;
+
+  const fromLonLat = filterState?.value[0];
+  const toLonLat = filterState?.value[1];
+
+  const minLon = fromLonLat[0];
+  const maxLon = toLonLat[0];
+  const minLat = fromLonLat[1];
+  const maxLat = toLonLat[1];
+
+  const boxPolygon = [
+    [minLon, minLat],
+    [maxLon, minLat],
+    [maxLon, maxLat],
+    [minLon, maxLat],
+    [minLon, minLat],
+  ];
+
+  return new PolygonLayer({
+    id: `contour-highlight-layer-${fd.slice_id}`,
+    data: [{ polygon: boxPolygon }],
+    getPolygon: (d: any) => d.polygon,
+    getFillColor: [
+      HIGHLIGHT_COLOR_ARRAY[0],
+      HIGHLIGHT_COLOR_ARRAY[1],
+      HIGHLIGHT_COLOR_ARRAY[2],
+      100,
+    ],
+    getLineColor: HIGHLIGHT_COLOR_ARRAY,
+    getLineWidth: 4,
+    filled: true,
+    stroked: true,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

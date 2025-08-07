@@ -756,11 +756,11 @@ msgstr "CSS şablonu ekle"
 msgid "Add Dashboard"
 msgstr "Dashboard Ekle"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr ""
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Filtre ekle"
 
 #, fuzzy
@@ -1693,7 +1693,7 @@ msgstr "Otomatik tamamlama filtreleri"
 msgid "Autocomplete query predicate"
 msgstr ""
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr ""
 
 msgid "Autosize Column"
@@ -3061,7 +3061,7 @@ msgstr "Ülke Haritası"
 msgid "Create"
 msgstr "Oluştur"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Grafik Oluştur"
 
 msgid "Create a dataset"
@@ -5524,7 +5524,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -8313,7 +8313,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr ""
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr ""
 
 msgid "Results"
@@ -8883,7 +8883,7 @@ msgstr ""
 msgid "Select Tags"
 msgstr ""
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr ""
 
 msgid "Select a column"
@@ -12582,7 +12582,7 @@ msgstr ""
 msgid "X-axis"
 msgstr ""
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr ""
 
 msgid "XYZ"
@@ -12639,7 +12639,7 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr ""
 
 msgid "Year"

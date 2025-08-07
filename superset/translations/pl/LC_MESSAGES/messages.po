@@ -869,11 +869,11 @@ msgid "Add Dashboard"
 msgstr "Dodaj pulpit"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Separator"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Dodaj filtr"
 
 #, fuzzy
@@ -1914,7 +1914,7 @@ msgstr "Autouzupełnianie filtrów"
 msgid "Autocomplete query predicate"
 msgstr "Predykat zapytania autouzupełniania"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Automatyczny kolor"
 
 #, fuzzy
@@ -3415,7 +3415,7 @@ msgid "Create"
 msgstr "Utwórz"
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Utwórz wykres"
 
 #, fuzzy
@@ -6237,7 +6237,7 @@ msgstr "Obraz (PNG) osadzony w e-mailu"
 msgid "Image download failed, please refresh and try again."
 msgstr "Pobieranie obrazu nie powiodło się, odśwież i spróbuj ponownie."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Podszywanie się pod zalogowanego użytkownika (Presto, Trino, Drill, Hive,"
 " i GSheets)"
@@ -9277,7 +9277,7 @@ msgstr "Zasób ma już przypisany raport."
 msgid "Resource was not found."
 msgstr "Nie znaleziono zasobu."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Przywróć filtr"
 
 msgid "Results"
@@ -9914,7 +9914,7 @@ msgstr "Wybierz metodę dostawy"
 msgid "Select Tags"
 msgstr "Wybierz tagi"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Wybierz typ wizualizacji"
 
 msgid "Select a column"
@@ -14326,7 +14326,7 @@ msgid "X-axis"
 msgstr "Oś X"
 
 #, fuzzy
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Przedział XScale"
 
 msgid "XYZ"
@@ -14389,7 +14389,7 @@ msgid "Y-axis bounds"
 msgstr "Granice osi Y"
 
 #, fuzzy
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Przedział YScale"
 
 msgid "Year"

@@ -26,6 +26,7 @@ import {
   createTooltipContent,
   CommonTooltipRows,
 } from '../../utilities/tooltipUtils';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 interface ArcDataItem {
   sourceColor?: number[];
@@ -108,7 +109,50 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
       filterState,
       emitCrossFilters,
     }),
+    opacity: filterState?.value ? 0.1 : 1,
   });
 };
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const data = payload.data.features;
+
+  const getColor = (d: {
+    sourcePosition: [number, number];
+    targetPosition: [number, number];
+  }) => {
+    const sourcePosition = filterState?.value[0];
+    const targetPosition = filterState?.value[1];
+
+    if (
+      sourcePosition &&
+      targetPosition &&
+      d.sourcePosition[0] === sourcePosition[0] &&
+      d.sourcePosition[1] === sourcePosition[1] &&
+      d.targetPosition[0] === targetPosition[0] &&
+      d.targetPosition[1] === targetPosition[1]
+    ) {
+      return HIGHLIGHT_COLOR_ARRAY;
+    }
+
+    return TRANSPARENT_COLOR_ARRAY;
+  };
+
+  return new ArcLayer({
+    data,
+    getSourceColor: getColor,
+    getTargetColor: getColor,
+    id: `path-hihglight-layer-${fd.slice_id}` as const,
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
+  });
+};
+
+export default createCategoricalDeckGLComponent(
+  getLayer,
+  getPoints,
+  getHighlightLayer,
+);

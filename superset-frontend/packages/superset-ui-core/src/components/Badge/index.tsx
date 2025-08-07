@@ -24,6 +24,7 @@ export const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
   ${({ theme, color, count }) => `
     & > sup,
     & > sup.ant-badge-count {
+      box-shadow: none;
       ${
         count !== undefined ? `background: ${color || theme.colorPrimary};` : ''
       }
