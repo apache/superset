@@ -50,8 +50,8 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
       type={labelType}
       style={{
         color:
-          labelType === 'primary'
-            ? theme.colors.primary.dark2
+          datasetType === 'physical'
+            ? theme.colorPrimaryText
             : theme.colorPrimary,
       }}
     >
