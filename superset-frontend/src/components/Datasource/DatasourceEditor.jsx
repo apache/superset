@@ -1211,14 +1211,14 @@ class DatasourceEditor extends PureComponent {
                           <DatabaseSelector
                             db={datasource?.database}
                             catalog={datasource.catalog}
-                            schema={datasource.schema}
+                            schemas={datasource.schemas}
                             onCatalogChange={catalog =>
                               this.state.isEditMode &&
                               this.onDatasourcePropChange('catalog', catalog)
                             }
-                            onSchemaChange={schema =>
+                            onSchemaChange={schemas =>
                               this.state.isEditMode &&
-                              this.onDatasourcePropChange('schema', schema)
+                              this.onDatasourcePropChange('schemas', schemas)
                             }
                             onDbChange={database =>
                               this.state.isEditMode &&
