@@ -19,6 +19,7 @@
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { useSelector } from 'react-redux';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
@@ -33,7 +34,9 @@ import {
   MenuObjectChildProps,
   MenuObjectProps,
   MenuData,
+  UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
+import { RootState } from 'src/dashboard/types';
 import RightMenu from './RightMenu';
 
 interface MenuProps {
@@ -202,6 +205,13 @@ export function Menu({
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  const user = useSelector<RootState, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+
+  const isPublicUser =
+    'roles' in user &&
+    Object.keys(user.roles || {}).some(role => role.toLowerCase() === 'public');
 
   useEffect(() => {
     function handleResize() {
@@ -305,22 +315,24 @@ export function Menu({
       <Global styles={globalStyles(theme)} />
       <Row>
         <Col md={16} xs={24}>
-          <Tooltip
-            id="brand-tooltip"
-            placement="bottomLeft"
-            title={brand.tooltip}
-            arrowPointAtCenter
-          >
-            {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={brand.icon} alt={brand.alt} />
-              </GenericLink>
-            ) : (
-              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
-              </a>
-            )}
-          </Tooltip>
+          {!isPublicUser && (
+            <Tooltip
+              id="brand-tooltip"
+              placement="bottomLeft"
+              title={brand.tooltip}
+              arrowPointAtCenter
+            >
+              {isFrontendRoute(window.location.pathname) ? (
+                <GenericLink className="navbar-brand" to={brand.path}>
+                  <img src={brand.icon} alt={brand.alt} />
+                </GenericLink>
+              ) : (
+                <a className="navbar-brand" href={brand.path} tabIndex={-1}>
+                  <img src={brand.icon} alt={brand.alt} />
+                </a>
+              )}
+            </Tooltip>
+          )}
           {brand.text && (
             <div className="navbar-brand-text">
               <span>{brand.text}</span>
