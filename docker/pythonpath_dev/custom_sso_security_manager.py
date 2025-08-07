@@ -95,7 +95,6 @@ guest_role_pvms = [
     ("can_view_chart_as_table", "Dashboard"),          
     ("can_explore_json", "Superset"),
     ("can_share_dashboard", "Superset"),
-    
 ]
 
 client_admin_pvms = [
