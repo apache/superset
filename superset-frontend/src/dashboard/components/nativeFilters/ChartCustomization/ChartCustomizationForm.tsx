@@ -40,6 +40,8 @@ import {
   Radio,
   type SelectValue,
   FormInstance,
+  Checkbox,
+  CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/CollapsibleControl';
@@ -333,6 +335,24 @@ const ChartCustomizationForm: FC<Props> = ({
     [form, item.id],
   );
 
+  const setChartCustomizationFieldValues = useCallback(
+    (itemId: string, values: Record<string, any>) => {
+      const currentFilters = form.getFieldValue('filters') || {};
+      const currentItem = currentFilters[itemId] || {};
+
+      form.setFieldsValue({
+        filters: {
+          ...currentFilters,
+          [itemId]: {
+            ...currentItem,
+            ...values,
+          },
+        },
+      });
+    },
+    [form],
+  );
+
   const ensureFilterSlot = useCallback(() => {
     const currentFilters = form.getFieldValue('filters') || {};
     if (!currentFilters[item.id]) {
@@ -392,6 +412,7 @@ const ChartCustomizationForm: FC<Props> = ({
                 ...currentItemValues,
                 dataset: currentItemValues.dataset,
                 datasetInfo: enhancedDataset,
+                ...currentItemValues,
               },
             },
           });
@@ -432,7 +453,10 @@ const ChartCustomizationForm: FC<Props> = ({
 
     setIsDefaultValueLoading(true);
     try {
-      const datasetId = getDatasetId(dataset);
+      const datasetId =
+        typeof dataset === 'object' && dataset !== null
+          ? dataset.value
+          : getDatasetId(dataset);
       if (datasetId === null) {
         throw new Error('Invalid dataset ID');
       }
@@ -472,6 +496,12 @@ const ChartCustomizationForm: FC<Props> = ({
             filterType: 'filter_select',
             hasDefaultValue: true,
             ...(autoSelectedColumn && { column: autoSelectedColumn }),
+            chartConfiguration: {
+              tooltip: {
+                appendToBody: true,
+                confine: true,
+              },
+            },
           },
         },
       });
@@ -516,12 +546,9 @@ const ChartCustomizationForm: FC<Props> = ({
   useEffect(() => {
     ensureFilterSlot();
 
-    const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
     const defaultDataset = customization.dataset
       ? String(getDatasetId(customization.dataset) || customization.dataset)
-      : fallbackDatasetId
-        ? String(fallbackDatasetId)
-        : null;
+      : null;
 
     const initialValues = {
       filters: {
@@ -572,7 +599,7 @@ const ChartCustomizationForm: FC<Props> = ({
     const hasDataset = !!formValues.dataset;
     const hasColumn = !!formValues.column;
     const hasDefaultValue = !!formValues.hasDefaultValue;
-    const isRequired = !!formValues.isRequired;
+    const isRequired = !!formValues.controlValues?.enableEmptyFilter;
 
     if (hasDataset && fetchedRef.current.dataset !== formValues.dataset) {
       fetchDatasetInfo();
@@ -581,7 +608,9 @@ const ChartCustomizationForm: FC<Props> = ({
     if (isRequired && (!hasDataset || !hasColumn)) {
       setTimeout(() => {
         form
-          .validateFields([['filters', item.id, 'isRequired']])
+          .validateFields([
+            ['filters', item.id, 'controlValues', 'enableEmptyFilter'],
+          ])
           .catch(() => {});
       }, 0);
     }
@@ -611,14 +640,6 @@ const ChartCustomizationForm: FC<Props> = ({
 
     if (selectFirst) {
       setHasDefaultValue(false);
-      setIsRequired(false);
-      setFormFieldValues({
-        hasDefaultValue: false,
-        isRequired: false,
-        defaultDataMask: null,
-        defaultValue: undefined,
-        defaultValueQueriesData: null,
-      });
     } else {
       setHasDefaultValue(
         formValues.hasDefaultValue ?? customization.hasDefaultValue ?? false,
@@ -629,17 +650,11 @@ const ChartCustomizationForm: FC<Props> = ({
     }
 
     setSelectFirst(selectFirst);
-  }, [
-    form,
-    item.id,
-    setFormFieldValues,
-    customization.selectFirst,
-    customization.hasDefaultValue,
-  ]);
+  }, [form, item.id, customization.selectFirst, customization.hasDefaultValue]);
 
   const isRequiredValidator = useCallback(
-    async (_, isRequired) => {
-      if (!isRequired) {
+    async (_, enableEmptyFilter) => {
+      if (!enableEmptyFilter) {
         return Promise.resolve();
       }
 
@@ -680,31 +695,75 @@ const ChartCustomizationForm: FC<Props> = ({
 
   const hasAllRequiredFields = useCallback(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
-    const name = formValues.name || customization.name || '';
-    const dataset = formValues.dataset || customization.dataset;
-    return !!(name.trim() && dataset);
-  }, [form, item.id, customization.name, customization.dataset]);
+    const { name = '', dataset } = formValues;
+    const nameValue = name || customization.name || '';
+
+    const hasExplicitDataset =
+      dataset && typeof dataset === 'string' && dataset.trim() !== '';
+
+    return !!(nameValue.trim() && hasExplicitDataset);
+  }, [form, item.id, customization.name]);
 
   const shouldShowDefaultValue = useCallback(() => {
     const allFieldsFilled = hasAllRequiredFields();
-    const hasDataset = !!(
-      form.getFieldValue('filters')?.[item.id]?.dataset || customization.dataset
-    );
+    const isRequiredFromForm = !!form.getFieldValue([
+      'filters',
+      item.id,
+      'controlValues',
+      'enableEmptyFilter',
+    ]);
 
-    if (isRequired) {
+    if (isRequiredFromForm) {
       return allFieldsFilled && !isDefaultValueLoading;
     }
 
-    return hasDefaultValue && hasDataset && !isDefaultValueLoading;
+    return hasDefaultValue && allFieldsFilled && !isDefaultValueLoading;
   }, [
     hasAllRequiredFields,
     form,
     item.id,
     customization.dataset,
-    isRequired,
     hasDefaultValue,
     isDefaultValueLoading,
   ]);
+
+  const handleIsRequiredChange = useCallback(
+    ({ target: { checked } }: CheckboxChangeEvent) => {
+      const currentFilters = form.getFieldValue('filters') || {};
+      const currentItem = currentFilters[item.id] || {};
+      const currentControlValues = currentItem.controlValues || {};
+
+      if (checked) {
+        const updatedValues = {
+          controlValues: {
+            ...currentControlValues,
+            enableEmptyFilter: checked,
+          },
+          hasDefaultValue: true,
+        };
+        setChartCustomizationFieldValues(item.id, updatedValues);
+        setHasDefaultValue(true);
+        fetchDefaultValueData();
+      } else {
+        const updatedValues = {
+          controlValues: {
+            ...currentControlValues,
+            enableEmptyFilter: checked,
+          },
+        };
+        setChartCustomizationFieldValues(item.id, updatedValues);
+      }
+
+      formChanged();
+    },
+    [
+      form,
+      item.id,
+      setChartCustomizationFieldValues,
+      formChanged,
+      fetchDefaultValueData,
+    ],
+  );
 
   return (
     <div>
@@ -739,6 +798,14 @@ const ChartCustomizationForm: FC<Props> = ({
         >
           <DatasetSelect
             excludeDatasetIds={excludeDatasetIds}
+            value={
+              mostUsedDataset(loadedDatasets, charts)
+                ? {
+                    value: mostUsedDataset(loadedDatasets, charts),
+                    label: `Dataset ${mostUsedDataset(loadedDatasets, charts)}`,
+                  }
+                : undefined
+            }
             onChange={(dataset: {
               label: string | ReactNode;
               value: number;
@@ -935,7 +1002,14 @@ const ChartCustomizationForm: FC<Props> = ({
             <CollapsibleControl
               checked={hasDefaultValue}
               initialValue={customization.hasDefaultValue ?? false}
-              disabled={isRequired || selectFirst}
+              disabled={
+                !!form.getFieldValue([
+                  'filters',
+                  item.id,
+                  'controlValues',
+                  'enableEmptyFilter',
+                ]) || selectFirst
+              }
               title={t('Dynamic group by has a default value')}
               tooltip={getDefaultValueTooltip()}
               onChange={checked => {
@@ -962,6 +1036,14 @@ const ChartCustomizationForm: FC<Props> = ({
                       ['filters', item.id, 'defaultDataMask'],
                     ]);
                   }, 0);
+                } else {
+                  // Clear validation errors when unchecking
+                  form.setFields([
+                    {
+                      name: ['filters', item.id, 'defaultDataMask'],
+                      errors: [],
+                    },
+                  ]);
                 }
                 formChanged();
               }}
@@ -980,7 +1062,12 @@ const ChartCustomizationForm: FC<Props> = ({
                         return Promise.resolve();
                       }
 
-                      const { column } = current;
+                      const allFieldsFilled = hasAllRequiredFields();
+                      if (!allFieldsFilled) {
+                        return Promise.resolve();
+                      }
+
+                      const { column, defaultDataMask } = current;
                       const hasValidColumn =
                         column &&
                         (typeof column === 'string'
@@ -994,6 +1081,26 @@ const ChartCustomizationForm: FC<Props> = ({
                           new Error(t('Please select a column')),
                         );
                       }
+
+                      if (current.isRequired) {
+                        const hasDefaultValue =
+                          defaultDataMask?.filterState?.value &&
+                          (Array.isArray(defaultDataMask.filterState.value)
+                            ? defaultDataMask.filterState.value.length > 0
+                            : defaultDataMask.filterState.value !== null &&
+                              defaultDataMask.filterState.value !== undefined);
+
+                        if (!hasDefaultValue) {
+                          return Promise.reject(
+                            new Error(
+                              t(
+                                'Default value is required when "Dynamic group by value is required" is enabled',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+
                       return Promise.resolve();
                     },
                   },
@@ -1025,7 +1132,23 @@ const ChartCustomizationForm: FC<Props> = ({
                                   if (value) {
                                     setFormFieldValues({
                                       column: value,
+                                      defaultDataMask: {
+                                        extraFormData: {},
+                                        filterState: {
+                                          value: [value],
+                                        },
+                                        ownState: {
+                                          column: value,
+                                        },
+                                      },
+                                      chartConfiguration: {
+                                        tooltip: {
+                                          appendToBody: true,
+                                          confine: true,
+                                        },
+                                      },
                                     });
+
                                     form.validateFields([
                                       ['filters', item.id, 'column'],
                                       ['filters', item.id, 'defaultDataMask'],
@@ -1034,7 +1157,9 @@ const ChartCustomizationForm: FC<Props> = ({
                                   } else {
                                     setFormFieldValues({
                                       column: null,
+                                      defaultDataMask: null,
                                     });
+
                                     form.validateFields([
                                       ['filters', item.id, 'column'],
                                       ['filters', item.id, 'defaultDataMask'],
@@ -1075,49 +1200,32 @@ const ChartCustomizationForm: FC<Props> = ({
           </StyledFormItem>
 
           <StyledFormItem
-            name={['filters', item.id, 'isRequired']}
+            name={['filters', item.id, 'controlValues', 'enableEmptyFilter']}
             rules={[
               {
                 validator: isRequiredValidator,
               },
             ]}
           >
-            <CollapsibleControl
-              checked={isRequired}
-              initialValue={customization.isRequired ?? false}
-              title={t('Dynamic group by value is required')}
-              tooltip={t('User must select a value before applying the filter')}
-              onChange={checked => {
-                setIsRequired(checked);
-                if (checked) {
-                  setHasDefaultValue(true);
-                  setSelectFirst(false);
-                } else {
-                  setHasDefaultValue(false);
-                }
-                setFormFieldValues({
-                  isRequired: checked,
-                  ...(checked
-                    ? {
-                        hasDefaultValue: true,
-                        selectFirst: false,
-                      }
-                    : {
-                        hasDefaultValue: false,
-                        defaultDataMask: null,
-                        defaultValue: undefined,
-                        defaultValueQueriesData: null,
-                      }),
-                });
-
-                if (checked && hasAllRequiredFields()) {
-                  fetchDefaultValueData();
-                }
-                formChanged();
-              }}
+            <Checkbox
+              checked={
+                !!form.getFieldValue([
+                  'filters',
+                  item.id,
+                  'controlValues',
+                  'enableEmptyFilter',
+                ])
+              }
+              onChange={handleIsRequiredChange}
             >
-              <div />
-            </CollapsibleControl>
+              {t('Dynamic group by value is required')}&nbsp;
+              <InfoTooltip
+                tooltip={t(
+                  'User must select a value before applying the filter',
+                )}
+                placement="right"
+              />
+            </Checkbox>
           </StyledFormItem>
 
           <StyledFormItem name={['filters', item.id, 'selectFirst']}>
@@ -1133,8 +1241,6 @@ const ChartCustomizationForm: FC<Props> = ({
 
                 if (checked) {
                   setHasDefaultValue(false);
-                  setIsRequired(false);
-
                   const formValues =
                     form.getFieldValue('filters')?.[item.id] || {};
                   const datasetColumns =
@@ -1145,7 +1251,6 @@ const ChartCustomizationForm: FC<Props> = ({
                     setFormFieldValues({
                       selectFirst: checked,
                       hasDefaultValue: false,
-                      isRequired: false,
                       defaultDataMask: null,
                       defaultValue: undefined,
                       defaultValueQueriesData: null,
@@ -1156,16 +1261,30 @@ const ChartCustomizationForm: FC<Props> = ({
                     setFormFieldValues({
                       selectFirst: checked,
                       hasDefaultValue: false,
-                      isRequired: false,
                       defaultDataMask: null,
                       defaultValue: undefined,
                       defaultValueQueriesData: null,
                     });
                   }
                 } else {
-                  setFormFieldValues({
-                    selectFirst: checked,
-                  });
+                  const isRequiredChecked = !!form.getFieldValue([
+                    'filters',
+                    item.id,
+                    'controlValues',
+                    'enableEmptyFilter',
+                  ]);
+
+                  if (isRequiredChecked) {
+                    setHasDefaultValue(true);
+                    setFormFieldValues({
+                      selectFirst: checked,
+                      hasDefaultValue: true,
+                    });
+                  } else {
+                    setFormFieldValues({
+                      selectFirst: checked,
+                    });
+                  }
                 }
                 formChanged();
               }}
