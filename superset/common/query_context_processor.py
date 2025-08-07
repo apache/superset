@@ -794,7 +794,11 @@ class QueryContextProcessor:
         if hasattr(query_object, "filter") and query_object.filter:
             for flt in query_object.filter:
                 if flt.get("op") == FilterOperator.TEMPORAL_RANGE:
-                    return flt.get("col")
+                    filter_col = flt.get("col")
+                    if isinstance(filter_col, str):
+                        return filter_col
+                    elif isinstance(filter_col, dict) and "sqlExpression" in filter_col:
+                        return filter_col["sqlExpression"]
 
         return None
 
