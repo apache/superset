@@ -23,7 +23,6 @@ import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
-
 import { unitToRadius } from '../../utils/geo';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
