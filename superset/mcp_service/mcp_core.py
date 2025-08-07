@@ -18,12 +18,13 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Literal, Optional, Type, TypeVar
 
 from pydantic import BaseModel
 
-from superset.mcp_service.dao import DAO
+from superset.mcp_service.dao.base import DAO
 from superset.mcp_service.utils.retry_utils import retry_database_operation
 
 # Type variables for generic model tools
@@ -32,7 +33,47 @@ S = TypeVar("S", bound=BaseModel)  # For Pydantic schemas
 F = TypeVar("F", bound=BaseModel)  # For filter types
 
 
-class ModelListTool:
+class BaseCore(ABC):
+    """
+    Abstract base class for all MCP Core classes.
+
+    Provides common functionality:
+    - Logger initialization
+    - Abstract run_tool method that all subclasses must implement
+    - Common error handling patterns
+    """
+
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
+        """Initialize the core with an optional logger."""
+        self.logger = logger or logging.getLogger(self.__class__.__name__)
+
+    @abstractmethod
+    def run_tool(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Execute the core tool logic.
+
+        This method must be implemented by all subclasses.
+        """
+        pass
+
+    def _log_error(self, error: Exception, context: str = "") -> None:
+        """Log an error with context."""
+        error_msg = f"Error in {self.__class__.__name__}"
+        if context:
+            error_msg += f" ({context})"
+        error_msg += f": {str(error)}"
+        self.logger.error(error_msg, exc_info=True)
+
+    def _log_info(self, message: str) -> None:
+        """Log an info message."""
+        self.logger.info(message)
+
+    def _log_warning(self, message: str) -> None:
+        """Log a warning message."""
+        self.logger.warning(message)
+
+
+class ModelListCore(BaseCore):
     """
     Generic tool for listing model objects with filtering, search, pagination, and
     column selection.
@@ -64,6 +105,7 @@ class ModelListTool:
         output_list_schema: Type[BaseModel],
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
         self.item_serializer = item_serializer
@@ -72,9 +114,8 @@ class ModelListTool:
         self.search_columns = search_columns
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
-        self.logger = logger or logging.getLogger(__name__)
 
-    def run(
+    def run_tool(
         self,
         filters: Optional[Any] = None,
         search: Optional[str] = None,
@@ -155,13 +196,13 @@ class ModelListTool:
             "timestamp": datetime.now(timezone.utc),
         }
         response = self.output_list_schema(**response_kwargs)
-        self.logger.info(
+        self._log_info(
             f"Successfully retrieved {len(item_objs)} {self.list_field_name}"
         )
         return response
 
 
-class ModelGetInfoTool:
+class ModelGetInfoCore(BaseCore):
     """
     Enhanced tool for retrieving a single model object by ID, UUID, or slug.
 
@@ -180,12 +221,12 @@ class ModelGetInfoTool:
         supports_slug: bool = False,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
         self.error_schema = error_schema
         self.serializer = serializer
         self.supports_slug = supports_slug
-        self.logger = logger or logging.getLogger(__name__)
 
     def _is_uuid(self, value: str) -> bool:
         """Check if a string is a valid UUID."""
@@ -246,7 +287,7 @@ class ModelGetInfoTool:
         # If we get here, it's an invalid identifier
         return None
 
-    def run(self, identifier: int | str) -> Any:
+    def run_tool(self, identifier: int | str) -> Any:
         try:
             obj = self._find_object(identifier)
             if obj is None:
@@ -258,24 +299,23 @@ class ModelGetInfoTool:
                     error_type="not_found",
                     timestamp=datetime.now(timezone.utc),
                 )
-                self.logger.warning(
+                self._log_warning(
                     f"{self.output_schema.__name__} {identifier} error: "
                     "not_found - not found"
                 )
                 return error_data
             response = self.serializer(obj)
-            self.logger.info(
+            self._log_info(
                 f"{self.output_schema.__name__} response created successfully for "
                 f"identifier {identifier}"
             )
             return response
         except Exception as context_error:
-            error_msg = f"Error in ModelGetInfoTool: {str(context_error)}"
-            self.logger.error(error_msg, exc_info=True)
+            self._log_error(context_error)
             raise
 
 
-class InstanceInfoTool:
+class InstanceInfoCore(BaseCore):
     """
     Configurable tool for generating comprehensive instance information.
 
@@ -286,7 +326,7 @@ class InstanceInfoTool:
 
     def __init__(
         self,
-        dao_classes: Dict[str, DAO],
+        dao_classes: Dict[str, Type[DAO]],
         output_schema: Type[BaseModel],
         metric_calculators: Dict[str, Callable[..., Any]],
         time_windows: Optional[Dict[str, int]] = None,
@@ -302,6 +342,7 @@ class InstanceInfoTool:
             time_windows: Dict of time window configurations (days)
             logger: Optional logger instance
         """
+        super().__init__(logger)
         self.dao_classes = dao_classes
         self.output_schema = output_schema
         self.metric_calculators = metric_calculators
@@ -310,7 +351,6 @@ class InstanceInfoTool:
             "monthly": 30,
             "quarterly": 90,
         }
-        self.logger = logger or logging.getLogger(__name__)
 
     def _calculate_basic_counts(self) -> Dict[str, int]:
         """Calculate basic entity counts using DAOs."""
@@ -319,7 +359,7 @@ class InstanceInfoTool:
             try:
                 counts[f"total_{entity_name}"] = dao_class.count()
             except Exception as e:
-                self.logger.warning(f"Failed to count {entity_name}: {e}")
+                self._log_warning(f"Failed to count {entity_name}: {e}")
                 counts[f"total_{entity_name}"] = 0
         return counts
 
@@ -375,7 +415,7 @@ class InstanceInfoTool:
                         window_metrics[f"{entity_name}_modified"] = modified_count
 
                 except Exception as e:
-                    self.logger.warning(
+                    self._log_warning(
                         f"Failed to calculate {window_name} metrics for "
                         f"{entity_name}: {e}"
                     )
@@ -404,12 +444,23 @@ class InstanceInfoTool:
                 if result is not None:
                     custom_metrics[metric_name] = result
             except Exception as e:
-                self.logger.warning(f"Failed to calculate {metric_name}: {e}")
+                self._log_warning(f"Failed to calculate {metric_name}: {e}")
                 # Don't add failed metrics to avoid validation errors
 
         return custom_metrics
 
-    def run(self) -> BaseModel:
+    def run_tool(self) -> BaseModel:
+        """Tool interface for generating comprehensive instance information."""
+        return self._generate_instance_info()
+
+    def get_resource(self) -> str:
+        """Resource interface for generating instance metadata as JSON."""
+        from superset.utils import json
+
+        instance_info = self._generate_instance_info()
+        return json.dumps(instance_info.model_dump(), indent=2)
+
+    def _generate_instance_info(self) -> BaseModel:
         """Generate comprehensive instance information."""
         try:
             # Calculate all metrics
@@ -430,15 +481,15 @@ class InstanceInfoTool:
             # Create response using the configured schema
             response = self.output_schema(**response_data)
 
-            self.logger.info("Successfully generated instance information")
+            self._log_info("Successfully generated instance information")
             return response
 
         except Exception as e:
-            self.logger.error(f"Error in InstanceInfoTool: {e}", exc_info=True)
+            self._log_error(e, "generating instance info")
             raise
 
 
-class ModelGetAvailableFiltersTool:
+class ModelGetAvailableFiltersCore(BaseCore):
     """
     Generic tool for retrieving available filterable columns and operators for a
     model. Used for get_dataset_available_filters, get_chart_available_filters,
@@ -451,23 +502,21 @@ class ModelGetAvailableFiltersTool:
         output_schema: Type[BaseModel],
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
-        self.logger = logger or logging.getLogger(__name__)
 
-    def run(self) -> BaseModel:
+    def run_tool(self) -> BaseModel:
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
             # Ensure column_operators is a plain dict, not a custom type
             column_operators = dict(filterable)
             response = self.output_schema(column_operators=column_operators)
-            self.logger.info(
+            self._log_info(
                 f"Successfully retrieved available filters for "
                 f"{self.dao_class.__class__.__name__}"
             )
             return response
         except Exception as e:
-            self.logger.error(
-                f"Error in ModelGetAvailableFiltersTool: {e}", exc_info=True
-            )
+            self._log_error(e)
             raise

@@ -17,15 +17,15 @@
 
 """
 Get Superset instance high-level information FastMCP tool using configurable
-InstanceInfoTool for flexible, extensible metrics calculation.
+InstanceInfoCore for flexible, extensible metrics calculation.
 """
 
 import logging
 from typing import Any, Dict
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.generic_tools import InstanceInfoTool
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
@@ -202,8 +202,8 @@ def calculate_popular_content(
     )
 
 
-# Configure the instance info tool
-_instance_info_tool = InstanceInfoTool(
+# Configure the instance info core
+_instance_info_core = InstanceInfoCore(
     dao_classes={
         "dashboards": None,  # type: ignore[dict-item]  # Will be set at runtime
         "charts": None,  # type: ignore[dict-item]
@@ -235,7 +235,7 @@ def get_superset_instance_info(request: GetSupersetInstanceInfoRequest) -> Insta
     """
     Get comprehensive high-level information about the Superset instance.
 
-    Uses a configurable InstanceInfoTool to gather statistics including:
+    Uses a configurable InstanceInfoCore to gather statistics including:
     - Basic entity counts (dashboards, charts, datasets, etc.)
     - Recent activity metrics across multiple time windows
     - Dashboard status breakdown (published, certified, etc.)
@@ -259,7 +259,7 @@ def get_superset_instance_info(request: GetSupersetInstanceInfoRequest) -> Insta
         from superset.daos.user import UserDAO
 
         # Configure DAO classes at runtime
-        _instance_info_tool.dao_classes = {
+        _instance_info_core.dao_classes = {
             "dashboards": DashboardDAO,  # type: ignore[dict-item]
             "charts": ChartDAO,  # type: ignore[dict-item]
             "datasets": DatasetDAO,  # type: ignore[dict-item]
@@ -268,8 +268,8 @@ def get_superset_instance_info(request: GetSupersetInstanceInfoRequest) -> Insta
             "tags": TagDAO,  # type: ignore[dict-item]
         }
 
-        # Run the configurable tool
-        return _instance_info_tool.run()
+        # Run the configurable core
+        return _instance_info_core.run_tool()
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"

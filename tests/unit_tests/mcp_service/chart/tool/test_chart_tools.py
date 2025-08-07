@@ -718,7 +718,7 @@ async def test_generate_chart_xy_scatter_success(
         mock_run.assert_called_once()
 
 
-@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
 @pytest.mark.asyncio
 async def test_get_chart_info_by_uuid(mock_find_object, mcp_server):
     """Test getting chart info using UUID identifier."""
@@ -842,10 +842,10 @@ class TestChartSortableColumns:
 
         mock_get_user.return_value = MagicMock(id=1)
         mock_tool = MagicMock()
-        mock_tool.run.return_value = MagicMock(charts=[], count=0)
+        mock_tool.run_tool.return_value = MagicMock(charts=[], count=0)
 
         with patch(
-            "superset.mcp_service.chart.tool.list_charts.ModelListTool",
+            "superset.mcp_service.chart.tool.list_charts.ModelListCore",
             return_value=mock_tool,
         ):
             # Test with valid sortable column
@@ -855,8 +855,8 @@ class TestChartSortableColumns:
             list_charts.fn(request)
 
             # Verify the tool was called with the correct order column
-            mock_tool.run.assert_called_once()
-            call_args = mock_tool.run.call_args[1]
+            mock_tool.run_tool.assert_called_once()
+            call_args = mock_tool.run_tool.call_args[1]
             assert call_args["order_column"] == "slice_name"
             assert call_args["order_direction"] == "asc"
 

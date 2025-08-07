@@ -22,44 +22,19 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
-from typing import Any, Dict, Optional
-
-from pydantic import BaseModel, Field
+from typing import Any, Dict
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.dashboard.schemas import DashboardInfo
+from superset.mcp_service.dashboard.schemas import (
+    AddChartToDashboardRequest,
+    AddChartToDashboardResponse,
+    DashboardInfo,
+)
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-class AddChartToDashboardRequest(BaseModel):
-    """Request schema for adding a chart to an existing dashboard."""
-
-    dashboard_id: int = Field(
-        ..., description="ID of the dashboard to add the chart to"
-    )
-    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
-    target_tab: Optional[str] = Field(
-        None, description="Target tab name (if dashboard has tabs)"
-    )
-
-
-class AddChartToDashboardResponse(BaseModel):
-    """Response schema for adding chart to dashboard."""
-
-    dashboard: Optional[DashboardInfo] = Field(
-        None, description="The updated dashboard info, if successful"
-    )
-    dashboard_url: Optional[str] = Field(
-        None, description="URL to view the updated dashboard"
-    )
-    position: Optional[Dict[str, Any]] = Field(
-        None, description="Position information for the added chart"
-    )
-    error: Optional[str] = Field(None, description="Error message, if operation failed")
 
 
 def _find_next_row_position(layout: Dict[str, Any]) -> int:

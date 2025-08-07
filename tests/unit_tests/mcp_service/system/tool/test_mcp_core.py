@@ -5,7 +5,7 @@ from typing import Any, List
 import pytest
 from pydantic import BaseModel
 
-from superset.mcp_service.generic_tools import ModelGetInfoTool, ModelListTool
+from superset.mcp_service.mcp_core import ModelGetInfoCore, ModelListCore
 
 
 # Dummy Pydantic output schema
@@ -58,7 +58,7 @@ def dummy_serializer(obj, columns=None):
 
 
 def test_model_list_tool_basic():
-    tool = ModelListTool(
+    tool = ModelListCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
         item_serializer=dummy_serializer,
@@ -68,14 +68,14 @@ def test_model_list_tool_basic():
         list_field_name="items",
         output_list_schema=DummyListSchema,
     )
-    result = tool.run(page=1, page_size=2)
+    result = tool.run_tool(page=1, page_size=2)
     assert result.count == 2
     assert result.total_count == 2
     assert isinstance(result.items[0], DummyOutputSchema)
     assert result.page == 1
     assert result.page_size == 2
     assert result.total_pages == 1
-    # For page=1, ModelListTool sets has_previous=True
+    # For page=1, ModelListCore sets has_previous=True
     assert result.has_previous is True
     assert result.has_next is False
     assert result.columns_requested == ["id", "name"]
@@ -84,7 +84,7 @@ def test_model_list_tool_basic():
 
 
 def test_model_list_tool_with_filters_and_columns():
-    tool = ModelListTool(
+    tool = ModelListCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
         item_serializer=dummy_serializer,
@@ -94,7 +94,7 @@ def test_model_list_tool_with_filters_and_columns():
         list_field_name="items",
         output_list_schema=DummyListSchema,
     )
-    result = tool.run(
+    result = tool.run_tool(
         filters=[{"col": "name", "opr": "eq", "value": "foo"}], select_columns=["id"]
     )
     assert result.columns_requested == ["id"]
@@ -107,7 +107,7 @@ def test_model_list_tool_empty_result():
         def list(cls, **kwargs):
             return [], 0
 
-    tool = ModelListTool(
+    tool = ModelListCore(
         dao_class=EmptyDAO,
         output_schema=DummyOutputSchema,
         item_serializer=dummy_serializer,
@@ -117,18 +117,18 @@ def test_model_list_tool_empty_result():
         list_field_name="items",
         output_list_schema=DummyListSchema,
     )
-    result = tool.run(page=1, page_size=10)
+    result = tool.run_tool(page=1, page_size=10)
     assert result.count == 0
     assert result.total_count == 0
     assert result.items == []
     assert result.total_pages == 0
     assert result.has_next is False
-    # For page=1 and no results, has_previous is True by ModelListTool logic
+    # For page=1 and no results, has_previous is True by ModelListCore logic
     assert result.has_previous is True
 
 
 def test_model_list_tool_invalid_filters_json():
-    tool = ModelListTool(
+    tool = ModelListCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
         item_serializer=dummy_serializer,
@@ -139,31 +139,31 @@ def test_model_list_tool_invalid_filters_json():
         output_list_schema=DummyListSchema,
     )
     # Should parse JSON string filters
-    result = tool.run(filters='[{"col": "name", "opr": "eq", "value": "foo"}]')
+    result = tool.run_tool(filters='[{"col": "name", "opr": "eq", "value": "foo"}]')
     assert result.count == 2
 
 
 def test_model_get_info_tool_found():
-    tool = ModelGetInfoTool(
+    tool = ModelGetInfoCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
         error_schema=DummyErrorSchema,
         serializer=lambda obj: DummyOutputSchema(id=obj.id, name=obj.name),
     )
-    result = tool.run(1)
+    result = tool.run_tool(1)
     assert isinstance(result, DummyOutputSchema)
     assert result.id == 1
     assert result.name == "foo"
 
 
 def test_model_get_info_tool_not_found():
-    tool = ModelGetInfoTool(
+    tool = ModelGetInfoCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
         error_schema=DummyErrorSchema,
         serializer=lambda obj: DummyOutputSchema(id=obj.id, name=obj.name),
     )
-    result = tool.run(999)
+    result = tool.run_tool(999)
     assert isinstance(result, DummyErrorSchema)
     assert result.error_type == "not_found"
     assert "not found" in result.error
@@ -176,12 +176,12 @@ def test_model_get_info_tool_exception():
         def find_by_id(cls, id):
             raise Exception("fail")
 
-    tool = ModelGetInfoTool(
+    tool = ModelGetInfoCore(
         dao_class=FailingDAO,
         output_schema=DummyOutputSchema,
         error_schema=DummyErrorSchema,
         serializer=lambda obj: DummyOutputSchema(id=obj.id, name=obj.name),
     )
     with pytest.raises(Exception, match="fail") as exc:
-        tool.run(1)
+        tool.run_tool(1)
     assert "fail" in str(exc.value)

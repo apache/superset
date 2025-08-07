@@ -1113,7 +1113,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
         assert ds.metrics[0].metric_name == "avg_value"
 
 
-@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
 @pytest.mark.asyncio
 async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dataset info using UUID identifier."""
@@ -1190,10 +1190,10 @@ class TestDatasetSortableColumns:
 
         mock_get_user.return_value = MagicMock(id=1)
         mock_tool = MagicMock()
-        mock_tool.run.return_value = MagicMock(datasets=[], count=0)
+        mock_tool.run_tool.return_value = MagicMock(datasets=[], count=0)
 
         with patch(
-            "superset.mcp_service.dataset.tool.list_datasets.ModelListTool",
+            "superset.mcp_service.dataset.tool.list_datasets.ModelListCore",
             return_value=mock_tool,
         ):
             # Test with valid sortable column
@@ -1203,8 +1203,8 @@ class TestDatasetSortableColumns:
             list_datasets.fn(request)
 
             # Verify the tool was called with the correct order column
-            mock_tool.run.assert_called_once()
-            call_args = mock_tool.run.call_args[1]
+            mock_tool.run_tool.assert_called_once()
+            call_args = mock_tool.run_tool.call_args[1]
             assert call_args["order_column"] == "table_name"
             assert call_args["order_direction"] == "asc"
 
@@ -1227,15 +1227,15 @@ class TestDatasetSortableColumns:
 
         # Test datasets default to changed_on desc
         with patch(
-            "superset.mcp_service.dataset.tool.list_datasets.ModelListTool"
+            "superset.mcp_service.dataset.tool.list_datasets.ModelListCore"
         ) as mock_tool:
             with patch("superset.mcp_service.auth.get_user_from_request"):
-                mock_tool.return_value.run.return_value = MagicMock(
+                mock_tool.return_value.run_tool.return_value = MagicMock(
                     datasets=[], count=0
                 )
                 request = ListDatasetsRequest()  # No order specified
                 list_datasets.fn(request)
 
-                call_args = mock_tool.return_value.run.call_args[1]
+                call_args = mock_tool.return_value.run_tool.call_args[1]
                 assert call_args["order_column"] == "changed_on"
                 assert call_args["order_direction"] == "desc"

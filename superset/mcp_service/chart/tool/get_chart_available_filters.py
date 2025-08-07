@@ -26,8 +26,8 @@ from superset.mcp_service.chart.schemas import (
     ChartAvailableFiltersResponse,
     GetChartAvailableFiltersRequest,
 )
-from superset.mcp_service.generic_tools import ModelGetAvailableFiltersTool
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.mcp_core import ModelGetAvailableFiltersCore
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +42,9 @@ def get_chart_available_filters(
     """
     from superset.daos.chart import ChartDAO
 
-    tool = ModelGetAvailableFiltersTool(
+    tool = ModelGetAvailableFiltersCore(
         dao_class=ChartDAO,  # type: ignore[arg-type]
         output_schema=ChartAvailableFiltersResponse,
         logger=logger,
     )
-    return tool.run()
+    return tool.run_tool()

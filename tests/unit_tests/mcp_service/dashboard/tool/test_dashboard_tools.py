@@ -373,7 +373,7 @@ async def test_get_dashboard_available_filters_exception_handling(mcp_server):
         assert hasattr(result.data, "column_operators")
 
 
-@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dashboard info using UUID identifier."""
@@ -413,7 +413,7 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
         assert result.data["dashboard_title"] == "Test Dashboard UUID"
 
 
-@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     """Test getting dashboard info using slug identifier."""
@@ -555,10 +555,10 @@ class TestDashboardSortableColumns:
 
         mock_get_user.return_value = Mock(id=1)
         mock_tool = Mock()
-        mock_tool.run.return_value = Mock(dashboards=[], count=0)
+        mock_tool.run_tool.return_value = Mock(dashboards=[], count=0)
 
         with patch(
-            "superset.mcp_service.dashboard.tool.list_dashboards.ModelListTool",
+            "superset.mcp_service.dashboard.tool.list_dashboards.ModelListCore",
             return_value=mock_tool,
         ):
             # Test with valid sortable column
@@ -568,8 +568,8 @@ class TestDashboardSortableColumns:
             list_dashboards.fn(request)
 
             # Verify the tool was called with the correct order column
-            mock_tool.run.assert_called_once()
-            call_args = mock_tool.run.call_args[1]
+            mock_tool.run_tool.assert_called_once()
+            call_args = mock_tool.run_tool.call_args[1]
             assert call_args["order_column"] == "dashboard_title"
             assert call_args["order_direction"] == "desc"
 

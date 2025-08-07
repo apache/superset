@@ -42,169 +42,54 @@ async def get_instance_metadata_resource() -> str:
     - Feature flags and configuration
     """
     try:
-        # Import DAOs inside function to avoid global scope imports
+        # Import the shared core and DAOs at runtime
+        # Create a shared core instance for the resource
+        from typing import cast, Type
+
         from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import DashboardDAO
         from superset.daos.database import DatabaseDAO
         from superset.daos.dataset import DatasetDAO
-        from superset.extensions import db
-
-        # Gather instance statistics using DAOs
-        dataset_count = DatasetDAO.count()
-        dashboard_count = DashboardDAO.count()
-        chart_count = ChartDAO.count()
-        database_count = DatabaseDAO.count()
-
-        # Get popular datasets (by chart count) using raw query for complex join
-        # Get the model classes
-        dataset_model = DatasetDAO.model_cls
-        chart_model = ChartDAO.model_cls
-
-        if dataset_model and chart_model:
-            popular_datasets = (
-                db.session.query(
-                    dataset_model.table_name,
-                    dataset_model.schema,
-                    db.func.count(chart_model.id).label("chart_count"),
-                )
-                .join(
-                    chart_model,
-                    chart_model.datasource_id == dataset_model.id,
-                )
-                .filter(chart_model.datasource_type == "table")
-                .group_by(dataset_model.table_name, dataset_model.schema)
-                .order_by(db.desc("chart_count"))
-                .limit(10)
-                .all()
-            )
-        else:
-            popular_datasets = []
-
-        # Get recent published dashboards using DAO with filters
-        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-
-        recent_dashboards, _ = DashboardDAO.list(
-            column_operators=[
-                ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)
-            ],
-            order_column="changed_on",
-            order_direction="desc",
-            page_size=10,
-            columns=["id", "dashboard_title", "slug"],
+        from superset.daos.tag import TagDAO
+        from superset.daos.user import UserDAO
+        from superset.mcp_service.dao.base import DAO
+        from superset.mcp_service.mcp_core import InstanceInfoCore
+        from superset.mcp_service.system.schemas import InstanceInfo
+        from superset.mcp_service.system.tool.get_superset_instance_info import (
+            calculate_dashboard_breakdown,
+            calculate_database_breakdown,
+            calculate_instance_summary,
+            calculate_popular_content,
+            calculate_recent_activity,
         )
 
-        # Get available chart types - simplified list (config access would need Flask
-        # app)
-        available_viz_types = [
-            "line",
-            "bar",
-            "area",
-            "scatter",
-            "pie",
-            "table",
-            "pivot_table",
-            "heatmap",
-            "box_plot",
-            "histogram",
-            "time_series",
-            "big_number",
-            "mixed_timeseries",
-            "dist_bar",
-            "world_map",
-            "country_map",
-        ]
-
-        # Get sample queries (non-sensitive templates)
-        sample_queries = [
-            {
-                "description": "Top 10 by metric",
-                "template": "SELECT dimension, SUM(metric) as total FROM table GROUP "
-                "BY dimension ORDER BY total DESC LIMIT 10",
+        instance_info_core = InstanceInfoCore(
+            dao_classes={
+                "dashboards": cast(Type[DAO], DashboardDAO),
+                "charts": cast(Type[DAO], ChartDAO),
+                "datasets": cast(Type[DAO], DatasetDAO),
+                "databases": cast(Type[DAO], DatabaseDAO),
+                "users": cast(Type[DAO], UserDAO),
+                "tags": cast(Type[DAO], TagDAO),
             },
-            {
-                "description": "Time series daily",
-                "template": "SELECT DATE(timestamp) as date, COUNT(*) as count FROM "
-                "table GROUP BY DATE(timestamp) ORDER BY date",
+            output_schema=InstanceInfo,
+            metric_calculators={
+                "instance_summary": calculate_instance_summary,
+                "recent_activity": calculate_recent_activity,
+                "dashboard_breakdown": calculate_dashboard_breakdown,
+                "database_breakdown": calculate_database_breakdown,
+                "popular_content": calculate_popular_content,
             },
-            {
-                "description": "Year-over-year comparison",
-                "template": "SELECT YEAR(date) as year, MONTH(date) as month, "
-                "SUM(value) FROM table GROUP BY year, month",
+            time_windows={
+                "recent": 7,
+                "monthly": 30,
+                "quarterly": 90,
             },
-            {
-                "description": "Moving average",
-                "template": "SELECT date, value, AVG(value) OVER (ORDER BY date ROWS "
-                "BETWEEN 6 PRECEDING AND CURRENT ROW) as moving_avg FROM "
-                "table",
-            },
-        ]
-
-        # Get database engines using DAO
-        databases, _ = DatabaseDAO.list(
-            columns=["database_name", "sqlalchemy_uri"],
-            page_size=100,  # Get all databases
+            logger=logger,
         )
 
-        db_engines = set()
-        for database in databases:
-            if hasattr(database, "sqlalchemy_uri") and database.sqlalchemy_uri:
-                # Extract database type from SQLAlchemy URI
-                db_type = (
-                    database.sqlalchemy_uri.split("://")[0]
-                    if "://" in database.sqlalchemy_uri
-                    else "unknown"
-                )
-                db_engines.add(db_type)
-
-        db_engines_list = list(db_engines)
-
-        # Build metadata response
-        metadata = {
-            "instance_stats": {
-                "dataset_count": dataset_count,
-                "dashboard_count": dashboard_count,
-                "chart_count": chart_count,
-                "database_count": database_count,
-            },
-            "popular_datasets": [
-                {
-                    "name": f"{ds.schema}.{ds.table_name}"
-                    if ds.schema
-                    else ds.table_name,
-                    "chart_count": ds.chart_count,
-                }
-                for ds in popular_datasets
-            ],
-            "recent_dashboards": [
-                {
-                    "id": getattr(d, "id", None),
-                    "title": getattr(d, "dashboard_title", "Unknown"),
-                    "slug": getattr(d, "slug", None),
-                }
-                for d in recent_dashboards
-            ],
-            "available_chart_types": available_viz_types,
-            "database_engines": db_engines_list,
-            "sample_queries": sample_queries,
-            "features": {
-                "sql_lab_enabled": True,
-                # Default to enabled (would need Flask app config for actual value)
-                "csv_upload_enabled": True,  # Default to enabled
-                "thumbnails_enabled": False,  # Default to disabled
-            },
-            "tips": [
-                "Use list_datasets to see all available datasets",
-                "Use get_dataset_info to explore columns and metrics",
-                "Popular datasets often have well-defined metrics",
-                "Start with simple visualizations like line and bar charts",
-                "Dashboards can be filtered dynamically",
-                "Use get_superset_instance_info for detailed statistics",
-            ],
-        }
-
-        from superset.utils import json
-
-        return json.dumps(metadata, indent=2)
+        # Use the shared core's resource method
+        return instance_info_core.get_resource()
 
     except Exception as e:
         logger.error(f"Error generating instance metadata: {e}")
