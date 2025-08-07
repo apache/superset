@@ -133,6 +133,17 @@ const DrillDetailMenuItems = ({
       datasources[formData.datasource]?.database?.disable_drill_to_detail,
   );
 
+  const cleanedFilters = useMemo(
+    () =>
+      filters.map(filter => ({
+        ...filter,
+        ...(typeof filter.val === 'string'
+          ? { val: removeHTMLTags(filter.val) }
+          : {}),
+      })),
+    [filters],
+  );
+
   const openModal = useCallback(
     (filters, event) => {
       onClick(event);
@@ -218,7 +229,7 @@ const DrillDetailMenuItems = ({
           <MenuItemWithTruncation
             tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
             menuKey={`drill-detail-filter-${i}`}
-            onClick={openModal.bind(null, [filter])}
+            onClick={openModal.bind(null, [cleanedFilters[i]])}
           >
             {`${DRILL_TO_DETAIL_BY} `}
             <StyledFilter stripHTML>{filter.formattedVal}</StyledFilter>
@@ -227,7 +238,7 @@ const DrillDetailMenuItems = ({
         {filters.length > 1 && (
           <Menu.Item
             key="drill-detail-filter-all"
-            onClick={openModal.bind(null, filters)}
+            onClick={openModal.bind(null, cleanedFilters)}
           >
             <div>
               {`${DRILL_TO_DETAIL_BY} `}
