@@ -740,9 +740,7 @@ class QueryContextProcessor:
         This method tries multiple strategies to find the correct temporal column:
         1. Use explicitly set granularity
         2. Use x_axis_label if it's a temporal column
-        3. Use datasource's main datetime column
-        4. Find any datetime column in the datasource
-        5. Look for common temporal column names
+        3. Find any datetime column in the datasource
 
         :param query_object: The query object
         :param x_axis_label: The x-axis label from the query
