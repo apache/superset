@@ -201,6 +201,40 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `rotate_value${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          label: t('Rotate Value Label'),
+          renderTrigger: true,
+          default: 0,
+          description: t('Rotate the value label'),
+          choices: [
+            [0, t('0°')],
+            [45, t('45°')],
+            [90, t('90°')],
+          ],
+          freeForm: true,
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
+        },
+      },
+    ],
+    [
+      {
+        name: `distance_value${controlSuffix}`,
+        config: {
+          type: 'TextControl',
+          label: t('Value Label Distance'),
+          default: 0,
+          renderTrigger: true,
+          description: t('Distance of the value label from the bar'),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`].value),
+        },
+      },
+    ],
+    [
+      {
         name: `only_total${controlSuffix}`,
         config: {
           type: 'CheckboxControl',
