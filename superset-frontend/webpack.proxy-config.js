@@ -17,7 +17,7 @@
  * under the License.
  */
 const zlib = require('zlib');
-const { ZSTDDecompress } = require('simple-zstd');
+// const { ZSTDDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
 // eslint-disable-next-line import/no-extraneous-dependencies

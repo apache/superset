@@ -73,7 +73,7 @@ import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { navigateTo } from 'src/utils/navigationUtils';
+// import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
@@ -712,16 +712,16 @@ function DashboardList(props: DashboardListProps) {
     });
   }
 
-  if (canCreate) {
-    subMenuButtons.push({
-      icon: <Icons.PlusOutlined iconSize="m" />,
-      name: t('Dashboard'),
-      buttonStyle: 'primary',
-      onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
-      },
-    });
-  }
+  // if (canCreate) {
+  //   subMenuButtons.push({
+  //     icon: <Icons.PlusOutlined iconSize="m" />,
+  //     name: t('Dashboard'),
+  //     buttonStyle: 'primary',
+  //     onClick: () => {
+  //       navigateTo('/dashboard/new', { assign: true });
+  //     },
+  //   });
+  // }
   return (
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
