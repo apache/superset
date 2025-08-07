@@ -756,14 +756,7 @@ class QueryContextProcessor:
         if x_axis_label:
             return x_axis_label
 
-        # Strategy 3: Use datasource's main datetime column
-        if (
-            hasattr(self._qc_datasource, "main_dttm_col")
-            and self._qc_datasource.main_dttm_col
-        ):
-            return self._qc_datasource.main_dttm_col
-
-        # Strategy 4: Find any datetime column in the datasource
+        # Strategy 3: Find any datetime column in the datasource
         if hasattr(self._qc_datasource, "columns"):
             for col in self._qc_datasource.columns:
                 if hasattr(col, "is_dttm") and col.is_dttm:
@@ -771,34 +764,6 @@ class QueryContextProcessor:
                         return col.column_name
                     elif hasattr(col, "name"):
                         return col.name
-
-        # Strategy 5: Look for common temporal column names
-        if hasattr(self._qc_datasource, "column_names"):
-            common_temporal_names = [
-                "__timestamp",
-                "ds",
-                "dt",
-                "date",
-                "time",
-                "datetime",
-                "created_at",
-                "updated_at",
-                "timestamp",
-                "event_time",
-            ]
-            for common_name in common_temporal_names:
-                if common_name in self._qc_datasource.column_names:
-                    return common_name
-
-        # Strategy 6: Check if there's already a temporal filter we can use as reference
-        if hasattr(query_object, "filter") and query_object.filter:
-            for flt in query_object.filter:
-                if flt.get("op") == FilterOperator.TEMPORAL_RANGE:
-                    filter_col = flt.get("col")
-                    if isinstance(filter_col, str):
-                        return filter_col
-                    elif isinstance(filter_col, dict) and "sqlExpression" in filter_col:
-                        return filter_col["sqlExpression"]
 
         return None
 
