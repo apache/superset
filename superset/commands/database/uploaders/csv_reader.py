@@ -66,17 +66,62 @@ class CSVReader(BaseDataReader):
 
     @staticmethod
     def _detect_encoding(file: FileStorage) -> str:
-        """Detect file encoding with fallback options"""
-        sample = file.read(10000)
-        file.seek(0)
+        """Detect file encoding with progressive sampling"""
+        # Try progressively larger samples to improve detection reliability
+        sample_sizes = [1024, 8192, 32768, 65536]
 
-        for encoding in ENCODING_FALLBACKS:
-            try:
-                sample.decode(encoding)
-                return encoding
-            except UnicodeDecodeError:
-                continue
+        for sample_size in sample_sizes:
+            file.seek(0)
+            sample = file.read(sample_size)
+            if not sample:  # Empty file or reached end
+                break
+
+            for encoding in ENCODING_FALLBACKS:
+                try:
+                    sample.decode(encoding)
+                    file.seek(0)
+                    return encoding
+                except UnicodeDecodeError:
+                    continue
+
+        file.seek(0)
         return DEFAULT_ENCODING
+
+    @staticmethod
+    def _select_optimal_engine() -> str:
+        """Select the best available CSV parsing engine"""
+        try:
+            # Check if pyarrow is available as a separate package
+            pyarrow_spec = util.find_spec("pyarrow")
+            if not pyarrow_spec:
+                return "c"
+
+            # Import pyarrow to verify it works properly
+            import pyarrow as pa  # noqa: F401
+
+            # Check if pandas has built-in pyarrow support
+            pandas_version = str(pd.__version__)
+            has_builtin_pyarrow = "pyarrow" in pandas_version
+
+            if has_builtin_pyarrow:
+                # Pandas has built-in pyarrow, safer to use c engine
+                logger.info("Pandas has built-in pyarrow support, using 'c' engine")
+                return "c"
+            else:
+                # External pyarrow available, can safely use it
+                logger.info("Using 'pyarrow' engine for CSV parsing")
+                return "pyarrow"
+
+        except ImportError:
+            # PyArrow import failed, fall back to c engine
+            logger.info("PyArrow not properly installed, falling back to 'c' engine")
+            return "c"
+        except Exception as ex:
+            # Any other error, fall back to c engine
+            logger.warning(
+                f"Error selecting CSV engine: {ex}, falling back to 'c' engine"
+            )
+            return "c"
 
     @staticmethod
     def _read_csv(  # noqa: C901
@@ -101,13 +146,7 @@ class CSVReader(BaseDataReader):
             is_feature_enabled("CSV_UPLOAD_PYARROW_ENGINE")
             and not has_unsupported_options
         ):
-            # Check if pandas was built with pyarrow
-            if "pyarrow" not in str(pd.__version__):
-                # Try to use pyarrow engine if available
-                kwargs["engine"] = "pyarrow" if util.find_spec("pyarrow") else "c"
-            else:
-                # Pandas has built-in pyarrow, use c engine to avoid conflicts
-                kwargs["engine"] = "c"
+            kwargs["engine"] = CSVReader._select_optimal_engine()
         else:
             # Default to c engine for reliability
             kwargs["engine"] = "c"
@@ -117,16 +156,28 @@ class CSVReader(BaseDataReader):
         try:
             if "chunksize" in kwargs:
                 chunks = []
+                total_rows = 0
+                max_rows = kwargs.get("nrows")
                 chunk_iterator = pd.read_csv(
                     filepath_or_buffer=file.stream,
                     **kwargs,
                 )
 
                 for chunk in chunk_iterator:
+                    # Check if adding this chunk would exceed the row limit
+                    if max_rows is not None and total_rows + len(chunk) > max_rows:
+                        # Only take the needed rows from this chunk
+                        remaining_rows = max_rows - total_rows
+                        chunk = chunk.iloc[:remaining_rows]
+                        chunks.append(chunk)
+                        break
+
                     chunks.append(chunk)
-                    if "nrows" in kwargs and kwargs["nrows"] is not None:
-                        if len(pd.concat(chunks)) >= kwargs["nrows"]:
-                            break
+                    total_rows += len(chunk)
+
+                    # Break if we've reached the desired number of rows
+                    if max_rows is not None and total_rows >= max_rows:
+                        break
 
                 if chunks:
                     result = pd.concat(chunks, ignore_index=False)
