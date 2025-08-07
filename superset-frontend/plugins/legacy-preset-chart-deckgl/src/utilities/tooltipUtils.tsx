@@ -18,10 +18,12 @@
  */
 
 import { t, JsonObject, QueryFormData } from '@superset-ui/core';
+import { useMemo, memo } from 'react';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
-import CustomTooltipWrapper from '../components/CustomTooltipWrapper';
 import { createDefaultTemplateWithLimits } from './multiValueUtils';
+
+const MemoizedHandlebarsRenderer = memo(HandlebarsRenderer);
 
 export const CommonTooltipRows = {
   position: (o: JsonObject, position?: [number, number]) => (
@@ -240,14 +242,11 @@ export function createHandlebarsTooltipData(
   formData: QueryFormData,
 ): Record<string, any> {
   const initialData: Record<string, any> = {
-    ...o.object,
+    ...(o.object || {}),
     coordinate: o.coordinate,
     index: o.index,
     picked: o.picked,
     title: formData.viz_type || 'Chart',
-    position: o.object?.position,
-    sourcePosition: o.object?.sourcePosition,
-    targetPosition: o.object?.targetPosition,
     coordinateString: o.coordinate
       ? `${o.coordinate[0]}, ${o.coordinate[1]}`
       : '',
@@ -312,6 +311,47 @@ export function generateEnhancedDefaultTemplate(
   return createDefaultTemplateWithLimits(tooltipContents, formData);
 }
 
+export function useTooltipContent(
+  formData: QueryFormData,
+  defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
+) {
+  const tooltipContentGenerator = useMemo(
+    () => (o: JsonObject) => {
+      if (
+        formData.tooltip_template?.trim() &&
+        !formData.tooltip_template.includes(
+          'Drop columns/metrics in "Tooltip contents" above',
+        )
+      ) {
+        const tooltipData = createHandlebarsTooltipData(o, formData);
+        return (
+          <div className="deckgl-tooltip" data-tooltip-type="custom">
+            <MemoizedHandlebarsRenderer
+              templateSource={formData.tooltip_template}
+              data={tooltipData}
+            />
+          </div>
+        );
+      }
+
+      if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
+        const tooltipItems = buildFieldBasedTooltipItems(o, formData);
+        return <div className="deckgl-tooltip">{tooltipItems}</div>;
+      }
+
+      return defaultTooltipGenerator(o);
+    },
+    [
+      formData.tooltip_template,
+      formData.tooltip_contents,
+      formData.viz_type,
+      defaultTooltipGenerator,
+    ],
+  );
+
+  return tooltipContentGenerator;
+}
+
 export function createTooltipContent(
   formData: QueryFormData,
   defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
@@ -325,14 +365,12 @@ export function createTooltipContent(
     ) {
       const tooltipData = createHandlebarsTooltipData(o, formData);
       return (
-        <CustomTooltipWrapper>
-          <div className="deckgl-tooltip">
-            <HandlebarsRenderer
-              templateSource={formData.tooltip_template}
-              data={tooltipData}
-            />
-          </div>
-        </CustomTooltipWrapper>
+        <div className="deckgl-tooltip" data-tooltip-type="custom">
+          <MemoizedHandlebarsRenderer
+            templateSource={formData.tooltip_template}
+            data={tooltipData}
+          />
+        </div>
       );
     }
 

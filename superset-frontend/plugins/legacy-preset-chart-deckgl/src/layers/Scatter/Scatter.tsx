@@ -17,27 +17,25 @@
  * under the License.
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
-import {
-  getMetricLabel,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
-import TooltipRow from '../../TooltipRow';
-import { unitToRadius } from '../../utils/geo';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
+import TooltipRow from '../../TooltipRow';
 
-interface ScatterDataItem {
-  color: number[];
-  radius: number;
-  position: number[];
-  [key: string]: unknown;
-}
+import { unitToRadius } from '../../utils/geo';
 
-export function getPoints(data: JsonObject[]) {
-  return data.map(d => d.position);
+function getMetricLabel(metric: any) {
+  if (typeof metric === 'string') {
+    return metric;
+  }
+  if (metric?.label) {
+    return metric.label;
+  }
+  if (metric?.verbose_name) {
+    return metric.verbose_name;
+  }
+  return metric?.value || 'Metric';
 }
 
 function setTooltipContent(
@@ -68,6 +66,17 @@ function setTooltipContent(
   };
 
   return createTooltipContent(formData, defaultTooltipGenerator);
+}
+
+interface ScatterDataItem {
+  color: number[];
+  radius: number;
+  position: number[];
+  [key: string]: unknown;
+}
+
+export function getPoints(data: JsonObject[]) {
+  return data.map(d => d.position);
 }
 
 export const getLayer: GetLayerType<ScatterplotLayer> = function ({
@@ -117,4 +126,4 @@ export const getLayer: GetLayerType<ScatterplotLayer> = function ({
   });
 };
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+export default createDeckGLComponent(getLayer, getPoints);

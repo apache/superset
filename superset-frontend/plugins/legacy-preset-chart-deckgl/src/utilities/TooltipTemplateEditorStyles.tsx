@@ -27,9 +27,9 @@ export const StyledComponents = styled.div`
       align-items: center;
       margin-bottom: ${theme.sizeUnit * 2}px;
       padding: ${theme.sizeUnit * 2}px;
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgElevated};
       border-radius: ${theme.sizeUnit}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
+      border: 1px solid ${theme.colorBorderSecondary};
     }
 
     .available-fields {
@@ -40,20 +40,20 @@ export const StyledComponents = styled.div`
     }
 
     .field-tag {
-      background-color: ${theme.colors.primary.light4};
-      color: ${theme.colors.primary.dark1};
+      background-color: ${theme.colorPrimaryBg};
+      color: ${theme.colorPrimaryText};
       padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-radius: ${theme.sizeUnit * 2}px;
       font-size: ${theme.fontSizeSM}px;
       font-family: Monaco, monospace;
       cursor: pointer;
       transition: all 0.2s ease;
-      border: 1px solid ${theme.colors.primary.light2} !important;
+      border: 1px solid ${theme.colorPrimaryBorder} !important;
 
       &:hover {
-        background-color: ${theme.colors.primary.light3} !important;
+        background-color: ${theme.colorPrimaryBgHover} !important;
         transform: translateY(-1px);
-        box-shadow: 0 2px 4px ${theme.colors.grayscale.light1}40;
+        box-shadow: ${theme.boxShadowSecondary};
       }
 
       &:active {
@@ -61,7 +61,7 @@ export const StyledComponents = styled.div`
       }
 
       &:focus {
-        outline: 2px solid ${theme.colors.primary.base};
+        outline: 2px solid ${theme.colorPrimary};
         outline-offset: 2px;
       }
     }
@@ -73,18 +73,18 @@ export const StyledComponents = styled.div`
         width: 100%;
         min-height: 180px;
         padding: ${theme.sizeUnit * 2}px;
-        border: 1px solid ${theme.colors.grayscale.light2};
+        border: 1px solid ${theme.colorBorderSecondary};
         border-radius: ${theme.sizeUnit}px;
         font-family: Monaco, 'Courier New', monospace;
         font-size: 13px;
         line-height: 1.4;
         resize: vertical;
-        background-color: ${theme.colors.grayscale.light5};
+        background-color: ${theme.colorBgContainer};
 
         &:focus {
           outline: none;
-          border-color: ${theme.colors.primary.base};
-          box-shadow: 0 0 0 2px ${theme.colors.primary.light4};
+          border-color: ${theme.colorPrimary};
+          box-shadow: 0 0 0 2px ${theme.colorPrimaryBg};
         }
       }
     }
@@ -92,9 +92,9 @@ export const StyledComponents = styled.div`
     .template-help {
       margin-top: ${theme.sizeUnit * 2}px;
       padding: ${theme.sizeUnit * 2}px;
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgElevated};
       border-radius: ${theme.sizeUnit}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
+      border: 1px solid ${theme.colorBorderSecondary};
       font-size: ${theme.fontSizeSM}px;
 
       .help-section {
@@ -107,25 +107,25 @@ export const StyledComponents = styled.div`
 
       .help-title {
         font-weight: bold;
-        color: ${theme.colors.grayscale.dark1};
+        color: ${theme.colorText};
         margin-bottom: ${theme.sizeUnit}px;
       }
 
       .help-example {
-        background-color: ${theme.colors.grayscale.light3};
+        background-color: ${theme.colorFillSecondary};
         padding: ${theme.sizeUnit * 2}px;
         border-radius: ${theme.sizeUnit}px;
         margin: ${theme.sizeUnit}px 0;
         font-family: Monaco, monospace;
         font-size: 12px;
-        color: ${theme.colors.grayscale.dark2};
+        color: ${theme.colorText};
         white-space: pre-wrap;
         overflow-x: auto;
       }
     }
 
     .variable-counter {
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextSecondary};
       font-size: ${theme.fontSizeSM}px;
       font-style: italic;
     }

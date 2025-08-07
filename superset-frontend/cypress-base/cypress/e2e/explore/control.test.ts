@@ -124,10 +124,13 @@ describe('VizType control', () => {
   });
 
   it('Can change vizType', () => {
-    cy.visitChartByName('Daily Totals');
+    cy.visitChartByName('Daily Totals').then(() => {
+      cy.get('.slice_container').should('be.visible');
+    });
+
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
 
-    cy.contains('View all charts').click();
+    cy.contains('View all charts').should('be.visible').click();
 
     cy.get('.ant-modal-content').within(() => {
       cy.get('button').contains('KPI').click(); // change categories
@@ -176,8 +179,12 @@ describe('Groupby control', () => {
       .contains('Drop columns here or click')
       .click();
     cy.get('[id="adhoc-metric-edit-tabs-tab-simple"]').click();
-    cy.get('input[aria-label="Column"]').click();
-    cy.get('input[aria-label="Column"]').type('state{enter}');
+
+    cy.get('input[aria-label="Columns and metrics"]', { timeout: 10000 })
+      .should('be.visible')
+      .click();
+    cy.get('input[aria-label="Columns and metrics"]').type('state{enter}');
+
     cy.get('[data-test="ColumnEdit#save"]').contains('Save').click();
 
     cy.get('button[data-test="run-query-button"]').click();

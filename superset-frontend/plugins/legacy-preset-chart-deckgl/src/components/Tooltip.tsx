@@ -48,10 +48,13 @@ const StyledDiv = styled.div<{
         ? `
       padding: ${theme.sizeUnit * 2}px;
       margin: ${theme.sizeUnit * 2}px;
-      background: ${theme.colors.grayscale.dark2};
-      color: ${theme.colors.grayscale.light5};
+      background: ${theme.colorBgElevated};
+      color: ${theme.colorText};
       maxWidth: 300px;
       fontSize: ${theme.fontSizeSM}px;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      box-shadow: ${theme.boxShadowSecondary};
     `
         : ''
     }

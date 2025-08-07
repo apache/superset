@@ -113,7 +113,6 @@ const ExplorePanelContainer = styled.div`
       flex-direction: column;
       padding: ${theme.sizeUnit * 2}px 0;
       max-height: 100%;
-      overflow: visible;
     }
     .data-source-selection {
       padding: ${theme.sizeUnit * 2}px 0;
@@ -131,7 +130,6 @@ const ExplorePanelContainer = styled.div`
     .controls-column {
       align-self: flex-start;
       padding: 0;
-      overflow: visible;
     }
     .title-container {
       position: relative;

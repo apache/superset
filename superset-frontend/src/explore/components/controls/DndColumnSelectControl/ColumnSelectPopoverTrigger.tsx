@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
-
 import { useSelector } from 'react-redux';
+
 import {
   AdhocColumn,
   t,
@@ -32,6 +32,9 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
+
+const defaultPopoverLabel = t('My column');
+const editableTitleTab = 'sqlExpression';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -48,10 +51,22 @@ interface ColumnSelectPopoverTriggerProps {
   selectedMetrics?: QueryFormMetric[];
 }
 
-const defaultPopoverLabel = t('My column');
-const editableTitleTab = 'sqlExpression';
+const ColumnSelectPopoverTriggerWrapper = (
+  props: ColumnSelectPopoverTriggerProps,
+) => {
+  const datasource = useSelector(
+    (state: any) => state?.explore?.datasource || null,
+  );
 
-const ColumnSelectPopoverTrigger = ({
+  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
+};
+
+interface ColumnSelectPopoverTriggerInnerProps
+  extends ColumnSelectPopoverTriggerProps {
+  datasource?: any;
+}
+
+const ColumnSelectPopoverTriggerInner = ({
   columns,
   editedColumn,
   onColumnEdit,
@@ -61,10 +76,9 @@ const ColumnSelectPopoverTrigger = ({
   disabledTabs,
   metrics,
   selectedMetrics,
+  datasource,
   ...props
-}: ColumnSelectPopoverTriggerProps) => {
-  // @ts-ignore
-  const datasource = useSelector(state => state.explore.datasource);
+}: ColumnSelectPopoverTriggerInnerProps) => {
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
@@ -151,11 +165,9 @@ const ColumnSelectPopoverTrigger = ({
   );
 
   const popoverTitle = useMemo(() => {
-    // For tooltip contents, show a static title instead of editable
     if (disabledTabs?.has('saved') && disabledTabs?.has('sqlExpression')) {
       return <span>{t('Tooltip contents')}</span>;
     }
-    // Default behavior for other uses
     return (
       <DndColumnSelectPopoverTitle
         title={popoverLabel}
@@ -201,4 +213,4 @@ const ColumnSelectPopoverTrigger = ({
   );
 };
 
-export default ColumnSelectPopoverTrigger;
+export default ColumnSelectPopoverTriggerWrapper;

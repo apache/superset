@@ -1267,94 +1267,106 @@ class TestBaseDeckGLViz(SupersetTestCase):
         assert result is False
 
     def test_should_apply_layer_filtering_false_missing_adhoc_filters(self):
-        """Test _should_apply_layer_filtering returns False when adhoc_filters is
-        missing."""
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
+        """Test _should_apply_layer_filtering returns False when
+        adhoc_filters missing"""
         form_data = {"slice_id": 123}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
 
         result = test_viz._should_apply_layer_filtering(form_data)
+
         assert result is False
 
     def test_should_apply_layer_filtering_false_no_layer_scoped_filters(self):
-        """Test _should_apply_layer_filtering returns False when no layer scoped
-        filters exist."""
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
+        """Test _should_apply_layer_filtering returns False when no
+        layer scoped filters"""
         form_data = {
             "slice_id": 123,
-            "adhoc_filters": [{"clause": "WHERE", "subject": "col1"}],
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                }
+            ],
         }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
 
         result = test_viz._should_apply_layer_filtering(form_data)
+
         assert result is False
 
     def test_has_layer_scoped_filters_true_with_dict(self):
-        """Test _has_layer_scoped_filters returns True when filter dict has
-        layerFilterScope."""
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
+        """Test _has_layer_scoped_filters returns True when filter
+        has layerFilterScope"""
         form_data = {
-            "adhoc_filters": [{"layerFilterScope": [0, 1]}, {"clause": "WHERE"}]
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0, 1],
+                }
+            ],
         }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
 
         result = test_viz._has_layer_scoped_filters(form_data)
+
         assert result is True
 
     def test_has_layer_scoped_filters_true_with_non_none_value(self):
-        """Test _has_layer_scoped_filters returns True when layerFilterScope is not
-        None."""
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
+        """Test _has_layer_scoped_filters returns True when layerFilterScope not None"""
         form_data = {
             "adhoc_filters": [
-                {"layerFilterScope": []},  # Empty list is not None
-                {"clause": "WHERE"},
-            ]
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [],
+                }
+            ],
         }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
 
         result = test_viz._has_layer_scoped_filters(form_data)
+
         assert result is True
 
     def test_has_layer_scoped_filters_false_none_value(self):
-        """Test _has_layer_scoped_filters returns False when layerFilterScope is
-        None."""
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
+        """Test _has_layer_scoped_filters returns False when layerFilterScope is None"""
         form_data = {"adhoc_filters": [{"layerFilterScope": None}, {"clause": "WHERE"}]}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
 
         result = test_viz._has_layer_scoped_filters(form_data)
+
         assert result is False
 
     def test_has_layer_scoped_filters_false_no_scoped_filters(self):
-        """Test _has_layer_scoped_filters returns False when no filters have
-        layerFilterScope."""
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
+        """Test _has_layer_scoped_filters returns False when no filters
+        have layerFilterScope"""
         form_data = {
             "adhoc_filters": [
-                {"clause": "WHERE", "subject": "col1"},
-                {"clause": "WHERE", "subject": "col2"},
-            ]
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                }
+            ],
         }
-
-        result = test_viz._has_layer_scoped_filters(form_data)
-        assert result is False
-
-    def test_has_layer_scoped_filters_empty_filters(self):
-        """Test _has_layer_scoped_filters returns False when adhoc_filters is empty."""
         datasource = self.get_datasource_mock()
-        test_viz = viz.BaseDeckGLViz(datasource, {})
-
-        form_data = {"adhoc_filters": []}
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
 
         result = test_viz._has_layer_scoped_filters(form_data)
+
         assert result is False
 
     def test_apply_multilayer_filtering_filters_by_layer_scope(self):
@@ -1515,13 +1527,10 @@ class TestBaseDeckGLViz(SupersetTestCase):
     def test_get_filter_layer_scope_object_without_attribute(self):
         """Test _get_filter_layer_scope with object missing layerFilterScope
         attribute."""
+        filter_item = Mock()
+        del filter_item.layerFilterScope
         datasource = self.get_datasource_mock()
         test_viz = viz.BaseDeckGLViz(datasource, {})
-
-        from unittest.mock import Mock
-
-        filter_item = Mock()
-        del filter_item.layerFilterScope  # Remove the attribute
 
         result = test_viz._get_filter_layer_scope(filter_item)
 
@@ -1805,6 +1814,396 @@ class TestDeckGLMultiLayer(SupersetTestCase):
         assert result["features"] == {}
         assert result["slices"] == []
         assert result["mapboxApiKey"] == "test_key"
+
+    def test_get_base_properties_no_metric(self):
+        """Test _get_base_properties when metric_label is None"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric_label = None
+
+        data = {"spatial": [10.5, 20.3], "other_field": "value"}
+
+        result = test_viz._get_base_properties(data)
+
+        assert result["position"] == [10.5, 20.3]
+        assert result["weight"] == 1
+        assert len(result) == 2
+
+    def test_setup_metric_label(self):
+        """Test _setup_metric_label with metric"""
+        form_data = {"size": "test_metric"}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric = Mock()
+        test_viz.metric.value = "test_metric"
+
+        with patch("superset.viz.utils.get_metric_name") as mock_get_name:
+            mock_get_name.return_value = "test_metric"
+            test_viz._setup_metric_label()
+
+            assert test_viz.metric_label == "test_metric"
+            mock_get_name.assert_called_once_with(test_viz.metric)
+
+    def test_setup_metric_label_no_metric(self):
+        """Test _setup_metric_label without metric"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric = None
+
+        test_viz._setup_metric_label()
+
+        assert test_viz.metric_label is None
+
+    def test_should_apply_layer_filtering_true(self):
+        """Test _should_apply_layer_filtering returns True when conditions are met"""
+        form_data = {
+            "slice_id": 123,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0, 1],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._should_apply_layer_filtering(form_data)
+
+        assert result is True
+
+    def test_should_apply_layer_filtering_false_missing_slice_id(self):
+        """Test _should_apply_layer_filtering returns False when slice_id is missing"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0, 1],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._should_apply_layer_filtering(form_data)
+
+        assert result is False
+
+    def test_should_apply_layer_filtering_false_missing_adhoc_filters(self):
+        """Test _should_apply_layer_filtering returns False when
+        adhoc_filters missing"""
+        form_data = {"slice_id": 123}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._should_apply_layer_filtering(form_data)
+
+        assert result is False
+
+    def test_should_apply_layer_filtering_false_no_layer_scoped_filters(self):
+        """Test _should_apply_layer_filtering returns False when no layer
+        scoped filters"""
+        form_data = {
+            "slice_id": 123,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._should_apply_layer_filtering(form_data)
+
+        assert result is False
+
+    def test_has_layer_scoped_filters_true_with_dict(self):
+        """Test _has_layer_scoped_filters returns True when filter
+        has layerFilterScope"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0, 1],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._has_layer_scoped_filters(form_data)
+
+        assert result is True
+
+    def test_has_layer_scoped_filters_true_with_non_none_value(self):
+        """Test _has_layer_scoped_filters returns True when layerFilterScope not None"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._has_layer_scoped_filters(form_data)
+
+        assert result is True
+
+    def test_has_layer_scoped_filters_false_none_value(self):
+        """Test _has_layer_scoped_filters returns False when layerFilterScope is None"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": None,
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._has_layer_scoped_filters(form_data)
+
+        assert result is False
+
+    def test_has_layer_scoped_filters_false_no_scoped_filters(self):
+        """Test _has_layer_scoped_filters returns False when no filters have
+        layerFilterScope"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._has_layer_scoped_filters(form_data)
+
+        assert result is False
+
+    def test_apply_multilayer_filtering_filters_by_layer_scope(self):
+        """Test _apply_multilayer_filtering filters adhoc_filters by layer scope"""
+        form_data = {
+            "slice_id": 123,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0, 1],
+                    "deck_slices": [123, 456],
+                },
+                {
+                    "clause": "WHERE",
+                    "subject": "col2",
+                    "operator": "!=",
+                    "comparator": "value2",
+                    "layerFilterScope": [1],
+                    "deck_slices": [123, 456],
+                },
+                {
+                    "clause": "WHERE",
+                    "subject": "col3",
+                    "operator": ">",
+                    "comparator": "value3",
+                    "layerFilterScope": [2],
+                    "deck_slices": [123, 456],
+                },
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._apply_multilayer_filtering(form_data)
+
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0]["subject"] == "col1"
+
+    def test_apply_multilayer_filtering_no_deck_slices(self):
+        """Test _apply_multilayer_filtering when no deck_slices in filters"""
+        form_data = {
+            "slice_id": 123,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._apply_multilayer_filtering(form_data)
+
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0]["subject"] == "col1"
+
+    def test_apply_multilayer_filtering_slice_not_in_deck_slices(self):
+        """Test _apply_multilayer_filtering when slice_id not in deck_slices"""
+        form_data = {
+            "slice_id": 999,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "layerFilterScope": [0],
+                    "deck_slices": [123, 456],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._apply_multilayer_filtering(form_data)
+
+        assert len(result["adhoc_filters"]) == 0
+
+    def test_get_deck_slices_from_filters_found(self):
+        """Test _get_deck_slices_from_filters when deck_slices found"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                    "deck_slices": [123, 456],
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._get_deck_slices_from_filters(form_data)
+
+        assert result == [123, 456]
+
+    def test_get_deck_slices_from_filters_not_found(self):
+        """Test _get_deck_slices_from_filters when no deck_slices found"""
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "subject": "col1",
+                    "operator": "==",
+                    "comparator": "value1",
+                }
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._get_deck_slices_from_filters(form_data)
+
+        assert result is None
+
+    def test_get_deck_slices_from_filters_empty_filters(self):
+        """Test _get_deck_slices_from_filters with empty adhoc_filters"""
+        form_data = {"adhoc_filters": []}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._get_deck_slices_from_filters(form_data)
+
+        assert result is None
+
+    def test_get_filter_layer_scope_dict(self):
+        """Test _get_filter_layer_scope with dict filter"""
+        filter_item = {"layerFilterScope": [0, 1]}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, {})
+
+        result = test_viz._get_filter_layer_scope(filter_item)
+
+        assert result == [0, 1]
+
+    def test_get_filter_layer_scope_dict_none(self):
+        """Test _get_filter_layer_scope with dict filter having None layerFilterScope"""
+        filter_item = {"layerFilterScope": None}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, {})
+
+        result = test_viz._get_filter_layer_scope(filter_item)
+
+        assert result is None
+
+    def test_get_filter_layer_scope_dict_missing_key(self):
+        """Test _get_filter_layer_scope with dict filter missing layerFilterScope key"""
+        filter_item = {"other_key": "value"}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, {})
+
+        result = test_viz._get_filter_layer_scope(filter_item)
+
+        assert result is None
+
+    def test_get_filter_layer_scope_object_with_attribute(self):
+        """Test _get_filter_layer_scope with object having layerFilterScope attribute"""
+        filter_item = Mock()
+        filter_item.layerFilterScope = [0, 1]
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, {})
+
+        result = test_viz._get_filter_layer_scope(filter_item)
+
+        assert result == [0, 1]
+
+    def test_get_filter_layer_scope_object_without_attribute(self):
+        """Test _get_filter_layer_scope with object missing
+        layerFilterScope attribute"""
+        filter_item = Mock()
+        del filter_item.layerFilterScope
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, {})
+
+        result = test_viz._get_filter_layer_scope(filter_item)
+
+        assert result is None
+
+    def test_get_filter_layer_scope_non_dict_non_object(self):
+        """Test _get_filter_layer_scope with non-dict, non-object filter"""
+        filter_item = "string_filter"
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, {})
+
+        result = test_viz._get_filter_layer_scope(filter_item)
+
+        assert result is None
 
 
 class TestTimeSeriesViz(SupersetTestCase):

@@ -47,7 +47,7 @@ import {
 const MoreRecordsIndicator = styled.div`
   margin-top: 4px;
   font-size: 12px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorTextSecondary};
 `;
 
 export function getPoints(data: JsonObject[]) {

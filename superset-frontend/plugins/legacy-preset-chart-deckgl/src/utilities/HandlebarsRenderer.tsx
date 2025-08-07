@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';
@@ -36,57 +36,56 @@ const ErrorContainer = styled.pre`
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
-export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = ({
-  templateSource,
-  data,
-}) => {
-  const [renderedTemplate, setRenderedTemplate] = useState('');
-  const [error, setError] = useState('');
-  const appContainer = document.getElementById('app');
-  const { common } = JSON.parse(
-    appContainer?.getAttribute('data-bootstrap') || '{}',
-  );
-  const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
-  const htmlSchemaOverrides =
-    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
-
-  useEffect(() => {
-    try {
-      const template = Handlebars.compile(templateSource);
-      const result = template(data);
-      setRenderedTemplate(result);
-      setError('');
-    } catch (error) {
-      setRenderedTemplate('');
-      setError(error.message || 'Unknown template error');
-    }
-  }, [templateSource, data]);
-
-  if (error) {
-    return <ErrorContainer>{error}</ErrorContainer>;
-  }
-
-  if (renderedTemplate || renderedTemplate === '') {
-    return (
-      <div
-        style={{
-          maxWidth: '300px',
-          wordWrap: 'break-word',
-          fontSize: '12px',
-          lineHeight: '1.4',
-        }}
-      >
-        <SafeMarkdown
-          source={renderedTemplate || ''}
-          htmlSanitization={htmlSanitization}
-          htmlSchemaOverrides={htmlSchemaOverrides}
-        />
-      </div>
+export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
+  ({ templateSource, data }) => {
+    const [renderedTemplate, setRenderedTemplate] = useState('');
+    const [error, setError] = useState('');
+    const appContainer = document.getElementById('app');
+    const { common } = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
     );
-  }
+    const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
+    const htmlSchemaOverrides =
+      common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
-  return <p>{t('Loading...')}</p>;
-};
+    useEffect(() => {
+      try {
+        const template = Handlebars.compile(templateSource);
+        const result = template(data);
+        setRenderedTemplate(result);
+        setError('');
+      } catch (error) {
+        setRenderedTemplate('');
+        setError(error.message || 'Unknown template error');
+      }
+    }, [templateSource, data]);
+
+    if (error) {
+      return <ErrorContainer>{error}</ErrorContainer>;
+    }
+
+    if (renderedTemplate || renderedTemplate === '') {
+      return (
+        <div
+          style={{
+            maxWidth: '300px',
+            wordWrap: 'break-word',
+            fontSize: '12px',
+            lineHeight: '1.4',
+          }}
+        >
+          <SafeMarkdown
+            source={renderedTemplate || ''}
+            htmlSanitization={htmlSanitization}
+            htmlSchemaOverrides={htmlSchemaOverrides}
+          />
+        </div>
+      );
+    }
+
+    return <p>{t('Loading...')}</p>;
+  },
+);
 
 Handlebars.registerHelper('dateFormat', function (context, options) {
   const format = options.hash.format || 'YYYY-MM-DD HH:mm:ss';
