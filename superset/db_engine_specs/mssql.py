@@ -23,8 +23,9 @@ from re import Pattern
 from typing import Any, Optional
 
 from flask_babel import gettext as __
-from sqlalchemy import types
+from sqlalchemy import cast, literal, String, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
+from sqlalchemy.sql import Select
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -162,6 +163,33 @@ class MssqlEngineSpec(BaseEngineSpec):
                 "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
+
+    @classmethod
+    def adjust_query_for_offset(cls, qry: Select) -> Select:
+        """
+        Modify SQLAlchemy query to add ORDER BY when OFFSET is present.
+
+        MSSQL requires an ORDER BY clause when using OFFSET. If no ORDER BY
+        is present but OFFSET is specified, we add a default ORDER BY clause.
+        """
+        # Check if this query has OFFSET but no ORDER BY by inspecting query structure
+        try:
+            # Try to access the internal query structure safely
+            has_offset = getattr(qry, "_offset", None) is not None
+            has_order_by = bool(getattr(qry, "_order_by_clauses", ()))
+
+            if has_offset and not has_order_by:
+                if qry.selected_columns:
+                    first_column = list(qry.selected_columns)[0]
+                    qry = qry.order_by(first_column)
+                else:
+                    # Fallback to literal if no columns are available
+                    qry = qry.order_by(cast(literal("1"), String))
+        except (AttributeError, IndexError):
+            # If we can't inspect the query safely, just return it unchanged
+            pass
+
+        return qry
 
 
 class AzureSynapseSpec(MssqlEngineSpec):
