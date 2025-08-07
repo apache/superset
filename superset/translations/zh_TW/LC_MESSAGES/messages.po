@@ -801,11 +801,11 @@ msgid "Add Dashboard"
 msgstr "新增看板"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "分隔"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "增加過濾條件"
 
 #, fuzzy
@@ -1789,7 +1789,7 @@ msgstr "自適配過濾條件"
 msgid "Autocomplete query predicate"
 msgstr "自動補全查詢谓詞"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "自動配色"
 
 #, fuzzy
@@ -3259,7 +3259,7 @@ msgid "Create"
 msgstr "創建"
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "創建圖表"
 
 #, fuzzy
@@ -8875,7 +8875,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr "資源没有找到"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "還原過濾條件"
 
 msgid "Results"

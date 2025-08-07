@@ -832,11 +832,11 @@ msgid "Add Dashboard"
 msgstr "Добавить дашборд"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Разделитель"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Добавить фильтр"
 
 #, fuzzy
@@ -1833,7 +1833,7 @@ msgstr "Фильтры автозаполнения"
 msgid "Autocomplete query predicate"
 msgstr "Предикат запроса автозаполнения"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Автоматический цвет"
 
 #, fuzzy
@@ -3288,7 +3288,7 @@ msgstr "Карта страны"
 msgid "Create"
 msgstr "Создать"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Создать диаграмму"
 
 msgid "Create a dataset"
@@ -8879,7 +8879,7 @@ msgstr "Для этого компонента уже создан отчет"
 msgid "Resource was not found."
 msgstr "Источник не был найден"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Восстановить фильтр"
 
 msgid "Results"

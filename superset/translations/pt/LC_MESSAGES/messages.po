@@ -795,11 +795,11 @@ msgstr "Modelos CSS"
 msgid "Add Dashboard"
 msgstr "Adicionar Dashboard"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr ""
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Adicionar filtro"
 
 #, fuzzy
@@ -1813,7 +1813,7 @@ msgstr ""
 msgid "Autocomplete query predicate"
 msgstr "Carregar Valores de Predicado"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr ""
 
 #, fuzzy
@@ -3277,7 +3277,7 @@ msgid "Create"
 msgstr "Criado em"
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Crie uma nova visualização"
 
 #, fuzzy
@@ -8955,7 +8955,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr "Dashboard"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Filtros de resultados"
 
 msgid "Results"
