@@ -107,6 +107,8 @@ const MatrixifyGridCell = memo(
               col: cell.col,
               // Include the cell's filters so they can be applied to drill operations
               cellFilters,
+              // Include the cell's formData which has adhoc_filters for drill-to-detail
+              cellFormData: cell.formData,
             },
           };
 
