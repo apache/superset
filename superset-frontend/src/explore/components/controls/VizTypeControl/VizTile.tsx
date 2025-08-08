@@ -37,7 +37,7 @@ export const VizTile = ({
   const [showTooltip, setShowTooltip] = useState(false);
   const chartName = vizMeta.name
     ? mountedPluginMetadata[vizMeta.name]?.name || `${vizMeta.name}`
-    : t('Select Viz Type');
+    : t('Select chart type');
 
   const handleTileClick = useCallback(() => {
     onTileClick(vizMeta.name);
@@ -124,7 +124,7 @@ export const VizTile = ({
       >
         <span
           css={css`
-            padding: 0px ${theme.sizeUnit}px;
+            padding: 0px ${theme.sizeUnit * 1.25}px;
           `}
         >
           {vizMeta.icon}
@@ -136,6 +136,7 @@ export const VizTile = ({
             font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
+            line-height: 1;
           `}
           ref={chartNameRef}
         >

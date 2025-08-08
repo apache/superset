@@ -172,6 +172,7 @@ function TagList(props: TagListProps) {
         ),
         Header: t('Name'),
         accessor: 'name',
+        size: 'xxl',
         id: 'name',
       },
       {

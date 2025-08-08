@@ -36,8 +36,13 @@ export const usePermissions = () => {
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
-  const canDrillBy = (canExplore || canDrill) && canWriteExploreFormData;
-  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
+  const canGetDrillInfo = useSelector((state: RootState) =>
+    findPermission('can_get_drill_info', 'Dataset', state.user?.roles),
+  );
+  const canDrillBy =
+    (canExplore || canDrill) && canWriteExploreFormData && canGetDrillInfo;
+  const canDrillToDetail =
+    (canExplore || canDrill) && canDatasourceSamples && canGetDrillInfo;
   const canViewQuery = useSelector((state: RootState) =>
     findPermission('can_view_query', 'Dashboard', state.user?.roles),
   );

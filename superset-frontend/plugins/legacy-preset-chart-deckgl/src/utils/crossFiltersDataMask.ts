@@ -78,10 +78,12 @@ export interface ValidatedPickingData {
 
 const getFiltersBySpatialType = ({
   position,
+  positions,
   positionBounds,
   spatialData,
 }: {
-  position: [number, number];
+  position?: [number, number];
+  positions?: [number, number][];
   spatialData: SpatialData;
   positionBounds?: PositionBounds;
 }) => {
@@ -98,7 +100,7 @@ const getFiltersBySpatialType = ({
   let filters: QueryObjectFilterClause[] = [];
   let customColumnLabel;
 
-  if (!position && !positionBounds)
+  if (!position && !positions && !positionBounds)
     throw new Error('Position of picked data is required');
 
   switch (type) {
@@ -106,7 +108,23 @@ const getFiltersBySpatialType = ({
       if (lonCol != null && latCol != null) {
         const cols = [lonCol, latCol];
 
-        if (position) {
+        if (positions && positions.length > 0) {
+          values = positions;
+          customColumnLabel = cols.join(', ');
+
+          filters = [
+            {
+              col: lonCol,
+              op: 'IN',
+              val: positions.map(pos => pos[0]),
+            },
+            {
+              col: latCol,
+              op: 'IN',
+              val: positions.map(pos => pos[1]),
+            },
+          ];
+        } else if (position) {
           values = position;
           customColumnLabel = cols.join(', ');
 
@@ -152,19 +170,35 @@ const getFiltersBySpatialType = ({
 
       if (!col) throw new Error('Column is required');
 
-      const val = (reverseCheckbox ? position.reverse() : position).join(
-        delimiter,
-      );
+      if (positions && positions.length > 0) {
+        const vals = positions.map(pos =>
+          (reverseCheckbox ? [...pos].reverse() : pos).join(delimiter),
+        );
 
-      values = [val];
+        values = vals;
 
-      filters = [
-        {
-          col,
-          op: '==',
-          val,
-        },
-      ];
+        filters = [
+          {
+            col,
+            op: 'IN',
+            val: vals,
+          },
+        ];
+      } else if (position) {
+        const val = (reverseCheckbox ? position.reverse() : position).join(
+          delimiter,
+        );
+
+        values = [val];
+
+        filters = [
+          {
+            col,
+            op: '==',
+            val,
+          },
+        ];
+      }
 
       break;
     }
@@ -173,18 +207,35 @@ const getFiltersBySpatialType = ({
 
       if (!col) throw new Error('Column is required');
 
-      const [lon, lat] = position;
-      const val = ngeohash.encode(lat, lon, GEOHASH_PRECISION);
+      if (positions && positions.length > 0) {
+        const vals = positions.map(pos => {
+          const [lon, lat] = pos;
+          return ngeohash.encode(lat, lon, GEOHASH_PRECISION);
+        });
 
-      values = [val];
+        values = vals;
 
-      filters = [
-        {
-          col,
-          op: '==',
-          val,
-        },
-      ];
+        filters = [
+          {
+            col,
+            op: 'IN',
+            val: vals,
+          },
+        ];
+      } else if (position) {
+        const [lon, lat] = position;
+        const val = ngeohash.encode(lat, lon, GEOHASH_PRECISION);
+
+        values = [val];
+
+        filters = [
+          {
+            col,
+            op: '==',
+            val,
+          },
+        ];
+      }
 
       break;
     }
@@ -280,31 +331,69 @@ const getStartEndSpatialFilters = ({
   };
 };
 
+const isPointInBounds = (
+  point: [number, number],
+  bounds: PositionBounds,
+): boolean =>
+  point[0] >= bounds.from[0] &&
+  point[0] <= bounds.to[0] &&
+  point[1] >= bounds.from[1] &&
+  point[1] <= bounds.to[1];
+
 const getSpatialFilters = ({
   formData,
   data,
+  filterState,
 }: {
   formData: LayerFormData;
   data: PickingInfo;
+  filterState?: FilterState;
 }): FilterResult => {
-  const position = (data.object?.points?.[0]?.position ||
-    data.object?.position) as [number, number];
+  const positions = data.object?.points?.map(
+    (point: { position: [number, number]; weight: number }) => point.position,
+  ) as [number, number][];
 
   let positionBounds: PositionBounds | undefined;
 
-  if (!position && data.coordinate && data.viewport) {
+  if (!positions && data.coordinate && data.viewport) {
     const pickedPositionBounds = calculatePickedPositionBounds({
       pickedCoordinates: data.coordinate,
       viewport: data.viewport,
     });
 
     positionBounds = pickedPositionBounds;
+
+    if (filterState?.value && data.coordinate) {
+      const currentFilterValues = filterState.value;
+      if (
+        Array.isArray(currentFilterValues) &&
+        currentFilterValues.length === 2
+      ) {
+        const currentBounds: PositionBounds = {
+          from: currentFilterValues[0] as [number, number],
+          to: currentFilterValues[1] as [number, number],
+        };
+
+        const pickedPoint: [number, number] = [
+          data.coordinate[0],
+          data.coordinate[1],
+        ];
+
+        if (isPointInBounds(pickedPoint, currentBounds)) {
+          return {
+            filters: [],
+            values: currentFilterValues,
+            customColumnLabel: filterState.customColumnLabel,
+          };
+        }
+      }
+    }
   }
 
   if (!formData.spatial) throw new Error('Spatial data is required');
 
   return getFiltersBySpatialType({
-    position,
+    positions,
     positionBounds,
     spatialData: formData.spatial,
   });
@@ -353,7 +442,7 @@ const getGeojsonFilters = ({
   const val = `%${JSON.stringify(geometry)}%`;
 
   return {
-    values: [val],
+    values: [geometry],
     filters: [
       {
         col: {
@@ -385,7 +474,7 @@ export const getCrossFilterDataMask = ({
     const result = getStartEndSpatialFilters({ formData, data });
     ({ values, filters, customColumnLabel } = result);
   } else if (formData.spatial?.type) {
-    const result = getSpatialFilters({ formData, data });
+    const result = getSpatialFilters({ formData, data, filterState });
     ({ values, filters, customColumnLabel } = result);
   } else if (formData.line_column) {
     const result = getLineColumnFilters({ formData, data });

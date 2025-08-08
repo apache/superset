@@ -23,9 +23,9 @@ from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
 
-from flask import current_app
+from flask import current_app as app
 
-from superset import app, feature_flag_manager, thumbnail_cache
+from superset import feature_flag_manager, thumbnail_cache
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -147,7 +147,10 @@ class ScreenshotCachePayload:
 
 
 class BaseScreenshot:
-    driver_type = current_app.config["WEBDRIVER_TYPE"]
+    @property
+    def driver_type(self) -> str:
+        return app.config["WEBDRIVER_TYPE"]
+
     url: str
     digest: str | None
     screenshot: bytes | None

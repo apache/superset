@@ -89,6 +89,7 @@ export type CategoricalDeckGLContainerProps = {
   width: number;
   viewport: Viewport;
   getLayer: GetLayerType<unknown>;
+  getHighlightLayer?: GetLayerType<unknown>;
   payload: JsonObject;
   onAddFilter?: HandlerFunction;
   setControlValue: (control: string, value: JsonValue) => void;
@@ -213,6 +214,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
   const getLayers = useCallback(() => {
     const {
       getLayer,
+      getHighlightLayer,
       payload,
       formData: fd,
       onAddFilter,
@@ -244,19 +246,27 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       data: { ...payload.data, features },
     };
 
-    return [
-      getLayer({
-        formData: fd,
-        payload: filteredPayload,
-        onAddFilter,
-        setTooltip,
-        datasource: props.datasource,
-        onContextMenu,
-        filterState,
-        setDataMask,
-        emitCrossFilters,
-      }) as Layer,
-    ];
+    const layerProps = {
+      formData: fd,
+      payload: filteredPayload,
+      onAddFilter,
+      setTooltip,
+      datasource: props.datasource,
+      onContextMenu,
+      filterState,
+      setDataMask,
+      emitCrossFilters,
+    };
+
+    const layer = getLayer(layerProps) as Layer;
+
+    if (emitCrossFilters && filterState?.value && getHighlightLayer) {
+      const highlightLayer = getHighlightLayer(layerProps) as Layer;
+
+      return [layer, highlightLayer];
+    }
+
+    return [layer];
   }, [addColor, categories, props, setTooltip]);
 
   const toggleCategory = useCallback(

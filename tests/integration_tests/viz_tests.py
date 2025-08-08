@@ -25,9 +25,10 @@ import pytest
 
 import tests.integration_tests.test_app  # noqa: F401
 import superset.viz as viz
-from superset import app
+from flask import current_app
 from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS
+from tests.conftest import with_config
 
 from .base_tests import SupersetTestCase
 from .utils import load_fixture
@@ -162,17 +163,21 @@ class TestBaseViz(SupersetTestCase):
         datasource.database.cache_timeout = None
         test_viz = viz.BaseViz(datasource, form_data={})
         assert (
-            app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
+            current_app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
             == test_viz.cache_timeout
         )
 
-        data_cache_timeout = app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
-        app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = None
+        data_cache_timeout = current_app.config["DATA_CACHE_CONFIG"][
+            "CACHE_DEFAULT_TIMEOUT"
+        ]
+        current_app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = None
         datasource.database.cache_timeout = None
         test_viz = viz.BaseViz(datasource, form_data={})
-        assert app.config["CACHE_DEFAULT_TIMEOUT"] == test_viz.cache_timeout
+        assert current_app.config["CACHE_DEFAULT_TIMEOUT"] == test_viz.cache_timeout
         # restore DATA_CACHE_CONFIG timeout
-        app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = data_cache_timeout
+        current_app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = (
+            data_cache_timeout
+        )
 
 
 class TestPairedTTest(SupersetTestCase):
@@ -1305,6 +1310,7 @@ class TestDeckGLMultiLayer(SupersetTestCase):
             {"column": "col1", "op": "==", "val": "value1"}
         ]
 
+    @with_config({"MAPBOX_API_KEY": "test_key"})
     @patch("superset.viz.viz_types")
     @patch("superset.db.session")
     def test_get_data_with_layer_filtering(self, mock_db_session, mock_viz_types):
@@ -1355,25 +1361,25 @@ class TestDeckGLMultiLayer(SupersetTestCase):
             "deck_slices": [1, 2],  # Use integer IDs instead of Mock objects
         }
 
-        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
-            test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
 
-            test_viz._apply_layer_filtering = Mock(
-                side_effect=lambda form_data, idx: form_data
-            )
+        test_viz._apply_layer_filtering = Mock(
+            side_effect=lambda form_data, idx: form_data
+        )
 
-            result = test_viz.get_data(pd.DataFrame())
+        result = test_viz.get_data(pd.DataFrame())
 
-            assert test_viz._apply_layer_filtering.call_count == 2
-            test_viz._apply_layer_filtering.assert_any_call(slice_1.form_data, 0)
-            test_viz._apply_layer_filtering.assert_any_call(slice_2.form_data, 1)
+        assert test_viz._apply_layer_filtering.call_count == 2
+        test_viz._apply_layer_filtering.assert_any_call(slice_1.form_data, 0)
+        test_viz._apply_layer_filtering.assert_any_call(slice_2.form_data, 1)
 
-            assert isinstance(result, dict)
-            assert "features" in result
-            assert "mapboxApiKey" in result
-            assert "slices" in result
-            assert result["mapboxApiKey"] == "test_key"
+        assert isinstance(result, dict)
+        assert "features" in result
+        assert "mapboxApiKey" in result
+        assert "slices" in result
+        assert result["mapboxApiKey"] == "test_key"
 
+    @with_config({"MAPBOX_API_KEY": "test_key"})
     @patch("superset.viz.viz_types")
     @patch("superset.db.session")
     def test_get_data_filters_none_data_slices(self, mock_db_session, mock_viz_types):
@@ -1404,27 +1410,26 @@ class TestDeckGLMultiLayer(SupersetTestCase):
 
         form_data = {"deck_slices": [1, 2]}  # Use integer IDs instead of Mock objects
 
-        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
-            test_viz = viz.DeckGLMultiLayer(datasource, form_data)
-            result = test_viz.get_data(pd.DataFrame())
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+        result = test_viz.get_data(pd.DataFrame())
 
-            assert isinstance(result, dict)
-            assert len(result["slices"]) == 1
-            assert result["slices"][0] == slice_1.data
+        assert isinstance(result, dict)
+        assert len(result["slices"]) == 1
+        assert result["slices"][0] == slice_1.data
 
+    @with_config({"MAPBOX_API_KEY": "test_key"})
     def test_get_data_empty_deck_slices(self):
         """Test get_data method with empty deck_slices."""
         datasource = self.get_datasource_mock()
         form_data = {"deck_slices": []}
 
-        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
-            test_viz = viz.DeckGLMultiLayer(datasource, form_data)
-            result = test_viz.get_data(pd.DataFrame())
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+        result = test_viz.get_data(pd.DataFrame())
 
-            assert isinstance(result, dict)
-            assert result["features"] == {}
-            assert result["slices"] == []
-            assert result["mapboxApiKey"] == "test_key"
+        assert isinstance(result, dict)
+        assert result["features"] == {}
+        assert result["slices"] == []
+        assert result["mapboxApiKey"] == "test_key"
 
 
 class TestTimeSeriesViz(SupersetTestCase):

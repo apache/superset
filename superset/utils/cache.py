@@ -20,7 +20,7 @@ import inspect
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable
 
 from flask import current_app as app, request
 from flask_caching import Cache
@@ -33,11 +33,6 @@ from superset.models.cache import CacheKey
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.json import json_int_dttm_ser
 
-if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
-
-config = app.config
-stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
@@ -65,9 +60,10 @@ def set_and_log_cache(
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
+        stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
 
-        if datasource_uid and config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
@@ -149,7 +145,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(  # noqa: C901
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float | None = None,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -167,6 +163,9 @@ def etag_cache(  # noqa: C901
     """
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:  # noqa: C901
+        # Compute the actual timeout to use
+        timeout = max_age or app.config["CACHE_DEFAULT_TIMEOUT"]
+
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Response:  # noqa: C901
             # Check if the user can access the resource
@@ -231,7 +230,7 @@ def etag_cache(  # noqa: C901
                     response.cache_control.public = True
 
                 response.last_modified = content_changed_time
-                expiration = max_age or ONE_YEAR  # max_age=0 also means far future
+                expiration = timeout or ONE_YEAR  # max_age=0 also means far future
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
                 )
@@ -239,7 +238,7 @@ def etag_cache(  # noqa: C901
 
                 # if we have a cache, store the response from the request
                 try:
-                    cache.set(cache_key, response, timeout=max_age)
+                    cache.set(cache_key, response, timeout=timeout)
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
@@ -248,9 +247,9 @@ def etag_cache(  # noqa: C901
             return response.make_conditional(request)
 
         wrapper.uncached = f  # type: ignore
-        wrapper.cache_timeout = max_age  # type: ignore
+        wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=max_age
+            make_name=None, timeout=timeout
         )
 
         return wrapper

@@ -29,6 +29,7 @@ import functools
 from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
+from flask import current_app
 from pytest import fixture  # noqa: PT013
 
 from tests.example_data.data_loading.pandas.pandas_data_loader import PandasDataLoader
@@ -127,8 +128,6 @@ def with_config(override_config: dict[str, Any]):
         config_backup = {}
 
         def wrapper(*args, **kwargs):
-            from flask import current_app
-
             for key, value in override_config.items():
                 config_backup[key] = current_app.config[key]
                 current_app.config[key] = value

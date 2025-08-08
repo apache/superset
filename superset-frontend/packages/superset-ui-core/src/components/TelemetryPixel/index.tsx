@@ -39,7 +39,7 @@ interface TelemetryPixelProps {
 
 const PIXEL_ID = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
 
-const TelemetryPixel = ({
+export const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
@@ -56,4 +56,3 @@ const TelemetryPixel = ({
     />
   );
 };
-export default TelemetryPixel;

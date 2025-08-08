@@ -29,7 +29,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Load, relationship, Session
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 

@@ -20,14 +20,14 @@ from __future__ import annotations
 import logging
 from typing import cast
 
-from flask import current_app
+from flask import current_app as app
 
 from superset.commands.distributed_lock.base import BaseDistributedLockCommand
 from superset.daos.key_value import KeyValueDAO
 from superset.distributed_lock.types import LockValue
 
 logger = logging.getLogger(__name__)
-stats_logger = current_app.config["STATS_LOGGER"]
+stats_logger = app.config["STATS_LOGGER"]
 
 
 class GetDistributedLock(BaseDistributedLockCommand):

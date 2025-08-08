@@ -858,11 +858,11 @@ msgid "Add Dashboard"
 msgstr "Dashboard hinzufügen"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Trenner"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Filter hinzufügen"
 
 #, fuzzy
@@ -1887,7 +1887,7 @@ msgstr "Auto-Vervollständigen-Filter"
 msgid "Autocomplete query predicate"
 msgstr "Abfrageprädikat für die automatische Vervollständigung"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Automatische Farbe"
 
 #, fuzzy
@@ -3372,7 +3372,7 @@ msgstr "Länderkarte"
 msgid "Create"
 msgstr "Erstellen"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Diagramm erstellen"
 
 msgid "Create a dataset"
@@ -3494,7 +3494,7 @@ msgstr "Derzeit dargestellt: %s"
 msgid "Custom"
 msgstr "Angepasst"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Benutzerdefinierte bedingte Formatierung"
 
 msgid "Custom Plugin"
@@ -6028,7 +6028,7 @@ msgstr "Bild (PNG) in E-Mail eingebettet"
 msgid "Image download failed, please refresh and try again."
 msgstr "Bilddownload fehlgeschlagen, bitte aktualisieren und erneut versuchen."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Identität von angemeldeter Benutzer*in annehmen (Presto, Trino, Drill & "
 "Hive)"
@@ -9008,7 +9008,7 @@ msgstr "Resource verfügt bereits über einen angefügten Bericht."
 msgid "Resource was not found."
 msgstr "Ressource wurde nicht gefunden."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Filter wiederherstellen"
 
 msgid "Results"
@@ -9606,7 +9606,7 @@ msgstr "Übermittlungsmethode hinzufügen"
 msgid "Select Tags"
 msgstr "Schlagwörter auswählen"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Visualisierungstyp wählen"
 
 msgid "Select a column"
@@ -10043,7 +10043,7 @@ msgstr "Blasen anzeigen"
 msgid "Show CREATE VIEW statement"
 msgstr "CREATE VIEW-Anweisung anzeigen"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Zellenbalken anzeigen"
 
 msgid "Show Dashboard"
@@ -13908,7 +13908,7 @@ msgstr "X-Achse Sortieren nach"
 msgid "X-axis"
 msgstr "X-Achse"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "X-Skalen-Intervall"
 
 msgid "XYZ"
@@ -13965,7 +13965,7 @@ msgstr "Y-Achse"
 msgid "Y-axis bounds"
 msgstr "Grenzen der Y-Achse"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Y-Skalen-Intervall"
 
 msgid "Year"
@@ -14358,7 +14358,7 @@ msgstr "\"row_offset\" muss größer oder gleich 0 sein"
 msgid "`width` must be greater or equal to 0"
 msgstr "\"Breite\" muss größer oder gleich 0 sein"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "Farben zu den Zellenbalken für +/- hinzufügen"
 
 msgid "aggregate"
@@ -14403,7 +14403,7 @@ msgstr "automatisch"
 msgid "background"
 msgstr "Hintergrund"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "grundlegende bedingte Formatierung"
 
 msgid "basis"

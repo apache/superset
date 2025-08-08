@@ -283,6 +283,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         try:
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
+            self._validate_time_offsets()
             self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
@@ -301,6 +302,37 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     labels=", ".join(f'"{x}"' for x in dup_labels),
                 )
             )
+
+    def _validate_time_offsets(self) -> None:
+        """Validate time_offsets configuration"""
+        if not self.time_offsets:
+            return
+
+        for offset in self.time_offsets:
+            # Check if this is a date range offset (YYYY-MM-DD : YYYY-MM-DD format)
+            if self._is_valid_date_range(offset):
+                if not feature_flag_manager.is_feature_enabled(
+                    "DATE_RANGE_TIMESHIFTS_ENABLED"
+                ):
+                    raise QueryObjectValidationError(
+                        "Date range timeshifts are not enabled. "
+                        "Please contact your administrator to enable the "
+                        "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
+                    )
+
+    def _is_valid_date_range(self, date_range: str) -> bool:
+        """Check if string is a valid date range in YYYY-MM-DD : YYYY-MM-DD format"""
+        try:
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            start_date, end_date = date_range.split(":")
+            datetime.strptime(start_date.strip(), "%Y-%m-%d")
+            datetime.strptime(end_date.strip(), "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            return False
 
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor

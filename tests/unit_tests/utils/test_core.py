@@ -47,6 +47,7 @@ from superset.utils.core import (
     QuerySource,
     remove_extra_adhoc_filters,
 )
+from tests.conftest import with_config
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -614,27 +615,40 @@ def test_get_query_source_from_request(
     referrer: str | None,
     expected: QuerySource | None,
     mocker: MockerFixture,
+    app_context: None,
 ) -> None:
     if referrer:
-        request_mock = mocker.patch("superset.utils.core.request")
-        request_mock.referrer = referrer
+        # Use has_request_context to mock request when not in a request context
+        with mocker.patch("flask.has_request_context", return_value=True):
+            request_mock = mocker.MagicMock()
+            request_mock.referrer = referrer
+            mocker.patch("superset.utils.core.request", request_mock)
+            assert get_query_source_from_request() == expected
+    else:
+        # When no referrer, test without request context
+        with mocker.patch("flask.has_request_context", return_value=False):
+            assert get_query_source_from_request() == expected
 
-    assert get_query_source_from_request() == expected
 
-
-def test_get_user_agent(mocker: MockerFixture) -> None:
+@with_config({"USER_AGENT_FUNC": None})
+def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
     database_mock = mocker.MagicMock()
     database_mock.database_name = "mydb"
-
-    current_app_mock = mocker.patch("superset.utils.core.current_app")
-    current_app_mock.config = {"USER_AGENT_FUNC": None}
 
     assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
         "The default user agent should be returned"
     )
-    current_app_mock.config["USER_AGENT_FUNC"] = (
-        lambda database, source: f"{database.database_name} {source.name}"
-    )
+
+
+@with_config(
+    {
+        "USER_AGENT_FUNC": lambda database,
+        source: f"{database.database_name} {source.name}"
+    }
+)
+def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
 
     assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
         "the custom user agent function result should have been returned"

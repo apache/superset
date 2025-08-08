@@ -174,6 +174,8 @@ function Echart(
       if (!chartRef.current) {
         chartRef.current = init(divRef.current, null, { locale });
       }
+      // did mount
+      handleSizeChange({ width, height });
       setDidMount(true);
     });
   }, [locale]);
@@ -235,9 +237,6 @@ function Echart(
         echartOptions,
       );
       chartRef.current?.setOption(themedEchartOptions, true);
-
-      // did mount
-      handleSizeChange({ width, height });
     }
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
 

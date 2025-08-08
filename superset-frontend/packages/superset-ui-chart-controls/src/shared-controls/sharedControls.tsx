@@ -177,6 +177,7 @@ const granularity: SharedControlConfig<'SelectControl'> = {
       'can type and use simple natural language as in `10 seconds`, ' +
       '`1 day` or `56 weeks`',
   ),
+  sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };
 
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
@@ -204,6 +205,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: displayTimeRelatedControls,
+  sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {

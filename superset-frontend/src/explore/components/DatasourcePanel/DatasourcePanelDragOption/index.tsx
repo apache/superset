@@ -18,7 +18,7 @@
  */
 import { RefObject } from 'react';
 import { useDrag } from 'react-dnd';
-import { css, Metric, styled } from '@superset-ui/core';
+import { css, Metric, styled, useTheme } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import {
@@ -68,6 +68,7 @@ export default function DatasourcePanelDragOption(
   props: DatasourcePanelDragOptionProps,
 ) {
   const { labelRef, showTooltip, type, value } = props;
+  const theme = useTheme();
   const [{ isDragging }, drag] = useDrag({
     item: {
       value: props.value,
@@ -91,7 +92,15 @@ export default function DatasourcePanelDragOption(
       ) : (
         <StyledMetricOption metric={value as MetricOption} {...optionProps} />
       )}
-      <Icons.Drag />
+      <Icons.Drag
+        iconSize="xl"
+        css={css`
+          color: ${theme.colorFill};
+          &hover {
+            color: ${theme.colorIcon};
+          }
+        `}
+      />
     </DatasourceItemContainer>
   );
 }

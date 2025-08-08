@@ -85,11 +85,9 @@ class TestCore(SupersetTestCase):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
-        self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
     def tearDown(self):
         db.session.query(Query).delete()
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
         super().tearDown()
 
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
@@ -299,13 +297,13 @@ class TestCore(SupersetTestCase):
         def custom_password_store(uri):
             return "password_store_test"
 
-        models.custom_password_store = custom_password_store
-        conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
-        if conn_pre.password:
-            assert conn.password == "password_store_test"  # noqa: S105
-            assert conn.password != conn_pre.password
-        # Disable for password store for later tests
-        models.custom_password_store = None
+        with mock.patch.dict(
+            app.config, {"SQLALCHEMY_CUSTOM_PASSWORD_STORE": custom_password_store}
+        ):
+            conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+            if conn_pre.password:
+                assert conn.password == "password_store_test"  # noqa: S105
+                assert conn.password != conn_pre.password
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
@@ -861,7 +859,7 @@ class TestCore(SupersetTestCase):
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
-        "superset.views.filters.current_app.config",
+        "flask.current_app.config",
         {
             "LANGUAGES": {
                 "es": {"flag": "es", "name": "Español"},

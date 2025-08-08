@@ -18,6 +18,7 @@
 import copy
 import time
 import unittest
+from contextlib import contextmanager
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
@@ -48,6 +49,7 @@ from superset.utils.core import (
 )
 from superset.utils.database import get_example_database, get_main_database
 from tests.common.query_context_generator import ANNOTATION_LAYERS
+from tests.conftest import with_config
 from tests.integration_tests.annotation_layers.fixtures import (
     create_annotation_layers,  # noqa: F401
 )
@@ -133,6 +135,32 @@ class BaseTestChartDataApi(SupersetTestCase):
                     name
                 )
         return name
+
+    @contextmanager
+    def set_column_groupby_false(self, column_name: str):
+        """
+        Context manager to temporarily set a column's groupby property to false.
+        """
+        birth_names_table = self.get_birth_names_dataset()
+        target_column = None
+        original_groupby_value = None
+
+        for col in birth_names_table.columns:
+            if col.column_name == column_name:
+                target_column = col
+                original_groupby_value = col.groupby
+                break
+
+        if target_column:
+            target_column.groupby = False
+            db.session.commit()
+
+        try:
+            yield target_column
+        finally:
+            if target_column and original_groupby_value is not False:
+                target_column.groupby = original_groupby_value
+                db.session.commit()
 
 
 @pytest.mark.chart_data_flow
@@ -225,10 +253,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.json["result"][0]["rowcount"] == expected_row_count
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_context_factory.config",
-        {**app.config, "ROW_LIMIT": 7},
-    )
+    @with_config({"ROW_LIMIT": 7})
     def test_without_row_limit__row_count_as_default_row_limit(self):
         # arrange
         expected_row_count = 7
@@ -239,10 +264,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assert_row_count(rv, expected_row_count)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_context_factory.config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5},
-    )
+    @with_config({"SAMPLES_ROW_LIMIT": 5})
     def test_as_samples_without_row_limit__row_count_as_default_samples_row_limit(self):
         # arrange
         expected_row_count = 5
@@ -259,7 +281,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config",
+        "flask.current_app.config",
         {**app.config, "SQL_MAX_ROW": 10},
     )
     def test_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(self):
@@ -275,7 +297,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config",
+        "flask.current_app.config",
         {**app.config, "SQL_MAX_ROW": 5},
     )
     def test_as_samples_with_row_limit_bigger_then_sql_max_row_rowcount_as_sql_max_row(
@@ -291,10 +313,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_actions.config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15},
-    )
+    @with_config({"SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15})
     def test_with_row_limit_as_samples__rowcount_as_row_limit(self):
         expected_row_count = 10
         self.query_context_payload["result_type"] = ChartDataResultType.SAMPLES
@@ -980,6 +999,73 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "name" in result["query"]
         assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_drill_by_allowed_column(self):
+        """
+        Chart data API: Test that user can drill by column with
+        isDimension set to True
+        """
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_drill_by_disallowed_column_regular_user(self):
+        """
+        Chart data API: Test that user can still drill by column with
+        isDimension set to False (given the dataset access)
+        """
+        with self.set_column_groupby_false("num_girls"):
+            self.query_context_payload["queries"][0]["columns"] = ["num_girls"]
+            rv = self.post_assert_metric(
+                CHART_DATA_URI, self.query_context_payload, "data"
+            )
+            assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_embedded_user_drill_by_allowed_column(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user can drill by column with
+        isDimension set to True.
+        """
+        g.user.rls = []
+        mock_has_guest_access.return_value = True
+        mock_is_guest_user.return_value = True
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_embedded_user_drill_by_disallowed_column(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user can't drill by column with
+        isDimension set to False.
+        """
+        self.logout()
+        self.login(GAMMA_USERNAME)
+
+        with self.set_column_groupby_false("num_girls"):
+            g.user.rls = []
+            mock_has_guest_access.return_value = True
+            mock_is_guest_user.return_value = True
+            self.query_context_payload["queries"][0]["columns"] = ["num_girls"]
+            rv = self.post_assert_metric(
+                CHART_DATA_URI, self.query_context_payload, "data"
+            )
+            assert rv.status_code == 403
+
 
 @pytest.mark.chart_data_flow
 class TestGetChartDataApi(BaseTestChartDataApi):
@@ -1355,7 +1441,7 @@ def physical_query_context(physical_dataset) -> dict[str, Any]:
 
 
 @mock.patch(
-    "superset.common.query_context_processor.config",
+    "flask.current_app.config",
     {
         **app.config,
         "CACHE_DEFAULT_TIMEOUT": 1234,
@@ -1410,7 +1496,7 @@ def test_force_cache_timeout(test_client, login_as_admin, physical_query_context
 
 
 @mock.patch(
-    "superset.common.query_context_processor.config",
+    "flask.current_app.config",
     {
         **app.config,
         "CACHE_DEFAULT_TIMEOUT": 100000,
@@ -1455,7 +1541,7 @@ def test_chart_cache_timeout(
 
 
 @mock.patch(
-    "superset.common.query_context_processor.config",
+    "flask.current_app.config",
     {
         **app.config,
         "DATA_CACHE_CONFIG": {
@@ -1482,7 +1568,7 @@ def test_chart_cache_timeout_not_present(
 
 
 @mock.patch(
-    "superset.common.query_context_processor.config",
+    "flask.current_app.config",
     {
         **app.config,
         "DATA_CACHE_CONFIG": {

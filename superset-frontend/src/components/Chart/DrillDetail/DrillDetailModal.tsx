@@ -29,9 +29,11 @@ import {
 import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Slice } from 'src/types/Chart';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {
@@ -49,19 +51,21 @@ const ModalFooter = ({
 
   return (
     <>
-      <Button
-        buttonStyle="secondary"
-        buttonSize="small"
-        onClick={exploreChart}
-        disabled={!canExplore}
-        tooltip={
-          !canExplore
-            ? t('You do not have sufficient permissions to edit the chart')
-            : undefined
-        }
-      >
-        {t('Edit chart')}
-      </Button>
+      {!isEmbedded() && (
+        <Button
+          buttonStyle="secondary"
+          buttonSize="small"
+          onClick={exploreChart}
+          disabled={!canExplore}
+          tooltip={
+            !canExplore
+              ? t('You do not have sufficient permissions to edit the chart')
+              : undefined
+          }
+        >
+          {t('Edit chart')}
+        </Button>
+      )}
       <Button
         buttonStyle="primary"
         buttonSize="small"
@@ -83,6 +87,7 @@ interface DrillDetailModalProps {
   initialFilters: BinaryQueryObjectFilterClause[];
   showModal: boolean;
   onHideModal: () => void;
+  dataset?: Dataset;
 }
 
 export default function DrillDetailModal({
@@ -91,6 +96,7 @@ export default function DrillDetailModal({
   initialFilters,
   showModal,
   onHideModal,
+  dataset,
 }: DrillDetailModalProps) {
   const theme = useTheme();
   const history = useHistory();
@@ -141,7 +147,11 @@ export default function DrillDetailModal({
       destroyOnHidden
       maskClosable={false}
     >
-      <DrillDetailPane formData={formData} initialFilters={initialFilters} />
+      <DrillDetailPane
+        formData={formData}
+        initialFilters={initialFilters}
+        dataset={dataset}
+      />
     </Modal>
   );
 }

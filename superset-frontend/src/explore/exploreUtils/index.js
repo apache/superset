@@ -207,7 +207,7 @@ export const getQuerySettings = formData => {
   ];
 };
 
-export const buildV1ChartDataPayload = ({
+export const buildV1ChartDataPayload = async ({
   formData,
   force,
   resultFormat,
@@ -242,7 +242,7 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export const exportChart = ({
+export const exportChart = async ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
@@ -262,7 +262,7 @@ export const exportChart = ({
     payload = formData;
   } else {
     url = ensureAppRoot('/api/v1/chart/data');
-    payload = buildV1ChartDataPayload({
+    payload = await buildV1ChartDataPayload({
       formData,
       force,
       resultFormat,

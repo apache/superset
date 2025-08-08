@@ -41,6 +41,7 @@ export type Dataset = {
     last_name: string;
   }[];
   columns?: Column[];
+  drillable_columns?: Column[];
   metrics?: Metric[];
   verbose_map?: Record<string, string>;
 };

@@ -27,11 +27,10 @@ from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 import backoff
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app
+from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
 
 from superset import (
-    app,
     db,
     is_feature_enabled,
     results_backend,
@@ -72,13 +71,6 @@ from superset.utils.rls import apply_rls
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-config = app.config
-stats_logger = config["STATS_LOGGER"]
-SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
-SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
-SQL_MAX_ROW = config["SQL_MAX_ROW"]
-SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 BYTES_IN_MB = 1024 * 1024
 
@@ -127,12 +119,13 @@ def handle_query_error(
 
     db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
+    if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 
 
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
+    stats_logger = app.config["STATS_LOGGER"]
     query_id = details["kwargs"]["query_id"]
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
@@ -144,6 +137,7 @@ def get_query_backoff_handler(details: dict[Any, Any]) -> None:
 
 
 def get_query_giveup_handler(_: Any) -> None:
+    stats_logger = app.config["STATS_LOGGER"]
     stats_logger.incr("error_failed_at_getting_orm_query")
 
 
@@ -163,10 +157,14 @@ def get_query(query_id: int) -> Query:
         raise SqlLabException("Failed at getting query") from ex
 
 
+# Default timeouts from config.py:
+# SQLLAB_TIMEOUT = 30 seconds
+# SQLLAB_ASYNC_TIME_LIMIT_SEC = 6 hours
+# SQLLAB_HARD_TIMEOUT = SQLLAB_ASYNC_TIME_LIMIT_SEC + 60
 @celery_app.task(
     name="sql_lab.get_sql_results",
-    time_limit=SQLLAB_HARD_TIMEOUT,
-    soft_time_limit=SQLLAB_TIMEOUT,
+    time_limit=21660,  # 6 hours + 60 seconds
+    soft_time_limit=21600,  # 6 hours
 )
 def get_sql_results(  # pylint: disable=too-many-arguments
     query_id: int,
@@ -179,7 +177,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     log_params: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
-    with current_app.test_request_context():
+    with app.test_request_context():
         with override_user(security_manager.find_user(username)):
             try:
                 return execute_sql_statements(
@@ -193,6 +191,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 logger.debug("Query %d: %s", query_id, ex)
+                stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
                 return handle_query_error(ex, query)
@@ -225,14 +224,17 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
     """
     Apply limit to the SQL statement.
     """
+    sqllab_ctas_no_limit = app.config["SQLLAB_CTAS_NO_LIMIT"]
+    sql_max_row = app.config["SQL_MAX_ROW"]
+
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
     if parsed_statement.is_mutating() or (
-        query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
+        query.select_as_cta_used and sqllab_ctas_no_limit
     ):
         return
 
-    if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
-        query.limit = SQL_MAX_ROW
+    if sql_max_row and (not query.limit or query.limit > sql_max_row):
+        query.limit = sql_max_row
 
     if query.limit:
         parsed_statement.set_limit_value(
@@ -252,6 +254,7 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
     db_engine_spec = database.db_engine_spec
 
     try:
+        log_query = app.config["QUERY_LOGGER"]
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -267,6 +270,7 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
             database=database,
             object_ref=__name__,
         ):
+            stats_logger = app.config["STATS_LOGGER"]
             with stats_timing("sqllab.query.time_executing_query", stats_logger):
                 db_engine_spec.execute_with_cursor(cursor, query.executed_sql, query)
 
@@ -293,7 +297,7 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
                 message=__(
                     "The query was killed after %(sqllab_timeout)s seconds. It might "
                     "be too complex, or the database might be under heavy load.",
-                    sqllab_timeout=SQLLAB_TIMEOUT,
+                    sqllab_timeout=app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"],
                 ),
                 error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                 level=ErrorLevel.ERROR,
@@ -338,9 +342,14 @@ def _serialize_and_expand_data(
     expanded_columns: list[Any]
 
     if use_msgpack:
-        with stats_timing(
-            "sqllab.query.results_backend_pa_serialization", stats_logger
-        ):
+        if has_app_context():
+            stats_logger = app.config["STATS_LOGGER"]
+            with stats_timing(
+                "sqllab.query.results_backend_pa_serialization", stats_logger
+            ):
+                data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+        else:
+            # No app context, skip stats timing
             data = write_ipc_buffer(result_set.pa_table).to_pybytes()
 
         # expand when loading data from results backend
@@ -373,6 +382,7 @@ def execute_sql_statements(  # noqa: C901
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
+        stats_logger = app.config["STATS_LOGGER"]
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
     query = get_query(query_id=query_id)
@@ -391,7 +401,7 @@ def execute_sql_statements(  # noqa: C901
 
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
 
-    disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+    disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
         db_engine_spec.engine,
         set(),
     )
@@ -538,6 +548,7 @@ def execute_sql_statements(  # noqa: C901
         logger.info(
             "Query %s: Storing results in results backend, key: %s", str(query_id), key
         )
+        stats_logger = app.config["STATS_LOGGER"]
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
             with stats_timing(
                 "sqllab.query.results_backend_write_serialization", stats_logger
@@ -547,7 +558,7 @@ def execute_sql_statements(  # noqa: C901
                 )
 
                 # Check the size of the serialized payload
-                if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+                if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
                     serialized_payload_size = sys.getsizeof(serialized_payload)
                     max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
@@ -563,7 +574,7 @@ def execute_sql_statements(  # noqa: C901
 
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
-                cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
+                cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
 
             compressed = zlib_compress(serialized_payload)
             logger.debug(
@@ -596,7 +607,7 @@ def execute_sql_statements(  # noqa: C901
                 }
             )
         # Check the size of the serialized payload (opt-in logic for return_results)
-        if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+        if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
             serialized_payload = _serialize_payload(
                 payload, cast(bool, results_backend_use_msgpack)
             )

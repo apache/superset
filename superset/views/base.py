@@ -26,6 +26,7 @@ from typing import Any, Callable
 from babel import Locale
 from flask import (
     abort,
+    current_app as app,
     flash,
     g,
     get_flashed_messages,
@@ -48,9 +49,7 @@ from sqlalchemy.orm import Query
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
-    app as superset_app,
     appbuilder,
-    conf,
     db,
     get_feature_flags,
     is_feature_enabled,
@@ -129,11 +128,10 @@ FRONTEND_CONF_KEYS = (
 )
 
 logger = logging.getLogger(__name__)
-config = superset_app.config
 
 
 def get_error_msg() -> str:
-    if conf.get("SHOW_STACKTRACE"):
+    if app.config.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
     else:
         error_msg = "FATAL ERROR \n"
@@ -240,10 +238,10 @@ class BaseSupersetView(BaseView):
 
 def get_environment_tag() -> dict[str, Any]:
     # Whether flask is in debug mode (--debug)
-    debug = appbuilder.app.config["DEBUG"]
+    debug = app.config["DEBUG"]
 
     # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
-    env_tag_config = appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]
+    env_tag_config = app.config["ENVIRONMENT_TAG_CONFIG"]
 
     # These are the predefined templates define in the config
     env_tag_templates = env_tag_config.get("values")
@@ -268,32 +266,31 @@ def menu_data(user: User) -> dict[str, Any]:
         for lang in appbuilder.languages
     }
 
-    if callable(brand_text := appbuilder.app.config["LOGO_RIGHT_TEXT"]):
+    if callable(brand_text := app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"]
-            or url_for("Superset.welcome"),
+            "path": app.config["LOGO_TARGET_PATH"] or url_for("Superset.welcome"),
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
-            "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
+            "tooltip": app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
-            "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
-            "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
-            "bug_report_text": appbuilder.app.config["BUG_REPORT_TEXT"],
-            "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
-            "documentation_icon": appbuilder.app.config["DOCUMENTATION_ICON"],
-            "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
-            "version_string": appbuilder.app.config["VERSION_STRING"],
-            "version_sha": appbuilder.app.config["VERSION_SHA"],
-            "build_number": appbuilder.app.config["BUILD_NUMBER"],
+            "bug_report_url": app.config["BUG_REPORT_URL"],
+            "bug_report_icon": app.config["BUG_REPORT_ICON"],
+            "bug_report_text": app.config["BUG_REPORT_TEXT"],
+            "documentation_url": app.config["DOCUMENTATION_URL"],
+            "documentation_icon": app.config["DOCUMENTATION_ICON"],
+            "documentation_text": app.config["DOCUMENTATION_TEXT"],
+            "version_string": app.config["VERSION_STRING"],
+            "version_sha": app.config["VERSION_SHA"],
+            "build_number": app.config["BUILD_NUMBER"],
             "languages": languages,
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
@@ -312,9 +309,9 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     Returns the theme data to be sent to the client.
     """
     # Get theme configs
-    default_theme_config = get_config_value(conf, "THEME_DEFAULT")
-    dark_theme_config = get_config_value(conf, "THEME_DARK")
-    theme_settings = get_config_value(conf, "THEME_SETTINGS")
+    default_theme_config = get_config_value("THEME_DEFAULT")
+    dark_theme_config = get_config_value("THEME_DARK")
+    theme_settings = get_config_value("THEME_SETTINGS")
 
     # Validate theme configurations
     default_theme = default_theme_config
@@ -360,11 +357,15 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {
-        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
+        k: (
+            list(app.config.get(k))
+            if isinstance(app.config.get(k), set)
+            else app.config.get(k)
+        )
         for k in FRONTEND_CONF_KEYS
     }
 
-    if conf.get("SLACK_API_TOKEN"):
+    if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
             ReportRecipientType.SLACK,
@@ -383,19 +384,17 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     )
 
     language = locale.language if locale else "en"
-    auth_type = appbuilder.app.config["AUTH_TYPE"]
-    auth_user_registration = appbuilder.app.config["AUTH_USER_REGISTRATION"]
+    auth_type = app.config["AUTH_TYPE"]
+    auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
     should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
 
     if auth_user_registration:
-        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = appbuilder.app.config[
+        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
             "AUTH_USER_REGISTRATION_ROLE"
         ]
     if should_show_recaptcha:
-        frontend_config["RECAPTCHA_PUBLIC_KEY"] = appbuilder.app.config[
-            "RECAPTCHA_PUBLIC_KEY"
-        ]
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = app.config["RECAPTCHA_PUBLIC_KEY"]
 
     frontend_config["AUTH_TYPE"] = auth_type
     if auth_type == AUTH_OAUTH:
@@ -416,21 +415,23 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
-        "application_root": conf["APPLICATION_ROOT"],
-        "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
+        "application_root": app.config["APPLICATION_ROOT"],
+        "static_assets_prefix": app.config["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
-        "d3_format": conf.get("D3_FORMAT"),
-        "d3_time_format": conf.get("D3_TIME_FORMAT"),
-        "currencies": conf.get("CURRENCIES"),
-        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
+        "d3_format": app.config.get("D3_FORMAT"),
+        "d3_time_format": app.config.get("D3_TIME_FORMAT"),
+        "currencies": app.config.get("CURRENCIES"),
+        "deckgl_tiles": app.config.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
-        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
-        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
+        "extra_sequential_color_schemes": app.config["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
+        "extra_categorical_color_schemes": app.config[
+            "EXTRA_CATEGORICAL_COLOR_SCHEMES"
+        ],
         "menu_data": menu_data(g.user),
     }
 
-    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     bootstrap_data.update(get_theme_bootstrap_data())
 
     return bootstrap_data
@@ -441,17 +442,6 @@ def common_bootstrap_payload() -> dict[str, Any]:
         **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
-
-
-@superset_app.context_processor
-def get_common_bootstrap_data() -> dict[str, Any]:
-    def serialize_bootstrap_data() -> str:
-        return json.dumps(
-            {"common": common_bootstrap_payload()},
-            default=json.pessimistic_json_iso_dttm_ser,
-        )
-
-    return {"bootstrap_data": serialize_bootstrap_data}
 
 
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
@@ -549,7 +539,7 @@ class CsvResponse(Response):
     Override Response to take into account csv encoding from config.py
     """
 
-    charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
+    charset = app.config["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
 
 
@@ -582,18 +572,3 @@ def bind_field(
 
 
 FlaskForm.Meta.bind_field = bind_field
-
-
-@superset_app.after_request
-def apply_http_headers(response: Response) -> Response:
-    """Applies the configuration's http headers to all responses"""
-
-    # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
-    )
-
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
-        if k not in response.headers:
-            response.headers[k] = v
-    return response

@@ -358,7 +358,22 @@ const config: ControlPanelConfig = {
         ['x_axis_time_format'],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
-        ...richTooltipSection,
+        [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'show_query_identifiers',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show query identifiers'),
+              description: t(
+                'Add Query A and Query B identifiers to tooltips to help differentiate series',
+              ),
+              default: false,
+              renderTrigger: true,
+            },
+          },
+        ],
+        ...richTooltipSection.slice(1), // Skip the tooltip header since we added our own
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [

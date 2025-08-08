@@ -429,3 +429,16 @@ export interface ThemeContextType {
   canDetectOSPreference: () => boolean;
   createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
 }
+
+/**
+ * Configuration object for complete theme setup including default, dark themes and settings
+ */
+export interface SupersetThemeConfig {
+  theme_default: AnyThemeConfig;
+  theme_dark?: AnyThemeConfig;
+  theme_settings?: {
+    enforced?: boolean;
+    allowSwitching?: boolean;
+    allowOSPreference?: boolean;
+  };
+}

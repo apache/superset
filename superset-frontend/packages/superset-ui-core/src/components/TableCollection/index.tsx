@@ -52,7 +52,9 @@ interface TableCollectionProps<T extends object> {
 const StyledTable = styled(Table)`
   ${({ theme }) => `
     th.ant-column-cell {
-      min-width: fit-content;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .actions {
       opacity: 0;
@@ -83,7 +85,6 @@ const StyledTable = styled(Table)`
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
-      max-width: 320px;
       line-height: 1;
       vertical-align: middle;
       padding-left: ${theme.sizeUnit * 4}px;
@@ -149,7 +150,7 @@ function TableCollection<T extends object>({
       size={size}
       data-test="listview-table"
       pagination={false}
-      tableLayout="auto"
+      tableLayout="fixed"
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}

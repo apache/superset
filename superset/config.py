@@ -279,10 +279,11 @@ WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.core.log",
-    "superset.views.core.explore_json",
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    "superset.views.core.explore_json",
+    "superset.views.core.log",
+    "superset.views.datasource.views.samples",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -615,6 +616,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
+    # in addition to relative timeshifts (e.g., "1 day ago")
+    "DATE_RANGE_TIMESHIFTS_ENABLED": False,
 }
 
 # ------------------------------
@@ -762,6 +766,16 @@ THEME_SETTINGS = {
     "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
     "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
 }
+
+# Custom font configuration
+# Load external fonts at runtime without rebuilding the application
+# Example:
+# CUSTOM_FONT_URLS = [
+#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
+# ]
+CUSTOM_FONT_URLS: list[str] = []
+
 # ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
@@ -1155,7 +1169,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
+CELERY_CONFIG: type[CeleryConfig] | None = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None

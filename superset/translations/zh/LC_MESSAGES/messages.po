@@ -802,11 +802,11 @@ msgid "Add Dashboard"
 msgstr "新增看板"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "分隔"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "增加过滤条件"
 
 #, fuzzy
@@ -1788,7 +1788,7 @@ msgstr "自适配过滤条件"
 msgid "Autocomplete query predicate"
 msgstr "自动补全查询谓词"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "自动配色"
 
 #, fuzzy
@@ -3256,7 +3256,7 @@ msgid "Create"
 msgstr "创建"
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "创建图表"
 
 #, fuzzy
@@ -3393,7 +3393,7 @@ msgid "Custom"
 msgstr "自定义"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "条件格式设置"
 
 msgid "Custom Plugin"
@@ -5883,7 +5883,7 @@ msgstr "使用邮箱发送图片(PNG)"
 msgid "Image download failed, please refresh and try again."
 msgstr "图片发送失败，请刷新或重试"
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "模拟登录用户 (Presto, Trino, Drill & Hive)"
 
 msgid "Import"
@@ -8861,7 +8861,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr "资源没有找到"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "还原过滤条件"
 
 msgid "Results"
@@ -9474,7 +9474,7 @@ msgstr "添加通知方法"
 msgid "Select Tags"
 msgstr "选择标签"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "选择一个可视化类型"
 
 msgid "Select a column"
@@ -9908,7 +9908,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "显示 CREATE VIEW 语句"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "显示单元格的柱"
 
 msgid "Show Dashboard"
@@ -13407,7 +13407,7 @@ msgstr "X 轴排序"
 msgid "X-axis"
 msgstr "X 轴"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "X 轴比例尺间隔"
 
 msgid "XYZ"
@@ -13469,7 +13469,7 @@ msgstr "Y 轴"
 msgid "Y-axis bounds"
 msgstr "Y 轴界限"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Y 轴比例尺间隔"
 
 msgid "Year"
@@ -13820,7 +13820,7 @@ msgstr "`行偏移量` 必须大于或等于0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`宽度` 必须大于或等于0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13870,7 +13870,7 @@ msgid "background"
 msgstr "背景"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "条件格式设置"
 
 #, fuzzy

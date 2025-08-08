@@ -129,7 +129,7 @@ if os.getenv("CYPRESS_CONFIG") == "true":
 #
 try:
     import superset_config_docker
-    from superset_config_docker import *  # noqa
+    from superset_config_docker import *  # noqa: F403
 
     logger.info(
         f"Loaded your Docker configuration at [{superset_config_docker.__file__}]"

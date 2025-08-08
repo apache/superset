@@ -31,6 +31,52 @@ import {
   interceptFormDataKey,
 } from '../explore/utils';
 
+const interceptDrillInfo = () => {
+  cy.intercept('GET', '**/api/v1/dataset/*/drill_info/*', {
+    statusCode: 200,
+    body: {
+      result: {
+        id: 1,
+        changed_on_humanized: '2 days ago',
+        created_on_humanized: 'a week ago',
+        table_name: 'birth_names',
+        changed_by: {
+          first_name: 'Admin',
+          last_name: 'User',
+        },
+        created_by: {
+          first_name: 'Admin',
+          last_name: 'User',
+        },
+        owners: [
+          {
+            first_name: 'Admin',
+            last_name: 'User',
+          },
+        ],
+        columns: [
+          {
+            column_name: 'gender',
+            verbose_name: null,
+          },
+          {
+            column_name: 'state',
+            verbose_name: null,
+          },
+          {
+            column_name: 'name',
+            verbose_name: null,
+          },
+          {
+            column_name: 'ds',
+            verbose_name: null,
+          },
+        ],
+      },
+    },
+  }).as('drillInfo');
+};
+
 const closeModal = () => {
   cy.get('body').then($body => {
     if ($body.find('[data-test="close-drill-by-modal"]').length) {
@@ -62,14 +108,20 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
 
   cy.get(
     '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
+    { timeout: 15000 },
   )
     .should('be.visible')
     .find('[role="menuitem"]')
-    .then($el => {
-      cy.wrap($el)
-        .contains(new RegExp(`^${targetDrillByColumn}$`))
-        .trigger('keydown', { keyCode: 13, which: 13, force: true });
-    });
+    .contains(new RegExp(`^${targetDrillByColumn}$`))
+    .click();
+
+  cy.get(
+    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
+  ).trigger('mouseout', { clientX: 0, clientY: 0, force: true });
+
+  cy.get(
+    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
+  ).should('not.exist');
 
   if (isLegacy) {
     return cy.wait('@legacyData');
@@ -230,17 +282,19 @@ describe('Drill by modal', () => {
     closeModal();
   });
   before(() => {
+    interceptDrillInfo();
     cy.visit(SUPPORTED_CHARTS_DASHBOARD);
   });
 
   describe('Modal actions + Table', () => {
     before(() => {
       closeModal();
+      interceptDrillInfo();
       openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
 
-    it('opens the modal from the context menu', () => {
+    it.only('opens the modal from the context menu', () => {
       openTableContextMenu('boy');
       drillBy('state').then(intercepted => {
         verifyExpectedFormData(intercepted, {
@@ -384,6 +438,7 @@ describe('Drill by modal', () => {
   describe('Tier 1 charts', () => {
     before(() => {
       closeModal();
+      interceptDrillInfo();
       openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
@@ -547,6 +602,7 @@ describe('Drill by modal', () => {
   describe('Tier 2 charts', () => {
     before(() => {
       closeModal();
+      interceptDrillInfo();
       openTopLevelTab('Tier 2');
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });

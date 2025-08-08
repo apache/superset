@@ -34,6 +34,12 @@ const parseLabel = value => {
   return String(value);
 };
 
+function displayCell(value, allowRenderHtml) {
+  if (allowRenderHtml && typeof value === 'string') {
+    return safeHtmlSpan(value);
+  }
+  return parseLabel(value);
+}
 function displayHeaderCell(
   needToggle,
   ArrowIcon,
@@ -742,7 +748,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, rowKey)}
           style={style}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue), allowRenderHtml)}
         </td>
       );
     });
@@ -759,7 +765,7 @@ export class TableRenderer extends Component {
           onClick={rowTotalCallbacks[flatRowKey]}
           onContextMenu={e => this.props.onContextMenu(e, undefined, rowKey)}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue), allowRenderHtml)}
         </td>
       );
     }
@@ -823,7 +829,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue), this.props.allowRenderHtml)}
         </td>
       );
     });
@@ -840,7 +846,7 @@ export class TableRenderer extends Component {
           onClick={grandTotalCallback}
           onContextMenu={e => this.props.onContextMenu(e, undefined, undefined)}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue), this.props.allowRenderHtml)}
         </td>
       );
     }

@@ -76,6 +76,7 @@ export { CronPicker, type CronError } from './CronPicker';
 export * from './DatePicker';
 export { DeleteModal, type DeleteModalProps } from './DeleteModal';
 export { Divider, type DividerProps } from './Divider';
+export { Drawer, type DrawerProps } from './Drawer';
 export {
   Dropdown,
   MenuDotsDropdown,
@@ -164,6 +165,8 @@ export * from './Steps';
 export * from './Table';
 export * from './TableView';
 export * from './Tag';
+export * from './TelemetryPixel';
+export * from './ThemeSubMenu';
 export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';

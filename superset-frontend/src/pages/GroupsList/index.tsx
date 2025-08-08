@@ -170,6 +170,7 @@ function GroupsList({ user }: GroupsListProps) {
         accessor: 'name',
         id: 'name',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { name },

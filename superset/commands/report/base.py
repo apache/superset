@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from croniter import croniter
-from flask import current_app
+from flask import current_app as app
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -97,7 +97,7 @@ class BaseReportScheduleCommand(BaseCommand):
             if report_type == ReportScheduleType.ALERT
             else "REPORT_MINIMUM_INTERVAL"
         )
-        minimum_interval = current_app.config.get(config_key, 0)
+        minimum_interval = app.config.get(config_key, 0)
         if callable(minimum_interval):
             minimum_interval = minimum_interval()
 

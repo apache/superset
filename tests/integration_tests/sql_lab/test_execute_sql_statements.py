@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import app
+from flask import current_app
+
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -43,12 +44,12 @@ def test_non_async_execute(non_async_example_db: Database, example_query: Query)
         assert example_query.tracking_url
         assert "/ui/query.html?" in example_query.tracking_url
 
-        app.config["TRACKING_URL_TRANSFORMER"] = lambda url, query: url.replace(
+        current_app.config["TRACKING_URL_TRANSFORMER"] = lambda url, query: url.replace(
             "/ui/query.html?", f"/{query.client_id}/"
         )
         assert f"/{example_query.client_id}/" in example_query.tracking_url
 
-        app.config["TRACKING_URL_TRANSFORMER"] = lambda url: url + "&foo=bar"
+        current_app.config["TRACKING_URL_TRANSFORMER"] = lambda url: url + "&foo=bar"
         assert example_query.tracking_url.endswith("&foo=bar")
 
     if non_async_example_db.db_engine_spec.engine_name == "hive":

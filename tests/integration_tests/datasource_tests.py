@@ -22,8 +22,9 @@ from unittest import mock
 
 import prison
 import pytest
+from flask import current_app
 
-from superset import app, db
+from superset import db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -43,12 +44,16 @@ from superset.utils.database import (  # noqa: F401
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 
 @contextmanager
@@ -212,7 +217,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            app.config["SQL_QUERY_MUTATOR"] = (
+            current_app.config["SQL_QUERY_MUTATOR"] = (
                 lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
@@ -229,7 +234,7 @@ class TestDatasource(SupersetTestCase):
             url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
             assert {o.get("column_name") for o in resp} == {"intcol", "mutated_strcol"}
-            app.config["SQL_QUERY_MUTATOR"] = None
+            current_app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
         self.login(ADMIN_USERNAME)
@@ -484,12 +489,12 @@ class TestDatasource(SupersetTestCase):
         def my_check(datasource):
             return "Warning message!"
 
-        app.config["DATASET_HEALTH_CHECK"] = my_check
+        current_app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
         datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
-        app.config["DATASET_HEALTH_CHECK"] = None
+        current_app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
         from superset.daos.datasource import DatasourceDAO
@@ -514,6 +519,72 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         assert resp.get("error") == "'druid' is not a valid DatasourceType"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user(
+        self, mock_has_guest_access, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can access the /samples view.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_has_guest_access.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("births")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_without_dash_id(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view if not providing a dashboard ID.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_dashboard_without_dataset(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view when providing a dashboard ID that
+        does not include the target dataset.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("world_health")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
 
 
 def test_get_samples(test_client, login_as_admin, virtual_dataset):
@@ -557,7 +628,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
 
     sql = (
         f"select * from ({virtual_dataset.sql}) as tbl "  # noqa: S608
-        f"limit {app.config['SAMPLES_ROW_LIMIT']}"
+        f"limit {current_app.config['SAMPLES_ROW_LIMIT']}"
     )
     eager_samples = virtual_dataset.database.get_df(sql)
 
@@ -668,7 +739,7 @@ def test_get_samples_with_time_filter(test_client, login_as_admin, physical_data
             946857600000.0,  # 2000-01-03 00:00:00
         ]
     assert rv.json["result"]["page"] == 1
-    assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
+    assert rv.json["result"]["per_page"] == current_app.config["SAMPLES_ROW_LIMIT"]
     assert rv.json["result"]["total_count"] == 2
 
 
@@ -716,11 +787,11 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     )
     rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 1
-    assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
+    assert rv.json["result"]["per_page"] == current_app.config["SAMPLES_ROW_LIMIT"]
     assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
-    per_pages = (app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
+    per_pages = (current_app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})

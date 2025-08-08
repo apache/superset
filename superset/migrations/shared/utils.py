@@ -49,7 +49,7 @@ YELLOW = "\033[33m"
 RED = "\033[31m"
 LRED = "\033[91m"
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 

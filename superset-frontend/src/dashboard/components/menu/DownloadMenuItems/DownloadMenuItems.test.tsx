@@ -17,8 +17,8 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
-import DownloadMenuItems from '.';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import { useDownloadMenuItems } from '.';
 
 const createProps = () => ({
   pdfMenuItemTitle: 'Export to PDF',
@@ -30,19 +30,17 @@ const createProps = () => ({
   submenuKey: 'download',
 });
 
-const renderComponent = () => {
-  render(
-    <Menu forceSubMenuRender>
-      <DownloadMenuItems {...createProps()} />
-    </Menu>,
-    {
-      useRedux: true,
-    },
-  );
+const MenuWrapper = () => {
+  const downloadMenuItem = useDownloadMenuItems(createProps());
+  const menuItems: MenuItem[] = [downloadMenuItem];
+  return <Menu forceSubMenuRender items={menuItems} />;
 };
 
 test('Should render menu items', () => {
-  renderComponent();
+  render(<MenuWrapper />, {
+    useRedux: true,
+  });
+
   expect(screen.getByText('Export to PDF')).toBeInTheDocument();
   expect(screen.getByText('Download as Image')).toBeInTheDocument();
 });

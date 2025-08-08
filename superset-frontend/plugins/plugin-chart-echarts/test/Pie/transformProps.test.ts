@@ -221,6 +221,157 @@ describe('Pie label string template', () => {
   });
 });
 
+describe('Total value positioning with legends', () => {
+  const getChartPropsWithLegend = (
+    showTotal = true,
+    showLegend = true,
+    legendOrientation = 'right',
+    donut = true,
+  ): EchartsPieChartProps => {
+    const formData: SqlaFormData = {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['category'],
+      viz_type: 'pie',
+      show_total: showTotal,
+      show_legend: showLegend,
+      legend_orientation: legendOrientation,
+      donut,
+    };
+
+    return new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { category: 'A', sum__num: 10, sum__num__contribution: 0.4 },
+            { category: 'B', sum__num: 15, sum__num__contribution: 0.6 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    }) as EchartsPieChartProps;
+  };
+
+  it('should center total text when legend is on the right', () => {
+    const props = getChartPropsWithLegend(true, true, 'right', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/),
+        top: 'middle',
+        style: expect.objectContaining({
+          text: expect.stringContaining('Total:'),
+        }),
+      }),
+    );
+
+    // The left position should be less than 50% (shifted left)
+    const leftValue = parseFloat(
+      (transformed.echartOptions.graphic as any).left.replace('%', ''),
+    );
+    expect(leftValue).toBeLessThan(50);
+    expect(leftValue).toBeGreaterThan(30); // Should be reasonable positioning
+  });
+
+  it('should center total text when legend is on the left', () => {
+    const props = getChartPropsWithLegend(true, true, 'left', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/),
+        top: 'middle',
+      }),
+    );
+
+    // The left position should be greater than 50% (shifted right)
+    const leftValue = parseFloat(
+      (transformed.echartOptions.graphic as any).left.replace('%', ''),
+    );
+    expect(leftValue).toBeGreaterThan(50);
+    expect(leftValue).toBeLessThan(70); // Should be reasonable positioning
+  });
+
+  it('should center total text when legend is on top', () => {
+    const props = getChartPropsWithLegend(true, true, 'top', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: 'center',
+        top: expect.stringMatching(/^\d+(\.\d+)?%$/),
+      }),
+    );
+
+    // The top position should be adjusted for top legend
+    const topValue = parseFloat(
+      (transformed.echartOptions.graphic as any).top.replace('%', ''),
+    );
+    expect(topValue).toBeGreaterThan(50); // Shifted down for top legend
+  });
+
+  it('should center total text when legend is on bottom', () => {
+    const props = getChartPropsWithLegend(true, true, 'bottom', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: 'center',
+        top: expect.stringMatching(/^\d+(\.\d+)?%$/),
+      }),
+    );
+
+    // The top position should be adjusted for bottom legend
+    const topValue = parseFloat(
+      (transformed.echartOptions.graphic as any).top.replace('%', ''),
+    );
+    expect(topValue).toBeLessThan(50); // Shifted up for bottom legend
+  });
+
+  it('should use default positioning when no legend is shown', () => {
+    const props = getChartPropsWithLegend(true, false, 'right', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: 'center',
+        top: 'middle',
+      }),
+    );
+  });
+
+  it('should handle regular pie chart (non-donut) positioning', () => {
+    const props = getChartPropsWithLegend(true, true, 'right', false);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        top: '0', // Non-donut charts use '0' as default top position
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/), // Should still adjust left for right legend
+      }),
+    );
+  });
+
+  it('should not show total graphic when showTotal is false', () => {
+    const props = getChartPropsWithLegend(false, true, 'right', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toBeNull();
+  });
+});
+
 describe('Other category', () => {
   const defaultFormData: SqlaFormData = {
     colorScheme: 'bnbColors',

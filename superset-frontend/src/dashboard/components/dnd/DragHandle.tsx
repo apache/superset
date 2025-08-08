@@ -45,7 +45,7 @@ export default function DragHandle({
 }: DragHandleProps) {
   return (
     <DragHandleContainer ref={innerRef} position={position}>
-      <Icons.Drag />
+      <Icons.Drag iconSize="xl" />
     </DragHandleContainer>
   );
 }
