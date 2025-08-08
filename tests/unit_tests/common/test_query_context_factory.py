@@ -201,6 +201,8 @@ class TestQueryContextFactory:
     def test_add_tooltip_columns_no_form_data(self):
         """Test _add_tooltip_columns with no form_data"""
         query_object = Mock(spec=QueryObject)
+        query_object.columns = Mock()
+        query_object.columns.append = Mock()
 
         self.factory._add_tooltip_columns(query_object, None)
 
@@ -209,6 +211,8 @@ class TestQueryContextFactory:
     def test_add_tooltip_columns_no_tooltip_columns(self):
         """Test _add_tooltip_columns with no tooltip columns"""
         query_object = Mock(spec=QueryObject)
+        query_object.columns = Mock()
+        query_object.columns.append = Mock()
         form_data = {"tooltip_contents": []}
 
         self.factory._add_tooltip_columns(query_object, form_data)

@@ -2091,7 +2091,8 @@ class TestDeckGLMultiLayer(SupersetTestCase):
 
         result = test_viz._apply_multilayer_filtering(form_data)
 
-        assert len(result["adhoc_filters"]) == 0
+        # Should return original form_data unchanged when slice_id not in deck_slices
+        assert result == form_data
 
     def test_get_deck_slices_from_filters_found(self):
         """Test _get_deck_slices_from_filters when deck_slices found"""
