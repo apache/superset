@@ -948,7 +948,12 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"(\n{sql}\n) AS dataset_{dataset_id}"
+    # Check database type to determine whether to use AS keyword
+    database_type = dataset.database.backend.lower()
+    if database_type == 'oracle':
+        return f"(\n{sql}\n) dataset_{dataset_id}"
+    else:
+        return f"(\n{sql}\n) AS dataset_{dataset_id}"
 
 
 def get_dataset_id_from_context(metric_key: str) -> int:
