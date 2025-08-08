@@ -469,9 +469,14 @@ describe('SuperChart', () => {
       isMatrixifyEnabledMock.mockReset();
     });
 
-    it('renders NoResultsComponent when matrixify is enabled but data is empty', () => {
+    it('renders MatrixifyGridRenderer when matrixify is enabled even with empty data', () => {
       // Enable matrixify for this test
       isMatrixifyEnabledMock.mockReturnValue(true);
+
+      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
+      const MatrixifyGridRenderer =
+        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
+      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
 
       render(
         <SuperChart
@@ -483,12 +488,20 @@ describe('SuperChart', () => {
         />,
       );
 
-      expect(screen.getByText('No Results')).toBeInTheDocument();
+      // MatrixifyGridRenderer should have been called even with empty data
+      expect(MatrixifyGridRenderer).toHaveBeenCalled();
+      // Should NOT show No Results
+      expect(screen.queryByText('No Results')).not.toBeInTheDocument();
     });
 
-    it('renders NoResultsComponent when matrixify is enabled but data is null', () => {
+    it('renders MatrixifyGridRenderer when matrixify is enabled even with null data', () => {
       // Enable matrixify for this test
       isMatrixifyEnabledMock.mockReturnValue(true);
+
+      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
+      const MatrixifyGridRenderer =
+        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
+      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
 
       render(
         <SuperChart
@@ -500,14 +513,22 @@ describe('SuperChart', () => {
         />,
       );
 
-      expect(screen.getByText('No Results')).toBeInTheDocument();
+      // MatrixifyGridRenderer should have been called even with null data
+      expect(MatrixifyGridRenderer).toHaveBeenCalled();
+      // Should NOT show No Results
+      expect(screen.queryByText('No Results')).not.toBeInTheDocument();
     });
 
-    it('renders custom noResults component when matrixify is enabled with empty data', () => {
+    it('ignores custom noResults component when matrixify is enabled', () => {
       // Enable matrixify for this test
       isMatrixifyEnabledMock.mockReturnValue(true);
 
       const CustomNoResults = () => <div>Custom No Data Message</div>;
+
+      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
+      const MatrixifyGridRenderer =
+        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
+      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
 
       render(
         <SuperChart
@@ -520,7 +541,11 @@ describe('SuperChart', () => {
         />,
       );
 
-      expect(screen.getByText('Custom No Data Message')).toBeInTheDocument();
+      // Should render MatrixifyGridRenderer, not the custom no results
+      expect(MatrixifyGridRenderer).toHaveBeenCalled();
+      expect(
+        screen.queryByText('Custom No Data Message'),
+      ).not.toBeInTheDocument();
     });
 
     it('renders MatrixifyGridRenderer when matrixify is enabled with valid data', () => {
@@ -546,11 +571,16 @@ describe('SuperChart', () => {
       expect(MatrixifyGridRenderer).toHaveBeenCalled();
     });
 
-    it('applies error boundary to matrixify with no results', () => {
+    it('applies error boundary to matrixify grid renderer', () => {
       // Enable matrixify for this test
       isMatrixifyEnabledMock.mockReturnValue(true);
 
       const onErrorBoundary = jest.fn();
+
+      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
+      const MatrixifyGridRenderer =
+        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
+      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
 
       render(
         <SuperChart
@@ -563,15 +593,20 @@ describe('SuperChart', () => {
         />,
       );
 
-      // Check that error boundary wrapper exists
-      expect(screen.getByText('No Results')).toBeInTheDocument();
-      // Error boundary should not have been triggered for no results
+      // Check that MatrixifyGridRenderer is rendered
+      expect(MatrixifyGridRenderer).toHaveBeenCalled();
+      // Error boundary should not have been triggered
       expect(onErrorBoundary).not.toHaveBeenCalled();
     });
 
     it('disables error boundary when disableErrorBoundary is true with matrixify', () => {
       // Enable matrixify for this test
       isMatrixifyEnabledMock.mockReturnValue(true);
+
+      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
+      const MatrixifyGridRenderer =
+        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
+      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
 
       render(
         <SuperChart
@@ -584,8 +619,8 @@ describe('SuperChart', () => {
         />,
       );
 
-      // Should still render no results even without error boundary
-      expect(screen.getByText('No Results')).toBeInTheDocument();
+      // Should still render MatrixifyGridRenderer
+      expect(MatrixifyGridRenderer).toHaveBeenCalled();
     });
   });
 });

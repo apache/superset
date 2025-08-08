@@ -191,40 +191,18 @@ class SuperChart extends PureComponent<Props, {}> {
     // Check if Matrixify is enabled - use rawFormData (snake_case)
     const matrixifyEnabled = isMatrixifyEnabled(chartProps.rawFormData);
 
-    // Check for no results regardless of matrixify state
-    const noResultQueries =
-      enableNoResults &&
-      (!queriesData ||
-        queriesData
-          .slice(0, this.getQueryCount())
-          .every(
-            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
-          ));
-
     if (matrixifyEnabled) {
-      let matrixifyChart;
-
-      // Handle no results case for matrixify
-      if (noResultQueries) {
-        matrixifyChart = noResults || (
-          <NoResultsComponent
-            id={id}
-            className={className}
-            height={height}
-            width={width}
-          />
-        );
-      } else {
-        matrixifyChart = (
-          <MatrixifyGridRenderer
-            formData={chartProps.rawFormData}
-            datasource={chartProps.datasource}
-            width={width}
-            height={height}
-            hooks={chartProps.hooks}
-          />
-        );
-      }
+      // When matrixify is enabled, queriesData is expected to be empty
+      // since each cell fetches its own data via StatefulChart
+      const matrixifyChart = (
+        <MatrixifyGridRenderer
+          formData={chartProps.rawFormData}
+          datasource={chartProps.datasource}
+          width={width}
+          height={height}
+          hooks={chartProps.hooks}
+        />
+      );
 
       // Apply wrapper if provided
       const wrappedChart = Wrapper ? (
@@ -250,8 +228,17 @@ class SuperChart extends PureComponent<Props, {}> {
       );
     }
 
+    // Check for no results only for non-matrixified charts
+    const noResultQueries =
+      enableNoResults &&
+      (!queriesData ||
+        queriesData
+          .slice(0, this.getQueryCount())
+          .every(
+            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
+          ));
+
     let chart;
-    // noResultQueries check has been moved above for both paths
     if (noResultQueries) {
       chart = noResults || (
         <NoResultsComponent
