@@ -314,12 +314,12 @@ class Chart extends PureComponent<ChartProps, {}> {
       width,
     } = this.props;
 
-    const databaseName = datasource?.database?.name;
+    const databaseName = datasource?.database?.name as string | undefined;
 
     const isLoading = chartStatus === 'loading';
 
     if (chartStatus === 'failed') {
-      return queriesResponse.map(item =>
+      return queriesResponse?.map(item =>
         this.renderErrorMessage(item as ChartErrorType),
       );
     }
