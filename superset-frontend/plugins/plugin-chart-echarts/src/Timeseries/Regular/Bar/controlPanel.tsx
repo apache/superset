@@ -39,6 +39,7 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  forceMaxInterval,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -363,6 +364,7 @@ const config: ControlPanelConfig = {
         ...createAxisControl('x'),
         [truncateXAxis],
         [xAxisBounds],
+        [forceMaxInterval],
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
