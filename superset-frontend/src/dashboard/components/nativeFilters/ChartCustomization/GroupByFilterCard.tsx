@@ -161,6 +161,18 @@ const ToolTipContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
+const RequiredFieldIndicator = () => (
+  <span
+    css={(theme: any) => ({
+      color: theme.colorError,
+      fontSize: `${theme.fontSizeSM}px`,
+      paddingLeft: '1px',
+    })}
+  >
+    *
+  </span>
+);
+
 const DescriptionTooltip = ({ description }: { description: string }) => (
   <ToolTipContainer>
     <Tooltip
@@ -308,6 +320,11 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     setIsHoverCardVisible(false);
   }, []);
 
+  const isRequired = useMemo(
+    () => !!customizationItem.customization?.controlValues?.enableEmptyFilter,
+    [customizationItem.customization?.controlValues?.enableEmptyFilter],
+  );
+
   const chartCustomizationLoading = useSelector<RootState, boolean>(
     state =>
       state.dashboardInfo.chartCustomizationLoading?.[customizationItem.id] ||
@@ -444,7 +461,14 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   if (isHorizontalLayout) {
     return (
       <FilterValueContainer>
-        <HorizontalFormItem label={displayTitle}>
+        <HorizontalFormItem
+          label={
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {displayTitle}
+              {isRequired && <RequiredFieldIndicator />}
+            </div>
+          }
+        >
           <Select
             allowClear
             placeholder={t('Search columns...')}
@@ -526,7 +550,10 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             title={titleElementsTruncated ? displayTitle : null}
           >
             <div ref={filterTitleRef}>
-              <FilterTitle>{displayTitle}</FilterTitle>
+              <FilterTitle>
+                {displayTitle}
+                {isRequired && <RequiredFieldIndicator />}
+              </FilterTitle>
             </div>
           </TooltipWithTruncation>
           {description && <DescriptionTooltip description={description} />}
