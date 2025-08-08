@@ -95,9 +95,23 @@ superset mcp run --port 5008 --debug
 
 ## 🔌 Step 2: Connect Claude Desktop
 
-### If using `make mcp-run` (Recommended)
+### Option A: CLI Install (Easiest) ⚡
 
-The MCP service is already running on port 5008. Add this to your Claude Desktop config:
+After setup is complete, use our built-in installer:
+
+```bash
+# For Claude Code (recommended)
+superset mcp install --client claude-code
+
+# For Claude Desktop
+superset mcp install --client claude-desktop
+```
+
+Then restart your Claude client. That's it! ✨
+
+### Option B: Manual Proxy Connection
+
+If using `make mcp-run` and prefer manual setup:
 
 ```json
 {
@@ -114,6 +128,23 @@ The MCP service is already running on port 5008. Add this to your Claude Desktop
 **Important:** Replace `/absolute/path/to/your/superset` with your actual path!
 
 ### Alternative Connection Methods
+
+<details>
+<summary>CLI Commands (Advanced)</summary>
+
+**Using Claude Code CLI directly:**
+```bash
+cd /path/to/superset
+claude mcp add superset /path/to/superset/venv/bin/python -m superset.mcp_service --env PYTHONPATH=/path/to/superset
+```
+
+**Using FastMCP installer:**
+```bash
+cd /path/to/superset
+fastmcp install claude-desktop --server-spec superset/mcp_service:app --server-name superset --env PYTHONPATH=/path/to/superset
+```
+
+</details>
 
 <details>
 <summary>Direct STDIO with npx</summary>
