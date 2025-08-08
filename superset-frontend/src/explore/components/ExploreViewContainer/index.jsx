@@ -66,7 +66,7 @@ import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
-import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
+import ConnectedControlPanelsContainer from '../ControlPanelsContainerWrapper';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';

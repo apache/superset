@@ -24,7 +24,9 @@ import { WordCloudFormData } from '../types';
 import thumbnail from '../images/thumbnail.png';
 import example1 from '../images/Word_Cloud.jpg';
 import example2 from '../images/Word_Cloud_2.jpg';
-import controlPanel from './controlPanel';
+// Temporarily use modern control panel for testing
+// TODO: Remove old control panel once migration is complete
+import controlPanel from './controlPanelModern';
 import configureEncodable from '../configureEncodable';
 
 configureEncodable();
