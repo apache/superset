@@ -44,6 +44,9 @@ export interface GroupByCustomization {
   defaultValueQueriesData?: any;
   aggregation?: string;
   canSelectMultiple?: boolean;
+  controlValues?: {
+    enableEmptyFilter?: boolean;
+  };
 }
 
 export interface FilterOption {
