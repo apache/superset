@@ -33,6 +33,7 @@ from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import OAuth2RedirectError
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -244,6 +245,29 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         "port": "port",
     }
 
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Update connection with OAuth2 access token for user impersonation.
+        """
+        if user_token:
+            # Replace the access token in the URL with the user's OAuth2 token
+            url = url.set(password=user_token)
+
+            # Also update connect_args if they contain access token
+            connect_args = engine_kwargs.setdefault("connect_args", {})
+            if "access_token" in connect_args:
+                connect_args["access_token"] = user_token
+
+        return url, engine_kwargs
+
     @staticmethod
     def get_extra_params(
         database: Database, source: QuerySource | None = None
@@ -424,6 +448,17 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     supports_dynamic_catalog = True
     supports_cross_catalog_queries = True
 
+    # OAuth 2.0 support
+    supports_oauth2 = True
+    oauth2_exception = OAuth2RedirectError
+    oauth2_scope = "sql"
+    oauth2_authorization_request_uri = (
+        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize"
+    )
+    oauth2_token_request_uri = (
+        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token"  # noqa: S105
+    )
+
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
         cls, parameters: DatabricksNativeParametersType, *_
@@ -562,6 +597,17 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     }
 
     supports_dynamic_schema = supports_catalog = supports_dynamic_catalog = True
+
+    # OAuth 2.0 support
+    supports_oauth2 = True
+    oauth2_exception = OAuth2RedirectError
+    oauth2_scope = "sql"
+    oauth2_authorization_request_uri = (
+        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize"
+    )
+    oauth2_token_request_uri = (
+        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token"  # noqa: S105
+    )
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
