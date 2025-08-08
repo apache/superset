@@ -24,7 +24,6 @@ import {
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
