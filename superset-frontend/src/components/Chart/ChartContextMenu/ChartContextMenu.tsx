@@ -163,15 +163,21 @@ const ChartContextMenu = (
     formData,
   );
 
-  const dataset =
-    datasetResource.status === ResourceStatus.Complete
-      ? datasetResource.result
-      : undefined;
   const isLoadingDataset = datasetResource.status === ResourceStatus.Loading;
 
   // Compute filteredDataset with all columns returned + a filtered list of valid drillable options
   const filteredDataset = useMemo(() => {
-    if (!dataset || !showDrillBy) return dataset;
+    // Short circuit if still loading
+    if (datasetResource.status !== ResourceStatus.Complete) {
+      return undefined;
+    }
+
+    // No need to filter the dataset if Drill By is not allowed
+    if (!showDrillBy) {
+      return datasetResource.result;
+    }
+
+    const dataset = datasetResource.result;
 
     const filteredColumns = ensureIsArray(dataset.columns).filter(
       column =>
@@ -191,7 +197,8 @@ const ChartContextMenu = (
       drillable_columns: filteredColumns,
     };
   }, [
-    dataset,
+    datasetResource.status,
+    datasetResource.result,
     showDrillBy,
     filters?.drillBy?.groupbyFieldName,
     formData.x_axis,
@@ -303,7 +310,7 @@ const ChartContextMenu = (
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
         setShowModal={setDrillModalIsOpen}
-        dataset={filteredDataset!}
+        dataset={filteredDataset}
         isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillToDetail || {})}
       />,
@@ -328,7 +335,7 @@ const ChartContextMenu = (
         open={openKeys.includes('drill-by-submenu')}
         key="drill-by-submenu"
         onDrillBy={handleDrillBy}
-        dataset={filteredDataset!}
+        dataset={filteredDataset}
         isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillBy || {})}
       />,
@@ -412,19 +419,22 @@ const ChartContextMenu = (
           onHideModal={() => {
             setDrillModalIsOpen(false);
           }}
-          dataset={filteredDataset!}
+          dataset={filteredDataset}
         />
       )}
-      {showDrillByModal && drillByColumn && dataset && filters?.drillBy && (
-        <DrillByModal
-          column={drillByColumn}
-          drillByConfig={filters?.drillBy}
-          formData={formData}
-          onHideModal={handleCloseDrillByModal}
-          dataset={filteredDataset!}
-          canDownload={canDownload}
-        />
-      )}
+      {showDrillByModal &&
+        drillByColumn &&
+        filteredDataset &&
+        filters?.drillBy && (
+          <DrillByModal
+            column={drillByColumn}
+            drillByConfig={filters?.drillBy}
+            formData={formData}
+            onHideModal={handleCloseDrillByModal}
+            dataset={filteredDataset}
+            canDownload={canDownload}
+          />
+        )}
     </>,
     document.body,
   );
