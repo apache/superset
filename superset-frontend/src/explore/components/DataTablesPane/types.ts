@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { GenericDataType, JsonObject, QueryFormData } from '@superset-ui/core';
 import type { ChartStatus, Datasource } from 'src/explore/types';
 

@@ -87,7 +87,7 @@ describe('ResultsPaneOnDashboard', () => {
     },
   );
 
-  const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
+  const setForceQuery = jest.fn();
 
   afterAll(() => {
     fetchMock.reset();
@@ -132,7 +132,7 @@ describe('ResultsPaneOnDashboard', () => {
       queryForce: true,
     });
     const { queryByText, getByPlaceholderText } = render(
-      <ResultsPaneOnDashboard {...props} />,
+      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
       },
