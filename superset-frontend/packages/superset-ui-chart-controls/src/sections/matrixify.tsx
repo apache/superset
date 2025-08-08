@@ -19,9 +19,32 @@
 import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 
+export const matrixifyEnableSection: ControlPanelSectionConfig = {
+  label: t('Enable Matrixify'),
+  expanded: true,
+  controlSetRows: [
+    [
+      {
+        name: 'matrixify_enabled',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Enable Matrixify'),
+          default: false,
+          renderTrigger: true,
+          description: t(
+            'Transform this chart into a matrix/grid of charts based on dimensions or metrics',
+          ),
+        },
+      },
+    ],
+  ],
+  tabOverride: 'matrixify',
+};
+
 export const matrixifySection: ControlPanelSectionConfig = {
   label: t('Matrixify'),
   expanded: false,
+  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
     [
       {
@@ -106,6 +129,7 @@ export const matrixifySection: ControlPanelSectionConfig = {
 export const matrixifyRowSection: ControlPanelSectionConfig = {
   label: t('Matrixify Rows'),
   expanded: false,
+  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
     ['matrixify_mode_rows'],
     ['matrixify_rows'],
@@ -121,6 +145,7 @@ export const matrixifyRowSection: ControlPanelSectionConfig = {
 export const matrixifyColumnSection: ControlPanelSectionConfig = {
   label: t('Matrixify Columns'),
   expanded: false,
+  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
     ['matrixify_mode_columns'],
     ['matrixify_columns'],

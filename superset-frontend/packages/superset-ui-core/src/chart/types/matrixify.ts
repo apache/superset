@@ -72,6 +72,9 @@ export interface MatrixifyAxisConfig {
  * Complete Matrixify configuration in form data
  */
 export interface MatrixifyFormData {
+  // Enable/disable matrixify functionality
+  matrixify_enabled?: boolean;
+
   // Row axis configuration
   matrixify_mode_rows?: MatrixifyMode;
   matrixify_rows?: AdhocMetric[];
@@ -147,9 +150,15 @@ export function getMatrixifyConfig(
 }
 
 /**
- * Check if Matrixify is configured (at least one axis has configuration)
+ * Check if Matrixify is enabled and properly configured
  */
 export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
+  // First check if matrixify is explicitly enabled via checkbox
+  if (!formData.matrixify_enabled) {
+    return false;
+  }
+
+  // Then validate that we have proper configuration
   const config = getMatrixifyConfig(formData);
   if (!config) {
     return false;
@@ -172,6 +181,93 @@ export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
             config.columns.dimension.values.length > 0));
 
   return Boolean(hasRowData || hasColumnData);
+}
+
+/**
+ * Get validation errors for matrixify configuration
+ */
+export function getMatrixifyValidationErrors(
+  formData: MatrixifyFormData,
+): string[] {
+  const errors: string[] = [];
+
+  // Only validate if matrixify is enabled
+  if (!formData.matrixify_enabled) {
+    return errors;
+  }
+
+  const config = getMatrixifyConfig(formData);
+  if (!config) {
+    errors.push('Please configure at least one row or column axis');
+    return errors;
+  }
+
+  // Check row configuration
+  const hasRowMode = Boolean(config.rows.mode);
+  if (hasRowMode) {
+    const hasRowData =
+      config.rows.mode === 'metrics'
+        ? config.rows.metrics && config.rows.metrics.length > 0
+        : config.rows.dimension?.dimension &&
+          (config.rows.selectionMode === 'topn' ||
+            (config.rows.dimension.values &&
+              config.rows.dimension.values.length > 0));
+
+    if (!hasRowData) {
+      if (config.rows.mode === 'metrics') {
+        errors.push('Please select at least one metric for rows');
+      } else {
+        errors.push('Please select a dimension and values for rows');
+      }
+    }
+  }
+
+  // Check column configuration
+  const hasColumnMode = Boolean(config.columns.mode);
+  if (hasColumnMode) {
+    const hasColumnData =
+      config.columns.mode === 'metrics'
+        ? config.columns.metrics && config.columns.metrics.length > 0
+        : config.columns.dimension?.dimension &&
+          (config.columns.selectionMode === 'topn' ||
+            (config.columns.dimension.values &&
+              config.columns.dimension.values.length > 0));
+
+    if (!hasColumnData) {
+      if (config.columns.mode === 'metrics') {
+        errors.push('Please select at least one metric for columns');
+      } else {
+        errors.push('Please select a dimension and values for columns');
+      }
+    }
+  }
+
+  // Must have at least one valid axis
+  if (hasRowMode || hasColumnMode) {
+    const hasRowData =
+      config.rows.mode === 'metrics'
+        ? config.rows.metrics && config.rows.metrics.length > 0
+        : config.rows.dimension?.dimension &&
+          (config.rows.selectionMode === 'topn' ||
+            (config.rows.dimension.values &&
+              config.rows.dimension.values.length > 0));
+
+    const hasColumnData =
+      config.columns.mode === 'metrics'
+        ? config.columns.metrics && config.columns.metrics.length > 0
+        : config.columns.dimension?.dimension &&
+          (config.columns.selectionMode === 'topn' ||
+            (config.columns.dimension.values &&
+              config.columns.dimension.values.length > 0));
+
+    if (!hasRowData && !hasColumnData) {
+      errors.push('Configure at least one complete row or column axis');
+    }
+  } else {
+    errors.push('Please configure at least one row or column axis');
+  }
+
+  return errors;
 }
 
 /**
