@@ -40,6 +40,11 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.superset_typing import (
+        OAuth2ClientConfig,
+        OAuth2State,
+        OAuth2TokenResponse,
+    )
 
 
 try:
@@ -244,6 +249,48 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         "host": "hostname",
         "port": "port",
     }
+
+    # OAuth2 endpoints for different cloud providers
+    _oauth2_endpoints = {
+        "aws": {
+            "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize",
+            "token_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token",
+        },
+        "azure": {
+            "authorization_request_uri": "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize",
+            "token_request_uri": "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
+        },
+        "gcp": {
+            "authorization_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{}/v1/authorize",
+            "token_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{}/v1/token",
+        },
+    }
+
+    @classmethod
+    def _detect_cloud_provider(cls, database: Database) -> str:
+        """
+        Detect the cloud provider based on the database configuration.
+
+        Returns:
+            str: The cloud provider ('aws', 'azure', or 'gcp')
+        """
+        # Check if cloud provider is explicitly configured in extra
+        if "cloud_provider" in (extra := cls.get_extra_params(database)):
+            provider = extra["cloud_provider"].lower()
+            if provider in cls._oauth2_endpoints:
+                return provider
+
+        # Try to detect from hostname
+        hostname = database.url_object.host or ""
+        hostname = hostname.lower()
+
+        if "azure" in hostname or "azuredatabricks" in hostname:
+            return "azure"
+        elif "gcp" in hostname or "googleusercontent" in hostname:
+            return "gcp"
+        else:
+            # Default to AWS for compatibility
+            return "aws"
 
     @classmethod
     def impersonate_user(
@@ -452,12 +499,64 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     supports_oauth2 = True
     oauth2_exception = OAuth2RedirectError
     oauth2_scope = "sql"
-    oauth2_authorization_request_uri = (
-        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize"
-    )
-    oauth2_token_request_uri = (
-        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token"  # noqa: S105
-    )
+
+    # OAuth2 endpoints are determined dynamically based on cloud provider
+    oauth2_authorization_request_uri = ""  # Set dynamically
+    oauth2_token_request_uri = ""  # Set dynamically
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: "OAuth2ClientConfig",
+        state: "OAuth2State",
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request with dynamic endpoint detection.
+        """
+        from superset.models.core import Database
+
+        # Get the database to detect cloud provider
+        database_id = state["database_id"]
+        if database := Database.query.get(database_id):
+            provider = cls._detect_cloud_provider(database)
+            # Update config with the correct authorization URI for the cloud provider
+            from typing import cast
+
+            config = cast(
+                "OAuth2ClientConfig",
+                dict(config)
+                | {
+                    "authorization_request_uri": cls._oauth2_endpoints[provider][
+                        "authorization_request_uri"
+                    ]
+                },
+            )
+
+        return super().get_oauth2_authorization_uri(config, state)
+
+    @classmethod
+    def get_oauth2_token(
+        cls,
+        config: "OAuth2ClientConfig",
+        code: str,
+    ) -> "OAuth2TokenResponse":
+        """
+        Exchange authorization code for refresh/access tokens with dynamic endpoint.
+
+        Note: For token exchange, we need the database context from the state.
+        This is a limitation of the current OAuth2 flow design.
+        """
+        # For now, fall back to AWS endpoints for token exchange
+        # TODO: Improve OAuth2 flow to pass database context to token exchange
+        from typing import cast
+
+        config = cast(
+            "OAuth2ClientConfig",
+            dict(config)
+            | {"token_request_uri": cls._oauth2_endpoints["aws"]["token_request_uri"]},
+        )
+
+        return super().get_oauth2_token(config, code)
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
@@ -602,12 +701,64 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     supports_oauth2 = True
     oauth2_exception = OAuth2RedirectError
     oauth2_scope = "sql"
-    oauth2_authorization_request_uri = (
-        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize"
-    )
-    oauth2_token_request_uri = (
-        "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token"  # noqa: S105
-    )
+
+    # OAuth2 endpoints are determined dynamically based on cloud provider
+    oauth2_authorization_request_uri = ""  # Set dynamically
+    oauth2_token_request_uri = ""  # Set dynamically
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: "OAuth2ClientConfig",
+        state: "OAuth2State",
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request with dynamic endpoint detection.
+        """
+        from superset.models.core import Database
+
+        # Get the database to detect cloud provider
+        database_id = state["database_id"]
+        if database := Database.query.get(database_id):
+            provider = cls._detect_cloud_provider(database)
+            # Update config with the correct authorization URI for the cloud provider
+            from typing import cast
+
+            config = cast(
+                "OAuth2ClientConfig",
+                dict(config)
+                | {
+                    "authorization_request_uri": cls._oauth2_endpoints[provider][
+                        "authorization_request_uri"
+                    ]
+                },
+            )
+
+        return super().get_oauth2_authorization_uri(config, state)
+
+    @classmethod
+    def get_oauth2_token(
+        cls,
+        config: "OAuth2ClientConfig",
+        code: str,
+    ) -> "OAuth2TokenResponse":
+        """
+        Exchange authorization code for refresh/access tokens with dynamic endpoint.
+
+        Note: For token exchange, we need the database context from the state.
+        This is a limitation of the current OAuth2 flow design.
+        """
+        # For now, fall back to AWS endpoints for token exchange
+        # TODO: Improve OAuth2 flow to pass database context to token exchange
+        from typing import cast
+
+        config = cast(
+            "OAuth2ClientConfig",
+            dict(config)
+            | {"token_request_uri": cls._oauth2_endpoints["aws"]["token_request_uri"]},
+        )
+
+        return super().get_oauth2_token(config, code)
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore

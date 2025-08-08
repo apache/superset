@@ -305,27 +305,17 @@ def test_oauth2_attributes() -> None:
     assert DatabricksNativeEngineSpec.supports_oauth2 is True
     assert DatabricksNativeEngineSpec.oauth2_exception is OAuth2RedirectError
     assert DatabricksNativeEngineSpec.oauth2_scope == "sql"
-    assert (
-        DatabricksNativeEngineSpec.oauth2_authorization_request_uri
-        == "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize"
-    )
-    assert (
-        DatabricksNativeEngineSpec.oauth2_token_request_uri
-        == "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token"  # noqa: S105
-    )
+    # OAuth2 endpoints are now dynamic and set at runtime
+    assert DatabricksNativeEngineSpec.oauth2_authorization_request_uri == ""
+    assert DatabricksNativeEngineSpec.oauth2_token_request_uri == ""
 
     # Test DatabricksPythonConnectorEngineSpec
     assert DatabricksPythonConnectorEngineSpec.supports_oauth2 is True
     assert DatabricksPythonConnectorEngineSpec.oauth2_exception is OAuth2RedirectError
     assert DatabricksPythonConnectorEngineSpec.oauth2_scope == "sql"
-    assert (
-        DatabricksPythonConnectorEngineSpec.oauth2_authorization_request_uri
-        == "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize"
-    )
-    assert (
-        DatabricksPythonConnectorEngineSpec.oauth2_token_request_uri
-        == "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token"  # noqa: S105
-    )
+    # OAuth2 endpoints are now dynamic and set at runtime
+    assert DatabricksPythonConnectorEngineSpec.oauth2_authorization_request_uri == ""
+    assert DatabricksPythonConnectorEngineSpec.oauth2_token_request_uri == ""
 
 
 def test_impersonate_user_with_token(mocker: MockerFixture) -> None:
