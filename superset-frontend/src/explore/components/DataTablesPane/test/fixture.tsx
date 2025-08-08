@@ -57,8 +57,11 @@ const datasource = {
   type: DatasourceType.Table,
   columns: [],
   metrics: [],
-  columnFormats: {},
-  verboseMap: {},
+  main_dttm_col: 'ds',
+  column_formats: {},
+  verbose_map: {},
+  datasource_name: null,
+  description: null,
 };
 
 export const createDataTablesPaneProps = (sliceId: number) =>
