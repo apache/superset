@@ -75,6 +75,9 @@ export interface StatefulChartProps {
   // Additional SuperChart props
   id?: string;
   className?: string;
+
+  // Hooks for chart interactions (drill, cross-filter, etc.)
+  hooks?: any;
 }
 
 interface StatefulChartState {
@@ -346,6 +349,7 @@ export default class StatefulChart extends Component<
           noResults={NoDataComponent && <NoDataComponent />}
           onRenderSuccess={onRenderSuccess}
           onRenderFailure={onRenderFailure}
+          hooks={this.props.hooks}
         />
       );
 

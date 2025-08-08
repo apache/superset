@@ -122,6 +122,31 @@ const ChartContextMenu = (
     filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
+  // Extract matrixifyContext if present and merge cell filters
+  const enhancedFilters = useMemo(() => {
+    if (!filters) return filters;
+
+    // Check if this is from a matrixified cell
+    const matrixifyContext = (filters as any)?.matrixifyContext;
+    if (!matrixifyContext) return filters;
+
+    // Merge cell filters with drill filters
+    const enhancedDrillBy = filters.drillBy
+      ? {
+          ...filters.drillBy,
+          filters: [
+            ...(filters.drillBy.filters || []),
+            ...(matrixifyContext.cellFilters || []),
+          ],
+        }
+      : undefined;
+
+    return {
+      ...filters,
+      drillBy: enhancedDrillBy,
+    };
+  }, [filters]);
+
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
@@ -200,9 +225,9 @@ const ChartContextMenu = (
     datasetResource.status,
     datasetResource.result,
     showDrillBy,
-    filters?.drillBy?.groupbyFieldName,
+    enhancedFilters?.drillBy?.groupbyFieldName,
     formData.x_axis,
-    formData[filters?.drillBy?.groupbyFieldName ?? ''],
+    formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
     loadDrillByOptionsExtension,
   ]);
@@ -322,7 +347,7 @@ const ChartContextMenu = (
     }
     menuItems.push(
       <DrillByMenuItems
-        drillByConfig={filters?.drillBy}
+        drillByConfig={enhancedFilters?.drillBy}
         onSelection={onSelection}
         onCloseMenu={closeContextMenu}
         formData={formData}
@@ -421,10 +446,10 @@ const ChartContextMenu = (
       {showDrillByModal &&
         drillByColumn &&
         filteredDataset &&
-        filters?.drillBy && (
+        enhancedFilters?.drillBy && (
           <DrillByModal
             column={drillByColumn}
-            drillByConfig={filters?.drillBy}
+            drillByConfig={enhancedFilters?.drillBy}
             formData={formData}
             onHideModal={handleCloseDrillByModal}
             dataset={filteredDataset}
