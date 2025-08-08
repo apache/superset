@@ -564,11 +564,12 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         """
         Return URI for initial OAuth2 request with dynamic endpoint detection.
         """
+        from superset import db
         from superset.models.core import Database
 
         # Get the database to detect cloud provider
         database_id = state["database_id"]
-        if database := Database.query.get(database_id):
+        if database := db.session.get(Database, database_id):
             provider = cls._detect_cloud_provider(database)
             # Update config with the correct authorization URI for the cloud provider
             from typing import cast
@@ -840,11 +841,12 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         """
         Return URI for initial OAuth2 request with dynamic endpoint detection.
         """
+        from superset import db
         from superset.models.core import Database
 
         # Get the database to detect cloud provider
         database_id = state["database_id"]
-        if database := Database.query.get(database_id):
+        if database := db.session.get(Database, database_id):
             provider = cls._detect_cloud_provider(database)
             # Update config with the correct authorization URI for the cloud provider
             from typing import cast
