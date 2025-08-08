@@ -581,7 +581,7 @@ export default function transformProps(
             ]
           : 0,
       maxInterval:
-        xAxisType === 'time' && timeGrainSqla && forceMaxInterval
+        xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
               timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
