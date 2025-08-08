@@ -44,7 +44,7 @@ const ERROR_MESSAGE_COMPONENT = (props: ErrorMessageComponentProps) => (
 
 describe('ChartErrorMessage', () => {
   const defaultProps = {
-    chartId: '1',
+    chartId: 1,
     subtitle: 'Test subtitle',
     source: 'test_source' as ChartSource,
   };
