@@ -41,8 +41,10 @@ import {
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask } from 'src/dataMask/actions';
+import { triggerQuery } from 'src/components/Chart/chartAction';
 import {
   saveChartCustomization,
+  setChartCustomization,
   clearAllPendingChartCustomizations,
   ChartCustomizationSavePayload,
   clearAllChartCustomizationsFromMetadata,
@@ -173,6 +175,9 @@ const FilterBar: FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
   const previousDashboardId = usePrevious(dashboardId);
+  const chartIds = useSelector<RootState, number[]>(
+    state => state.dashboardState.sliceIds || [],
+  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -279,7 +284,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
-  }, [dataMaskAppliedText, setDataMaskSelected]);
+  }, [dataMaskAppliedText, setDataMaskSelected, dashboardId]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
@@ -328,10 +333,37 @@ const FilterBar: FC<FiltersBarProps> = ({
       const pendingItems = Object.values(pendingChartCustomizations).filter(
         Boolean,
       ) as ChartCustomizationSavePayload[];
-      if (pendingItems.length > 0) {
-        dispatch(saveChartCustomization(pendingItems));
-      }
 
+      if (pendingItems.length > 0) {
+        const newCustomizations: ChartCustomizationItem[] = pendingItems.map(
+          item => ({
+            id: item.id,
+            title: item.title,
+            removed: item.removed,
+            chartId: item.chartId,
+            customization: item.customization,
+          }),
+        );
+
+        const existingCustomizations = chartCustomizationItems || [];
+        const existingMap = new Map(
+          existingCustomizations.map(item => [item.id, item]),
+        );
+
+        newCustomizations.forEach(newItem => {
+          existingMap.set(newItem.id, newItem);
+        });
+
+        const mergedCustomizations = Array.from(existingMap.values());
+
+        dispatch(setChartCustomization(mergedCustomizations));
+
+        if (chartIds.length > 0) {
+          chartIds.forEach(chartId => {
+            dispatch(triggerQuery(true, chartId));
+          });
+        }
+      }
       dispatch(clearAllPendingChartCustomizations());
     } else if (hasClearedChartCustomizations) {
       const clearedChartCustomizations = chartCustomizationItems.map(item => ({
@@ -352,6 +384,8 @@ const FilterBar: FC<FiltersBarProps> = ({
     pendingChartCustomizations,
     hasClearedChartCustomizations,
     chartCustomizationItems,
+    dashboardId,
+    chartIds,
   ]);
 
   const handleClearAll = useCallback(() => {
