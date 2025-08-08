@@ -190,7 +190,7 @@ export default function EchartsTimeseries({
               // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
               xAxis.label === DTTM_ALIAS
                 ? formData.granularitySqla
-                : xAxis.label,
+                : formData.xAxis,
             grain: formData.timeGrainSqla,
             op: '==',
             val: data[0],
