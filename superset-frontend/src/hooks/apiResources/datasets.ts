@@ -36,7 +36,7 @@ import { Resource, ResourceStatus } from './apiResources';
 /**
  * Utility function to extract numeric dataset ID from datasource string
  */
-const getDatasetId = (datasetId: string | number): number =>
+export const getDatasetId = (datasetId: string | number): number =>
   typeof datasetId === 'string'
     ? Number(datasetId.split('__')[0])
     : Number(datasetId);
@@ -44,7 +44,7 @@ const getDatasetId = (datasetId: string | number): number =>
 /**
  * Helper function to create verbose_map from a dataset
  */
-const createVerboseMap = (dataset?: Dataset): Record<string, string> => {
+export const createVerboseMap = (dataset?: Dataset): Record<string, string> => {
   const verbose_map: Record<string, string> = {};
   ensureIsArray(dataset?.columns).forEach((column: Column) => {
     verbose_map[column.column_name] = column.verbose_name || column.column_name;
