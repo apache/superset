@@ -38,6 +38,109 @@ def mcp() -> None:
 
 
 @mcp.command()
+@click.option(
+    "--client",
+    type=click.Choice(["claude-code", "claude-desktop"]),
+    default="claude-code",
+    help="MCP client to install for",
+)
+@click.option("--name", default="superset", help="Server name in client config")
+def install(client: str, name: str) -> None:
+    """Install Superset MCP service in Claude clients"""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    project_root = Path(__file__).parents[2]  # Navigate to superset root
+    mcp_service_path = project_root / "superset" / "mcp_service"
+
+    if client == "claude-code":
+        try:
+            # Use claude mcp add command
+            venv_python = project_root / "venv" / "bin" / "python"
+            if not venv_python.exists():
+                venv_python_str = "python"
+            else:
+                venv_python_str = str(venv_python)
+
+            cmd = [
+                "claude",
+                "mcp",
+                "add",
+                name,
+                venv_python_str,
+                "-m",
+                "superset.mcp_service",
+                "--env",
+                f"PYTHONPATH={project_root}",
+            ]
+
+            click.echo(
+                f"{Fore.CYAN}Installing Superset MCP service in "
+                f"Claude Code...{Style.RESET_ALL}"
+            )
+            click.echo(f"Command: {' '.join(cmd)}")
+
+            subprocess.run(cmd, check=True, capture_output=True, text=True)  # noqa: S603
+            click.echo(
+                f"{Fore.GREEN}✓ Successfully installed '{name}' server in "
+                f"Claude Code{Style.RESET_ALL}"
+            )
+            click.echo("Run: claude --mcp-config local")
+
+        except subprocess.CalledProcessError as e:
+            click.echo(
+                f"{Fore.RED}Failed to install in Claude Code: "
+                f"{e.stderr}{Style.RESET_ALL}"
+            )
+            click.echo("Try installing Claude Code first: https://claude.ai/code")
+            sys.exit(1)
+        except FileNotFoundError:
+            click.echo(f"{Fore.RED}Claude Code CLI not found{Style.RESET_ALL}")
+            click.echo("Install Claude Code first: https://claude.ai/code")
+            sys.exit(1)
+
+    elif client == "claude-desktop":
+        try:
+            # Use fastmcp install command
+            cmd = [
+                "fastmcp",
+                "install",
+                "claude-desktop",
+                "--server-spec",
+                f"{mcp_service_path}/server.py:app",
+                "--server-name",
+                name,
+                "--env",
+                f"PYTHONPATH={project_root}",
+            ]
+
+            click.echo(
+                f"{Fore.CYAN}Installing Superset MCP service in "
+                f"Claude Desktop...{Style.RESET_ALL}"
+            )
+            click.echo(f"Command: {' '.join(cmd)}")
+
+            subprocess.run(cmd, check=True, capture_output=True, text=True)  # noqa: S603
+            click.echo(
+                f"{Fore.GREEN}✓ Successfully installed '{name}' server in "
+                f"Claude Desktop{Style.RESET_ALL}"
+            )
+            click.echo("Restart Claude Desktop to see the changes")
+
+        except subprocess.CalledProcessError as e:
+            click.echo(
+                f"{Fore.RED}Failed to install in Claude Desktop: "
+                f"{e.stderr}{Style.RESET_ALL}"
+            )
+            sys.exit(1)
+        except FileNotFoundError:
+            click.echo(f"{Fore.RED}FastMCP not found{Style.RESET_ALL}")
+            click.echo("Install fastmcp first: pip install fastmcp")
+            sys.exit(1)
+
+
+@mcp.command()
 @click.option("--host", default="127.0.0.1", help="Host to bind to")
 @click.option("--port", default=5008, help="Port to bind to")
 @click.option("--debug", is_flag=True, help="Enable debug mode")
