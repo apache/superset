@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 /**
  * This file exports all controls available for use in chart plugins internal to Superset.
  * It is not recommended to use the controls here for any third-party plugins.
@@ -47,6 +46,7 @@ import {
   validateMaxValue,
   getColumnLabel,
 } from '@superset-ui/core';
+import { Tag } from '@superset-ui/core/components/Tag';
 
 import {
   formatSelectOptions,
@@ -514,7 +514,36 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
         'members',
     }),
     visibility: ({ controls }) =>
-      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions',
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value !==
+        'topn',
+  };
+
+  // Dimension picker for TopN mode (just dimension, no values)
+  sharedControls[`matrixify_topn_dimension_${axis}`] = {
+    type: 'SelectControl',
+    label: (
+      <div>
+        <Tag color="error" style={{ marginBottom: '8px' }}>
+          Not Implemented Yet
+        </Tag>
+        <div>{t('Dimension')}</div>
+      </div>
+    ),
+    description: t(`Select dimension for Top N`),
+    default: null,
+    mapStateToProps: ({ datasource }) => ({
+      choices:
+        datasource?.columns?.map((col: any) => [
+          col.column_name,
+          col.column_name,
+        ]) || [],
+    }),
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+        'topn',
   };
 
   // Add selection mode control (Dimension Members vs TopN)
@@ -534,26 +563,24 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // TopN controls
   sharedControls[`matrixify_topn_value_${axis}`] = {
     type: 'TextControl',
-    label: t(`Top N`),
-    description: t(`Number of top values to select`),
+    label: t(`Number of Top Values`),
+    description: t(`How many top values to select`),
     default: 10,
     isInt: true,
     visibility: ({ controls }) =>
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-      !!(controls?.[`matrixify_dimension_${axis}`]?.value as any)?.dimension &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
   };
 
   sharedControls[`matrixify_topn_metric_${axis}`] = {
     ...dndAdhocMetricControl,
-    label: t(`Metric for ordering`),
+    label: t(`Metric for Ordering`),
     multi: false,
     validators: [], // Not required
     description: t(`Metric to use for ordering Top N values`),
     visibility: ({ controls }) =>
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-      !!(controls?.[`matrixify_dimension_${axis}`]?.value as any)?.dimension &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
   };
@@ -563,12 +590,11 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
     label: t(`Sort Order`),
     default: 'desc',
     options: [
-      ['asc', t('asc')],
-      ['desc', t('desc')],
+      ['asc', t('Ascending')],
+      ['desc', t('Descending')],
     ],
     visibility: ({ controls }) =>
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-      !!(controls?.[`matrixify_dimension_${axis}`]?.value as any)?.dimension &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
   };
