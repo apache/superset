@@ -100,6 +100,12 @@ function CountryMap(element, props) {
     .classed('result-text', true)
     .attr('dy', '1em');
 
+  // Create tooltip
+  const tooltip = div
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('opacity', 0);
+
   let centered;
 
   const clicked = function clicked(d) {
@@ -181,12 +187,38 @@ function CountryMap(element, props) {
       region => region.country_id === d.properties.ISO,
     );
     updateMetrics(result);
+
+    // Show tooltip
+    let name = '';
+    if (d && d.properties) {
+      if (d.properties.ID_2) {
+        name = d.properties.NAME_2;
+      } else {
+        name = d.properties.NAME_1;
+      }
+    }
+
+    const value = result.length > 0 ? format(result[0].metric) : 'No data';
+
+    tooltip
+      .classed('show', true)
+      .html(
+        `<div class="tooltip-title">${name}</div>` +
+          `<div class="tooltip-value">${value}</div>`,
+      );
+  };
+
+  const mousemove = function mousemove() {
+    tooltip
+      .style('left', `${d3.event.pageX + 15}px`)
+      .style('top', `${d3.event.pageY - 28}px`);
   };
 
   const mouseout = function mouseout() {
     d3.select(this).style('fill', colorFn);
     bigText.text('');
     resultText.text('');
+    tooltip.classed('show', false);
   };
 
   function drawMap(mapData) {
@@ -225,6 +257,7 @@ function CountryMap(element, props) {
       .attr('vector-effect', 'non-scaling-stroke')
       .style('fill', colorFn)
       .on('mouseenter', mouseenter)
+      .on('mousemove', mousemove)
       .on('mouseout', mouseout)
       .on('click', clicked);
   }
