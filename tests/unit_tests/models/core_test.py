@@ -333,7 +333,7 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
         inspector.bind.execute.return_value = [("examples",), ("other",)]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
-    get_inspector.assert_called_with(ssh_tunnel=None)
+    get_inspector.assert_called_with()
 
 
 def test_get_all_schema_names_needs_oauth2(mocker: MockerFixture) -> None:
