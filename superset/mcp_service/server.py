@@ -27,10 +27,13 @@ from superset.mcp_service.mcp_app import init_fastmcp_server, mcp
 
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
+    import sys
+
     if debug or os.environ.get("SQLALCHEMY_DEBUG"):
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            stream=sys.stderr,  # Always log to stderr, not stdout
         )
         for logger_name in [
             "sqlalchemy.engine",
@@ -38,29 +41,32 @@ def configure_logging(debug: bool = False) -> None:
             "sqlalchemy.dialects",
         ]:
             logging.getLogger(logger_name).setLevel(logging.INFO)
-        print("🔍 SQL Debug logging enabled")
+        # Use logging instead of print to avoid stdout contamination
+        logging.info("🔍 SQL Debug logging enabled")
 
 
 def run_server(host: str = "127.0.0.1", port: int = 5008, debug: bool = False) -> None:
     """
     Run the MCP service server with FastMCP endpoints.
-    Only supports HTTP (streamable-http) transport.
+    Uses streamable-http transport for HTTP server mode.
     """
+
     configure_logging(debug)
-    print("Creating MCP app...")
+    # Use logging to stderr instead of print to stdout
+    logging.info("Creating MCP app...")
     init_fastmcp_server()  # This will register middleware, etc.
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
         os.environ[env_key] = "1"
         try:
-            print(f"Starting FastMCP on {host}:{port}")
+            logging.info(f"Starting FastMCP on {host}:{port}")
             mcp.run(transport="streamable-http", host=host, port=port)
         except Exception as e:
-            print(f"FastMCP failed: {e}")
+            logging.error(f"FastMCP failed: {e}")
             os.environ.pop(env_key, None)
     else:
-        print(f"FastMCP already running on {host}:{port}")
+        logging.info(f"FastMCP already running on {host}:{port}")
 
 
 if __name__ == "__main__":
