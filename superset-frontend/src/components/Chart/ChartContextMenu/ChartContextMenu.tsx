@@ -147,6 +147,13 @@ const ChartContextMenu = (
     };
   }, [filters]);
 
+  // Use cell's formData for drill-to-detail if from matrixified cell
+  const drillFormData = useMemo(() => {
+    const matrixifyContext = (filters as any)?.matrixifyContext;
+    // If this is from a matrixified cell, use the cell's formData which includes adhoc_filters
+    return matrixifyContext?.cellFormData || formData;
+  }, [filters, formData]);
+
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
@@ -323,7 +330,7 @@ const ChartContextMenu = (
   if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems
-        formData={formData}
+        formData={drillFormData}
         filters={filters?.drillToDetail}
         setFilters={setFilters}
         isContextMenu
@@ -435,7 +442,7 @@ const ChartContextMenu = (
         <DrillDetailModal
           initialFilters={modalFilters}
           chartId={id}
-          formData={formData}
+          formData={drillFormData}
           showModal={drillModalIsOpen}
           onHideModal={() => {
             setDrillModalIsOpen(false);
