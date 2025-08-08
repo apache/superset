@@ -79,7 +79,7 @@ const defaultProps = {
 
 const TabTitleContainer = styled.div`
   ${({ isHighlighted, theme: { sizeUnit, colors } }) => `
-    padding: ${sizeUnit}px ${sizeUnit * 2}px;
+    padding: ${sizeUnit}px ${sizeUnit * 8}px ${sizeUnit}px ${sizeUnit * 2}px;
     margin: ${-sizeUnit}px ${sizeUnit * -2}px;
     transition: box-shadow 0.2s ease-in-out;
     ${
