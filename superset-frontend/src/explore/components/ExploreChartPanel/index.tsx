@@ -43,8 +43,8 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
-import { ChartState, Datasource } from 'src/explore/types';
-import { Slice } from 'src/types/Chart';
+import type { ChartState, Datasource } from 'src/explore/types';
+import type { Slice } from 'src/types/Chart';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -216,7 +216,7 @@ const ExploreChartPanel = ({
     actions.postChartFormData(
       formData,
       true,
-      timeout!,
+      timeout ?? 0,
       chart.id,
       undefined,
       ownState,
