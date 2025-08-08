@@ -111,7 +111,14 @@ def main() -> None:
         with flask_app.app_context():
             # Run in stdio mode - this will handle JSON-RPC communication
             sys.stderr.write("[MCP] Starting in stdio mode (stdin/stdout)\n")
-            mcp.run(transport="stdio")
+            sys.stderr.flush()
+
+            try:
+                mcp.run(transport="stdio")
+            except (BrokenPipeError, ConnectionResetError) as e:
+                # Handle client disconnection gracefully
+                sys.stderr.write(f"[MCP] Client disconnected: {e}\n")
+                sys.exit(0)
     else:
         # For other transports, use normal initialization
         init_fastmcp_server()

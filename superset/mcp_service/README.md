@@ -95,16 +95,18 @@ superset mcp run --port 5008 --debug
 
 ## 🔌 Step 2: Connect Claude Desktop
 
-### Option A: CLI Install (Easiest) ⚡
+### Option A: CLI Commands (Easiest) ⚡
 
-After setup is complete, use our built-in installer:
+After setup is complete, use the native CLI tools:
 
 ```bash
 # For Claude Code (recommended)
-superset mcp install --client claude-code
+cd /path/to/your/superset
+claude mcp add superset /path/to/your/superset/venv/bin/python -m superset.mcp_service -e PYTHONPATH=/path/to/your/superset
 
-# For Claude Desktop
-superset mcp install --client claude-desktop
+# For Claude Desktop (alternative)
+cd /path/to/your/superset
+fastmcp install claude-desktop --server-spec superset/mcp_service/server.py:app --server-name superset --env PYTHONPATH=/path/to/your/superset
 ```
 
 Then restart your Claude client. That's it! ✨
@@ -128,23 +130,6 @@ If using `make mcp-run` and prefer manual setup:
 **Important:** Replace `/absolute/path/to/your/superset` with your actual path!
 
 ### Alternative Connection Methods
-
-<details>
-<summary>CLI Commands (Advanced)</summary>
-
-**Using Claude Code CLI directly:**
-```bash
-cd /path/to/superset
-claude mcp add superset /path/to/superset/venv/bin/python -m superset.mcp_service --env PYTHONPATH=/path/to/superset
-```
-
-**Using FastMCP installer:**
-```bash
-cd /path/to/superset
-fastmcp install claude-desktop --server-spec superset/mcp_service:app --server-name superset --env PYTHONPATH=/path/to/superset
-```
-
-</details>
 
 <details>
 <summary>Direct STDIO with npx</summary>
@@ -274,9 +259,6 @@ The MCP service supports several environment variables for configuration:
 Use the provided test client to verify the transport:
 
 ```bash
-# For HTTP transport
-curl http://localhost:5008/health
-
 # For STDIO transport
 python test_mcp_client.py
 ```
