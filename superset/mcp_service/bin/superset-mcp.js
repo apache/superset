@@ -116,8 +116,8 @@ function checkEnvironment() {
     const python = findPython();
     const supersetRoot = findSupersetRoot();
 
-    console.error(`Using Python: ${python}`);
-    console.error(`Superset root: ${supersetRoot}`);
+        console.error(`Using Python: ${python}`);
+        console.error(`Superset root: ${supersetRoot}`);
 
     // Check if Superset is installed
     try {

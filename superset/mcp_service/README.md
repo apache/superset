@@ -95,21 +95,29 @@ superset mcp run --port 5008 --debug
 
 ## 🔌 Step 2: Connect Claude Desktop
 
-### Option A: CLI Commands (Easiest) ⚡
+### Option A: For Claude Desktop (Manual Config)
 
-After setup is complete, use the native CLI tools:
+Add this to your Claude Desktop config file:
 
-```bash
-# For Claude Code (recommended)
-cd /path/to/your/superset
-claude mcp add superset /path/to/your/superset/venv/bin/python -m superset.mcp_service -e PYTHONPATH=/path/to/your/superset
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-# For Claude Desktop (alternative)
-cd /path/to/your/superset
-fastmcp install claude-desktop --server-spec superset/mcp_service/server.py:app --server-name superset --env PYTHONPATH=/path/to/your/superset
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "npx",
+      "args": ["/path/to/your/superset/superset/mcp_service"],
+      "env": {
+        "PYTHONPATH": "/path/to/your/superset"
+      }
+    }
+  }
+}
 ```
 
-Then restart your Claude client. That's it! ✨
+Then restart Claude Desktop. That's it! ✨
 
 ### Option B: Manual Proxy Connection
 
