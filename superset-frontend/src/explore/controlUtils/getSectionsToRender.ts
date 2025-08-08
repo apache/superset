@@ -77,6 +77,7 @@ const getMemoizedSectionsToRender = memoizeOne(
               row
                 .filter(
                   control =>
+                    // Filter out legacy string controls that are invalid for this datasource type
                     typeof control !== 'string' ||
                     !invalidControls.includes(control),
                 )

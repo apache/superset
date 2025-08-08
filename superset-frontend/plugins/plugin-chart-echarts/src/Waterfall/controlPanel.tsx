@@ -18,10 +18,18 @@
  */
 import { t } from '@superset-ui/core';
 import {
+  AdhocFiltersControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
+  GroupByControl,
+  MetricControl,
+  RowLimitControl,
+  TimeGrainSqlaControl,
+  XAxisControl,
+  YAxisFormatControl,
   formatSelectOptions,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -33,12 +41,12 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['x_axis'],
-        ['time_grain_sqla'],
-        ['groupby'],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
+        [XAxisControl()],
+        [TimeGrainSqlaControl()],
+        [GroupByControl()],
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
       ],
     },
     {
@@ -146,8 +154,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['y_axis_format'],
-        ['currency_format'],
+        [YAxisFormatControl()],
+        [CurrencyFormatControl()],
       ],
     },
   ],

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  ColorPickerControl,
+  RowLimitControl,
+  InlineSelectControl as SelectControl,
+} from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import {
   filterNulls,
@@ -52,9 +58,9 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit'],
+        [RowLimitControl()],
         [filterNulls],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -63,22 +69,19 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapboxStyle],
         [viewport],
-        ['color_picker'],
+        [ColorPickerControl()],
         [lineWidth],
         [
-          {
+          SelectControl({
             name: 'line_width_unit',
-            config: {
-              type: 'SelectControl',
-              label: t('Line width unit'),
-              default: 'pixels',
-              choices: [
-                ['meters', t('meters')],
-                ['pixels', t('pixels')],
-              ],
-              renderTrigger: true,
-            },
-          },
+            label: t('Line width unit'),
+            default: 'pixels',
+            choices: [
+              ['meters', t('meters')],
+              ['pixels', t('pixels')],
+            ],
+            renderTrigger: true,
+          }),
         ],
         [reverseLongLat],
         [autozoom],

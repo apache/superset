@@ -20,15 +20,19 @@ import {
   expandControlConfig,
   sharedControls,
   CustomControlItem,
-  sharedControlComponents,
 } from '../../src';
 
 describe('expandControlConfig()', () => {
-  it('expands shared control alias', () => {
-    expect(expandControlConfig('metrics')).toEqual({
-      name: 'metrics',
-      config: sharedControls.metrics,
-    });
+  it('throws error when string control is passed', () => {
+    expect(() => expandControlConfig('metrics' as any)).toThrow(
+      'String control reference "metrics" is not supported',
+    );
+    expect(() => expandControlConfig('groupby' as any)).toThrow(
+      'String control reference "groupby" is not supported',
+    );
+    expect(() => expandControlConfig('columns' as any)).toThrow(
+      'String control reference "columns" is not supported',
+    );
   });
 
   it('expands control with overrides', () => {
@@ -69,18 +73,13 @@ describe('expandControlConfig()', () => {
     };
     expect(
       (expandControlConfig(input) as CustomControlItem).config.type,
-    ).toEqual(sharedControlComponents.RadioButtonControl);
+    ).toEqual('RadioButtonControl');
   });
 
   it('leave NULL and ReactElement untouched', () => {
     expect(expandControlConfig(null)).toBeNull();
     const input = <h1>Test</h1>;
     expect(expandControlConfig(input)).toBe(input);
-  });
-
-  it('leave unknown text untouched', () => {
-    const input = 'superset-ui';
-    expect(expandControlConfig(input as never)).toBe(input);
   });
 
   it('return null for invalid configs', () => {

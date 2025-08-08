@@ -18,12 +18,16 @@
  */
 import { JsonArray, t } from '@superset-ui/core';
 import {
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSetRow,
   ControlStateMapping,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_TIME_FORMAT_DOCS,
+  TimeShiftColorControl,
+  ZoomableControl,
   formatSelectOptions,
   getStandardizedControls,
   sections,
@@ -203,7 +207,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
-    ['currency_format'],
+    [CurrencyFormatControl()],
     [
       {
         name: 'logAxis',
@@ -321,8 +325,8 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ...seriesOrderSection,
-        ['color_scheme'],
-        ['time_shift_color'],
+        [ColorSchemeControl()],
+        [TimeShiftColorControl()],
         ...showValueSection,
         [
           {
@@ -357,7 +361,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
-        ['zoomable'],
+        [ZoomableControl()],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('x'),

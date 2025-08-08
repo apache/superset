@@ -26,6 +26,13 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
+  AdhocFiltersControl,
+  GroupByControl,
+  LimitControl,
+  MetricsControl,
+  OrderDescControl,
+  RowLimitControl,
+  TimeLimitMetricControl,
 } from '@superset-ui/chart-controls';
 
 /*
@@ -361,12 +368,12 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
     label: t('Query'),
     expanded: true,
     controlSetRows: [
-      ['metrics'],
-      ['adhoc_filters'],
-      ['groupby'],
-      ['limit'],
-      ['timeseries_limit_metric'],
-      ['order_desc'],
+      [MetricsControl()],
+      [AdhocFiltersControl()],
+      [GroupByControl()],
+      [LimitControl()],
+      [TimeLimitMetricControl()],
+      [OrderDescControl()],
       [
         {
           name: 'contribution',
@@ -378,7 +385,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      ['row_limit', null],
+      [RowLimitControl(), null],
     ],
   },
   {

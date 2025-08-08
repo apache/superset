@@ -22,6 +22,15 @@ import {
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
+  AdhocFiltersControl,
+  GranularitySqlaControl,
+  LinearColorSchemeControl,
+  MetricsControl,
+  TimeRangeControl,
+  YAxisFormatControl,
+  InlineSelectControl as SelectControl,
+  InlineTextControl as TextControl,
+  InlineCheckboxControl as CheckboxControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -30,51 +39,45 @@ const config: ControlPanelConfig = {
       label: t('Time'),
       expanded: true,
       description: t('Time related form attributes'),
-      controlSetRows: [['granularity_sqla'], ['time_range']],
+      controlSetRows: [[GranularitySqlaControl()], [TimeRangeControl()]],
     },
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
         [
-          {
+          SelectControl({
             name: 'domain_granularity',
-            config: {
-              type: 'SelectControl',
-              label: t('Domain'),
-              default: 'month',
-              choices: [
-                ['hour', t('hour')],
-                ['day', t('day')],
-                ['week', t('week')],
-                ['month', t('month')],
-                ['year', t('year')],
-              ],
-              description: t('The time unit used for the grouping of blocks'),
-            },
-          },
-          {
+            label: t('Domain'),
+            default: 'month',
+            choices: [
+              ['hour', t('hour')],
+              ['day', t('day')],
+              ['week', t('week')],
+              ['month', t('month')],
+              ['year', t('year')],
+            ],
+            description: t('The time unit used for the grouping of blocks'),
+          }),
+          SelectControl({
             name: 'subdomain_granularity',
-            config: {
-              type: 'SelectControl',
-              label: t('Subdomain'),
-              default: 'day',
-              choices: [
-                ['min', t('min')],
-                ['hour', t('hour')],
-                ['day', t('day')],
-                ['week', t('week')],
-                ['month', t('month')],
-              ],
-              description: t(
-                'The time unit for each block. Should be a smaller unit than ' +
-                  'domain_granularity. Should be larger or equal to Time Grain',
-              ),
-            },
-          },
+            label: t('Subdomain'),
+            default: 'day',
+            choices: [
+              ['min', t('min')],
+              ['hour', t('hour')],
+              ['day', t('day')],
+              ['week', t('week')],
+              ['month', t('month')],
+            ],
+            description: t(
+              'The time unit for each block. Should be a smaller unit than ' +
+                'domain_granularity. Should be larger or equal to Time Grain',
+            ),
+          }),
         ],
-        ['metrics'],
-        ['adhoc_filters'],
+        [MetricsControl()],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -82,109 +85,85 @@ const config: ControlPanelConfig = {
       expanded: true,
       tabOverride: 'customize',
       controlSetRows: [
-        ['linear_color_scheme'],
+        [LinearColorSchemeControl()],
         [
-          {
+          TextControl({
             name: 'cell_size',
-            config: {
-              type: 'TextControl',
-              isInt: true,
-              default: 10,
-              validators: [legacyValidateInteger],
-              renderTrigger: true,
-              label: t('Cell Size'),
-              description: t('The size of the square cell, in pixels'),
-            },
-          },
-          {
+            label: t('Cell Size'),
+            default: 10,
+            isInt: true,
+            validators: [legacyValidateInteger],
+            renderTrigger: true,
+            description: t('The size of the square cell, in pixels'),
+          }),
+          TextControl({
             name: 'cell_padding',
-            config: {
-              type: 'TextControl',
-              isInt: true,
-              validators: [legacyValidateInteger],
-              renderTrigger: true,
-              default: 2,
-              label: t('Cell Padding'),
-              description: t('The distance between cells, in pixels'),
-            },
-          },
+            label: t('Cell Padding'),
+            default: 2,
+            isInt: true,
+            validators: [legacyValidateInteger],
+            renderTrigger: true,
+            description: t('The distance between cells, in pixels'),
+          }),
         ],
         [
-          {
+          TextControl({
             name: 'cell_radius',
-            config: {
-              type: 'TextControl',
-              isInt: true,
-              validators: [legacyValidateInteger],
-              renderTrigger: true,
-              default: 0,
-              label: t('Cell Radius'),
-              description: t('The pixel radius'),
-            },
-          },
-          {
+            label: t('Cell Radius'),
+            default: 0,
+            isInt: true,
+            validators: [legacyValidateInteger],
+            renderTrigger: true,
+            description: t('The pixel radius'),
+          }),
+          TextControl({
             name: 'steps',
-            config: {
-              type: 'TextControl',
-              isInt: true,
-              validators: [legacyValidateInteger],
-              renderTrigger: true,
-              default: 10,
-              label: t('Color Steps'),
-              description: t('The number color "steps"'),
-            },
-          },
+            label: t('Color Steps'),
+            default: 10,
+            isInt: true,
+            validators: [legacyValidateInteger],
+            renderTrigger: true,
+            description: t('The number color "steps"'),
+          }),
         ],
         [
-          'y_axis_format',
-          {
+          YAxisFormatControl(),
+          SelectControl({
             name: 'x_axis_time_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Time Format'),
-              renderTrigger: true,
-              default: 'smart_date',
-              choices: D3_TIME_FORMAT_OPTIONS,
-              description: D3_FORMAT_DOCS,
-            },
-          },
+            label: t('Time Format'),
+            default: 'smart_date',
+            freeForm: true,
+            renderTrigger: true,
+            choices: D3_TIME_FORMAT_OPTIONS,
+            description: D3_FORMAT_DOCS,
+          }),
         ],
         [
-          {
+          CheckboxControl({
             name: 'show_legend',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Legend'),
-              renderTrigger: true,
-              default: true,
-              description: t('Whether to display the legend (toggles)'),
-            },
-          },
-          {
+            label: t('Legend'),
+            default: true,
+            renderTrigger: true,
+            description: t('Whether to display the legend (toggles)'),
+          }),
+          CheckboxControl({
             name: 'show_values',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Values'),
-              renderTrigger: true,
-              default: false,
-              description: t(
-                'Whether to display the numerical values within the cells',
-              ),
-            },
-          },
+            label: t('Show Values'),
+            default: false,
+            renderTrigger: true,
+            description: t(
+              'Whether to display the numerical values within the cells',
+            ),
+          }),
         ],
         [
-          {
+          CheckboxControl({
             name: 'show_metric_name',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Metric Names'),
-              renderTrigger: true,
-              default: true,
-              description: t('Whether to display the metric name as a title'),
-            },
-          },
+            label: t('Show Metric Names'),
+            default: true,
+            renderTrigger: true,
+            description: t('Whether to display the metric name as a title'),
+          }),
           null,
         ],
       ],

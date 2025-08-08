@@ -36,6 +36,12 @@ import {
   QueryModeLabel,
   sections,
   sharedControls,
+  AdhocFiltersControl,
+  AllColumnsControl,
+  GroupByControl,
+  MetricsControl,
+  RowLimitControl,
+  TemporalColumnsLookupControl,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
@@ -290,7 +296,7 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          TemporalColumnsLookupControl(),
         ],
         [
           {
@@ -334,7 +340,7 @@ const config: ControlPanelConfig = {
             config: percentMetricsControl,
           },
         ],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
         [
           {
             name: 'timeseries_limit_metric',

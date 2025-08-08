@@ -20,6 +20,14 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  MetricControl,
+  RowLimitControl,
+  SeriesControl,
+  SortByMetricControl,
+  InlineTextControl as TextControl,
+  InlineSelectControl as SelectControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -28,11 +36,11 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['series'],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
-        ['sort_by_metric'],
+        [SeriesControl()],
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
+        [SortByMetricControl()],
       ],
     },
     {
@@ -40,48 +48,39 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          {
+          TextControl({
             name: 'size_from',
-            config: {
-              type: 'TextControl',
-              isInt: true,
-              label: t('Minimum Font Size'),
-              renderTrigger: true,
-              default: 10,
-              description: t('Font size for the smallest value in the list'),
-            },
-          },
-          {
+            isInt: true,
+            label: t('Minimum Font Size'),
+            renderTrigger: true,
+            default: 10,
+            description: t('Font size for the smallest value in the list'),
+          }),
+          TextControl({
             name: 'size_to',
-            config: {
-              type: 'TextControl',
-              isInt: true,
-              label: t('Maximum Font Size'),
-              renderTrigger: true,
-              default: 70,
-              description: t('Font size for the biggest value in the list'),
-            },
-          },
+            isInt: true,
+            label: t('Maximum Font Size'),
+            renderTrigger: true,
+            default: 70,
+            description: t('Font size for the biggest value in the list'),
+          }),
         ],
         [
-          {
+          SelectControl({
             name: 'rotation',
-            config: {
-              type: 'SelectControl',
-              label: t('Word Rotation'),
-              choices: [
-                ['random', t('random')],
-                ['flat', t('flat')],
-                ['square', t('square')],
-              ],
-              renderTrigger: true,
-              default: 'square',
-              clearable: false,
-              description: t('Rotation to apply to words in the cloud'),
-            },
-          },
+            label: t('Word Rotation'),
+            choices: [
+              ['random', t('random')],
+              ['flat', t('flat')],
+              ['square', t('square')],
+            ],
+            renderTrigger: true,
+            default: 'square',
+            clearable: false,
+            description: t('Rotation to apply to words in the cloud'),
+          }),
         ],
-        ['color_scheme'],
+        [ColorSchemeControl()],
       ],
     },
   ],

@@ -18,12 +18,19 @@
  */
 import { t } from '@superset-ui/core';
 import {
+  AdhocFiltersControl,
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_FORMAT_DOCS,
-  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_TIME_FORMAT_OPTIONS,
+  GroupByControl,
+  MetricControl,
+  RowLimitControl,
+  SortByMetricControl,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -37,18 +44,18 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['metric'],
-        ['row_limit'],
-        ['sort_by_metric'],
-        ['adhoc_filters'],
+        [GroupByControl()],
+        [MetricControl()],
+        [RowLimitControl()],
+        [SortByMetricControl()],
+        [AdhocFiltersControl()],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
@@ -105,7 +112,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['currency_format'],
+        [CurrencyFormatControl()],
         [
           {
             name: 'date_format',

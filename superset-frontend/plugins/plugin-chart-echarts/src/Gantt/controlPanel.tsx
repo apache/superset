@@ -17,8 +17,17 @@
  * under the License.
  */
 import {
+  AdhocFiltersControl,
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
+  OrderByColsControl,
+  RowLimitControl,
+  SeriesControl,
+  TooltipColumnsControl,
+  TooltipMetricsControl,
+  XAxisTimeFormatControl,
+  ZoomableControl,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -69,7 +78,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['series'],
+        [SeriesControl()],
         [
           {
             name: 'subcategories',
@@ -86,11 +95,11 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['tooltip_metrics'],
-        ['tooltip_columns'],
-        ['adhoc_filters'],
-        ['order_by_cols'],
-        ['row_limit'],
+        [TooltipMetricsControl()],
+        [TooltipColumnsControl()],
+        [AdhocFiltersControl()],
+        [OrderByColsControl()],
+        [RowLimitControl()],
       ],
     },
     {
@@ -102,9 +111,9 @@ const config: ControlPanelConfig = {
       expanded: true,
       tabOverride: 'customize',
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         ...legendSection,
-        ['zoomable'],
+        [ZoomableControl()],
         [showExtraControls],
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
@@ -124,7 +133,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['x_axis_time_format'],
+        [XAxisTimeFormatControl()],
         [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
         [tooltipTimeFormatControl],
         [tooltipValuesFormatControl],

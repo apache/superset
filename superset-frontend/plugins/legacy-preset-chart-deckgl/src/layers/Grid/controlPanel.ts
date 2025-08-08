@@ -19,6 +19,9 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  AdhocFiltersControl,
+  RowLimitControl,
+  SizeControl,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
@@ -45,10 +48,10 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [spatial],
-        ['size'],
-        ['row_limit'],
+        [SizeControl()],
+        [RowLimitControl()],
         [filterNulls],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
       ],
     },
     {

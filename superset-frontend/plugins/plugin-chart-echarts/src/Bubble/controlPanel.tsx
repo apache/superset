@@ -23,6 +23,16 @@ import {
   sections,
   ControlPanelsContainerProps,
   sharedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  EntityControl,
+  OrderByControl,
+  RowLimitControl,
+  SeriesControl,
+  SizeControl,
+  XControl,
+  YAxisFormatControl,
+  YControl,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './constants';
@@ -43,13 +53,13 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['series'],
-        ['entity'],
-        ['x'],
-        ['y'],
-        ['adhoc_filters'],
-        ['size'],
-        ['orderby'],
+        [SeriesControl()],
+        [EntityControl()],
+        [XControl()],
+        [YControl()],
+        [AdhocFiltersControl()],
+        [SizeControl()],
+        [OrderByControl()],
         [
           {
             name: 'order_desc',
@@ -59,7 +69,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit'],
+        [RowLimitControl()],
       ],
     },
     {
@@ -67,7 +77,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       tabOverride: 'customize',
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         ...legendSection,
         [
           {
@@ -221,7 +231,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['y_axis_format'],
+        [YAxisFormatControl()],
         [
           {
             name: 'logYAxis',

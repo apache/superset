@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
@@ -103,6 +102,5 @@ const controlMap = {
   ZoomConfigControl,
   NumberControl,
   TimeRangeControl,
-  ...sharedControlComponents,
 };
 export default controlMap;

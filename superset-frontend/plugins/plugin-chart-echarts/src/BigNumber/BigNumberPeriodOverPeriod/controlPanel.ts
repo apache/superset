@@ -18,10 +18,14 @@
  */
 import { t, GenericDataType } from '@superset-ui/core';
 import {
+  AdhocFiltersControl,
   ControlPanelConfig,
+  CurrencyFormatControl,
+  MetricControl,
+  YAxisFormatControl,
   getStandardizedControls,
-  sharedControls,
   sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { noop } from 'lodash';
 import {
@@ -40,8 +44,8 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
-        ['adhoc_filters'],
+        [MetricControl()],
+        [AdhocFiltersControl()],
         [
           {
             name: 'row_limit',
@@ -54,7 +58,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_format'],
+        [YAxisFormatControl()],
         [
           {
             name: 'percentDifferenceFormat',
@@ -64,7 +68,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['currency_format'],
+        [CurrencyFormatControl()],
         [
           {
             ...headerFontSize,

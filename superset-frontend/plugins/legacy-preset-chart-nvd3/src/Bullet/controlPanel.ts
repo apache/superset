@@ -17,14 +17,18 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  MetricControl,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters']],
+      controlSetRows: [[MetricControl()], [AdhocFiltersControl()]],
     },
     {
       label: t('Chart Options'),

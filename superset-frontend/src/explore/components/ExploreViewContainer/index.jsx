@@ -765,7 +765,7 @@ function mapStateToProps(state) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const hasQueryMode = !!controls.query_mode?.value;
+  const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});

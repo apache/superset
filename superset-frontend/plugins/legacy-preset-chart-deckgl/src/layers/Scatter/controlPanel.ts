@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  RowLimitControl,
+  InlineSelectControl as SelectControl,
+  InlineTextControl as TextControl,
+} from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
@@ -55,8 +61,8 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [spatial, null],
-        ['row_limit', filterNulls],
-        ['adhoc_filters'],
+        [RowLimitControl(), filterNulls],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -69,58 +75,49 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [pointRadiusFixed],
         [
-          {
+          SelectControl({
             name: 'point_unit',
-            config: {
-              type: 'SelectControl',
-              label: t('Point Unit'),
-              default: 'square_m',
-              clearable: false,
-              choices: [
-                ['square_m', t('Square meters')],
-                ['square_km', t('Square kilometers')],
-                ['square_miles', t('Square miles')],
-                ['radius_m', t('Radius in meters')],
-                ['radius_km', t('Radius in kilometers')],
-                ['radius_miles', t('Radius in miles')],
-              ],
-              description: t(
-                'The unit of measure for the specified point radius',
-              ),
-            },
-          },
+            label: t('Point Unit'),
+            default: 'square_m',
+            clearable: false,
+            choices: [
+              ['square_m', t('Square meters')],
+              ['square_km', t('Square kilometers')],
+              ['square_miles', t('Square miles')],
+              ['radius_m', t('Radius in meters')],
+              ['radius_km', t('Radius in kilometers')],
+              ['radius_miles', t('Radius in miles')],
+            ],
+            description: t(
+              'The unit of measure for the specified point radius',
+            ),
+          }),
         ],
         [
-          {
+          TextControl({
             name: 'min_radius',
-            config: {
-              type: 'TextControl',
-              label: t('Minimum Radius'),
-              isFloat: true,
-              validators: [validateNonEmpty],
-              renderTrigger: true,
-              default: 2,
-              description: t(
-                'Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
-                  'insures that the circle respects this minimum radius.',
-              ),
-            },
-          },
-          {
+            label: t('Minimum Radius'),
+            isFloat: true,
+            validators: [validateNonEmpty],
+            renderTrigger: true,
+            default: 2,
+            description: t(
+              'Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+                'insures that the circle respects this minimum radius.',
+            ),
+          }),
+          TextControl({
             name: 'max_radius',
-            config: {
-              type: 'TextControl',
-              label: t('Maximum Radius'),
-              isFloat: true,
-              validators: [validateNonEmpty],
-              renderTrigger: true,
-              default: 250,
-              description: t(
-                'Maximum radius size of the circle, in pixels. As the zoom level changes, this ' +
-                  'insures that the circle respects this maximum radius.',
-              ),
-            },
-          },
+            label: t('Maximum Radius'),
+            isFloat: true,
+            validators: [validateNonEmpty],
+            renderTrigger: true,
+            default: 250,
+            description: t(
+              'Maximum radius size of the circle, in pixels. As the zoom level changes, this ' +
+                'insures that the circle respects this maximum radius.',
+            ),
+          }),
         ],
         [multiplier, null],
       ],

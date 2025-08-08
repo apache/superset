@@ -18,11 +18,18 @@
  */
 import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
-  aggregationControl,
+  AdhocFiltersControl,
+  ColorPickerControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
+  MetricControl,
+  TimeGrainSqlaControl,
+  XAxisControl,
+  YAxisFormatControl,
+  aggregationControl,
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
@@ -41,11 +48,11 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['x_axis'],
-        ['time_grain_sqla'],
+        [XAxisControl()],
+        [TimeGrainSqlaControl()],
         [aggregationControl],
-        ['metric'],
-        ['adhoc_filters'],
+        [MetricControl()],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -138,15 +145,15 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_picker', null],
+        [ColorPickerControl(), null],
         [headerFontSize],
         [subheaderFontSize],
         [subtitleControl],
         [subtitleFontSize],
         [showMetricNameControl],
         [metricNameFontSizeWithVisibility],
-        ['y_axis_format'],
-        ['currency_format'],
+        [YAxisFormatControl()],
+        [CurrencyFormatControl()],
         [
           {
             name: 'time_format',

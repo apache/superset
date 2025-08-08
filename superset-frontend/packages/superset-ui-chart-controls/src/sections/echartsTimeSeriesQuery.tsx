@@ -19,6 +19,20 @@
 import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
+  AdhocFiltersControl,
+  GroupByControl,
+  GroupOthersWhenLimitReachedControl,
+  LimitControl,
+  MetricsControl,
+  OrderDescControl,
+  RowLimitControl,
+  ShowEmptyColumnsControl,
+  TimeGrainSqlaControl,
+  TimeLimitMetricControl,
+  TruncateMetricControl,
+  XAxisControl,
+} from '../shared-controls/components/SharedControlComponents';
+import {
   contributionModeControl,
   xAxisForceCategoricalControl,
   xAxisSortAscControl,
@@ -26,30 +40,34 @@ import {
 } from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
-  ['metrics'],
-  ['groupby'],
+  [MetricsControl()],
+  [GroupByControl()],
   [contributionModeControl],
-  ['adhoc_filters'],
-  ['limit', 'group_others_when_limit_reached'],
-  ['timeseries_limit_metric'],
-  ['order_desc'],
-  ['row_limit'],
-  ['truncate_metric'],
-  ['show_empty_columns'],
+  [AdhocFiltersControl()],
+  [LimitControl(), GroupOthersWhenLimitReachedControl()],
+  [TimeLimitMetricControl()],
+  [OrderDescControl()],
+  [RowLimitControl()],
+  [TruncateMetricControl()],
+  [ShowEmptyColumnsControl()],
 ];
 
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
-  controlSetRows: [['x_axis'], ['time_grain_sqla'], ...controlsWithoutXAxis],
+  controlSetRows: [
+    [XAxisControl()],
+    [TimeGrainSqlaControl()],
+    ...controlsWithoutXAxis,
+  ],
 };
 
 export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
   controlSetRows: [
-    ['x_axis'],
-    ['time_grain_sqla'],
+    [XAxisControl()],
+    [TimeGrainSqlaControl()],
     [xAxisForceCategoricalControl],
     [xAxisSortControl],
     [xAxisSortAscControl],

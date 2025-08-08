@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { InlineRadioButtonControl as RadioButtonControl } from '@superset-ui/chart-controls';
 import { Input, InputNumber, Select } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import CurrencyControl from '../../CurrencyControl';
@@ -30,6 +30,6 @@ export const ControlFormItemComponents = {
   // Directly export Checkbox will result in "using name from external module" error
   // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
   Checkbox: CheckboxControl,
-  RadioButtonControl: sharedControlComponents.RadioButtonControl,
+  RadioButtonControl,
   CurrencyControl,
 };

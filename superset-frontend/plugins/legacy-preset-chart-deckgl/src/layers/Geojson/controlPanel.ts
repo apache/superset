@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  RowLimitControl,
+  InlineSelectControl as SelectControl,
+} from '@superset-ui/chart-controls';
 import { t, legacyValidateInteger } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
@@ -44,9 +49,9 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [dndGeojsonColumn],
-        ['row_limit'],
+        [RowLimitControl()],
         [filterNulls],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -61,32 +66,26 @@ const config: ControlPanelConfig = {
         [extruded],
         [lineWidth],
         [
-          {
+          SelectControl({
             name: 'line_width_unit',
-            config: {
-              type: 'SelectControl',
-              label: t('Line width unit'),
-              default: 'pixels',
-              choices: [
-                ['meters', t('meters')],
-                ['pixels', t('pixels')],
-              ],
-              renderTrigger: true,
-            },
-          },
+            label: t('Line width unit'),
+            default: 'pixels',
+            choices: [
+              ['meters', t('meters')],
+              ['pixels', t('pixels')],
+            ],
+            renderTrigger: true,
+          }),
         ],
         [
-          {
+          SelectControl({
             name: 'point_radius_scale',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Point Radius Scale'),
-              validators: [legacyValidateInteger],
-              default: null,
-              choices: formatSelectOptions([0, 100, 200, 300, 500]),
-            },
-          },
+            freeForm: true,
+            label: t('Point Radius Scale'),
+            validators: [legacyValidateInteger],
+            default: null,
+            choices: formatSelectOptions([0, 100, 200, 300, 500]),
+          }),
         ],
       ],
     },

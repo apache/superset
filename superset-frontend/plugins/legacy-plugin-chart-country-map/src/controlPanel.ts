@@ -22,6 +22,11 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   getStandardizedControls,
+  AdhocFiltersControl,
+  EntityControl,
+  LinearColorSchemeControl,
+  MetricControl,
+  InlineSelectControl as SelectControl,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
 
@@ -32,21 +37,18 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          {
+          SelectControl({
             name: 'select_country',
-            config: {
-              type: 'SelectControl',
-              label: t('Country'),
-              default: null,
-              choices: countryOptions,
-              description: t('Which country to plot the map for?'),
-              validators: [validateNonEmpty],
-            },
-          },
+            label: t('Country'),
+            default: null,
+            choices: countryOptions,
+            description: t('Which country to plot the map for?'),
+            validators: [validateNonEmpty],
+          }),
         ],
-        ['entity'],
-        ['metric'],
-        ['adhoc_filters'],
+        [EntityControl()],
+        [MetricControl()],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -55,20 +57,17 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       controlSetRows: [
         [
-          {
+          SelectControl({
             name: 'number_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Number format'),
-              renderTrigger: true,
-              default: 'SMART_NUMBER',
-              choices: D3_FORMAT_OPTIONS,
-              description: D3_FORMAT_DOCS,
-            },
-          },
+            freeForm: true,
+            label: t('Number format'),
+            renderTrigger: true,
+            default: 'SMART_NUMBER',
+            choices: D3_FORMAT_OPTIONS,
+            description: D3_FORMAT_DOCS,
+          }),
         ],
-        ['linear_color_scheme'],
+        [LinearColorSchemeControl()],
       ],
     },
   ],

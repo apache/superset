@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "glob": "^11.0.3"
+  }
+}

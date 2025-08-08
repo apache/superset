@@ -18,6 +18,15 @@
  */
 import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
+import {
+  GranularityControl,
+  GranularitySqlaControl,
+  TimeGrainSqlaControl,
+  TimeRangeControl,
+  DatasourceControl,
+  VizTypeControl,
+  ColorSchemeControl,
+} from '../shared-controls/components/SharedControlComponents';
 
 // A few standard controls sections that are used internally.
 // Not recommended for use in third-party plugins.
@@ -31,10 +40,10 @@ const baseTimeSection = {
 export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   ...baseTimeSection,
   controlSetRows: [
-    ['granularity'],
-    ['granularity_sqla'],
-    ['time_grain_sqla'],
-    ['time_range'],
+    [GranularityControl()],
+    [GranularitySqlaControl()],
+    [TimeGrainSqlaControl()],
+    [TimeRangeControl()],
   ],
 };
 
@@ -42,8 +51,8 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
   label: t('Datasource & Chart Type'),
   expanded: true,
   controlSetRows: [
-    ['datasource'],
-    ['viz_type'],
+    [DatasourceControl()],
+    [VizTypeControl()],
     [
       {
         name: 'slice_id',
@@ -91,7 +100,7 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
 
 export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color Scheme'),
-  controlSetRows: [['color_scheme']],
+  controlSetRows: [[ColorSchemeControl()]],
 };
 
 export const annotations: ControlPanelSectionConfig = {

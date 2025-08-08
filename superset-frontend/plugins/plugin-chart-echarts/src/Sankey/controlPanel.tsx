@@ -20,6 +20,11 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   dndGroupByControl,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  MetricControl,
+  RowLimitControl,
+  SortByMetricControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -58,16 +63,16 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
-        ['sort_by_metric'],
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
+        [SortByMetricControl()],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme']],
+      controlSetRows: [[ColorSchemeControl()]],
     },
   ],
 };

@@ -19,6 +19,10 @@
 import {
   ControlPanelConfig,
   formatSelectOptions,
+  AdhocFiltersControl,
+  RowLimitControl,
+  SizeControl,
+  InlineSelectControl as SelectControl,
 } from '@superset-ui/chart-controls';
 import {
   t,
@@ -58,43 +62,37 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [spatial],
-        ['size'],
-        ['row_limit'],
+        [SizeControl()],
+        [RowLimitControl()],
         [filterNulls],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
         [
-          {
+          SelectControl({
             name: 'intensity',
-            config: {
-              type: 'SelectControl',
-              label: t('Intensity'),
-              description: t(
-                'Intensity is the value multiplied by the weight to obtain the final weight',
-              ),
-              freeForm: true,
-              clearable: false,
-              validators: [legacyValidateNumber],
-              default: 1,
-              choices: formatSelectOptions(INTENSITY_OPTIONS),
-            },
-          },
+            label: t('Intensity'),
+            description: t(
+              'Intensity is the value multiplied by the weight to obtain the final weight',
+            ),
+            freeForm: true,
+            clearable: false,
+            validators: [legacyValidateNumber],
+            default: 1,
+            choices: formatSelectOptions(INTENSITY_OPTIONS),
+          }),
         ],
         [
-          {
+          SelectControl({
             name: 'radius_pixels',
-            config: {
-              type: 'SelectControl',
-              label: t('Intensity Radius'),
-              description: t(
-                'Intensity Radius is the radius at which the weight is distributed',
-              ),
-              freeForm: true,
-              clearable: false,
-              validators: [legacyValidateInteger],
-              default: 30,
-              choices: formatSelectOptions(RADIUS_PIXEL_OPTIONS),
-            },
-          },
+            label: t('Intensity Radius'),
+            description: t(
+              'Intensity Radius is the radius at which the weight is distributed',
+            ),
+            freeForm: true,
+            clearable: false,
+            validators: [legacyValidateInteger],
+            default: 30,
+            choices: formatSelectOptions(RADIUS_PIXEL_OPTIONS),
+          }),
         ],
       ],
     },
@@ -120,23 +118,20 @@ const config: ControlPanelConfig = {
         [deckGLLinearColorSchemeSelect],
         [autozoom],
         [
-          {
+          SelectControl({
             name: 'aggregation',
-            config: {
-              type: 'SelectControl',
-              label: t('Aggregation'),
-              description: t(
-                'The function to use when aggregating points into groups',
-              ),
-              default: 'sum',
-              clearable: false,
-              renderTrigger: true,
-              choices: [
-                ['sum', t('sum')],
-                ['mean', t('mean')],
-              ],
-            },
-          },
+            label: t('Aggregation'),
+            description: t(
+              'The function to use when aggregating points into groups',
+            ),
+            default: 'sum',
+            clearable: false,
+            renderTrigger: true,
+            choices: [
+              ['sum', t('sum')],
+              ['mean', t('mean')],
+            ],
+          }),
         ],
       ],
     },

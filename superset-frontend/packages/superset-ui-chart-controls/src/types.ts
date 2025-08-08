@@ -32,10 +32,11 @@ import type {
   QueryFormMetric,
   QueryResponse,
 } from '@superset-ui/core';
-import { sharedControls, sharedControlComponents } from './shared-controls';
+import { sharedControls } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlComponentProps } from './shared-controls/components/types';
+export * from './types/jsonForms';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;
@@ -45,8 +46,6 @@ interface Action {
 interface AnyAction extends Action, AnyDict {}
 
 export type SharedControls = typeof sharedControls;
-export type SharedControlAlias = keyof typeof sharedControls;
-export type SharedControlComponents = typeof sharedControlComponents;
 
 /** ----------------------------------------------
  * Input data/props while rendering
@@ -184,8 +183,7 @@ export type InternalControlType =
   | 'Checkbox'
   | 'Select'
   | 'Slider'
-  | 'Input'
-  | keyof SharedControlComponents; // expanded in `expandControlConfig`
+  | 'Input';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;
@@ -359,7 +357,7 @@ export type SharedSectionAlias =
   | 'NVD3TimeSeries';
 
 export interface OverrideSharedControlItem<
-  A extends SharedControlAlias = SharedControlAlias,
+  A extends keyof SharedControls = keyof SharedControls,
 > {
   name: A;
   override: Partial<SharedControls[A]>;
@@ -382,16 +380,16 @@ export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
 // interfere with other ControlSetItem types
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
 
-export type ControlSetItem =
-  | SharedControlAlias
-  | OverrideSharedControlItem
-  | ExpandedControlItem;
+// All controls must be React components or control configuration objects
+export type ControlSetItem = OverrideSharedControlItem | ExpandedControlItem;
 
 export type ControlSetRow = ControlSetItem[];
 
 // Ref:
 //  - superset-frontend/src/explore/components/ControlPanelsContainer.jsx
 //  - superset-frontend/src/explore/components/ControlPanelSection.jsx
+// DEPRECATED: Legacy control panel types - use JsonFormsControlPanelConfig instead
+// These are kept temporarily for backward compatibility during migration
 export interface ControlPanelSectionConfig {
   label?: ReactNode;
   description?: ReactNode;
@@ -428,6 +426,7 @@ export const isStandardizedFormData = (
   Array.isArray(formData.standardizedFormData.controls.metrics) &&
   Array.isArray(formData.standardizedFormData.controls.columns);
 
+// DEPRECATED: Use JsonFormsControlPanelConfig from './types/jsonForms' instead
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
@@ -437,7 +436,7 @@ export interface ControlPanelConfig {
 }
 
 export type ControlOverrides = {
-  [P in SharedControlAlias]?: Partial<SharedControls[P]>;
+  [P in keyof SharedControls]?: Partial<SharedControls[P]>;
 };
 
 export type SectionOverrides = {

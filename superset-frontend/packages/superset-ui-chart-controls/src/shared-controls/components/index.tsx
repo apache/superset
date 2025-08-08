@@ -16,14 +16,71 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RadioButtonControl from './RadioButtonControl';
-
 export * from './RadioButtonControl';
+export { default as RadioButtonControl } from './RadioButtonControl';
+export { default as GranularityControl } from './GranularityControl';
+export * from './ReactControlPanel';
+export * from './JsonFormBuilder';
+export { default as AxisControlSection } from './AxisControlSection';
+export { default as FormatControlGroup } from './FormatControlGroup';
+export { default as OpacityControl } from './OpacityControl';
+export { default as MarkerControlGroup } from './MarkerControlGroup';
+export { default as TimeseriesControlPanel } from './TimeseriesControlPanel';
+export { default as LabelControlGroup } from './LabelControlGroup';
+export { default as PieShapeControl } from './PieShapeControl';
+export { default as TableControlsSection } from './TableControlsSection';
+export { default as FilterControlsSection } from './FilterControlsSection';
+export { default as DeckGLControlsSection } from './DeckGLControlsSection';
+// Export ControlComponents with specific names
+// ColorPickerControl from ControlComponents takes props, renamed to avoid conflict
+export {
+  CheckboxControl,
+  NumberControl,
+  SelectControl,
+  SliderControl,
+  SwitchControl,
+  TextAreaControl,
+  TextControl,
+  ColorPickerControl as ColorPickerControlWithProps,
+  type ControlComponentConfig,
+} from './ControlComponents';
 
-/**
- * Shared chart controls. Can be referred via string shortcuts in chart control
- * configs.
- */
-export default {
-  RadioButtonControl,
-};
+// Export all SharedControlComponents which replace string references
+// ColorPickerControl from here does NOT take props - it's for the shared 'color_picker' control
+export * from './SharedControlComponents';
+
+// Export JSON Forms control panel components
+export {
+  default as JsonFormsControlPanel,
+  createVerticalLayout,
+  createHorizontalLayout,
+  createCollapsibleGroup,
+  createTabbedLayout,
+  createControl,
+  customRenderers,
+  isCollapsibleSection,
+  isTabbedSection,
+} from './JsonFormsControlPanel';
+
+// Export Superset control renderers
+export {
+  supersetControlRenderers,
+  getControlType,
+} from './SupersetControlRenderers';
+
+// Export inline control helpers with renamed ColorPickerControl to avoid conflict
+export {
+  SelectControl as InlineSelectControl,
+  TextControl as InlineTextControl,
+  CheckboxControl as InlineCheckboxControl,
+  SliderControl as InlineSliderControl,
+  RadioButtonControl as InlineRadioButtonControl,
+  BoundsControl,
+  ColorPickerControl as InlineColorPickerControl,
+  DateFilterControl,
+  SwitchControl as InlineSwitchControl,
+  HiddenControl,
+  SpatialControl,
+  ContourControl,
+  TextAreaControl as InlineTextAreaControl,
+} from './InlineControls';

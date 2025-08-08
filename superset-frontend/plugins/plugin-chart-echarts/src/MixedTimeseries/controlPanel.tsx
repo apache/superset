@@ -19,17 +19,24 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
-  ControlPanelsContainerProps,
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlPanelSectionConfig,
+  ControlPanelsContainerProps,
   ControlSetRow,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   CustomControlItem,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
+  TimeGrainSqlaControl,
+  TimeShiftColorControl,
+  XAxisControl,
+  XAxisTimeFormatControl,
+  ZoomableControl,
   getStandardizedControls,
   sections,
   sharedControls,
-  DEFAULT_SORT_SERIES_DATA,
-  SORT_SERIES_CHOICES,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
@@ -335,7 +342,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Shared query fields'),
       expanded: true,
-      controlSetRows: [['x_axis'], ['time_grain_sqla']],
+      controlSetRows: [[XAxisControl()], [TimeGrainSqlaControl()]],
     },
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
@@ -347,15 +354,15 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
-        ['time_shift_color'],
+        [ColorSchemeControl()],
+        [TimeShiftColorControl()],
         ...createCustomizeSection(t('Query A'), ''),
         ...createCustomizeSection(t('Query B'), 'B'),
-        ['zoomable'],
+        [ZoomableControl()],
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
-        ['x_axis_time_format'],
+        [XAxisTimeFormatControl()],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
         [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
@@ -430,7 +437,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['currency_format'],
+        [CurrencyFormatControl()],
         [
           {
             name: 'logAxis',

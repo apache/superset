@@ -20,12 +20,24 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
   ControlSubSectionHeader,
+  DatasourceControl,
+  VizTypeControl,
+  ColorSchemeControl,
+  GranularitySqlaControl,
+  TimeRangeControl,
+  MetricsControl,
+  AdhocFiltersControl,
+  GroupByControl,
+  TimeLimitMetricControl,
+  OrderDescControl,
+  RowLimitControl,
+  LimitControl,
 } from '@superset-ui/chart-controls';
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
   controlSetRows: [
-    ['datasource'],
-    ['viz_type'],
+    [DatasourceControl()],
+    [VizTypeControl()],
     [
       {
         name: 'slice_id',
@@ -60,14 +72,14 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
 
 export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color scheme'),
-  controlSetRows: [['color_scheme']],
+  controlSetRows: [[ColorSchemeControl()]],
 };
 
 export const sqlaTimeSeries: ControlPanelSectionConfig = {
   label: t('Time'),
   description: t('Time related form attributes'),
   expanded: true,
-  controlSetRows: [['granularity_sqla'], ['time_range']],
+  controlSetRows: [[GranularitySqlaControl()], [TimeRangeControl()]],
 };
 
 export const annotations: ControlPanelSectionConfig = {
@@ -96,12 +108,22 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
     label: t('Query'),
     expanded: true,
     controlSetRows: [
-      ['metrics'],
-      ['adhoc_filters'],
-      ['groupby'],
-      ['limit', 'group_others_when_limit_reached'],
-      ['timeseries_limit_metric'],
-      ['order_desc'],
+      [MetricsControl()],
+      [AdhocFiltersControl()],
+      [GroupByControl()],
+      [
+        LimitControl(),
+        {
+          name: 'group_others_when_limit_reached',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Group remaining values'),
+            default: false,
+          },
+        },
+      ],
+      [TimeLimitMetricControl()],
+      [OrderDescControl()],
       [
         {
           name: 'contribution',
@@ -113,7 +135,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      ['row_limit', null],
+      [RowLimitControl(), null],
     ],
   },
   {

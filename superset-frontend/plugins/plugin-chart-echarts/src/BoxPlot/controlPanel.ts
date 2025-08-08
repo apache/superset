@@ -35,6 +35,15 @@ import {
   ControlPanelState,
   getTemporalColumns,
   sharedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  ColumnsControl,
+  GroupByControl,
+  MetricsControl,
+  RowLimitControl,
+  SeriesLimitControl,
+  SeriesLimitMetricControl,
+  TemporalColumnsLookupControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -43,7 +52,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['columns'],
+        [ColumnsControl()],
         [
           {
             name: 'time_grain_sqla',
@@ -71,14 +80,14 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          TemporalColumnsLookupControl(),
         ],
-        ['groupby'],
-        ['metrics'],
-        ['adhoc_filters'],
-        ['series_limit'],
-        ['series_limit_metric'],
-        ['row_limit'],
+        [GroupByControl()],
+        [MetricsControl()],
+        [AdhocFiltersControl()],
+        [SeriesLimitControl()],
+        [SeriesLimitMetricControl()],
+        [RowLimitControl()],
         [
           {
             name: 'whiskerOptions',
@@ -109,7 +118,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         [
           {
             name: 'x_ticks_layout',

@@ -18,9 +18,23 @@
  */
 import { t } from '@superset-ui/core';
 import {
+  AdhocFiltersControl,
+  ColorPickerControl,
+  ColorSchemeControl,
   ControlPanelConfig,
+  CurrencyFormatControl,
+  EntityControl,
+  LinearColorSchemeControl,
+  MetricControl,
+  RowLimitControl,
+  SecondaryMetricControl,
+  SortByMetricControl,
+  YAxisFormatControl,
   formatSelectOptions,
   getStandardizedControls,
+  InlineSelectControl as SelectControl,
+  InlineCheckboxControl as CheckboxControl,
+  InlineRadioButtonControl as RadioButtonControl,
 } from '@superset-ui/chart-controls';
 import { ColorBy } from './utils';
 
@@ -30,31 +44,28 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['entity'],
+        [EntityControl()],
         [
-          {
+          SelectControl({
             name: 'country_fieldtype',
-            config: {
-              type: 'SelectControl',
-              label: t('Country Field Type'),
-              default: 'cca2',
-              choices: [
-                ['name', t('Full name')],
-                ['cioc', t('code International Olympic Committee (cioc)')],
-                ['cca2', t('code ISO 3166-1 alpha-2 (cca2)')],
-                ['cca3', t('code ISO 3166-1 alpha-3 (cca3)')],
-              ],
-              description: t(
-                'The country code standard that Superset should expect ' +
-                  'to find in the [country] column',
-              ),
-            },
-          },
+            label: t('Country Field Type'),
+            default: 'cca2',
+            choices: [
+              ['name', t('Full name')],
+              ['cioc', t('code International Olympic Committee (cioc)')],
+              ['cca2', t('code ISO 3166-1 alpha-2 (cca2)')],
+              ['cca3', t('code ISO 3166-1 alpha-3 (cca3)')],
+            ],
+            description: t(
+              'The country code standard that Superset should expect ' +
+                'to find in the [country] column',
+            ),
+          }),
         ],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
-        ['sort_by_metric'],
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
+        [SortByMetricControl()],
       ],
     },
     {
@@ -62,64 +73,55 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          {
+          CheckboxControl({
             name: 'show_bubbles',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Bubbles'),
-              default: false,
-              renderTrigger: true,
-              description: t('Whether to display bubbles on top of countries'),
-            },
-          },
+            label: t('Show Bubbles'),
+            default: false,
+            renderTrigger: true,
+            description: t('Whether to display bubbles on top of countries'),
+          }),
         ],
-        ['secondary_metric'],
+        [SecondaryMetricControl()],
         [
-          {
+          SelectControl({
             name: 'max_bubble_size',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Max Bubble Size'),
-              default: '25',
-              choices: formatSelectOptions([
-                '5',
-                '10',
-                '15',
-                '25',
-                '50',
-                '75',
-                '100',
-              ]),
-            },
-          },
+            freeForm: true,
+            label: t('Max Bubble Size'),
+            default: '25',
+            choices: formatSelectOptions([
+              '5',
+              '10',
+              '15',
+              '25',
+              '50',
+              '75',
+              '100',
+            ]),
+          }),
         ],
-        ['color_picker'],
+        [ColorPickerControl()],
         [
-          {
+          RadioButtonControl({
             name: 'color_by',
-            config: {
-              type: 'RadioButtonControl',
-              label: t('Color by'),
-              default: ColorBy.Metric,
-              options: [
-                [ColorBy.Metric, t('Metric')],
-                [ColorBy.Country, t('Country')],
-              ],
-              description: t(
-                'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
-              ),
-            },
-          },
+            label: t('Color by'),
+            default: ColorBy.Metric,
+            options: [
+              [ColorBy.Metric, t('Metric')],
+              [ColorBy.Country, t('Country')],
+            ],
+            description: t(
+              'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
+            ),
+          }),
         ],
-        ['linear_color_scheme'],
-        ['color_scheme'],
+        [LinearColorSchemeControl()],
+        [ColorSchemeControl()],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['y_axis_format'], ['currency_format']],
+      controlSetRows: [[YAxisFormatControl()], [CurrencyFormatControl()]],
     },
   ],
   controlOverrides: {

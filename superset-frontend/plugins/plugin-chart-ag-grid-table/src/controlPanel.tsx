@@ -36,6 +36,11 @@ import {
   QueryModeLabel,
   sections,
   sharedControls,
+  AdhocFiltersControl,
+  AllColumnsControl,
+  GroupByControl,
+  MetricsControl,
+  TemporalColumnsLookupControl,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
@@ -144,7 +149,12 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
+  rerender: [
+    AllColumnsControl(),
+    GroupByControl(),
+    MetricsControl(),
+    'percent_metrics',
+  ],
 };
 
 const allColumnsControl: typeof sharedControls.groupby = {
@@ -192,7 +202,7 @@ const percentMetricsControl: typeof sharedControls.metrics = {
       controlState?.value,
     ]),
   }),
-  rerender: ['groupby', 'metrics'],
+  rerender: [GroupByControl(), MetricsControl()],
   default: [],
   validators: [],
 };
@@ -240,7 +250,7 @@ const config: ControlPanelConfig = {
 
                 return newState;
               },
-              rerender: ['metrics', 'percent_metrics'],
+              rerender: [MetricsControl(), 'percent_metrics'],
             },
           },
         ],
@@ -271,7 +281,7 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          TemporalColumnsLookupControl(),
         ],
         [
           {
@@ -300,7 +310,7 @@ const config: ControlPanelConfig = {
                   controlState.value,
                 ]),
               }),
-              rerender: ['groupby'],
+              rerender: [GroupByControl()],
             },
           },
           {
@@ -314,7 +324,7 @@ const config: ControlPanelConfig = {
             config: percentMetricsControl,
           },
         ],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
         [
           {
             name: 'timeseries_limit_metric',

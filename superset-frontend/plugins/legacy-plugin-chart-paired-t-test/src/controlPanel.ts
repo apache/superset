@@ -17,7 +17,17 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  LimitControl,
+  MetricsControl,
+  OrderDescControl,
+  RowLimitControl,
+  TimeLimitMetricControl,
+  InlineCheckboxControl as CheckboxControl,
+  InlineTextControl as TextControl,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -25,8 +35,8 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metrics'],
-        ['adhoc_filters'],
+        [MetricsControl()],
+        [AdhocFiltersControl()],
         [
           {
             name: 'groupby',
@@ -35,20 +45,17 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['limit', 'timeseries_limit_metric'],
-        ['order_desc'],
+        [LimitControl(), TimeLimitMetricControl()],
+        [OrderDescControl()],
         [
-          {
+          CheckboxControl({
             name: 'contribution',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Contribution'),
-              default: false,
-              description: t('Compute the contribution to the total'),
-            },
-          },
+            label: t('Contribution'),
+            default: false,
+            description: t('Compute the contribution to the total'),
+          }),
         ],
-        ['row_limit', null],
+        [RowLimitControl(), null],
       ],
     },
     {
@@ -56,43 +63,34 @@ const config: ControlPanelConfig = {
       expanded: false,
       controlSetRows: [
         [
-          {
+          TextControl({
             name: 'significance_level',
-            config: {
-              type: 'TextControl',
-              label: t('Significance Level'),
-              default: 0.05,
-              description: t(
-                'Threshold alpha level for determining significance',
-              ),
-            },
-          },
+            label: t('Significance Level'),
+            default: 0.05,
+            description: t(
+              'Threshold alpha level for determining significance',
+            ),
+          }),
         ],
         [
-          {
+          TextControl({
             name: 'pvalue_precision',
-            config: {
-              type: 'TextControl',
-              label: t('p-value precision'),
-              default: 6,
-              description: t(
-                'Number of decimal places with which to display p-values',
-              ),
-            },
-          },
+            label: t('p-value precision'),
+            default: 6,
+            description: t(
+              'Number of decimal places with which to display p-values',
+            ),
+          }),
         ],
         [
-          {
+          TextControl({
             name: 'liftvalue_precision',
-            config: {
-              type: 'TextControl',
-              label: t('Lift percent precision'),
-              default: 4,
-              description: t(
-                'Number of decimal places with which to display lift values',
-              ),
-            },
-          },
+            label: t('Lift percent precision'),
+            default: 4,
+            description: t(
+              'Number of decimal places with which to display lift values',
+            ),
+          }),
         ],
       ],
     },

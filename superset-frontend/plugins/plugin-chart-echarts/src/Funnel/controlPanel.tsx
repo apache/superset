@@ -18,12 +18,17 @@
  */
 import { t } from '@superset-ui/core';
 import {
+  AdhocFiltersControl,
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlStateMapping,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
+  GroupByControl,
+  MetricControl,
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -46,9 +51,9 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['metric'],
-        ['adhoc_filters'],
+        [GroupByControl()],
+        [MetricControl()],
+        [AdhocFiltersControl()],
         [
           {
             name: 'row_limit',
@@ -95,7 +100,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         ...funnelLegendSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
@@ -169,7 +174,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['currency_format'],
+        [CurrencyFormatControl()],
         [
           {
             name: 'show_labels',

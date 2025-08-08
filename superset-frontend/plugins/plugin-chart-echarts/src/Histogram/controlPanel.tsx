@@ -30,6 +30,10 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  GroupByControl,
+  RowLimitControl,
 } from '@superset-ui/chart-controls';
 import { showLegendControl, showValueControl } from '../controls';
 
@@ -56,9 +60,9 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['groupby'],
-        ['adhoc_filters'],
-        ['row_limit'],
+        [GroupByControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
         [
           {
             name: 'bins',
@@ -111,7 +115,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         [showValueControl],
         [showLegendControl],
         [

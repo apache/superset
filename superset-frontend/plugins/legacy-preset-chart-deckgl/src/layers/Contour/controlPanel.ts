@@ -19,6 +19,12 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  AdhocFiltersControl,
+  RowLimitControl,
+  SizeControl,
+  InlineTextControl as TextControl,
+  InlineSelectControl as SelectControl,
+  ContourControl,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
@@ -40,10 +46,10 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [spatial],
-        ['row_limit'],
-        ['size'],
+        [RowLimitControl()],
+        [SizeControl()],
         [filterNulls],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -53,55 +59,46 @@ const config: ControlPanelConfig = {
         [mapboxStyle],
         [autozoom, viewport],
         [
-          {
+          TextControl({
             name: 'cellSize',
-            config: {
-              type: 'TextControl',
-              label: t('Cell Size'),
-              default: 300,
-              isInt: true,
-              description: t('The size of each cell in meters'),
-              renderTrigger: true,
-              clearable: false,
-            },
-          },
+            label: t('Cell Size'),
+            default: 300,
+            isInt: true,
+            description: t('The size of each cell in meters'),
+            renderTrigger: true,
+            clearable: false,
+          }),
         ],
         [
-          {
+          SelectControl({
             name: 'aggregation',
-            config: {
-              type: 'SelectControl',
-              label: t('Aggregation'),
-              description: t(
-                'The function to use when aggregating points into groups',
-              ),
-              default: 'sum',
-              clearable: false,
-              renderTrigger: true,
-              choices: [
-                ['sum', t('sum')],
-                ['min', t('min')],
-                ['max', t('max')],
-                ['mean', t('mean')],
-              ],
-            },
-          },
+            label: t('Aggregation'),
+            description: t(
+              'The function to use when aggregating points into groups',
+            ),
+            default: 'sum',
+            clearable: false,
+            renderTrigger: true,
+            choices: [
+              ['sum', t('sum')],
+              ['min', t('min')],
+              ['max', t('max')],
+              ['mean', t('mean')],
+            ],
+          }),
         ],
         [
-          {
+          ContourControl({
             name: 'contours',
-            config: {
-              type: 'ContourControl',
-              label: t('Contours'),
-              renderTrigger: true,
-              description: t(
-                'Define contour layers. Isolines represent a collection of line segments that ' +
-                  'serparate the area above and below a given threshold. Isobands represent a ' +
-                  'collection of polygons that fill the are containing values in a given ' +
-                  'threshold range.',
-              ),
-            },
-          },
+            label: t('Contours'),
+            renderTrigger: true,
+            description: t(
+              'Define contour layers. Isolines represent a collection of line segments that ' +
+                'serparate the area above and below a given threshold. Isobands represent a ' +
+                'collection of polygons that fill the are containing values in a given ' +
+                'threshold range.',
+            ),
+          }),
         ],
       ],
     },

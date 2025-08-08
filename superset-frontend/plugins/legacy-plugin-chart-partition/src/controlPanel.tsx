@@ -25,6 +25,14 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  GroupByControl,
+  LimitControl,
+  MetricsControl,
+  OrderDescControl,
+  RowLimitControl,
+  TimeLimitMetricControl,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
 
@@ -34,12 +42,12 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metrics'],
-        ['adhoc_filters'],
-        ['groupby'],
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
+        [MetricsControl()],
+        [AdhocFiltersControl()],
+        [GroupByControl()],
+        [LimitControl()],
+        [TimeLimitMetricControl()],
+        [OrderDescControl()],
         [
           {
             name: 'contribution',
@@ -51,7 +59,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit'],
+        [RowLimitControl()],
       ],
     },
     {
@@ -132,7 +140,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       tabOverride: 'customize',
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         [
           {
             name: 'number_format',

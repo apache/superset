@@ -22,6 +22,15 @@ import {
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
   getStandardizedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  EntityControl,
+  LimitControl,
+  SeriesControl,
+  SizeControl,
+  XControl,
+  YAxisFormatControl,
+  YControl,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -43,12 +52,12 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['series'],
-        ['entity'],
-        ['x'],
-        ['y'],
-        ['adhoc_filters'],
-        ['size'],
+        [SeriesControl()],
+        [EntityControl()],
+        [XControl()],
+        [YControl()],
+        [AdhocFiltersControl()],
+        [SizeControl()],
         [
           {
             name: 'max_bubble_size',
@@ -69,14 +78,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['limit', null],
+        [LimitControl(), null],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
       tabOverride: 'customize',
-      controlSetRows: [['color_scheme'], [showLegend, null]],
+      controlSetRows: [[ColorSchemeControl()], [showLegend, null]],
     },
     {
       label: t('X Axis'),
@@ -116,7 +125,7 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       controlSetRows: [
         [yAxisLabel, bottomMargin],
-        ['y_axis_format', null],
+        [YAxisFormatControl(), null],
         [yLogScale, yAxisShowMinmax],
         [yAxisBounds],
       ],

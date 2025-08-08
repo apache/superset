@@ -17,28 +17,15 @@
  * under the License.
  */
 import { isValidElement, ReactElement } from 'react';
-import { sharedControls, sharedControlComponents } from '../shared-controls';
+import { sharedControls } from '../shared-controls';
 import {
-  ControlType,
   ControlSetItem,
   ExpandedControlItem,
   ControlOverrides,
 } from '../types';
 
-export function expandControlType(controlType: ControlType) {
-  if (
-    typeof controlType === 'string' &&
-    controlType in sharedControlComponents
-  ) {
-    return sharedControlComponents[
-      controlType as keyof typeof sharedControlComponents
-    ];
-  }
-  return controlType;
-}
-
 /**
- * Expand a shorthand control config item to full config in the format of
+ * Expand a control config item to full config in the format of
  *   {
  *     name: ...,
  *     config: {
@@ -46,25 +33,25 @@ export function expandControlType(controlType: ControlType) {
  *        ...
  *     }
  *   }
+ *
+ * Note: String references to shared controls are no longer supported.
+ * All controls must be React components or control configuration objects.
  */
 export function expandControlConfig(
   control: ControlSetItem,
   controlOverrides: ControlOverrides = {},
 ): ExpandedControlItem {
-  // one of the named shared controls
-  if (typeof control === 'string' && control in sharedControls) {
-    const name = control;
-    return {
-      name,
-      config: {
-        ...sharedControls[name],
-        ...controlOverrides[name],
-      },
-    };
-  }
   // JSX/React element or NULL
-  if (!control || typeof control === 'string' || isValidElement(control)) {
+  if (!control || isValidElement(control)) {
     return control as ReactElement;
+  }
+  // String controls are no longer supported - they must be migrated to React components
+  if (typeof control === 'string') {
+    throw new Error(
+      `String control reference "${control}" is not supported. ` +
+        `Use the corresponding React component from @superset-ui/chart-controls instead. ` +
+        `For example, replace ['metrics'] with [MetricsControl()].`,
+    );
   }
   // already fully expanded control config, e.g.
   // {
@@ -74,13 +61,7 @@ export function expandControlConfig(
   //   }
   // }
   if ('name' in control && 'config' in control) {
-    return {
-      ...control,
-      config: {
-        ...control.config,
-        type: expandControlType(control.config.type as ControlType),
-      },
-    };
+    return control;
   }
   // apply overrides with shared controls
   if ('override' in control && control.name in sharedControls) {

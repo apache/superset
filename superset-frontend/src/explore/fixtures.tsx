@@ -23,6 +23,9 @@ import {
   ColumnOption,
   ControlConfig,
   ControlPanelSectionConfig,
+  ColorSchemeControl,
+  MetricControl,
+  MetricsControl,
 } from '@superset-ui/chart-controls';
 import { ExplorePageInitialData } from './types';
 
@@ -34,7 +37,7 @@ export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null
       expanded: true,
       controlSetRows: [
         [
-          'color_scheme',
+          ColorSchemeControl(),
           {
             name: 'rose_area_proportion',
             config: {
@@ -75,7 +78,7 @@ export const controlPanelSectionsChartOptionsOnlyColorScheme: ControlPanelSectio
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme']],
+      controlSetRows: [[ColorSchemeControl()]],
     },
   ];
 
@@ -86,8 +89,8 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
       expanded: true,
       controlSetRows: [
         [
-          'metric',
-          'metrics',
+          MetricControl(),
+          MetricsControl(),
           {
             name: 'all_columns',
             config: {

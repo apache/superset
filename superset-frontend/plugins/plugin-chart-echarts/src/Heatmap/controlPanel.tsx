@@ -18,7 +18,19 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
+  AdhocFiltersControl,
   ControlPanelConfig,
+  CurrencyFormatControl,
+  GroupByControl,
+  LinearColorSchemeControl,
+  MetricControl,
+  RowLimitControl,
+  TimeGrainSqlaControl,
+  XAxisControl,
+  XAxisTimeFormatControl,
+  XControl,
+  YAxisFormatControl,
+  YControl,
   formatSelectOptionsForRange,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -36,12 +48,12 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['x_axis'],
-        ['time_grain_sqla'],
-        ['groupby'],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
+        [XAxisControl()],
+        [TimeGrainSqlaControl()],
+        [GroupByControl()],
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
         [
           {
             name: 'sort_x_axis',
@@ -74,8 +86,8 @@ const config: ControlPanelConfig = {
               label: t('Normalize Across'),
               choices: [
                 ['heatmap', t('heatmap')],
-                ['x', t('x')],
-                ['y', t('y')],
+                [XControl(), t('x')],
+                [YControl(), t('y')],
               ],
               default: 'heatmap',
               renderTrigger: false,
@@ -122,7 +134,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['linear_color_scheme'],
+        [LinearColorSchemeControl()],
         [
           {
             name: 'border_color',
@@ -246,9 +258,9 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['y_axis_format'],
-        ['x_axis_time_format'],
-        ['currency_format'],
+        [YAxisFormatControl()],
+        [XAxisTimeFormatControl()],
+        [CurrencyFormatControl()],
         [
           {
             name: 'show_legend',

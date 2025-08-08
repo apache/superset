@@ -17,7 +17,18 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  LimitControl,
+  LinearColorSchemeControl,
+  MetricsControl,
+  OrderDescControl,
+  RowLimitControl,
+  SecondaryMetricControl,
+  SeriesControl,
+  TimeLimitMetricControl,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -25,13 +36,13 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['series'],
-        ['metrics'],
-        ['secondary_metric'],
-        ['adhoc_filters'],
-        ['limit', 'row_limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
+        [SeriesControl()],
+        [MetricsControl()],
+        [SecondaryMetricControl()],
+        [AdhocFiltersControl()],
+        [LimitControl(), RowLimitControl()],
+        [TimeLimitMetricControl()],
+        [OrderDescControl()],
       ],
     },
     {
@@ -60,7 +71,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['linear_color_scheme'],
+        [LinearColorSchemeControl()],
       ],
     },
   ],

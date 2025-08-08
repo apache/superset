@@ -33,6 +33,11 @@ import {
   sharedControls,
   ControlFormItemSpec,
   getStandardizedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  GroupByControl,
+  MetricsControl,
+  TimeLimitMetricControl,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { LABEL_POSITION } from '../constants';
@@ -78,10 +83,10 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['metrics'],
-        ['timeseries_limit_metric'],
-        ['adhoc_filters'],
+        [GroupByControl()],
+        [MetricsControl()],
+        [TimeLimitMetricControl()],
+        [AdhocFiltersControl()],
         [
           {
             name: 'row_limit',
@@ -97,7 +102,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         ...legendSection,
         [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [

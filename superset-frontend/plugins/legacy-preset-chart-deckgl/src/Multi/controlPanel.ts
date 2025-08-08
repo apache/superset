@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
+import { AdhocFiltersControl } from '@superset-ui/chart-controls';
 import { viewport, mapboxStyle } from '../utilities/Shared_DeckGL';
 
 export default {
@@ -63,7 +64,7 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['adhoc_filters']],
+      controlSetRows: [[AdhocFiltersControl()]],
     },
   ],
 };

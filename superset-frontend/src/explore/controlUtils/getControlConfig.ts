@@ -39,11 +39,11 @@ export function findControlItem(
       .flat(2)
       .find(
         control =>
-          controlKey === control ||
-          (control !== null &&
-            typeof control === 'object' &&
-            'name' in control &&
-            control.name === controlKey),
+          // String controls are no longer supported, only check for object controls
+          control !== null &&
+          typeof control === 'object' &&
+          'name' in control &&
+          control.name === controlKey,
       ) ?? null
   );
 }

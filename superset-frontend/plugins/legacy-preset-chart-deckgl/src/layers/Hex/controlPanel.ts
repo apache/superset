@@ -19,6 +19,10 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  AdhocFiltersControl,
+  RowLimitControl,
+  SizeControl,
+  InlineSelectControl as SelectControl,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import {
@@ -44,10 +48,10 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [spatial],
-        ['size'],
-        ['row_limit'],
+        [SizeControl()],
+        [RowLimitControl()],
         [filterNulls],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -63,33 +67,30 @@ const config: ControlPanelConfig = {
         [gridSize],
         [extruded],
         [
-          {
+          SelectControl({
             name: 'js_agg_function',
-            config: {
-              type: 'SelectControl',
-              label: t('Dynamic Aggregation Function'),
-              description: t(
-                'The function to use when aggregating points into groups',
-              ),
-              default: 'sum',
-              clearable: false,
-              renderTrigger: true,
-              choices: [
-                ['sum', t('sum')],
-                ['min', t('min')],
-                ['max', t('max')],
-                ['mean', t('mean')],
-                ['median', t('median')],
-                ['count', t('count')],
-                ['variance', t('variance')],
-                ['deviation', t('deviation')],
-                ['p1', t('p1')],
-                ['p5', t('p5')],
-                ['p95', t('p95')],
-                ['p99', t('p99')],
-              ],
-            },
-          },
+            label: t('Dynamic Aggregation Function'),
+            description: t(
+              'The function to use when aggregating points into groups',
+            ),
+            default: 'sum',
+            clearable: false,
+            renderTrigger: true,
+            choices: [
+              ['sum', t('sum')],
+              ['min', t('min')],
+              ['max', t('max')],
+              ['mean', t('mean')],
+              ['median', t('median')],
+              ['count', t('count')],
+              ['variance', t('variance')],
+              ['deviation', t('deviation')],
+              ['p1', t('p1')],
+              ['p5', t('p5')],
+              ['p95', t('p95')],
+              ['p99', t('p99')],
+            ],
+          }),
         ],
       ],
     },

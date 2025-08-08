@@ -18,11 +18,16 @@
  */
 import { t } from '@superset-ui/core';
 import {
-  sharedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_FORMAT_OPTIONS,
+  MetricControl,
+  SortByMetricControl,
   getStandardizedControls,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -41,8 +46,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['metric'],
-        ['adhoc_filters'],
+        [MetricControl()],
+        [AdhocFiltersControl()],
         [
           {
             name: 'row_limit',
@@ -53,7 +58,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['sort_by_metric'],
+        [SortByMetricControl()],
       ],
     },
     {
@@ -107,7 +112,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['color_scheme'],
+        [ColorSchemeControl()],
         [
           {
             name: 'font_size',
@@ -140,7 +145,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['currency_format'],
+        [CurrencyFormatControl()],
         [
           {
             name: 'value_formatter',

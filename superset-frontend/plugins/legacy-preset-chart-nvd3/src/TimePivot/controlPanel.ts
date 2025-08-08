@@ -22,6 +22,10 @@ import {
   D3_FORMAT_OPTIONS,
   getStandardizedControls,
   sections,
+  AdhocFiltersControl,
+  ColorPickerControl,
+  MetricControl,
+  YAxisFormatControl,
 } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
@@ -44,8 +48,8 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
-        ['adhoc_filters'],
+        [MetricControl()],
+        [AdhocFiltersControl()],
         [
           {
             name: 'freq',
@@ -84,7 +88,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [showLegend],
         [lineInterpolation],
-        ['color_picker', null],
+        [ColorPickerControl(), null],
       ],
     },
     {
@@ -114,7 +118,7 @@ const config: ControlPanelConfig = {
         [leftMargin],
         [yAxisShowMinmax],
         [yLogScale],
-        ['y_axis_format'],
+        [YAxisFormatControl()],
         [yAxisBounds],
       ],
     },

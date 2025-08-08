@@ -34,5 +34,26 @@ export * from './components/MetricOption';
 export * from './components/ControlHeader';
 
 export * from './shared-controls';
+export {
+  GranularityControl,
+  RadioButtonControl,
+  JsonFormsControlPanel,
+  createVerticalLayout,
+  createHorizontalLayout,
+  createCollapsibleGroup,
+  createTabbedLayout,
+  createControl,
+  customRenderers,
+  supersetControlRenderers,
+} from './shared-controls/components';
 export * from './types';
+export {
+  JsonFormsControlPanelConfig,
+  CollapsibleGroupOptions,
+  CollapsibleGroup,
+  ControlPanelLayout,
+  SupersetControlElement,
+  LayoutBuilder,
+  ControlPanelMigrationResult,
+} from './types/jsonForms';
 export * from './fixtures';

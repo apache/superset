@@ -20,11 +20,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { HandlerFunction, JsonValue, styled } from '@superset-ui/core';
 import {
   RadioButtonOption,
-  sharedControlComponents,
+  RadioButtonControl,
 } from '@superset-ui/chart-controls';
 import { AreaChartStackControlOptions } from '../constants';
-
-const { RadioButtonControl } = sharedControlComponents;
 
 const ExtraControlsWrapper = styled.div`
   text-align: center;

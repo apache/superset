@@ -31,6 +31,9 @@ import {
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
 
+// Mock control components for testing
+const mockControl = (name: string) => ({ name, config: {} });
+
 const FormDataMock = () => {
   const formData = useSelector(
     (state: ExplorePageState) => state.explore.form_data,
@@ -50,11 +53,11 @@ describe('ControlPanelsContainer', () => {
           ),
           expanded: true,
           controlSetRows: [
-            ['groupby'],
-            ['metrics'],
-            ['percent_metrics'],
-            ['timeseries_limit_metric', 'row_limit'],
-            ['include_time', 'order_desc'],
+            [mockControl('groupby')],
+            [mockControl('metrics')],
+            [mockControl('percent_metrics')],
+            [mockControl('timeseries_limit_metric'), mockControl('row_limit')],
+            [mockControl('include_time'), mockControl('order_desc')],
           ],
         },
         {
@@ -62,24 +65,24 @@ describe('ControlPanelsContainer', () => {
           description: t('Use this section if you want to query atomic rows'),
           expanded: true,
           controlSetRows: [
-            ['all_columns'],
-            ['order_by_cols'],
-            ['row_limit', null],
+            [mockControl('all_columns')],
+            [mockControl('order_by_cols')],
+            [mockControl('row_limit'), null],
           ],
         },
         {
           label: t('Query'),
           expanded: true,
-          controlSetRows: [['adhoc_filters']],
+          controlSetRows: [[mockControl('adhoc_filters')]],
         },
         {
           label: t('Options'),
           expanded: true,
           controlSetRows: [
-            ['table_timestamp_format'],
-            ['page_length', null],
-            ['include_search', 'table_filter'],
-            ['align_pn', 'color_pn'],
+            [mockControl('table_timestamp_format')],
+            [mockControl('page_length'), null],
+            [mockControl('include_search'), mockControl('table_filter')],
+            [mockControl('align_pn'), mockControl('color_pn')],
           ],
         },
       ],
@@ -130,11 +133,11 @@ describe('ControlPanelsContainer', () => {
           ),
           expanded: true,
           controlSetRows: [
-            ['groupby'],
-            ['metrics'],
-            ['percent_metrics'],
-            ['timeseries_limit_metric', 'row_limit'],
-            ['include_time', 'order_desc'],
+            [mockControl('groupby')],
+            [mockControl('metrics')],
+            [mockControl('percent_metrics')],
+            [mockControl('timeseries_limit_metric'), mockControl('row_limit')],
+            [mockControl('include_time'), mockControl('order_desc')],
           ],
         },
         {
@@ -160,17 +163,25 @@ describe('ControlPanelsContainer', () => {
           label: t('Advanced analytics'),
           description: t('Advanced analytics post processing'),
           expanded: true,
-          controlSetRows: [['groupby'], ['metrics'], ['percent_metrics']],
+          controlSetRows: [
+            [mockControl('groupby')],
+            [mockControl('metrics')],
+            [mockControl('percent_metrics')],
+          ],
           visibility: () => false,
         },
         {
           label: t('Chart Title'),
           visibility: () => true,
-          controlSetRows: [['timeseries_limit_metric', 'row_limit']],
+          controlSetRows: [
+            [mockControl('timeseries_limit_metric'), mockControl('row_limit')],
+          ],
         },
         {
           label: t('Chart Options'),
-          controlSetRows: [['include_time', 'order_desc']],
+          controlSetRows: [
+            [mockControl('include_time'), mockControl('order_desc')],
+          ],
         },
       ],
     });

@@ -19,6 +19,12 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  AdhocFiltersControl,
+  MetricControl,
+  RowLimitControl,
+  InlineSelectControl as SelectControl,
+  InlineSliderControl as SliderControl,
+  InlineCheckboxControl as CheckboxControl,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
@@ -75,8 +81,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        ['metric'],
+        [AdhocFiltersControl()],
+        [MetricControl()],
         [
           {
             ...pointRadiusFixed,
@@ -86,7 +92,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit'],
+        [RowLimitControl()],
         [reverseLongLat],
         [filterNulls],
       ],
@@ -124,91 +130,71 @@ const config: ControlPanelConfig = {
         [multiplier],
         [lineWidth],
         [
-          {
+          SelectControl({
             name: 'line_width_unit',
-            config: {
-              type: 'SelectControl',
-              label: t('Line width unit'),
-              default: 'pixels',
-              choices: [
-                ['meters', t('meters')],
-                ['pixels', t('pixels')],
-              ],
-              renderTrigger: true,
-            },
-          },
+            label: t('Line width unit'),
+            default: 'pixels',
+            choices: [
+              ['meters', t('meters')],
+              ['pixels', t('pixels')],
+            ],
+            renderTrigger: true,
+          }),
         ],
         [
-          {
+          SliderControl({
             name: 'opacity',
-            config: {
-              type: 'SliderControl',
-              label: t('Opacity'),
-              default: 80,
-              step: 1,
-              min: 0,
-              max: 100,
-              renderTrigger: true,
-              description: t('Opacity, expects values between 0 and 100'),
-            },
-          },
+            label: t('Opacity'),
+            default: 80,
+            step: 1,
+            min: 0,
+            max: 100,
+            renderTrigger: true,
+            description: t('Opacity, expects values between 0 and 100'),
+          }),
         ],
         [
-          {
+          SelectControl({
             name: 'num_buckets',
-            config: {
-              type: 'SelectControl',
-              multi: false,
-              freeForm: true,
-              label: t('Number of buckets to group data'),
-              default: 5,
-              choices: formatSelectOptions([2, 3, 5, 10]),
-              description: t('How many buckets should the data be grouped in.'),
-              renderTrigger: true,
-            },
-          },
+            multi: false,
+            freeForm: true,
+            label: t('Number of buckets to group data'),
+            default: 5,
+            choices: formatSelectOptions([2, 3, 5, 10]),
+            description: t('How many buckets should the data be grouped in.'),
+            renderTrigger: true,
+          }),
         ],
         [
-          {
+          SelectControl({
             name: 'break_points',
-            config: {
-              type: 'SelectControl',
-              multi: true,
-              freeForm: true,
-              label: t('Bucket break points'),
-              choices: formatSelectOptions([]),
-              description: t(
-                'List of n+1 values for bucketing metric into n buckets.',
-              ),
-              renderTrigger: true,
-            },
-          },
+            multi: true,
+            freeForm: true,
+            label: t('Bucket break points'),
+            choices: formatSelectOptions([]),
+            description: t(
+              'List of n+1 values for bucketing metric into n buckets.',
+            ),
+            renderTrigger: true,
+          }),
         ],
         [
-          {
+          CheckboxControl({
             name: 'table_filter',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Emit Filter Events'),
-              renderTrigger: true,
-              default: false,
-              description: t('Whether to apply filter when items are clicked'),
-            },
-          },
+            label: t('Emit Filter Events'),
+            renderTrigger: true,
+            default: false,
+            description: t('Whether to apply filter when items are clicked'),
+          }),
         ],
         [
-          {
+          CheckboxControl({
             name: 'toggle_polygons',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Multiple filtering'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Allow sending multiple polygons as a filter event',
-              ),
-            },
-          },
+            label: t('Multiple filtering'),
+            renderTrigger: true,
+            default: true,
+            description: t('Allow sending multiple polygons as a filter event'),
+          }),
         ],
         [legendPosition],
         [legendFormat],

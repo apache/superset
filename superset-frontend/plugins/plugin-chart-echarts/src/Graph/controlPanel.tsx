@@ -22,6 +22,10 @@ import {
   ControlSubSectionHeader,
   getStandardizedControls,
   sharedControls,
+  AdhocFiltersControl,
+  ColorSchemeControl,
+  MetricControl,
+  RowLimitControl,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -63,7 +67,7 @@ const controlPanel: ControlPanelConfig = {
             },
           },
         ],
-        ['metric'],
+        [MetricControl()],
         [
           {
             name: 'source_category',
@@ -87,15 +91,15 @@ const controlPanel: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        ['row_limit'],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
       ],
     },
     {
       label: t('Chart options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        [ColorSchemeControl()],
         ...legendSection,
         [<ControlSubSectionHeader>{t('Layout')}</ControlSubSectionHeader>],
         [

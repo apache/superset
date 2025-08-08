@@ -17,11 +17,15 @@
  * under the License.
  */
 import {
+  AdhocFiltersControl,
   ControlPanelConfig,
+  CurrencyFormatControl,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
+  SeriesLimitControl,
   getStandardizedControls,
   sharedControls,
+  TemporalColumnsLookupControl,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
@@ -89,7 +93,7 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          TemporalColumnsLookupControl(),
         ],
         [
           {
@@ -119,8 +123,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        ['series_limit'],
+        [AdhocFiltersControl()],
+        [SeriesLimitControl()],
         [
           {
             name: 'row_limit',
@@ -290,7 +294,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['currency_format'],
+        [CurrencyFormatControl()],
         [
           {
             name: 'date_format',

@@ -38,6 +38,9 @@ jest.mock('@superset-ui/chart-controls', () => {
     getStandardizedControls: () => ({
       shiftMetric: mockShiftMetric,
     }),
+    // Mock the control components
+    MetricControl: jest.fn(() => ({ name: 'metric', config: {} })),
+    AdhocFiltersControl: jest.fn(() => ({ name: 'adhoc_filters', config: {} })),
     // Optional export to let tests access the mock
     __mockShiftMetric: mockShiftMetric,
   };
@@ -53,8 +56,13 @@ describe('BigNumber Total Control Panel Config', () => {
     // First section should have label 'Query' and contain rows with metric and adhoc_filters
     expect(sections[0]!.label).toBe('Query');
     expect(Array.isArray(sections[0]!.controlSetRows)).toBe(true);
-    expect(sections[0]!.controlSetRows[0]).toEqual(['metric']);
-    expect(sections[0]!.controlSetRows[1]).toEqual(['adhoc_filters']);
+    // Check that first row contains a metric control (now a React component)
+    expect(sections[0]!.controlSetRows[0][0]).toHaveProperty('name', 'metric');
+    // Check that second row contains an adhoc_filters control
+    expect(sections[0]!.controlSetRows[1][0]).toHaveProperty(
+      'name',
+      'adhoc_filters',
+    );
 
     // Second section should contain a control named subtitle
     const secondSectionRow = sections[1]!.controlSetRows[1];

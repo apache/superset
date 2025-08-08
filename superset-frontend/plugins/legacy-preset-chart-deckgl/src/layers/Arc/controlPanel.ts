@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  AdhocFiltersControl,
+  RowLimitControl,
+  SpatialControl,
+  InlineColorPickerControl as ColorPickerControl,
+  InlineSelectControl as SelectControl,
+} from '@superset-ui/chart-controls';
 import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides, {
   columnChoices,
@@ -50,33 +57,27 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          {
+          SpatialControl({
             name: 'start_spatial',
-            config: {
-              type: 'SpatialControl',
-              label: t('Start Longitude & Latitude'),
-              validators: [validateNonEmpty],
-              description: t('Point to your spatial columns'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
-            },
-          },
-          {
+            label: t('Start Longitude & Latitude'),
+            validators: [validateNonEmpty],
+            description: t('Point to your spatial columns'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+          }),
+          SpatialControl({
             name: 'end_spatial',
-            config: {
-              type: 'SpatialControl',
-              label: t('End Longitude & Latitude'),
-              validators: [validateNonEmpty],
-              description: t('Point to your spatial columns'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
-            },
-          },
+            label: t('End Longitude & Latitude'),
+            validators: [validateNonEmpty],
+            description: t('Point to your spatial columns'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+          }),
         ],
-        ['row_limit', filterNulls],
-        ['adhoc_filters'],
+        [RowLimitControl(), filterNulls],
+        [AdhocFiltersControl()],
       ],
     },
     {
@@ -103,52 +104,43 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          {
+          ColorPickerControl({
             name: 'color_picker',
-            config: {
-              label: t('Source Color'),
-              description: t('Color of the source location'),
-              type: 'ColorPickerControl',
-              default: PRIMARY_COLOR,
-              renderTrigger: true,
-              visibility: ({ controls }) =>
-                isColorSchemeTypeVisible(
-                  controls,
-                  COLOR_SCHEME_TYPES.fixed_color,
-                ),
-            },
-          },
-          {
+            label: t('Source Color'),
+            description: t('Color of the source location'),
+            default: PRIMARY_COLOR,
+            renderTrigger: true,
+            visibility: ({ controls }: any) =>
+              isColorSchemeTypeVisible(
+                controls,
+                COLOR_SCHEME_TYPES.fixed_color,
+              ),
+          }),
+          ColorPickerControl({
             name: 'target_color_picker',
-            config: {
-              label: t('Target Color'),
-              description: t('Color of the target location'),
-              type: 'ColorPickerControl',
-              default: PRIMARY_COLOR,
-              renderTrigger: true,
-              visibility: ({ controls }) =>
-                isColorSchemeTypeVisible(
-                  controls,
-                  COLOR_SCHEME_TYPES.fixed_color,
-                ),
-            },
-          },
+            label: t('Target Color'),
+            description: t('Color of the target location'),
+            default: PRIMARY_COLOR,
+            renderTrigger: true,
+            visibility: ({ controls }: any) =>
+              isColorSchemeTypeVisible(
+                controls,
+                COLOR_SCHEME_TYPES.fixed_color,
+              ),
+          }),
         ],
         [deckGLCategoricalColor],
         [deckGLCategoricalColorSchemeSelect],
         [
-          {
+          SelectControl({
             name: 'stroke_width',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Stroke Width'),
-              validators: [legacyValidateInteger],
-              default: null,
-              renderTrigger: true,
-              choices: formatSelectOptions([1, 2, 3, 4, 5]),
-            },
-          },
+            freeForm: true,
+            label: t('Stroke Width'),
+            validators: [legacyValidateInteger],
+            default: null,
+            renderTrigger: true,
+            choices: formatSelectOptions([1, 2, 3, 4, 5]),
+          }),
         ],
         [legendPosition],
         [legendFormat],

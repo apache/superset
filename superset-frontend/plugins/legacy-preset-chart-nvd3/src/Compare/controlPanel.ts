@@ -21,6 +21,8 @@ import {
   ControlPanelConfig,
   getStandardizedControls,
   sections,
+  ColorSchemeControl,
+  YAxisFormatControl,
 } from '@superset-ui/chart-controls';
 import {
   xAxisLabel,
@@ -43,7 +45,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme']],
+      controlSetRows: [[ColorSchemeControl()]],
     },
     {
       label: t('X Axis'),
@@ -60,7 +62,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [yAxisLabel, leftMargin],
         [yAxisShowMinmax, yLogScale],
-        ['y_axis_format', yAxisBounds],
+        [YAxisFormatControl(), yAxisBounds],
       ],
     },
     timeSeriesSection[1],

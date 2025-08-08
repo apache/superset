@@ -23,6 +23,9 @@ import {
   formatSelectOptions,
   sharedControls,
   getStandardizedControls,
+  AdhocFiltersControl,
+  GroupByControl,
+  RowLimitControl,
 } from '@superset-ui/chart-controls';
 
 const columnsConfig = sharedControls.entity;
@@ -89,9 +92,9 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit'],
-        ['adhoc_filters'],
-        ['groupby'],
+        [RowLimitControl()],
+        [AdhocFiltersControl()],
+        [GroupByControl()],
       ],
     },
     {

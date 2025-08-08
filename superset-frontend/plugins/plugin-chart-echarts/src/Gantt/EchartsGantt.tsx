@@ -17,13 +17,11 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { RadioButtonControl } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { EchartsGanttChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
-
-const { RadioButtonControl } = sharedControlComponents;
 
 export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
   const {
@@ -72,7 +70,7 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
               [true, t('Subcategories')],
             ]}
             value={formData.subcategories}
-            onChange={v => setControlValue?.('subcategories', v)}
+            onChange={(v: any) => setControlValue?.('subcategories', v)}
           />
         ) : null}
       </div>

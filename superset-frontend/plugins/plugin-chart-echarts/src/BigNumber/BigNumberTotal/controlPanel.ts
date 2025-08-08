@@ -19,10 +19,15 @@
 import { GenericDataType, SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  CurrencyFormatControl,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
+  GranularityControl,
   getStandardizedControls,
+  MetricControl,
+  AdhocFiltersControl,
+  YAxisFormatControl,
 } from '@superset-ui/chart-controls';
 import {
   headerFontSize,
@@ -37,7 +42,22 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters']],
+      controlSetRows: [
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [
+          {
+            name: 'granularity',
+            config: {
+              type: GranularityControl,
+              label: t('Time Column'),
+              description: t('Select the time column for temporal filtering'),
+              clearable: true,
+              temporalColumnsOnly: true,
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('Chart Options'),
@@ -48,8 +68,8 @@ export default {
         [subtitleFontSize],
         [showMetricNameControl],
         [metricNameFontSizeWithVisibility],
-        ['y_axis_format'],
-        ['currency_format'],
+        [YAxisFormatControl()],
+        [CurrencyFormatControl()],
         [
           {
             name: 'time_format',

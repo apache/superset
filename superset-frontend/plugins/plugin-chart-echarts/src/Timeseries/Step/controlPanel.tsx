@@ -18,10 +18,15 @@
  */
 import { t } from '@superset-ui/core';
 import {
+  ColorSchemeControl,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
+  CurrencyFormatControl,
   D3_TIME_FORMAT_DOCS,
+  TimeShiftColorControl,
+  YAxisFormatControl,
+  ZoomableControl,
   getStandardizedControls,
   sections,
   sharedControls,
@@ -64,8 +69,8 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ...seriesOrderSection,
-        ['color_scheme'],
-        ['time_shift_color'],
+        [ColorSchemeControl()],
+        [TimeShiftColorControl()],
         [
           {
             name: 'seriesType',
@@ -151,7 +156,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['zoomable'],
+        [ZoomableControl()],
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
@@ -170,8 +175,8 @@ const config: ControlPanelConfig = {
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
-        ['y_axis_format'],
-        ['currency_format'],
+        [YAxisFormatControl()],
+        [CurrencyFormatControl()],
         [
           {
             name: 'logAxis',

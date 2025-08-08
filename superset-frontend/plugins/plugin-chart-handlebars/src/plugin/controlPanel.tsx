@@ -19,6 +19,7 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  AdhocFiltersControl,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { allColumnsControlSetItem } from './controls/columns';
@@ -56,7 +57,7 @@ const config: ControlPanelConfig = {
         [rowLimitControlSetItem],
         [includeTimeControlSetItem],
         [showTotalsControlSetItem],
-        ['adhoc_filters'],
+        [AdhocFiltersControl()],
       ],
     },
     {

@@ -22,6 +22,8 @@ import {
   ControlSubSectionHeader,
   getStandardizedControls,
   sharedControls,
+  AdhocFiltersControl,
+  RowLimitControl,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './constants';
 
@@ -96,8 +98,8 @@ const controlPanel: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        ['row_limit'],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
       ],
     },
     {

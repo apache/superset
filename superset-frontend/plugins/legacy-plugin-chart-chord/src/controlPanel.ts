@@ -20,6 +20,14 @@ import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  GroupByControl,
+  ColumnsControl,
+  MetricControl,
+  AdhocFiltersControl,
+  RowLimitControl,
+  SortByMetricControl,
+  YAxisFormatControl,
+  ColorSchemeControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -28,18 +36,19 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['columns'],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
-        ['sort_by_metric'],
+        [GroupByControl()],
+        [ColumnsControl()],
+        [MetricControl()],
+        [AdhocFiltersControl()],
+        [RowLimitControl()],
+        [SortByMetricControl()],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['y_axis_format', null], ['color_scheme']],
+      tabOverride: 'customize',
+      controlSetRows: [[YAxisFormatControl()], [ColorSchemeControl()]],
     },
   ],
   controlOverrides: {
