@@ -182,7 +182,7 @@ tdengine = [
     "taos-ws-py>=0.3.8"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
-thumbnails = []
+thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
