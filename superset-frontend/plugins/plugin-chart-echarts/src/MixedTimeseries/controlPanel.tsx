@@ -227,9 +227,9 @@ function createCustomizeSection(
           label: t('Value Label Distance'),
           default: 0,
           renderTrigger: true,
-          description: t('Distance of the value label from the bar'),
+          description: t('Distance of the value label from the data points'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
-            Boolean(controls?.[`show_value${controlSuffix}`].value),
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
         },
       },
     ],

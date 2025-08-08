@@ -143,7 +143,6 @@ export const distanceValueControl: ControlSetItem = {
     label: t('Value Label Distance'),
     placeholder: t('Value Label Distance'),
     default: 0,
-    isInt: true,
     renderTrigger: true,
     description: t('Set value label distance from point of rendering'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
