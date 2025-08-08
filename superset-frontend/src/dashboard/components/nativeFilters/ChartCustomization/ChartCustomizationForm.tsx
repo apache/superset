@@ -1025,6 +1025,7 @@ const ChartCustomizationForm: FC<Props> = ({
                         defaultDataMask: null,
                         defaultValue: undefined,
                         defaultValueQueriesData: null,
+                        column: null,
                       }
                     : {}),
                 });
@@ -1279,10 +1280,12 @@ const ChartCustomizationForm: FC<Props> = ({
                     setFormFieldValues({
                       selectFirst: checked,
                       hasDefaultValue: true,
+                      column: null,
                     });
                   } else {
                     setFormFieldValues({
                       selectFirst: checked,
+                      column: null,
                     });
                   }
                 }
