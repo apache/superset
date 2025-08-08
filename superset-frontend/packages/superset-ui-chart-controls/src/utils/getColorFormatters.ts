@@ -269,6 +269,6 @@ export const getColorFormatters = memoizeOne(
     ) ?? [],
 );
 
-function isString(value: string) {
+function isString(value: unknown) {
   return typeof value === 'string';
 }
