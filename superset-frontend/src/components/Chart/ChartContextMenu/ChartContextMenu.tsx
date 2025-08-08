@@ -22,7 +22,6 @@ import {
   ReactNode,
   RefObject,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useMemo,
   useState,
@@ -39,7 +38,6 @@ import {
   getChartMetadataRegistry,
   getExtensionsRegistry,
   isFeatureEnabled,
-  logging,
   QueryFormData,
   t,
   useTheme,
@@ -50,12 +48,8 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from '@superset-ui/core/components';
 import { updateDataMask } from 'src/dataMask/actions';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
-import { useVerboseMap } from 'src/hooks/apiResources/datasets';
-import { Dataset } from 'src/components/Chart/types';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
+import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -131,9 +125,6 @@ const ChartContextMenu = (
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
-  const [dataset, setDataset] = useState<Dataset>();
-  const [isLoadingDataset, setIsLoadingDataset] = useState(false);
-  const verboseMap = useVerboseMap(dataset);
 
   const closeContextMenu = useCallback(() => {
     setVisible(false);
@@ -166,43 +157,17 @@ const ChartContextMenu = (
     canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy);
 
-  useEffect(() => {
-    async function fetchDataset() {
-      if (!visible || dataset || (!showDrillBy && !showDrillToDetail)) return;
-
-      const datasetId = Number(formData.datasource.split('__')[0]);
-      try {
-        setIsLoadingDataset(true);
-        let response;
-
-        if (loadDrillByOptionsExtension) {
-          response = await loadDrillByOptionsExtension(datasetId, formData);
-        } else {
-          const endpoint = `/api/v1/dataset/${datasetId}/drill_info/?q=(dashboard_id:${dashboardId})`;
-          response = await cachedSupersetGet({ endpoint });
-        }
-
-        const { json } = response;
-        const { result } = json;
-
-        setDataset(result);
-      } catch (error) {
-        logging.error('Failed to load dataset:', error);
-        supersetGetCache.delete(`/api/v1/dataset/${datasetId}/drill_info/`);
-      } finally {
-        setIsLoadingDataset(false);
-      }
-    }
-
-    fetchDataset();
-  }, [
-    visible,
-    showDrillBy,
-    showDrillToDetail,
+  const datasetResource = useDatasetDrillInfo(
     formData.datasource,
-    loadDrillByOptionsExtension,
     dashboardId,
-  ]);
+    formData,
+  );
+
+  const dataset =
+    datasetResource.status === ResourceStatus.Complete
+      ? datasetResource.result
+      : undefined;
+  const isLoadingDataset = datasetResource.status === ResourceStatus.Loading;
 
   // Compute filteredDataset with all columns returned + a filtered list of valid drillable options
   const filteredDataset = useMemo(() => {
@@ -338,7 +303,7 @@ const ChartContextMenu = (
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
         setShowModal={setDrillModalIsOpen}
-        dataset={filteredDataset}
+        dataset={filteredDataset!}
         isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillToDetail || {})}
       />,
@@ -363,7 +328,7 @@ const ChartContextMenu = (
         open={openKeys.includes('drill-by-submenu')}
         key="drill-by-submenu"
         onDrillBy={handleDrillBy}
-        dataset={filteredDataset}
+        dataset={filteredDataset!}
         isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillBy || {})}
       />,
@@ -447,7 +412,7 @@ const ChartContextMenu = (
           onHideModal={() => {
             setDrillModalIsOpen(false);
           }}
-          dataset={filteredDataset}
+          dataset={filteredDataset!}
         />
       )}
       {showDrillByModal && drillByColumn && dataset && filters?.drillBy && (
@@ -456,7 +421,7 @@ const ChartContextMenu = (
           drillByConfig={filters?.drillBy}
           formData={formData}
           onHideModal={handleCloseDrillByModal}
-          dataset={{ ...filteredDataset!, verbose_map: verboseMap }}
+          dataset={filteredDataset!}
           canDownload={canDownload}
         />
       )}
