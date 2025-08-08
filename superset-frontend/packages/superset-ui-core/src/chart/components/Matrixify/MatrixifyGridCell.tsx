@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { styled } from '../../../theme';
 import { MatrixifyGridCell as GridCellData } from '../../types/matrixify';
 import StatefulChart from '../StatefulChart';
@@ -80,6 +80,44 @@ const MatrixifyGridCell = memo(
     // Only show label if it has content
     const showLabel = cellLabel && cellLabel.trim() !== '';
 
+    // Create enhanced hooks that merge cell filters with drill filters
+    const enhancedHooks = useMemo(() => {
+      if (!hooks) return undefined;
+
+      // Create a new hooks object with wrapped onContextMenu
+      const wrappedHooks = { ...hooks };
+
+      if (hooks.onContextMenu) {
+        wrappedHooks.onContextMenu = (
+          offsetX: number,
+          offsetY: number,
+          filters?: any,
+        ) => {
+          // Get the cell's adhoc filters
+          const cellFilters = cell.formData.adhoc_filters || [];
+
+          // Merge the cell filters with any drill filters
+          const enhancedFilters = {
+            ...filters,
+            // Add cell-specific context to help identify this is from a matrix cell
+            matrixifyContext: {
+              rowLabel: cell.rowLabel,
+              colLabel: cell.colLabel,
+              row: cell.row,
+              col: cell.col,
+              // Include the cell's filters so they can be applied to drill operations
+              cellFilters,
+            },
+          };
+
+          // Call the original handler with enhanced filters
+          hooks.onContextMenu(offsetX, offsetY, enhancedFilters);
+        };
+      }
+
+      return wrappedHooks;
+    }, [hooks, cell]);
+
     return (
       <CellContainer
         className="matrixify-cell"
@@ -97,6 +135,7 @@ const MatrixifyGridCell = memo(
             height="100%"
             enableNoResults={false}
             showLoading
+            hooks={enhancedHooks}
           />
         </ChartWrapper>
       </CellContainer>
