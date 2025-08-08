@@ -32,7 +32,7 @@ install new database drivers into your Superset configuration.
 ### Supported Databases and Dependencies
 
 Some of the recommended packages are shown below. Please refer to
-[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml) for the versions that
+[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml) for the versions thatdocs/docs/configuration/databases.mdx
 are compatible with Superset.
 
 | <div style={{width: '150px'}}>Database</div>                   | PyPI package                                                                       | Connection String                                                                                                                                      |
@@ -518,6 +518,63 @@ For a connection to a SQL endpoint you need to use the HTTP path from the endpoi
 ```json
 {"connect_args": {"http_path": "/sql/1.0/endpoints/****", "driver_path": "/path/to/odbc/driver"}}
 ```
+
+##### OAuth2 Authentication
+
+Superset supports OAuth2 authentication for Databricks, allowing users to authenticate with their personal Databricks accounts instead of using shared access tokens. This provides better security and audit capabilities.
+
+###### Prerequisites
+
+1. Create an OAuth2 application in your Databricks account:
+   - Go to your Databricks account console
+   - Navigate to **Settings** → **Developer** → **OAuth apps**
+   - Create a new OAuth app with the redirect URI: `http://your-superset-host:port/api/v1/database/oauth2/`
+
+2. Configure OAuth2 in your `superset_config.py`:
+
+```python
+from datetime import timedelta
+
+# OAuth2 configuration for Databricks
+DATABASE_OAUTH2_CLIENTS = {
+    "Databricks (legacy)": {
+        "id": "your-databricks-client-id",
+        "secret": "your-databricks-client-secret",
+        "scope": "sql",
+        "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/authorize",
+        "token_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/token",
+    },
+    "Databricks": {
+        "id": "your-databricks-client-id",
+        "secret": "your-databricks-client-secret",
+        "scope": "sql",
+        "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/authorize",
+        "token_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/token",
+    },
+}
+
+# OAuth2 redirect URI (adjust hostname/port for your setup)
+DATABASE_OAUTH2_REDIRECT_URI = "http://your-superset-host:port/api/v1/database/oauth2/"
+
+# Optional: OAuth2 timeout
+DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
+```
+
+Replace the following placeholders:
+- `your-databricks-client-id`: Your Databricks OAuth2 application client ID
+- `your-databricks-client-secret`: Your Databricks OAuth2 application client secret
+- `{account_id}`: Your Databricks account ID (found in your workspace URL)
+- `your-superset-host:port`: Your Superset instance hostname and port
+
+###### Usage
+
+Once configured, users can:
+
+1. Connect to Databricks databases normally using access tokens
+2. When querying data, Superset will automatically redirect users to authenticate with Databricks if needed
+3. User-specific OAuth2 tokens will be used for database connections, providing better security and audit trails
+
+This feature works with both "Databricks (legacy)" and "Databricks" engine types.
 
 #### Denodo
 
