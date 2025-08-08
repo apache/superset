@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { forwardRef, RefObject, MouseEvent } from 'react';
+import { forwardRef, RefObject, MouseEvent } from 'react';
 import { Button } from '@superset-ui/core/components';
 import { ErrorAlert } from 'src/components';
 

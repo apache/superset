@@ -18,7 +18,6 @@
  */
 import { ReactElement } from 'react';
 import { DatasourceType, VizType } from '@superset-ui/core';
-import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartStatus } from 'src/explore/types';
 import {
   DataTablesPaneProps,
@@ -72,7 +71,7 @@ export const createDataTablesPaneProps = (sliceId: number) =>
     queryForce: false,
     chartStatus: 'rendered' as ChartStatus,
     onCollapseChange: jest.fn(),
-    actions: exploreActions,
+    actions: jest.fn(),,
     canDownload: true,
   }) as DataTablesPaneProps;
 
@@ -90,7 +89,7 @@ export const createSamplesPaneProps = ({
     datasource: { ...datasource, id: datasourceId },
     queryForce,
     isVisible: true,
-    actions: exploreActions,
+    actions: jest.fn(),,
     canDownload: true,
   }) as SamplesPaneProps;
 
@@ -116,7 +115,7 @@ export const createResultsPaneOnDashboardProps = ({
     },
     queryForce,
     isVisible: true,
-    actions: exploreActions,
+    actions: jest.fn(),,
     errorMessage,
     canDownload: true,
   }) as ResultsPaneProps;
