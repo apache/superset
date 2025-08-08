@@ -149,18 +149,18 @@ const ExploreChartPanel = ({
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
-  const [splitSizes, setSplitSizes] = useState<[number, number]>(
+  const [splitSizes, setSplitSizes] = useState<PANEL_SIZES>(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES
       : getItem(LocalStorageKeys.ChartSplitSizes, INITIAL_SIZES),
   );
-  const [showSplite, setShowSplit] = useState<boolean>(
+  const [showSplite, setShowSplit] = useState(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? false
       : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
-  const [showDatasetModal, setShowDatasetModal] = useState<boolean>(false);
+  const [showDatasetModal, setShowDatasetModal] = useState(false);
 
   const metaDataRegistry = getChartMetadataRegistry();
   const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
@@ -196,7 +196,7 @@ const ExploreChartPanel = ({
         });
       }
     },
-    [slice, force],
+    [slice],
   );
 
   useEffect(() => {
@@ -381,9 +381,7 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
-      theme.sizeUnit,
       resizeObserverRef,
-      vizTypeNeedsDataset,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -399,9 +397,7 @@ const ExploreChartPanel = ({
 
   const standaloneChartBody = useMemo(() => renderChart(), [renderChart]);
 
-  const [queryFormData, setQueryFormData] = useState<Partial<QueryFormData>>(
-    chart.latestQueryFormData,
-  );
+  const [queryFormData, setQueryFormData] = useState(chart.latestQueryFormData);
 
   useEffect(() => {
     // only update when `latestQueryFormData` changes AND `triggerRender`
