@@ -303,6 +303,7 @@ function buildMatrixifySection(
     label: axis === 'columns' ? t('Columns') : t('Rows'),
     expanded: true,
     tabOverride: 'matrixify',
+    visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
     controlSetRows: baseControls,
   };
 }
@@ -310,10 +311,18 @@ function buildMatrixifySection(
 export const matrixifyRows = buildMatrixifySection('rows');
 export const matrixifyColumns = buildMatrixifySection('columns');
 
+export const matrixifyEnableSection: ControlPanelSectionConfig = {
+  label: t('Enable Matrixify'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  controlSetRows: [['matrixify_enabled']],
+};
+
 export const matrixifyCells: ControlPanelSectionConfig = {
   label: t('Cells'),
   expanded: true,
   tabOverride: 'matrixify',
+  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [['matrixify_cell_title_template']],
 };
 
@@ -321,6 +330,7 @@ export const matrixifyMatrix: ControlPanelSectionConfig = {
   label: t('Matrix'),
   expanded: true,
   tabOverride: 'matrixify',
+  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
     ['matrixify_show_row_labels'],
     ['matrixify_show_column_headers'],

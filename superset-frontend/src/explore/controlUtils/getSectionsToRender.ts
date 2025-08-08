@@ -64,6 +64,7 @@ const getMemoizedSectionsToRender = memoizeOne(
       matrixifyColumns = null,
       matrixifyCells = null,
       matrixifyMatrix = null,
+      matrixifyEnableSection = null,
     } = sections;
 
     // list of datasource-specific controls that should be removed if the datasource is a specific type
@@ -74,6 +75,7 @@ const getMemoizedSectionsToRender = memoizeOne(
 
     return [
       datasourceAndVizType as ControlPanelSectionConfig,
+      matrixifyEnableSection as ControlPanelSectionConfig,
       matrixifyCells as ControlPanelSectionConfig,
       matrixifyMatrix as ControlPanelSectionConfig,
       matrixifyColumns as ControlPanelSectionConfig,

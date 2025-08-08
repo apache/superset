@@ -639,6 +639,17 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   };
 });
 
+// Matrixify enable control
+sharedControls.matrixify_enabled = {
+  type: 'CheckboxControl',
+  label: t('Enable Matrixify'),
+  description: t(
+    'Transform this chart into a matrix/grid of charts based on dimensions or metrics',
+  ),
+  default: false,
+  renderTrigger: true,
+};
+
 // Cell title control for Matrixify
 sharedControls.matrixify_cell_title_template = {
   type: 'TextControl',
