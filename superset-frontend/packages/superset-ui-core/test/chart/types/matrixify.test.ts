@@ -20,6 +20,7 @@
 import {
   isMatrixifyEnabled,
   getMatrixifyConfig,
+  getMatrixifyValidationErrors,
   MatrixifyFormData,
   MatrixifyMode,
   MatrixifySelectionMode,
@@ -36,9 +37,45 @@ describe('Matrixify Types and Utilities', () => {
       expect(isMatrixifyEnabled(formData)).toBe(false);
     });
 
+    it('should return false when matrixify_enabled is false even with valid configuration', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_enabled: false,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [
+          {
+            expressionType: 'SIMPLE',
+            column: { column_name: 'col1' },
+            aggregate: 'SUM',
+            label: 'metric1',
+          } as AdhocMetric,
+        ],
+      } as MatrixifyFormData;
+
+      expect(isMatrixifyEnabled(formData)).toBe(false);
+    });
+
+    it('should return false when matrixify_enabled is undefined even with valid configuration', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [
+          {
+            expressionType: 'SIMPLE',
+            column: { column_name: 'col1' },
+            aggregate: 'SUM',
+            label: 'metric1',
+          } as AdhocMetric,
+        ],
+      } as MatrixifyFormData;
+
+      expect(isMatrixifyEnabled(formData)).toBe(false);
+    });
+
     it('should return true for valid metrics mode configuration', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'metrics',
         matrixify_mode_columns: 'metrics',
         matrixify_rows: [
@@ -76,6 +113,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true for valid dimensions mode configuration', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'dimensions',
         matrixify_mode_columns: 'dimensions',
         matrixify_dimension_rows: { dimension: 'category', values: ['A', 'B'] },
@@ -91,6 +129,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true for mixed mode configuration', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'metrics',
         matrixify_mode_columns: 'dimensions',
         matrixify_rows: [
@@ -110,6 +149,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true for topn dimension selection mode', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'dimensions',
         matrixify_mode_columns: 'metrics',
         matrixify_dimension_rows: { dimension: 'category', values: [] },
@@ -130,6 +170,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true when only columns configuration exists', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'metrics',
         matrixify_mode_columns: 'metrics',
         matrixify_columns: [
@@ -148,6 +189,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true when only rows configuration exists', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'metrics',
         matrixify_mode_columns: 'metrics',
         matrixify_rows: [
@@ -166,6 +208,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true when one axis has valid data and other is empty', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'metrics',
         matrixify_mode_columns: 'metrics',
         matrixify_rows: [] as AdhocMetric[],
@@ -197,6 +240,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true when one dimension has values and other is empty', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'dimensions',
         matrixify_mode_columns: 'dimensions',
         matrixify_dimension_rows: { dimension: 'category', values: [] },
@@ -221,6 +265,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should return true when one dimension is valid and other has no name', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'dimensions',
         matrixify_mode_columns: 'dimensions',
         matrixify_dimension_rows: { dimension: '', values: ['A'] },
@@ -448,6 +493,73 @@ describe('Matrixify Types and Utilities', () => {
     });
   });
 
+  describe('getMatrixifyValidationErrors', () => {
+    it('should return empty array when matrixify is not enabled', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_enabled: false,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [],
+      } as MatrixifyFormData;
+
+      expect(getMatrixifyValidationErrors(formData)).toEqual([]);
+    });
+
+    it('should return empty array when matrixify is enabled and properly configured', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_enabled: true,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [
+          {
+            expressionType: 'SIMPLE',
+            column: { column_name: 'col1' },
+            aggregate: 'SUM',
+            label: 'metric1',
+          } as AdhocMetric,
+        ],
+      } as MatrixifyFormData;
+
+      expect(getMatrixifyValidationErrors(formData)).toEqual([]);
+    });
+
+    it('should return error when enabled but no configuration exists', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_enabled: true,
+      } as MatrixifyFormData;
+
+      const errors = getMatrixifyValidationErrors(formData);
+      expect(errors).toContain(
+        'Please configure at least one row or column axis',
+      );
+    });
+
+    it('should return error when metrics mode has no metrics', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_enabled: true,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [],
+      } as MatrixifyFormData;
+
+      const errors = getMatrixifyValidationErrors(formData);
+      expect(errors).toContain('Please select at least one metric for rows');
+    });
+
+    it('should return error when dimensions mode has no dimension selected', () => {
+      const formData = {
+        viz_type: 'table',
+        matrixify_enabled: true,
+        matrixify_mode_rows: 'dimensions',
+        matrixify_dimension_rows: { dimension: '', values: [] },
+      } as MatrixifyFormData;
+
+      const errors = getMatrixifyValidationErrors(formData);
+      expect(errors).toContain('Please select a dimension and values for rows');
+    });
+  });
+
   describe('Edge Cases and Error Handling', () => {
     it('should handle undefined form data by throwing error', () => {
       expect(() => isMatrixifyEnabled(undefined as any)).toThrow(TypeError);
@@ -468,6 +580,7 @@ describe('Matrixify Types and Utilities', () => {
     it('should handle partial configuration (one axis)', () => {
       const formData = {
         viz_type: 'table',
+        matrixify_enabled: true,
         matrixify_mode_rows: 'metrics',
         matrixify_rows: [
           {
