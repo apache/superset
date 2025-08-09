@@ -82,7 +82,7 @@
     "last 3 edge versions"
   ],
   "dependencies": {
-    "@emotion/cache": "^11.4.0",
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@reduxjs/toolkit": "^1.9.3",
@@ -197,6 +197,7 @@
     "scroll-into-view-if-needed": "^3.1.0",
     "simple-zstd": "^1.4.2",
     "stream-browserify": "^3.0.0",
+    "stylis-plugin-rtl": "^2.1.1",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
     "use-event-callback": "^0.1.0",

@@ -190,3 +190,16 @@ export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',
 }
+
+export const rtlLanguages = [
+  'ar',
+  'fa',
+  'he',
+  'iw',
+  'kd',
+  'pk',
+  'ps',
+  'ug',
+  'ur',
+  'yi',
+];

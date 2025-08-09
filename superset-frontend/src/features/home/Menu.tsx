@@ -52,6 +52,9 @@ const StyledHeader = styled.header`
       .caret {
         display: none;
       }
+      .main-nav {
+        display: flex;
+      }
       & .ant-image{
         display: contents;
         height: 100%;

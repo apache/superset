@@ -54,9 +54,6 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     display: flex;
     align-items: center;
     margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
-    float: right;
-    position: absolute;
-    right: 0;
     ul.ant-menu-root {
       padding: 0px;
     }
@@ -81,6 +78,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   }
   .menu {
     align-items: center;
+    justify-content: space-between;
   }
 
   .menu > .ant-menu {
