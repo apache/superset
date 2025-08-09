@@ -18,7 +18,7 @@
  */
 
 import { memo, useMemo } from 'react';
-import { styled } from '../../../theme';
+import { styled, useTheme } from '../../../theme';
 import { MatrixifyGridCell as GridCellData } from '../../types/matrixify';
 import StatefulChart from '../StatefulChart';
 
@@ -49,6 +49,7 @@ const ChartWrapper = styled.div`
   flex: 1;
   min-height: 0;
   padding: 0;
+  position: relative;
 
   /* Remove any padding/margins that might be causing title height issues */
   & .chart-container {
@@ -62,12 +63,29 @@ const ChartWrapper = styled.div`
   }
 `;
 
+const NoDataMessage = styled.div<{ theme: any }>`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  text-align: center;
+  user-select: none;
+`;
+
 interface MatrixifyGridCellProps {
   cell: GridCellData;
   rowHeight: number;
   datasource?: any;
   hooks?: any;
 }
+
+// Simple No Data component for matrix cells
+const MatrixNoDataComponent = () => {
+  const theme = useTheme();
+  return <NoDataMessage theme={theme}>No data</NoDataMessage>;
+};
 
 /**
  * Individual grid cell component - memoized to prevent unnecessary re-renders
@@ -135,7 +153,8 @@ const MatrixifyGridCell = memo(
             formData={cell.formData}
             width="100%"
             height="100%"
-            enableNoResults={false}
+            enableNoResults
+            noDataComponent={MatrixNoDataComponent}
             showLoading
             hooks={enhancedHooks}
           />

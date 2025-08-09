@@ -191,11 +191,17 @@ function getState(
   const querySections: ControlPanelSectionConfig[] = [];
   const customizeSections: ControlPanelSectionConfig[] = [];
   const matrixifySections: ControlPanelSectionConfig[] = [];
+  let matrixifyEnableControl: ControlPanelSectionConfig | null = null;
 
   getSectionsToRender(vizType, datasourceType).forEach(section => {
     if (!section) return;
     if (section.tabOverride === 'matrixify') {
-      matrixifySections.push(section);
+      // Separate the enable control from other sections
+      if (section.label === t('Enable Matrixify')) {
+        matrixifyEnableControl = section;
+      } else {
+        matrixifySections.push(section);
+      }
     } else if (
       section.tabOverride === 'data' ||
       section.controlSetRows.some(rows =>
@@ -236,6 +242,7 @@ function getState(
     querySections,
     customizeSections,
     matrixifySections,
+    matrixifyEnableControl,
   };
 }
 
@@ -387,6 +394,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     querySections,
     customizeSections,
     matrixifySections,
+    matrixifyEnableControl,
   } = useMemo(
     () =>
       getState(
@@ -811,15 +819,45 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   key: TABS_KEYS.MATRIXIFY,
                   label: matrixifyTabLabel,
                   children: (
-                    <Collapse
-                      defaultActiveKey={expandedMatrixifySections}
-                      expandIconPosition="right"
-                      ghost
-                      bordered
-                      items={[
-                        ...matrixifySections.map(renderControlPanelSection),
-                      ]}
-                    />
+                    <>
+                      {/* Render Enable Matrixify control outside collapsible sections */}
+                      {matrixifyEnableControl &&
+                        (
+                          matrixifyEnableControl as ControlPanelSectionConfig
+                        ).controlSetRows.map(
+                          (controlSetRow: CustomControlItem[], i: number) => (
+                            <div
+                              key={`matrixify-enable-${i}`}
+                              css={css`
+                                padding: ${theme.sizeUnit * 4}px;
+                                border-bottom: 1px solid ${theme.colorBorder};
+                              `}
+                            >
+                              {controlSetRow.map(
+                                (control: CustomControlItem, j: number) => {
+                                  if (!control || typeof control === 'string') {
+                                    return null;
+                                  }
+                                  return (
+                                    <div key={`control-${i}-${j}`}>
+                                      {renderControl(control)}
+                                    </div>
+                                  );
+                                },
+                              )}
+                            </div>
+                          ),
+                        )}
+                      <Collapse
+                        defaultActiveKey={expandedMatrixifySections}
+                        expandIconPosition="right"
+                        ghost
+                        bordered
+                        items={[
+                          ...matrixifySections.map(renderControlPanelSection),
+                        ]}
+                      />
+                    </>
                   ),
                 },
               ]
