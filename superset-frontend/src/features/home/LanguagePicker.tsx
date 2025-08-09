@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { MainNav as Menu } from '@superset-ui/core/components/Menu';
 import { styled, css, useTheme } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { DirectionType } from 'antd/es/config-provider';
+import { rtlLanguages } from 'src/constants';
 
 const { SubMenu } = Menu;
 export interface Languages {
@@ -33,6 +36,7 @@ export interface Languages {
 interface LanguagePickerProps {
   locale: string;
   languages: Languages;
+  setDirection: (newDirection: DirectionType) => void;
 }
 
 const StyledLabel = styled.div`
@@ -56,11 +60,20 @@ const StyledFlag = styled.i`
 `;
 
 export default function LanguagePicker(props: LanguagePickerProps) {
-  const { locale, languages, ...rest } = props;
+  const { locale, languages, setDirection, ...rest } = props;
   const theme = useTheme();
+
+  useEffect(() => {
+    const isRtl = rtlLanguages.some(l => locale.startsWith(l));
+    setDirection(isRtl ? 'rtl' : 'ltr');
+  }, [locale, setDirection]);
+
   return (
     <SubMenu
       css={css`
+        .f16 {
+          font-size: 16px;
+        }
         [data-icon='caret-down'] {
           color: ${theme.colors.grayscale.base};
           font-size: ${theme.fontSizeXS}px;
@@ -69,9 +82,9 @@ export default function LanguagePicker(props: LanguagePickerProps) {
       `}
       aria-label="Languages"
       title={
-        <div className="f16">
+        <span className="f16">
           <StyledFlag className={`flag ${languages[locale].flag}`} />
-        </div>
+        </span>
       }
       icon={<Icons.CaretDownOutlined iconSize="xs" />}
       {...rest}
