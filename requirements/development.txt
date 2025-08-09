@@ -537,7 +537,7 @@ pgsanity==0.2.9
     # via
     #   -c requirements/base.txt
     #   apache-superset
-pillow==10.3.0
+pillow==11.3.0
     # via
     #   apache-superset
     #   matplotlib
