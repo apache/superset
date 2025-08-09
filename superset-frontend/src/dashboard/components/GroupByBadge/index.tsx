@@ -32,6 +32,7 @@ const StyledTag = styled(Tag)`
     display: flex;
     align-items: center;
     cursor: pointer;
+    margin-left: ${theme.sizeUnit * 2}px;
     margin-right: ${theme.sizeUnit}px;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     background: ${theme.colorBgContainer};
