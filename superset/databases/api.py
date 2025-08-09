@@ -38,7 +38,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import event_logger
+from superset import app, event_logger
+from superset.commands.database.bulk_schema_tables import (
+    BulkSchemaTablesDatabaseCommand,
+)
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
@@ -100,6 +103,7 @@ from superset.databases.schemas import (
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
+    QualifiedSchemaSchema,
     QualifiedTableSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
@@ -111,7 +115,7 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
-from superset.databases.utils import get_table_metadata
+from superset.databases.utils import get_database_metadata, get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -124,6 +128,7 @@ from superset.exceptions import (
     TableNotFoundException,
 )
 from superset.extensions import security_manager
+from superset.llms import dispatcher
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
@@ -165,6 +170,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "select_star",
         "catalogs",
         "schemas",
+        "schema_tables",
         "test_connection",
         "related_objects",
         "function_names",
@@ -178,6 +184,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "upload",
         "oauth2",
         "sync_permissions",
+        "llm_schema",
+        "llm_defaults",
     }
 
     resource_name = "database"
@@ -203,6 +211,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "impersonate_user",
         "is_managed_externally",
         "engine_information",
+        "llm_available",
+        "llm_connection",
+        "llm_context_options",
     ]
     list_columns = [
         "allow_file_upload",
@@ -231,6 +242,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "disable_drill_to_detail",
         "allow_multi_catalog",
         "engine_information",
+        "llm_available",
+        "llm_connection",
+        "llm_context_options",
     ]
     add_columns = [
         "database_name",
@@ -248,6 +262,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "extra",
         "encrypted_extra",
         "server_cert",
+        "llm_available",
     ]
 
     edit_columns = add_columns
@@ -261,6 +276,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "database_name",
         "expose_in_sqllab",
         "uuid",
+        "llm_available",
     ]
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
     allowed_rel_fields = {"changed_by", "created_by"}
@@ -275,6 +291,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "database_name",
         "expose_in_sqllab",
+        "llm_available",
     ]
     # Removes the local limit for the page size
     max_page_size = -1
@@ -879,9 +896,61 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         catalog_name = kwargs["rison"].get("catalog_name")
         schema_name = kwargs["rison"].get("schema_name", "")
 
-        command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
+        if type(schema_name) == str:
+            command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
+        elif type(schema_name) == list:
+            command = BulkSchemaTablesDatabaseCommand(
+                pk, catalog_name, schema_name, force
+            )
+
         payload = command.run()
         return self.response(200, **payload)
+
+    @expose("/<int:pk>/schema_tables/")
+    @protect()
+    @rison(database_schemas_query_schema)
+    @statsd_metrics
+    @handle_api_exception
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schema_tables",
+        log_to_statsd=False,
+    )
+    def schema_tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        # Retriete all the schemas and tables for a given database and return them as a dict
+        # with schema names as keys and table names as values
+        database = self.datamodel.get(pk, self._base_filters)
+        if not database:
+            return self.response_404()
+        try:
+            catalog = kwargs["rison"].get("catalog")
+            schemas = database.get_all_schema_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout or None,
+            )
+            schemas = security_manager.get_schemas_accessible_by_user(
+                database,
+                catalog,
+                schemas,
+            )
+
+            def get_tables(pk, catalog, schema, force):
+                tables_result = TablesDatabaseCommand(pk, catalog, schema, force).run()[
+                    "result"
+                ]
+                return [result["value"] for result in tables_result]
+
+            schema_tables = {
+                schema: get_tables(pk, catalog, schema, False) for schema in schemas
+            }
+            return self.response(200, result=schema_tables)
+        except OperationalError:
+            return self.response(
+                500, message="There was an error connecting to the database"
+            )
+        except OAuth2RedirectError:
+            raise
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/table/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
@@ -1011,6 +1080,99 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         table = Table(table_name, parsed_schema)
         payload = database.db_engine_spec.get_extra_table_metadata(database, table)
         return self.response(200, **payload)
+
+    @expose("/<int:pk>/llm_schema/", methods=["GET"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.llm_schema",
+        log_to_statsd=False,
+    )
+    def llm_schema(self, pk: int) -> FlaskResponse:
+        # Construct a JSON representation of the schema for the entire database and put it in this format:
+        # {[
+        #     {
+        #         schema_name  =
+        #         schema_description =
+        #         relations = [
+        #             {
+        #                 rel_name =
+        #                 rel_kind =
+        #                 rel_description =
+        #                 indexes = [
+        #                     {
+        #                         index_name =
+        #                         is_unique =
+        #                         column_names =
+        #                         index_definition =
+        #                     },
+
+        #                 ]
+        #                 foregin_keys = [
+        #                     {
+        #                         constraint_name =
+        #                         column_name =
+        #                         referenced_column =
+        #                     },
+
+        #                 ]
+        #                 columns = [
+        #                     {
+        #                         column_name =
+        #                         data_type =
+        #                         is_nullable =
+        #                         column_description =
+        #                         most_common_values =
+        #                     },
+
+        #                 ]
+        #             },
+        #         ]
+        #     },
+        # ]}
+        self.incr_stats("init", self.llm_schema.__name__)
+
+        try:
+            parameters = QualifiedSchemaSchema().load(request.args)
+        except ValidationError as ex:
+            raise InvalidPayloadSchemaError(ex) from ex
+
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+
+        context_settings = json.loads(database.llm_context_settings or "{}")
+        selected_schemas = context_settings.get("schemas", None)
+        include_indexes = context_settings.get("include_indexes", True)
+        top_k = context_settings.get("top_k", 10)
+        top_k_limit = context_settings.get("top_k_limit", 10000)
+
+        schemas = get_database_metadata(
+            database,
+            parameters["catalog"],
+            selected_schemas,
+            include_indexes,
+            top_k,
+            top_k_limit,
+        )
+        schema_response = None
+
+        if parameters["minify"]:
+
+            def reduce_json_token_count(data):
+                """
+                Reduces the token count of a JSON string.
+                """
+                data = data.replace(": ", ":").replace(", ", ",")
+
+                return data
+
+            schema_response = reduce_json_token_count(
+                json.dumps([schema.model_dump() for schema in schemas])
+            )
+        else:
+            schema_response = [schema.model_dump() for schema in schemas]
+
+        return self.response(200, result=schema_response)
 
     @expose("/<int:pk>/table_metadata/", methods=["GET"])
     @protect()
@@ -2105,3 +2267,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database, database.get_default_catalog(), schemas_allowed, True
         )
         return self.response(200, schemas=schemas_allowed_processed)
+
+    @expose("/<int:pk>/llm_defaults/")
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.llm_defaults",
+        log_to_statsd=False,
+    )
+    def llm_defaults(self, pk: int) -> Response:
+        return self.response(
+            200,
+            **dispatcher.get_default_options(pk),  # type: ignore[operator]  # noqa: E501,
+        )

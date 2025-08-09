@@ -46,10 +46,10 @@ const getTableMockFunction = () =>
   ({
     count: 4,
     result: [
-      { label: 'table_a', value: 'table_a' },
-      { label: 'table_b', value: 'table_b' },
-      { label: 'table_c', value: 'table_c' },
-      { label: 'table_d', value: 'table_d' },
+      { label: 'table_a', value: 'table_a', schema: 'test_schema' },
+      { label: 'table_b', value: 'table_b', schema: 'test_schema' },
+      { label: 'table_c', value: 'table_c', schema: 'test_schema' },
+      { label: 'table_d', value: 'table_d', schema: 'test_schema' },
     ],
   }) as any;
 
@@ -118,8 +118,10 @@ test('skips select all options', async () => {
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
   });
-  await userEvent.click(tableSelect);
-  expect(await screen.findByText('table_a')).toBeInTheDocument();
+  userEvent.click(tableSelect);
+  expect(
+    await screen.findByRole('option', { name: 'test_schema.table_a' }),
+  ).toBeInTheDocument();
   expect(
     screen.queryByRole('option', { name: /Select All/i }),
   ).not.toBeInTheDocument();
@@ -143,8 +145,8 @@ test('renders table options without Select All option', async () => {
 
   await waitFor(
     () => {
-      expect(screen.getByText('table_a')).toBeInTheDocument();
-      expect(screen.getByText('table_b')).toBeInTheDocument();
+      expect(screen.getByText('test_schema.table_a')).toBeInTheDocument();
+      expect(screen.getByText('test_schema.table_b')).toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -170,8 +172,16 @@ test('table select retain value if not in SQL Lab mode', async () => {
   expect(screen.queryByText('table_a')).not.toBeInTheDocument();
   expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 
-  await act(async () => {
-    await userEvent.click(tableSelect);
+  userEvent.click(tableSelect);
+
+  expect(
+    await screen.findByRole('option', { name: 'test_schema.table_a' }),
+  ).toBeInTheDocument();
+
+  await waitFor(() => {
+    const item = screen.getAllByText('table_a');
+    userEvent.click(item[item.length - 1]);
+    // userEvent.click(screen.getAllByText('table_a')[1]);
   });
 
   await waitFor(
@@ -254,8 +264,13 @@ test('table multi select retain all the values selected', async () => {
     await userEvent.click(item[item.length - 1]);
   });
 
-  const selections = await screen.findAllByRole('option', { selected: true });
-  expect(selections).toHaveLength(2);
-  expect(selections[0]).toHaveTextContent('table_b');
-  expect(selections[1]).toHaveTextContent('table_c');
+  const selection1 = await screen.findByRole('option', {
+    name: 'test_schema.table_b',
+  });
+  expect(selection1).toHaveAttribute('aria-selected', 'true');
+
+  const selection2 = await screen.findByRole('option', {
+    name: 'test_schema.table_c',
+  });
+  expect(selection2).toHaveAttribute('aria-selected', 'true');
 });

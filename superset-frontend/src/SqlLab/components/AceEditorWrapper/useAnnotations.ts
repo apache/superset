@@ -55,7 +55,7 @@ export function useAnnotations(params: FetchValidationQueryParams) {
         const errorObj = (error ?? {}) as ClientErrorObject;
         let message =
           errorObj?.error || errorObj?.statusText || t('Unknown error');
-        if (message.includes('CSRF token')) {
+        if (typeof message === 'string' && message.includes('CSRF token')) {
           message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
         }
         return {
