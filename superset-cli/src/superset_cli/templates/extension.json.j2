@@ -1,0 +1,24 @@
+{
+  "name": "{{ name }}",
+  "version": "{{ version }}",
+  "license": "{{ license }}",
+  {% if include_frontend -%}
+  "frontend": {
+    "contributions": {
+      "commands": [],
+      "views": [],
+      "menus": []
+    },
+    "moduleFederation": {
+      "exposes": ["./index"]
+    }
+  },
+  {% endif -%}
+  {% if include_backend -%}
+  "backend": {
+    "entryPoints": ["{{ name }}.entrypoint"],
+    "files": ["backend/src/{{ name }}/**/*.py"]
+  },
+  {% endif -%}
+  "permissions": []
+}
