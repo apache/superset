@@ -49,6 +49,9 @@ export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {
     increaseColor: RgbaColor;
     decreaseColor: RgbaColor;
+    orientation: 'vertical' | 'horizontal';
+    showTotal: boolean;
+    boldLabels: string;
     totalColor: RgbaColor;
     metric: QueryFormMetric;
     xAxis: QueryFormColumn;
@@ -56,7 +59,10 @@ export type EchartsWaterfallFormData = QueryFormData &
     xAxisTimeFormat?: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
     yAxisLabel: string;
+    yAxisLabelDistance: string;
     yAxisFormat: string;
+    xAxisSortByColumn: string;
+    xAxisSortByColumnOrder: 'NONE' | 'ASC' | 'DESC';
   };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {
@@ -68,5 +74,14 @@ export interface EchartsWaterfallChartProps extends ChartProps {
   queriesData: ChartDataResponseResult[];
 }
 
-export type WaterfallChartTransformedProps =
-  BaseTransformedProps<EchartsWaterfallFormData>;
+export interface WaterfallChartTransformedProps
+  extends BaseTransformedProps<EchartsWaterfallFormData> {
+  emitCrossFilters?: boolean;
+  filterState?: {
+    value?: string;
+  };
+  handleCrossFilter: (
+    value: string,
+    isCurrentValue: boolean,
+  ) => { extraFormData: any; filterState: any } | null;
+}
