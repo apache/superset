@@ -36,6 +36,7 @@ import {
   richTooltipSection,
   seriesOrderSection,
   percentageThresholdControl,
+  zoomableSection,
   xAxisLabelRotation,
   xAxisLabelInterval,
   truncateXAxis,
@@ -170,7 +171,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
-        ['zoomable'],
+        ...zoomableSection,
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
