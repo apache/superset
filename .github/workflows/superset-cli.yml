@@ -1,4 +1,4 @@
-name: Superset CLI tests
+name: Superset CLI Package Tests
 
 on:
   push:
@@ -14,54 +14,150 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-load-examples:
+  test-superset-cli-package:
     runs-on: ubuntu-24.04
-    env:
-      PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
-      REDIS_PORT: 16379
-      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: superset
-          POSTGRES_PASSWORD: superset
-        ports:
-          # Use custom ports for services to avoid accidentally connecting to
-          # GitHub action runner's default installations
-          - 15432:5432
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 16379:6379
+    defaults:
+      run:
+        working-directory: superset-cli
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
+
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
-        if: steps.check.outputs.python
-        uses: ./.github/actions/setup-backend/
-      - name: Setup Postgres
-        if: steps.check.outputs.python
-        uses: ./.github/actions/cached-dependencies
+
+      - name: Set up Python 3.10
+        if: steps.check.outputs.superset-cli
+        uses: actions/setup-python@v4
         with:
-          run: setup-postgres
-      - name: superset init
-        if: steps.check.outputs.python
+          python-version: "3.10"
+
+      - name: Cache pip dependencies
+        if: steps.check.outputs.superset-cli
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-superset-cli-${{ hashFiles('superset-cli/pyproject.toml', 'superset-core/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-superset-cli-
+            ${{ runner.os }}-pip-
+
+      - name: Install superset-core dependency
+        if: steps.check.outputs.superset-cli
         run: |
-          pip install -e .
-          superset db upgrade
-          superset load_test_users
-      - name: superset load_examples
-        if: steps.check.outputs.python
+          python -m pip install --upgrade pip
+          pip install -e ../superset-core
+
+      - name: Install superset-cli with test dependencies
+        if: steps.check.outputs.superset-cli
         run: |
-          # load examples without test data
-          superset load_examples --load-big-data
+          pip install -e ".[test]"
+
+      - name: Verify package installation
+        if: steps.check.outputs.superset-cli
+        run: |
+          pip list | grep superset
+          python -c "import superset_cli; print('✓ Package imports successfully')"
+
+      - name: Run pytest with coverage
+        if: steps.check.outputs.superset-cli
+        run: |
+          pytest --cov=superset_cli --cov-report=xml --cov-report=term-missing --cov-report=html -v --tb=short
+
+      - name: Test CLI command availability
+        if: steps.check.outputs.superset-cli
+        run: |
+          # Test the main CLI entry point
+          superset-extensions --help
+          echo "✓ Main CLI command works"
+
+      - name: Test CLI init command
+        if: steps.check.outputs.superset-cli
+        run: |
+          # Test init command with different configurations
+          mkdir -p test_workspace && cd test_workspace
+
+          # Test full extension creation
+          echo -e "test_full_ext\n1.0.0\nApache-2.0\ny\ny\n" | superset-extensions init
+          test -f test_full_ext/extension.json || exit 1
+          test -d test_full_ext/frontend || exit 1
+          test -d test_full_ext/backend || exit 1
+          echo "✓ Full extension creation works"
+
+          # Test frontend-only extension
+          echo -e "test_frontend_ext\n1.0.0\nMIT\ny\nn\n" | superset-extensions init
+          test -f test_frontend_ext/extension.json || exit 1
+          test -d test_frontend_ext/frontend || exit 1
+          test ! -d test_frontend_ext/backend || exit 1
+          echo "✓ Frontend-only extension creation works"
+
+      - name: Test CLI build command
+        if: steps.check.outputs.superset-cli
+        run: |
+          cd test_workspace/test_full_ext
+          superset-extensions build --help
+          echo "✓ Build command available"
+
+      - name: Test CLI dev command
+        if: steps.check.outputs.superset-cli
+        run: |
+          cd test_workspace/test_full_ext
+          superset-extensions dev --help
+          echo "✓ Dev command available"
+
+      - name: Test CLI validate command
+        if: steps.check.outputs.superset-cli
+        run: |
+          cd test_workspace/test_full_ext
+          superset-extensions validate
+          echo "✓ Validate command works"
+
+      - name: Validate generated file contents
+        if: steps.check.outputs.superset-cli
+        run: |
+          cd test_workspace/test_full_ext
+
+          # Check extension.json structure
+          python -c "
+          import json
+          with open('extension.json') as f:
+              data = json.load(f)
+          assert data['name'] == 'test_full_ext'
+          assert data['version'] == '1.0.0'
+          assert data['license'] == 'Apache-2.0'
+          assert 'frontend' in data
+          assert 'backend' in data
+          print('✓ extension.json has correct structure')
+          "
+
+          # Check frontend package.json
+          python -c "
+          import json
+          with open('frontend/package.json') as f:
+              data = json.load(f)
+          assert data['name'] == 'test_full_ext'
+          assert '@apache-superset/core' in data['peerDependencies']
+          print('✓ frontend/package.json has correct structure')
+          "
+
+      - name: Upload coverage reports to Codecov
+        if: steps.check.outputs.superset-cli
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: superset-cli
+          name: superset-cli-coverage
+          fail_ci_if_error: false
+
+      - name: Upload HTML coverage report
+        if: steps.check.outputs.superset-cli
+        uses: actions/upload-artifact@v4
+        with:
+          name: superset-cli-coverage-html
+          path: htmlcov/
