@@ -382,7 +382,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert expected_fields == data_keys
 
         # Assert nested fields
-        expected_owners_fields = ["first_name", "id", "last_name"]
+        expected_owners_fields = ["first_name", "id", "last_name", "username"]
         data_keys = sorted(list(data["result"][0]["owners"][0].keys()))  # noqa: C414
         assert expected_owners_fields == data_keys
 

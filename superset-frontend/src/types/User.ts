@@ -16,22 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from 'src/types/Owner';
 
-export default function getOwnerName(owner?: Owner): string {
-  if (!owner) {
-    return '';
-  }
-  return owner.full_name || `${owner.first_name} ${owner.last_name}`;
-}
+/**
+ * The User model as returned from the API
+ */
 
-export function getOwnerDisplayName(owner?: Owner): string {
-  if (!owner) {
-    return '';
-  }
-
-  if (owner.username) {
-    return `${getOwnerName(owner)} (${owner.username})`;
-  }
-  return getOwnerName(owner);
+export default interface User {
+  userId: string | number;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  username?: string;
 }

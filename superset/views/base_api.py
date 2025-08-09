@@ -324,7 +324,11 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         }
     """
 
-    extra_fields_rel_fields: dict[str, list[str]] = {"owners": ["email", "active"]}
+    extra_fields_rel_fields: dict[str, list[str]] = {
+        "owners": ["email", "active", "username"],
+        "changed_by": ["username"],
+        "created_by": ["username"],
+    }
     """
     Declare extra fields for the representation of the Model object::
 
@@ -401,6 +405,10 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         return filters
 
     def _get_text_for_model(self, model: Model, column_name: str) -> str:
+        # Handle special cases for owners, changed_by, and created_by
+        if column_name in {"owners", "changed_by", "created_by"}:
+            return f"{model.first_name} {model.last_name} ({model.username})"
+
         if column_name in self.text_field_rel_fields:
             model_column_name = self.text_field_rel_fields.get(column_name)
             if model_column_name:
