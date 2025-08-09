@@ -39,7 +39,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@types/react-redux": "*",
-    "geostyler": "^14.1.3",
+    "geostyler": "^18.1.2",
     "geostyler-data": "^1.0.0",
     "geostyler-openlayers-parser": "^4.0.0",
     "geostyler-style": "^7.2.0",
