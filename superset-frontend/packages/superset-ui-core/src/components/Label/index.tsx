@@ -18,7 +18,7 @@
  */
 import { Tag } from '@superset-ui/core/components/Tag';
 import { css } from '@emotion/react';
-import { useTheme, themeObject } from '@superset-ui/core';
+import { useTheme, getColorVariants } from '@superset-ui/core';
 import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';
 import { PublishedLabel } from './reusable/PublishedLabel';
 import type { LabelProps } from './types';
@@ -37,7 +37,7 @@ export function Label(props: LabelProps) {
     ...rest
   } = props;
 
-  const baseColor = themeObject.getColorVariants(type);
+  const baseColor = getColorVariants(theme, type);
   const color = baseColor.active;
   const borderColor = baseColor.border;
   const backgroundColor = baseColor.bg;

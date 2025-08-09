@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-import json
+import json  # noqa: TID251
 from textwrap import dedent
 from typing import Any
 
@@ -58,7 +58,7 @@ def test_validate_db_uri(mocker: MockerFixture) -> None:
         raise ValueError("Invalid URI")
 
     mocker.patch(
-        "superset.db_engine_specs.base.current_app.config",
+        "flask.current_app.config",
         {"DB_SQLA_URI_VALIDATOR": mock_validate},
     )
 

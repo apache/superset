@@ -26,7 +26,9 @@ import {
   type ThemeStorage,
   type ThemeControllerOptions,
   type ThemeContextType,
+  type SupersetThemeConfig,
   ThemeAlgorithm,
+  ThemeMode,
 } from './types';
 
 export {
@@ -66,7 +68,16 @@ const themeObject: Theme = Theme.fromConfig({
 const { theme } = themeObject;
 const supersetTheme = theme;
 
-export { Theme, themeObject, styled, theme, supersetTheme };
+export {
+  Theme,
+  ThemeAlgorithm,
+  ThemeMode,
+  themeObject,
+  styled,
+  theme,
+  supersetTheme,
+};
+
 export type {
   SupersetTheme,
   SerializableThemeConfig,
@@ -74,4 +85,8 @@ export type {
   ThemeStorage,
   ThemeControllerOptions,
   ThemeContextType,
+  SupersetThemeConfig,
 };
+
+// Export theme utility functions
+export * from './utils/themeUtils';

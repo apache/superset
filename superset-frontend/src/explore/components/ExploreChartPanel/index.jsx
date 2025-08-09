@@ -160,7 +160,7 @@ const ExploreChartPanel = ({
   const updateQueryContext = useCallback(
     async function fetchChartData() {
       if (slice && slice.query_context === null) {
-        const queryContext = buildV1ChartDataPayload({
+        const queryContext = await buildV1ChartDataPayload({
           formData: slice.form_data,
           force,
           resultFormat: 'json',
