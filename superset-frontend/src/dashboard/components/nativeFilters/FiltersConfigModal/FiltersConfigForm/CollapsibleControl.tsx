@@ -24,7 +24,7 @@ interface CollapsibleControlProps {
   initialValue?: boolean;
   disabled?: boolean;
   checked?: boolean;
-  title: string;
+  title: ReactNode;
   tooltip?: string;
   children: ReactNode;
   onChange?: (checked: boolean) => void;
