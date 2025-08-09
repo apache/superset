@@ -20,6 +20,7 @@ import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
+import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
 
@@ -112,6 +113,19 @@ const GroupByItem = styled.div`
   `}
 `;
 
+const GroupByName = styled.span`
+  ${({ theme }) => `
+    padding-right: ${theme.sizeUnit}px;
+    font-style: italic;
+  `}
+`;
+
+const GroupByValue = styled.span`
+  max-width: 100%;
+  flex-grow: 1;
+  overflow: auto;
+`;
+
 export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -170,9 +184,17 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
           {applicableGroupBys.map(groupBy => (
             <GroupByItem key={groupBy.id}>
               <div>
-                {groupBy.customization?.name && groupBy.customization?.column
-                  ? `${groupBy.customization.name}:${groupBy.customization.column}`
-                  : groupBy.customization?.name || t('None')}
+                {groupBy.customization?.name &&
+                groupBy.customization?.column ? (
+                  <>
+                    <GroupByName>{groupBy.customization.name}: </GroupByName>
+                    <GroupByValue>
+                      {getFilterValueForDisplay(groupBy.customization.column)}
+                    </GroupByValue>
+                  </>
+                ) : (
+                  groupBy.customization?.name || t('None')
+                )}
               </div>
             </GroupByItem>
           ))}
