@@ -322,13 +322,13 @@ const FilterBar: FC<FiltersBarProps> = ({
     ) {
       Object.values(pendingChartCustomizations).forEach(
         (customization: any) => {
-          if (customization && customization.customization?.column) {
+          if (customization) {
             const customizationFilterId = `chart_customization_${customization.id}`;
             const dataMask = {
               extraFormData: {},
               filterState: {},
               ownState: {
-                column: customization.customization.column,
+                column: customization.customization?.column || null,
               },
             };
             dispatch(updateDataMask(customizationFilterId, dataMask));
