@@ -18,8 +18,9 @@
  */
 import { ReactNode } from 'react';
 import { ErrorSource, t, SupersetError } from '@superset-ui/core';
-import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import ErrorAlert from './ErrorAlert';
+import { Typography } from '@superset-ui/core/components';
+import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
+import { ErrorAlert } from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
 
@@ -38,7 +39,7 @@ type Props = {
   compact?: boolean;
 };
 
-export default function ErrorMessageWithStackTrace({
+export function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,
@@ -53,7 +54,8 @@ export default function ErrorMessageWithStackTrace({
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      error.error_type,
+      // @ts-ignore: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
+      error.errorType ?? error.error_type,
     );
     if (ErrorMessageComponent) {
       return (
@@ -75,9 +77,13 @@ export default function ErrorMessageWithStackTrace({
     (link || stackTrace ? (
       <>
         {link && (
-          <a href={link} target="_blank" rel="noopener noreferrer">
+          <Typography.Link
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t('Request Access')}
-          </a>
+          </Typography.Link>
         )}
         <br />
         {stackTrace && <pre>{stackTrace}</pre>}

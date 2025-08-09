@@ -17,8 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { render, screen } from '@superset-ui/core/spec';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -268,9 +267,7 @@ describe('plugin-chart-table', () => {
     describe('TableChart', () => {
       it('render basic data', () => {
         render(
-          <ThemeProvider theme={supersetTheme}>
-            <TableChart {...transformProps(testData.basic)} sticky={false} />,
-          </ThemeProvider>,
+          <TableChart {...transformProps(testData.basic)} sticky={false} />,
         );
 
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
@@ -289,10 +286,10 @@ describe('plugin-chart-table', () => {
 
       it('render advanced data', () => {
         render(
-          <ThemeProvider theme={supersetTheme}>
+          <>
             <TableChart {...transformProps(testData.advanced)} sticky={false} />
             ,
-          </ThemeProvider>,
+          </>,
         );
         const secondColumnHeader = screen.getByText('Sum of Num');
         expect(secondColumnHeader).toBeInTheDocument();
@@ -325,6 +322,27 @@ describe('plugin-chart-table', () => {
         expect(cells[0]).toHaveTextContent('Michael');
         expect(cells[2]).toHaveTextContent('12.346%');
         expect(cells[4]).toHaveTextContent('$ 2.47k');
+      });
+
+      it('render data with a bigint value in a raw record mode', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps(testData.bigint)}
+                sticky={false}
+                isRawRecords
+              />
+            ),
+          }),
+        );
+        const cells = document.querySelectorAll('td');
+        expect(document.querySelectorAll('th')[0]).toHaveTextContent('name');
+        expect(document.querySelectorAll('th')[1]).toHaveTextContent('id');
+        expect(cells[0]).toHaveTextContent('Michael');
+        expect(cells[1]).toHaveTextContent('4312');
+        expect(cells[2]).toHaveTextContent('John');
+        expect(cells[3]).toHaveTextContent('1234567890123456789');
       });
 
       it('render raw data', () => {
@@ -413,9 +431,7 @@ describe('plugin-chart-table', () => {
 
       it('render empty data', () => {
         render(
-          <ThemeProvider theme={supersetTheme}>
-            <TableChart {...transformProps(testData.empty)} sticky={false} />,
-          </ThemeProvider>,
+          <TableChart {...transformProps(testData.empty)} sticky={false} />,
         );
         expect(screen.getByText('No records found')).toBeInTheDocument();
       });
@@ -491,14 +507,10 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
-      it('should display originalLabel in grouped headers', () => {
+      it('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
-        render(
-          <ThemeProvider theme={supersetTheme}>
-            <TableChart {...props} sticky={false} />
-          </ThemeProvider>,
-        );
+        render(<TableChart {...props} sticky={false} />);
         const groupHeaders = screen.getAllByRole('columnheader');
         expect(groupHeaders.length).toBeGreaterThan(0);
         const hasMetricHeaders = groupHeaders.some(

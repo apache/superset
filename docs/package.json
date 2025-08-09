@@ -15,40 +15,44 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "eslint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "eslint": "eslint ."
   },
   "dependencies": {
-    "@ant-design/icons": "^5.5.2",
-    "@docusaurus/core": "^3.5.2",
-    "@docusaurus/plugin-client-redirects": "^3.5.2",
-    "@docusaurus/preset-classic": "^3.5.2",
+    "@ant-design/icons": "^6.0.0",
+    "@docusaurus/core": "3.8.1",
+    "@docusaurus/plugin-client-redirects": "3.8.1",
+    "@docusaurus/preset-classic": "3.8.1",
+    "@docusaurus/theme-mermaid": "3.8.1",
     "@emotion/styled": "^10.0.27",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
-    "antd": "^5.24.5",
+    "antd": "^5.26.7",
     "docusaurus-plugin-less": "^2.0.2",
-    "less": "^4.2.2",
-    "less-loader": "^11.0.0",
+    "less": "^4.4.0",
+    "less-loader": "^12.3.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
-    "swagger-ui-react": "^5.20.2"
+    "swagger-ui-react": "^5.27.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.7.0",
-    "@docusaurus/tsconfig": "^3.7.0",
-    "@types/react": "^18.3.12",
-    "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "^8.0.0",
-    "eslint-config-prettier": "^10.1.1",
-    "eslint-plugin-prettier": "^4.0.0",
-    "eslint-plugin-react": "^7.0.0",
-    "prettier": "^2.0.0",
-    "typescript": "~5.8.2",
-    "webpack": "^5.98.0"
+    "@docusaurus/module-type-aliases": "^3.8.1",
+    "@docusaurus/tsconfig": "^3.8.1",
+    "@eslint/js": "^9.32.0",
+    "@types/react": "^19.1.8",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.39.0",
+    "webpack": "^5.101.0"
   },
   "browserslist": {
     "production": [
@@ -61,5 +65,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

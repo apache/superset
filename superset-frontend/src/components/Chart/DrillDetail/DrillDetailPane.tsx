@@ -37,16 +37,19 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import Loading from 'src/components/Loading';
-import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
-import NullCell from 'src/components/Table/cell-renderers/NullCell';
-import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyState } from 'src/components/EmptyState';
+import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
+import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
+import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
-import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import Table, {
+  ColumnsType,
+  TableSize,
+} from '@superset-ui/core/components/Table';
+import { RootState } from 'src/dashboard/types';
+import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
@@ -77,9 +80,11 @@ enum TimeFormatting {
 export default function DrillDetailPane({
   formData,
   initialFilters,
+  dataset,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
+  dataset?: Dataset;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -94,6 +99,10 @@ export default function DrillDetailPane({
     Record<string, TimeFormatting>
   >({});
 
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
+
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
       state.common.conf.SAMPLES_ROW_LIMIT,
@@ -105,9 +114,10 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
-    datasetId: datasourceId,
+  const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
+    dataset,
   });
+
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -229,6 +239,7 @@ export default function DrillDetailPane({
         jsonPayload,
         PAGE_SIZE,
         pageIndex + 1,
+        dashboardId,
       )
         .then(response => {
           setResultsPages(
@@ -266,9 +277,7 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  const bootstrapping =
-    (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.Loading;
+  const bootstrapping = !responseError && !resultsPages.size;
 
   const allowHTML = formData.allow_render_html ?? true;
 
@@ -278,7 +287,7 @@ export default function DrillDetailPane({
     tableContent = (
       <pre
         css={css`
-          margin-top: ${theme.gridUnit * 4}px;
+          margin-top: ${theme.sizeUnit * 4}px;
         `}
       >
         {responseError}
@@ -316,7 +325,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && metadataBar}
+      {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
           filters={filters}

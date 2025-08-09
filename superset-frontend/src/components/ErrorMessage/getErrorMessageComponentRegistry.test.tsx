@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
-import { ErrorMessageComponentProps } from 'src/components/ErrorMessage/types';
+import type { ErrorMessageComponentProps } from './types';
+import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ERROR_MESSAGE_COMPONENT = (_: ErrorMessageComponentProps) => (

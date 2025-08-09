@@ -18,7 +18,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.11-slim-bookworm
+ARG PY_VER=3.11.13-slim-bookworm
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -59,7 +59,7 @@ RUN mkdir -p /app/superset/static/assets \
 # NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
 # ideally we'd COPY only their package.json. Here npm ci will be cached as long
 # as the full content of these folders don't change, yielding a decent cache reuse rate.
-# Note that's it's not possible selectively COPY of mount using blobs.
+# Note that it's not possible to selectively COPY or mount using blobs.
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
@@ -74,7 +74,7 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 COPY superset-frontend /app/superset-frontend
 
 ######################################################################
-# superset-node used for compile frontend assets
+# superset-node is used for compiling frontend assets
 ######################################################################
 FROM superset-node-ci AS superset-node
 
@@ -90,7 +90,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy translation files
 COPY superset/translations /app/superset/translations
 
-# Build the frontend if not in dev mode
+# Build translations if enabled, then cleanup localization files
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
     fi; \
@@ -167,7 +167,7 @@ RUN mkdir -p \
     && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
-ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
@@ -223,7 +223,7 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install .
+    uv pip install -e .
 RUN python -m compileall /app/superset
 
 USER superset
@@ -246,7 +246,7 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install .
+    uv pip install -e .
 
 RUN uv pip install .[postgres]
 RUN python -m compileall /app/superset

@@ -18,7 +18,7 @@
  */
 
 // eslint-disable-next-line no-restricted-syntax -- whole React import is required for `reactify.test.tsx` Jest test passing.
-import React, { Component, ComponentClass, WeakValidationMap } from 'react';
+import { Component, ComponentClass, WeakValidationMap } from 'react';
 
 // TODO: Note that id and className can collide between Props and ReactifyProps
 // leading to (likely) unexpected behaviors. We should either require Props to not

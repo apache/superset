@@ -53,6 +53,7 @@ const {
   measure = false,
   nameChunks = false,
 } = parsedArgs;
+
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 
@@ -124,11 +125,7 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      { from: 'src/assets/stylesheets', to: 'stylesheets' },
-    ],
+    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
   }),
 
   // static pages
@@ -262,7 +259,6 @@ const config = {
           name: 'vendors',
           test: new RegExp(
             `/node_modules/(${[
-              'abortcontroller-polyfill',
               'react',
               'react-dom',
               'prop-types',
@@ -306,9 +302,6 @@ const config = {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
     modules: ['node_modules', APP_DIR],
     alias: {
-      // TODO: remove aliases once React has been upgraded to v17 and
-      //  AntD version conflict has been resolved
-      antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
       // correctly support webpack import (https://github.com/handlebars-lang/handlebars.js/issues/953)
@@ -327,12 +320,20 @@ const config = {
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
       ),
+      // Workaround for react-color trying to import non-existent icon
+      '@icons/material/UnfoldMoreHorizontalIcon': path.resolve(
+        path.join(
+          APP_DIR,
+          './node_modules/@icons/material/CubeUnfoldedIcon.js',
+        ),
+      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
       vm: require.resolve('vm-browserify'),
       path: false,
+      stream: require.resolve('stream-browserify'),
       ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
     },
   },
@@ -413,38 +414,6 @@ const config = {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-            },
-          },
-        ],
-      },
-      {
-        test: /\.less$/,
-        include: APP_DIR,
-        use: [
-          isDevMode
-            ? 'style-loader'
-            : {
-                loader: MiniCssExtractPlugin.loader,
-                options: {
-                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
-                },
-              },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: true,
-              lessOptions: {
-                javascriptEnabled: true,
-                modifyVars: {
-                  'root-entry-name': 'default',
-                },
-              },
             },
           },
         ],
@@ -567,6 +536,11 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        port: 0,
+      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),

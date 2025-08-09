@@ -18,6 +18,7 @@
  */
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
   getMetricLabel,
@@ -26,7 +27,13 @@ import {
   SimpleAdhocFilter,
   ensureIsArray,
 } from '@superset-ui/core';
-import { getComparisonFontSize, getHeaderFontSize } from './utils';
+import {
+  getComparisonFontSize,
+  getHeaderFontSize,
+  getMetricNameFontSize,
+} from './utils';
+
+import { getOriginalLabel } from '../utils';
 
 dayjs.extend(utc);
 
@@ -83,6 +90,7 @@ export default function transformProps(chartProps: ChartProps) {
     headerFontSize,
     headerText,
     metric,
+    metricNameFontSize,
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
@@ -91,17 +99,27 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceFormat,
     subtitle = '',
     subtitleFontSize,
-    columnConfig,
+    columnConfig = {},
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
+
+  let metricEntry: Metric | undefined;
+  if (chartProps.datasource?.metrics) {
+    metricEntry = chartProps.datasource.metrics.find(
+      metricItem => metricItem.metric_name === metric,
+    );
+  }
 
   const isCustomOrInherit =
     timeComparison === 'custom' || timeComparison === 'inherit';
@@ -143,7 +161,7 @@ export default function transformProps(chartProps: ChartProps) {
     metric,
     currencyFormats,
     columnFormats,
-    yAxisFormat,
+    metricEntry?.d3format || yAxisFormat,
     currencyFormat,
   );
 
@@ -179,7 +197,7 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metricName,
+    metricName: originalLabel,
     bigNumber,
     prevNumber,
     valueDifference,
@@ -187,6 +205,8 @@ export default function transformProps(chartProps: ChartProps) {
     boldText,
     subtitle,
     subtitleFontSize,
+    showMetricName,
+    metricNameFontSize: getMetricNameFontSize(metricNameFontSize),
     headerFontSize: getHeaderFontSize(headerFontSize),
     subheaderFontSize: getComparisonFontSize(subheaderFontSize),
     headerText,

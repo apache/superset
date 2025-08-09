@@ -29,19 +29,45 @@ import {
   tooltipHtml,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
+import { aggregationChoices } from '@superset-ui/chart-controls';
 import {
   BigNumberVizProps,
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
-import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
+
+// Client-side aggregation function using shared aggregationChoices
+function computeClientSideAggregation(
+  data: [number | null, number | null][],
+  aggregation: string | undefined | null,
+): number | null {
+  if (!data.length) return null;
+
+  // Find the aggregation method, handling case variations
+  const methodKey = Object.keys(aggregationChoices).find(
+    key => key.toLowerCase() === (aggregation || '').toLowerCase(),
+  );
+
+  // Use the compute method from aggregationChoices, fallback to LAST_VALUE
+  const selectedMethod = methodKey
+    ? aggregationChoices[methodKey as keyof typeof aggregationChoices]
+    : aggregationChoices.LAST_VALUE;
+
+  // Extract values from tuple array and filter out nulls
+  const values = data
+    .map(([, value]) => value)
+    .filter((v): v is number => v !== null);
+
+  return selectedMethod.compute(values);
+}
 
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
@@ -62,6 +88,7 @@ export default function transformProps(
     compareLag: compareLag_,
     compareSuffix = '',
     timeFormat,
+    metricNameFontSize,
     headerFontSize,
     metric = 'value',
     showTimestamp,
@@ -96,6 +123,9 @@ export default function transformProps(
   const aggregatedData = hasAggregatedData ? aggregatedQueryData.data[0] : null;
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -122,27 +152,33 @@ export default function transformProps(
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
   }
-  if (hasAggregatedData && aggregatedData) {
-    if (
-      aggregatedData[metricName] !== null &&
-      aggregatedData[metricName] !== undefined
-    ) {
-      bigNumber = aggregatedData[metricName];
-    } else {
-      const metricKeys = Object.keys(aggregatedData).filter(
-        key =>
-          key !== xAxisLabel &&
-          aggregatedData[key] !== null &&
-          typeof aggregatedData[key] === 'number',
-      );
-      bigNumber = metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
-    }
-
-    timestamp = sortedData.length > 0 ? sortedData[0][0] : null;
-  } else if (sortedData.length > 0) {
-    bigNumber = sortedData[0][1];
+  if (sortedData.length > 0) {
     timestamp = sortedData[0][0];
 
+    // Raw aggregation uses server-side data, all others use client-side
+    if (aggregation === 'raw' && hasAggregatedData && aggregatedData) {
+      // Use server-side aggregation for raw
+      if (
+        aggregatedData[metricName] !== null &&
+        aggregatedData[metricName] !== undefined
+      ) {
+        bigNumber = aggregatedData[metricName];
+      } else {
+        const metricKeys = Object.keys(aggregatedData).filter(
+          key =>
+            key !== xAxisLabel &&
+            aggregatedData[key] !== null &&
+            typeof aggregatedData[key] === 'number',
+        );
+        bigNumber =
+          metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
+      }
+    } else {
+      // Use client-side aggregation for all other methods
+      bigNumber = computeClientSideAggregation(sortedData, aggregation);
+    }
+
+    // Handle null bigNumber case
     if (bigNumber === null) {
       bigNumberFallback = sortedData.find(d => d[1] !== null);
       bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
@@ -153,11 +189,13 @@ export default function transformProps(
   if (compareLag > 0 && sortedData.length > 0) {
     const compareIndex = compareLag;
     if (compareIndex < sortedData.length) {
-      const compareValue = sortedData[compareIndex][1];
+      const compareFromValue = sortedData[compareIndex][1];
+      const compareToValue = sortedData[0][1];
       // compare values must both be non-nulls
-      if (bigNumber !== null && compareValue !== null) {
-        percentChange = compareValue
-          ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
+      if (compareToValue !== null && compareFromValue !== null) {
+        percentChange = compareFromValue
+          ? (Number(compareToValue) - compareFromValue) /
+            Math.abs(compareFromValue)
           : 0;
         formattedSubheader = `${formatPercentChange(
           percentChange,
@@ -200,7 +238,7 @@ export default function transformProps(
     metric,
     currencyFormats,
     columnFormats,
-    yAxisFormat,
+    metricEntry?.d3format || yAxisFormat,
     currencyFormat,
   );
 
@@ -303,6 +341,9 @@ export default function transformProps(
     headerFormatter,
     formatTime,
     formData,
+    metricName: originalLabel,
+    showMetricName,
+    metricNameFontSize,
     headerFontSize,
     subtitleFontSize,
     subtitle,

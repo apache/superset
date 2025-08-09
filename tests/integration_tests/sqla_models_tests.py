@@ -198,7 +198,7 @@ class TestDatabaseModel(SupersetTestCase):
         # assert dataset saved metric
         assert "count('bar_P1D')" in query
         # assert adhoc metric
-        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
+        assert "SUM(CASE WHEN user = 'user_abc' THEN 1 ELSE 0 END)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -749,12 +749,12 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
 def test_none_operand_in_filter(login_as_admin, physical_dataset):
     expected_results = [
         {
-            "operator": FilterOperator.EQUALS.value,
+            "operator": FilterOperator.EQUALS,
             "count": 10,
             "sql_should_contain": "COL4 IS NULL",
         },
         {
-            "operator": FilterOperator.NOT_EQUALS.value,
+            "operator": FilterOperator.NOT_EQUALS,
             "count": 0,
             "sql_should_contain": "COL4 IS NOT NULL",
         },
@@ -1122,12 +1122,12 @@ def test__temporal_range_operator_in_adhoc_filter(physical_dataset):
                 {
                     "col": "col5",
                     "val": "2000-01-05 : 2000-01-06",
-                    "op": FilterOperator.TEMPORAL_RANGE.value,
+                    "op": FilterOperator.TEMPORAL_RANGE,
                 },
                 {
                     "col": "col6",
                     "val": "2002-05-11 : 2002-05-12",
-                    "op": FilterOperator.TEMPORAL_RANGE.value,
+                    "op": FilterOperator.TEMPORAL_RANGE,
                 },
             ],
             "is_timeseries": False,

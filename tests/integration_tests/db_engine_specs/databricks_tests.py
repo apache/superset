@@ -18,12 +18,12 @@ from unittest import mock
 
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.database import default_db_extra
 
 
-class TestDatabricksDbEngineSpec(TestDbEngineSpec):
+class TestDatabricksDbEngineSpec(SupersetTestCase):
     def test_get_engine_spec(self):
         """
         DB Eng Specs (databricks): Test "databricks" in engine spec

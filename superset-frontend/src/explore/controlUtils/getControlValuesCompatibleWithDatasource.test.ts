@@ -35,7 +35,6 @@ const sampleDatasource: Dataset = {
   ],
   metrics: [{ metric_name: 'saved_metric_2', uuid: '1' }],
   column_formats: {},
-  currency_formats: {},
   verbose_map: {},
   main_dttm_col: '',
   datasource_name: 'Sample Dataset',

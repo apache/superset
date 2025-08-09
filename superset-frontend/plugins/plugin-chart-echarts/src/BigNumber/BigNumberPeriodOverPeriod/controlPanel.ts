@@ -23,11 +23,14 @@ import {
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
+import { noop } from 'lodash';
 import {
   headerFontSize,
   subheaderFontSize,
   subtitleControl,
   subtitleFontSize,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
 } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
@@ -70,6 +73,8 @@ const config: ControlPanelConfig = {
         ],
         [subtitleControl],
         [subtitleFontSize],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         [
           {
             ...subheaderFontSize,
@@ -139,6 +144,7 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
+                noop(explore, _, chart);
                 return {
                   columnsPropsObject: {
                     colnames: ['Previous value', 'Delta', 'Percent change'],

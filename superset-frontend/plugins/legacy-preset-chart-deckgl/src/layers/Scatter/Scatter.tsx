@@ -18,19 +18,19 @@
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
 import {
-  Datasource,
   getMetricLabel,
   JsonObject,
   QueryFormData,
   t,
 } from '@superset-ui/core';
+import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
-import { TooltipProps } from '../../components/Tooltip';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
@@ -64,13 +64,16 @@ function setTooltipContent(
   };
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  datasource: Datasource,
-) {
+export const getLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  setDataMask,
+  filterState,
+  onContextMenu,
+  datasource,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const dataWithRadius = payload.data.features.map((d: JsonObject) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
@@ -95,12 +98,52 @@ export function getLayer(
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,
-    ...commonLayerProps(
-      fd,
+    ...commonLayerProps({
+      formData: fd,
       setTooltip,
-      setTooltipContent(fd, datasource?.verboseMap),
-    ),
+      setTooltipContent: setTooltipContent(fd, datasource?.verboseMap),
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
+    opacity: filterState?.value ? 0.3 : 1,
   });
-}
+};
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const dataWithRadius = payload.data.features.map((d: JsonObject) => {
+    let radius = unitToRadius(fd.point_unit, d.radius) || 10;
+    if (fd.multiplier) {
+      radius *= fd.multiplier;
+    }
+
+    return { ...d, radius };
+  });
+
+  const dataInside = dataWithRadius.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  return new ScatterplotLayer({
+    id: `scatter-highlight-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    fp64: true,
+    getFillColor: () => HIGHLIGHT_COLOR_ARRAY,
+    getRadius: (d: any) => d.radius,
+    radiusMinPixels: Number(fd.min_radius) || undefined,
+    radiusMaxPixels: Number(fd.max_radius) || undefined,
+    stroked: false,
+  });
+};
+
+export default createCategoricalDeckGLComponent(
+  getLayer,
+  getPoints,
+  getHighlightLayer,
+);
