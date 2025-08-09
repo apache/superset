@@ -59,10 +59,10 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, request, session
+from flask import current_app, g, reques
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
+from flask_babel import get_locale, gettext as __
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
@@ -1835,8 +1835,8 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
     return DEFAULT_USER_AGENT
 
 
-def activate_humanize_locale() -> str:
-    locale = session.get("locale", "en")
-    if (locale != "en"):
-        locale = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
-        humanize.i18n.activate(locale)
+def activate_humanize_locale():
+    locale = get_locale() or "en"
+    if locale != "en":
+        language = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
+        humanize.i18n.activate(language)
