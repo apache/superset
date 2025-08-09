@@ -233,9 +233,15 @@ const FilterBar: FC<FiltersBarProps> = ({
         };
 
         // Recalculate validation status
-        const hasRequiredValue =
-          filter.controlValues?.enableEmptyFilter &&
-          baseDataMask.filterState?.value == null;
+        const isRequired = !!filter.controlValues?.enableEmptyFilter;
+        const value = baseDataMask.filterState?.value;
+
+        const isEmptyValue =
+          value == null ||
+          (Array.isArray(value) && value.length === 0) ||
+          (typeof value === 'string' && value.trim() === '');
+
+        const hasRequiredValue = isRequired && isEmptyValue;
 
         draft[filter.id] = {
           ...baseDataMask,
@@ -463,14 +469,40 @@ const FilterBar: FC<FiltersBarProps> = ({
     pendingChartCustomizations &&
     Object.keys(pendingChartCustomizations).length > 0;
 
+  const hasMissingRequiredChartCustomization =
+    chartCustomizationItems?.some(item => {
+      if (item.removed) return false;
+
+      const required = !!item.customization?.controlValues?.enableEmptyFilter;
+      if (!required) return false;
+
+      const pendingItem = pendingChartCustomizations?.[item.id];
+      const currentCustomization =
+        pendingItem?.customization || item.customization;
+      const columnValue = currentCustomization?.column;
+
+      if (!columnValue) return true;
+
+      if (Array.isArray(columnValue)) {
+        return columnValue.length === 0;
+      }
+
+      if (typeof columnValue === 'string') {
+        return columnValue.trim() === '';
+      }
+
+      return false;
+    }) || false;
+
   const isApplyDisabled =
-    checkIsApplyDisabled(
+    (checkIsApplyDisabled(
       dataMaskSelected,
       dataMaskApplied,
       filtersInScope.filter(isNativeFilter),
     ) &&
-    !hasPendingChartCustomizations &&
-    !hasClearedChartCustomizations;
+      !hasPendingChartCustomizations &&
+      !hasClearedChartCustomizations) ||
+    hasMissingRequiredChartCustomization;
 
   const isInitialized = useInitialization();
 
