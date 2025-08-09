@@ -87,6 +87,7 @@ from superset.utils.core import (
     is_adhoc_column,
     MediumText,
     remove_duplicates,
+    activate_humanize_locale,
 )
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
@@ -543,10 +544,12 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def changed_on_humanized(self) -> str:
+        activate_humanize_locale()
         return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
+        activate_humanize_locale()
         return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")
