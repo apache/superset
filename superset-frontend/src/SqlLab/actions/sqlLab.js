@@ -105,6 +105,11 @@ export const SET_EDITOR_TAB_LAST_UPDATE = 'SET_EDITOR_TAB_LAST_UPDATE';
 export const SET_LAST_UPDATED_ACTIVE_TAB = 'SET_LAST_UPDATED_ACTIVE_TAB';
 export const CLEAR_DESTROYED_QUERY_EDITOR = 'CLEAR_DESTROYED_QUERY_EDITOR';
 
+export const GENERATE_SQL = 'GENERATE_SQL';
+export const START_GENERATE_SQL = 'START_GENERATE_SQL';
+export const GENERATE_SQL_DONE = 'GENERATE_SQL_DONE';
+export const GENERATE_SQL_SET_PROMPT = 'GENERATE_SQL_SET_PROMPT';
+
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
 export const addDangerToast = addDangerToastAction;
@@ -329,6 +334,111 @@ export function fetchQueryResults(query, displayLimit, timeoutInMs) {
   };
 }
 
+export function queryEditorSetSql(queryEditor, sql, queryId) {
+  return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql, queryId };
+}
+
+function convertSqlToComment(sql) {
+  const oldSql = sql.split('\n');
+  let commentedSql = '';
+
+  if (sql.trim() !== '') {
+    const contextBuilder = [];
+    for (let i = 0; i < oldSql.length; i += 1) {
+      if (oldSql[i].startsWith('--')) {
+        contextBuilder.push(oldSql[i]);
+      } else if (i === oldSql.length - 1 && oldSql[i].trim() === '') {
+        continue;
+      } else {
+        contextBuilder.push(`-- ${oldSql[i]}`);
+      }
+    }
+    commentedSql = `${contextBuilder.join('\n')}\n`;
+  }
+  return commentedSql;
+}
+
+export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
+  return function (dispatch, getState) {
+    const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
+    // saved query and set tab state use this action
+    dispatch(queryEditorSetSql(queryEditor, sql, queryId));
+    if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
+      return SupersetClient.put({
+        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+        postPayload: { sql, latest_query_id: queryId },
+      }).catch(() =>
+        dispatch(
+          addDangerToast(
+            t(
+              'An error occurred while storing your query in the backend. To ' +
+                'avoid losing your changes, please save your query using the ' +
+                '"Save Query" button.',
+            ),
+          ),
+        ),
+      );
+    }
+    return Promise.resolve();
+  };
+}
+
+export function generateSql(databaseId, queryEditor, prompt) {
+  return function (dispatch, getState) {
+    dispatch({
+      type: START_GENERATE_SQL,
+      queryEditorId: queryEditor.id,
+      prompt,
+    });
+    const { sql } = getUpToDateQuery(getState(), queryEditor);
+    return SupersetClient.post({
+      endpoint: '/api/v1/sqllab/generate_sql/',
+      body: JSON.stringify({
+        database_id: databaseId,
+        user_prompt: prompt,
+        prior_context: sql,
+        schemas: queryEditor.schema,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(({ json }) => {
+        const oldContext = convertSqlToComment(sql);
+        const newQuestion = `-- ${prompt}\n\n`;
+        const newSql = [
+          oldContext === '' ? '' : `${oldContext}\n`,
+          newQuestion,
+          json.sql,
+        ].join('');
+
+        // TODO(AW): Is it better to dispatch two events here, or have the DONE event dispatch its own event?
+        dispatch(queryEditorSetAndSaveSql(queryEditor, newSql));
+        dispatch({
+          type: GENERATE_SQL_DONE,
+          queryEditorId: queryEditor.id,
+          prompt: '',
+        });
+        // TODO(AW): Formatting the query makes the response from the LLM easier to read
+        // but messes up the formatting of the question and previous query.
+        // dispatch(formatQuery(queryEditor));
+      })
+      .catch(() => {
+        // TODO(AW): Same question as above - should we try to combine these two events?
+        dispatch(
+          addDangerToast(t('An error occurred while generating the SQL')),
+        );
+        dispatch({
+          type: GENERATE_SQL_DONE,
+          queryEditorId: queryEditor.id,
+          prompt,
+        });
+      });
+  };
+}
+
+export function setGenerateSqlPrompt(queryEditorId, prompt) {
+  return { type: GENERATE_SQL_SET_PROMPT, queryEditorId, prompt };
+}
+
 export function runQuery(query, runPreviewOnly) {
   return function (dispatch) {
     dispatch(startQuery(query, runPreviewOnly));
@@ -338,7 +448,11 @@ export function runQuery(query, runPreviewOnly) {
       json: true,
       runAsync: query.runAsync,
       catalog: query.catalog,
-      schema: query.schema,
+      schema: Array.isArray(query.schema)
+        ? query.schema.length > 0
+          ? query.schema[0]
+          : ''
+        : query.schema,
       sql: query.sql,
       sql_editor_id: query.sqlEditorId,
       tab: query.tab,
@@ -394,7 +508,11 @@ export function runQueryFromSqlEditor(
       sqlEditorId: qe.id,
       tab: qe.name,
       catalog: qe.catalog,
-      schema: qe.schema,
+      schema: Array.isArray(qe.schema)
+        ? qe.schema.length > 0
+          ? qe.schema[0]
+          : ''
+        : qe.schema,
       tempTable,
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || defaultQueryLimit,
@@ -875,38 +993,8 @@ export function updateSavedQuery(query, clientId) {
       })
       .then(() => dispatch(updateQueryEditor(query)));
 }
-
-export function queryEditorSetSql(queryEditor, sql, queryId) {
-  return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql, queryId };
-}
-
 export function queryEditorSetCursorPosition(queryEditor, position) {
   return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
-}
-
-export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
-  return function (dispatch, getState) {
-    const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
-    // saved query and set tab state use this action
-    dispatch(queryEditorSetSql(queryEditor, sql, queryId));
-    if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
-      return SupersetClient.put({
-        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-        postPayload: { sql, latest_query_id: queryId },
-      }).catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while storing your query in the backend. To ' +
-                'avoid losing your changes, please save your query using the ' +
-                '"Save Query" button.',
-            ),
-          ),
-        ),
-      );
-    }
-    return Promise.resolve();
-  };
 }
 
 export function formatQuery(queryEditor) {
