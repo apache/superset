@@ -202,8 +202,8 @@ export function getMatrixifyValidationErrors(
     return errors;
   }
 
-  // Check row configuration
-  const hasRowMode = Boolean(config.rows.mode);
+  // Check row configuration (only if explicitly set in form data)
+  const hasRowMode = Boolean(formData.matrixify_mode_rows);
   if (hasRowMode) {
     const hasRowData =
       config.rows.mode === 'metrics'
@@ -222,8 +222,8 @@ export function getMatrixifyValidationErrors(
     }
   }
 
-  // Check column configuration
-  const hasColumnMode = Boolean(config.columns.mode);
+  // Check column configuration (only if explicitly set in form data)
+  const hasColumnMode = Boolean(formData.matrixify_mode_columns);
   if (hasColumnMode) {
     const hasColumnData =
       config.columns.mode === 'metrics'
