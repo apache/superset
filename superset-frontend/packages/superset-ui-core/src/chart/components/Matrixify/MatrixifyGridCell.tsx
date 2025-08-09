@@ -68,8 +68,8 @@ const NoDataMessage = styled.div<{ theme: any }>`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  color: ${({ theme }) => theme.colorTextTertiary};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   text-align: center;
   user-select: none;
 `;
