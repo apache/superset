@@ -43,21 +43,17 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-superset-cli-${{ hashFiles('superset-cli/pyproject.toml', 'superset-core/pyproject.toml') }}
+          key: ${{ runner.os }}-pip-development-${{ hashFiles('requirements/development.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-superset-cli-
+            ${{ runner.os }}-pip-development-
             ${{ runner.os }}-pip-
 
-      - name: Install superset-core dependency
+      - name: Install development requirements
         if: steps.check.outputs.superset-cli
         run: |
           python -m pip install --upgrade pip
-          pip install -e ../superset-core
-
-      - name: Install superset-cli with test dependencies
-        if: steps.check.outputs.superset-cli
-        run: |
-          pip install -e ".[test]"
+          cd ..
+          pip install -r requirements/development.txt
 
       - name: Verify package installation
         if: steps.check.outputs.superset-cli

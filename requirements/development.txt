@@ -3,7 +3,9 @@
 -e .
     # via -r requirements/development.in
 -e ./superset-cli
-    # via apache-superset
+    # via
+    #   -r requirements/development.in
+    #   apache-superset
 -e ./superset-core
     # via
     #   apache-superset
@@ -661,12 +663,17 @@ pysocks==1.7.1
 pytest==7.4.4
     # via
     #   apache-superset
+    #   apache-superset-cli
     #   pytest-cov
     #   pytest-mock
 pytest-cov==6.0.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   apache-superset-cli
 pytest-mock==3.10.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   apache-superset-cli
 python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base-constraint.txt
