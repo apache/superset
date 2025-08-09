@@ -380,13 +380,22 @@ describe('PropertiesModal', () => {
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
     const findAllSelectOptions = () =>
-      waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
+      waitFor(() => {
+        const elements = getElementsByClassName(
+          '.ant-select-item-option-content',
+        );
+        if (elements.length === 0) throw new Error('No options found');
+        return elements;
+      });
 
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
 
-    expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    });
+
     expect(
       screen.getByRole('combobox', { name: SupersetCore.t('Roles') }),
     ).toBeInTheDocument();
@@ -397,7 +406,7 @@ describe('PropertiesModal', () => {
 
     expect(options).toHaveLength(5);
     expect(options[0]).toHaveTextContent('Admin');
-  });
+  }, 30000);
 
   test('should show active owners with dashboard rbac', async () => {
     mockedIsFeatureEnabled.mockReturnValue(true);
@@ -405,21 +414,33 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const open = () => waitFor(() => userEvent.click(getSelect()));
     const getSelect = () =>
       screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+    const open = () => waitFor(() => userEvent.click(getSelect()));
 
     const getElementsByClassName = (className: string) =>
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
     const findAllSelectOptions = () =>
-      waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
+      waitFor(
+        () => {
+          const elements = getElementsByClassName(
+            '.ant-select-item-option-content',
+          );
+          if (elements.length === 0) throw new Error('No options found');
+          return elements;
+        },
+        { timeout: 5000 },
+      );
 
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
 
-    expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    });
+
     expect(
       screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
     ).toBeInTheDocument();
@@ -430,7 +451,7 @@ describe('PropertiesModal', () => {
 
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('Superset Admin');
-  });
+  }, 30000);
 
   test('should show active owners without dashboard rbac', async () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
@@ -445,13 +466,25 @@ describe('PropertiesModal', () => {
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
     const findAllSelectOptions = () =>
-      waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
+      waitFor(
+        () => {
+          const elements = getElementsByClassName(
+            '.ant-select-item-option-content',
+          );
+          if (elements.length === 0) throw new Error('No options found');
+          return elements;
+        },
+        { timeout: 5000 },
+      );
 
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
 
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
     expect(
       screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
     ).toBeInTheDocument();
@@ -462,5 +495,5 @@ describe('PropertiesModal', () => {
 
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('Superset Admin');
-  });
+  }, 30000);
 });

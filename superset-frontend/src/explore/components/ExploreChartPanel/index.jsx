@@ -355,6 +355,7 @@ const ExploreChartPanel = ({
           chartUpdateEndTime={chart.chartUpdateEndTime}
           refreshCachedQuery={refreshCachedQuery}
           rowLimit={formData?.row_limit}
+          hideRowCount={false}
         />
         {renderChart()}
       </div>

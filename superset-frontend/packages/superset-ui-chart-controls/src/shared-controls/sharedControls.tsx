@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 /**
  * This file exports all controls available for use in chart plugins internal to Superset.
  * It is not recommended to use the controls here for any third-party plugins.
@@ -47,6 +46,7 @@ import {
   validateMaxValue,
   getColumnLabel,
 } from '@superset-ui/core';
+import { Tag } from '@superset-ui/core/components/Tag';
 
 import {
   formatSelectOptions,
@@ -427,7 +427,7 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
   resetOnHide: false,
 };
 
-export default {
+const sharedControls: Record<string, SharedControlConfig<any>> = {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
   datasource: datasourceControl,
@@ -473,3 +473,218 @@ export default {
   sort_by_metric,
   order_by_cols,
 };
+
+// dynamically add matrixify controls
+['columns', 'rows'].forEach(axisParam => {
+  const axis = axisParam; // Capture the value in a local variable
+  sharedControls[`matrixify_mode_${axis}`] = {
+    type: 'RadioButtonControl',
+    label: t(`Metrics / Dimensions`),
+    default: 'metrics',
+    options: [
+      ['metrics', t('Metrics')],
+      ['dimensions', t('Dimension Members')],
+    ],
+    renderTrigger: true,
+  };
+
+  sharedControls[`matrixify_${axis}`] = {
+    ...dndAdhocMetricControl,
+    label: t(`Metrics`),
+    multi: true,
+    validators: [], // Not required
+    // description: t(`Select metrics for ${axis}`),
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'metrics',
+  };
+
+  // Combined dimension and values control
+  sharedControls[`matrixify_dimension_${axis}`] = {
+    type: 'MatrixifyDimensionControl',
+    label: t(`Dimension Selection`),
+    description: t(`Select dimension and values`),
+    default: { dimension: '', values: [] },
+    validators: [], // Not required
+    renderTrigger: true,
+    mapStateToProps: ({ datasource, controls }) => ({
+      datasource,
+      selectionMode:
+        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ||
+        'members',
+    }),
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value !==
+        'topn',
+  };
+
+  // Dimension picker for TopN mode (just dimension, no values)
+  sharedControls[`matrixify_topn_dimension_${axis}`] = {
+    type: 'SelectControl',
+    label: (
+      <div>
+        <Tag color="error" style={{ marginBottom: '8px' }}>
+          Not Implemented Yet
+        </Tag>
+        <div>{t('Dimension')}</div>
+      </div>
+    ),
+    description: t(`Select dimension for Top N`),
+    default: null,
+    mapStateToProps: ({ datasource }) => ({
+      choices:
+        datasource?.columns?.map((col: any) => [
+          col.column_name,
+          col.column_name,
+        ]) || [],
+    }),
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+        'topn',
+  };
+
+  // Add selection mode control (Dimension Members vs TopN)
+  sharedControls[`matrixify_dimension_selection_mode_${axis}`] = {
+    type: 'RadioButtonControl',
+    label: t(`Selection Method`),
+    default: 'members',
+    options: [
+      ['members', t('Dimension Members')],
+      ['topn', t('Top N')],
+    ],
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions',
+  };
+
+  // TopN controls
+  sharedControls[`matrixify_topn_value_${axis}`] = {
+    type: 'TextControl',
+    label: t(`Number of Top Values`),
+    description: t(`How many top values to select`),
+    default: 10,
+    isInt: true,
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+        'topn',
+  };
+
+  sharedControls[`matrixify_topn_metric_${axis}`] = {
+    ...dndAdhocMetricControl,
+    label: t(`Metric for Ordering`),
+    multi: false,
+    validators: [], // Not required
+    description: t(`Metric to use for ordering Top N values`),
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+        'topn',
+  };
+
+  sharedControls[`matrixify_topn_order_${axis}`] = {
+    type: 'RadioButtonControl',
+    label: t(`Sort Order`),
+    default: 'desc',
+    options: [
+      ['asc', t('Ascending')],
+      ['desc', t('Descending')],
+    ],
+    visibility: ({ controls }) =>
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+        'topn',
+  };
+  // Add grid layout controls
+  sharedControls.matrixify_row_height = {
+    type: 'TextControl',
+    label: t('Row Height'),
+    description: t('Height of each row in pixels'),
+    default: 300,
+    isInt: true,
+    validators: [],
+    renderTrigger: true,
+  };
+
+  sharedControls.matrixify_fit_columns_dynamically = {
+    type: 'CheckboxControl',
+    label: t('Fit Columns Dynamically'),
+    description: t(
+      'Automatically adjust column width based on available space',
+    ),
+    default: true,
+    renderTrigger: true,
+  };
+
+  sharedControls.matrixify_charts_per_row = {
+    type: 'SelectControl',
+    label: t('Charts Per Row'),
+    description: t('Number of charts to display per row'),
+    default: 4,
+    choices: [
+      [1, '1'],
+      [2, '2'],
+      [3, '3'],
+      [4, '4'],
+      [6, '6'],
+      [12, '12'],
+    ],
+    clearable: false,
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      !controls?.matrixify_fit_columns_dynamically?.value,
+  };
+});
+
+// Matrixify enable control
+sharedControls.matrixify_enabled = {
+  type: 'CheckboxControl',
+  label: t('Enable Matrixify'),
+  description: t(
+    'Transform this chart into a matrix/grid of charts based on dimensions or metrics',
+  ),
+  default: false,
+  renderTrigger: true,
+};
+
+// Cell title control for Matrixify
+sharedControls.matrixify_cell_title_template = {
+  type: 'TextControl',
+  label: t('Title'),
+  description: t(
+    'Customize cell titles using Handlebars template syntax. Available variables: {{rowLabel}}, {{colLabel}}',
+  ),
+  default: '',
+  renderTrigger: true,
+  visibility: ({ controls }) =>
+    (controls?.matrixify_mode_rows?.value ||
+      controls?.matrixify_mode_columns?.value) !== undefined,
+};
+
+// Matrix display controls
+sharedControls.matrixify_show_row_labels = {
+  type: 'CheckboxControl',
+  label: t('Show row labels'),
+  description: t('Display labels for each row on the left side of the matrix'),
+  default: true,
+  renderTrigger: true,
+  visibility: ({ controls }) =>
+    (controls?.matrixify_mode_rows?.value ||
+      controls?.matrixify_mode_columns?.value) !== undefined,
+};
+
+sharedControls.matrixify_show_column_headers = {
+  type: 'CheckboxControl',
+  label: t('Show column headers'),
+  description: t('Display headers for each column at the top of the matrix'),
+  default: true,
+  renderTrigger: true,
+  visibility: ({ controls }) =>
+    (controls?.matrixify_mode_rows?.value ||
+      controls?.matrixify_mode_columns?.value) !== undefined,
+};
+
+export default sharedControls;
