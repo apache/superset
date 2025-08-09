@@ -36,16 +36,17 @@ import {
   QueryModeLabel,
   sections,
   sharedControls,
+  shouldSkipMetricColumn,
+  isRegularMetric,
+  isPercentMetric,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
   GenericDataType,
-  getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
   QueryFormColumn,
-  QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   t,
@@ -589,15 +590,29 @@ const config: ControlPanelConfig = {
                         last(colname.split('__')) !== timeComparisonValue,
                     )
                     .forEach((colname, index) => {
+                      // Skip unprefixed percent metric columns if a prefixed version exists
+                      // But don't skip if it's also a regular metric
                       if (
-                        explore.form_data.metrics?.some(
-                          metric => getMetricLabel(metric) === colname,
-                        ) ||
-                        explore.form_data.percent_metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            getMetricLabel(metric) === colname,
-                        )
+                        shouldSkipMetricColumn({
+                          colname,
+                          colnames,
+                          formData: explore.form_data,
+                        })
                       ) {
+                        return;
+                      }
+
+                      const isMetric = isRegularMetric(
+                        colname,
+                        explore.form_data,
+                      );
+                      const isPercentMetricValue = isPercentMetric(
+                        colname,
+                        explore.form_data,
+                      );
+
+                      // Generate comparison columns for metrics (time comparison feature)
+                      if (isMetric || isPercentMetricValue) {
                         const comparisonColumns =
                           generateComparisonColumns(colname);
                         comparisonColumns.forEach((name, idx) => {

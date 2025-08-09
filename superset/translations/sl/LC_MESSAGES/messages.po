@@ -851,11 +851,11 @@ msgid "Add Dashboard"
 msgstr "Dodaj nadzorno ploščo"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Ločilnik"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Dodaj filter"
 
 #, fuzzy
@@ -1855,7 +1855,7 @@ msgstr "Samodokončaj filtre"
 msgid "Autocomplete query predicate"
 msgstr "Predikat za samodokončanje poizvedb"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Samodejne barve"
 
 #, fuzzy
@@ -3284,7 +3284,7 @@ msgstr "Zemljevid držav"
 msgid "Create"
 msgstr "Ustvari"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Ustvarite grafikon"
 
 msgid "Create a dataset"
@@ -8806,7 +8806,7 @@ msgstr "Vir že ima povezano poročilo."
 msgid "Resource was not found."
 msgstr "Vir ni bil najden."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Povrni filter"
 
 msgid "Results"
