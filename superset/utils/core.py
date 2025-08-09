@@ -59,7 +59,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, reques
+from flask import current_app, g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, gettext as __
