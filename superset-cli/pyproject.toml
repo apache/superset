@@ -37,6 +37,13 @@ dependencies = [
     "watchdog>=6.0.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+]
+
 [build-system]
 requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -47,3 +54,44 @@ package-dir = { "" = "src" }
 
 [project.scripts]
 superset-extensions = "superset_cli.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=superset_cli",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "cli: CLI command tests",
+    "slow: Slow running tests",
+]
+
+[tool.coverage.run]
+source = ["src/superset_cli"]
+omit = ["*/tests/*", "*/test_*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/superset_cli/*" = ["TID251"]
