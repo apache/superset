@@ -783,11 +783,11 @@ msgstr "CSS 템플릿"
 msgid "Add Dashboard"
 msgstr "대시보드 추가"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr ""
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "테이블 추가"
 
 #, fuzzy
@@ -1773,7 +1773,7 @@ msgstr ""
 msgid "Autocomplete query predicate"
 msgstr ""
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr ""
 
 #, fuzzy
@@ -3217,7 +3217,7 @@ msgid "Create"
 msgstr ""
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "차트 보기"
 
 #, fuzzy
@@ -5798,7 +5798,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -8738,7 +8738,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr "데이터베이스를 찾을 수 없습니다."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr ""
 
 msgid "Results"
@@ -9345,7 +9345,7 @@ msgid "Select Tags"
 msgstr "테이블 선택"
 
 #, fuzzy
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "시각화 유형"
 
 #, fuzzy
@@ -13200,7 +13200,7 @@ msgid "X-axis"
 msgstr ""
 
 #, fuzzy
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "새로고침 간격"
 
 msgid "XYZ"
@@ -13258,7 +13258,7 @@ msgid "Y-axis bounds"
 msgstr ""
 
 #, fuzzy
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "새로고침 간격"
 
 msgid "Year"

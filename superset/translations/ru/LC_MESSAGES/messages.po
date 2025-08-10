@@ -832,11 +832,11 @@ msgid "Add Dashboard"
 msgstr "Добавить дашборд"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Разделитель"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Добавить фильтр"
 
 #, fuzzy
@@ -1833,7 +1833,7 @@ msgstr "Фильтры автозаполнения"
 msgid "Autocomplete query predicate"
 msgstr "Предикат запроса автозаполнения"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Автоматический цвет"
 
 #, fuzzy
@@ -3288,7 +3288,7 @@ msgstr "Карта страны"
 msgid "Create"
 msgstr "Создать"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Создать диаграмму"
 
 msgid "Create a dataset"
@@ -5918,7 +5918,7 @@ msgstr ""
 "Произошла ошибка скачивания изображения. Обновите страницу и попробуйте "
 "заново."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Имперсонировать пользователя (Presto, Trino, Drill, Hive, и Google "
 "Таблицы)"
@@ -8879,7 +8879,7 @@ msgstr "Для этого компонента уже создан отчет"
 msgid "Resource was not found."
 msgstr "Источник не был найден"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Восстановить фильтр"
 
 msgid "Results"
@@ -9473,7 +9473,7 @@ msgstr "Выберите способ отправки"
 msgid "Select Tags"
 msgstr "Выбрать теги"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Выберите тип визуализации"
 
 msgid "Select a column"
@@ -13587,7 +13587,7 @@ msgstr "Сортировать ось X"
 msgid "X-axis"
 msgstr "Ось X"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Интервал оси X"
 
 msgid "XYZ"
@@ -13645,7 +13645,7 @@ msgstr "Ось Y"
 msgid "Y-axis bounds"
 msgstr "Границы оси Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Интервал оси Y"
 
 msgid "Year"
