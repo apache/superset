@@ -268,6 +268,10 @@ export interface SupersetSpecificTokens {
   resultsGridHeaderFontSize?: number;
   resultsGridBorderRadius?: number;
   resultsGridNoStriping?: boolean;
+  // Login page customization
+  loginPageBackgroundImageUrl?: string;
+  loginFormBrandLogoUrl?: string;
+  loginPageBackgroundOverlayColor?: string;
 }
 
 /**
