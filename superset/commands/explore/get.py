@@ -135,10 +135,11 @@ class GetExploreCommand(BaseCommand, ABC):
         utils.merge_extra_filters(form_data)
         utils.merge_request_params(form_data, request.args)
 
-        # Merge Rison filters from 'f' parameter (highest priority)
-        from superset.utils.rison_filters import merge_rison_filters
-
-        merge_rison_filters(form_data)
+        # Don't merge Rison filters here - let the frontend handle them
+        # to avoid duplication. The frontend will process the 'f' parameter
+        # and add the filters to the form_data
+        # from superset.utils.rison_filters import merge_rison_filters
+        # merge_rison_filters(form_data)
 
         # TODO: this is a dummy placeholder - should be refactored to being just `None`
         datasource_data: dict[str, Any] = {
