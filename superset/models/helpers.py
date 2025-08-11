@@ -100,7 +100,6 @@ logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
-DEFAULT_LOCALE = "en"
 
 
 def validate_adhoc_subquery(
@@ -543,10 +542,10 @@ class AuditMixinNullable(AuditMixin):
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     def _format_time_humanized(self, timestamp: datetime) -> str:
-        locale = str(get_locale() or DEFAULT_LOCALE)
+        locale = str(get_locale())
         time_diff = datetime.now() - timestamp
         # Skip activation for 'en' locale as it's humanize's default locale
-        if locale == DEFAULT_LOCALE:
+        if locale == "en":
             return humanize.naturaltime(time_diff)
         try:
             humanize.i18n.activate(locale)
