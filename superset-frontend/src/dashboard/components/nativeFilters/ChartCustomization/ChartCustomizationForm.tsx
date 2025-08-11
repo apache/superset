@@ -52,6 +52,80 @@ import { selectChartCustomizationItems } from './selectors';
 
 const { TextArea } = Input;
 
+interface Metric {
+  metric_name: string;
+  verbose_name?: string;
+}
+
+interface DatasetDetails {
+  id: number;
+  table_name: string;
+  schema?: string;
+  database?: { database_name: string };
+}
+
+interface ApiError {
+  message?: string;
+  error?: string;
+}
+
+interface DatasetColumn {
+  column_name?: string;
+  name?: string;
+  verbose_name?: string;
+  filterable?: boolean;
+}
+
+interface DatasetData {
+  id: number;
+  table_name: string;
+  schema?: string;
+  database?: { database_name: string };
+  metrics?: Metric[];
+  columns?: DatasetColumn[];
+}
+
+interface CachedDataset {
+  data: DatasetData;
+  timestamp: number;
+}
+
+interface ColumnOption {
+  label: string;
+  value: string;
+}
+
+interface Props {
+  form: FormInstance<Record<string, unknown>>;
+  item: ChartCustomizationItem;
+  onUpdate: (updatedItem: ChartCustomizationItem) => void;
+  removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
+  allItems?: ChartCustomizationItem[];
+}
+
+const datasetCache = new Map<number, CachedDataset>();
+
+const CACHE_TTL = 5 * 60 * 1000;
+
+function getCachedDataset(datasetId: number): DatasetData | null {
+  const cached = datasetCache.get(datasetId);
+  if (!cached) return null;
+
+  if (Date.now() - cached.timestamp > CACHE_TTL) {
+    datasetCache.delete(datasetId);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedDataset(datasetId: number, data: DatasetData): void {
+  datasetCache.set(datasetId, {
+    data,
+    timestamp: Date.now(),
+  });
+}
+
 const StyledContainer = styled.div`
   ${({ theme }) => `
    display: flex;
@@ -97,31 +171,6 @@ const StyledRadioGroup = styled(Radio.Group)`
 const StyledMarginTop = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
-
-interface Metric {
-  metric_name: string;
-  verbose_name?: string;
-}
-
-interface DatasetDetails {
-  id: number;
-  table_name: string;
-  schema?: string;
-  database?: { database_name: string };
-}
-
-interface ApiError {
-  message?: string;
-  error?: string;
-}
-
-interface Props {
-  form: FormInstance<any>;
-  item: ChartCustomizationItem;
-  onUpdate: (updatedItem: ChartCustomizationItem) => void;
-  removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
-  allItems?: ChartCustomizationItem[];
-}
 
 const ChartCustomizationForm: FC<Props> = ({
   form,
@@ -225,7 +274,7 @@ const ChartCustomizationForm: FC<Props> = ({
     });
 
     return usedIds;
-  }, [chartCustomizationItems, item.id]);
+  }, [chartCustomizationItems, item.id, getDatasetId]);
 
   const datasetValue = useMemo(() => {
     const datasetId = getDatasetId(customization.dataset);
@@ -299,6 +348,7 @@ const ChartCustomizationForm: FC<Props> = ({
     datasetDetails,
     loadedDatasets,
     charts,
+    getDatasetId,
   ]);
 
   const formChanged = useCallback(() => {
@@ -336,7 +386,7 @@ const ChartCustomizationForm: FC<Props> = ({
   );
 
   const setChartCustomizationFieldValues = useCallback(
-    (itemId: string, values: Record<string, any>) => {
+    (itemId: string, values: Record<string, unknown>) => {
       const currentFilters = form.getFieldValue('filters') || {};
       const currentItem = currentFilters[itemId] || {};
 
@@ -378,10 +428,62 @@ const ChartCustomizationForm: FC<Props> = ({
       const datasetId = getDatasetId(dataset);
       if (datasetId === null) return;
 
+      const cachedData = getCachedDataset(datasetId);
+      if (cachedData) {
+        const datasetDetails = {
+          id: cachedData.id,
+          table_name: cachedData.table_name,
+          schema: cachedData.schema,
+          database: cachedData.database,
+        };
+
+        setDatasetDetails(datasetDetails);
+
+        const currentFilters = form.getFieldValue('filters') || {};
+        const currentItemValues = currentFilters[item.id] || {};
+
+        if (
+          currentItemValues.dataset &&
+          typeof currentItemValues.dataset === 'string'
+        ) {
+          const enhancedDataset = {
+            value: Number(currentItemValues.dataset),
+            label: cachedData.table_name,
+            table_name: cachedData.table_name,
+            schema: cachedData.schema,
+          };
+
+          form.setFieldsValue({
+            filters: {
+              ...currentFilters,
+              [item.id]: {
+                ...currentItemValues,
+                dataset: currentItemValues.dataset,
+                datasetInfo: enhancedDataset,
+                ...currentItemValues,
+              },
+            },
+          });
+        }
+
+        if (cachedData.metrics && cachedData.metrics.length > 0) {
+          setMetrics(cachedData.metrics);
+        } else {
+          setMetrics([]);
+        }
+        return;
+      }
+
       const response = await fetch(`/api/v1/dataset/${datasetId}`);
       const data = await response.json();
 
       if (data?.result) {
+        setCachedDataset(datasetId, {
+          ...data.result,
+          metrics: data.result.metrics || [],
+          columns: data.result.columns || [],
+        });
+
         const datasetDetails = {
           id: data.result.id,
           table_name: data.result.table_name,
@@ -428,7 +530,7 @@ const ChartCustomizationForm: FC<Props> = ({
       console.error('Error fetching dataset info:', error);
       setMetrics([]);
     }
-  }, [form, item.id, customization.dataset]);
+  }, [form, item.id, customization.dataset, getDatasetId]);
 
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -441,7 +543,7 @@ const ChartCustomizationForm: FC<Props> = ({
         fetchDatasetInfo();
       }
     }
-  }, [customization.dataset, fetchDatasetInfo]);
+  }, [customization.dataset, fetchDatasetInfo, getDatasetId]);
 
   const fetchDefaultValueData = useCallback(async () => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -461,16 +563,29 @@ const ChartCustomizationForm: FC<Props> = ({
         throw new Error('Invalid dataset ID');
       }
 
-      const response = await fetch(`/api/v1/dataset/${datasetId}`);
-      const data = await response.json();
+      let data;
+      const cachedData = getCachedDataset(datasetId);
+      if (cachedData) {
+        data = { result: cachedData };
+      } else {
+        const response = await fetch(`/api/v1/dataset/${datasetId}`);
+        data = await response.json();
+        if (data?.result) {
+          setCachedDataset(datasetId, {
+            ...data.result,
+            metrics: data.result.metrics || [],
+            columns: data.result.columns || [],
+          });
+        }
+      }
 
       if (!data?.result?.columns) {
         throw new Error('No columns found in dataset');
       }
 
       const columns = data.result.columns
-        .filter((col: any) => col.filterable !== false)
-        .map((col: any) => ({
+        .filter((col: DatasetColumn) => col.filterable !== false)
+        .map((col: DatasetColumn) => ({
           label: col.verbose_name || col.column_name || col.name,
           value: col.column_name || col.name,
         }));
@@ -541,7 +656,7 @@ const ChartCustomizationForm: FC<Props> = ({
     } finally {
       setIsDefaultValueLoading(false);
     }
-  }, [customization, ensureFilterSlot, form, item, onUpdate]);
+  }, [customization, ensureFilterSlot, form, item, onUpdate, getDatasetId]);
 
   useEffect(() => {
     ensureFilterSlot();
@@ -592,6 +707,7 @@ const ChartCustomizationForm: FC<Props> = ({
     ensureFilterSlot,
     loadedDatasets,
     charts,
+    getDatasetId,
   ]);
 
   useEffect(() => {
@@ -632,7 +748,7 @@ const ChartCustomizationForm: FC<Props> = ({
 
       fetchDefaultValueData();
     }
-  }, [form, item.id, fetchDatasetInfo]);
+  }, [form, item.id, fetchDatasetInfo, fetchDefaultValueData]);
 
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -814,8 +930,25 @@ const ChartCustomizationForm: FC<Props> = ({
 
               const fetchDatasetAndUpdate = async () => {
                 try {
-                  const response = await fetch(`/api/v1/dataset/${datasetId}`);
-                  const data = await response.json();
+                  const cachedData = getCachedDataset(datasetId);
+                  let data;
+
+                  if (cachedData) {
+                    data = { result: cachedData };
+                  } else {
+                    const response = await fetch(
+                      `/api/v1/dataset/${datasetId}`,
+                    );
+                    data = await response.json();
+
+                    if (data?.result) {
+                      setCachedDataset(datasetId, {
+                        ...data.result,
+                        metrics: data.result.metrics || [],
+                        columns: data.result.columns || [],
+                      });
+                    }
+                  }
 
                   if (data?.result) {
                     const datasetWithInfo = {
@@ -1171,7 +1304,7 @@ const ChartCustomizationForm: FC<Props> = ({
                                 options={(
                                   form.getFieldValue('filters')?.[item.id]
                                     ?.defaultValueQueriesData || []
-                                ).map((option: any) => ({
+                                ).map((option: ColumnOption) => ({
                                   ...option,
                                   label: option.label,
                                 }))}
