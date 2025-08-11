@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SupersetClient, styled, t, css } from '@superset-ui/core';
+import { SupersetClient, styled, t, css, useTheme } from '@superset-ui/core';
 import {
   Button,
   Card,
@@ -74,7 +74,46 @@ const StyledLabel = styled(Typography.Text)`
   `}
 `;
 
+const StyledBackground = styled.div`
+  ${({ theme }) => {
+    const bgImageUrl = theme.loginPageBackgroundImageUrl;
+    const overlayColor =
+      theme.loginPageBackgroundOverlayColor || 'rgba(0, 0, 0, 0.5)';
+    return bgImageUrl
+      ? css`
+          background-image: url(${bgImageUrl});
+          background-size: cover;
+          background-position: center;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: ${overlayColor};
+          }
+        `
+      : '';
+  }}
+`;
+
+const StyledBrandLogo = styled.img`
+  display: block;
+  max-width: 160px;
+  max-height: 64px;
+  margin: 0;
+  object-fit: contain;
+`;
+
 export default function Login() {
+  const theme = useTheme();
+
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
 
@@ -110,120 +149,137 @@ export default function Login() {
   };
 
   return (
-    <Flex
-      justify="center"
-      align="center"
-      data-test="login-form"
-      css={css`
-        width: 100%;
-        height: calc(100vh - 200px);
-      `}
-    >
-      <StyledCard title={t('Sign in')} padded>
-        {authType === AuthType.AuthOID && (
-          <Flex justify="center" vertical gap="middle">
-            <Form layout="vertical" requiredMark="optional" form={form}>
-              {providers.map((provider: OIDProvider) => (
-                <Form.Item<LoginForm>>
-                  <Button
-                    href={`/login/${provider.name}`}
-                    block
-                    iconPosition="start"
-                    icon={getAuthIconElement(provider.name)}
-                  >
-                    {t('Sign in with')} {capitalize(provider.name)}
-                  </Button>
-                </Form.Item>
-              ))}
-            </Form>
-          </Flex>
-        )}
-        {authType === AuthType.AuthOauth && (
-          <Flex justify="center" gap={0} vertical>
-            <Form layout="vertical" requiredMark="optional" form={form}>
-              {providers.map((provider: OAuthProvider) => (
-                <Form.Item<LoginForm>>
-                  <Button
-                    href={`/login/${provider.name}`}
-                    block
-                    iconPosition="start"
-                    icon={getAuthIconElement(provider.name)}
-                  >
-                    {t('Sign in with')} {capitalize(provider.name)}
-                  </Button>
-                </Form.Item>
-              ))}
-            </Form>
-          </Flex>
-        )}
+    <>
+      <StyledBackground />
+      <Flex
+        justify="center"
+        align="center"
+        data-test="login-form"
+        css={css`
+          width: 100%;
+          height: calc(100vh - 200px);
+        `}
+      >
+        <StyledCard
+          padded
+          title={
+            <Flex vertical align="start" gap="middle">
+              {theme.loginFormBrandLogoUrl && (
+                <StyledBrandLogo
+                  src={theme.loginFormBrandLogoUrl}
+                  alt={theme.brandLogoAlt || 'Apache Superset'}
+                  style={{ marginTop: theme.sizeUnit * 4 }}
+                />
+              )}
+              <Typography.Title
+                level={4}
+                style={{
+                  marginTop: 0,
+                  marginBottom: theme.loginFormBrandLogoUrl
+                    ? theme.sizeUnit * 2
+                    : 0,
+                  marginLeft: 0,
+                  marginRight: 0,
+                }}
+              >
+                {t('Sign in')}
+              </Typography.Title>
+            </Flex>
+          }
+        >
+          {authType === AuthType.AuthOauth && (
+            <Flex justify="center" gap={0} vertical>
+              <Form layout="vertical" requiredMark="optional" form={form}>
+                {providers.map((provider: OAuthProvider) => (
+                  <Form.Item<LoginForm>>
+                    <Button
+                      href={`/login/${provider.name}`}
+                      block
+                      iconPosition="start"
+                      icon={getAuthIconElement(provider.name)}
+                    >
+                      {t('Sign in with')} {capitalize(provider.name)}
+                    </Button>
+                  </Form.Item>
+                ))}
+              </Form>
+            </Flex>
+          )}
 
-        {(authType === AuthType.AuthDB || authType === AuthType.AuthLDAP) && (
-          <Flex justify="center" vertical gap="middle">
-            <Typography.Text type="secondary">
-              {t('Enter your login and password below:')}
-            </Typography.Text>
-            <Form
-              layout="vertical"
-              requiredMark="optional"
-              form={form}
-              onFinish={onFinish}
-            >
-              <Form.Item<LoginForm>
-                label={<StyledLabel>{t('Username:')}</StyledLabel>}
-                name="username"
-                rules={[
-                  { required: true, message: t('Please enter your username') },
-                ]}
+          {(authType === AuthType.AuthDB || authType === AuthType.AuthLDAP) && (
+            <Flex justify="center" vertical gap="middle">
+              <Typography.Text type="secondary">
+                {t('Enter your login and password below:')}
+              </Typography.Text>
+              <Form
+                layout="vertical"
+                requiredMark="optional"
+                form={form}
+                onFinish={onFinish}
               >
-                <Input
-                  autoFocus
-                  prefix={<Icons.UserOutlined iconSize="l" />}
-                  data-test="username-input"
-                />
-              </Form.Item>
-              <Form.Item<LoginForm>
-                label={<StyledLabel>{t('Password:')}</StyledLabel>}
-                name="password"
-                rules={[
-                  { required: true, message: t('Please enter your password') },
-                ]}
-              >
-                <Input.Password
-                  prefix={<Icons.KeyOutlined iconSize="l" />}
-                  data-test="password-input"
-                />
-              </Form.Item>
-              <Form.Item label={null}>
-                <Flex
-                  css={css`
-                    width: 100%;
-                  `}
+                <Form.Item<LoginForm>
+                  label={<StyledLabel>{t('Username:')}</StyledLabel>}
+                  name="username"
+                  rules={[
+                    {
+                      required: true,
+                      message: t('Please enter your username'),
+                    },
+                  ]}
                 >
-                  <Button
-                    block
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    data-test="login-button"
+                  <Input
+                    autoFocus
+                    prefix={<Icons.UserOutlined iconSize="l" />}
+                    data-test="username-input"
+                  />
+                </Form.Item>
+                <Form.Item<LoginForm>
+                  label={<StyledLabel>{t('Password:')}</StyledLabel>}
+                  name="password"
+                  rules={[
+                    {
+                      required: true,
+                      message: t('Please enter your password'),
+                    },
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<Icons.KeyOutlined iconSize="l" />}
+                    data-test="password-input"
+                  />
+                </Form.Item>
+                <Form.Item label={null}>
+                  <Flex
+                    css={css`
+                      width: 100%;
+                    `}
                   >
-                    {t('Sign in')}
-                  </Button>
-                  {authRegistration && (
                     <Button
                       block
-                      type="default"
-                      href="/register/"
-                      data-test="register-button"
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
+                      data-test="login-button"
                     >
-                      {t('Register')}
+                      {t('Sign in')}
                     </Button>
-                  )}
-                </Flex>
-              </Form.Item>
-            </Form>
-          </Flex>
-        )}
-      </StyledCard>
-    </Flex>
+                    {authRegistration && (
+                      <Button
+                        block
+                        type="default"
+                        href="/register/"
+                        data-test="register-button"
+                      >
+                        {t('Register')}
+                      </Button>
+                    )}
+                  </Flex>
+                </Form.Item>
+              </Form>
+            </Flex>
+          )}
+        </StyledCard>
+      </Flex>
+    </>
   );
 }
