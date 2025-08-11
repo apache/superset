@@ -181,6 +181,10 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       return [];
     }
 
+    if (chartType === 'graph') {
+      return [];
+    }
+
     const chartFormData = chart?.latestQueryFormData;
     if (!chartFormData) {
       return applicableGroupBys;

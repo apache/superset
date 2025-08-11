@@ -149,6 +149,10 @@ function processGroupByCustomizations(
     return {};
   }
 
+  if (chartType === 'graph') {
+    return {};
+  }
+
   const groupByFormData: {
     groupby?: string[];
     order_by_cols?: string[];
