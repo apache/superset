@@ -871,11 +871,11 @@ msgid "Add Dashboard"
 msgstr "Dodaj nadzorno ploščo"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Ločilnik"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Dodaj filter"
 
 #, fuzzy
@@ -1898,7 +1898,7 @@ msgstr "Samodokončaj filtre"
 msgid "Autocomplete query predicate"
 msgstr "Predikat za samodokončanje poizvedb"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Samodejne barve"
 
 #, fuzzy
@@ -3368,7 +3368,7 @@ msgstr "Zemljevid držav"
 msgid "Create"
 msgstr "Ustvari"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Ustvarite grafikon"
 
 msgid "Create a dataset"
@@ -3487,7 +3487,7 @@ msgstr "Trenutno izrisano: %s"
 msgid "Custom"
 msgstr "Prilagojen"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Prilagojeno pogojno oblikovanje"
 
 msgid "Custom Plugin"
@@ -6048,7 +6048,7 @@ msgstr "Slika (PNG) vključena v e-pošto"
 msgid "Image download failed, please refresh and try again."
 msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Predstavljanje kot prijavljeni uporabnik (Presto, Trino, Drill, Hive in "
 "GSheets)"
@@ -9105,7 +9105,7 @@ msgstr "Vir že ima povezano poročilo."
 msgid "Resource was not found."
 msgstr "Vir ni bil najden."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Povrni filter"
 
 msgid "Results"
@@ -9686,7 +9686,7 @@ msgstr "Izberite način dostave"
 msgid "Select Tags"
 msgstr "Izberite oznake"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Izberite tip vizualizacije"
 
 msgid "Select a column"
@@ -10115,7 +10115,7 @@ msgstr "Prikaži mehurčke"
 msgid "Show CREATE VIEW statement"
 msgstr "Prikaži CREATE VIEW stavek"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Prikaži grafe v celicah"
 
 msgid "Show Dashboard"
@@ -13962,7 +13962,7 @@ msgstr "\"Razvrsčanje po\" za X-os"
 msgid "X-axis"
 msgstr "X-os"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Interval X-osi"
 
 msgid "XYZ"
@@ -14019,7 +14019,7 @@ msgstr "Y-os"
 msgid "Y-axis bounds"
 msgstr "Meje Y-osi"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Interval Y-osi"
 
 msgid "Year"
@@ -14391,7 +14391,7 @@ msgstr "`row_offset` mora biti večja ali enaka 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` mora biti večja ali enaka 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "dodajte barvo za graf v celici za +/-"
 
 msgid "aggregate"
@@ -14433,7 +14433,7 @@ msgstr "samodejno"
 msgid "background"
 msgstr "ozadje"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "osnovno pogojno oblikovanje"
 
 msgid "basis"

@@ -1,0 +1,273 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from '@superset-ui/core/spec';
+import { ThemeMode } from '@superset-ui/core';
+import { Menu } from '@superset-ui/core/components';
+import { ThemeSubMenu } from '.';
+
+// Mock the translation function
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  t: (key: string) => key,
+}));
+
+describe('ThemeSubMenu', () => {
+  const defaultProps = {
+    allowOSPreference: true,
+    setThemeMode: jest.fn(),
+    themeMode: ThemeMode.DEFAULT,
+    hasLocalOverride: false,
+    onClearLocalSettings: jest.fn(),
+  };
+
+  const renderThemeSubMenu = (props = defaultProps) =>
+    render(
+      <Menu>
+        <ThemeSubMenu {...props} />
+      </Menu>,
+    );
+
+  const findMenuWithText = async (text: string) => {
+    await waitFor(() => {
+      const found = screen
+        .getAllByRole('menu')
+        .some(m => within(m).queryByText(text));
+
+      if (!found) throw new Error(`Menu with text "${text}" not yet rendered`);
+    });
+
+    return screen.getAllByRole('menu').find(m => within(m).queryByText(text))!;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders Light and Dark theme options by default', async () => {
+    renderThemeSubMenu();
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Light');
+
+    expect(within(menu!).getByText('Light')).toBeInTheDocument();
+    expect(within(menu!).getByText('Dark')).toBeInTheDocument();
+  });
+
+  it('does not render Match system option when allowOSPreference is false', async () => {
+    renderThemeSubMenu({ ...defaultProps, allowOSPreference: false });
+    userEvent.hover(await screen.findByRole('menuitem'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Match system')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders with allowOSPreference as true by default', async () => {
+    renderThemeSubMenu();
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Match system');
+
+    expect(within(menu).getByText('Match system')).toBeInTheDocument();
+  });
+
+  it('renders clear option when both hasLocalOverride and onClearLocalSettings are provided', async () => {
+    const mockClear = jest.fn();
+    renderThemeSubMenu({
+      ...defaultProps,
+      hasLocalOverride: true,
+      onClearLocalSettings: mockClear,
+    });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Clear local theme');
+
+    expect(within(menu).getByText('Clear local theme')).toBeInTheDocument();
+  });
+
+  it('does not render clear option when hasLocalOverride is false', async () => {
+    const mockClear = jest.fn();
+    renderThemeSubMenu({
+      ...defaultProps,
+      hasLocalOverride: false,
+      onClearLocalSettings: mockClear,
+    });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Clear local theme')).not.toBeInTheDocument();
+    });
+  });
+
+  it('calls setThemeMode with DEFAULT when Light is clicked', async () => {
+    const mockSet = jest.fn();
+    renderThemeSubMenu({ ...defaultProps, setThemeMode: mockSet });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Light');
+    userEvent.click(within(menu).getByText('Light'));
+
+    expect(mockSet).toHaveBeenCalledWith(ThemeMode.DEFAULT);
+  });
+
+  it('calls setThemeMode with DARK when Dark is clicked', async () => {
+    const mockSet = jest.fn();
+    renderThemeSubMenu({ ...defaultProps, setThemeMode: mockSet });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Dark');
+    userEvent.click(within(menu).getByText('Dark'));
+
+    expect(mockSet).toHaveBeenCalledWith(ThemeMode.DARK);
+  });
+
+  it('calls setThemeMode with SYSTEM when Match system is clicked', async () => {
+    const mockSet = jest.fn();
+    renderThemeSubMenu({ ...defaultProps, setThemeMode: mockSet });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Match system');
+    userEvent.click(within(menu).getByText('Match system'));
+
+    expect(mockSet).toHaveBeenCalledWith(ThemeMode.SYSTEM);
+  });
+
+  it('calls onClearLocalSettings when Clear local theme is clicked', async () => {
+    const mockClear = jest.fn();
+    renderThemeSubMenu({
+      ...defaultProps,
+      hasLocalOverride: true,
+      onClearLocalSettings: mockClear,
+    });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Clear local theme');
+    userEvent.click(within(menu).getByText('Clear local theme'));
+
+    expect(mockClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays sun icon for DEFAULT theme', () => {
+    renderThemeSubMenu({ ...defaultProps, themeMode: ThemeMode.DEFAULT });
+    expect(screen.getByTestId('sun')).toBeInTheDocument();
+  });
+
+  it('displays moon icon for DARK theme', () => {
+    renderThemeSubMenu({ ...defaultProps, themeMode: ThemeMode.DARK });
+    expect(screen.getByTestId('moon')).toBeInTheDocument();
+  });
+
+  it('displays format-painter icon for SYSTEM theme', () => {
+    renderThemeSubMenu({ ...defaultProps, themeMode: ThemeMode.SYSTEM });
+    expect(screen.getByTestId('format-painter')).toBeInTheDocument();
+  });
+
+  it('displays override icon when hasLocalOverride is true', () => {
+    renderThemeSubMenu({ ...defaultProps, hasLocalOverride: true });
+    expect(screen.getByTestId('format-painter')).toBeInTheDocument();
+  });
+
+  it('renders Theme group header', async () => {
+    renderThemeSubMenu();
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Theme');
+
+    expect(within(menu).getByText('Theme')).toBeInTheDocument();
+  });
+
+  it('renders sun icon for Light theme option', async () => {
+    renderThemeSubMenu();
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Light');
+    const lightOption = within(menu).getByText('Light').closest('li');
+
+    expect(within(lightOption!).getByTestId('sun')).toBeInTheDocument();
+  });
+
+  it('renders moon icon for Dark theme option', async () => {
+    renderThemeSubMenu();
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Dark');
+    const darkOption = within(menu).getByText('Dark').closest('li');
+
+    expect(within(darkOption!).getByTestId('moon')).toBeInTheDocument();
+  });
+
+  it('renders format-painter icon for Match system option', async () => {
+    renderThemeSubMenu({ ...defaultProps, allowOSPreference: true });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Match system');
+    const matchOption = within(menu).getByText('Match system').closest('li');
+
+    expect(
+      within(matchOption!).getByTestId('format-painter'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders clear icon for Clear local theme option', async () => {
+    renderThemeSubMenu({
+      ...defaultProps,
+      hasLocalOverride: true,
+      onClearLocalSettings: jest.fn(),
+    });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const menu = await findMenuWithText('Clear local theme');
+    const clearOption = within(menu)
+      .getByText('Clear local theme')
+      .closest('li');
+
+    expect(within(clearOption!).getByTestId('clear')).toBeInTheDocument();
+  });
+
+  it('renders divider before clear option when clear option is present', async () => {
+    renderThemeSubMenu({
+      ...defaultProps,
+      hasLocalOverride: true,
+      onClearLocalSettings: jest.fn(),
+    });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+
+    const menu = await findMenuWithText('Clear local theme');
+    const divider = within(menu).queryByRole('separator');
+
+    expect(divider).toBeInTheDocument();
+  });
+
+  it('does not render divider when clear option is not present', async () => {
+    renderThemeSubMenu({ ...defaultProps });
+
+    userEvent.hover(await screen.findByRole('menuitem'));
+    const divider = document.querySelector('.ant-menu-item-divider');
+
+    expect(divider).toBeNull();
+  });
+});

@@ -775,10 +775,10 @@ msgstr ""
 msgid "Add Dashboard"
 msgstr ""
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr ""
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr ""
 
 msgid "Add Group"
@@ -1720,7 +1720,7 @@ msgstr ""
 msgid "Autocomplete query predicate"
 msgstr ""
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr ""
 
 msgid "Autosize Column"
@@ -3094,7 +3094,7 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr ""
 
 msgid "Create a dataset"
@@ -3208,7 +3208,7 @@ msgstr ""
 msgid "Custom"
 msgstr ""
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr ""
 
 msgid "Custom Plugin"
@@ -5558,7 +5558,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -8418,7 +8418,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr ""
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr ""
 
 msgid "Results"
@@ -8972,7 +8972,7 @@ msgstr ""
 msgid "Select Tags"
 msgstr ""
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr ""
 
 msgid "Select a column"
@@ -9359,7 +9359,7 @@ msgstr ""
 msgid "Show CREATE VIEW statement"
 msgstr ""
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr ""
 
 msgid "Show Dashboard"
@@ -12747,7 +12747,7 @@ msgstr ""
 msgid "X-axis"
 msgstr ""
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr ""
 
 msgid "XYZ"
@@ -12804,7 +12804,7 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr ""
 
 msgid "Year"
@@ -13132,7 +13132,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13174,7 +13174,7 @@ msgstr ""
 msgid "background"
 msgstr ""
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr ""
 
 msgid "basis"

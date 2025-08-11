@@ -59,6 +59,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  exportPivotExcel?: (arg0: string) => void;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -167,6 +168,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
+      exportPivotExcel = () => ({}),
     },
     ref,
   ) => {
@@ -344,6 +346,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  exportPivotExcel={exportPivotExcel}
                 />
               )}
             </>

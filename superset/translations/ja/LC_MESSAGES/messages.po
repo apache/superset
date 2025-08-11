@@ -807,10 +807,10 @@ msgstr "CSSテンプレートを追加"
 msgid "Add Dashboard"
 msgstr "ダッシュボードを追加"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "仕切りを追加"
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "フィルターを追加"
 
 #, fuzzy
@@ -1764,7 +1764,7 @@ msgstr "自動補完 フィルタ"
 msgid "Autocomplete query predicate"
 msgstr "自動補完のクエリ述語"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "自動カラー"
 
 msgid "Autosize Column"
@@ -3173,7 +3173,7 @@ msgstr "国別地図"
 msgid "Create"
 msgstr "作成"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "チャートを作成"
 
 msgid "Create a dataset"
@@ -3289,7 +3289,7 @@ msgstr "現在レンダリング中: %s"
 msgid "Custom"
 msgstr "カスタム"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "カスタム条件付き書式"
 
 msgid "Custom Plugin"
@@ -5684,7 +5684,7 @@ msgstr "メールに埋め込まれた画像(PNG)"
 msgid "Image download failed, please refresh and try again."
 msgstr "イメージのダウンロードに失敗しました。更新して再試行してください。"
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "ログインユーザーの偽装 (Presto、Trino、Drill、Hive、および GSheets)"
 
 msgid "Import"
@@ -8618,7 +8618,7 @@ msgstr "リソースにはすでにレポートが添付されています。"
 msgid "Resource was not found."
 msgstr "リソースが見つかりませんでした。"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "フィルタを復元"
 
 msgid "Results"
@@ -9182,7 +9182,7 @@ msgstr "配送方法の選択"
 msgid "Select Tags"
 msgstr "タグの選択"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Viz タイプの選択"
 
 msgid "Select a column"
@@ -9585,7 +9585,7 @@ msgstr "バブルを表示"
 msgid "Show CREATE VIEW statement"
 msgstr "CREATE VIEW文を表示"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "セルバーを表示"
 
 msgid "Show Dashboard"
@@ -13141,7 +13141,7 @@ msgstr "X 軸の並べ替え"
 msgid "X-axis"
 msgstr "X軸"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "XSスケール間隔"
 
 msgid "XYZ"
@@ -13198,7 +13198,7 @@ msgstr "Y軸"
 msgid "Y-axis bounds"
 msgstr "Y 軸の境界"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Yスケール間隔"
 
 msgid "Year"
@@ -13536,7 +13536,7 @@ msgstr "「row_offset」は 0 以上でなければなりません。"
 msgid "`width` must be greater or equal to 0"
 msgstr "「幅」は 0 以上でなければなりません。"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13578,7 +13578,7 @@ msgstr "自動"
 msgid "background"
 msgstr "背景"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "基本的な条件付き書式"
 
 msgid "basis"

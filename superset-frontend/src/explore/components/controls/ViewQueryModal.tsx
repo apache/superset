@@ -42,6 +42,7 @@ const ViewQueryModalContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
@@ -86,9 +87,10 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
 
   return (
     <ViewQueryModalContainer>
-      {result.map(item =>
+      {result.map((item, index) =>
         item.query ? (
           <ViewQuery
+            key={`query-${index}`}
             datasource={latestQueryFormData.datasource}
             sql={item.query}
             language="sql"

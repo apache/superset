@@ -190,6 +190,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'first_name',
         id: 'first_name',
         Header: t('First name'),
+        size: 'lg',
         Cell: ({
           row: {
             original: { first_name },
@@ -200,6 +201,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'last_name',
         id: 'last_name',
         Header: t('Last name'),
+        size: 'lg',
         Cell: ({
           row: {
             original: { last_name },
@@ -210,6 +212,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'username',
         id: 'username',
         Header: t('Username'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { username },
@@ -220,6 +223,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'email',
         id: 'email',
         Header: t('Email'),
+        size: 'xl',
         Cell: ({
           row: {
             original: { email },
@@ -230,6 +234,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'active',
         id: 'active',
         Header: t('Is active?'),
+        size: 'sm',
         Cell: ({
           row: {
             original: { active },
@@ -240,6 +245,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'roles',
         id: 'roles',
         Header: t('Roles'),
+        size: 'lg',
         Cell: ({
           row: {
             original: { roles },
@@ -259,6 +265,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'groups',
         Header: t('Groups'),
         id: 'groups',
+        size: 'lg',
         Cell: ({
           row: {
             original: { groups },
@@ -365,12 +372,8 @@ function UsersList({ user }: UsersListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('User')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('User'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);

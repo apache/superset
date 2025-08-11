@@ -30,7 +30,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
 from sqlalchemy import Column, literal_column, types
@@ -1318,7 +1318,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
-            "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]
+            "poll_interval", app.config["PRESTO_POLL_INTERVAL"]
         )
         logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()

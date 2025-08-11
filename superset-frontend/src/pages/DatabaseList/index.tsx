@@ -61,6 +61,7 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -319,12 +320,8 @@ function DatabaseList({
     menuData.buttons = [
       {
         'data-test': 'btn-create-database',
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Database')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Database'),
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
@@ -390,12 +387,13 @@ function DatabaseList({
       {
         accessor: 'database_name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'database_name',
       },
       {
         accessor: 'backend',
         Header: t('Backend'),
-        size: 'lg',
+        size: 'xl',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
         id: 'backend',
       },
@@ -788,7 +786,12 @@ function DatabaseList({
           }}
           onHide={() => setDatabaseCurrentlyDeleting(null)}
           open
-          title={t('Delete Database?')}
+          title={
+            <ModalTitleWithIcon
+              icon={<Icons.DeleteOutlined />}
+              title={t('Delete Database?')}
+            />
+          }
         />
       )}
 

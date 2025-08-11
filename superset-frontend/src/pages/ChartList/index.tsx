@@ -71,6 +71,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -81,6 +82,7 @@ import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   a {
     overflow: hidden;
@@ -363,6 +365,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        size: 'xxl',
         id: 'slice_name',
       },
       {
@@ -373,7 +376,7 @@ function ChartList(props: ChartListProps) {
         }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Type'),
         accessor: 'viz_type',
-        size: 'xxl',
+        size: 'lg',
         id: 'viz_type',
       },
       {
@@ -386,13 +389,16 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <Tooltip title={dsNameTxt} placement="top">
-            <GenericLink to={dsUrl}>{dsNameTxt?.split('.')[1]}</GenericLink>
+            {/* dsNameTxt can be undefined, schema.name or just name */}
+            <GenericLink to={dsUrl}>
+              {dsNameTxt ? dsNameTxt.split('.')[1] || dsNameTxt : ''}
+            </GenericLink>
           </Tooltip>
         ),
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
         id: 'datasource_id',
       },
       {
@@ -404,7 +410,7 @@ function ChartList(props: ChartListProps) {
         Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
-        size: 'xxl',
+        size: 'xl',
         id: 'dashboards',
       },
       {
@@ -417,7 +423,8 @@ function ChartList(props: ChartListProps) {
           <TagsList
             tags={tags.filter((tag: TagType) =>
               tag.type
-                ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                ? tag.type === TagTypeEnum.Custom ||
+                  tag.type === 'TagTypes.custom'
                 : true,
             )}
             maxTags={3}
@@ -426,6 +433,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
+        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
       },
@@ -763,28 +771,8 @@ function ChartList(props: ChartListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete || canExport) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      buttonStyle: 'secondary',
-      'data-test': 'bulk-select',
-      onClick: toggleBulkSelect,
-    });
-  }
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          <span>{t('Chart')}</span>
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        history.push('/chart/add');
-      },
-    });
 
+  if (canCreate) {
     subMenuButtons.push({
       name: (
         <Tooltip
@@ -797,6 +785,26 @@ function ChartList(props: ChartListProps) {
       ),
       buttonStyle: 'link',
       onClick: openChartImportModal,
+    });
+  }
+
+  if (canDelete || canExport) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
+      onClick: toggleBulkSelect,
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Chart'),
+      buttonStyle: 'primary',
+      onClick: () => {
+        history.push('/chart/add');
+      },
     });
   }
 
@@ -817,6 +825,7 @@ function ChartList(props: ChartListProps) {
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -851,7 +860,7 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
-              enableBulkTag
+              enableBulkTag={enableBulkTag}
               bulkTagResourceName="chart"
               addSuccessToast={addSuccessToast}
               addDangerToast={addDangerToast}
