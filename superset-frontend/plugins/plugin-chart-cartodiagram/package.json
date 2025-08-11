@@ -43,7 +43,7 @@
     "geostyler-data": "^1.0.0",
     "geostyler-openlayers-parser": "^4.0.0",
     "geostyler-style": "^7.2.0",
-    "geostyler-wfs-parser": "^2.0.0",
+    "geostyler-wfs-parser": "^3.0.1",
     "ol": "^7.1.0",
     "polished": "*",
     "react": "^17.0.2",
