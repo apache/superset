@@ -29,6 +29,7 @@ from typing import (
     Callable,
     cast,
     ContextManager,
+    Literal,
     NamedTuple,
     TYPE_CHECKING,
     TypedDict,
@@ -168,6 +169,15 @@ def compile_timegrain_expression(
     element: TimestampExpression, compiler: Compiled, **kwargs: Any
 ) -> str:
     return element.name.replace("{col}", compiler.process(element.col, **kwargs))
+
+
+class ExpressionValidationResult(TypedDict):
+    """
+    Result from SQL expression validation.
+    """
+
+    is_valid: bool
+    errors: list[dict[str, Any]]
 
 
 class MetricType(TypedDict, total=False):
@@ -1352,6 +1362,309 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extra={"engine_name": cls.engine_name},
             )
         ]
+
+    @classmethod
+    def validate_sql_expression(
+        cls,
+        expression: str,
+        expression_type: Literal["column", "metric", "where", "having"],
+        dataset: Any | None = None,
+        database: Database | None = None,
+    ) -> ExpressionValidationResult:
+        """
+        Validate a SQL expression for safety and correctness.
+
+        This method provides complete validation service including:
+        - Query construction with proper predicates to prevent full scans
+        - Database-specific optimizations
+        - Error extraction and translation
+
+        :param expression: The SQL expression to validate
+        :param expression_type: Type of expression (column, metric, where, having)
+        :param dataset: Optional SqlaTable dataset for context (includes predicates)
+        :param database: Database connection to use for validation
+        :return: ExpressionValidationResult with is_valid flag and any errors
+        """
+        from superset.sql_validators.base import SQLValidationAnnotation
+        from superset.utils import core as utils
+
+        # Early validation
+        if not expression or not expression.strip():
+            error = SQLValidationAnnotation(
+                message="Expression cannot be empty",
+                line_number=1,
+                start_column=0,
+                end_column=0,
+            )
+            return ExpressionValidationResult(is_valid=False, errors=[error.to_dict()])
+
+        if not database:
+            error = SQLValidationAnnotation(
+                message="Database connection is required for validation",
+                line_number=1,
+                start_column=0,
+                end_column=len(expression),
+            )
+            return ExpressionValidationResult(is_valid=False, errors=[error.to_dict()])
+
+        # Build validation query
+        try:
+            validation_query = cls._build_expression_validation_query(
+                expression=expression,
+                expression_type=expression_type,
+                dataset=dataset,
+                database=database,
+            )
+        except Exception as ex:
+            logger.debug(f"Failed to build validation query: {ex}")
+            error = SQLValidationAnnotation(
+                message=f"Failed to prepare validation query: {str(ex)}",
+                line_number=1,
+                start_column=0,
+                end_column=len(expression),
+            )
+            return ExpressionValidationResult(is_valid=False, errors=[error.to_dict()])
+
+        # Execute validation with timeout
+        timeout = app.config.get("SQLLAB_VALIDATION_TIMEOUT", 30)
+        timeout_msg = f"The validation query exceeded the {timeout} seconds timeout."
+
+        try:
+            with database.get_sqla_engine(
+                catalog=getattr(dataset, "catalog", None) if dataset else None,
+                schema=getattr(dataset, "schema", None) if dataset else None,
+            ) as engine:
+                with engine.connect() as connection:
+                    with utils.timeout(seconds=timeout, error_message=timeout_msg):
+                        connection.execute(validation_query)
+                        return ExpressionValidationResult(is_valid=True, errors=[])
+
+        except Exception as ex:
+            # Use engine's error extraction capabilities
+            errors = cls.extract_errors(ex, context={"expression": expression})
+
+            # Convert SupersetError to validation annotations
+            validation_errors = []
+            for superset_error in errors:
+                # Clean up error message
+                cleaned_message = cls._clean_validation_error_message(
+                    superset_error.message,
+                    expression,
+                    expression_type,
+                )
+
+                annotation = SQLValidationAnnotation(
+                    message=cleaned_message,
+                    line_number=1,
+                    start_column=0,
+                    end_column=len(expression),
+                )
+                validation_errors.append(annotation.to_dict())
+
+            return ExpressionValidationResult(is_valid=False, errors=validation_errors)
+
+    @classmethod
+    def _build_expression_validation_query(
+        cls,
+        expression: str,
+        expression_type: Literal["column", "metric", "where", "having"],
+        dataset: Any | None,
+        database: Database,
+    ) -> Any:
+        """
+        Build a validation query for the expression.
+
+        This method can be overridden by specific engines to optimize validation.
+        For example, Hive might use LIMIT 0, BigQuery might use different predicates.
+
+        :param expression: The SQL expression to validate
+        :param expression_type: Type of expression
+        :param dataset: Optional dataset for context
+        :param database: Database connection
+        :return: A SQLAlchemy query object ready for execution
+        """
+        from sqlalchemy import literal, select
+
+        # Get table reference and predicates
+        table_ref, fetch_predicate = cls._extract_table_context(dataset, database)
+
+        # If no table reference, create a dummy subquery
+        if not table_ref:
+            table_ref = select(literal(1)).subquery("dummy_table")
+
+        # Build the validation query based on expression type
+        if expression_type == "where":
+            return cls._build_where_validation_query(
+                expression, table_ref, fetch_predicate
+            )
+        elif expression_type == "having":
+            return cls._build_having_validation_query(
+                expression, table_ref, fetch_predicate
+            )
+        elif expression_type == "metric":
+            return cls._build_metric_validation_query(
+                expression, table_ref, fetch_predicate
+            )
+        else:  # column
+            return cls._build_column_validation_query(
+                expression, table_ref, fetch_predicate
+            )
+
+    @classmethod
+    def _extract_table_context(
+        cls, dataset: Any | None, database: Database
+    ) -> tuple[Any, str | None]:
+        """Extract table reference and fetch predicate from dataset."""
+        from sqlalchemy import text
+
+        if not dataset:
+            return None, None
+
+        table_ref = None
+        fetch_predicate = None
+
+        # Build fully qualified table name
+        table_parts = []
+        if hasattr(dataset, "catalog") and dataset.catalog:
+            table_parts.append(database.quote_identifier(dataset.catalog))
+        if hasattr(dataset, "schema") and dataset.schema:
+            table_parts.append(database.quote_identifier(dataset.schema))
+        if hasattr(dataset, "table_name") and dataset.table_name:
+            table_parts.append(database.quote_identifier(dataset.table_name))
+
+        if table_parts:
+            table_ref = text(".".join(table_parts))
+
+        # Get fetch_values_predicate if available
+        if (
+            hasattr(dataset, "fetch_values_predicate")
+            and dataset.fetch_values_predicate
+        ):
+            fetch_predicate = dataset.fetch_values_predicate
+
+        return table_ref, fetch_predicate
+
+    @classmethod
+    def _build_where_validation_query(
+        cls, expression: str, table_ref: Any, fetch_predicate: str | None
+    ) -> Any:
+        """Build validation query for WHERE clause."""
+        from sqlalchemy import literal, select, text
+
+        base_query = select(literal(1)).select_from(table_ref)
+        # Combine fetch predicate with safety predicate
+        if fetch_predicate:
+            combined_predicate = f"({expression}) AND ({fetch_predicate}) AND 0=1"
+        else:
+            combined_predicate = f"({expression}) AND 0=1"
+        return base_query.where(text(combined_predicate))
+
+    @classmethod
+    def _build_having_validation_query(
+        cls, expression: str, table_ref: Any, fetch_predicate: str | None
+    ) -> Any:
+        """Build validation query for HAVING clause."""
+        from sqlalchemy import literal, select, text
+
+        base_query = (
+            select(literal(1)).select_from(table_ref).where(literal(0) == literal(1))
+        )
+        # Apply fetch predicate if available
+        if fetch_predicate:
+            base_query = base_query.where(text(fetch_predicate))
+        return base_query.group_by(literal(1)).having(text(expression))
+
+    @classmethod
+    def _build_metric_validation_query(
+        cls, expression: str, table_ref: Any, fetch_predicate: str | None
+    ) -> Any:
+        """Build validation query for metric (aggregation) expression."""
+        from sqlalchemy import literal, select, text
+
+        base_query = (
+            select(text(expression).label("test_metric"))
+            .select_from(table_ref)
+            .where(literal(0) == literal(1))
+        )
+        # Apply fetch predicate if available
+        if fetch_predicate:
+            base_query = base_query.where(text(fetch_predicate))
+        return base_query
+
+    @classmethod
+    def _build_column_validation_query(
+        cls, expression: str, table_ref: Any, fetch_predicate: str | None
+    ) -> Any:
+        """Build validation query for column expression."""
+        from sqlalchemy import literal, select, text
+
+        base_query = (
+            select(text(expression).label("test_column"))
+            .select_from(table_ref)
+            .where(literal(0) == literal(1))
+        )
+        # Apply fetch predicate if available
+        if fetch_predicate:
+            base_query = base_query.where(text(fetch_predicate))
+        return base_query
+
+    @classmethod
+    def _clean_validation_error_message(
+        cls,
+        error_message: str,
+        expression: str,
+        expression_type: str,
+    ) -> str:
+        """
+        Clean up error messages from validation queries.
+
+        Removes wrapper query artifacts and provides user-friendly messages.
+
+        :param error_message: Raw error message from database
+        :param expression: The original expression being validated
+        :param expression_type: Type of expression
+        :return: Cleaned error message
+        """
+        import re
+
+        # Remove common wrapper artifacts
+        cleanup_patterns = [
+            r"\s+WHERE\s+0\s*=\s*1",
+            r"\s+AND\s+0\s*=\s*1",
+            r"\s+GROUP\s+BY\s+1",
+            r"\s+AS\s+test_column",
+            r"\s+AS\s+test_metric",
+            r"\s+AS\s+test_expr",
+            r"FROM\s+\(SELECT\s+1\)\s+AS\s+dummy_table",
+        ]
+
+        cleaned = error_message
+        for pattern in cleanup_patterns:
+            cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+
+        # Improve common error messages
+        if "does not exist" in cleaned.lower():
+            if "function" in cleaned.lower():
+                # Extract function name
+                match = re.search(r'function\s+"?(\w+)"?\s*\(', cleaned, re.IGNORECASE)
+                if match:
+                    func_name = match.group(1)
+                    return (
+                        f"Function '{func_name}' does not exist or has "
+                        "incorrect arguments"
+                    )
+            elif "column" in cleaned.lower():
+                # Extract column name
+                match = re.search(r'column\s+"?([^"]+)"?', cleaned, re.IGNORECASE)
+                if match:
+                    col_name = match.group(1)
+                    return f"Column '{col_name}' does not exist in the table"
+            elif "table" in cleaned.lower() or "relation" in cleaned.lower():
+                return "Table or view does not exist or is not accessible"
+
+        # Return cleaned message or a generic one if empty
+        cleaned = cleaned.strip()
+        return cleaned if cleaned else f"Invalid {expression_type} expression"
 
     @classmethod
     def adjust_engine_params(  # pylint: disable=unused-argument
