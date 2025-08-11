@@ -456,11 +456,17 @@ class QueryContextProcessor:
             return f"{(outer_from_dttm - offset_date).days} days ago"
         return ""
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements  # noqa: C901
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements # noqa: C901
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
     ) -> CachedTimeOffset:
+        """
+        Process time offsets for time comparison feature.
+
+        This method handles both relative time offsets (e.g., "1 week ago") and
+        absolute date range offsets (e.g., "2015-01-03 : 2015-01-04").
+        """
         query_context = self._query_context
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
@@ -550,11 +556,10 @@ class QueryContextProcessor:
             # Get time offset index
             index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
 
-            # Handle temporal filters
             if is_date_range_offset and feature_flag_manager.is_feature_enabled(
                 "DATE_RANGE_TIMESHIFTS_ENABLED"
             ):
-                # Create a completely new filter list to avoid conflicts
+                # Create a completely new filter list to preserve original filters
                 query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
                 # Remove any existing temporal filters that might conflict
@@ -564,8 +569,12 @@ class QueryContextProcessor:
                     if not (flt.get("op") == FilterOperator.TEMPORAL_RANGE)
                 ]
 
-                # Add our specific temporal filter
-                temporal_col = query_object_clone.granularity or x_axis_label
+                # Determine the temporal column with multiple fallback strategies
+                temporal_col = self._get_temporal_column_for_filter(
+                    query_object_clone, x_axis_label
+                )
+
+                # Always add a temporal filter for date range offsets
                 if temporal_col:
                     new_temporal_filter: QueryObjectFilterClause = {
                         "col": temporal_col,
@@ -577,7 +586,17 @@ class QueryContextProcessor:
                     }
                     query_object_clone.filter.append(new_temporal_filter)
 
+                else:
+                    # This should rarely happen with proper fallbacks
+                    raise QueryObjectValidationError(
+                        _(
+                            "Unable to identify temporal column for date range time comparison."  # noqa: E501
+                            "Please ensure your dataset has a properly configured time column."  # noqa: E501
+                        )
+                    )
+
             else:
+                # RELATIVE OFFSET: Original logic for non-date-range offsets
                 # The comparison is not using a temporal column so we need to modify
                 # the temporal filter so we run the query with the correct time range
                 if not dataframe_utils.is_datetime_series(df.get(index)):
@@ -600,8 +619,7 @@ class QueryContextProcessor:
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
                 else:
-                    # If it IS a datetime series, we still need to clear conflicting
-                    # filters
+                    # If it IS a datetime series, we still need to clear conflicts
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
                     # For relative offsets with datetime series, ensure the temporal
@@ -629,7 +647,7 @@ class QueryContextProcessor:
                 )
             ]
 
-            # Continue with the rest of the method...
+            # Continue with the rest of the method (caching, execution, etc.)
             cached_time_offset_key = (
                 offset if offset == original_offset else f"{offset}_{original_offset}"
             )
@@ -712,6 +730,40 @@ class QueryContextProcessor:
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+
+    def _get_temporal_column_for_filter(  # noqa: C901
+        self, query_object: QueryObject, x_axis_label: str | None
+    ) -> str | None:
+        """
+        Helper method to reliably determine the temporal column for filtering.
+
+        This method tries multiple strategies to find the correct temporal column:
+        1. Use explicitly set granularity
+        2. Use x_axis_label if it's a temporal column
+        3. Find any datetime column in the datasource
+
+        :param query_object: The query object
+        :param x_axis_label: The x-axis label from the query
+        :return: The name of the temporal column, or None if not found
+        """
+        # Strategy 1: Use explicitly set granularity
+        if query_object.granularity:
+            return query_object.granularity
+
+        # Strategy 2: Use x_axis_label if it exists
+        if x_axis_label:
+            return x_axis_label
+
+        # Strategy 3: Find any datetime column in the datasource
+        if hasattr(self._qc_datasource, "columns"):
+            for col in self._qc_datasource.columns:
+                if hasattr(col, "is_dttm") and col.is_dttm:
+                    if hasattr(col, "column_name"):
+                        return col.column_name
+                    elif hasattr(col, "name"):
+                        return col.name
+
+        return None
 
     def _process_date_range_offset(
         self, offset_df: pd.DataFrame, join_keys: list[str]
