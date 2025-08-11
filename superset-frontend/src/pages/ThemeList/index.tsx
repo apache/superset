@@ -234,93 +234,81 @@ function ThemesList({
     addSuccessToast(t('Theme imported'));
   };
 
-  const handleSetSystemDefault = (theme: ThemeObject) => {
+  // Generic confirmation modal utility to reduce code duplication
+  const showThemeConfirmation = (config: {
+    title: string;
+    content: string;
+    onConfirm: () => Promise<any>;
+    successMessage: string;
+    errorMessage: string;
+  }) => {
     Modal.confirm({
+      title: config.title,
+      content: config.content,
+      onOk: () => {
+        config
+          .onConfirm()
+          .then(() => {
+            refreshData();
+            addSuccessToast(config.successMessage);
+          })
+          .catch(err => {
+            addDangerToast(t(config.errorMessage, err.message));
+          });
+      },
+    });
+  };
+
+  const handleSetSystemDefault = (theme: ThemeObject) => {
+    showThemeConfirmation({
       title: t('Set System Default Theme'),
       content: t(
         'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
         theme.theme_name,
       ),
-      onOk: () => {
-        setSystemDefaultTheme(theme.id!)
-          .then(() => {
-            refreshData();
-            addSuccessToast(
-              t('"%s" is now the system default theme', theme.theme_name),
-            );
-          })
-          .catch(err => {
-            addDangerToast(
-              t('Failed to set system default theme: %s', err.message),
-            );
-          });
-      },
+      onConfirm: () => setSystemDefaultTheme(theme.id!),
+      successMessage: t(
+        '"%s" is now the system default theme',
+        theme.theme_name,
+      ),
+      errorMessage: 'Failed to set system default theme: %s',
     });
   };
 
   const handleSetSystemDark = (theme: ThemeObject) => {
-    Modal.confirm({
+    showThemeConfirmation({
       title: t('Set System Dark Theme'),
       content: t(
         'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
         theme.theme_name,
       ),
-      onOk: () => {
-        setSystemDarkTheme(theme.id!)
-          .then(() => {
-            refreshData();
-            addSuccessToast(
-              t('"%s" is now the system dark theme', theme.theme_name),
-            );
-          })
-          .catch(err => {
-            addDangerToast(
-              t('Failed to set system dark theme: %s', err.message),
-            );
-          });
-      },
+      onConfirm: () => setSystemDarkTheme(theme.id!),
+      successMessage: t('"%s" is now the system dark theme', theme.theme_name),
+      errorMessage: 'Failed to set system dark theme: %s',
     });
   };
 
   const handleUnsetSystemDefault = () => {
-    Modal.confirm({
+    showThemeConfirmation({
       title: t('Remove System Default Theme'),
       content: t(
         'Are you sure you want to remove the system default theme? The application will fall back to the configuration file default.',
       ),
-      onOk: () => {
-        unsetSystemDefaultTheme()
-          .then(() => {
-            refreshData();
-            addSuccessToast(t('System default theme removed'));
-          })
-          .catch(err => {
-            addDangerToast(
-              t('Failed to remove system default theme: %s', err.message),
-            );
-          });
-      },
+      onConfirm: () => unsetSystemDefaultTheme(),
+      successMessage: t('System default theme removed'),
+      errorMessage: 'Failed to remove system default theme: %s',
     });
   };
 
   const handleUnsetSystemDark = () => {
-    Modal.confirm({
+    showThemeConfirmation({
       title: t('Remove System Dark Theme'),
       content: t(
         'Are you sure you want to remove the system dark theme? The application will fall back to the configuration file dark theme.',
       ),
-      onOk: () => {
-        unsetSystemDarkTheme()
-          .then(() => {
-            refreshData();
-            addSuccessToast(t('System dark theme removed'));
-          })
-          .catch(err => {
-            addDangerToast(
-              t('Failed to remove system dark theme: %s', err.message),
-            );
-          });
-      },
+      onConfirm: () => unsetSystemDarkTheme(),
+      successMessage: t('System dark theme removed'),
+      errorMessage: 'Failed to remove system dark theme: %s',
     });
   };
 
