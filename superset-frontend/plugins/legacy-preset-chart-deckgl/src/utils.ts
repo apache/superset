@@ -25,9 +25,14 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
+import { Color } from '@deck.gl/core';
 import { GeoBoundingBox, TileLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { hexToRGB } from './utils/colors';
+import { ColorBreakpointType } from './types';
+
+export const TRANSPARENT_COLOR_ARRAY = [0, 0, 0, 0] as Color;
+export const HIGHLIGHT_COLOR_ARRAY = [255, 0, 0, 255] as Color;
 
 const DEFAULT_NUM_BUCKETS = 10;
 
@@ -99,7 +104,7 @@ export function getBreakPointColorScaler(
   }: BucketsWithColorScale,
   features: JsonObject[],
   accessor: (value: JsonObject) => number | undefined,
-) {
+): (data?: JsonObject) => Color {
   const breakPoints =
     formDataBreakPoints || formDataNumBuckets
       ? getBreakPoints(
@@ -119,7 +124,7 @@ export function getBreakPointColorScaler(
     : getSequentialSchemeRegistry().get(linearColorScheme);
 
   if (!colorScheme) {
-    return null;
+    return () => TRANSPARENT_COLOR_ARRAY;
   }
   let scaler: ScaleLinear<string, string> | ScaleThreshold<number, string>;
   let maskPoint: (v: number | undefined) => boolean;
@@ -155,10 +160,10 @@ export function getBreakPointColorScaler(
     maskPoint = () => false;
   }
 
-  return (d: JsonObject): [number, number, number, number] => {
+  return (d: JsonObject): Color => {
     const v = accessor(d);
     if (!v) {
-      return [0, 0, 0, 0];
+      return TRANSPARENT_COLOR_ARRAY;
     }
     const c = hexToRGB(scaler(v));
     if (maskPoint(v)) {
@@ -180,7 +185,7 @@ export function getBuckets(
   const colorScaler = getBreakPointColorScaler(fd, features, accessor);
   const buckets: Record<
     string,
-    { color: [number, number, number, number] | undefined; enabled: boolean }
+    { color: Color | undefined; enabled: boolean }
   > = {};
   breakPoints.slice(1).forEach((_, i) => {
     const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
@@ -190,6 +195,29 @@ export function getBuckets(
     const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
     buckets[range] = {
       color: colorScaler?.({ [metricLabel || fd.metric]: mid }),
+      enabled: true,
+    };
+  });
+
+  return buckets;
+}
+
+export function getColorBreakpointsBuckets(
+  colorBreakpoints: ColorBreakpointType[],
+) {
+  const breakpoints = colorBreakpoints || [];
+
+  const buckets: Record<string, { color: Color; enabled: boolean }> = {};
+
+  if (!breakpoints || !breakpoints.length) {
+    return buckets;
+  }
+
+  breakpoints.forEach((breakpoint: ColorBreakpointType) => {
+    const range = `${breakpoint.minValue} - ${breakpoint.maxValue}`;
+
+    buckets[range] = {
+      color: [breakpoint.color.r, breakpoint.color.g, breakpoint.color.b],
       enabled: true,
     };
   });

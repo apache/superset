@@ -80,7 +80,7 @@ yarn-error.log
 *.min.js
 test-changelog.md
 *.tsbuildinfo
-.venv
+
 # Ignore package-lock in packages
 plugins/*/package-lock.json
 packages/*/package-lock.json
@@ -92,6 +92,7 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
+.venv
 @eaDir/
 
 # PyCharm
@@ -126,4 +127,8 @@ docker/*local*
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
+
+# LLM-related
+CLAUDE.local.md
 .aider*
+.claude_rc*

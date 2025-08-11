@@ -23,8 +23,11 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
   AdhocFilter,
+  ContextMenuFilters,
+  DataMask,
   Datasource,
   ensureIsArray,
+  FilterState,
   HandlerFunction,
   isDefined,
   JsonObject,
@@ -65,7 +68,15 @@ export type DeckMultiProps = {
   height: number;
   width: number;
   datasource: Datasource;
+  setDataMask?: (dataMask: DataMask) => void;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
   onSelect: () => void;
+  filterState?: FilterState;
+  emitCrossFilters?: boolean;
 };
 
 const DeckMulti = (props: DeckMultiProps) => {
@@ -175,16 +186,14 @@ const DeckMulti = (props: DeckMultiProps) => {
   const createLayerFromData = useCallback(
     (subslice: JsonObject, json: JsonObject): Layer =>
       // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
-      layerGenerators[subslice.form_data.viz_type](
-        subslice.form_data,
-        json,
-        props.onAddFilter,
+      layerGenerators[subslice.form_data.viz_type]({
+        formData: subslice.form_data,
+        payload: json,
         setTooltip,
-        props.datasource,
-        [],
-        props.onSelect,
-      ),
-    [props.onAddFilter, props.onSelect, props.datasource, setTooltip],
+        datasource: props.datasource,
+        onSelect: props.onSelect,
+      }),
+    [props.onSelect, props.datasource, setTooltip],
   );
 
   const loadSingleLayer = useCallback(

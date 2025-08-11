@@ -23,7 +23,6 @@ const VALIDE_OSM_URLS = ['https://tile.osm', 'https://tile.openstreetmap'];
 
 /**
  * Validate a [Mapbox styles URL](https://docs.mapbox.com/help/glossary/style-url/)
- * or a title server URL.
  * @param v
  */
 export default function validateMapboxStylesUrl(v: unknown) {

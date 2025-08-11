@@ -135,12 +135,8 @@ function TagList(props: TagListProps) {
     description:
       'Create a new tag and assign it to existing entities like charts or dashboards',
     buttonAction: () => setShowTagModal(true),
-    buttonText: (
-      <>
-        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
-        Create a new Tag
-      </>
-    ),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
+    buttonText: t('Create a new Tag'),
   };
 
   const columns = useMemo(
@@ -176,6 +172,7 @@ function TagList(props: TagListProps) {
         ),
         Header: t('Name'),
         accessor: 'name',
+        size: 'xxl',
         id: 'name',
       },
       {
@@ -328,11 +325,8 @@ function TagList(props: TagListProps) {
 
   // render new 'New Tag' btn
   subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined iconSize="m" /> {t('Tag')}
-      </>
-    ),
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Tag'),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
     onClick: () => setShowTagModal(true),

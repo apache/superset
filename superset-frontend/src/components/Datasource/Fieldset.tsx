@@ -18,6 +18,7 @@
  */
 import { ReactNode, useCallback } from 'react';
 import { Divider, Form, Typography } from '@superset-ui/core/components';
+import { css } from '@superset-ui/core';
 import { recurseReactClone } from './utils';
 import Field from './Field';
 
@@ -57,7 +58,12 @@ export default function Fieldset({
   return (
     <Form className="CRUD" layout="vertical">
       {title && (
-        <Typography.Title level={5}>
+        <Typography.Title
+          level={5}
+          css={css`
+            margin-top: 0.5em;
+          `}
+        >
           {title} <Divider />
         </Typography.Title>
       )}
