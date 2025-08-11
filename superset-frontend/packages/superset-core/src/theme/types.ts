@@ -237,6 +237,11 @@ export interface SupersetSpecificTokens {
    * Fallback: transparent
    */
   buttonSecondaryActiveBorderColor?: string;
+
+  // Login page customization
+  loginPageBackgroundImageUrl?: string;
+  loginFormBrandLogoUrl?: string;
+  loginPageBackgroundOverlayColor?: string;
 }
 
 /**
