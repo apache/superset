@@ -373,9 +373,27 @@ const Select = forwardRef(
         setSelectOptions(updatedOptions);
       }
 
-      const filteredOptions = updatedOptions.filter(
-        (option: AntdLabeledValue) => handleFilterOption(search, option),
-      );
+      const filteredOptions = updatedOptions
+        .map((option: any) => {
+          /*
+          If it's a group, filter its nested options and only return it
+          if it has matching options
+          */
+          if ('options' in option && Array.isArray(option.options)) {
+            const filteredGroupOptions = option.options.filter(
+              (subOption: AntdLabeledValue) =>
+                handleFilterOption(search, subOption),
+            );
+            return filteredGroupOptions.length > 0
+              ? { ...option, options: filteredGroupOptions }
+              : null;
+          }
+
+          return handleFilterOption(search, option as AntdLabeledValue)
+            ? option
+            : null;
+        })
+        .filter((option): option is AntdLabeledValue => option !== null);
 
       setVisibleOptions(filteredOptions);
       setInputValue(searchValue);
