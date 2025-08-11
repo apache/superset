@@ -22,10 +22,10 @@ import {
   userEvent,
   waitFor,
   within,
-} from '@superset-ui/core/spec';
+} from 'spec/helpers/testing-library';
 import { ThemeMode } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components';
-import { ThemeSubMenuProps, useThemeMenuItems } from '.';
+import { ThemeSubMenuProps, useThemeMenuItems } from './useThemeMenuItems';
 
 // Mock the translation function
 jest.mock('@superset-ui/core', () => ({

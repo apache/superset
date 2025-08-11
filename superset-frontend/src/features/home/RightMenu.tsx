@@ -34,7 +34,6 @@ import {
 import {
   Tag,
   Tooltip,
-  useThemeMenuItems,
   Menu,
   Icons,
   Typography,
@@ -54,6 +53,7 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
+import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
 import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
