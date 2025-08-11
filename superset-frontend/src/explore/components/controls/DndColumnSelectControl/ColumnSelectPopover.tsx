@@ -42,13 +42,13 @@ import {
   Form,
   FormItem,
   Select,
-  SQLEditor,
   EmptyState,
 } from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -86,6 +86,7 @@ export interface ColumnSelectPopoverProps {
   isTemporal?: boolean;
   setDatasetModal?: Dispatch<SetStateAction<boolean>>;
   disabledTabs?: Set<string>;
+  datasource?: any;
 }
 
 const getInitialColumnValues = (
@@ -115,6 +116,7 @@ const ColumnSelectPopover = ({
   setDatasetModal,
   setLabel,
   disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
+  datasource,
 }: ColumnSelectPopoverProps) => {
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
@@ -274,11 +276,6 @@ const ColumnSelectPopover = ({
     },
     [getCurrentTab],
   );
-
-  const onSqlEditorFocus = useCallback(() => {
-    // @ts-ignore
-    sqlEditorRef.current?.editor.resize();
-  }, []);
 
   const setDatasetAndClose = () => {
     if (setDatasetModal) {
@@ -459,24 +456,36 @@ const ColumnSelectPopover = ({
             disabled: disabledTabs.has('sqlExpression'),
             children: (
               <>
-                <SQLEditor
+                <SQLEditorWithValidation
                   value={
                     adhocColumn?.sqlExpression ||
                     selectedSimpleColumn?.column_name ||
-                    selectedCalculatedColumn?.expression
+                    selectedCalculatedColumn?.expression ||
+                    ''
                   }
-                  onFocus={onSqlEditorFocus}
+                  onRef={(ref: any) => {
+                    sqlEditorRef.current = ref;
+                  }}
                   showLoadingForImport
                   onChange={onSqlExpressionChange}
                   width="100%"
-                  height={`${height - 80}px`}
+                  height={`${height - 120}px`}
                   showGutter={false}
                   editorProps={{ $blockScrolling: true }}
                   enableLiveAutocompletion
                   className="filter-sql-editor"
                   wrapEnabled
-                  ref={sqlEditorRef}
-                  keywords={keywords}
+                  keywords={keywords.map((k: any) =>
+                    typeof k === 'string' ? k : k.value || k.name || k,
+                  )}
+                  showValidation
+                  expressionType="column"
+                  databaseId={datasource?.database?.id}
+                  tableName={
+                    datasource?.datasource_name || datasource?.table_name
+                  }
+                  schema={datasource?.schema}
+                  catalog={datasource?.catalog}
                 />
               </>
             ),

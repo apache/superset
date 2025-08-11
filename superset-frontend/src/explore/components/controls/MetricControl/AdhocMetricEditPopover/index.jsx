@@ -35,7 +35,6 @@ import {
   Icons,
   Select,
   Tooltip,
-  SQLEditor,
 } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
@@ -54,6 +53,7 @@ import {
   StyledColumnOption,
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -480,12 +480,12 @@ export default class AdhocMetricEditPopover extends PureComponent {
               ),
               disabled: extra.disallow_adhoc_metrics,
               children: (
-                <SQLEditor
+                <SQLEditorWithValidation
                   data-test="sql-editor"
                   showLoadingForImport
-                  ref={this.handleAceEditorRef}
+                  onRef={this.handleAceEditorRef}
                   keywords={keywords}
-                  height={`${this.state.height - 80}px`}
+                  height={`${this.state.height - 120}px`}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
@@ -497,6 +497,14 @@ export default class AdhocMetricEditPopover extends PureComponent {
                   enableLiveAutocompletion
                   className="filter-sql-editor"
                   wrapEnabled
+                  showValidation
+                  expressionType="metric"
+                  databaseId={datasource?.database?.id}
+                  tableName={
+                    datasource?.datasource_name || datasource?.table_name
+                  }
+                  schema={datasource?.schema}
+                  catalog={datasource?.catalog}
                 />
               ),
             },
