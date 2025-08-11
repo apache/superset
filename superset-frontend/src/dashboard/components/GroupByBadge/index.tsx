@@ -169,7 +169,101 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     });
   }, [chartCustomizationItems, chartDataset]);
 
-  const groupByCount = applicableGroupBys.length;
+  const chart = useSelector<RootState, any>(state => state.charts[chartId]);
+  const chartType = chart?.latestQueryFormData?.viz_type;
+
+  const effectiveGroupBys = useMemo(() => {
+    if (!chartType || applicableGroupBys.length === 0) {
+      return [];
+    }
+
+    if (chartType === 'big_number' || chartType === 'big_number_total') {
+      return [];
+    }
+
+    const chartFormData = chart?.latestQueryFormData;
+    if (!chartFormData) {
+      return applicableGroupBys;
+    }
+
+    const existingColumns = new Set<string>();
+
+    const existingGroupBy = Array.isArray(chartFormData.groupby)
+      ? chartFormData.groupby
+      : chartFormData.groupby
+        ? [chartFormData.groupby]
+        : [];
+    existingGroupBy.forEach((col: string) => existingColumns.add(col));
+
+    if (chartFormData.x_axis) {
+      existingColumns.add(chartFormData.x_axis);
+    }
+
+    const metrics = chartFormData.metrics || [];
+    metrics.forEach((metric: any) => {
+      if (typeof metric === 'string') {
+        existingColumns.add(metric);
+      } else if (metric && typeof metric === 'object' && 'column' in metric) {
+        const metricColumn = metric.column;
+        if (typeof metricColumn === 'string') {
+          existingColumns.add(metricColumn);
+        } else if (
+          metricColumn &&
+          typeof metricColumn === 'object' &&
+          'column_name' in metricColumn
+        ) {
+          existingColumns.add(metricColumn.column_name);
+        }
+      }
+    });
+
+    if (chartFormData.series) {
+      existingColumns.add(chartFormData.series);
+    }
+    if (chartFormData.entity) {
+      existingColumns.add(chartFormData.entity);
+    }
+
+    if (chartType === 'box_plot') {
+      const boxPlotColumns = chartFormData.columns || [];
+      if (Array.isArray(boxPlotColumns)) {
+        boxPlotColumns.forEach((col: any) => {
+          if (typeof col === 'string') {
+            existingColumns.add(col);
+          } else if (col && typeof col === 'object' && 'column_name' in col) {
+            existingColumns.add(col.column_name);
+          }
+        });
+      }
+    }
+
+    return applicableGroupBys.filter(item => {
+      if (!item.customization?.column) return false;
+
+      let columnNames: string[] = [];
+      if (typeof item.customization.column === 'string') {
+        columnNames = [item.customization.column];
+      } else if (Array.isArray(item.customization.column)) {
+        columnNames = item.customization.column.filter(
+          col => typeof col === 'string' && col.trim() !== '',
+        );
+      } else if (
+        typeof item.customization.column === 'object' &&
+        item.customization.column !== null
+      ) {
+        const columnObj = item.customization.column as any;
+        const columnName =
+          columnObj.column_name || columnObj.name || String(columnObj);
+        if (columnName && columnName.trim() !== '') {
+          columnNames = [columnName];
+        }
+      }
+
+      return columnNames.length > 0;
+    });
+  }, [applicableGroupBys, chartType, chart]);
+
+  const groupByCount = effectiveGroupBys.length;
 
   if (groupByCount === 0) {
     return null;
@@ -181,7 +275,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
           {t('Chart Customization (%d)', applicableGroupBys.length)}
         </SectionName>
         <GroupByInfo>
-          {applicableGroupBys.map(groupBy => (
+          {effectiveGroupBys.map(groupBy => (
             <GroupByItem key={groupBy.id}>
               <div>
                 {groupBy.customization?.name &&
