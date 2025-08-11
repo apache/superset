@@ -51,6 +51,7 @@ export type EchartsGraphFormData = QueryFormData &
     edgeLength: number;
     edgeSymbol: string;
     friction: number;
+    showLegendToggle: boolean;
   };
 
 export type EChartGraphNode = Omit<GraphNodeItemOption, 'value'> & {
