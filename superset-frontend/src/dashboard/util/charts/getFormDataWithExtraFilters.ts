@@ -112,11 +112,11 @@ function processGroupByCustomizations(
   chartCustomizationItems: ChartCustomizationItem[],
   chart: ChartQueryPayload,
   groupByState: Record<string, { selectedValues: string[] }>,
-  chartCustomizationDataMask: Record<string, DataMask>,
 ): {
   groupby?: string[];
   order_by_cols?: string[];
   filters?: any[];
+  x_axis?: string;
 } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
     return {};
@@ -153,78 +153,99 @@ function processGroupByCustomizations(
     groupby?: string[];
     order_by_cols?: string[];
     filters?: any[];
+    x_axis?: string;
   } = {};
 
   const groupByColumns: string[] = [];
   const allFilters: any[] = [];
   let orderByConfig: string[] | undefined;
 
-  const existingGroupBy = chart.form_data?.groupby || [];
+  const existingGroupBy = Array.isArray(chart.form_data?.groupby)
+    ? chart.form_data.groupby
+    : chart.form_data?.groupby
+      ? [chart.form_data.groupby]
+      : [];
   const xAxisColumn = chart.form_data?.x_axis;
-  const conflictingColumns = new Set([
-    ...existingGroupBy,
-    ...(xAxisColumn ? [xAxisColumn] : []),
-  ]);
 
-  if (
-    chartType?.startsWith('echarts_timeseries') ||
-    chartType?.startsWith('echarts_area')
-  ) {
-    if (xAxisColumn) {
-      conflictingColumns.add(xAxisColumn);
-    }
-  } else if (chartType === 'heatmap_v2') {
-    if (xAxisColumn) {
-      conflictingColumns.add(xAxisColumn);
-    }
-    if (chart.form_data?.groupby) {
-      const groupbyColumn = Array.isArray(chart.form_data.groupby)
-        ? chart.form_data.groupby[0]
-        : chart.form_data.groupby;
-      if (groupbyColumn) {
-        conflictingColumns.add(groupbyColumn);
+  const existingColumns = new Set<string>();
+
+  existingGroupBy.forEach((col: string) => existingColumns.add(col));
+
+  if (xAxisColumn) {
+    existingColumns.add(xAxisColumn);
+  }
+
+  const metrics = chart.form_data?.metrics || [];
+  metrics.forEach((metric: any) => {
+    if (typeof metric === 'string') {
+      existingColumns.add(metric);
+    } else if (metric && typeof metric === 'object' && 'column' in metric) {
+      const metricColumn = metric.column;
+      if (typeof metricColumn === 'string') {
+        existingColumns.add(metricColumn);
+      } else if (
+        metricColumn &&
+        typeof metricColumn === 'object' &&
+        'column_name' in metricColumn
+      ) {
+        existingColumns.add(metricColumn.column_name);
       }
     }
-  } else if (chartType === 'pivot_table_v2') {
-    const groupbyColumns = chart.form_data?.groupbyColumns || [];
-    const groupbyRows = chart.form_data?.groupbyRows || [];
-    [...groupbyColumns, ...groupbyRows].forEach(col => {
-      if (col) conflictingColumns.add(col);
-    });
+  });
+
+  const seriesColumn = chart.form_data?.series;
+  if (seriesColumn) {
+    existingColumns.add(seriesColumn);
   }
+
+  const entityColumn = chart.form_data?.entity;
+  if (entityColumn) {
+    existingColumns.add(entityColumn);
+  }
+
+  if (chartType === 'box_plot') {
+    const boxPlotColumns = chart.form_data?.columns || [];
+    if (Array.isArray(boxPlotColumns)) {
+      boxPlotColumns.forEach((col: any) => {
+        if (typeof col === 'string') {
+          existingColumns.add(col);
+        } else if (col && typeof col === 'object' && 'column_name' in col) {
+          existingColumns.add(col.column_name);
+        }
+      });
+    }
+  }
+
+  const conflictingColumns = existingColumns;
 
   const getConflictReason = (columnName: string): string => {
     if (existingGroupBy.includes(columnName)) {
       return 'groupby';
     }
     if (xAxisColumn === columnName) {
-      if (
-        chartType?.startsWith('echarts_timeseries') ||
-        chartType?.startsWith('echarts_area')
-      ) {
-        return 'time axis';
-      }
-      if (chartType === 'heatmap_v2') {
-        return 'x-axis';
-      }
       return 'x-axis';
     }
-    if (chartType === 'heatmap_v2' && chart.form_data?.groupby) {
-      const groupbyColumn = Array.isArray(chart.form_data.groupby)
-        ? chart.form_data.groupby[0]
-        : chart.form_data.groupby;
-      if (groupbyColumn === columnName) {
-        return 'y-axis';
-      }
+    if (seriesColumn === columnName) {
+      return 'series';
     }
-    if (chartType === 'pivot_table_v2') {
-      const groupbyColumns = chart.form_data?.groupbyColumns || [];
-      const groupbyRows = chart.form_data?.groupbyRows || [];
-      if (groupbyColumns.includes(columnName)) {
-        return 'pivot table columns';
-      }
-      if (groupbyRows.includes(columnName)) {
-        return 'pivot table rows';
+    if (entityColumn === columnName) {
+      return 'entity';
+    }
+    if (chartType === 'box_plot') {
+      const boxPlotColumns = chart.form_data?.columns || [];
+      if (Array.isArray(boxPlotColumns)) {
+        const hasConflict = boxPlotColumns.some((col: any) => {
+          if (typeof col === 'string') {
+            return col === columnName;
+          }
+          if (col && typeof col === 'object' && 'column_name' in col) {
+            return col.column_name === columnName;
+          }
+          return false;
+        });
+        if (hasConflict) {
+          return 'box plot distribution column';
+        }
       }
     }
     return 'chart configuration';
@@ -232,29 +253,17 @@ function processGroupByCustomizations(
 
   matchingCustomizations.forEach(item => {
     const { customization } = item;
-    const groupById = `chart_customization_${item.id}`;
-
-    if (!chartCustomizationDataMask[groupById]) {
+    if (!customization) {
       return;
     }
 
+    const groupById = `chart_customization_${item.id}`;
     const selectedValues = groupByState[groupById]?.selectedValues || [];
 
-    if (customization?.column) {
+    if (customization.column) {
       let columnNames: string[] = [];
 
-      const dataMaskEntry = chartCustomizationDataMask[groupById];
-      const pendingColumn = dataMaskEntry?.ownState?.column;
-
-      if (pendingColumn) {
-        if (typeof pendingColumn === 'string') {
-          columnNames = [pendingColumn];
-        } else if (Array.isArray(pendingColumn)) {
-          columnNames = pendingColumn.filter(
-            col => typeof col === 'string' && col.trim() !== '',
-          );
-        }
-      } else if (typeof customization.column === 'string') {
+      if (typeof customization.column === 'string') {
         columnNames = [customization.column];
       } else if (Array.isArray(customization.column)) {
         columnNames = customization.column.filter(
@@ -280,13 +289,16 @@ function processGroupByCustomizations(
         return;
       }
 
-      const nonConflictingColumns = columnNames.filter(
-        columnName => !conflictingColumns.has(columnName),
-      );
-
       const conflictingColumnsInCustomization = columnNames.filter(columnName =>
         conflictingColumns.has(columnName),
       );
+
+      const nonConflictingColumns =
+        chartType === 'bubble_v2'
+          ? columnNames
+          : columnNames.filter(
+              columnName => !conflictingColumns.has(columnName),
+            );
 
       conflictingColumnsInCustomization.forEach(conflictingColumn => {
         const conflictReason = getConflictReason(conflictingColumn);
@@ -330,7 +342,22 @@ function processGroupByCustomizations(
   });
 
   if (groupByColumns.length > 0) {
-    groupByFormData.groupby = groupByColumns;
+    if (
+      chartType?.startsWith('echarts_timeseries') ||
+      chartType?.startsWith('echarts_area')
+    ) {
+      const newXAxis = groupByColumns[0];
+      groupByFormData.x_axis = newXAxis;
+      groupByFormData.groupby = [];
+    } else if (['graph', 'sankey', 'chord'].includes(chartType)) {
+      groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
+    } else if (chartType === 'bubble_v2') {
+      groupByFormData.groupby = groupByColumns;
+    } else {
+      groupByFormData.groupby = groupByColumns;
+    }
+  } else {
+    /* empty */
   }
 
   if (allFilters.length > 0) {
@@ -455,14 +482,12 @@ export default function getFormDataWithExtraFilters({
   }
 
   const groupByState: Record<string, { selectedValues: string[] }> = {};
-  const chartCustomizationDataMask: Record<string, DataMask> = {};
   Object.entries(dataMask).forEach(([key, mask]) => {
     if (key.startsWith('chart_customization_')) {
       const selectedValues = mask.filterState?.value;
       if (Array.isArray(selectedValues)) {
         groupByState[key] = { selectedValues };
       }
-      chartCustomizationDataMask[key] = mask;
     }
   });
 
@@ -470,7 +495,6 @@ export default function getFormDataWithExtraFilters({
     chartCustomizationItems || [],
     chart,
     groupByState,
-    chartCustomizationDataMask,
   );
 
   const formData: CachedFormDataWithExtraControls = {
