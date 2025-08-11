@@ -613,6 +613,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         from superset.connectors.sqla.models import TableColumn
+        from superset.models.slice import Slice
 
         return bool(
             form_data.get("type") != "NATIVE_FILTER"
