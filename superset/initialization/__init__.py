@@ -36,6 +36,7 @@ from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
 from sqlalchemy import inspect
+from sqlalchemy.exc import OperationalError
 from superset_core import api as core_api
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -85,11 +86,35 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app = app
         self.config = app.config
         self.manifest: dict[Any, Any] = {}
+        self._db_uri_cache: str | None = None  # Cache for valid database URIs
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
+
+    @property
+    def database_uri(self) -> str:
+        """Lazy property for database URI to avoid early config access issues"""
+        # If we have a cached valid value, return it
+        if self._db_uri_cache is not None:
+            return self._db_uri_cache
+
+        # Try to get the URI from config
+        uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
+
+        # Check if this is a fallback value that indicates config isn't ready
+        if uri and not any(
+            fallback in uri.lower()
+            for fallback in ["nouser", "nopassword", "nohost", "nodb"]
+        ):
+            # Valid URI - cache it and return
+            self._db_uri_cache = uri
+            return uri
+
+        # Return the fallback value without caching
+        # This allows retry on next access when config might be ready
+        return uri
 
     def pre_init(self) -> None:
         """
@@ -542,13 +567,35 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         This is called during app initialization but checks table existence
         to handle cases where the app starts before database migration.
         """
-        inspector = inspect(db.engine)
+        # Check if database URI is a fallback value before trying to connect
+        db_uri = self.database_uri
+        if not db_uri or any(
+            fallback in db_uri.lower()
+            for fallback in ["nouser", "nopassword", "nohost", "nodb"]
+        ):
+            logger.warning(
+                "Database URI appears to be a fallback value. "
+                "Skipping database-dependent initialization. "
+                "This may indicate the workspace context is not ready yet."
+            )
+            return
 
-        # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
-        if not inspector.has_table("dashboards"):
+        try:
+            inspector = inspect(db.engine)
+
+            # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
+            if not inspector.has_table("dashboards"):
+                logger.debug(
+                    "Superset tables not yet created. Skipping database-dependent "
+                    "initialization. These features will be initialized after "
+                    "migration."
+                )
+                return
+        except OperationalError as e:
             logger.debug(
-                "Superset tables not yet created. Skipping database-dependent "
-                "initialization. These features will be initialized after migration."
+                "Error inspecting database tables. Skipping database-dependent "
+                "initialization: %s",
+                e,
             )
             return
 
@@ -662,7 +709,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 # Simple connection test
                 db.engine.execute("SELECT 1")
         except Exception:
-            db_uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
+            db_uri = self.database_uri
             safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
             print(
                 f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"
@@ -713,9 +760,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         set_isolation_level_to = None
 
         if not isolation_level:
-            backend = make_url_safe(
-                self.config["SQLALCHEMY_DATABASE_URI"]
-            ).get_backend_name()
+            backend = make_url_safe(self.database_uri).get_backend_name()
             if backend in ("mysql", "postgresql"):
                 set_isolation_level_to = "READ COMMITTED"
 
