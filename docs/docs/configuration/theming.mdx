@@ -150,11 +150,12 @@ Superset provides the capability for dynamic, theme-driven branding of its login
 
 ### Customizing the Login Page via Theme Tokens in Theme JSON
 
-Superset supports the following theme tokens to customize the login page appearance:
+Superset supports the following optional theme tokens to customize the login page appearance:
 
 - `loginPageBackgroundImageUrl`: URL of the login page background image  
 - `loginFormBrandLogoUrl`: URL of the logo displayed on the login form  
-- `loginPageBackgroundOverlayColor`: overlay color applied on top of the background image to improve contrast and readability  
+- `loginPageBackgroundOverlayColor`: overlay color applied on top of the background image to improve contrast and readability
+- `loginPageBackgroundBlur`: CSS blur radius applied to the login page background image (e.g., `4px`, `0.25rem`, `1em`, `10vw`)  
 
 If these tokens are omitted, Superset’s default login page styling is used.
 
@@ -166,7 +167,7 @@ The `loginPageBackgroundOverlayColor` token accepts any valid CSS color format, 
 - HSL/HSLA (e.g., `hsla(0, 0%, 0%, 0.5)`)  
 - Named colors (e.g., `black`)  
 
-If `loginPageBackgroundImageUrl` is provided but `loginPageBackgroundOverlayColor` is omitted, the overlay defaults to a semi-transparent black: `rgba(0, 0, 0, 0.5)`.
+If `loginPageBackgroundImageUrl` is provided but `loginPageBackgroundOverlayColor` is omitted, the overlay defaults to a semi-transparent black: `rgba(0, 0, 0, 0.5)`. The default value for `loginPageBackgroundBlur` is `0px` (no blur effect on the background image).
 
 Tokens for login page customization can be set within the JSON theme configuration defined either in `superset_config.py`: 
 
