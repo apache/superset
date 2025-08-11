@@ -156,6 +156,7 @@ export interface SupersetSpecificTokens {
   loginPageBackgroundImageUrl?: string;
   loginFormBrandLogoUrl?: string;
   loginPageBackgroundOverlayColor?: string;
+  loginPageBackgroundBlur?: string;
 }
 
 /**

@@ -79,16 +79,31 @@ const StyledBackground = styled.div`
     const bgImageUrl = theme.loginPageBackgroundImageUrl;
     const overlayColor =
       theme.loginPageBackgroundOverlayColor || 'rgba(0, 0, 0, 0.5)';
+    const blurAmount = theme.loginPageBackgroundBlur || '0px';
     return bgImageUrl
       ? css`
-          background-image: url(${bgImageUrl});
-          background-size: cover;
-          background-position: center;
           position: fixed;
           top: 0;
           left: 0;
           width: 100vw;
           height: 100vh;
+          z-index: 0;
+          pointer-events: none;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url(${bgImageUrl});
+            background-size: cover;
+            background-position: center;
+            filter: blur(${blurAmount});
+            z-index: -1;
+          }
+
           &::after {
             content: '';
             position: absolute;
@@ -97,6 +112,7 @@ const StyledBackground = styled.div`
             width: 100%;
             height: 100%;
             background-color: ${overlayColor};
+            z-index: 1;
           }
         `
       : '';
