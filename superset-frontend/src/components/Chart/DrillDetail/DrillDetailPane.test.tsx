@@ -188,3 +188,49 @@ test('should render the error', async () => {
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });
+
+test('should use verbose_map for column headers when available', async () => {
+  jest.restoreAllMocks();
+
+  const datasetWithVerboseMap = {
+    ...MOCKED_DATASET,
+    verbose_map: {
+      year: 'Year of Release',
+      na_sales: 'North America Sales',
+    },
+  };
+
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 1,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+
+  await waitForRender({ dataset: datasetWithVerboseMap });
+
+  expect(
+    screen.getByRole('columnheader', { name: 'Year of Release' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('columnheader', { name: 'North America Sales' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('columnheader', { name: 'eu_sales' }),
+  ).toBeInTheDocument();
+
+  expect(
+    screen.queryByRole('columnheader', { name: 'year' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('columnheader', { name: 'na_sales' }),
+  ).not.toBeInTheDocument();
+});
