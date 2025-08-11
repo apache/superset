@@ -120,7 +120,8 @@ const ExtraOptions = ({
     if (!expandableModalIsOpen && activeKey !== undefined) {
       setActiveKey(undefined);
     }
-  }, [expandableModalIsOpen, activeKey]);
+    // See issue #34630 for why we omit `activeKey` from the dependency array
+  }, [expandableModalIsOpen]);
 
   return (
     <Collapse
