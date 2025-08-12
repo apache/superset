@@ -173,7 +173,7 @@
     "View query": "Bekijk zoekopdracht",
     "Week": "Week",
     "Year": "Jaar",
-    "date": "datum",
+    "date": "Datum",
     "sv_current": "Huidig",
     "sv_previous": "Vorige",
     "sv_change": "Verandering",
@@ -299,6 +299,6 @@
     "Publisher overview": "Publishers overzicht",
     "Summary": "Samenvatting",
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Toon totale aggregaties van geselecteerde statistieken. Let op: de regellimiet is niet van toepassing op het resultaat.",
-    "Total PC Commission": "",
-    "Total PV Commission": ""
+    "Total PC Commission": "Totale PC commissie",
+    "Total PV Commission": "Totale PV commissie"
 }

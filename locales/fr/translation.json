@@ -173,7 +173,7 @@
     "View query": "Afficher la requête",
     "Week": "Semaine",
     "Year": "Année",
-    "date": "date",
+    "date": "Date",
     "sv_current": "Actuelle",
     "sv_previous": "Précédente",
     "sv_change": "Différence",
@@ -299,6 +299,6 @@
     "Publisher overview": "Aperçu des éditeurs",
     "Summary": "Résumé",
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Afficher les indicateurs agrégés pour les performances sélectionnées. Notez que le résultat ne tient pas compte de la limite du nombre de lignes.",
-    "Total PC Commission": "",
-    "Total PV Commission": ""
+    "Total PC Commission": "Commission totale post-clic",
+    "Total PV Commission": "Commission totale post-impression"
 }
