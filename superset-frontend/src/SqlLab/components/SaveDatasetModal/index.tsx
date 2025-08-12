@@ -137,7 +137,7 @@ const Styles = styled.div`
     }
     
     .sdm-form-field {
-      margin-left: ${theme.sizeUnit * 6}px;
+      margin-left: 0;
       max-width: 400px;
     }
     
