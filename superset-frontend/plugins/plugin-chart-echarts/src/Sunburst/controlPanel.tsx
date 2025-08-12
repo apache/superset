@@ -98,7 +98,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Show Null Values'),
-              default: false,
+              default: true,
               renderTrigger: true,
               description: t('Whether to display null values'),
             },
