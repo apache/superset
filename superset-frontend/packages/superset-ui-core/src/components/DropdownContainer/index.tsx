@@ -394,4 +394,8 @@ export const DropdownContainer = forwardRef(
   },
 );
 
-export { DropdownItem, DropdownContainerProps, DropdownRef } from './types';
+export type {
+  DropdownItem,
+  DropdownContainerProps,
+  DropdownRef,
+} from './types';
