@@ -700,7 +700,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     def _create_column_info(
-        cls, name: str, data_type: types.TypeEngine
+        cls,
+        name: str,
+        data_type: types.TypeEngine,
     ) -> ResultSetColumnType:
         """
         Create column info object
@@ -711,7 +713,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return {
             "column_name": name,
             "name": name,
-            "type": f"{data_type}",
+            "type": data_type,
             "is_dttm": None,
             "type_generic": None,
         }
