@@ -43,11 +43,11 @@ const BackgroundStyleOption = styled.div`
       display: inline-block;
       vertical-align: middle;
     }
-    &.background--white {
+    &.background-style-option.background--white {
       padding-left: 0;
       background: transparent;
       &:before {
-        background: ${theme.colors.grayscale.light5};
+        background: ${theme.colorBgContainer};
         border: 1px solid ${theme.colorBorder};
       }
     }

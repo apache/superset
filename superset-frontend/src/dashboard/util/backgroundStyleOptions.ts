@@ -27,7 +27,7 @@ export default [
   },
   {
     value: BACKGROUND_WHITE,
-    label: t('White'),
+    label: t('Solid'),
     className: 'background--white',
   },
 ];
