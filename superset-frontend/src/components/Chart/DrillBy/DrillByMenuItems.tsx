@@ -30,11 +30,13 @@ import { Menu } from '@superset-ui/core/components/Menu';
 import {
   BaseFormData,
   Behavior,
+  BinaryQueryObjectFilterClause,
   Column,
   ContextMenuFilters,
   css,
   ensureIsArray,
   getChartMetadataRegistry,
+  removeHTMLTags,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -68,6 +70,14 @@ export interface DrillByMenuItemsProps {
   isLoadingDataset?: boolean;
 }
 
+const cleanFilters = (filters: BinaryQueryObjectFilterClause[]) =>
+  filters.map(filter => ({
+    ...filter,
+    ...(typeof filter.val === 'string'
+      ? { val: removeHTMLTags(filter.val) }
+      : {}),
+  }));
+
 export const DrillByMenuItems = ({
   drillByConfig,
   formData,
@@ -94,6 +104,10 @@ export const DrillByMenuItems = ({
   const handleSelection = useCallback(
     (event, column) => {
       onClick(event);
+      if (drillByConfig?.filters) {
+        // eslint-disable-next-line no-param-reassign
+        drillByConfig.filters = cleanFilters(drillByConfig.filters);
+      }
       onSelection(column, drillByConfig);
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
