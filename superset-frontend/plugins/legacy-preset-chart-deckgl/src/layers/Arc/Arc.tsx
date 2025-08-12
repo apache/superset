@@ -17,19 +17,15 @@
  * under the License.
  */
 import { ArcLayer } from '@deck.gl/layers';
-import {
-  HandlerFunction,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
   data.forEach(d => {
     points.push(d.sourcePosition);
@@ -60,26 +56,93 @@ function setTooltipContent(formData: QueryFormData) {
   );
 }
 
-export function getLayer(
-  fd: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  emitCrossFilters,
+}) {
+  const fd = formData;
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
 
+  const colorSchemeType = fd.color_scheme_type;
+
   return new ArcLayer({
     data,
-    getSourceColor: (d: any) =>
-      d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
-    getTargetColor: (d: any) =>
-      d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
-    id: `path-layer-${fd.slice_id}` as const,
-    strokeWidth: fd.stroke_width ? fd.stroke_width : 3,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
-  });
-}
+    getSourceColor: (d: JsonObject) => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [sc.r, sc.g, sc.b, 255 * sc.a];
+      }
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+      return d.targetColor || d.color;
+    },
+    getTargetColor: (d: any) => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [tc.r, tc.g, tc.b, 255 * tc.a];
+      }
+
+      return d.targetColor || d.color;
+    },
+    id: `path-layer-${fd.slice_id}` as const,
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: setTooltipContent(fd),
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
+    opacity: filterState?.value ? 0.1 : 1,
+  });
+};
+
+export const getHighlightLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const data = payload.data.features;
+
+  const getColor = (d: {
+    sourcePosition: [number, number];
+    targetPosition: [number, number];
+  }) => {
+    const sourcePosition = filterState?.value[0];
+    const targetPosition = filterState?.value[1];
+
+    if (
+      sourcePosition &&
+      targetPosition &&
+      d.sourcePosition[0] === sourcePosition[0] &&
+      d.sourcePosition[1] === sourcePosition[1] &&
+      d.targetPosition[0] === targetPosition[0] &&
+      d.targetPosition[1] === targetPosition[1]
+    ) {
+      return HIGHLIGHT_COLOR_ARRAY;
+    }
+
+    return TRANSPARENT_COLOR_ARRAY;
+  };
+
+  return new ArcLayer({
+    data,
+    getSourceColor: getColor,
+    getTargetColor: getColor,
+    id: `path-hihglight-layer-${fd.slice_id}` as const,
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
+  });
+};
+
+export default createCategoricalDeckGLComponent(
+  getLayer,
+  getPoints,
+  getHighlightLayer,
+);

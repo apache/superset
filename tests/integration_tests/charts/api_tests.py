@@ -14,17 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for Superset"""
 
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile
 
 import prison
 import pytest
-import yaml
-from flask import g
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -58,12 +55,9 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
-    chart_metadata_config,
     database_config,
     dataset_config,
-    dataset_metadata_config,
 )
-from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
     get_filter_params,
@@ -80,7 +74,6 @@ from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 
-CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
 
@@ -313,22 +306,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "can_export",
             "can_warm_up_cache",
         }
-
-    def create_chart_import(self):
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-        return buf
 
     def test_delete_chart(self):
         """
@@ -1761,7 +1738,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1799,7 +1776,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1810,7 +1787,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1825,7 +1802,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "charts/chart.yaml": "Chart already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
@@ -1838,7 +1815,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
 
         # import with overwrite flag
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
             "overwrite": "true",
@@ -1871,20 +1848,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("dataset", charts=[chart_config])
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -2136,9 +2100,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.id)
-        update_payload = {"tags": new_tags}
+        new_tags = {tag.id for tag in chart.tags if tag.type == TagType.custom}
+        new_tags.add(new_tag.id)
+        update_payload = {"tags": list(new_tags)}
 
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, update_payload, "put")
@@ -2146,7 +2110,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        tag_list = {tag.id for tag in model.tags if tag.type == TagType.custom}
         assert tag_list == new_tags
 
     @pytest.mark.usefixtures("create_chart_with_tag")
@@ -2195,9 +2159,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.id)
-        update_payload = {"tags": new_tags}
+        new_tags = {tag.id for tag in chart.tags if tag.type == TagType.custom}
+        new_tags.add(new_tag.id)
+        update_payload = {"tags": list(new_tags)}
 
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, update_payload, "put")
@@ -2205,7 +2169,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        tag_list = {tag.id for tag in model.tags if tag.type == TagType.custom}
         assert tag_list == new_tags
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
@@ -2330,57 +2294,3 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
-
-    @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
-    @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_chart_data_as_guest_user(
-        self, is_guest_user, has_guest_access
-    ):  # get_guest_rls_filters
-        """
-        Chart API: Test create simple chart
-        """
-        self.login(ADMIN_USERNAME)
-        g.user.rls = []
-        is_guest_user.return_value = True
-        has_guest_access.return_value = True
-
-        with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
-            mock_get_query_context.return_value = get_query_context("birth_names")
-            rv = self.client.post(
-                "api/v1/chart/data",  # noqa: F541
-                json={
-                    "datasource": {"id": 2, "type": "table"},
-                    "queries": [
-                        {
-                            "extras": {"where": "", "time_grain_sqla": "P1D"},
-                            "columns": ["name"],
-                            "metrics": [{"label": "sum__num"}],
-                            "orderby": [("sum__num", False)],
-                            "row_limit": 100,
-                            "granularity": "ds",
-                            "time_range": "100 years ago : now",
-                            "timeseries_limit": 0,
-                            "timeseries_limit_metric": None,
-                            "order_desc": True,
-                            "filters": [
-                                {"col": "gender", "op": "==", "val": "boy"},
-                                {"col": "num", "op": "IS NOT NULL"},
-                                {
-                                    "col": "name",
-                                    "op": "NOT IN",
-                                    "val": ["<NULL>", '"abc"'],
-                                },
-                            ],
-                            "having": "",
-                            "where": "",
-                        }
-                    ],
-                    "result_format": "json",
-                    "result_type": "full",
-                },
-            )
-            data = json.loads(rv.data.decode("utf-8"))
-            result = data["result"]
-            excluded_key = "query"
-            assert all([excluded_key not in query for query in result])  # noqa: C419

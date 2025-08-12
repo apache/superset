@@ -19,11 +19,23 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
+import re
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response
+from flask import (
+    abort,
+    current_app as app,
+    flash,
+    g,
+    redirect,
+    request,
+    Response,
+    send_file,
+    url_for,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -32,11 +44,10 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.utils import safe_join
 
 from superset import (
-    app,
     appbuilder,
-    conf,
     db,
     event_logger,
     is_feature_enabled,
@@ -103,9 +114,6 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -132,11 +140,11 @@ class Superset(BaseSupersetView):
         if not slc:
             abort(404)
         form_data = parse.quote(json.dumps({"slice_id": slice_id}))
-        endpoint = f"/explore/?form_data={form_data}"
+        endpoint_params = {"form_data": f"{form_data}"}
 
         if ReservedUrlParameters.is_standalone_mode():
-            endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
-        return redirect(endpoint)
+            endpoint_params[ReservedUrlParameters.STANDALONE.value] = "true"
+        return redirect(url_for("ExploreView.root", **endpoint_params))
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
         query = None
@@ -421,7 +429,7 @@ class Superset(BaseSupersetView):
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect("/chart/list/")
+                return redirect(url_for("SliceModelView.list"))
         elif form_data_key:
             parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
@@ -572,7 +580,7 @@ class Superset(BaseSupersetView):
             title = _("Explore")
 
         return self.render_template(
-            "superset/basic.html",
+            "superset/spa.html",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
@@ -797,7 +805,7 @@ class Superset(BaseSupersetView):
                 redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
                 warn_msg = "Users must be logged in to view this dashboard."
             else:
-                redirect_url = "/dashboard/list/"
+                redirect_url = url_for("DashboardModelView.list")
                 warn_msg = utils.error_msg_from_exception(ex)
             return redirect_with_flash(
                 url=redirect_url,
@@ -840,14 +848,16 @@ class Superset(BaseSupersetView):
             value = GetDashboardPermalinkCommand(key).run()
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
+            return redirect(url_for("DashboardModelView.list"))
         except DashboardAccessDeniedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
+            return redirect(url_for("DashboardModelView.list"))
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
-        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url = url_for(
+            "Superset.dashboard", dashboard_id_or_slug=dashboard_id, permalink_key=key
+        )
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
@@ -891,12 +901,28 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @event_logger.log_this
+    @has_access
+    @expose("/language_pack/<lang>/")
+    def language_pack(self, lang: str) -> FlaskResponse:
+        # Only allow expected language formats like "en", "pt_BR", etc.
+        if not re.match(r"^[a-z]{2,3}(_[A-Z]{2})?$", lang):
+            abort(400, "Invalid language code")
+
+        base_dir = os.path.join(os.path.dirname(__file__), "..", "translations")
+        file_path = safe_join(base_dir, lang, "LC_MESSAGES", "messages.json")
+
+        if file_path and os.path.isfile(file_path):
+            return send_file(file_path, mimetype="application/json")
+
+        return json_error_response(
+            "Language pack doesn't exist on the server", status=404
+        )
+
+    @event_logger.log_this
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            if conf["PUBLIC_ROLE_LIKE"]:
-                return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
         if welcome_dashboard_id := (
@@ -924,4 +950,4 @@ class Superset(BaseSupersetView):
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return redirect("/sqllab/history")
+        return redirect(url_for("SqllabView.history"))

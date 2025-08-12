@@ -30,7 +30,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
 from sqlalchemy import Column, literal_column, types
@@ -63,7 +63,7 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql_parse import Table
+    from superset.sql.parse import Table
 
     with contextlib.suppress(ImportError):  # pyhive may not be installed
         from pyhive.presto import Cursor
@@ -162,7 +162,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     """
 
     supports_dynamic_schema = True
-    supports_catalog = supports_dynamic_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     column_type_mappings = (
         (
@@ -1318,7 +1318,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
-            "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]
+            "poll_interval", app.config["PRESTO_POLL_INTERVAL"]
         )
         logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()

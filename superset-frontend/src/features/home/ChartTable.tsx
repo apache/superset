@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -42,9 +42,10 @@ import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
-import Loading from 'src/components/Loading';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import Icons from 'src/components/Icons';
+import { Loading } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 import SubMenu from './SubMenu';
@@ -70,7 +71,6 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
-  const theme = useTheme();
   const history = useHistory();
   const initialTab = getItem(
     LocalStorageKeys.HomepageChartFilter,
@@ -184,21 +184,19 @@ function ChartTable({
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}
+        backgroundColor="transparent"
         buttons={[
           {
-            name: (
-              <>
-                <Icons.PlusOutlined
-                  iconColor={theme.colors.primary.dark1}
-                  iconSize="m"
-                  data-test="add-annotation-layer-button"
-                />
-                {t('Chart')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
-            buttonStyle: 'tertiary',
+            name: t('Chart'),
+            buttonStyle: 'secondary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              navigateTo('/chart/add', { assign: true });
             },
           },
           {

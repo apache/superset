@@ -28,21 +28,20 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
-import { SelectOptionsType } from 'src/components/Select/types';
-import { StyledSelect } from 'src/components/Select/styles';
-import { handleFilterOptionHelper } from 'src/components/Select/utils';
+import {
+  Tooltip,
+  Select,
+  type SelectOptionsType,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
-const { Option, OptGroup } = AntdSelect;
-
-export type OptionData = SelectOptionsType[number]['options'][number];
+export type OptionData = SelectOptionsType[number]['options'][number] & {
+  searchText?: string;
+};
 
 export interface ColorSchemes {
   [key: string]: ColorScheme;
@@ -117,7 +116,7 @@ const Label = ({
         {label}{' '}
         <Tooltip title={alertTitle}>
           <Icons.WarningOutlined
-            iconColor={theme.colors.warning.base}
+            iconColor={theme.colorWarning}
             css={css`
               vertical-align: baseline;
             `}
@@ -176,11 +175,14 @@ const ColorSchemeControl = ({
   const options = useMemo(() => {
     if (showDashboardLockedOption) {
       return [
-        <Option value="dashboard" label={t('Dashboard')} key="dashboard">
-          <Tooltip title={DASHBOARD_CONTEXT_TOOLTIP}>
-            {t('Dashboard scheme')}
-          </Tooltip>
-        </Option>,
+        {
+          value: 'dashboard',
+          label: (
+            <Tooltip title={DASHBOARD_CONTEXT_TOOLTIP}>
+              {t('Dashboard scheme')}
+            </Tooltip>
+          ),
+        },
       ];
     }
     const schemesObject = typeof schemes === 'function' ? schemes() : schemes;
@@ -208,15 +210,15 @@ const ColorSchemeControl = ({
             : currentScheme.colors;
         }
         const option = {
-          customLabel: (
+          label: (
             <ColorSchemeLabel
               id={currentScheme.id}
               label={currentScheme.label}
               colors={colors}
             />
           ) as ReactNode,
-          label: schemesObject?.[value]?.label || value,
           value,
+          searchText: currentScheme.label,
         };
         acc[currentScheme.group ?? ColorSchemeGroup.Other].options.push(option);
         return acc;
@@ -251,25 +253,19 @@ const ColorSchemeControl = ({
       nonEmptyGroups.length === 1 &&
       nonEmptyGroups[0].title === ColorSchemeGroup.Other
     ) {
-      return nonEmptyGroups[0].options.map((opt, index) => (
-        <Option value={opt.value} label={opt.label} key={index}>
-          {opt.customLabel}
-        </Option>
-      ));
+      return nonEmptyGroups[0].options.map(opt => ({
+        value: opt.value,
+        label: opt.customLabel || opt.label,
+      }));
     }
-    return nonEmptyGroups.map((group, groupIndex) => (
-      <OptGroup label={group.label} key={groupIndex}>
-        {group.options.map((opt, optIndex) => (
-          <Option
-            value={opt.value}
-            label={opt.label}
-            key={`${groupIndex}-${optIndex}`}
-          >
-            {opt.customLabel}
-          </Option>
-        ))}
-      </OptGroup>
-    ));
+    return nonEmptyGroups.map(group => ({
+      label: group.label,
+      options: group.options.map(opt => ({
+        value: opt.value,
+        label: opt.customLabel || opt.label,
+        searchText: opt.searchText,
+      })),
+    }));
   }, [choices, hasDashboardScheme, hasSharedLabelsColor, isLinear, schemes]);
 
   // We can't pass on change directly because it receives a second
@@ -308,15 +304,15 @@ const ColorSchemeControl = ({
           />
         }
       />
-      <StyledSelect
+      <Select
         css={css`
           width: 100%;
           & .ant-select-item.ant-select-item-group {
-            padding-left: ${theme.gridUnit}px;
-            font-size: ${theme.typography.sizes.m}px;
+            padding-left: ${theme.sizeUnit}px;
+            font-size: ${theme.fontSize}px;
           }
           & .ant-select-item-option-grouped {
-            padding-left: ${theme.gridUnit * 3}px;
+            padding-left: ${theme.sizeUnit * 3}px;
           }
         `}
         aria-label={t('Select color scheme')}
@@ -325,19 +321,11 @@ const ColorSchemeControl = ({
         onChange={handleOnChange}
         placeholder={t('Select scheme')}
         value={currentScheme}
-        getPopupContainer={triggerNode => triggerNode.parentNode}
         showSearch
-        filterOption={(search, option) =>
-          handleFilterOptionHelper(
-            search,
-            option as OptionData,
-            ['label', 'value'],
-            true,
-          )
-        }
-      >
-        {options}
-      </StyledSelect>
+        getPopupContainer={triggerNode => triggerNode.parentNode}
+        options={options}
+        optionFilterProps={['label', 'value', 'searchText']}
+      />
     </>
   );
 };

@@ -21,6 +21,7 @@ export { rollingWindowOperator } from './rollingWindowOperator';
 export { timeCompareOperator } from './timeCompareOperator';
 export { timeComparePivotOperator } from './timeComparePivotOperator';
 export { sortOperator } from './sortOperator';
+export { aggregationOperator } from './aggregateOperator';
 export { histogramOperator } from './histogramOperator';
 export { pivotOperator } from './pivotOperator';
 export { resampleOperator } from './resampleOperator';

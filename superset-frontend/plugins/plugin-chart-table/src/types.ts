@@ -49,6 +49,9 @@ export type TableColumnConfig = {
   colorPositiveNegative?: boolean;
   truncateLongCells?: boolean;
   currencyFormat?: Currency;
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
 };
 
 export interface DataColumnMeta {
@@ -56,6 +59,8 @@ export interface DataColumnMeta {
   key: string;
   // `label` is verbose column name used for rendering
   label: string;
+  // `originalLabel` preserves the original label when time comparison transforms the labels
+  originalLabel?: string;
   dataType: GenericDataType;
   formatter?:
     | TimeFormatter
@@ -66,6 +71,7 @@ export interface DataColumnMeta {
   isPercentMetric?: boolean;
   isNumeric?: boolean;
   config?: TableColumnConfig;
+  isChildColumn?: boolean;
 }
 
 export interface TableChartData {
@@ -108,13 +114,32 @@ export type BasicColorFormatterType = {
   mainArrow: string;
 };
 
+export type SortByItem = {
+  id: string;
+  key: string;
+  desc?: boolean;
+};
+
+export type SearchOption = {
+  value: string;
+  label: string;
+};
+
+export interface ServerPaginationData {
+  pageSize?: number;
+  currentPage?: number;
+  sortBy?: SortByItem[];
+  searchText?: string;
+  searchColumn?: string;
+}
+
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   timeGrain?: TimeGranularity;
   height: number;
   width: number;
   rowCount?: number;
   serverPagination: boolean;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: ServerPaginationData;
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
@@ -146,6 +171,11 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   startDateOffset?: string;
+  // For explore page to reset the server Pagination data
+  // if server page length is changed from control panel
+  hasServerPageLengthChanged: boolean;
+  serverPageLength: number;
+  slice_id: number;
 }
 
 export enum ColorSchemeEnum {

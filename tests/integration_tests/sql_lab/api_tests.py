@@ -33,7 +33,9 @@ from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database  # noqa: F401
-from superset.utils.database import get_example_database, get_main_database  # noqa: F401
+from superset.utils.database import (
+    get_example_database,
+)  # noqa: F401
 from superset.utils import core as utils, json
 from superset.models.sql_lab import Query
 
@@ -281,7 +283,7 @@ class TestSqlLabApi(SupersetTestCase):
             "/api/v1/sqllab/format_sql/",
             json=data,
         )
-        success_resp = {"result": "SELECT 1\nFROM my_table"}
+        success_resp = {"result": "SELECT\n  1\nFROM my_table"}
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
@@ -448,12 +450,35 @@ class TestSqlLabApi(SupersetTestCase):
         db.session.add(query_obj)
         db.session.commit()
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        # Include multilingual data
+        get_df_mock.return_value = pd.DataFrame(
+            {
+                "foo": [1, 2],
+                "مرحبا": ["أ", "ب"],
+                "姓名": ["张", "李"],
+            }
+        )
 
         resp = self.get_resp("/api/v1/sqllab/export/test/")
-        data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
-        assert list(expected_data) == list(data)
+        # Check for UTF-8 BOM
+        assert resp.startswith("\ufeff"), "Missing UTF-8 BOM at beginning of CSV"
+
+        # Parse CSV
+        reader = csv.reader(io.StringIO(resp))
+        data = list(reader)
+
+        # Strip BOM from the first cell of the header
+        if data and data[0]:
+            data[0][0] = data[0][0].lstrip("\ufeff")
+
+        # Expected header and rows
+        expected_data = [
+            ["foo", "مرحبا", "姓名"],
+            ["1", "أ", "张"],
+            ["2", "ب", "李"],
+        ]
+
+        assert data == expected_data, f"CSV data mismatch. Got: {data}"
         db.session.delete(query_obj)
         db.session.commit()

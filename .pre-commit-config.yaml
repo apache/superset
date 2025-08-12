@@ -52,14 +52,6 @@ repos:
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8 # Use the sha or tag you want to point at
-    hooks:
-      - id: prettier
-        additional_dependencies:
-          - prettier@3.5.3
-        args: ["--ignore-path=./superset-frontend/.prettierignore"]
-        files: "superset-frontend"
   - repo: local
     hooks:
     - id: eslint-frontend
@@ -76,7 +68,7 @@ repos:
       files: ^docs/.*\.(js|jsx|ts|tsx)$
     - id: type-checking-frontend
       name: Type-Checking (Frontend)
-      entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
+      entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
       language: system
       files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
       exclude: ^superset-frontend/cypress-base\/
@@ -97,6 +89,26 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.7
     hooks:
+      - id: ruff-format
       - id: ruff
         args: [--fix]
-      - id: ruff-format
+  - repo: local
+    hooks:
+    - id: pylint
+      name: pylint with custom Superset plugins
+      entry: bash
+      language: system
+      types: [python]
+      exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
+      args:
+        - -c
+        - |
+          TARGET_BRANCH=${GITHUB_BASE_REF:-master}
+          git fetch origin "$TARGET_BRANCH"
+          BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
+          files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
+          if [ -n "$files" ]; then
+            pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
+          else
+            echo "No Python files to lint."
+          fi

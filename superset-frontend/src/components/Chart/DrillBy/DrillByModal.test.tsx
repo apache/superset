@@ -32,6 +32,11 @@ import mockState from 'spec/fixtures/mockState';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
+// Mock the isEmbedded function
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn(() => false),
+}));
+
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 
@@ -67,9 +72,14 @@ const dataset = {
   columns: [
     {
       column_name: 'gender',
+      verbose_name: null,
     },
-    { column_name: 'name' },
+    {
+      column_name: 'name',
+      verbose_name: null,
+    },
   ],
+  verbose_map: {},
 };
 
 const renderModal = async (
@@ -159,7 +169,7 @@ test('should render alert banner when results fail to load', async () => {
 
 test('should generate Explore url', async () => {
   await renderModal({
-    column: { column_name: 'name' },
+    column: { column_name: 'name', verbose_name: null },
     drillByConfig: {
       filters: [{ col: 'gender', op: '==', val: 'boy' }],
       groupbyFieldName: 'groupby',
@@ -222,7 +232,7 @@ test('should render radio buttons', async () => {
 
 test('render breadcrumbs', async () => {
   await renderModal({
-    column: { column_name: 'name' },
+    column: { column_name: 'name', verbose_name: null },
     drillByConfig: {
       filters: [{ col: 'gender', op: '==', val: 'boy' }],
       groupbyFieldName: 'groupby',
@@ -269,4 +279,80 @@ test('should render "Edit chart" enabled with can_explore permission', async () 
     },
   );
   expect(screen.getByRole('button', { name: 'Edit chart' })).toBeEnabled();
+});
+
+describe('Embedded mode behavior', () => {
+  // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+  const { isEmbedded } = require('src/dashboard/util/isEmbedded');
+
+  beforeEach(() => {
+    (isEmbedded as jest.Mock).mockClear();
+  });
+
+  afterEach(() => {
+    (isEmbedded as jest.Mock).mockReturnValue(false);
+  });
+
+  test('should not render "Edit chart" button in embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(true);
+
+    await renderModal();
+
+    expect(
+      screen.queryByRole('button', { name: 'Edit chart' }),
+    ).not.toBeInTheDocument();
+    const footerCloseButton = screen.getByTestId('close-drill-by-modal');
+    expect(footerCloseButton).toHaveTextContent('Close');
+  });
+
+  test('should not call postFormData API in embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(true);
+
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
+
+    expect(fetchMock.called(FORM_DATA_KEY_ENDPOINT)).toBe(false);
+  });
+
+  test('should render "Edit chart" button in non-embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(false);
+
+    await renderModal();
+
+    expect(
+      screen.getByRole('button', { name: 'Edit chart' }),
+    ).toBeInTheDocument();
+  });
+
+  test('should call postFormData API in non-embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(false);
+
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
+
+    await waitFor(() => {
+      expect(fetchMock.called(FORM_DATA_KEY_ENDPOINT)).toBe(true);
+    });
+
+    expect(
+      await screen.findByRole('link', { name: 'Edit chart' }),
+    ).toHaveAttribute(
+      'href',
+      '/explore/?form_data_key=123&dashboard_page_id=1',
+    );
+  });
 });

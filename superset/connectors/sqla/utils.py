@@ -34,12 +34,12 @@ from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLScript
-from superset.sql_parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -106,7 +106,12 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     sql = dataset.get_template_processor().process_template(
         dataset.sql, **dataset.template_params_dict
     )
-    parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+    try:
+        parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+    except SupersetParseError as ex:
+        raise SupersetGenericDBErrorException(
+            message=_("Invalid SQL: %(error)s", error=ex.error.message),
+        ) from ex
     if parsed_script.has_mutation():
         raise SupersetSecurityException(
             SupersetError(

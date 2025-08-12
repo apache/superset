@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from __future__ import annotations
 
 import re
@@ -23,13 +24,13 @@ from typing import Any, TYPE_CHECKING, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.config import VERSION_STRING
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -251,7 +252,8 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         delim = " " if custom_user_agent else ""
         user_agent = get_user_agent(database, source)
         user_agent = user_agent.replace(" ", "-").lower()
-        user_agent = f"{user_agent}/{VERSION_STRING}{delim}{custom_user_agent}"
+        version_string = app.config["VERSION_STRING"]
+        user_agent = f"{user_agent}/{version_string}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
         return extra
@@ -261,6 +263,9 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine = "motherduck"
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
+
+    supports_catalog = True
+    supports_dynamic_catalog = True
 
     sqlalchemy_uri_placeholder = (
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
@@ -296,3 +301,33 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         return str(
             URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
         )
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if catalog:
+            uri = uri.set(database=f"md:{catalog}")
+
+        return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        return database.url_object.database.split(":", 1)[1]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        return {
+            catalog
+            for (catalog,) in inspector.bind.execute(
+                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
+            )
+        }

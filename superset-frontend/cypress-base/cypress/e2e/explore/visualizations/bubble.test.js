@@ -18,7 +18,7 @@
  */
 describe('Visualization > Bubble', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   const BUBBLE_FORM_DATA = {

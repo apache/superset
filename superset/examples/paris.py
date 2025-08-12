@@ -17,15 +17,14 @@
 
 import logging
 
-import pandas as pd
 from sqlalchemy import inspect, String, Text
 
 import superset.utils.database as database_utils
 from superset import db
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 
-from .helpers import get_example_url, get_table_connector_registry
+from .helpers import get_table_connector_registry, read_example_data
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,7 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("paris_iris.json.gz")
-            df = pd.read_json(url, compression="gzip")
+            df = read_example_data("examples://paris_iris.json.gz", compression="gzip")
             df["features"] = df.features.map(json.dumps)
 
             df.to_sql(

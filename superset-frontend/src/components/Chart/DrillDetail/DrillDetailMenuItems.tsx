@@ -37,11 +37,12 @@ import {
   t,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { RootState } from 'src/dashboard/types';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import { Dataset } from '../types';
 
 const DRILL_TO_DETAIL = t('Drill to detail');
 const DRILL_TO_DETAIL_BY = t('Drill to detail by');
@@ -96,8 +97,8 @@ const Filter = ({
 
 const StyledFilter = styled(Filter)`
   ${({ theme }) => `
-     font-weight: ${theme.typography.weights.bold};
-     color: ${theme.colors.primary.base};
+     font-weight: ${theme.fontWeightStrong};
+     color: ${theme.colorPrimary};
    `}
 `;
 
@@ -113,6 +114,8 @@ export type DrillDetailMenuItemsProps = {
   setShowModal: (show: boolean) => void;
   key?: string;
   forceSubmenuRender?: boolean;
+  dataset?: Dataset;
+  isLoadingDataset?: boolean;
 };
 
 const DrillDetailMenuItems = ({

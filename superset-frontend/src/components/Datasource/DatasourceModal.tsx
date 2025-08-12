@@ -17,11 +17,8 @@
  * under the License.
  */
 import { FunctionComponent, useState, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
+import { useSelector } from 'react-redux';
 import {
-  isDefined,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -31,21 +28,17 @@ import {
   css,
 } from '@superset-ui/core';
 
-import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import {
+  Icons,
+  Alert,
+  Button,
+  Modal,
+  AsyncEsmComponent,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  startMetaDataLoading,
-  stopMetaDataLoading,
-  syncDatasourceMetadata,
-} from 'src/explore/actions/exploreActions';
-import {
-  fetchSyncedColumns,
-  updateColumns,
-} from 'src/components/Datasource/utils';
-import { DatasetObject } from '../../features/datasets/types';
+import { ErrorMessageWithStackTrace } from 'src/components';
+import type { DatasetObject } from 'src/features/datasets/types';
+import type { DatasourceModalProps } from './types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -68,17 +61,11 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
-`;
 
-interface DatasourceModalProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: (msg: string) => void;
-  datasource: DatasetObject;
-  onChange: () => {};
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
-  onHide: () => {};
-  show: boolean;
-}
+  .ant-tabs-top {
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
+  }
+`;
 
 function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
@@ -98,14 +85,12 @@ function buildExtraJsonObject(
 
 const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   addSuccessToast,
-  addDangerToast,
   datasource,
   onDatasourceSave,
   onHide,
   show,
 }) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const currencies = useSelector<
     {
@@ -120,104 +105,91 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
-  const buildPayload = (datasource: Record<string, any>) => ({
-    table_name: datasource.table_name,
-    database_id: datasource.database?.id,
-    sql: datasource.sql,
-    filter_select_enabled: datasource.filter_select_enabled,
-    fetch_values_predicate: datasource.fetch_values_predicate,
-    schema:
-      datasource.tableSelector?.schema ||
-      datasource.databaseSelector?.schema ||
-      datasource.schema,
-    description: datasource.description,
-    main_dttm_col: datasource.main_dttm_col,
-    normalize_columns: datasource.normalize_columns,
-    always_filter_main_dttm: datasource.always_filter_main_dttm,
-    offset: datasource.offset,
-    default_endpoint: datasource.default_endpoint,
-    cache_timeout:
-      datasource.cache_timeout === '' ? null : datasource.cache_timeout,
-    is_sqllab_view: datasource.is_sqllab_view,
-    template_params: datasource.template_params,
-    extra: datasource.extra,
-    is_managed_externally: datasource.is_managed_externally,
-    external_url: datasource.external_url,
-    metrics: datasource?.metrics?.map((metric: DatasetObject['metrics'][0]) => {
-      const metricBody: any = {
-        expression: metric.expression,
-        description: metric.description,
-        metric_name: metric.metric_name,
-        metric_type: metric.metric_type,
-        d3format: metric.d3format || null,
-        currency: !isDefined(metric.currency)
-          ? null
-          : JSON.stringify(metric.currency),
-        verbose_name: metric.verbose_name,
-        warning_text: metric.warning_text,
-        uuid: metric.uuid,
-        extra: buildExtraJsonObject(metric),
-      };
-      if (!Number.isNaN(Number(metric.id))) {
-        metricBody.id = metric.id;
-      }
-      return metricBody;
-    }),
-    columns: datasource?.columns?.map(
-      (column: DatasetObject['columns'][0]) => ({
-        id: typeof column.id === 'number' ? column.id : undefined,
-        column_name: column.column_name,
-        type: column.type,
-        advanced_data_type: column.advanced_data_type,
-        verbose_name: column.verbose_name,
-        description: column.description,
-        expression: column.expression,
-        filterable: column.filterable,
-        groupby: column.groupby,
-        is_active: column.is_active,
-        is_dttm: column.is_dttm,
-        python_date_format: column.python_date_format || null,
-        uuid: column.uuid,
-        extra: buildExtraJsonObject(column),
-      }),
-    ),
-    owners: datasource.owners.map(
-      (o: Record<string, number>) => o.value || o.id,
-    ),
-  });
+  const buildPayload = (datasource: Record<string, any>) => {
+    const payload: Record<string, any> = {
+      table_name: datasource.table_name,
+      database_id: datasource.database?.id,
+      sql: datasource.sql,
+      filter_select_enabled: datasource.filter_select_enabled,
+      fetch_values_predicate: datasource.fetch_values_predicate,
+      schema:
+        datasource.tableSelector?.schema ||
+        datasource.databaseSelector?.schema ||
+        datasource.schema,
+      description: datasource.description,
+      main_dttm_col: datasource.main_dttm_col,
+      normalize_columns: datasource.normalize_columns,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
+      offset: datasource.offset,
+      default_endpoint: datasource.default_endpoint,
+      cache_timeout:
+        datasource.cache_timeout === '' ? null : datasource.cache_timeout,
+      is_sqllab_view: datasource.is_sqllab_view,
+      template_params: datasource.template_params,
+      extra: datasource.extra,
+      is_managed_externally: datasource.is_managed_externally,
+      external_url: datasource.external_url,
+      metrics: datasource?.metrics?.map(
+        (metric: DatasetObject['metrics'][0]) => {
+          const metricBody: any = {
+            expression: metric.expression,
+            description: metric.description,
+            metric_name: metric.metric_name,
+            metric_type: metric.metric_type,
+            d3format: metric.d3format || null,
+            currency: metric.currency,
+            verbose_name: metric.verbose_name,
+            warning_text: metric.warning_text,
+            uuid: metric.uuid,
+            extra: buildExtraJsonObject(metric),
+          };
+          if (!Number.isNaN(Number(metric.id))) {
+            metricBody.id = metric.id;
+          }
+          return metricBody;
+        },
+      ),
+      columns: datasource?.columns?.map(
+        (column: DatasetObject['columns'][0]) => ({
+          id: typeof column.id === 'number' ? column.id : undefined,
+          column_name: column.column_name,
+          type: column.type,
+          advanced_data_type: column.advanced_data_type,
+          verbose_name: column.verbose_name,
+          description: column.description,
+          expression: column.expression,
+          filterable: column.filterable,
+          groupby: column.groupby,
+          is_active: column.is_active,
+          is_dttm: column.is_dttm,
+          python_date_format: column.python_date_format || null,
+          uuid: column.uuid,
+          extra: buildExtraJsonObject(column),
+        }),
+      ),
+      owners: datasource.owners.map(
+        (o: Record<string, number>) => o.value || o.id,
+      ),
+    };
+    // Handle catalog based on database's allow_multi_catalog setting
+    // If multi-catalog is disabled, don't include catalog in payload
+    // The backend will use the default catalog
+    // If multi-catalog is enabled, include the selected catalog
+    if (datasource.database?.allow_multi_catalog) {
+      payload.catalog = datasource.catalog;
+    }
+    return payload;
+  };
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
     setIsSaving(true);
+    const overrideColumns = datasource.sql !== currentDatasource.sql;
     try {
       await SupersetClient.put({
-        endpoint: `/api/v1/dataset/${currentDatasource.id}`,
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${overrideColumns}`,
         jsonPayload: buildPayload(currentDatasource),
       });
-      if (datasource.sql !== currentDatasource.sql) {
-        // if sql has changed, save a second time with synced columns
-        dispatch(startMetaDataLoading());
-        try {
-          const columnJson = await fetchSyncedColumns(currentDatasource);
-          const columnChanges = updateColumns(
-            currentDatasource.columns,
-            columnJson,
-            addSuccessToast,
-          );
-          currentDatasource.columns = columnChanges.finalColumns;
-          dispatch(syncDatasourceMetadata(currentDatasource));
-          dispatch(stopMetaDataLoading());
-          addSuccessToast(t('Metadata has been synced'));
-        } catch (error) {
-          dispatch(stopMetaDataLoading());
-          addDangerToast(
-            t('An error has occurred while syncing virtual dataset columns'),
-          );
-        }
-        await SupersetClient.put({
-          endpoint: `/api/v1/dataset/${currentDatasource.id}`,
-          jsonPayload: buildPayload(currentDatasource),
-        });
-      }
+
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
@@ -270,8 +242,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     <div>
       <Alert
         css={theme => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
+          marginTop: theme.sizeUnit * 4,
+          marginBottom: theme.sizeUnit * 4,
         })}
         type="warning"
         showIcon
@@ -305,7 +277,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Icons.EditOutlined
             iconSize="l"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
             `}
             data-test="edit-alt"
           />
@@ -319,7 +291,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"
-            className="m-r-5"
+            buttonStyle="secondary"
             onClick={onHide}
           >
             {t('Cancel')}
