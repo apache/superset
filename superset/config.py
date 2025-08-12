@@ -279,10 +279,11 @@ WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.core.log",
-    "superset.views.core.explore_json",
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    "superset.views.core.explore_json",
+    "superset.views.core.log",
+    "superset.views.datasource.views.samples",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -615,6 +616,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
+    # in addition to relative timeshifts (e.g., "1 day ago")
+    "DATE_RANGE_TIMESHIFTS_ENABLED": False,
 }
 
 # ------------------------------
@@ -863,6 +867,14 @@ SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "domcontentloaded"
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
     timedelta(seconds=60).total_seconds() * 1000
 )
+
+# Tiled screenshot configuration for large dashboards
+SCREENSHOT_TILED_ENABLED = True  # Enable tiled screenshots for large dashboards
+SCREENSHOT_TILED_CHART_THRESHOLD = 20  # Minimum charts to trigger tiled screenshots
+SCREENSHOT_TILED_HEIGHT_THRESHOLD = (
+    5000  # Minimum height (px) to trigger tiled screenshots
+)
+SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 
 # ---------------------------------------------------
 # Image and file configuration

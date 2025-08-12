@@ -843,10 +843,10 @@ msgstr "Afegir plantilla CSS"
 msgid "Add Dashboard"
 msgstr "Afegir Dashboard"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Afegir Divisor"
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Afegir Filtre"
 
 msgid "Add Layer"
@@ -1822,7 +1822,7 @@ msgstr "Filtres d'autocompletat"
 msgid "Autocomplete query predicate"
 msgstr "Predicat de consulta d'autocompletat"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Color Automàtic"
 
 msgid "Autosize Column"
@@ -3234,7 +3234,7 @@ msgstr "Mapa de País"
 msgid "Create"
 msgstr "Crear"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Crear Gràfic"
 
 msgid "Create a dataset"
@@ -5773,7 +5773,7 @@ msgstr "Imatge (PNG) incrustada al correu electrònic"
 msgid "Image download failed, please refresh and try again."
 msgstr "La descàrrega d'imatge ha fallat, si us plau actualitza i torna-ho a provar."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "Suplantar usuari connectat (Presto, Trino, Drill, Hive, i GSheets)"
 
 msgid "Import"
@@ -8642,7 +8642,7 @@ msgstr "El recurs ja té un informe adjunt."
 msgid "Resource was not found."
 msgstr "No s'ha trobat el recurs."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Restaurar Filtre"
 
 msgid "Results"
@@ -9220,7 +9220,7 @@ msgstr "Seleccionar Mètode de Lliurament"
 msgid "Select Tags"
 msgstr "Seleccionar Etiquetes"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Seleccionar Tipus de Visualització"
 
 msgid "Select a column"
@@ -13270,7 +13270,7 @@ msgstr "Ordenar Eix X Per"
 msgid "X-axis"
 msgstr "Eix X"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Interval d'Escala X"
 
 msgid "XYZ"
@@ -13327,7 +13327,7 @@ msgstr "Eix Y"
 msgid "Y-axis bounds"
 msgstr "Límits de l'eix Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Interval d'Escala Y"
 
 msgid "Year"

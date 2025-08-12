@@ -851,11 +851,11 @@ msgid "Add Dashboard"
 msgstr "Dodaj nadzorno ploščo"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Ločilnik"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Dodaj filter"
 
 #, fuzzy
@@ -1855,7 +1855,7 @@ msgstr "Samodokončaj filtre"
 msgid "Autocomplete query predicate"
 msgstr "Predikat za samodokončanje poizvedb"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Samodejne barve"
 
 #, fuzzy
@@ -3284,7 +3284,7 @@ msgstr "Zemljevid držav"
 msgid "Create"
 msgstr "Ustvari"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Ustvarite grafikon"
 
 msgid "Create a dataset"
@@ -5895,7 +5895,7 @@ msgstr "Slika (PNG) vključena v e-pošto"
 msgid "Image download failed, please refresh and try again."
 msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Predstavljanje kot prijavljeni uporabnik (Presto, Trino, Drill, Hive in "
 "GSheets)"
@@ -8806,7 +8806,7 @@ msgstr "Vir že ima povezano poročilo."
 msgid "Resource was not found."
 msgstr "Vir ni bil najden."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Povrni filter"
 
 msgid "Results"
@@ -9395,7 +9395,7 @@ msgstr "Izberite način dostave"
 msgid "Select Tags"
 msgstr "Izberite oznake"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Izberite tip vizualizacije"
 
 msgid "Select a column"
@@ -13497,7 +13497,7 @@ msgstr "\"Razvrsčanje po\" za X-os"
 msgid "X-axis"
 msgstr "X-os"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Interval X-osi"
 
 msgid "XYZ"
@@ -13554,7 +13554,7 @@ msgstr "Y-os"
 msgid "Y-axis bounds"
 msgstr "Meje Y-osi"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Interval Y-osi"
 
 msgid "Year"

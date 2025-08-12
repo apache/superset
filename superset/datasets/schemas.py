@@ -19,14 +19,29 @@ from typing import Any
 
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, pre_load, Schema, validates_schema, ValidationError
+from marshmallow import (
+    fields,
+    post_dump,
+    pre_load,
+    Schema,
+    validates_schema,
+    ValidationError,
+)
 from marshmallow.validate import Length, OneOf
 
+from superset import security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_drill_info_schema = {
+    "type": "object",
+    "properties": {
+        "dashboard_id": {"type": "integer"},
+    },
+}
 
 openapi_spec_methods_override = {
     "get_list": {
@@ -373,3 +388,48 @@ class DatasetCacheWarmUpResponseSchema(Schema):
             "description": "A list of each chart's warmup status and errors if any"
         },
     )
+
+
+class DatasetColumnDrillInfoSchema(Schema):
+    column_name = fields.String(required=True)
+    verbose_name = fields.String(required=False)
+
+
+class UserSchema(Schema):
+    first_name = fields.String()
+    last_name = fields.String()
+
+
+class DatasetDrillInfoSchema(Schema):
+    id = fields.Integer()
+    columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
+    table_name = fields.String()
+    owners = fields.List(fields.Nested(UserSchema))
+    created_by = fields.Nested(UserSchema)
+    created_on_humanized = fields.String()
+    changed_by = fields.Nested(UserSchema)
+    changed_on_humanized = fields.String()
+
+    # pylint: disable=unused-argument
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: SqlaTable, **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Clear API response to avoid exposing sensitive information for embedded users,
+        and filter columns to only include those with groupby=True for drill operations.
+        """
+        dimensions = {
+            col.column_name
+            for col in getattr(obj, "columns", [])
+            if getattr(col, "groupby", False)
+        }
+        serialized["columns"] = [
+            col
+            for col in serialized.get("columns", [])
+            if col["column_name"] in dimensions
+        ]
+
+        if security_manager.is_guest_user():
+            return {"id": serialized["id"], "columns": serialized["columns"]}
+        return serialized
