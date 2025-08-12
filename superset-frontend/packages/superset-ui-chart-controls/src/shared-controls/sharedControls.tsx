@@ -483,7 +483,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
     default: 'metrics',
     options: [
       ['metrics', t('Metrics')],
-      ['dimensions', t('Dimension Members')],
+      ['dimensions', t('Dimension members')],
     ],
     renderTrigger: true,
   };
@@ -549,11 +549,11 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // Add selection mode control (Dimension Members vs TopN)
   sharedControls[`matrixify_dimension_selection_mode_${axis}`] = {
     type: 'RadioButtonControl',
-    label: t(`Selection Method`),
+    label: t(`Selection method`),
     default: 'members',
     options: [
-      ['members', t('Dimension Members')],
-      ['topn', t('Top N')],
+      ['members', t('Dimension members')],
+      ['topn', t('Top n')],
     ],
     renderTrigger: true,
     visibility: ({ controls }) =>
@@ -563,7 +563,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // TopN controls
   sharedControls[`matrixify_topn_value_${axis}`] = {
     type: 'TextControl',
-    label: t(`Number of Top Values`),
+    label: t(`Number of top values`),
     description: t(`How many top values to select`),
     default: 10,
     isInt: true,
@@ -575,7 +575,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
 
   sharedControls[`matrixify_topn_metric_${axis}`] = {
     ...dndAdhocMetricControl,
-    label: t(`Metric for Ordering`),
+    label: t(`Metric for ordering`),
     multi: false,
     validators: [], // Not required
     description: t(`Metric to use for ordering Top N values`),
@@ -601,7 +601,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // Add grid layout controls
   sharedControls.matrixify_row_height = {
     type: 'TextControl',
-    label: t('Row Height'),
+    label: t('Row height'),
     description: t('Height of each row in pixels'),
     default: 300,
     isInt: true,
@@ -611,7 +611,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
 
   sharedControls.matrixify_fit_columns_dynamically = {
     type: 'CheckboxControl',
-    label: t('Fit Columns Dynamically'),
+    label: t('Fit columns dynamically'),
     description: t(
       'Automatically adjust column width based on available space',
     ),
@@ -621,7 +621,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
 
   sharedControls.matrixify_charts_per_row = {
     type: 'SelectControl',
-    label: t('Charts Per Row'),
+    label: t('Charts per row'),
     description: t('Number of charts to display per row'),
     default: 4,
     choices: [
@@ -642,7 +642,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
 // Matrixify enable control
 sharedControls.matrixify_enabled = {
   type: 'CheckboxControl',
-  label: t('Enable Matrixify'),
+  label: t('Enable matrixify'),
   description: t(
     'Transform this chart into a matrix/grid of charts based on dimensions or metrics',
   ),
