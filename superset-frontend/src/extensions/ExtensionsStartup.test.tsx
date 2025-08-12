@@ -176,7 +176,7 @@ test('only initializes once even with multiple renders', async () => {
   let initializeCallCount = 0;
 
   manager.initializeExtensions = jest.fn().mockImplementation(() => {
-    initializeCallCount++;
+    initializeCallCount += 1;
     return Promise.resolve();
   });
 

@@ -49,15 +49,14 @@ const defaultProps = {
   addSuccessToast: jest.fn(),
 };
 
-const renderWithStore = (props = {}) => {
-  return render(<ExtensionsList {...defaultProps} {...props} />, {
+const renderWithStore = (props = {}) =>
+  render(<ExtensionsList {...defaultProps} {...props} />, {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
     useTheme: true,
     initialState: mockInitialState,
   });
-};
 
 test('renders extensions list with basic structure', async () => {
   renderWithStore();
@@ -71,7 +70,7 @@ test('displays extension names in the list', async () => {
 
   await waitFor(() => {
     // These texts should appear somewhere in the rendered component
-    expect(document.body.textContent).toContain('Extensions');
+    expect(document.body).toHaveTextContent(/Extensions/);
   });
 });
 
