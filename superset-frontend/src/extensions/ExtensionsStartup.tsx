@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
+import { logging } from '@superset-ui/core';
 import {
   authentication,
   core,
@@ -76,9 +77,9 @@ const ExtensionsStartup = () => {
     // Initialize extensions
     try {
       ExtensionsManager.getInstance().initializeExtensions();
-      console.log('Extensions initialized successfully.');
+      logging.info('Extensions initialized successfully.');
     } catch (error) {
-      console.error('Error setting up extensions:', error);
+      logging.error('Error setting up extensions:', error);
     } finally {
       setInitialized(true);
     }
