@@ -20,7 +20,7 @@ import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 
 export const matrixifyEnableSection: ControlPanelSectionConfig = {
-  label: t('Enable Matrixify'),
+  label: t('Enable matrixify'),
   expanded: true,
   controlSetRows: [
     [
@@ -28,7 +28,7 @@ export const matrixifyEnableSection: ControlPanelSectionConfig = {
         name: 'matrixify_enabled',
         config: {
           type: 'CheckboxControl',
-          label: t('Enable Matrixify'),
+          label: t('Enable matrixify'),
           default: false,
           renderTrigger: true,
           description: t(
@@ -116,7 +116,7 @@ export const matrixifySection: ControlPanelSectionConfig = {
           label: t('Cell title template'),
           default: '',
           description: t(
-            'Template for cell titles. Use Handlebars syntax: {{row}}, {{column}}, {{rowLabel}}, {{columnLabel}}',
+            'Template for cell titles. Use Handlebars templating syntax (a popular templating library that uses double curly brackets for variable substitution): {{row}}, {{column}}, {{rowLabel}}, {{columnLabel}}',
           ),
           placeholder: '{{rowLabel}} by {{colLabel}}',
         },
@@ -127,7 +127,7 @@ export const matrixifySection: ControlPanelSectionConfig = {
 };
 
 export const matrixifyRowSection: ControlPanelSectionConfig = {
-  label: t('Matrixify Rows'),
+  label: t('Matrixify rows'),
   expanded: false,
   visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
@@ -143,7 +143,7 @@ export const matrixifyRowSection: ControlPanelSectionConfig = {
 };
 
 export const matrixifyColumnSection: ControlPanelSectionConfig = {
-  label: t('Matrixify Columns'),
+  label: t('Matrixify columns'),
   expanded: false,
   visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [

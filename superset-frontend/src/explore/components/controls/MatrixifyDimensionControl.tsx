@@ -174,7 +174,7 @@ export default function MatrixifyDimensionControl(
           value={value?.values || []}
           header={
             <ControlHeader
-              label={t('Dimension Values')}
+              label={t('Dimension values')}
               description={t('Select dimension values')}
             />
           }
