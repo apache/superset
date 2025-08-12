@@ -30,6 +30,7 @@ import {
 import { useState } from 'react';
 import { capitalize } from 'lodash/fp';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 type OAuthProvider = {
   name: string;
@@ -87,7 +88,7 @@ export default function Login() {
 
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-    SupersetClient.postForm('/login/', values, '').finally(() => {
+    SupersetClient.postForm(ensureAppRoot('/login/'), values, '').finally(() => {
       setLoading(false);
     });
   };
@@ -126,7 +127,7 @@ export default function Login() {
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={ensureAppRoot(`/login/${provider.name}`)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -144,7 +145,7 @@ export default function Login() {
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={ensureAppRoot(`/login/${provider.name}`)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -212,7 +213,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register/"
+                      href={ensureAppRoot("/register/")}
                       data-test="register-button"
                     >
                       {t('Register')}
