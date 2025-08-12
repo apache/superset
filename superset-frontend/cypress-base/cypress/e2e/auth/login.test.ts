@@ -19,7 +19,7 @@
 import { LOGIN } from 'cypress/utils/urls';
 
 function interceptLogin() {
-  cy.intercept('POST', '/login/').as('login');
+  cy.intercept('POST', '**/login/').as('login');
 }
 
 describe('Login view', () => {
