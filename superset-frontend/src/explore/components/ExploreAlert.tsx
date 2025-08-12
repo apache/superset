@@ -23,7 +23,7 @@ import { ErrorAlert } from 'src/components';
 
 interface ControlPanelAlertProps {
   title: string;
-  bodyText: string | React.ReactNode;
+  bodyText: React.ReactNode;
   primaryButtonAction?: (e: MouseEvent) => void;
   secondaryButtonAction?: (e: MouseEvent) => void;
   primaryButtonText?: string;
