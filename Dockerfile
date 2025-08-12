@@ -219,7 +219,10 @@ FROM python-common AS lean
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
+
+# Copy superset-core package needed for editable install in base.txt
 COPY superset-core superset-core
+
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 # Install the superset package
@@ -242,7 +245,11 @@ RUN /app/docker/apt-install.sh \
 
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/
+
+# Copy local packages needed for editable installs in development.txt
 COPY superset-core superset-core
+COPY superset-cli superset-cli
+
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
