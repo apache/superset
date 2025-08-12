@@ -18,6 +18,7 @@
 import copy
 import time
 import unittest
+from contextlib import contextmanager
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
@@ -134,6 +135,32 @@ class BaseTestChartDataApi(SupersetTestCase):
                     name
                 )
         return name
+
+    @contextmanager
+    def set_column_groupby_false(self, column_name: str):
+        """
+        Context manager to temporarily set a column's groupby property to false.
+        """
+        birth_names_table = self.get_birth_names_dataset()
+        target_column = None
+        original_groupby_value = None
+
+        for col in birth_names_table.columns:
+            if col.column_name == column_name:
+                target_column = col
+                original_groupby_value = col.groupby
+                break
+
+        if target_column:
+            target_column.groupby = False
+            db.session.commit()
+
+        try:
+            yield target_column
+        finally:
+            if target_column and original_groupby_value is not False:
+                target_column.groupby = original_groupby_value
+                db.session.commit()
 
 
 @pytest.mark.chart_data_flow
@@ -971,6 +998,73 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "num divide by 10" in result["query"]
         assert "name" in result["query"]
         assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_drill_by_allowed_column(self):
+        """
+        Chart data API: Test that user can drill by column with
+        isDimension set to True
+        """
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_drill_by_disallowed_column_regular_user(self):
+        """
+        Chart data API: Test that user can still drill by column with
+        isDimension set to False (given the dataset access)
+        """
+        with self.set_column_groupby_false("num_girls"):
+            self.query_context_payload["queries"][0]["columns"] = ["num_girls"]
+            rv = self.post_assert_metric(
+                CHART_DATA_URI, self.query_context_payload, "data"
+            )
+            assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_embedded_user_drill_by_allowed_column(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user can drill by column with
+        isDimension set to True.
+        """
+        g.user.rls = []
+        mock_has_guest_access.return_value = True
+        mock_is_guest_user.return_value = True
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_embedded_user_drill_by_disallowed_column(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user can't drill by column with
+        isDimension set to False.
+        """
+        self.logout()
+        self.login(GAMMA_USERNAME)
+
+        with self.set_column_groupby_false("num_girls"):
+            g.user.rls = []
+            mock_has_guest_access.return_value = True
+            mock_is_guest_user.return_value = True
+            self.query_context_payload["queries"][0]["columns"] = ["num_girls"]
+            rv = self.post_assert_metric(
+                CHART_DATA_URI, self.query_context_payload, "data"
+            )
+            assert rv.status_code == 403
 
 
 @pytest.mark.chart_data_flow

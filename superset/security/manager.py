@@ -307,7 +307,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Manage",
         "Queries",
         "ReportSchedule",
-        "TableSchemaView",
     }
 
     ALPHA_ONLY_PMVS = {
@@ -331,6 +330,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata",
         "can_external_metadata_by_name",
         "can_read",
+        "can_get_drill_info",
     }
 
     ALPHA_ONLY_PERMISSIONS = {
@@ -375,6 +375,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "Query Search"),
         ("can_read", "SqlLabPermalinkRestApi"),
         ("can_write", "SqlLabPermalinkRestApi"),
+        ("can_post", "TableSchemaView"),
+        ("can_expanded", "TableSchemaView"),
+        ("can_delete", "TableSchemaView"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -569,6 +572,74 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         return True
+
+    def can_drill_dataset_via_dashboard_access(
+        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+    ) -> bool:
+        """
+        Return True if an embedded user or DASHBOARD_RBAC user can drill a dataset.
+        """
+        from superset import is_feature_enabled
+
+        if (
+            (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and self.has_guest_access(dashboard)
+            )
+            or (
+                is_feature_enabled("DASHBOARD_RBAC")
+                and dashboard.roles
+                and dashboard.published
+                and {role.id for role in dashboard.roles}
+                & {role.id for role in self.get_user_roles()}
+            )
+        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
+            return True
+
+        return False
+
+    def has_drill_by_access(
+        self,
+        form_data: dict[str, Any],
+        dashboard: "Dashboard",
+        datasource: "BaseDatasource",
+    ) -> bool:
+        """
+        Return True if the form_data is performing a supported drill by operation,
+        False otherwise.
+
+        :param form_data: The form_data included in the request.
+        :param dashboard: The dashboard the user is drilling from.
+        :returns: Whether the user has drill byaccess.
+        """
+
+        from superset.connectors.sqla.models import TableColumn
+        from superset.models.slice import Slice
+
+        return bool(
+            form_data.get("type") != "NATIVE_FILTER"
+            and form_data.get("slice_id") == 0
+            and (chart_id := form_data.get("chart_id"))
+            and (
+                slc := self.get_session.query(Slice)
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            )
+            and slc in dashboard.slices
+            and slc.datasource == datasource
+            and (dimensions := form_data.get("groupby"))
+            and (
+                drillable_columns := {
+                    row[0]
+                    for row in self.get_session.query(TableColumn.column_name)
+                    .filter(TableColumn.table_id == datasource.id)
+                    .filter(TableColumn.groupby)
+                    .all()
+                }
+            )
+            and set(dimensions).issubset(drillable_columns)
+        )
 
     def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
         """
@@ -2401,6 +2472,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and slc in dashboard_.slices
                             and slc.datasource == datasource
                         )
+                        or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
                     and self.can_access_dashboard(dashboard_)
                 )

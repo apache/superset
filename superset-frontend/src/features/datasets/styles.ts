@@ -22,7 +22,7 @@ export const StyledLayoutWrapper = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colorBgContainer};
 `;
 
 export const LeftColumn = styled.div<{ width?: number }>`
@@ -64,8 +64,10 @@ export const FooterRow = styled(Row)`
 export const StyledLayoutHeader = styled.div`
   ${({ theme }) => `
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
   height: ${theme.sizeUnit * 16}px;
-  border-bottom: 2px solid ${theme.colors.grayscale.light2};
+  border-bottom: 1px solid ${theme.colorBorder};
 
   .header-with-actions {
     height: ${theme.sizeUnit * 15.5}px;
@@ -112,7 +114,7 @@ export const StyledLayoutFooter = styled.div`
   padding: ${theme.sizeUnit * 4}px;
   display: flex;
   justify-content: flex-end;
-  background-color: ${theme.colors.grayscale.light5};
+  background-color: ${theme.colorBgContainer};
   z-index: ${theme.zIndexPopupBase}
   `}
 `;
