@@ -177,11 +177,19 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       return [];
     }
 
-    if (chartType === 'big_number' || chartType === 'big_number_total') {
-      return [];
-    }
+    const excludedChartTypes = [
+      'big_number',
+      'big_number_total',
+      'graph_chart',
+      'gantt',
+      'pivot_table_v2',
+      'table',
+      'sankey',
+      'sankey_v2',
+      'treemap_v2',
+    ];
 
-    if (chartType === 'graph') {
+    if (excludedChartTypes.includes(chartType)) {
       return [];
     }
 
