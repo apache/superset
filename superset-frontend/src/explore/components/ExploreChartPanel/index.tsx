@@ -88,12 +88,12 @@ export interface ExploreChartPanelProps {
   chartAlert?: string;
 }
 
-type PANEL_SIZES = [number, number];
+type PanelSizes = [number, number];
 
 const GUTTER_SIZE_FACTOR = 1.25;
 
-const INITIAL_SIZES: PANEL_SIZES = [100, 0];
-const MIN_SIZES: PANEL_SIZES = [300, 65];
+const INITIAL_SIZES: PanelSizes = [100, 0];
+const MIN_SIZES: PanelSizes = [300, 65];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div<{ showSplite: boolean }>`
@@ -149,7 +149,7 @@ const ExploreChartPanel = ({
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
-  const [splitSizes, setSplitSizes] = useState<PANEL_SIZES>(
+  const [splitSizes, setSplitSizes] = useState<PanelSizes>(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES
       : getItem(LocalStorageKeys.ChartSplitSizes, INITIAL_SIZES),
@@ -207,7 +207,7 @@ const ExploreChartPanel = ({
     setItem(LocalStorageKeys.ChartSplitSizes, splitSizes);
   }, [splitSizes]);
 
-  const onDragEnd = useCallback((sizes: PANEL_SIZES) => {
+  const onDragEnd = useCallback((sizes: PanelSizes) => {
     setSplitSizes(sizes);
   }, []);
 
@@ -225,7 +225,7 @@ const ExploreChartPanel = ({
   }, [actions, chart.id, formData, ownState, timeout]);
 
   const onCollapseChange = useCallback((isOpen: boolean) => {
-    let splitSizes: PANEL_SIZES;
+    let splitSizes: PanelSizes;
     if (!isOpen) {
       splitSizes = INITIAL_SIZES;
     } else {
