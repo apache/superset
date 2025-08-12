@@ -889,7 +889,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 if function.sql_name() != "ANONYMOUS"
                 else function.name.upper()
             )
-            for function in self._parsed.find_all(Func)
+            for function in self._parsed.find_all(exp.Func)
         }
         return any(function.upper() in present for function in functions)
 

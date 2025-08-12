@@ -23,7 +23,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { css, t, styled, useTheme } from '@superset-ui/core';
 
-import { Button, Icons } from '@superset-ui/core/components';
+import { Button, Icons, Input } from '@superset-ui/core/components';
 import { LOG_ACTIONS_AI_ASSISTANT_OPENED } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';
 
@@ -41,28 +41,6 @@ export interface AiAssistantEditorProps {
 const StyledButton = styled.span`
   button {
     line-height: 20px;
-  }
-`;
-
-const StyledIcon = styled(Icons.BulbOutlined)`
-  &:first-of-type {
-    margin: 0;
-    display: flex;
-    svg {
-      margin: 0;
-    }
-  }
-`;
-
-const StyledInfoIcon = styled(Icons.InfoCircleOutlined)`
-  &:first-of-type {
-    margin: 0;
-    display: flex;
-    svg {
-      margin: 0;
-      width: 16px;
-      height: 16px;
-    }
   }
 `;
 
@@ -154,7 +132,7 @@ const AiAssistantEditor = ({
     <StyledToolbar>
       <div className="assist-input">
         <span className="label">AI Assist</span>
-        <input
+        <Input
           type="text"
           onChange={changePrompt}
           value={prompt}
@@ -179,7 +157,10 @@ const AiAssistantEditor = ({
             tooltip={t('Generate SQL with AI') as string}
             disabled={isDisabled}
           >
-            <StyledIcon iconColor={theme.colors.primary.base} iconSize="xl" />
+            <Icons.BulbOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="xl"
+            />
             {isGeneratingSql ? t('Generating...') : t('Generate SQL')}
           </Button>
         </StyledButton>
@@ -188,7 +169,7 @@ const AiAssistantEditor = ({
         <DisabledMessage>{disabledMessage}</DisabledMessage>
       ) : schema && schema.length > 0 ? (
         <SelectedSchemaMessage>
-          <StyledInfoIcon />
+          <Icons.InfoCircleOutlined />
           {`Selecting schema will restrict the AI to generate SQL for only the selected schema. This will increase costs due to skipping the AI cache. Currently selected: ${Array.isArray(schema) ? schema.join(', ') : schema}`}
         </SelectedSchemaMessage>
       ) : null}

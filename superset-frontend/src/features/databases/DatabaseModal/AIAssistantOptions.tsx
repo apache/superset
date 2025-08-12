@@ -40,7 +40,7 @@ import {
   StyledLlmSwitch,
   StyledTokenEstimate,
   StyledTopKForm,
-  antdCollapseStyles,
+  // antdCollapseStyles,
   wideButton,
 } from './styles';
 import { DatabaseObject } from '../types';
@@ -145,7 +145,7 @@ const AIAssistantOptions = ({
       <Collapse
         expandIconPosition="right"
         accordion
-        css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
+        // css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
       >
         <Collapse.Panel
           header={
