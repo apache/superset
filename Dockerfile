@@ -219,6 +219,7 @@ FROM python-common AS lean
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
+COPY superset-core superset-core
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 # Install the superset package
@@ -241,6 +242,7 @@ RUN /app/docker/apt-install.sh \
 
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/
+COPY superset-core superset-core
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
