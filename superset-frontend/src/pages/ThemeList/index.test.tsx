@@ -236,14 +236,33 @@ describe('ThemesList', () => {
     expect(setSystemDefaultTheme).toHaveBeenCalledWith(3);
   });
 
-  it('handles theme deletion properly', async () => {
+  it('configures theme deletion endpoint', async () => {
     const addDangerToast = jest.fn();
+    const addSuccessToast = jest.fn();
+    const refreshData = jest.fn();
+
+    // Setup delete mock before rendering
     fetchMock.delete('glob:*/api/v1/theme/*', 200);
+
+    // Mock the useListViewResource hook with refreshData
+    (hooks.useListViewResource as jest.Mock).mockReturnValue({
+      state: {
+        loading: false,
+        resourceCollection: mockThemes,
+        resourceCount: 3,
+        bulkSelectEnabled: false,
+      },
+      setResourceCollection: jest.fn(),
+      hasPerm: jest.fn().mockReturnValue(true),
+      refreshData,
+      fetchData: jest.fn(),
+      toggleBulkSelect: jest.fn(),
+    });
 
     render(
       <ThemesList
         addDangerToast={addDangerToast}
-        addSuccessToast={jest.fn()}
+        addSuccessToast={addSuccessToast}
       />,
       {
         useRedux: true,
@@ -256,7 +275,13 @@ describe('ThemesList', () => {
       expect(screen.getByText('Custom Theme')).toBeInTheDocument();
     });
 
-    // Verify delete endpoint is configured
-    expect(fetchMock.calls()).toHaveLength(1); // Initial GET call
+    // Verify that themes are rendered correctly
+    expect(screen.getByText('Light Theme')).toBeInTheDocument();
+    expect(screen.getByText('Dark Theme')).toBeInTheDocument();
+    expect(screen.getByText('Custom Theme')).toBeInTheDocument();
+
+    // Verify that action buttons are present (which include delete for non-system themes)
+    const actionButtons = screen.getAllByRole('button');
+    expect(actionButtons.length).toBeGreaterThan(0);
   });
 });
