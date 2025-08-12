@@ -15,14 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 
 import pandas as pd
 import pyarrow as pa
 import pytest  # noqa: F401
 from pandas.api.types import is_datetime64_any_dtype
 
-from superset.utils import csv
+from superset.utils import csv, json
 from superset.utils.core import GenericDataType
 from superset.utils.csv import (
     df_to_escaped_csv,
