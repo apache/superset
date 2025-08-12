@@ -1920,7 +1920,7 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # TODO: remove this variable once pyjwt resolved the issue.
 # https://github.com/jpadilla/pyjwt/issues/1017
 # https://github.com/dpgaspar/Flask-AppBuilder/issues/2287
-JWT_VERIFY_SUB = False
+JWT_VERIFY_SUB: bool = False
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
