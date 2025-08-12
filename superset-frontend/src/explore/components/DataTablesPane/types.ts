@@ -68,7 +68,7 @@ export interface SamplesPaneProps {
 export interface TableControlsProps {
   data: Record<string, any>[];
   // {datasource.id}__{datasource.type}, eg: 1__table
-  datasourceId: string;
+  datasourceId?: string;
   onInputChange: (input: string) => void;
   columnNames: string[];
   columnTypes: GenericDataType[];
@@ -86,7 +86,7 @@ export interface QueryResultInterface {
 
 export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // {datasource.id}__{datasource.type}, eg: 1__table
-  datasourceId: string;
+  datasourceId?: string;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
