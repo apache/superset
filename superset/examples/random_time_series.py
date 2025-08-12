@@ -17,12 +17,13 @@
 import logging
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 
 import superset.utils.database as database_utils
-from superset import app, db
+from superset import db
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
@@ -46,7 +47,9 @@ def load_random_time_series_data(
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            pdf = read_example_data("random_time_series.json.gz", compression="gzip")
+            pdf = read_example_data(
+                "examples://random_time_series.json.gz", compression="gzip"
+            )
             if database.backend == "presto":
                 pdf.ds = pd.to_datetime(pdf.ds, unit="s")
                 pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
@@ -79,7 +82,7 @@ def load_random_time_series_data(
 
     slice_data = {
         "granularity_sqla": "ds",
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2019-01-01",
         "until": "2019-02-01",
         "metrics": ["count"],

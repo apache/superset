@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import ExploreResultsButton, {
   ExploreResultsButtonProps,
 } from 'src/SqlLab/components/ExploreResultsButton';
-import { OnClickHandler } from 'src/components/Button';
+import type { OnClickHandler } from '@superset-ui/core/components';
 
 const setup = (
   onClickFn: OnClickHandler,
@@ -36,15 +36,17 @@ describe('ExploreResultsButton', () => {
     const { queryByText } = setup(jest.fn(), {
       database: { allows_subquery: true },
     });
-
-    expect(queryByText('Create Chart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Chart' })).toBeEnabled();
+    expect(queryByText('Create chart')).toBeInTheDocument();
+    // Updated line to match the actual button name that includes the icon
+    expect(screen.getByRole('button', { name: /Create chart/i })).toBeEnabled();
   });
 
   it('renders disabled if subquery not allowed', async () => {
     const { queryByText } = setup(jest.fn());
-
-    expect(queryByText('Create Chart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Chart' })).toBeDisabled();
+    expect(queryByText('Create chart')).toBeInTheDocument();
+    // Updated line to match the actual button name that includes the icon
+    expect(
+      screen.getByRole('button', { name: /Create chart/i }),
+    ).toBeDisabled();
   });
 });

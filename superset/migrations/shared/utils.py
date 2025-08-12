@@ -49,7 +49,7 @@ YELLOW = "\033[33m"
 RED = "\033[31m"
 LRED = "\033[91m"
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
@@ -506,9 +506,21 @@ def cast_text_column_to_json(
         conn.execute(
             text(
                 f"""
-                ALTER TABLE {table}
-                ALTER COLUMN {column} TYPE jsonb
-                USING {column}::jsonb
+CREATE OR REPLACE FUNCTION safe_to_jsonb(input text)
+  RETURNS jsonb
+  LANGUAGE plpgsql
+  IMMUTABLE
+AS $$
+BEGIN
+  RETURN input::jsonb;
+EXCEPTION WHEN invalid_text_representation THEN
+  RETURN NULL;
+END;
+$$;
+
+ALTER TABLE {table}
+ALTER COLUMN {column} TYPE jsonb
+USING safe_to_jsonb({column});
                 """
             )
         )
@@ -525,6 +537,13 @@ def cast_text_column_to_json(
     stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
 
     for row_pk, value in conn.execute(stmt_select):
+        try:
+            json.loads(value)
+        except json.JSONDecodeError:
+            logger.warning(
+                f"Invalid JSON value in column {column} for {pk}={row_pk}: {value}"
+            )
+            continue
         stmt_update = update(t).where(t.c[pk] == row_pk).values({tmp_column: value})
         conn.execute(stmt_update)
 

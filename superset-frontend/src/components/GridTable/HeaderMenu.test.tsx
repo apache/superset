@@ -18,51 +18,12 @@
  */
 import type { Column, GridApi } from 'ag-grid-community';
 import {
-  fireEvent,
   render,
   waitFor,
   screen,
+  userEvent,
 } from 'spec/helpers/testing-library';
-import HeaderMenu from './HeaderMenu';
-
-jest.mock('src/components/Menu', () => {
-  const Menu = ({ children }: { children: React.ReactChild }) => (
-    <div data-test="mock-Menu">{children}</div>
-  );
-  Menu.Item = ({
-    children,
-    onClick,
-  }: {
-    children: React.ReactChild;
-    onClick: () => void;
-  }) => (
-    <button type="button" data-test="mock-Item" onClick={onClick}>
-      {children}
-    </button>
-  );
-  Menu.SubMenu = ({
-    title,
-    children,
-  }: {
-    title: React.ReactNode;
-    children: React.ReactNode;
-  }) => (
-    <div>
-      {title}
-      <button type="button" data-test="mock-SubMenu">
-        {children}
-      </button>
-    </div>
-  );
-  Menu.Divider = () => <div data-test="mock-Divider" />;
-  return { Menu };
-});
-
-jest.mock('src/components/Dropdown', () => ({
-  MenuDotsDropdown: ({ overlay }: { overlay: React.ReactChild }) => (
-    <div data-test="mock-Dropdown">{overlay}</div>
-  ),
-}));
+import { HeaderMenu, type HeaderMenuProps } from './HeaderMenu';
 
 jest.mock('src/utils/copy', () => jest.fn().mockImplementation(f => f()));
 
@@ -112,9 +73,17 @@ afterEach(() => {
   (mockGridApi.moveColumns as jest.Mock).mockClear();
 });
 
+const setup = (props: HeaderMenuProps = mockedProps) => {
+  const wrapper = render(<HeaderMenu {...props} />);
+  const dropdownTrigger = wrapper.getByTestId('dropdown-trigger');
+  userEvent.click(dropdownTrigger);
+
+  return wrapper;
+};
+
 test('renders copy data', async () => {
-  const { getByText } = render(<HeaderMenu {...mockedProps} />);
-  fireEvent.click(getByText('Copy'));
+  const { getByText } = setup();
+  userEvent.click(getByText('Copy'));
   await waitFor(() =>
     expect(mockGridApi.getDataAsCsv).toHaveBeenCalledTimes(1),
   );
@@ -125,16 +94,16 @@ test('renders copy data', async () => {
 });
 
 test('renders buttons pinning both sides', () => {
-  const { queryByText, getByText } = render(<HeaderMenu {...mockedProps} />);
+  const { queryByText, getByText } = setup();
   expect(queryByText('Pin Left')).toBeInTheDocument();
   expect(queryByText('Pin Right')).toBeInTheDocument();
-  fireEvent.click(getByText('Pin Left'));
+  userEvent.click(getByText('Pin Left'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
     [mockedProps.colId],
     'left',
   );
-  fireEvent.click(getByText('Pin Right'));
+  userEvent.click(getByText('Pin Right'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenLastCalledWith(
     [mockedProps.colId],
     'right',
@@ -142,12 +111,13 @@ test('renders buttons pinning both sides', () => {
 });
 
 test('renders unpin on pinned left', () => {
-  const { queryByText, getByText } = render(
-    <HeaderMenu {...mockedProps} pinnedLeft />,
-  );
+  const { queryByText, getByText } = setup({
+    ...mockedProps,
+    pinnedLeft: true,
+  });
   expect(queryByText('Pin Left')).not.toBeInTheDocument();
   expect(queryByText('Unpin')).toBeInTheDocument();
-  fireEvent.click(getByText('Unpin'));
+  userEvent.click(getByText('Unpin'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
     [mockedProps.colId],
@@ -156,34 +126,36 @@ test('renders unpin on pinned left', () => {
 });
 
 test('renders unpin on pinned right', () => {
-  const { queryByText } = render(<HeaderMenu {...mockedProps} pinnedRight />);
+  const { queryByText } = setup({ ...mockedProps, pinnedRight: true });
   expect(queryByText('Pin Right')).not.toBeInTheDocument();
   expect(queryByText('Unpin')).toBeInTheDocument();
 });
 
 test('renders autosize column', async () => {
-  const { getByText } = render(<HeaderMenu {...mockedProps} />);
-  fireEvent.click(getByText('Autosize Column'));
+  const { getByText } = setup();
+  userEvent.click(getByText('Autosize Column'));
   await waitFor(() =>
     expect(mockGridApi.autoSizeColumns).toHaveBeenCalledTimes(1),
   );
 });
 
 test('renders unhide when invisible column exists', async () => {
-  const { queryByText } = render(
-    <HeaderMenu {...mockedProps} invisibleColumns={[mockInvisibleColumn]} />,
-  );
+  const { queryByText, getByText } = setup({
+    ...mockedProps,
+    invisibleColumns: [mockInvisibleColumn],
+  });
   expect(queryByText('Unhide')).toBeInTheDocument();
+  userEvent.click(getByText('Unhide'));
   const unhideColumnsButton = await screen.findByText('column2');
-  fireEvent.click(unhideColumnsButton);
+  userEvent.click(unhideColumnsButton);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(['column2'], true);
 });
 
 describe('for main menu', () => {
   test('renders Copy to Clipboard', async () => {
-    const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
-    fireEvent.click(getByText('Copy the current data'));
+    const { getByText } = setup({ ...mockedProps, isMain: true });
+    userEvent.click(getByText('Copy the current data'));
     await waitFor(() =>
       expect(mockGridApi.getDataAsCsv).toHaveBeenCalledTimes(1),
     );
@@ -195,8 +167,8 @@ describe('for main menu', () => {
   });
 
   test('renders Download to CSV', async () => {
-    const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
-    fireEvent.click(getByText('Download to CSV'));
+    const { getByText } = setup({ ...mockedProps, isMain: true });
+    userEvent.click(getByText('Download to CSV'));
     await waitFor(() =>
       expect(mockGridApi.exportDataAsCsv).toHaveBeenCalledTimes(1),
     );
@@ -206,25 +178,22 @@ describe('for main menu', () => {
   });
 
   test('renders autosize column', async () => {
-    const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
-    fireEvent.click(getByText('Autosize all columns'));
+    const { getByText } = setup({ ...mockedProps, isMain: true });
+    userEvent.click(getByText('Autosize all columns'));
     await waitFor(() =>
       expect(mockGridApi.autoSizeAllColumns).toHaveBeenCalledTimes(1),
     );
   });
 
   test('renders all unhide all hidden columns when multiple invisible columns exist', async () => {
-    render(
-      <HeaderMenu
-        {...mockedProps}
-        isMain
-        invisibleColumns={[mockInvisibleColumn, mockInvisibleColumn3]}
-      />,
-    );
-    const unhideColumnsButton = await screen.findByText(
-      `All ${2} hidden columns`,
-    );
-    fireEvent.click(unhideColumnsButton);
+    setup({
+      ...mockedProps,
+      isMain: true,
+      invisibleColumns: [mockInvisibleColumn, mockInvisibleColumn3],
+    });
+    userEvent.click(screen.getByText('Unhide'));
+    const unhideColumnsButton = await screen.findByText(`All 2 hidden columns`);
+    userEvent.click(unhideColumnsButton);
     expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
     expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(
       [mockInvisibleColumn, mockInvisibleColumn3],
@@ -233,14 +202,12 @@ describe('for main menu', () => {
   });
 
   test('reset columns configuration', async () => {
-    const { getByText } = render(
-      <HeaderMenu
-        {...mockedProps}
-        isMain
-        invisibleColumns={[mockInvisibleColumn]}
-      />,
-    );
-    fireEvent.click(getByText('Reset columns'));
+    const { getByText } = setup({
+      ...mockedProps,
+      isMain: true,
+      invisibleColumns: [mockInvisibleColumn],
+    });
+    userEvent.click(getByText('Reset columns'));
     await waitFor(() =>
       expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1),
     );

@@ -18,58 +18,33 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
+import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
+import {
+  Tooltip,
+  Icons,
+  DeleteModal,
+  ConfirmStatusChange,
+} from '@superset-ui/core/components';
+import {
+  ListView,
   ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+  ListViewFilterOperator,
+  ListViewFilters,
+} from 'src/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from 'src/components/Icons';
 import {
   UserListAddModal,
   UserListEditModal,
 } from 'src/features/users/UserListModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
+import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import type { UsersListProps, Group, Role, UserObject } from './types';
 
 const PAGE_SIZE = 25;
-
-interface UsersListProps {
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    roles: object;
-  };
-}
-
-export type Role = {
-  id: number;
-  name: string;
-};
-
-export type UserObject = {
-  active: boolean;
-  changed_by: string | null;
-  changed_on: string;
-  created_by: string | null;
-  created_on: string;
-  email: string;
-  fail_login_count: number;
-  first_name: string;
-  id: number;
-  last_login: string;
-  last_name: string;
-  login_count: number;
-  roles: Role[];
-  username: string;
-};
 
 enum ModalType {
   ADD = 'add',
@@ -88,7 +63,6 @@ const isActiveOptions = [
 ];
 
 function UsersList({ user }: UsersListProps) {
-  const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const {
     state: {
@@ -108,7 +82,6 @@ function UsersList({ user }: UsersListProps) {
   const [modalState, setModalState] = useState({
     edit: false,
     add: false,
-    duplicate: false,
   });
   const openModal = (type: ModalType) =>
     setModalState(prev => ({ ...prev, [type]: true }));
@@ -118,8 +91,12 @@ function UsersList({ user }: UsersListProps) {
   const [currentUser, setCurrentUser] = useState<UserObject | null>(null);
   const [userCurrentlyDeleting, setUserCurrentlyDeleting] =
     useState<UserObject | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadingState, setLoadingState] = useState({
+    roles: true,
+    groups: true,
+  });
   const [roles, setRoles] = useState<Role[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const loginCountStats = useMemo(() => {
     if (!users || users.length === 0) return { min: 0, max: 0 };
 
@@ -141,47 +118,35 @@ function UsersList({ user }: UsersListProps) {
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
-  const fetchRoles = useCallback(async () => {
-    try {
-      const pageSize = 100;
+  const fetchRoles = useCallback(() => {
+    fetchPaginatedData({
+      endpoint: '/api/v1/security/roles/',
+      setData: setRoles,
+      setLoadingState,
+      loadingKey: 'roles',
+      addDangerToast,
+      errorMessage: t('Error while fetching roles'),
+    });
+  }, [addDangerToast]);
 
-      const fetchPage = async (pageIndex: number) => {
-        const response = await SupersetClient.get({
-          endpoint: `api/v1/security/roles/?q=(page_size:${pageSize},page:${pageIndex})`,
-        });
-        return response.json;
-      };
-
-      const initialResponse = await fetchPage(0);
-      const totalRoles = initialResponse.count;
-      const firstPageResults = initialResponse.result;
-
-      if (pageSize >= totalRoles) {
-        setRoles(firstPageResults);
-        return;
-      }
-
-      const totalPages = Math.ceil(totalRoles / pageSize);
-
-      const roleRequests = Array.from({ length: totalPages - 1 }, (_, i) =>
-        fetchPage(i + 1),
-      );
-      const remainingResults = await Promise.all(roleRequests);
-
-      setRoles([
-        ...firstPageResults,
-        ...remainingResults.flatMap(res => res.result),
-      ]);
-    } catch (err) {
-      addDangerToast(t('Error while fetching roles'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetchGroups = useCallback(() => {
+    fetchPaginatedData({
+      endpoint: '/api/v1/security/groups/',
+      setData: setGroups,
+      setLoadingState,
+      loadingKey: 'groups',
+      addDangerToast,
+      errorMessage: t('Error while fetching groups'),
+    });
+  }, [addDangerToast]);
 
   useEffect(() => {
     fetchRoles();
   }, [fetchRoles]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
 
   const handleUserDelete = async ({ id, username }: UserObject) => {
     try {
@@ -223,7 +188,9 @@ function UsersList({ user }: UsersListProps) {
     () => [
       {
         accessor: 'first_name',
+        id: 'first_name',
         Header: t('First name'),
+        size: 'lg',
         Cell: ({
           row: {
             original: { first_name },
@@ -232,7 +199,9 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'last_name',
+        id: 'last_name',
         Header: t('Last name'),
+        size: 'lg',
         Cell: ({
           row: {
             original: { last_name },
@@ -241,7 +210,9 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'username',
+        id: 'username',
         Header: t('Username'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { username },
@@ -250,7 +221,9 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'email',
+        id: 'email',
         Header: t('Email'),
+        size: 'xl',
         Cell: ({
           row: {
             original: { email },
@@ -259,7 +232,9 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'active',
+        id: 'active',
         Header: t('Is active?'),
+        size: 'sm',
         Cell: ({
           row: {
             original: { active },
@@ -268,30 +243,62 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'roles',
+        id: 'roles',
         Header: t('Roles'),
+        size: 'lg',
         Cell: ({
           row: {
             original: { roles },
           },
         }: any) => (
-          <span>{roles.map((role: Role) => role.name).join(', ')}</span>
+          <Tooltip
+            title={
+              roles?.map((role: Role) => role.name).join(', ') || t('No roles')
+            }
+          >
+            <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+          </Tooltip>
+        ),
+        disableSortBy: true,
+      },
+      {
+        accessor: 'groups',
+        Header: t('Groups'),
+        id: 'groups',
+        size: 'lg',
+        Cell: ({
+          row: {
+            original: { groups },
+          },
+        }: any) => (
+          <Tooltip
+            title={
+              groups?.map((group: Group) => group.name).join(', ') ||
+              t('No groups')
+            }
+          >
+            <span>{groups?.map((group: Group) => group.name).join(', ')}</span>
+          </Tooltip>
         ),
         disableSortBy: true,
       },
       {
         accessor: 'login_count',
+        id: 'login_count',
         Header: t('Login count'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.login_count,
       },
       {
         accessor: 'fail_login_count',
+        id: 'fail_login_count',
         Header: t('Fail login count'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.fail_login_count,
       },
       {
         accessor: 'created_on',
+        id: 'created_on',
         Header: t('Created on'),
         hidden: true,
         Cell: ({
@@ -302,6 +309,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'changed_on',
+        id: 'changed_on',
         Header: t('Changed on'),
         hidden: true,
         Cell: ({
@@ -312,6 +320,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'last_login',
+        id: 'last_login',
         Header: t('Last login'),
         hidden: true,
         Cell: ({
@@ -363,24 +372,13 @@ function UsersList({ user }: UsersListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
-            {t('User')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('User'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);
         },
-        loading: isLoading,
+        loading: loadingState.roles || loadingState.groups,
         'data-test': 'add-user-button',
       },
       {
@@ -391,68 +389,80 @@ function UsersList({ user }: UsersListProps) {
     );
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('First name'),
         key: 'first_name',
         id: 'first_name',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Last name'),
         key: 'last_name',
         id: 'last_name',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Username'),
         key: 'username',
         id: 'username',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Email'),
         key: 'email',
         id: 'email',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Is active?'),
         key: 'active',
         id: 'active',
         input: 'select',
-        operator: FilterOperator.Equals,
+        operator: ListViewFilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: isActiveOptions?.map(option => ({
           label: option.label,
           value: option.value,
         })),
-        loading: isLoading,
       },
       {
         Header: t('Roles'),
         key: 'roles',
         id: 'roles',
         input: 'select',
-        operator: FilterOperator.RelationManyMany,
+        operator: ListViewFilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         selects: roles?.map(role => ({
           label: role.name,
           value: role.id,
         })),
-        loading: isLoading,
+        loading: loadingState.roles,
+      },
+      {
+        Header: t('Groups'),
+        key: 'groups',
+        id: 'groups',
+        input: 'select',
+        operator: ListViewFilterOperator.RelationManyMany,
+        unfilteredLabel: t('All'),
+        selects: groups?.map(group => ({
+          label: group.name,
+          value: group.id,
+        })),
+        loading: loadingState.groups,
       },
       {
         Header: t('Created on'),
         key: 'created_on',
         id: 'created_on',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -460,7 +470,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'changed_on',
         id: 'changed_on',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -468,7 +478,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'last_login',
         id: 'last_login',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -476,7 +486,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'login_count',
         id: 'login_count',
         input: 'numerical_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         min: loginCountStats.min,
         max: loginCountStats.max,
       },
@@ -485,10 +495,17 @@ function UsersList({ user }: UsersListProps) {
         key: 'fail_login_count',
         id: 'fail_login_count',
         input: 'numerical_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
       },
     ],
-    [isLoading, roles, loginCountStats, failLoginCountStats],
+    [
+      loadingState.roles,
+      roles,
+      groups,
+      loadingState.groups,
+      loginCountStats,
+      failLoginCountStats,
+    ],
   );
 
   const emptyState = {
@@ -500,14 +517,7 @@ function UsersList({ user }: UsersListProps) {
       },
       buttonText: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {t('User')}
         </>
       ),
@@ -525,6 +535,7 @@ function UsersList({ user }: UsersListProps) {
           closeModal(ModalType.ADD);
         }}
         roles={roles}
+        groups={groups}
       />
       {modalState.edit && currentUser && (
         <UserListEditModal
@@ -536,6 +547,7 @@ function UsersList({ user }: UsersListProps) {
             closeModal(ModalType.EDIT);
           }}
           roles={roles}
+          groups={groups}
         />
       )}
 

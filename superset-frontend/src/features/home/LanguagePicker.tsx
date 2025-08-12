@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MainNav as Menu } from 'src/components/Menu';
-import { styled, css, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { useMemo } from 'react';
+import { MenuItem } from '@superset-ui/core/components/Menu';
+import { styled, t } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 
-const { SubMenu } = Menu;
 export interface Languages {
   [key: string]: {
     flag: string;
@@ -39,7 +40,7 @@ const StyledLabel = styled.div`
   align-items: center;
 
   & i {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   & a {
@@ -50,42 +51,34 @@ const StyledLabel = styled.div`
   }
 `;
 
-const StyledFlag = styled.i`
-  margin-top: 2px;
-`;
+export const useLanguageMenuItems = ({
+  locale,
+  languages,
+}: LanguagePickerProps): MenuItem =>
+  useMemo(() => {
+    const items: MenuItem[] = Object.keys(languages).map(langKey => ({
+      key: langKey,
+      label: (
+        <StyledLabel className="f16">
+          <i className={`flag ${languages[langKey].flag}`} />
+          <Typography.Link href={languages[langKey].url}>
+            {languages[langKey].name}
+          </Typography.Link>
+        </StyledLabel>
+      ),
+      style: { whiteSpace: 'normal', height: 'auto' },
+    }));
 
-export default function LanguagePicker(props: LanguagePickerProps) {
-  const { locale, languages, ...rest } = props;
-  const theme = useTheme();
-  return (
-    <SubMenu
-      css={css`
-        [data-icon='caret-down'] {
-          color: ${theme.colors.grayscale.base};
-          font-size: ${theme.typography.sizes.xxs}px;
-          margin-left: ${theme.gridUnit}px;
-        }
-      `}
-      aria-label="Languages"
-      title={
-        <div className="f16">
-          <StyledFlag className={`flag ${languages[locale].flag}`} />
-        </div>
-      }
-      icon={<Icons.CaretDownOutlined iconSize="xs" />}
-      {...rest}
-    >
-      {Object.keys(languages).map(langKey => (
-        <Menu.Item
-          key={langKey}
-          style={{ whiteSpace: 'normal', height: 'auto' }}
-        >
-          <StyledLabel className="f16">
-            <i className={`flag ${languages[langKey].flag}`} />
-            <a href={languages[langKey].url}>{languages[langKey].name}</a>
-          </StyledLabel>
-        </Menu.Item>
-      ))}
-    </SubMenu>
-  );
-}
+    return {
+      key: 'language-submenu',
+      type: 'submenu' as const,
+      label: (
+        <span className="f16" aria-label={t('Languages')}>
+          <i className={`flag ${languages[locale].flag}`} />
+        </span>
+      ),
+      icon: <Icons.CaretDownOutlined iconSize="xs" />,
+      children: items,
+      popupClassName: 'language-picker-popup',
+    };
+  }, [languages, locale]);

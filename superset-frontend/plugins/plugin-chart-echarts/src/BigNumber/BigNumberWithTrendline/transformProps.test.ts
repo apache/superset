@@ -20,6 +20,41 @@ import { GenericDataType } from '@superset-ui/core';
 import transformProps from './transformProps';
 import { BigNumberWithTrendlineChartProps, BigNumberDatum } from '../types';
 
+// Mock chart-controls to avoid styled-components issues in Jest
+jest.mock('@superset-ui/chart-controls', () => ({
+  aggregationChoices: {
+    raw: {
+      label: 'Force server-side aggregation',
+      compute: (data: number[]) => data[0] ?? null,
+    },
+    LAST_VALUE: {
+      label: 'Last Value',
+      compute: (data: number[]) => data[0] ?? null,
+    },
+    sum: {
+      label: 'Total (Sum)',
+      compute: (data: number[]) => data.reduce((a, b) => a + b, 0),
+    },
+    mean: {
+      label: 'Average (Mean)',
+      compute: (data: number[]) =>
+        data.reduce((a, b) => a + b, 0) / data.length,
+    },
+    min: { label: 'Minimum', compute: (data: number[]) => Math.min(...data) },
+    max: { label: 'Maximum', compute: (data: number[]) => Math.max(...data) },
+    median: {
+      label: 'Median',
+      compute: (data: number[]) => {
+        const sorted = [...data].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0
+          ? (sorted[mid - 1] + sorted[mid]) / 2
+          : sorted[mid];
+      },
+    },
+  },
+}));
+
 jest.mock('@superset-ui/core', () => ({
   GenericDataType: { Temporal: 2, String: 1 },
   extractTimegrain: jest.fn(() => 'P1D'),
@@ -39,7 +74,10 @@ jest.mock('@superset-ui/core', () => ({
 jest.mock('../utils', () => ({
   getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
   parseMetricValue: jest.fn(val => Number(val)),
-  getOriginalLabel: jest.fn((metric, metrics) => metric),
+  getOriginalLabel: jest.fn((metric, metrics) => {
+    console.log(metrics);
+    return metric;
+  }),
 }));
 
 jest.mock('../../utils/tooltip', () => ({
@@ -193,5 +231,39 @@ describe('BigNumberWithTrendline transformProps', () => {
       chartProps as unknown as BigNumberWithTrendlineChartProps,
     );
     expect(result.headerFormatter.format(500)).toBe('$500');
+  });
+
+  it('should use last data point for comparison when big number comes from aggregated data', () => {
+    const chartProps = {
+      width: 500,
+      height: 400,
+      queriesData: [
+        {
+          data: [
+            { __timestamp: 3, value: 150 },
+            { __timestamp: 2, value: 100 },
+            { __timestamp: 1, value: 110 },
+          ] as unknown as BigNumberDatum[],
+          colnames: ['__timestamp', 'value'],
+          coltypes: ['TEMPORAL', 'NUMERIC'],
+        },
+        {
+          data: [{ value: 360 }],
+          colnames: ['value'],
+          coltypes: ['NUMERIC'],
+        },
+      ],
+      formData: { ...baseFormData, aggregation: 'sum' },
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+      theme: { colors: { grayscale: { light5: '#eee' } } },
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberWithTrendlineChartProps,
+    );
+    expect(result.bigNumber).toBe(360);
+    expect(result.subheader).toBe('50.0% WoW');
   });
 });

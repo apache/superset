@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import {
   buildQueryContext,
   ensureIsArray,
@@ -32,35 +33,43 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      columns: [
-        ...(isXAxisSet(formData)
-          ? ensureIsArray(getXAxisColumn(formData))
-          : []),
-      ],
-      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
-      post_processing: [
-        pivotOperator(formData, baseQueryObject),
-        rollingWindowOperator(formData, baseQueryObject),
-        resampleOperator(formData, baseQueryObject),
-        flattenOperator(formData, baseQueryObject),
-      ],
-    },
+  const isRawMetric = formData.aggregation === 'raw';
 
-    {
-      ...baseQueryObject,
-      columns: [
-        ...(isXAxisSet(formData)
-          ? ensureIsArray(getXAxisColumn(formData))
-          : []),
-      ],
-      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
-      post_processing: [
-        pivotOperator(formData, baseQueryObject),
-        aggregationOperator(formData, baseQueryObject),
-      ],
-    },
-  ]);
+  const timeColumn = isXAxisSet(formData)
+    ? ensureIsArray(getXAxisColumn(formData))
+    : [];
+
+  return buildQueryContext(formData, baseQueryObject => {
+    const queries = [
+      {
+        ...baseQueryObject,
+        columns: [...timeColumn],
+        ...(timeColumn.length ? {} : { is_timeseries: true }),
+        post_processing: [
+          pivotOperator(formData, baseQueryObject),
+          rollingWindowOperator(formData, baseQueryObject),
+          resampleOperator(formData, baseQueryObject),
+          flattenOperator(formData, baseQueryObject),
+        ].filter(Boolean),
+      },
+    ];
+
+    // Only add second query for raw metrics which need different query structure
+    // All other aggregations (sum, mean, min, max, median, LAST_VALUE) can be computed client-side from trendline data
+    if (formData.aggregation === 'raw') {
+      queries.push({
+        ...baseQueryObject,
+        columns: [...(isRawMetric ? [] : timeColumn)],
+        is_timeseries: !isRawMetric,
+        post_processing: isRawMetric
+          ? []
+          : ([
+              pivotOperator(formData, baseQueryObject),
+              aggregationOperator(formData, baseQueryObject),
+            ].filter(Boolean) as any[]),
+      });
+    }
+
+    return queries;
+  });
 }
