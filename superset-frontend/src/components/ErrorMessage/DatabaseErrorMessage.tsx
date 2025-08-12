@@ -22,6 +22,7 @@ import { t, tn } from '@superset-ui/core';
 import type { ErrorMessageComponentProps } from './types';
 import { IssueCode } from './IssueCode';
 import { ErrorAlert } from './ErrorAlert';
+import { CustomDocLink, CustomDocLinkProps } from './CustomDocLink';
 
 interface DatabaseErrorExtra {
   owners?: string[];
@@ -30,6 +31,8 @@ interface DatabaseErrorExtra {
     message: string;
   }[];
   engine_name: string | null;
+  custom_doc_links: CustomDocLinkProps[];
+  show_issue_info: boolean;
 }
 
 export function DatabaseErrorMessage({
@@ -40,11 +43,26 @@ export function DatabaseErrorMessage({
 
   const isVisualization = ['dashboard', 'explore'].includes(source || '');
   const [firstLine, ...remainingLines] = message.split('\n');
-  const alertMessage = firstLine;
+  let alertMessage: ReactNode = firstLine;
   const alertDescription =
     remainingLines.length > 0 ? remainingLines.join('\n') : null;
 
-  const body = extra && (
+  if (extra?.custom_doc_links) {
+    alertMessage = (
+      <>
+        {firstLine}
+        <br />
+        {extra.custom_doc_links.map((url, index) => (
+          <>
+            <CustomDocLink {...url} key={index} />
+            <br />
+          </>
+        ))}
+      </>
+    );
+  }
+
+  const body = extra && extra.show_issue_info !== false && (
     <>
       <p>
         {t('This may be triggered by:')}
