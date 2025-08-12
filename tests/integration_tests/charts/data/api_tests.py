@@ -33,6 +33,7 @@ from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.constants import CACHE_NO_TIMEOUT
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
@@ -1488,7 +1489,7 @@ def test_time_filter_with_grain(test_client, login_as_admin, physical_query_cont
 
 
 def test_force_cache_timeout(test_client, login_as_admin, physical_query_context):
-    physical_query_context["custom_cache_timeout"] = -1
+    physical_query_context["custom_cache_timeout"] = CACHE_NO_TIMEOUT
     test_client.post(CHART_DATA_URI, json=physical_query_context)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cached_dttm"] is None
