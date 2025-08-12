@@ -145,16 +145,10 @@ export interface MenuData {
   };
 }
 
-export interface SerializableThemeSettings {
-  enforced?: boolean;
-  allowSwitching?: boolean;
-  allowOSPreference?: boolean;
-}
-
 export interface BootstrapThemeDataConfig {
   default: SerializableThemeConfig | {};
   dark: SerializableThemeConfig | {};
-  settings: SerializableThemeSettings | {};
+  enableUiThemeAdministration?: boolean;
 }
 
 export interface CommonBootstrapData {
@@ -186,7 +180,6 @@ export interface BootstrapData {
 export interface BootstrapThemeData {
   bootstrapDefaultTheme: AnyThemeConfig | null;
   bootstrapDarkTheme: AnyThemeConfig | null;
-  bootstrapThemeSettings: SerializableThemeSettings | null;
   hasCustomThemes: boolean;
 }
 

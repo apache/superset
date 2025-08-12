@@ -20,6 +20,7 @@ from typing import Optional
 
 from superset.commands.base import BaseCommand
 from superset.commands.theme.exceptions import (
+    SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeDeleteFailedError,
     ThemeNotFoundError,
@@ -58,6 +59,9 @@ class DeleteThemeCommand(BaseCommand):
         for theme in self._models:
             if theme.is_system:
                 raise SystemThemeProtectedError()
+            # Check if theme is in use as system default or dark
+            if theme.is_system_default or theme.is_system_dark:
+                raise SystemThemeInUseError()
 
         # Check for dashboard usage
         self._dashboard_usage = self._get_dashboard_usage()

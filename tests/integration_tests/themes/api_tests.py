@@ -92,13 +92,14 @@ class TestThemeApi(SupersetTestCase):
             "created_on",
             "id",
             "is_system",
+            "is_system_default",
+            "is_system_dark",
             "json_data",
             "theme_name",
             "uuid",
         ]
         result_columns = list(data["result"][0].keys())
-        result_columns.sort()
-        assert expected_columns == result_columns
+        assert set(expected_columns) == set(result_columns)
 
     @pytest.mark.usefixtures("create_themes")
     def test_get_list_sort_theme(self):
@@ -207,6 +208,8 @@ class TestThemeApi(SupersetTestCase):
             "theme_name": "theme_name1",
             "json_data": '{"color": "theme1"}',
             "is_system": False,
+            "is_system_default": False,
+            "is_system_dark": False,
             "uuid": str(theme.uuid),
             "changed_by": {
                 "first_name": theme.created_by.first_name,
