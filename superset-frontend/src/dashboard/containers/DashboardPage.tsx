@@ -60,6 +60,12 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import {
+  parseRisonFilters,
+  risonToAdhocFilters,
+  getRisonFilterParam,
+  prettifyRisonFilterUrl,
+} from '../util/risonFilters';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -184,6 +190,30 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
       if (isOldRison) {
         dataMask = isOldRison;
+      }
+
+      // Parse Rison URL filters
+      const risonFilterParam = getRisonFilterParam();
+      if (risonFilterParam) {
+        const risonFilters = parseRisonFilters(risonFilterParam);
+        if (risonFilters.length > 0) {
+          const risonAdhocFilters = risonToAdhocFilters(risonFilters);
+
+          // Store Rison filters in a virtual filter state
+          // This allows them to be applied to charts without conflicting with native filters
+          const risonDataMask = {
+            __rison_filters__: {
+              filterState: { value: risonAdhocFilters },
+              ownState: {},
+            },
+          };
+
+          // Merge with existing dataMask
+          dataMask = { ...dataMask, ...risonDataMask };
+        }
+
+        // Prettify URL after parsing
+        setTimeout(() => prettifyRisonFilterUrl(), 100);
       }
 
       if (readyToRender) {
