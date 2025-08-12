@@ -369,9 +369,9 @@ const ExploreChartPanel = ({
         )}
         <ChartPills
           chartUpdateStartTime={chart.chartUpdateStartTime}
-          chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
+          chartUpdateEndTime={chart.chartUpdateEndTime ?? undefined}
           refreshCachedQuery={refreshCachedQuery}
-          rowLimit={formData?.row_limit ?? 0}
+          rowLimit={formData?.row_limit ?? undefined}
           {...(chart.queriesResponse && {
             queriesResponse: chart.queriesResponse,
           })}

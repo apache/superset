@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType, JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  GenericDataType,
+  JsonObject,
+  LatestQueryFormData,
+} from '@superset-ui/core';
 import type { ChartStatus, Datasource } from 'src/explore/types';
 
 export enum ResultTypes {
@@ -25,9 +29,8 @@ export enum ResultTypes {
 }
 
 type SetForceQueryAction = (force: boolean) => void;
-
 export interface DataTablesPaneProps {
-  queryFormData: Partial<QueryFormData>;
+  queryFormData: LatestQueryFormData;
   datasource: Datasource;
   queryForce: boolean;
   ownState?: JsonObject;
@@ -40,7 +43,7 @@ export interface DataTablesPaneProps {
 
 export interface ResultsPaneProps {
   isRequest: boolean;
-  queryFormData: Partial<QueryFormData>;
+  queryFormData: LatestQueryFormData;
   queryForce: boolean;
   ownState?: JsonObject;
   errorMessage?: React.ReactNode;

@@ -122,7 +122,7 @@ export const useResultsPane = ({
           columnNames={[]}
           columnTypes={[]}
           rowcount={0}
-          datasourceId={queryFormData.datasource ?? ''}
+          datasourceId={queryFormData.datasource}
           onInputChange={() => {}}
           isLoading={false}
           canDownload={canDownload}
@@ -150,7 +150,7 @@ export const useResultsPane = ({
       coltypes={result.coltypes}
       rowcount={result.rowcount}
       dataSize={dataSize}
-      datasourceId={queryFormData.datasource ?? ''}
+      datasourceId={queryFormData.datasource}
       key={idx}
       isVisible={isVisible}
       canDownload={canDownload}

@@ -204,6 +204,12 @@ export interface SqlaFormData extends BaseFormData {
 
 export type QueryFormData = SqlaFormData;
 
+export type LatestQueryFormData = Pick<
+  QueryFormData,
+  'viz_type' | 'vizType' | 'datasource'
+> &
+  Partial<QueryFormData>;
+
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
