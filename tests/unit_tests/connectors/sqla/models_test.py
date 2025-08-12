@@ -28,6 +28,7 @@ from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
+from superset.utils import json
 
 
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:
@@ -696,3 +697,162 @@ def test_get_sqla_table_with_catalog(
     # Verify expected table name and schema
     assert sqla_table.name == expected_name
     assert sqla_table.schema == expected_schema
+
+
+def test_default_chart_metadata_property_valid_json() -> None:
+    """
+    Test that default_chart_metadata property correctly parses valid JSON from extra.
+    """
+    database = Database(database_name="test_db")
+    expected_metadata = {
+        "default_metric": "count",
+        "default_dimension": "category",
+        "default_temporal_column": "date",
+        "default_time_grain": "P1D",
+        "default_time_range": "Last week",
+        "default_row_limit": 100,
+    }
+
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra=json.dumps({"default_chart_metadata": expected_metadata}),
+    )
+
+    assert sqla_table.default_chart_metadata == expected_metadata
+    assert sqla_table.default_metric == "count"
+    assert sqla_table.default_dimension == "category"
+    assert sqla_table.default_temporal_column == "date"
+    assert sqla_table.default_time_grain == "P1D"
+    assert sqla_table.default_time_range == "Last week"
+    assert sqla_table.default_row_limit == 100
+
+
+def test_default_chart_metadata_property_invalid_json() -> None:
+    """
+    Test that default_chart_metadata property handles invalid JSON gracefully.
+    """
+    database = Database(database_name="test_db")
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra="not valid json{",
+    )
+
+    assert sqla_table.default_chart_metadata == {}
+    assert sqla_table.default_metric is None
+    assert sqla_table.default_dimension is None
+    assert sqla_table.default_temporal_column is None
+    assert sqla_table.default_time_grain is None
+    assert sqla_table.default_time_range is None
+    assert sqla_table.default_row_limit is None
+
+
+def test_default_chart_metadata_property_null_extra() -> None:
+    """
+    Test that default_chart_metadata property handles null extra field.
+    """
+    database = Database(database_name="test_db")
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra=None,
+    )
+
+    assert sqla_table.default_chart_metadata == {}
+    assert sqla_table.default_metric is None
+    assert sqla_table.default_dimension is None
+    assert sqla_table.default_temporal_column is None
+
+
+def test_default_chart_metadata_property_empty_json() -> None:
+    """
+    Test that default_chart_metadata property handles empty JSON object.
+    """
+    database = Database(database_name="test_db")
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra="{}",
+    )
+
+    assert sqla_table.default_chart_metadata == {}
+    assert sqla_table.default_metric is None
+    assert sqla_table.default_dimension is None
+
+
+def test_set_default_chart_metadata() -> None:
+    """
+    Test that set_default_chart_metadata correctly updates the extra field.
+    """
+    database = Database(database_name="test_db")
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra="{}",
+    )
+
+    new_metadata = {
+        "default_metric": "sum",
+        "default_dimension": "region",
+        "default_temporal_column": "timestamp",
+        "default_row_limit": 500,
+    }
+
+    sqla_table.set_default_chart_metadata(new_metadata)
+
+    # Verify the extra field was updated correctly
+    extra_dict = json.loads(sqla_table.extra)
+    assert extra_dict["default_chart_metadata"] == new_metadata
+
+    # Verify properties return the new values
+    assert sqla_table.default_metric == "sum"
+    assert sqla_table.default_dimension == "region"
+    assert sqla_table.default_temporal_column == "timestamp"
+    assert sqla_table.default_row_limit == 500
+
+
+def test_set_default_chart_metadata_preserves_other_extra() -> None:
+    """
+    Test that set_default_chart_metadata preserves other data in the extra field.
+    """
+    database = Database(database_name="test_db")
+    existing_extra = {
+        "some_other_key": "some_value",
+        "another_setting": {"nested": "data"},
+    }
+
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra=json.dumps(existing_extra),
+    )
+
+    new_metadata = {"default_metric": "avg"}
+    sqla_table.set_default_chart_metadata(new_metadata)
+
+    # Verify other extra data is preserved
+    extra_dict = json.loads(sqla_table.extra)
+    assert extra_dict["some_other_key"] == "some_value"
+    assert extra_dict["another_setting"] == {"nested": "data"}
+    assert extra_dict["default_chart_metadata"] == new_metadata
+
+
+def test_set_default_chart_metadata_invalid_initial_extra() -> None:
+    """
+    Test that set_default_chart_metadata handles invalid initial extra field.
+    """
+    database = Database(database_name="test_db")
+    sqla_table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        extra="invalid json",
+    )
+
+    new_metadata = {"default_metric": "count"}
+    sqla_table.set_default_chart_metadata(new_metadata)
+
+    # Should create new valid JSON with just the chart metadata
+    extra_dict = json.loads(sqla_table.extra)
+    assert extra_dict["default_chart_metadata"] == new_metadata
+    assert sqla_table.default_metric == "count"

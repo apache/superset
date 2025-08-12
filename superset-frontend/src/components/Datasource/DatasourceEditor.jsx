@@ -901,6 +901,21 @@ class DatasourceEditor extends PureComponent {
         );
       }
 
+      // Check if default temporal column was removed
+      if (
+        chartDefaults.default_temporal_column &&
+        removedColumnNames.includes(chartDefaults.default_temporal_column)
+      ) {
+        delete chartDefaults.default_temporal_column;
+        needsUpdate = true;
+        this.props.addDangerToast(
+          t(
+            'Default temporal column "%s" was removed during metadata sync',
+            chartDefaults.default_temporal_column,
+          ),
+        );
+      }
+
       // Note: We don't check metrics here since they're not part of column sync
       // Metrics are managed separately and won't be affected by column metadata sync
 
@@ -1123,6 +1138,35 @@ class DatasourceEditor extends PureComponent {
                     })) || []
                 }
                 placeholder={t('Select a dimension')}
+                allowClear
+              />
+            }
+          />
+          <Field
+            fieldKey="default_temporal_column"
+            label={t('Default Temporal Column')}
+            description={t(
+              'Pre-populate this temporal column/X-axis when creating new charts from this dataset',
+            )}
+            value={
+              parseExtra(datasource.extra).default_chart_metadata
+                ?.default_temporal_column
+            }
+            onChange={(fieldKey, value) =>
+              this.onChartDefaultChange('default_temporal_column', value)
+            }
+            control={
+              <Select
+                name="default_temporal_column"
+                options={
+                  datasource?.columns
+                    ?.filter(col => col.is_dttm)
+                    ?.map(column => ({
+                      value: column.column_name,
+                      label: column.verbose_name || column.column_name,
+                    })) || []
+                }
+                placeholder={t('Select a temporal column')}
                 allowClear
               />
             }

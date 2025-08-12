@@ -1895,6 +1895,11 @@ class SqlaTable(
         """Get the default row limit for chart creation."""
         return self.default_chart_metadata.get("default_row_limit")
 
+    @property
+    def default_temporal_column(self) -> str | None:
+        """Get the default temporal column for chart creation."""
+        return self.default_chart_metadata.get("default_temporal_column")
+
     def set_default_chart_metadata(self, metadata: dict[str, Any]) -> None:
         """Set chart defaults in the extra JSON field."""
         try:

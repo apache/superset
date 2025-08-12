@@ -119,6 +119,22 @@ export function applyDatasetChartDefaults(
       updatedFormData.adhoc_filters = chartDefaults.default_filters;
     }
 
+    // Apply default temporal column (X-axis)
+    if (
+      chartDefaults.default_temporal_column &&
+      !updatedFormData.granularity_sqla
+    ) {
+      const defaultTemporalColumn = dataset.columns?.find(
+        (col: any) =>
+          col.column_name === chartDefaults.default_temporal_column &&
+          col.is_dttm,
+      );
+      if (defaultTemporalColumn) {
+        updatedFormData.granularity_sqla =
+          chartDefaults.default_temporal_column;
+      }
+    }
+
     return updatedFormData;
   } catch (error) {
     // Silently ignore JSON parsing errors - defaults will not be applied
