@@ -153,6 +153,10 @@ export interface SupersetSpecificTokens {
   brandLogoMargin: string;
   brandLogoHref: string;
   brandLogoHeight: string;
+  loginPageBackgroundImageUrl?: string;
+  loginFormBrandLogoUrl?: string;
+  loginPageBackgroundOverlayColor?: string;
+  loginPageBackgroundBlur?: string;
 }
 
 /**

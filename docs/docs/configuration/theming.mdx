@@ -144,9 +144,64 @@ Or in the CRUD interface theme JSON:
 
 This feature works with the stock Docker image - no custom build required!
 
+## Login Page Customization
+
+Superset provides the capability for dynamic, theme-driven branding of its login page, enabling organizations to personalize the login screen with custom background images and login form logos.
+
+### Customizing the Login Page via Theme Tokens in Theme JSON
+
+Superset supports the following optional theme tokens to customize the login page appearance:
+
+- `loginPageBackgroundImageUrl`: URL of the login page background image  
+- `loginFormBrandLogoUrl`: URL of the logo displayed on the login form  
+- `loginPageBackgroundOverlayColor`: overlay color applied on top of the background image to improve contrast and readability
+- `loginPageBackgroundBlur`: CSS blur radius applied to the login page background image (e.g., `4px`, `0.25rem`, `1em`, `10vw`)  
+
+If these tokens are omitted, Superset’s default login page styling is used.
+
+The `loginPageBackgroundOverlayColor` token accepts any valid CSS color format, including:
+
+- Hex (e.g., `#000000`)  
+- Hex with alpha (e.g., `#00000080`)  
+- RGB/RGBA (e.g., `rgba(0, 0, 0, 0.5)`)  
+- HSL/HSLA (e.g., `hsla(0, 0%, 0%, 0.5)`)  
+- Named colors (e.g., `black`)  
+
+If `loginPageBackgroundImageUrl` is provided but `loginPageBackgroundOverlayColor` is omitted, the overlay defaults to a semi-transparent black: `rgba(0, 0, 0, 0.5)`. The default value for `loginPageBackgroundBlur` is `0px` (no blur effect on the background image).
+
+Tokens for login page customization can be set within the JSON theme configuration defined either in `superset_config.py`: 
+
+```python
+# superset_config.py
+
+THEME_DEFAULT = {
+    "token": {
+        "loginPageBackgroundImageUrl": "/static/assets/images/login-background.jpg",
+        "loginFormBrandLogoUrl": "/static/assets/images/superset-logo-horiz.png",
+        "loginPageBackgroundOverlayColor": "rgba(0, 0, 0, 0.6)",
+        "loginPageBackgroundBlur": "3px"
+        # ... other theme tokens
+    }
+}
+```
+
+Or directly via the CRUD interface on the Themes page.
+
+```json
+{
+   "token": {
+        "loginPageBackgroundImageUrl": "/static/assets/images/login-background.jpg",
+        "loginFormBrandLogoUrl": "/static/assets/images/superset-logo-horiz.png",
+        "loginPageBackgroundOverlayColor": "rgba(0, 0, 0, 0.6)",
+        "loginPageBackgroundBlur": "3px"
+    }
+}
+```
+
 ## Advanced Features
 
 - **System Themes**: Superset includes built-in light and dark themes
 - **Per-Dashboard Theming**: Each dashboard can have its own visual identity
 - **JSON Editor**: Edit theme configurations directly within Superset's interface
 - **Custom Fonts**: Load external fonts via configuration without rebuilding
+- **Login Page Customization**: Customize login page visuals through theme tokens 
