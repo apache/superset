@@ -286,12 +286,24 @@ def test_interval_type_mutator() -> None:
     """
     DB Eng Specs (postgres): Test INTERVAL type mutator
     """
-    # Test timedelta conversion
-    td = timedelta(days=1, hours=2, minutes=30, seconds=45)
     mutator = spec.column_type_mutators[INTERVAL]
+
+    # Test timedelta conversion (most common case from psycopg2)
+    td = timedelta(days=1, hours=2, minutes=30, seconds=45)
     assert mutator(td) == 95445.0  # Total seconds: 1*86400 + 2*3600 + 30*60 + 45
 
-    # Test that non-timedelta values pass through unchanged
-    assert mutator("not a timedelta") == "not a timedelta"
-    assert mutator(12345) == 12345
-    assert mutator(None) is None
+    # Test numeric values (int/float) are converted to float
+    assert mutator(12345) == 12345.0
+    assert mutator(123.45) == 123.45
+
+    # Test None returns 0 (for aggregations)
+    assert mutator(None) == 0
+
+    # Test string values pass through unchanged
+    # (PostgreSQL may return string representations in some cases)
+    assert mutator("1 day 02:30:45") == "1 day 02:30:45"
+    assert mutator("P1DT2H30M45S") == "P1DT2H30M45S"  # ISO 8601 duration
+
+    # Test other types pass through unchanged
+    assert mutator([1, 2, 3]) == [1, 2, 3]
+    assert mutator({"days": 1}) == {"days": 1}

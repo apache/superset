@@ -24,6 +24,7 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
@@ -496,8 +497,20 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         ),
     )
 
-    column_type_mutators: dict[Any, Callable[[Any], Any]] = {
-        INTERVAL: lambda v: v.total_seconds() if hasattr(v, "total_seconds") else v,
+    # PostgreSQL INTERVAL values need normalization for chart rendering.
+    # psycopg2 returns timedelta objects which we convert to seconds for numeric
+    # operations in bar/pie charts. String representations pass through for
+    # potential future frontend formatting.
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        INTERVAL: lambda v: (
+            v.total_seconds()
+            if hasattr(v, "total_seconds")
+            else float(v)
+            if isinstance(v, (int, float))
+            else 0
+            if v is None
+            else v  # Pass through string representations and other types
+        ),
     }
 
     @classmethod
