@@ -117,6 +117,8 @@ function processGroupByCustomizations(
   order_by_cols?: string[];
   filters?: any[];
   x_axis?: string;
+  series?: string;
+  columns?: string[];
 } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
     return {};
@@ -145,11 +147,20 @@ function processGroupByCustomizations(
   });
 
   const chartType = chart.form_data?.viz_type;
-  if (chartType === 'big_number' || chartType === 'big_number_total') {
-    return {};
-  }
 
-  if (chartType === 'graph') {
+  const excludedChartTypes = [
+    'big_number',
+    'big_number_total',
+    'graph_chart',
+    'gantt',
+    'pivot_table_v2',
+    'table',
+    'sankey',
+    'sankey_v2',
+    'treemap_v2',
+  ];
+
+  if (excludedChartTypes.includes(chartType)) {
     return {};
   }
 
@@ -158,6 +169,8 @@ function processGroupByCustomizations(
     order_by_cols?: string[];
     filters?: any[];
     x_axis?: string;
+    series?: string;
+    columns?: string[];
   } = {};
 
   const groupByColumns: string[] = [];
@@ -352,6 +365,12 @@ function processGroupByCustomizations(
     ) {
       const newXAxis = groupByColumns[0];
       groupByFormData.x_axis = newXAxis;
+      groupByFormData.groupby = [];
+    } else if (chartType === 'word_cloud') {
+      groupByFormData.series = groupByColumns[0];
+      groupByFormData.groupby = [];
+    } else if (chartType === 'sunburst_v2') {
+      groupByFormData.columns = groupByColumns;
       groupByFormData.groupby = [];
     } else if (['graph', 'sankey', 'chord'].includes(chartType)) {
       groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
