@@ -32,28 +32,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python 3.10
+      - name: Setup Python
         if: steps.check.outputs.superset-cli
-        uses: actions/setup-python@v4
+        uses: ./.github/actions/setup-backend/
         with:
           python-version: "3.10"
-
-      - name: Cache pip dependencies
-        if: steps.check.outputs.superset-cli
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-development-${{ hashFiles('requirements/development.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-development-
-            ${{ runner.os }}-pip-
-
-      - name: Install development requirements
-        if: steps.check.outputs.superset-cli
-        run: |
-          python -m pip install --upgrade pip
-          cd ..
-          pip install -r requirements/development.txt
+          requirements-type: dev
 
       - name: Verify package installation
         if: steps.check.outputs.superset-cli
