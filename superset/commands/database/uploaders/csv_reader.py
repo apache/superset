@@ -74,11 +74,47 @@ class CSVReader(BaseDataReader):
                 filepath_or_buffer=file.stream,
                 **kwargs,
             )
+        except ValueError as ex:
+            error_str = str(ex)   
+            if "invalid literal for int() with base 10:" in error_str:
+                invalid_value = error_str.split(":")[-1].strip().strip("'")
+
+                int_columns = []
+                problematic_column = None
+
+                if kwargs.get("dtype"):
+                    int_columns = [
+                        col for col, dtype in kwargs["dtype"].items() 
+                        if dtype == "int" or dtype == "integer"
+                    ]
+                    kwargs.pop("dtype", None)
+                    file.stream.seek(0)
+                    df = pd.concat(
+                        pd.read_csv(
+                            filepath_or_buffer=file.stream,
+                            **kwargs
+                        )
+                    )
+
+                    for col in int_columns:
+                        mask = df[col] == invalid_value
+                        if mask.any():
+                            problematic_column = col
+                            line_number = mask.idxmax() + kwargs.get('header', 0) + 1
+                            break
+
+                    error_msg =  f"Non-numeric value '{invalid_value}' found on column '{problematic_column}' line {line_number}"
+
+                raise DatabaseUploadFailed(message=error_msg) from ex
+           
+            raise DatabaseUploadFailed(
+                message=_("Parsing error: %(error)s", error=error_str)
+            ) from ex
+
         except (
             pd.errors.ParserError,
             pd.errors.EmptyDataError,
-            UnicodeDecodeError,
-            ValueError,
+            UnicodeDecodeError
         ) as ex:
             raise DatabaseUploadFailed(
                 message=_("Parsing error: %(error)s", error=str(ex))
