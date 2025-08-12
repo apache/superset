@@ -139,7 +139,10 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             if not force and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
-            cache.set(cache_key, obj, timeout=cache_timeout)
+
+            # Skip caching if timeout is CACHE_NO_TIMEOUT (no caching requested)
+            if cache_timeout != CACHE_NO_TIMEOUT:
+                cache.set(cache_key, obj, timeout=cache_timeout)
             return obj
 
         return wrapped_f
