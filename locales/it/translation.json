@@ -173,7 +173,7 @@
     "View query": "Visualizza query",
     "Week": "Settimana",
     "Year": "Anno",
-    "date": "data",
+    "date": "Data",
     "sv_current": "Attuale",
     "sv_previous": "Precedente",
     "sv_change": "Cambio",
@@ -299,6 +299,6 @@
     "Publisher overview": "Panoramica publisher",
     "Summary": "Riepilogo",
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Mostra le aggregazioni totali delle metriche selezionate. Tieni presente che il limite delle righe non si applica al risultato.",
-    "Total PC Commission": "",
-    "Total PV Commission": ""
+    "Total PC Commission": "Commissione totale post-click",
+    "Total PV Commission": "Commissione totale post-view"
 }
