@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColDef } from 'ag-grid-community';
+import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, GenericDataType } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';

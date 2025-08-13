@@ -17,14 +17,10 @@
  * under the License.
  */
 import { useCallback, useMemo } from 'react';
-import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
-
+import { ThemedAgGridReact } from '@superset-ui/core/components';
 import type { Column, GridOptions } from 'ag-grid-community';
-import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
-
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
+import type { AgGridReactProps } from 'ag-grid-react';
 
 import copyTextToClipboard from 'src/utils/copy';
 
@@ -142,80 +138,44 @@ export function GridTable<RecordType extends object>({
   );
 
   return (
-    <>
-      <Global
-        styles={() => css`
-          #grid-table.ag-theme-quartz {
-            --ag-grid-size: ${theme.sizeUnit}px;
-            --ag-font-family: ${theme.fontFamily};
-            --ag-font-size: ${theme.fontSize}px;
-            --ag-row-height: ${rowHeight}px;
-            --ag-background-color: ${theme.colorBgBase};
-            --ag-foreground-color: ${theme.colorText};
-            --ag-header-background-color: ${theme.colorBgElevated};
-            --ag-header-foreground-color: ${theme.colorTextHeading};
-            --ag-border-color: ${theme.colorBorder};
-            --ag-row-border-color: ${theme.colorSplit};
-            --ag-row-hover-color: ${theme.colorFillSecondary};
-            --ag-selected-row-background-color: ${theme.colorPrimaryBg};
-            --ag-selected-row-foreground-color: ${theme.colorPrimaryText};
-            --ag-range-selection-border-color: ${theme.colorPrimary};
-            --ag-range-selection-background-color: ${theme.colorPrimaryBg};
-            --ag-checkbox-checked-color: ${theme.colorPrimary};
-            --ag-disabled-foreground-color: ${theme.colorTextDisabled};
-            ${!striped &&
-            `--ag-odd-row-background-color: ${theme.colorBgElevated};`}
-            --ag-font-size: ${GridSize.Middle === size
-              ? theme.fontSize
-              : theme.fontSizeSM}px;
-          }
+    <div
+      css={css`
+        width: 100%;
+        height: ${height}px;
 
-          #grid-table .ag-cell {
-            -webkit-font-smoothing: antialiased;
-          }
+        .locked-col {
+          background: ${theme.colorFillTertiary};
+          padding: 0;
+          text-align: center;
+          font-size: calc(var(--ag-font-size) * 0.9);
+          color: ${theme.colorTextTertiary};
+        }
 
-          .locked-col {
-            background: var(--ag-row-border-color);
-            padding: 0;
-            text-align: center;
-            font-size: calc(var(--ag-font-size) * 0.9);
-            color: var(--ag-disabled-foreground-color);
-          }
+        .ag-row-hover .locked-col {
+          background: ${theme.colorFillSecondary};
+        }
 
-          .ag-row-hover .locked-col {
-            background: var(--ag-row-hover-color);
-          }
+        .ag-header-cell {
+          overflow: hidden;
+        }
 
-          .ag-header-cell {
-            overflow: hidden;
-          }
-
-          & [role='columnheader']:hover .customHeaderAction {
-            display: flex;
-          }
-        `}
+        & [role='columnheader']:hover .customHeaderAction {
+          display: flex;
+        }
+      `}
+    >
+      <ThemedAgGridReact
+        rowData={data}
+        columnDefs={columnDefs}
+        defaultColDef={defaultColDef}
+        onSortChanged={onSortChanged}
+        isExternalFilterPresent={isExternalFilterPresent}
+        doesExternalFilterPass={externalFilter}
+        components={gridComponents}
+        gridOptions={gridOptions}
+        onCellKeyDown={onKeyDown}
       />
-      <div
-        id="grid-table"
-        className="ag-theme-quartz"
-        css={css`
-          width: 100%;
-          height: ${height}px;
-        `}
-      >
-        <AgGridReact
-          rowData={data}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          onSortChanged={onSortChanged}
-          isExternalFilterPresent={isExternalFilterPresent}
-          doesExternalFilterPass={externalFilter}
-          components={gridComponents}
-          gridOptions={gridOptions}
-          onCellKeyDown={onKeyDown}
-        />
-      </div>
-    </>
+    </div>
   );
 }
 
