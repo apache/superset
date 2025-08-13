@@ -23,9 +23,13 @@ import {
   ComponentType,
 } from 'react';
 import type { Editor } from 'brace';
-import { QueryData } from '../chart/types/QueryResponse';
-import { BaseFormData, LatestQueryFormData, QueryFormData } from '../query';
-import { JsonResponse } from '../connection';
+import type { QueryData } from '../chart/types/QueryResponse';
+import type {
+  BaseFormData,
+  LatestQueryFormData,
+  QueryFormData,
+} from '../query';
+import type { JsonResponse } from '../connection';
 
 /**
  * A function which returns text (or marked-up text)
