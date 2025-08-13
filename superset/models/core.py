@@ -1285,7 +1285,7 @@ class LlmConnection(Model, AuditMixinNullable):
     enabled = Column(Boolean, default=False)
     provider = Column(String(255), nullable=False)
     model = Column(String(255), nullable=False)
-    api_key = Column(Text, nullable=True)
+    api_key = Column(String(255), nullable=True)
     database = relationship(
         "Database", backref=backref("llm_connection", uselist=False), uselist=False
     )

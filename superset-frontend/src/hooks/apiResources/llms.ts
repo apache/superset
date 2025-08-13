@@ -142,6 +142,8 @@ export function useLlmDefaults(options: LlmDefaultsParams) {
     refetchOnMountOrArgChange: true,
   });
 
+  console.log('useLlmDefaults result:', result);
+
   const handleOnSuccess = useEffectEvent(
     (data: LlmDefaults, isRefetched: boolean) => {
       onSuccess?.(data, isRefetched);
