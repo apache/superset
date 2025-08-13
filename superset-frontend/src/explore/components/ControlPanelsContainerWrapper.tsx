@@ -19,7 +19,6 @@
 import { useMemo } from 'react';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import ControlPanelsContainer from './ControlPanelsContainer';
-import ControlPanelsContainerJsonForms from './ControlPanelsContainerJsonForms';
 import ControlPanelsContainerNew from './ControlPanelsContainerNew';
 
 /**
@@ -35,7 +34,6 @@ export const ControlPanelsContainerWrapper = (props: any) => {
     if (!vizType) return 'legacy';
 
     const controlPanelConfig = getChartControlPanelRegistry().get(vizType);
-    console.log('Control panel config for', vizType, ':', controlPanelConfig);
     if (!controlPanelConfig) return 'legacy';
 
     // React component format - has a ControlPanel property that's a function/component
@@ -43,24 +41,15 @@ export const ControlPanelsContainerWrapper = (props: any) => {
       controlPanelConfig.ControlPanel &&
       typeof controlPanelConfig.ControlPanel === 'function'
     ) {
-      console.log('Using React control panel for', vizType);
       return 'react';
     }
 
     // React component format - the config itself is a function/component
     if (typeof controlPanelConfig === 'function') {
-      console.log('Using React control panel for', vizType);
       return 'react';
     }
 
-    // JSON Forms format has 'schema' and 'uischema' properties
-    if (controlPanelConfig.schema && controlPanelConfig.uischema) {
-      console.log('Using JSON Forms control panel for', vizType);
-      return 'jsonforms';
-    }
-
     // Legacy format has 'controlPanelSections' property
-    console.log('Using legacy control panel for', vizType);
     return 'legacy';
   }, [vizType]);
 
@@ -69,9 +58,6 @@ export const ControlPanelsContainerWrapper = (props: any) => {
   switch (containerType) {
     case 'react':
       Container = ControlPanelsContainerNew;
-      break;
-    case 'jsonforms':
-      Container = ControlPanelsContainerJsonForms;
       break;
     default:
       Container = ControlPanelsContainer;

@@ -28,9 +28,9 @@ import {
   MetricsControl,
   TimeRangeControl,
   YAxisFormatControl,
-  InlineSelectControl as SelectControl,
-  InlineTextControl as TextControl,
-  InlineCheckboxControl as CheckboxControl,
+  InlineSelectControl,
+  InlineTextControl,
+  InlineCheckboxControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -46,8 +46,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          SelectControl({
-            name: 'domain_granularity',
+          InlineSelectControl('domain_granularity', {
             label: t('Domain'),
             default: 'month',
             choices: [
@@ -59,8 +58,7 @@ const config: ControlPanelConfig = {
             ],
             description: t('The time unit used for the grouping of blocks'),
           }),
-          SelectControl({
-            name: 'subdomain_granularity',
+          InlineSelectControl('subdomain_granularity', {
             label: t('Subdomain'),
             default: 'day',
             choices: [
@@ -87,8 +85,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [LinearColorSchemeControl()],
         [
-          TextControl({
-            name: 'cell_size',
+          InlineTextControl('cell_size', {
             label: t('Cell Size'),
             default: 10,
             isInt: true,
@@ -96,8 +93,7 @@ const config: ControlPanelConfig = {
             renderTrigger: true,
             description: t('The size of the square cell, in pixels'),
           }),
-          TextControl({
-            name: 'cell_padding',
+          InlineTextControl('cell_padding', {
             label: t('Cell Padding'),
             default: 2,
             isInt: true,
@@ -107,8 +103,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          TextControl({
-            name: 'cell_radius',
+          InlineTextControl('cell_radius', {
             label: t('Cell Radius'),
             default: 0,
             isInt: true,
@@ -116,8 +111,7 @@ const config: ControlPanelConfig = {
             renderTrigger: true,
             description: t('The pixel radius'),
           }),
-          TextControl({
-            name: 'steps',
+          InlineTextControl('steps', {
             label: t('Color Steps'),
             default: 10,
             isInt: true,
@@ -128,8 +122,7 @@ const config: ControlPanelConfig = {
         ],
         [
           YAxisFormatControl(),
-          SelectControl({
-            name: 'x_axis_time_format',
+          InlineSelectControl('x_axis_time_format', {
             label: t('Time Format'),
             default: 'smart_date',
             freeForm: true,
@@ -139,15 +132,13 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          CheckboxControl({
-            name: 'show_legend',
+          InlineCheckboxControl('show_legend', {
             label: t('Legend'),
             default: true,
             renderTrigger: true,
             description: t('Whether to display the legend (toggles)'),
           }),
-          CheckboxControl({
-            name: 'show_values',
+          InlineCheckboxControl('show_values', {
             label: t('Show Values'),
             default: false,
             renderTrigger: true,
@@ -157,8 +148,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          CheckboxControl({
-            name: 'show_metric_name',
+          InlineCheckboxControl('show_metric_name', {
             label: t('Show Metric Names'),
             default: true,
             renderTrigger: true,

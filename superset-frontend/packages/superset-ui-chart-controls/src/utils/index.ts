@@ -29,4 +29,3 @@ export * from './getStandardizedControls';
 export * from './getTemporalColumns';
 export * from './displayTimeRelatedControls';
 export * from './colorControls';
-export * from './controlPanelMigration';

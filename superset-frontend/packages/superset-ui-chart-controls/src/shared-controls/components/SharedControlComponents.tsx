@@ -293,3 +293,14 @@ export const InlineSelectControl = (
     ...overrides,
   },
 });
+
+export const InlineCheckboxControl = (
+  name: string,
+  overrides?: Partial<CustomControlItem['config']>,
+): CustomControlItem => ({
+  name,
+  config: {
+    type: 'CheckboxControl',
+    ...overrides,
+  },
+});

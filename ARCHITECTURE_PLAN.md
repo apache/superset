@@ -50,17 +50,17 @@ Simple React components or JSON schemas:
 // Option 1: React Component
 export const WordCloudControlPanel: React.FC = () => {
   const [formData, setFormData] = useFormData();
-  
+
   return (
     <ControlPanel>
       <Section title="Query">
-        <ColumnSelect 
+        <ColumnSelect
           name="series"
           value={formData.series}
           onChange={value => setFormData({ series: value })}
         />
         <MetricSelect
-          name="metric" 
+          name="metric"
           value={formData.metric}
           onChange={value => setFormData({ metric: value })}
         />
@@ -100,9 +100,9 @@ Controls can react to formData changes:
 const MyControl = () => {
   const formData = useFormData();
   const isVisible = formData.someValue === 'show';
-  
+
   if (!isVisible) return null;
-  
+
   return <ControlComponent />;
 };
 ```

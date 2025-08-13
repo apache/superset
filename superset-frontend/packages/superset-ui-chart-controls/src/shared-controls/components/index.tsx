@@ -49,7 +49,7 @@ export {
 export * from './SharedControlComponents';
 
 // Export React control panel
-export { default as ReactControlPanel } from './ReactControlPanel';
+export { ReactControlPanel } from './ReactControlPanel';
 
 // Export inline control helpers with renamed ColorPickerControl to avoid conflict
 export {
