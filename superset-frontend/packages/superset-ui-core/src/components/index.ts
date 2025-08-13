@@ -169,3 +169,8 @@ export * from './TelemetryPixel';
 export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';
+export {
+  ThemedAgGridReact,
+  type ThemedAgGridReactProps,
+  setupAGGridModules,
+} from './ThemedAgGridReact';
