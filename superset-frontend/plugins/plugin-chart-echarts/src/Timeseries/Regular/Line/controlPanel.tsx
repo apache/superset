@@ -27,7 +27,10 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { EchartsTimeseriesSeriesType } from '../../types';
+import {
+  EchartsTimeseriesLineStyle,
+  EchartsTimeseriesSeriesType,
+} from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
@@ -88,6 +91,26 @@ const config: ControlPanelConfig = {
                 [EchartsTimeseriesSeriesType.End, t('Step - end')],
               ],
               description: t('Series chart type (line, bar etc)'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'overrideLineStyle',
+            config: {
+              type: 'SelectControl',
+              label: t('Override line style'),
+              renderTrigger: true,
+              default: null,
+              choices: [
+                [null, t('None')],
+                [EchartsTimeseriesLineStyle.Solid, t('Solid')],
+                [EchartsTimeseriesLineStyle.Dashed, t('Dashed')],
+                [EchartsTimeseriesLineStyle.Dotted, t('Dotted')],
+              ],
+              description: t(
+                'Force apply line style to all series (solid, dotted, dashed or none)',
+              ),
             },
           },
         ],
