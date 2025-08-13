@@ -85,7 +85,14 @@ export function GridTable<RecordType extends object>({
         {
           field: PIVOT_COL_ID,
           valueGetter: 'node.rowIndex+1',
-          cellClass: 'locked-col',
+          cellClass: 'row-number-col',
+          cellStyle: {
+            backgroundColor: theme.colorFillTertiary,
+            padding: '0',
+            textAlign: 'center',
+            fontSize: '0.9em',
+            color: theme.colorTextTertiary,
+          },
           width: 30 + rowIndexLength * 6,
           suppressNavigable: true,
           resizable: false,
@@ -111,7 +118,14 @@ export function GridTable<RecordType extends object>({
           }),
         ),
       ].slice(showRowNumber ? 0 : 1),
-    [rowIndexLength, columnReorderable, columns, showRowNumber, sortable],
+    [
+      rowIndexLength,
+      columnReorderable,
+      columns,
+      showRowNumber,
+      sortable,
+      theme,
+    ],
   );
   const defaultColDef: AgGridReactProps['defaultColDef'] = useMemo(
     () => ({
@@ -143,15 +157,8 @@ export function GridTable<RecordType extends object>({
         width: 100%;
         height: ${height}px;
 
-        .locked-col {
-          background: ${theme.colorFillTertiary};
-          padding: 0;
-          text-align: center;
-          font-size: calc(var(--ag-font-size) * 0.9);
-          color: ${theme.colorTextTertiary};
-        }
-
-        .ag-row-hover .locked-col {
+        /* Handle hover state for row number column */
+        .ag-row-hover .row-number-col {
           background: ${theme.colorFillSecondary};
         }
 

@@ -31,126 +31,152 @@ import { useTheme } from '../../theme';
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files
 
+export interface ThemedAgGridReactProps extends AgGridReactProps {
+  /**
+   * Optional theme parameter overrides to customize specific ag-grid theme values.
+   * These will be merged with the default Superset theme values.
+   *
+   * @example
+   * ```tsx
+   * <ThemedAgGridReact
+   *   rowData={data}
+   *   columnDefs={columns}
+   *   themeOverrides={{
+   *     headerBackgroundColor: '#custom-color',
+   *     fontSize: 14,
+   *   }}
+   * />
+   * ```
+   */
+  themeOverrides?: Record<string, any>;
+}
+
 /**
  * ThemedAgGridReact - A wrapper around AgGridReact that applies Superset theming
  *
  * This component:
  * - Preserves the full AgGridReactProps interface for drop-in replacement
- * - Applies Superset theme variables via CSS custom properties
- * - Uses unique class-based styling to avoid ID conflicts
+ * - Applies Superset theme variables via ag-grid's JavaScript theming API
  * - Supports automatic dark/light mode switching
+ * - Allows custom theme parameter overrides
  *
  * @example
  * ```tsx
  * <ThemedAgGridReact
  *   rowData={data}
  *   columnDefs={columns}
+ *   themeOverrides={{ fontSize: 14 }}
  *   // ... any other AgGridReactProps
  * />
  * ```
  */
-export const ThemedAgGridReact = forwardRef<AgGridReact, AgGridReactProps>(
-  function ThemedAgGridReact(props, ref) {
-    const theme = useTheme();
+export const ThemedAgGridReact = forwardRef<
+  AgGridReact,
+  ThemedAgGridReactProps
+>(function ThemedAgGridReact({ themeOverrides, ...props }, ref) {
+  const theme = useTheme();
 
-    // Generate a unique class name for this instance to avoid conflicts
-    const instanceClass = useRef(`superset-ag-grid-${nanoid(8)}`).current;
+  // Generate a unique class name for this instance to avoid conflicts
+  const instanceClass = useRef(`superset-ag-grid-${nanoid(8)}`).current;
 
-    // Determine if we're in dark mode
-    const isDarkMode = useMemo(() => {
-      const bgColor = theme.colorBgBase;
-      if (!bgColor) {
-        return false;
-      }
-      return tinycolor(bgColor).isDark();
-    }, [theme]);
+  // Determine if we're in dark mode
+  const isDarkMode = useMemo(() => {
+    const bgColor = theme.colorBgBase;
+    if (!bgColor) {
+      return false;
+    }
+    return tinycolor(bgColor).isDark();
+  }, [theme]);
 
-    // Get the appropriate ag-grid theme based on dark/light mode
-    const agGridTheme = useMemo(() => {
-      // Use quaternary fill for odd rows
-      const oddRowBg = theme?.colorFillQuaternary;
+  // Get the appropriate ag-grid theme based on dark/light mode
+  const agGridTheme = useMemo(() => {
+    // Use quaternary fill for odd rows
+    const oddRowBg = theme?.colorFillQuaternary;
 
-      const baseTheme = isDarkMode
-        ? themeQuartz.withPart(colorSchemeDark)
-        : themeQuartz.withPart(colorSchemeLight);
+    const baseTheme = isDarkMode
+      ? themeQuartz.withPart(colorSchemeDark)
+      : themeQuartz.withPart(colorSchemeLight);
 
-      // Use withParams to set colors directly via ag-grid's API
-      const params = {
-        // Core colors
-        backgroundColor: 'transparent',
-        foregroundColor: theme.colorText,
-        browserColorScheme: isDarkMode ? 'dark' : 'light',
+    // Use withParams to set colors directly via ag-grid's API
+    const params = {
+      // Core colors
+      backgroundColor: 'transparent',
+      foregroundColor: theme.colorText,
+      browserColorScheme: isDarkMode ? 'dark' : 'light',
 
-        // Header styling
-        headerBackgroundColor: theme.colorFillTertiary,
-        headerTextColor: theme.colorTextHeading,
+      // Header styling
+      headerBackgroundColor: theme.colorFillTertiary,
+      headerTextColor: theme.colorTextHeading,
 
-        // Cell and row styling
-        oddRowBackgroundColor: oddRowBg,
-        rowHoverColor: theme.colorFillSecondary,
-        selectedRowBackgroundColor: theme.colorPrimaryBg,
-        cellTextColor: theme.colorText,
+      // Cell and row styling
+      oddRowBackgroundColor: oddRowBg,
+      rowHoverColor: theme.colorFillSecondary,
+      selectedRowBackgroundColor: theme.colorPrimaryBg,
+      cellTextColor: theme.colorText,
 
-        // Borders
-        borderColor: theme.colorSplit,
-        columnBorderColor: theme.colorSplit,
+      // Borders
+      borderColor: theme.colorSplit,
+      columnBorderColor: theme.colorSplit,
 
-        // Interactive elements
-        accentColor: theme.colorPrimary,
-        rangeSelectionBorderColor: theme.colorPrimary,
-        rangeSelectionBackgroundColor: theme.colorPrimaryBg,
+      // Interactive elements
+      accentColor: theme.colorPrimary,
+      rangeSelectionBorderColor: theme.colorPrimary,
+      rangeSelectionBackgroundColor: theme.colorPrimaryBg,
 
-        // Input fields (for filters)
-        inputBackgroundColor: theme.colorBgContainer,
-        inputBorderColor: theme.colorSplit,
-        inputTextColor: theme.colorText,
-        inputPlaceholderTextColor: theme.colorTextPlaceholder,
+      // Input fields (for filters)
+      inputBackgroundColor: theme.colorBgContainer,
+      inputBorderColor: theme.colorSplit,
+      inputTextColor: theme.colorText,
+      inputPlaceholderTextColor: theme.colorTextPlaceholder,
 
-        // Typography
-        fontFamily: theme.fontFamily,
-        fontSize: theme.fontSizeSM,
+      // Typography
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeSM,
 
-        // Spacing
-        spacing: theme.sizeUnit,
-      };
+      // Spacing
+      spacing: theme.sizeUnit,
+    };
 
-      // Only apply params if we have a valid theme
-      if (!theme || !theme.colorBgBase) {
-        return baseTheme;
-      }
+    // Only apply params if we have a valid theme
+    if (!theme || !theme.colorBgBase) {
+      return baseTheme;
+    }
 
-      return baseTheme.withParams(params);
-    }, [theme, isDarkMode]);
+    // Merge theme overrides if provided
+    const finalParams = themeOverrides
+      ? { ...params, ...themeOverrides }
+      : params;
 
-    // Minimal styles for proper rendering
-    const themeStyles = useMemo(
-      () => css`
-        .${instanceClass}.ag-theme-quartz {
-          .ag-cell {
-            -webkit-font-smoothing: antialiased;
-          }
+    return baseTheme.withParams(finalParams);
+  }, [theme, isDarkMode, themeOverrides]);
+
+  // Minimal styles for proper rendering
+  const themeStyles = useMemo(
+    () => css`
+      .${instanceClass}.ag-theme-quartz {
+        .ag-cell {
+          -webkit-font-smoothing: antialiased;
         }
-      `,
-      [instanceClass],
-    );
+      }
+    `,
+    [instanceClass],
+  );
 
-    return (
-      <>
-        <Global styles={themeStyles} />
-        <div
-          className={instanceClass}
-          style={{ width: '100%', height: '100%' }}
-          data-themed-ag-grid="true"
-        >
-          <AgGridReact ref={ref} theme={agGridTheme} {...props} />
-        </div>
-      </>
-    );
-  },
-);
+  return (
+    <>
+      <Global styles={themeStyles} />
+      <div
+        className={instanceClass}
+        style={{ width: '100%', height: '100%' }}
+        data-themed-ag-grid="true"
+      >
+        <AgGridReact ref={ref} theme={agGridTheme} {...props} />
+      </div>
+    </>
+  );
+});
 
 // Re-export commonly used types for convenience
-export type { AgGridReactProps } from 'ag-grid-react';
 export type { CustomCellRendererProps } from 'ag-grid-react';
 
 // Re-export commonly used ag-grid-community types
