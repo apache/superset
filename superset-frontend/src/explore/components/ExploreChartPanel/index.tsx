@@ -31,6 +31,7 @@ import {
   useTheme,
   QueryFormData,
   JsonObject,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
@@ -49,6 +50,9 @@ import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
+
+const extensionsRegistry = getExtensionsRegistry();
+const DefaultHeader: React.FC = ({ children }) => <>{children}</>;
 
 export interface ExploreChartPanelProps {
   actions: {
@@ -149,6 +153,9 @@ const ExploreChartPanel = ({
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
+
+  const ChartHeaderExtension =
+    extensionsRegistry.get('explore.chart.header') ?? DefaultHeader;
   const [splitSizes, setSplitSizes] = useState<PanelSizes>(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES
@@ -367,16 +374,29 @@ const ExploreChartPanel = ({
             `}
           />
         )}
-        <ChartPills
+        <ChartHeaderExtension
+          chartId={chart.id}
+          queriesResponse={chart.queriesResponse}
+          sliceFormData={slice?.form_data ?? null}
+          queryFormData={formData}
+          lastRendered={chart.lastRendered}
+          latestQueryFormData={chart.latestQueryFormData}
+          chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
           chartUpdateStartTime={chart.chartUpdateStartTime}
-          chartUpdateEndTime={chart.chartUpdateEndTime ?? undefined}
-          refreshCachedQuery={refreshCachedQuery}
-          rowLimit={formData?.row_limit ?? undefined}
-          {...(chart.queriesResponse && {
-            queriesResponse: chart.queriesResponse,
-          })}
-          {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
-        />
+          queryController={chart.queryController}
+          triggerQuery={chart.triggerQuery}
+        >
+          <ChartPills
+            chartUpdateStartTime={chart.chartUpdateStartTime}
+            chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
+            refreshCachedQuery={refreshCachedQuery}
+            rowLimit={formData?.row_limit ?? 0}
+            {...(chart.queriesResponse && {
+              queriesResponse: chart.queriesResponse,
+            })}
+            {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
+          />
+        </ChartHeaderExtension>
         {renderChart()}
       </div>
     ),
