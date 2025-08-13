@@ -180,12 +180,9 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     const excludedChartTypes = [
       'big_number',
       'big_number_total',
-      'graph_chart',
       'gantt',
       'pivot_table_v2',
       'table',
-      'sankey',
-      'sankey_v2',
     ];
 
     if (excludedChartTypes.includes(chartType)) {
@@ -233,6 +230,9 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     }
     if (chartFormData.entity) {
       existingColumns.add(chartFormData.entity);
+    }
+    if (chartFormData.source) {
+      existingColumns.add(chartFormData.source);
     }
 
     if (chartType === 'box_plot') {
