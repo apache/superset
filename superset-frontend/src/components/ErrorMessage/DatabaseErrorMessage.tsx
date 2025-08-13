@@ -65,11 +65,10 @@ export function DatabaseErrorMessage({
       <p>
         {t('This may be triggered by:')}
         <br />
-        {extra.issue_codes
-          ?.map<ReactNode>(issueCode => (
-            <IssueCode {...issueCode} key={issueCode.code} />
-          ))
-          .reduce((prev, curr) => [prev, <br />, curr])}
+        {extra.issue_codes?.flatMap((issueCode, idx, arr) => [
+          <IssueCode {...issueCode} key={issueCode.code} />,
+          idx < arr.length - 1 ? <br key={`br-${issueCode.code}`} /> : null,
+        ])}
       </p>
       {isVisualization && extra.owners && (
         <>
