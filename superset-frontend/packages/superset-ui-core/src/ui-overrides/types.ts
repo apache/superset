@@ -23,7 +23,8 @@ import {
   ComponentType,
 } from 'react';
 import type { Editor } from 'brace';
-import { BaseFormData } from '../query';
+import { QueryData } from 'src/chart';
+import { BaseFormData, LatestQueryFormData, QueryFormData } from '../query';
 import { JsonResponse } from '../connection';
 
 /**
@@ -251,4 +252,16 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'explore.chart.header': ComponentType<{
+    chartId: number;
+    queriesResponse: QueryData[] | null;
+    sliceFormData: QueryFormData | null;
+    queryFormData: QueryFormData;
+    lastRendered: number;
+    latestQueryFormData: LatestQueryFormData;
+    chartUpdateEndTime: number | null;
+    chartUpdateStartTime: number;
+    queryController: AbortController | null;
+    triggerQuery: boolean;
+  }>;
 }>;
