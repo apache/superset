@@ -23,6 +23,7 @@ import {
   DataRecordValue,
   JsonObject,
   PartialFilters,
+  QueryFormExtraFilter,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -115,7 +116,7 @@ function processGroupByCustomizations(
 ): {
   groupby?: string[];
   order_by_cols?: string[];
-  filters?: any[];
+  filters?: QueryFormExtraFilter[];
   x_axis?: string;
   series?: string;
   columns?: string[];
@@ -158,7 +159,6 @@ function processGroupByCustomizations(
     'table',
     'sankey',
     'sankey_v2',
-    'treemap_v2',
   ];
 
   if (excludedChartTypes.includes(chartType)) {
@@ -168,7 +168,7 @@ function processGroupByCustomizations(
   const groupByFormData: {
     groupby?: string[];
     order_by_cols?: string[];
-    filters?: any[];
+    filters?: QueryFormExtraFilter[];
     x_axis?: string;
     series?: string;
     columns?: string[];
@@ -176,7 +176,7 @@ function processGroupByCustomizations(
   } = {};
 
   const groupByColumns: string[] = [];
-  const allFilters: any[] = [];
+  const allFilters: QueryFormExtraFilter[] = [];
   let orderByConfig: string[] | undefined;
 
   const existingGroupBy = Array.isArray(chart.form_data?.groupby)
@@ -393,6 +393,8 @@ function processGroupByCustomizations(
         groupByFormData.series = groupByColumns[0];
         groupByFormData.groupby = [];
       }
+    } else if (chartType === 'treemap_v2') {
+      groupByFormData.groupby = groupByColumns;
     } else {
       groupByFormData.groupby = groupByColumns;
     }

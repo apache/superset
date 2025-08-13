@@ -186,7 +186,6 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       'table',
       'sankey',
       'sankey_v2',
-      'treemap_v2',
     ];
 
     if (excludedChartTypes.includes(chartType)) {
