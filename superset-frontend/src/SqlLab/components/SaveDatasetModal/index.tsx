@@ -107,24 +107,24 @@ const Styles = styled.div`
     .sdm-body {
       padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
     }
-    
+
     .sdm-prompt {
       margin-bottom: ${theme.sizeUnit * 4}px;
       color: ${theme.colorTextSecondary};
     }
-    
+
     .sdm-radio-group {
       display: flex;
       flex-direction: column;
       gap: ${theme.sizeUnit * 6}px;
     }
-    
+
     .sdm-radio-option {
       display: flex;
       flex-direction: column;
       gap: ${theme.sizeUnit * 3}px;
     }
-    
+
     .sdm-radio {
       margin: 0;
       .ant-radio {
@@ -134,12 +134,12 @@ const Styles = styled.div`
         color: ${theme.colorText};
       }
     }
-    
+
     .sdm-form-field {
       margin-left: 0;
       max-width: 400px;
     }
-    
+
     .sdm-overwrite-msg {
       padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
       text-align: center;
