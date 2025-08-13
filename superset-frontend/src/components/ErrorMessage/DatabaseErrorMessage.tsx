@@ -51,8 +51,8 @@ export function DatabaseErrorMessage({
     alertMessage = (
       <>
         {firstLine}
-        {extra.custom_doc_links.map((link, index) => (
-          <div key={index}>
+        {extra.custom_doc_links.map(link => (
+          <div key={link.url}>
             <CustomDocLink {...link} />
           </div>
         ))}
