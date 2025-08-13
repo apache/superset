@@ -224,6 +224,19 @@ export interface DateFilterControlProps {
   isOverflowingFilterBar?: boolean;
 }
 
+export interface ExploreChartHeaderProps {
+  chartId: number;
+  queriesResponse: QueryData[] | null;
+  sliceFormData: QueryFormData | null;
+  queryFormData: QueryFormData;
+  lastRendered: number;
+  latestQueryFormData: LatestQueryFormData;
+  chartUpdateEndTime: number | null;
+  chartUpdateStartTime: number;
+  queryController: AbortController | null;
+  triggerQuery: boolean;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': ComponentType;
   'load.drillby.options': LoadDrillByOptions;
@@ -256,16 +269,5 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
-  'explore.chart.header': ComponentType<{
-    chartId: number;
-    queriesResponse: QueryData[] | null;
-    sliceFormData: QueryFormData | null;
-    queryFormData: QueryFormData;
-    lastRendered: number;
-    latestQueryFormData: LatestQueryFormData;
-    chartUpdateEndTime: number | null;
-    chartUpdateStartTime: number;
-    queryController: AbortController | null;
-    triggerQuery: boolean;
-  }>;
+  'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;
