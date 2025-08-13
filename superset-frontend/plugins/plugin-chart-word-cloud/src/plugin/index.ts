@@ -24,9 +24,7 @@ import { WordCloudFormData } from '../types';
 import thumbnail from '../images/thumbnail.png';
 import example1 from '../images/Word_Cloud.jpg';
 import example2 from '../images/Word_Cloud_2.jpg';
-// Use fixed control panel with React components
-import controlPanel from './controlPanelFixed';
-// import ControlPanel from './ControlPanel';
+import controlPanel from './controlPanel';
 import configureEncodable from '../configureEncodable';
 
 configureEncodable();
