@@ -371,3 +371,41 @@ def test_csv_reader_file_metadata_invalid_file():
         "Parsing error: Error tokenizing data. C error:"
         " Expected 3 fields in line 3, saw 7\n"
     )
+
+def test_csv_reader_non_numeric_in_integer_column():
+    csv_data = [
+        ["Name", "Age", "City"],
+        ["name1", "abc", "city1"],
+        ["name2", "25", "city2"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(
+            column_data_types={"Age": "int"} 
+        )
+    )
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert str(ex.value) == "Non-numeric value 'abc' found on column 'Age' line 1"
+
+
+def test_csv_reader_non_numeric_in_float_column():
+    csv_data = [
+        ["Name", "Score", "City"],
+        ["name1", "abc", "city1"],  # invalid float
+        ["name2", "25.5", "city2"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(
+            column_data_types={"Score": "float"}
+        )
+    )
+    csv = create_csv_file(csv_data)
+    csv_reader.file_to_dataframe(csv)
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(csv)
+
+    assert str(ex.value) == "Non-numeric value 'abc' found on column 'Score' line 1"
