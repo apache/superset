@@ -19,6 +19,7 @@
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
 import { Select, Switch, InputNumber, Input } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 
 export interface LabelControlGroupProps {
   chartType?: 'pie' | 'sunburst' | 'treemap' | 'funnel' | 'gauge';
@@ -69,143 +70,167 @@ const LabelControlGroup: FC<LabelControlGroupProps> = ({
   return (
     <div className="label-control-group">
       {/* Show Labels Toggle */}
-      <div className="control-row" style={{ marginBottom: 16 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Switch
-            checked={showLabels}
-            onChange={checked => onChange('show_labels', checked)}
-          />
-          {t('Show Labels')}
-        </label>
-        <small className="text-muted">
-          {t('Whether to display the labels')}
-        </small>
-      </div>
+      <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+        <Col span={24}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Switch
+              checked={showLabels}
+              onChange={checked => onChange('show_labels', checked)}
+            />
+            {t('Show Labels')}
+          </label>
+          <small className="text-muted">
+            {t('Whether to display the labels')}
+          </small>
+        </Col>
+      </Row>
 
       {showLabels && (
         <>
           {/* Label Type */}
           {showLabelType && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label>{t('Label Type')}</label>
-              <Select
-                value={labelType}
-                onChange={value => onChange('label_type', value)}
-                style={{ width: '100%' }}
-                options={LABEL_TYPE_OPTIONS.map(([value, label]) => ({
-                  value,
-                  label,
-                }))}
-              />
-              <small className="text-muted">
-                {t('What should be shown on the label?')}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label>{t('Label Type')}</label>
+                <Select
+                  value={labelType}
+                  onChange={value => onChange('label_type', value)}
+                  style={{ width: '100%' }}
+                  options={LABEL_TYPE_OPTIONS.map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                />
+                <small className="text-muted">
+                  {t('What should be shown on the label?')}
+                </small>
+              </Col>
+            </Row>
           )}
 
           {/* Label Template */}
           {showTemplate && labelType === 'template' && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label>{t('Label Template')}</label>
-              <Input.TextArea
-                value={values.label_template || ''}
-                onChange={e => onChange('label_template', e.target.value)}
-                placeholder="{name}: {value} ({percent}%)"
-                rows={3}
-              />
-              <small className="text-muted">
-                {t(
-                  'Format data labels. Use variables: {name}, {value}, {percent}. \\n represents a new line.',
-                )}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label>{t('Label Template')}</label>
+                <Input.TextArea
+                  value={values.label_template || ''}
+                  onChange={e => onChange('label_template', e.target.value)}
+                  placeholder="{name}: {value} ({percent}%)"
+                  rows={3}
+                />
+                <small className="text-muted">
+                  {t(
+                    'Format data labels. Use variables: {name}, {value}, {percent}. \\n represents a new line.',
+                  )}
+                </small>
+              </Col>
+            </Row>
           )}
 
           {/* Label Threshold */}
           {showThreshold && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label>{t('Label Threshold')}</label>
-              <InputNumber
-                value={values.show_labels_threshold ?? 5}
-                onChange={value => onChange('show_labels_threshold', value)}
-                min={0}
-                max={100}
-                step={0.5}
-                formatter={value => `${value}%`}
-                parser={value => Number((value as string).replace('%', ''))}
-                style={{ width: '100%' }}
-              />
-              <small className="text-muted">
-                {t('Minimum threshold in percentage points for showing labels')}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label>{t('Label Threshold')}</label>
+                <InputNumber
+                  value={values.show_labels_threshold ?? 5}
+                  onChange={value => onChange('show_labels_threshold', value)}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  formatter={value => `${value}%`}
+                  parser={value => Number((value as string).replace('%', ''))}
+                  style={{ width: '100%' }}
+                />
+                <small className="text-muted">
+                  {t(
+                    'Minimum threshold in percentage points for showing labels',
+                  )}
+                </small>
+              </Col>
+            </Row>
           )}
 
           {/* Labels Outside (Pie specific) */}
           {showOutside && chartType === 'pie' && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Switch
-                  checked={values.labels_outside || false}
-                  onChange={checked => onChange('labels_outside', checked)}
-                />
-                {t('Put labels outside')}
-              </label>
-              <small className="text-muted">
-                {t('Put the labels outside of the pie?')}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <Switch
+                    checked={values.labels_outside || false}
+                    onChange={checked => onChange('labels_outside', checked)}
+                  />
+                  {t('Put labels outside')}
+                </label>
+                <small className="text-muted">
+                  {t('Put the labels outside of the pie?')}
+                </small>
+              </Col>
+            </Row>
           )}
 
           {/* Label Line (Pie specific) */}
           {showLabelLine && chartType === 'pie' && values.labels_outside && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Switch
-                  checked={values.label_line || false}
-                  onChange={checked => onChange('label_line', checked)}
-                />
-                {t('Label Line')}
-              </label>
-              <small className="text-muted">
-                {t('Draw a line from the label to the slice')}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <Switch
+                    checked={values.label_line || false}
+                    onChange={checked => onChange('label_line', checked)}
+                  />
+                  {t('Label Line')}
+                </label>
+                <small className="text-muted">
+                  {t('Draw a line from the label to the slice')}
+                </small>
+              </Col>
+            </Row>
           )}
 
           {/* Label Rotation */}
           {showRotation && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label>{t('Label Rotation')}</label>
-              <Select
-                value={values.label_rotation || '0'}
-                onChange={value => onChange('label_rotation', value)}
-                style={{ width: '100%' }}
-                options={LABEL_ROTATION_OPTIONS.map(([value, label]) => ({
-                  value,
-                  label,
-                }))}
-              />
-              <small className="text-muted">
-                {t('Rotation angle of labels')}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label>{t('Label Rotation')}</label>
+                <Select
+                  value={values.label_rotation || '0'}
+                  onChange={value => onChange('label_rotation', value)}
+                  style={{ width: '100%' }}
+                  options={LABEL_ROTATION_OPTIONS.map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                />
+                <small className="text-muted">
+                  {t('Rotation angle of labels')}
+                </small>
+              </Col>
+            </Row>
           )}
 
           {/* Show Upper Labels (Treemap specific) */}
           {showUpperLabels && chartType === 'treemap' && (
-            <div className="control-row" style={{ marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Switch
-                  checked={values.show_upper_labels || false}
-                  onChange={checked => onChange('show_upper_labels', checked)}
-                />
-                {t('Show Upper Labels')}
-              </label>
-              <small className="text-muted">
-                {t('Show labels for parent nodes')}
-              </small>
-            </div>
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <label
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <Switch
+                    checked={values.show_upper_labels || false}
+                    onChange={checked => onChange('show_upper_labels', checked)}
+                  />
+                  {t('Show Upper Labels')}
+                </label>
+                <small className="text-muted">
+                  {t('Show labels for parent nodes')}
+                </small>
+              </Col>
+            </Row>
           )}
         </>
       )}

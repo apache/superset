@@ -17,8 +17,7 @@
  * under the License.
  */
 import { useCallback, ReactElement } from 'react';
-
-const NUM_COLUMNS = 12;
+import { Row, Col } from '@superset-ui/core/components';
 
 type Control = ReactElement | null;
 
@@ -30,28 +29,31 @@ export default function ControlRow({ controls }: { controls: Control[] }) {
         : control?.props;
     return props?.type === 'HiddenControl' || props?.isVisible === false;
   }, []);
-  // Invisible control should not be counted
-  // in the columns number
-  const countableControls = controls.filter(
-    control => !isHiddenControl(control),
-  );
-  const colSize = countableControls.length
-    ? NUM_COLUMNS / countableControls.length
-    : NUM_COLUMNS;
+
+  // Filter out hidden controls for column calculation
+  const visibleControls = controls.filter(control => !isHiddenControl(control));
+
+  // Calculate column span based on number of visible controls
+  const colSpan =
+    visibleControls.length > 0 ? Math.floor(24 / visibleControls.length) : 24;
+
   return (
-    <div className="row">
-      {controls.map((control, i) => (
-        <div
-          data-test="control-item"
-          className={`col-lg-${colSize} col-xs-12`}
-          style={{
-            display: isHiddenControl(control) ? 'none' : 'block',
-          }}
-          key={i}
-        >
-          {control}
-        </div>
-      ))}
-    </div>
+    <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      {controls.map((control, i) => {
+        if (isHiddenControl(control)) {
+          // Hidden controls are rendered but not displayed
+          return (
+            <div key={i} style={{ display: 'none' }}>
+              {control}
+            </div>
+          );
+        }
+        return (
+          <Col key={i} span={colSpan} data-test="control-item">
+            {control}
+          </Col>
+        );
+      })}
+    </Row>
   );
 }

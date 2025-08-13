@@ -18,7 +18,8 @@
  */
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
-import { Slider, InputNumber, Row, Col } from 'antd';
+import { Slider, InputNumber } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 
 export interface OpacityControlProps {
   name?: string;

@@ -19,6 +19,7 @@
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 
 export interface FormatControlGroupProps {
   showNumber?: boolean;
@@ -127,101 +128,111 @@ const FormatControlGroup: FC<FormatControlGroupProps> = ({
   return (
     <div className="format-control-group">
       {showNumber && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{numberFormatLabel}</label>
-          <Select
-            value={values.number_format || 'SMART_NUMBER'}
-            onChange={value => onChange('number_format', value)}
-            style={{ width: '100%' }}
-            showSearch
-            placeholder={t('Select or type a custom format')}
-            options={formatOptions.map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">
-            {t('D3 format string for numbers. See ')}
-            <a
-              href="https://github.com/d3/d3-format/blob/main/README.md#format"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('D3 format docs')}
-            </a>
-            {t(' for details.')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{numberFormatLabel}</label>
+            <Select
+              value={values.number_format || 'SMART_NUMBER'}
+              onChange={value => onChange('number_format', value)}
+              style={{ width: '100%' }}
+              showSearch
+              placeholder={t('Select or type a custom format')}
+              options={formatOptions.map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {t('D3 format string for numbers. See ')}
+              <a
+                href="https://github.com/d3/d3-format/blob/main/README.md#format"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('D3 format docs')}
+              </a>
+              {t(' for details.')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showCurrency && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{currencyFormatLabel}</label>
-          <Select
-            value={values.currency_format || 'USD'}
-            onChange={value => onChange('currency_format', value)}
-            style={{ width: '100%' }}
-            showSearch
-            placeholder={t('Select currency')}
-            options={CURRENCY_OPTIONS}
-          />
-          <small className="text-muted">
-            {t('Currency to use for formatting')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{currencyFormatLabel}</label>
+            <Select
+              value={values.currency_format || 'USD'}
+              onChange={value => onChange('currency_format', value)}
+              style={{ width: '100%' }}
+              showSearch
+              placeholder={t('Select currency')}
+              options={CURRENCY_OPTIONS}
+            />
+            <small className="text-muted">
+              {t('Currency to use for formatting')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showDate && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{dateFormatLabel}</label>
-          <Select
-            value={values.date_format || 'smart_date'}
-            onChange={value => onChange('date_format', value)}
-            style={{ width: '100%' }}
-            showSearch
-            placeholder={t('Select or type a custom format')}
-            options={D3_TIME_FORMAT_OPTIONS.map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">
-            {t('D3 time format string. See ')}
-            <a
-              href="https://github.com/d3/d3-time-format/blob/main/README.md#locale_format"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('D3 time format docs')}
-            </a>
-            {t(' for details.')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{dateFormatLabel}</label>
+            <Select
+              value={values.date_format || 'smart_date'}
+              onChange={value => onChange('date_format', value)}
+              style={{ width: '100%' }}
+              showSearch
+              placeholder={t('Select or type a custom format')}
+              options={D3_TIME_FORMAT_OPTIONS.map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {t('D3 time format string. See ')}
+              <a
+                href="https://github.com/d3/d3-time-format/blob/main/README.md#locale_format"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('D3 time format docs')}
+              </a>
+              {t(' for details.')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showPercentage && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{percentageFormatLabel}</label>
-          <Select
-            value={values.percentage_format || '.0%'}
-            onChange={value => onChange('percentage_format', value)}
-            style={{ width: '100%' }}
-            showSearch
-            placeholder={t('Select or type a custom format')}
-            options={[
-              ['.0%', t('0%')],
-              ['.1%', t('0.1%')],
-              ['.2%', t('0.12%')],
-              ['.3%', t('0.123%')],
-              [',.0%', t('1,234%')],
-              [',.1%', t('1,234.5%')],
-            ].map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">{t('D3 format for percentages')}</small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{percentageFormatLabel}</label>
+            <Select
+              value={values.percentage_format || '.0%'}
+              onChange={value => onChange('percentage_format', value)}
+              style={{ width: '100%' }}
+              showSearch
+              placeholder={t('Select or type a custom format')}
+              options={[
+                ['.0%', t('0%')],
+                ['.1%', t('0.1%')],
+                ['.2%', t('0.12%')],
+                ['.3%', t('0.123%')],
+                [',.0%', t('1,234%')],
+                [',.1%', t('1,234.5%')],
+              ].map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {t('D3 format for percentages')}
+            </small>
+          </Col>
+        </Row>
       )}
     </div>
   );

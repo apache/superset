@@ -19,6 +19,7 @@
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
 import { Input, Select, Switch, InputNumber } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 
 export interface AxisControlSectionProps {
   axis: 'x' | 'y';
@@ -97,137 +98,152 @@ export const AxisControlSection: FC<AxisControlSectionProps> = ({
   return (
     <div className="axis-control-section">
       {showTitle && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t(`${axisUpper} Axis Title`)}</label>
-          <Input
-            value={values[titleKey] || ''}
-            onChange={e => onChange(titleKey, e.target.value)}
-            placeholder={t(`Enter ${axis} axis title`)}
-          />
-          <small className="text-muted">
-            {t(
-              'Overrides the axis title derived from the metric or column name',
-            )}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t(`${axisUpper} Axis Title`)}</label>
+            <Input
+              value={values[titleKey] || ''}
+              onChange={e => onChange(titleKey, e.target.value)}
+              placeholder={t(`Enter ${axis} axis title`)}
+            />
+            <small className="text-muted">
+              {t(
+                'Overrides the axis title derived from the metric or column name',
+              )}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showFormat && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t(`${axisUpper} Axis Format`)}</label>
-          <Select
-            value={
-              values[formatKey] || (timeFormat ? 'smart_date' : 'SMART_NUMBER')
-            }
-            onChange={value => onChange(formatKey, value)}
-            style={{ width: '100%' }}
-            showSearch
-            placeholder={t('Select or type a format')}
-            options={(timeFormat
-              ? D3_TIME_FORMAT_OPTIONS
-              : D3_FORMAT_OPTIONS
-            ).map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">
-            {timeFormat
-              ? t('D3 time format for x axis')
-              : t('D3 format for axis values')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t(`${axisUpper} Axis Format`)}</label>
+            <Select
+              value={
+                values[formatKey] ||
+                (timeFormat ? 'smart_date' : 'SMART_NUMBER')
+              }
+              onChange={value => onChange(formatKey, value)}
+              style={{ width: '100%' }}
+              showSearch
+              placeholder={t('Select or type a format')}
+              options={(timeFormat
+                ? D3_TIME_FORMAT_OPTIONS
+                : D3_FORMAT_OPTIONS
+              ).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {timeFormat
+                ? t('D3 time format for x axis')
+                : t('D3 format for axis values')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showRotation && isXAxis && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t('Label Rotation')}</label>
-          <Select
-            value={values[rotationKey] || 0}
-            onChange={value => onChange(rotationKey, value)}
-            style={{ width: '100%' }}
-            options={ROTATION_OPTIONS.map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">
-            {t('Rotation angle for axis labels')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t('Label Rotation')}</label>
+            <Select
+              value={values[rotationKey] || 0}
+              onChange={value => onChange(rotationKey, value)}
+              style={{ width: '100%' }}
+              options={ROTATION_OPTIONS.map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {t('Rotation angle for axis labels')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showBounds && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t(`${axisUpper} Axis Bounds`)}</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <InputNumber
-              value={values[boundsMinKey]}
-              onChange={value => onChange(boundsMinKey, value)}
-              placeholder={t('Min')}
-              style={{ flex: 1 }}
-            />
-            <InputNumber
-              value={values[boundsMaxKey]}
-              onChange={value => onChange(boundsMaxKey, value)}
-              placeholder={t('Max')}
-              style={{ flex: 1 }}
-            />
-          </div>
-          <small className="text-muted">
-            {t('Bounds for axis values. Leave empty for automatic scaling.')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t(`${axisUpper} Axis Bounds`)}</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <InputNumber
+                value={values[boundsMinKey]}
+                onChange={value => onChange(boundsMinKey, value)}
+                placeholder={t('Min')}
+                style={{ flex: 1 }}
+              />
+              <InputNumber
+                value={values[boundsMaxKey]}
+                onChange={value => onChange(boundsMaxKey, value)}
+                placeholder={t('Max')}
+                style={{ flex: 1 }}
+              />
+            </div>
+            <small className="text-muted">
+              {t('Bounds for axis values. Leave empty for automatic scaling.')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showLogarithmic && !isXAxis && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Switch
-              checked={values[logScaleKey] || false}
-              onChange={checked => onChange(logScaleKey, checked)}
-            />
-            {t('Logarithmic Scale')}
-          </label>
-          <small className="text-muted">
-            {t('Use a logarithmic scale for the Y-axis')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Switch
+                checked={values[logScaleKey] || false}
+                onChange={checked => onChange(logScaleKey, checked)}
+              />
+              {t('Logarithmic Scale')}
+            </label>
+            <small className="text-muted">
+              {t('Use a logarithmic scale for the Y-axis')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showMinorTicks && !isXAxis && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Switch
-              checked={values[minorTicksKey] || false}
-              onChange={checked => onChange(minorTicksKey, checked)}
-            />
-            {t('Show Minor Ticks')}
-          </label>
-          <small className="text-muted">
-            {t('Show minor grid lines on the axis')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Switch
+                checked={values[minorTicksKey] || false}
+                onChange={checked => onChange(minorTicksKey, checked)}
+              />
+              {t('Show Minor Ticks')}
+            </label>
+            <small className="text-muted">
+              {t('Show minor grid lines on the axis')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {showTruncate && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Switch
-              checked={
-                values[truncateKey] || values[truncateLabelsKey] || false
-              }
-              onChange={checked => {
-                onChange(truncateKey, checked);
-                onChange(truncateLabelsKey, checked);
-              }}
-            />
-            {t(`Truncate ${axisUpper} Axis Labels`)}
-          </label>
-          <small className="text-muted">
-            {t('Truncate long axis labels to prevent overlap')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Switch
+                checked={
+                  values[truncateKey] || values[truncateLabelsKey] || false
+                }
+                onChange={checked => {
+                  onChange(truncateKey, checked);
+                  onChange(truncateLabelsKey, checked);
+                }}
+              />
+              {t(`Truncate ${axisUpper} Axis Labels`)}
+            </label>
+            <small className="text-muted">
+              {t('Truncate long axis labels to prevent overlap')}
+            </small>
+          </Col>
+        </Row>
       )}
     </div>
   );

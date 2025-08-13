@@ -18,7 +18,8 @@
  */
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
-import { Switch, Slider, InputNumber, Row, Col } from 'antd';
+import { Switch, Slider, InputNumber } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 
 export interface MarkerControlGroupProps {
   enabledLabel?: string;
@@ -67,57 +68,63 @@ const MarkerControlGroup: FC<MarkerControlGroupProps> = ({
 
   return (
     <div className="marker-control-group">
-      <div className="control-row" style={{ marginBottom: 16 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Switch
-            checked={markerEnabled}
-            onChange={handleEnabledChange}
-            disabled={disabled}
-          />
-          {enabledLabel}
-        </label>
-        <small className="text-muted">
-          {t('Draw markers on data points for better visibility')}
-        </small>
-      </div>
+      <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+        <Col span={24}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Switch
+              checked={markerEnabled}
+              onChange={handleEnabledChange}
+              disabled={disabled}
+            />
+            {enabledLabel}
+          </label>
+          <small className="text-muted">
+            {t('Draw markers on data points for better visibility')}
+          </small>
+        </Col>
+      </Row>
 
       {markerEnabled && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', marginBottom: 8 }}>
-            {sizeLabel}
-          </label>
-          <Row gutter={16} align="middle">
-            <Col span={16}>
-              <Slider
-                min={minSize}
-                max={maxSize}
-                step={1}
-                value={markerSize}
-                onChange={handleSizeChange}
-                disabled={disabled || !markerEnabled}
-                marks={{
-                  [minSize]: minSize.toString(),
-                  [Math.floor(maxSize / 2)]: Math.floor(maxSize / 2).toString(),
-                  [maxSize]: maxSize.toString(),
-                }}
-              />
-            </Col>
-            <Col span={8}>
-              <InputNumber
-                min={minSize}
-                max={maxSize}
-                step={1}
-                value={markerSize}
-                onChange={handleInputChange}
-                disabled={disabled || !markerEnabled}
-                style={{ width: '100%' }}
-              />
-            </Col>
-          </Row>
-          <small className="text-muted">
-            {t('Size of the markers in pixels')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label style={{ display: 'block', marginBottom: 8 }}>
+              {sizeLabel}
+            </label>
+            <Row gutter={16} align="middle">
+              <Col span={16}>
+                <Slider
+                  min={minSize}
+                  max={maxSize}
+                  step={1}
+                  value={markerSize}
+                  onChange={handleSizeChange}
+                  disabled={disabled || !markerEnabled}
+                  marks={{
+                    [minSize]: minSize.toString(),
+                    [Math.floor(maxSize / 2)]: Math.floor(
+                      maxSize / 2,
+                    ).toString(),
+                    [maxSize]: maxSize.toString(),
+                  }}
+                />
+              </Col>
+              <Col span={8}>
+                <InputNumber
+                  min={minSize}
+                  max={maxSize}
+                  step={1}
+                  value={markerSize}
+                  onChange={handleInputChange}
+                  disabled={disabled || !markerEnabled}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+            </Row>
+            <small className="text-muted">
+              {t('Size of the markers in pixels')}
+            </small>
+          </Col>
+        </Row>
       )}
     </div>
   );

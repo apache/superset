@@ -18,7 +18,8 @@
  */
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
-import { Select, Switch, Slider, InputNumber, Row, Col } from 'antd';
+import { Select, Switch, Slider, InputNumber } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 
 export interface PieShapeControlProps {
   showDonut?: boolean;
@@ -49,115 +50,123 @@ const PieShapeControl: FC<PieShapeControlProps> = ({
     <div className="pie-shape-control">
       {/* Donut Toggle */}
       {showDonut && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Switch
-              checked={isDonut}
-              onChange={checked => onChange('donut', checked)}
-            />
-            {t('Donut')}
-          </label>
-          <small className="text-muted">
-            {t('Do you want a donut or a pie?')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Switch
+                checked={isDonut}
+                onChange={checked => onChange('donut', checked)}
+              />
+              {t('Donut')}
+            </label>
+            <small className="text-muted">
+              {t('Do you want a donut or a pie?')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {/* Inner Radius (for Donut) */}
       {showRadius && isDonut && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t('Inner Radius')}</label>
-          <Row gutter={16} align="middle">
-            <Col span={16}>
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={innerRadius}
-                onChange={value => onChange('innerRadius', value)}
-                marks={{
-                  0: '0%',
-                  50: '50%',
-                  100: '100%',
-                }}
-              />
-            </Col>
-            <Col span={8}>
-              <InputNumber
-                min={0}
-                max={100}
-                step={1}
-                value={innerRadius}
-                onChange={value => onChange('innerRadius', value)}
-                formatter={value => `${value}%`}
-                parser={value => Number((value as string).replace('%', ''))}
-                style={{ width: '100%' }}
-              />
-            </Col>
-          </Row>
-          <small className="text-muted">
-            {t('Inner radius of donut hole')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t('Inner Radius')}</label>
+            <Row gutter={16} align="middle">
+              <Col span={16}>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={innerRadius}
+                  onChange={value => onChange('innerRadius', value)}
+                  marks={{
+                    0: '0%',
+                    50: '50%',
+                    100: '100%',
+                  }}
+                />
+              </Col>
+              <Col span={8}>
+                <InputNumber
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={innerRadius}
+                  onChange={value => onChange('innerRadius', value)}
+                  formatter={value => `${value}%`}
+                  parser={value => Number((value as string).replace('%', ''))}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+            </Row>
+            <small className="text-muted">
+              {t('Inner radius of donut hole')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {/* Outer Radius */}
       {showRadius && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t('Outer Radius')}</label>
-          <Row gutter={16} align="middle">
-            <Col span={16}>
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={outerRadius}
-                onChange={value => onChange('outerRadius', value)}
-                marks={{
-                  0: '0%',
-                  50: '50%',
-                  100: '100%',
-                }}
-              />
-            </Col>
-            <Col span={8}>
-              <InputNumber
-                min={0}
-                max={100}
-                step={1}
-                value={outerRadius}
-                onChange={value => onChange('outerRadius', value)}
-                formatter={value => `${value}%`}
-                parser={value => Number((value as string).replace('%', ''))}
-                style={{ width: '100%' }}
-              />
-            </Col>
-          </Row>
-          <small className="text-muted">
-            {t('Outer edge of the pie/donut')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t('Outer Radius')}</label>
+            <Row gutter={16} align="middle">
+              <Col span={16}>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={outerRadius}
+                  onChange={value => onChange('outerRadius', value)}
+                  marks={{
+                    0: '0%',
+                    50: '50%',
+                    100: '100%',
+                  }}
+                />
+              </Col>
+              <Col span={8}>
+                <InputNumber
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={outerRadius}
+                  onChange={value => onChange('outerRadius', value)}
+                  formatter={value => `${value}%`}
+                  parser={value => Number((value as string).replace('%', ''))}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+            </Row>
+            <small className="text-muted">
+              {t('Outer edge of the pie/donut')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {/* Rose Type (Nightingale Chart) */}
       {showRoseType && (
-        <div className="control-row" style={{ marginBottom: 16 }}>
-          <label>{t('Rose Type')}</label>
-          <Select
-            value={values.roseType || null}
-            onChange={value => onChange('roseType', value)}
-            style={{ width: '100%' }}
-            allowClear
-            placeholder={t('None')}
-            options={ROSE_TYPE_OPTIONS.map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">
-            {t('Whether to show as Nightingale chart (polar area chart)')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <label>{t('Rose Type')}</label>
+            <Select
+              value={values.roseType || null}
+              onChange={value => onChange('roseType', value)}
+              style={{ width: '100%' }}
+              allowClear
+              placeholder={t('None')}
+              options={ROSE_TYPE_OPTIONS.map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {t('Whether to show as Nightingale chart (polar area chart)')}
+            </small>
+          </Col>
+        </Row>
       )}
     </div>
   );

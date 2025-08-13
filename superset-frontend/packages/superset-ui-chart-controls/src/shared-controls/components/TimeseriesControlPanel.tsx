@@ -19,6 +19,7 @@
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
 import { Select, Radio } from 'antd';
+import { Row, Col } from '@superset-ui/core/components';
 import AxisControlSection from './AxisControlSection';
 import FormatControlGroup from './FormatControlGroup';
 import OpacityControl from './OpacityControl';
@@ -84,69 +85,75 @@ const TimeseriesControlPanel: FC<TimeseriesControlPanelProps> = ({
     <div className="timeseries-control-panel">
       {/* Series Type Selection */}
       {showSeriesType && SERIES_TYPE_OPTIONS[variant] && (
-        <div className="control-row" style={{ marginBottom: 24 }}>
-          <label>{t('Series Style')}</label>
-          <Select
-            value={
-              values.seriesType ||
-              (SERIES_TYPE_OPTIONS[variant][0]
-                ? SERIES_TYPE_OPTIONS[variant][0][0]
-                : 'line')
-            }
-            onChange={value => onChange('seriesType', value)}
-            style={{ width: '100%' }}
-            options={SERIES_TYPE_OPTIONS[variant].map(
-              ([value, label]: [string, string]) => ({
-                value,
-                label,
-              }),
-            )}
-          />
-          <small className="text-muted">
-            {t('Series chart type (line, smooth, step, etc)')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 24 }}>
+          <Col span={24}>
+            <label>{t('Series Style')}</label>
+            <Select
+              value={
+                values.seriesType ||
+                (SERIES_TYPE_OPTIONS[variant][0]
+                  ? SERIES_TYPE_OPTIONS[variant][0][0]
+                  : 'line')
+              }
+              onChange={value => onChange('seriesType', value)}
+              style={{ width: '100%' }}
+              options={SERIES_TYPE_OPTIONS[variant].map(
+                ([value, label]: [string, string]) => ({
+                  value,
+                  label,
+                }),
+              )}
+            />
+            <small className="text-muted">
+              {t('Series chart type (line, smooth, step, etc)')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {/* Stack Options */}
       {showStack && (
-        <div className="control-row" style={{ marginBottom: 24 }}>
-          <label>{t('Stacking')}</label>
-          <Select
-            value={values.stack || null}
-            onChange={value => onChange('stack', value)}
-            style={{ width: '100%' }}
-            allowClear
-            placeholder={t('No stacking')}
-            options={STACK_OPTIONS.map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <small className="text-muted">
-            {t('Stack series on top of each other')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 24 }}>
+          <Col span={24}>
+            <label>{t('Stacking')}</label>
+            <Select
+              value={values.stack || null}
+              onChange={value => onChange('stack', value)}
+              style={{ width: '100%' }}
+              allowClear
+              placeholder={t('No stacking')}
+              options={STACK_OPTIONS.map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+            <small className="text-muted">
+              {t('Stack series on top of each other')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {/* Bar Orientation */}
       {showOrientation && hasBarOptions && (
-        <div className="control-row" style={{ marginBottom: 24 }}>
-          <label>{t('Bar Orientation')}</label>
-          <Radio.Group
-            value={values.orientation || 'vertical'}
-            onChange={e => onChange('orientation', e.target.value)}
-          >
-            <Radio value="vertical">{t('Vertical')}</Radio>
-            <Radio value="horizontal">{t('Horizontal')}</Radio>
-          </Radio.Group>
-          <small
-            className="text-muted"
-            style={{ display: 'block', marginTop: 8 }}
-          >
-            {t('Orientation of bar chart')}
-          </small>
-        </div>
+        <Row gutter={[16, 8]} style={{ marginBottom: 24 }}>
+          <Col span={24}>
+            <label>{t('Bar Orientation')}</label>
+            <Radio.Group
+              value={values.orientation || 'vertical'}
+              onChange={e => onChange('orientation', e.target.value)}
+            >
+              <Radio value="vertical">{t('Vertical')}</Radio>
+              <Radio value="horizontal">{t('Horizontal')}</Radio>
+            </Radio.Group>
+            <small
+              className="text-muted"
+              style={{ display: 'block', marginTop: 8 }}
+            >
+              {t('Orientation of bar chart')}
+            </small>
+          </Col>
+        </Row>
       )}
 
       {/* Area Chart Options */}
