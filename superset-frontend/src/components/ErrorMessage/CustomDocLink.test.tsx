@@ -17,19 +17,23 @@
  * under the License.
  */
 
-import { useTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components';
+import { render, screen } from 'spec/helpers/testing-library';
+import { CustomDocLink } from './CustomDocLink';
 
-export type CustomDocLinkProps = {
-  url: string;
-  label: string;
+const mockedProps = {
+  url: 'https://superset.apache.org/docs/',
+  label: 'Superset Docs',
 };
 
-export const CustomDocLink = ({ url, label }: CustomDocLinkProps) => {
-  const theme = useTheme();
-  return (
-    <a href={url} target="_blank" rel="noopener noreferrer">
-      {label} <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
-    </a>
-  );
-};
+test('should render the label', () => {
+  render(<CustomDocLink {...mockedProps} />);
+  expect(screen.getByText('Superset Docs')).toBeInTheDocument();
+});
+
+test('should render the link with correct attributes', () => {
+  render(<CustomDocLink {...mockedProps} />);
+  const link = screen.getByRole('link');
+  expect(link).toHaveAttribute('href', mockedProps.url);
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+});
