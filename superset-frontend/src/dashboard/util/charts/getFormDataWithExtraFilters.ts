@@ -310,12 +310,9 @@ function processGroupByCustomizations(
         conflictingColumns.has(columnName),
       );
 
-      const nonConflictingColumns =
-        chartType === 'bubble_v2'
-          ? columnNames
-          : columnNames.filter(
-              columnName => !conflictingColumns.has(columnName),
-            );
+      const nonConflictingColumns = columnNames.filter(
+        columnName => !conflictingColumns.has(columnName),
+      );
 
       conflictingColumnsInCustomization.forEach(conflictingColumn => {
         const conflictReason = getConflictReason(conflictingColumn);
