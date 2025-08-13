@@ -23,7 +23,7 @@ import {
   ComponentType,
 } from 'react';
 import type { Editor } from 'brace';
-import { QueryData } from 'src/chart';
+import { QueryData } from '../chart/types/QueryResponse';
 import { BaseFormData, LatestQueryFormData, QueryFormData } from '../query';
 import { JsonResponse } from '../connection';
 
