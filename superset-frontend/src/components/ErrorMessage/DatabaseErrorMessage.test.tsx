@@ -74,7 +74,6 @@ const mockedPropsWithCustomError = {
   },
 };
 
-
 const mockedPropsWithCustomErrorAndBadLinks = {
   ...mockedProps,
   error: {
