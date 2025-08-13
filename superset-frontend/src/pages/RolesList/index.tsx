@@ -275,6 +275,11 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
+        name: t('Bulk select'),
+        onClick: toggleBulkSelect,
+        buttonStyle: 'secondary',
+      },
+      {
         icon: <Icons.PlusOutlined iconSize="m" />,
         name: t('Role'),
         buttonStyle: 'primary',
@@ -283,11 +288,6 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         },
         loading: loadingState.permissions,
         'data-test': 'add-role-button',
-      },
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
       },
     );
   }
