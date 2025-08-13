@@ -119,6 +119,7 @@ function processGroupByCustomizations(
   x_axis?: string;
   series?: string;
   columns?: string[];
+  entity?: string;
 } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
     return {};
@@ -171,6 +172,7 @@ function processGroupByCustomizations(
     x_axis?: string;
     series?: string;
     columns?: string[];
+    entity?: string;
   } = {};
 
   const groupByColumns: string[] = [];
@@ -360,10 +362,20 @@ function processGroupByCustomizations(
       chartType?.startsWith('echarts_timeseries') ||
       chartType?.startsWith('echarts_area')
     ) {
+      if (groupByColumns.length > 1) {
+        console.warn(
+          `Time series charts only support one x-axis dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+        );
+      }
       const newXAxis = groupByColumns[0];
       groupByFormData.x_axis = newXAxis;
       groupByFormData.groupby = [];
     } else if (chartType === 'word_cloud') {
+      if (groupByColumns.length > 1) {
+        console.warn(
+          `Word cloud charts only support one series dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+        );
+      }
       groupByFormData.series = groupByColumns[0];
       groupByFormData.groupby = [];
     } else if (chartType === 'sunburst_v2') {
@@ -372,7 +384,15 @@ function processGroupByCustomizations(
     } else if (['graph', 'sankey', 'chord'].includes(chartType)) {
       groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
     } else if (chartType === 'bubble_v2') {
-      groupByFormData.groupby = groupByColumns;
+      if (groupByColumns.length > 0) {
+        if (groupByColumns.length > 1) {
+          console.warn(
+            `Bubble charts only support one dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+          );
+        }
+        groupByFormData.series = groupByColumns[0];
+        groupByFormData.groupby = [];
+      }
     } else {
       groupByFormData.groupby = groupByColumns;
     }
