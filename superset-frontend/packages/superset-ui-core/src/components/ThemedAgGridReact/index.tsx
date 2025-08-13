@@ -173,7 +173,7 @@ export type {
   ValueGetterParams,
 } from 'ag-grid-community';
 
-// Re-export modules and themes
+// Re-export modules and themes commonly used with ThemedAgGridReact
 export {
   AllCommunityModule,
   ClientSideRowModelModule,
