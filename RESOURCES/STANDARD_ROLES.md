@@ -191,7 +191,7 @@ under the License.
 | can read on ExplorePermalinkRestApi              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can export on ImportExportRestApi                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can import on ImportExportRestApi                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can export on SavedQuery                         |:heavy_check_mark:|O|O|:heavy_check_mark:|
+| can export on SavedQuery                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can dashboard permalink on Superset              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can grant guest token on SecurityRestApi         |:heavy_check_mark:|O|O|O|
 | can read on AdvancedDataType                     |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
