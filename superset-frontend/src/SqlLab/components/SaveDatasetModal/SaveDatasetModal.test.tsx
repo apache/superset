@@ -67,7 +67,7 @@ describe('SaveDatasetModal', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     const saveRadioBtn = screen.getByRole('radio', {
-      name: /save as new unimportant/i,
+      name: /save as new/i,
     });
 
     const fieldLabel = screen.getByText(/save as new/i);
