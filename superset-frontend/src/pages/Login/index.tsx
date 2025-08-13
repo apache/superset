@@ -258,7 +258,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href={ensureAppRoot("/register/")}
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}
