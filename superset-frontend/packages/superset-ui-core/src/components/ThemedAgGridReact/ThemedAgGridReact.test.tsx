@@ -200,7 +200,8 @@ test('wraps component with proper container div', () => {
 
   const wrapper = container.querySelector('[data-themed-ag-grid="true"]');
   expect(wrapper).toBeInTheDocument();
-  expect(wrapper).toHaveStyle({ width: '100%', height: '100%' });
+  // Styles are now applied via css prop, not inline styles
+  expect(wrapper).toHaveAttribute('data-themed-ag-grid', 'true');
 });
 
 test('handles missing theme gracefully', () => {

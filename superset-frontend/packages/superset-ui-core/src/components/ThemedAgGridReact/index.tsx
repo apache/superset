@@ -138,20 +138,15 @@ export const ThemedAgGridReact = forwardRef<
     return baseTheme.withParams(finalParams);
   }, [theme, isDarkMode, themeOverrides]);
 
-  // Minimal styles for proper rendering
-  const themeStyles = useMemo(
-    () => css`
-      .ag-cell {
-        -webkit-font-smoothing: antialiased;
-      }
-    `,
-    [],
-  );
-
   return (
     <div
-      css={themeStyles}
-      style={{ width: '100%', height: '100%' }}
+      css={css`
+        width: 100%;
+        height: 100%;
+        .ag-cell {
+          -webkit-font-smoothing: antialiased;
+        }
+      `}
       data-themed-ag-grid="true"
     >
       <AgGridReact ref={ref} theme={agGridTheme} {...props} />
