@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useMemo, forwardRef } from 'react';
-import { Global, css } from '@emotion/react';
+import { useMemo, forwardRef } from 'react';
+import { css } from '@emotion/react';
 import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
-import { nanoid } from 'nanoid';
-import tinycolor from 'tinycolor2';
 import {
   themeQuartz,
   colorSchemeDark,
   colorSchemeLight,
 } from 'ag-grid-community';
 import { useTheme } from '../../theme';
+import { useThemeMode } from '../../theme/utils/themeUtils';
 
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files
@@ -75,18 +74,7 @@ export const ThemedAgGridReact = forwardRef<
   ThemedAgGridReactProps
 >(function ThemedAgGridReact({ themeOverrides, ...props }, ref) {
   const theme = useTheme();
-
-  // Generate a unique class name for this instance to avoid conflicts
-  const instanceClass = useRef(`superset-ag-grid-${nanoid(8)}`).current;
-
-  // Determine if we're in dark mode
-  const isDarkMode = useMemo(() => {
-    const bgColor = theme.colorBgBase;
-    if (!bgColor) {
-      return false;
-    }
-    return tinycolor(bgColor).isDark();
-  }, [theme]);
+  const isDarkMode = useThemeMode();
 
   // Get the appropriate ag-grid theme based on dark/light mode
   const agGridTheme = useMemo(() => {
@@ -153,26 +141,21 @@ export const ThemedAgGridReact = forwardRef<
   // Minimal styles for proper rendering
   const themeStyles = useMemo(
     () => css`
-      .${instanceClass}.ag-theme-quartz {
-        .ag-cell {
-          -webkit-font-smoothing: antialiased;
-        }
+      .ag-cell {
+        -webkit-font-smoothing: antialiased;
       }
     `,
-    [instanceClass],
+    [],
   );
 
   return (
-    <>
-      <Global styles={themeStyles} />
-      <div
-        className={instanceClass}
-        style={{ width: '100%', height: '100%' }}
-        data-themed-ag-grid="true"
-      >
-        <AgGridReact ref={ref} theme={agGridTheme} {...props} />
-      </div>
-    </>
+    <div
+      css={themeStyles}
+      style={{ width: '100%', height: '100%' }}
+      data-themed-ag-grid="true"
+    >
+      <AgGridReact ref={ref} theme={agGridTheme} {...props} />
+    </div>
   );
 });
 

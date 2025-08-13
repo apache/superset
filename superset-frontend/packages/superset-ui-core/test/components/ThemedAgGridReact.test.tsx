@@ -22,6 +22,13 @@ import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
 import { ThemeProvider, supersetTheme } from '../../src/theme';
 import { ThemedAgGridReact } from '../../src/components/ThemedAgGridReact';
+import * as themeUtils from '../../src/theme/utils/themeUtils';
+
+// Mock useThemeMode hook
+jest.mock('../../src/theme/utils/themeUtils', () => ({
+  ...jest.requireActual('../../src/theme/utils/themeUtils'),
+  useThemeMode: jest.fn(() => false), // Default to light mode
+}));
 
 // Mock ag-grid-react to avoid complex setup
 jest.mock('ag-grid-react', () => ({
@@ -49,11 +56,6 @@ jest.mock('ag-grid-community', () => ({
   ModuleRegistry: { registerModules: jest.fn() },
 }));
 
-// Mock nanoid
-jest.mock('nanoid', () => ({
-  nanoid: () => 'test-id-123',
-}));
-
 describe('ThemedAgGridReact', () => {
   const mockRowData = [
     { id: 1, name: 'Test 1' },
@@ -67,6 +69,8 @@ describe('ThemedAgGridReact', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset to light mode by default
+    (themeUtils.useThemeMode as jest.Mock).mockReturnValue(false);
   });
 
   it('renders the AgGridReact component', () => {
@@ -98,6 +102,9 @@ describe('ThemedAgGridReact', () => {
   });
 
   it('applies dark theme when background is dark', () => {
+    // Mock dark mode
+    (themeUtils.useThemeMode as jest.Mock).mockReturnValue(true);
+
     const darkTheme = {
       ...supersetTheme,
       colorBgBase: '#1a1a1a',
@@ -194,7 +201,6 @@ describe('ThemedAgGridReact', () => {
 
     const wrapper = container.querySelector('[data-themed-ag-grid="true"]');
     expect(wrapper).toBeInTheDocument();
-    expect(wrapper).toHaveClass('superset-ag-grid-test-id-123');
     expect(wrapper).toHaveStyle({ width: '100%', height: '100%' });
   });
 
