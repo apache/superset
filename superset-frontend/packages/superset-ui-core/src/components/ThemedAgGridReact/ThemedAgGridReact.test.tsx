@@ -20,13 +20,13 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../src/theme';
-import { ThemedAgGridReact } from '../../src/components/ThemedAgGridReact';
-import * as themeUtils from '../../src/theme/utils/themeUtils';
+import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemedAgGridReact } from './index';
+import * as themeUtils from '../../theme/utils/themeUtils';
 
 // Mock useThemeMode hook
-jest.mock('../../src/theme/utils/themeUtils', () => ({
-  ...jest.requireActual('../../src/theme/utils/themeUtils'),
+jest.mock('../../theme/utils/themeUtils', () => ({
+  ...jest.requireActual('../../theme/utils/themeUtils'),
   useThemeMode: jest.fn(() => false), // Default to light mode
 }));
 
