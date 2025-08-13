@@ -1331,10 +1331,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, ex: Exception, context: dict[str, Any] | None = None
     ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
-        config_custom_errors = app.config.get("CUSTOM_ERROR_MESSAGES", {})
+        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
 
         context = context or {}
-        for regex, (message, error_type, extra) in [*config_custom_errors.items(), *cls.custom_errors.items()]:
+        for regex, (message, error_type, extra) in [
+            *config_custom_errors.items(),
+            *cls.custom_errors.items(),
+        ]:
             if match := regex.search(raw_message):
                 params = {**context, **match.groupdict()}
                 extra["engine_name"] = cls.engine_name
