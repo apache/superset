@@ -88,9 +88,10 @@ export default function Login() {
 
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-    SupersetClient.postForm(ensureAppRoot('/login/'), values, '').finally(() => {
-      setLoading(false);
-    });
+    SupersetClient.postForm(ensureAppRoot('/login/'), values, '').finally(
+      () => {
+        setLoading(false);
+      });
   };
 
   const getAuthIconElement = (
@@ -213,7 +214,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href={ensureAppRoot("/register/")}
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}
