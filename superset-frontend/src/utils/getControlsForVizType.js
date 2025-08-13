@@ -20,7 +20,6 @@
 import memoizeOne from 'memoize-one';
 import { isControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
-import { controls } from '../explore/controls';
 
 const memoizedControls = memoizeOne((vizType, controlPanel) => {
   const controlsMap = {};
@@ -30,12 +29,15 @@ const memoizedControls = memoizeOne((vizType, controlPanel) => {
       section.controlSetRows.forEach(row => {
         row.forEach(control => {
           if (!control) return;
+          // String controls are no longer supported - all controls must be React components
           if (typeof control === 'string') {
-            // For now, we have to look in controls.jsx to get the config for some controls.
-            // Once everything is migrated out, delete this if statement.
-            controlsMap[control] = controls[control];
-          } else if (control.name && control.config) {
-            // condition needed because there are elements, e.g. <hr /> in some control configs (I'm looking at you, FilterBox!)
+            throw new Error(
+              `String control reference "${control}" is not supported. ` +
+                `All controls must use React components from @superset-ui/chart-controls.`,
+            );
+          }
+          if (control.name && control.config) {
+            // Valid control object with name and config
             controlsMap[control.name] = control.config;
           }
         });

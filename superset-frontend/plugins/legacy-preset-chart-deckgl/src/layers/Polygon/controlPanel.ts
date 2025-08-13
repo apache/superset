@@ -23,7 +23,6 @@ import {
   MetricControl,
   RowLimitControl,
   InlineSelectControl as SelectControl,
-  InlineSliderControl as SliderControl,
   InlineCheckboxControl as CheckboxControl,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
@@ -130,8 +129,7 @@ const config: ControlPanelConfig = {
         [multiplier],
         [lineWidth],
         [
-          SelectControl({
-            name: 'line_width_unit',
+          SelectControl('line_width_unit', {
             label: t('Line width unit'),
             default: 'pixels',
             choices: [
@@ -142,20 +140,22 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          SliderControl({
+          {
             name: 'opacity',
-            label: t('Opacity'),
-            default: 80,
-            step: 1,
-            min: 0,
-            max: 100,
-            renderTrigger: true,
-            description: t('Opacity, expects values between 0 and 100'),
-          }),
+            config: {
+              type: 'SliderControl',
+              label: t('Opacity'),
+              default: 80,
+              step: 1,
+              min: 0,
+              max: 100,
+              renderTrigger: true,
+              description: t('Opacity, expects values between 0 and 100'),
+            },
+          },
         ],
         [
-          SelectControl({
-            name: 'num_buckets',
+          SelectControl('num_buckets', {
             multi: false,
             freeForm: true,
             label: t('Number of buckets to group data'),
@@ -166,8 +166,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          SelectControl({
-            name: 'break_points',
+          SelectControl('break_points', {
             multi: true,
             freeForm: true,
             label: t('Bucket break points'),
@@ -179,8 +178,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          CheckboxControl({
-            name: 'table_filter',
+          CheckboxControl('table_filter', {
             label: t('Emit Filter Events'),
             renderTrigger: true,
             default: false,
@@ -188,8 +186,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          CheckboxControl({
-            name: 'toggle_polygons',
+          CheckboxControl('toggle_polygons', {
             label: t('Multiple filtering'),
             renderTrigger: true,
             default: true,

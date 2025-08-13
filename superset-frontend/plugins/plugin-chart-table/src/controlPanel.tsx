@@ -37,10 +37,6 @@ import {
   sections,
   sharedControls,
   AdhocFiltersControl,
-  AllColumnsControl,
-  GroupByControl,
-  MetricsControl,
-  RowLimitControl,
   TemporalColumnsLookupControl,
 } from '@superset-ui/chart-controls';
 import {

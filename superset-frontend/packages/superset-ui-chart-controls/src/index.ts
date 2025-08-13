@@ -41,5 +41,7 @@ export {
   RadioButtonControl,
   ReactControlPanel,
 } from './shared-controls/components';
+// Export all from shared-controls/components which includes inline control functions
+export * from './shared-controls/components';
 export * from './types';
 export * from './fixtures';

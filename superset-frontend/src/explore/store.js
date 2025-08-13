@@ -19,7 +19,6 @@
 /* eslint camelcase: 0 */
 import { getChartControlPanelRegistry, VizType } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
-import { controls } from './controls';
 
 function handleDeprecatedControls(formData) {
   // Reaffectation / handling of deprecated controls
@@ -85,14 +84,13 @@ export function applyDefaultFormData(inputFormData) {
   return formData;
 }
 
-const defaultControls = { ...controls };
-Object.keys(controls).forEach(f => {
-  defaultControls[f].value = controls[f].default;
-});
+// Default controls are no longer needed since all controls are
+// defined in their respective visualization control panels
+const defaultControls = {};
 
 const defaultState = {
   controls: defaultControls,
-  form_data: getFormDataFromControls(defaultControls),
+  form_data: {},
 };
 
 export { defaultControls, defaultState };

@@ -67,8 +67,7 @@ const config: ControlPanelConfig = {
         [filterNulls],
         [AdhocFiltersControl()],
         [
-          SelectControl({
-            name: 'intensity',
+          SelectControl('intensity', {
             label: t('Intensity'),
             description: t(
               'Intensity is the value multiplied by the weight to obtain the final weight',
@@ -81,8 +80,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          SelectControl({
-            name: 'radius_pixels',
+          SelectControl('radius_pixels', {
             label: t('Intensity Radius'),
             description: t(
               'Intensity Radius is the radius at which the weight is distributed',
@@ -118,8 +116,7 @@ const config: ControlPanelConfig = {
         [deckGLLinearColorSchemeSelect],
         [autozoom],
         [
-          SelectControl({
-            name: 'aggregation',
+          SelectControl('aggregation', {
             label: t('Aggregation'),
             description: t(
               'The function to use when aggregating points into groups',

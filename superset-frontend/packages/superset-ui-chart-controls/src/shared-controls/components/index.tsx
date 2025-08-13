@@ -51,19 +51,4 @@ export * from './SharedControlComponents';
 // Export React control panel
 export { ReactControlPanel } from './ReactControlPanel';
 
-// Export inline control helpers with renamed ColorPickerControl to avoid conflict
-export {
-  SelectControl as InlineSelectControl,
-  TextControl as InlineTextControl,
-  CheckboxControl as InlineCheckboxControl,
-  SliderControl as InlineSliderControl,
-  RadioButtonControl as InlineRadioButtonControl,
-  BoundsControl,
-  ColorPickerControl as InlineColorPickerControl,
-  DateFilterControl,
-  SwitchControl as InlineSwitchControl,
-  HiddenControl,
-  SpatialControl,
-  ContourControl,
-  TextAreaControl as InlineTextAreaControl,
-} from './InlineControls';
+// Inline control functions are exported from SharedControlComponents

@@ -56,7 +56,9 @@ test('should stash form data from fieldNames', () => {
 });
 
 test('should restore form data from fieldNames', async () => {
-  const { granularity_sqla, ...formData } = defaultState.form_data;
+  // Create test form data since defaultState no longer has pre-populated values
+  const testFormData = { metric: 'count' };
+  const testGranularity = 'day';
   const { container } = render(
     <StashFormDataContainer
       shouldStash={false}
@@ -68,9 +70,9 @@ test('should restore form data from fieldNames', async () => {
       useRedux: true,
       initialState: {
         explore: {
-          form_data: formData,
+          form_data: testFormData,
           hiddenFormData: {
-            granularity_sqla,
+            granularity_sqla: testGranularity,
           },
         },
       },

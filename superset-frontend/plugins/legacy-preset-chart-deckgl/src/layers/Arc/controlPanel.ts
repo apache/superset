@@ -20,8 +20,6 @@ import {
   ControlPanelConfig,
   AdhocFiltersControl,
   RowLimitControl,
-  SpatialControl,
-  InlineColorPickerControl as ColorPickerControl,
   InlineSelectControl as SelectControl,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
@@ -57,24 +55,30 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          SpatialControl({
+          {
             name: 'start_spatial',
-            label: t('Start Longitude & Latitude'),
-            validators: [validateNonEmpty],
-            description: t('Point to your spatial columns'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
-          }),
-          SpatialControl({
+            config: {
+              type: 'SpatialControl',
+              label: t('Start Longitude & Latitude'),
+              validators: [validateNonEmpty],
+              description: t('Point to your spatial columns'),
+              mapStateToProps: (state: any) => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+          {
             name: 'end_spatial',
-            label: t('End Longitude & Latitude'),
-            validators: [validateNonEmpty],
-            description: t('Point to your spatial columns'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
-          }),
+            config: {
+              type: 'SpatialControl',
+              label: t('End Longitude & Latitude'),
+              validators: [validateNonEmpty],
+              description: t('Point to your spatial columns'),
+              mapStateToProps: (state: any) => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
         ],
         [RowLimitControl(), filterNulls],
         [AdhocFiltersControl()],
@@ -104,36 +108,41 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          ColorPickerControl({
+          {
             name: 'color_picker',
-            label: t('Source Color'),
-            description: t('Color of the source location'),
-            default: PRIMARY_COLOR,
-            renderTrigger: true,
-            visibility: ({ controls }: any) =>
-              isColorSchemeTypeVisible(
-                controls,
-                COLOR_SCHEME_TYPES.fixed_color,
-              ),
-          }),
-          ColorPickerControl({
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Source Color'),
+              description: t('Color of the source location'),
+              default: PRIMARY_COLOR,
+              renderTrigger: true,
+              visibility: ({ controls }: any) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
+            },
+          },
+          {
             name: 'target_color_picker',
-            label: t('Target Color'),
-            description: t('Color of the target location'),
-            default: PRIMARY_COLOR,
-            renderTrigger: true,
-            visibility: ({ controls }: any) =>
-              isColorSchemeTypeVisible(
-                controls,
-                COLOR_SCHEME_TYPES.fixed_color,
-              ),
-          }),
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Target Color'),
+              description: t('Color of the target location'),
+              default: PRIMARY_COLOR,
+              renderTrigger: true,
+              visibility: ({ controls }: any) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
+            },
+          },
         ],
         [deckGLCategoricalColor],
         [deckGLCategoricalColorSchemeSelect],
         [
-          SelectControl({
-            name: 'stroke_width',
+          SelectControl('stroke_width', {
             freeForm: true,
             label: t('Stroke Width'),
             validators: [legacyValidateInteger],

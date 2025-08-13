@@ -66,8 +66,7 @@ const config: ControlPanelConfig = {
         [extruded],
         [lineWidth],
         [
-          SelectControl({
-            name: 'line_width_unit',
+          SelectControl('line_width_unit', {
             label: t('Line width unit'),
             default: 'pixels',
             choices: [
@@ -78,8 +77,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          SelectControl({
-            name: 'point_radius_scale',
+          SelectControl('point_radius_scale', {
             freeForm: true,
             label: t('Point Radius Scale'),
             validators: [legacyValidateInteger],

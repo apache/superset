@@ -72,8 +72,7 @@ const config: ControlPanelConfig = {
         [ColorPickerControl()],
         [lineWidth],
         [
-          SelectControl({
-            name: 'line_width_unit',
+          SelectControl('line_width_unit', {
             label: t('Line width unit'),
             default: 'pixels',
             choices: [

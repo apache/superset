@@ -48,8 +48,7 @@ const config: ControlPanelConfig = {
         [LimitControl(), TimeLimitMetricControl()],
         [OrderDescControl()],
         [
-          CheckboxControl({
-            name: 'contribution',
+          CheckboxControl('contribution', {
             label: t('Contribution'),
             default: false,
             description: t('Compute the contribution to the total'),
@@ -63,8 +62,7 @@ const config: ControlPanelConfig = {
       expanded: false,
       controlSetRows: [
         [
-          TextControl({
-            name: 'significance_level',
+          TextControl('significance_level', {
             label: t('Significance Level'),
             default: 0.05,
             description: t(
@@ -73,8 +71,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          TextControl({
-            name: 'pvalue_precision',
+          TextControl('pvalue_precision', {
             label: t('p-value precision'),
             default: 6,
             description: t(
@@ -83,8 +80,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          TextControl({
-            name: 'liftvalue_precision',
+          TextControl('liftvalue_precision', {
             label: t('Lift percent precision'),
             default: 4,
             description: t(

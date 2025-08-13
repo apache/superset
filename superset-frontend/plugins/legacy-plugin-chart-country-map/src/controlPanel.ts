@@ -37,8 +37,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          SelectControl({
-            name: 'select_country',
+          SelectControl('select_country', {
             label: t('Country'),
             default: null,
             choices: countryOptions,
@@ -57,8 +56,7 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       controlSetRows: [
         [
-          SelectControl({
-            name: 'number_format',
+          SelectControl('number_format', {
             freeForm: true,
             label: t('Number format'),
             renderTrigger: true,

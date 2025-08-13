@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { InlineRadioButtonControl as RadioButtonControl } from '@superset-ui/chart-controls';
+import { RadioButtonControl } from '@superset-ui/chart-controls';
 import { Input, InputNumber, Select } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import CurrencyControl from '../../CurrencyControl';

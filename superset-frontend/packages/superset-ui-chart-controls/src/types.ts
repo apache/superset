@@ -182,7 +182,8 @@ export type InternalControlType =
   | 'Checkbox'
   | 'Select'
   | 'Slider'
-  | 'Input';
+  | 'Input'
+  | 'RadioButtonControl';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;

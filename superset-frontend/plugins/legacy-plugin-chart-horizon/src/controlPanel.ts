@@ -51,8 +51,7 @@ const config: ControlPanelConfig = {
         [LimitControl(), TimeLimitMetricControl()],
         [OrderDescControl()],
         [
-          CheckboxControl({
-            name: 'contribution',
+          CheckboxControl('contribution', {
             label: t('Contribution'),
             default: false,
             description: t('Compute the contribution to the total'),
@@ -66,8 +65,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          SelectControl({
-            name: 'series_height',
+          SelectControl('series_height', {
             renderTrigger: true,
             freeForm: true,
             label: t('Series Height'),
@@ -84,8 +82,7 @@ const config: ControlPanelConfig = {
             ]),
             description: t('Pixel height of each series'),
           }),
-          SelectControl({
-            name: 'horizon_color_scale',
+          SelectControl('horizon_color_scale', {
             renderTrigger: true,
             label: t('Value Domain'),
             choices: [

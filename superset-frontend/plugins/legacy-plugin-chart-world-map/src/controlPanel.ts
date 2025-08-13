@@ -34,7 +34,6 @@ import {
   getStandardizedControls,
   InlineSelectControl as SelectControl,
   InlineCheckboxControl as CheckboxControl,
-  InlineRadioButtonControl as RadioButtonControl,
 } from '@superset-ui/chart-controls';
 import { ColorBy } from './utils';
 
@@ -46,8 +45,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [EntityControl()],
         [
-          SelectControl({
-            name: 'country_fieldtype',
+          SelectControl('country_fieldtype', {
             label: t('Country Field Type'),
             default: 'cca2',
             choices: [
@@ -73,8 +71,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          CheckboxControl({
-            name: 'show_bubbles',
+          CheckboxControl('show_bubbles', {
             label: t('Show Bubbles'),
             default: false,
             renderTrigger: true,
@@ -83,8 +80,7 @@ const config: ControlPanelConfig = {
         ],
         [SecondaryMetricControl()],
         [
-          SelectControl({
-            name: 'max_bubble_size',
+          SelectControl('max_bubble_size', {
             freeForm: true,
             label: t('Max Bubble Size'),
             default: '25',
@@ -101,18 +97,21 @@ const config: ControlPanelConfig = {
         ],
         [ColorPickerControl()],
         [
-          RadioButtonControl({
+          {
             name: 'color_by',
-            label: t('Color by'),
-            default: ColorBy.Metric,
-            options: [
-              [ColorBy.Metric, t('Metric')],
-              [ColorBy.Country, t('Country')],
-            ],
-            description: t(
-              'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
-            ),
-          }),
+            config: {
+              type: 'RadioButtonControl',
+              label: t('Color by'),
+              default: ColorBy.Metric,
+              options: [
+                [ColorBy.Metric, t('Metric')],
+                [ColorBy.Country, t('Country')],
+              ],
+              description: t(
+                'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
+              ),
+            },
+          },
         ],
         [LinearColorSchemeControl()],
         [ColorSchemeControl()],

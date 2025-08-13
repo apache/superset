@@ -75,8 +75,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [pointRadiusFixed],
         [
-          SelectControl({
-            name: 'point_unit',
+          SelectControl('point_unit', {
             label: t('Point Unit'),
             default: 'square_m',
             clearable: false,
@@ -94,8 +93,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          TextControl({
-            name: 'min_radius',
+          TextControl('min_radius', {
             label: t('Minimum Radius'),
             isFloat: true,
             validators: [validateNonEmpty],
@@ -106,8 +104,7 @@ const config: ControlPanelConfig = {
                 'insures that the circle respects this minimum radius.',
             ),
           }),
-          TextControl({
-            name: 'max_radius',
+          TextControl('max_radius', {
             label: t('Maximum Radius'),
             isFloat: true,
             validators: [validateNonEmpty],

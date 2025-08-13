@@ -67,8 +67,7 @@ const config: ControlPanelConfig = {
         [gridSize],
         [extruded],
         [
-          SelectControl({
-            name: 'js_agg_function',
+          SelectControl('js_agg_function', {
             label: t('Dynamic Aggregation Function'),
             description: t(
               'The function to use when aggregating points into groups',

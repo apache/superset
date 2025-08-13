@@ -24,7 +24,6 @@ import {
   SizeControl,
   InlineTextControl as TextControl,
   InlineSelectControl as SelectControl,
-  ContourControl,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
@@ -59,8 +58,7 @@ const config: ControlPanelConfig = {
         [mapboxStyle],
         [autozoom, viewport],
         [
-          TextControl({
-            name: 'cellSize',
+          TextControl('cellSize', {
             label: t('Cell Size'),
             default: 300,
             isInt: true,
@@ -70,8 +68,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          SelectControl({
-            name: 'aggregation',
+          SelectControl('aggregation', {
             label: t('Aggregation'),
             description: t(
               'The function to use when aggregating points into groups',
@@ -88,17 +85,20 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          ContourControl({
+          {
             name: 'contours',
-            label: t('Contours'),
-            renderTrigger: true,
-            description: t(
-              'Define contour layers. Isolines represent a collection of line segments that ' +
-                'serparate the area above and below a given threshold. Isobands represent a ' +
-                'collection of polygons that fill the are containing values in a given ' +
-                'threshold range.',
-            ),
-          }),
+            config: {
+              type: 'ContourControl',
+              label: t('Contours'),
+              renderTrigger: true,
+              description: t(
+                'Define contour layers. Isolines represent a collection of line segments that ' +
+                  'serparate the area above and below a given threshold. Isobands represent a ' +
+                  'collection of polygons that fill the are containing values in a given ' +
+                  'threshold range.',
+              ),
+            },
+          },
         ],
       ],
     },
