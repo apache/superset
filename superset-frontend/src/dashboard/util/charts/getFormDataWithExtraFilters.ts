@@ -121,6 +121,7 @@ function processGroupByCustomizations(
   series?: string;
   columns?: string[];
   entity?: string;
+  source?: string;
 } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
     return {};
@@ -153,12 +154,9 @@ function processGroupByCustomizations(
   const excludedChartTypes = [
     'big_number',
     'big_number_total',
-    'graph_chart',
     'gantt',
     'pivot_table_v2',
     'table',
-    'sankey',
-    'sankey_v2',
   ];
 
   if (excludedChartTypes.includes(chartType)) {
@@ -173,6 +171,7 @@ function processGroupByCustomizations(
     series?: string;
     columns?: string[];
     entity?: string;
+    source?: string;
   } = {};
 
   const groupByColumns: string[] = [];
@@ -381,7 +380,25 @@ function processGroupByCustomizations(
     } else if (chartType === 'sunburst_v2') {
       groupByFormData.columns = groupByColumns;
       groupByFormData.groupby = [];
-    } else if (['graph', 'sankey', 'chord'].includes(chartType)) {
+    } else if (chartType === 'graph_chart') {
+      if (groupByColumns.length > 0) {
+        if (groupByColumns.length > 1) {
+          console.warn(
+            `Graph charts only support one source dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+          );
+        }
+        groupByFormData.source = groupByColumns[0];
+      }
+    } else if (chartType === 'sankey_v2') {
+      if (groupByColumns.length > 0) {
+        if (groupByColumns.length > 1) {
+          console.warn(
+            `Sankey charts only support one source dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+          );
+        }
+        groupByFormData.source = groupByColumns[0];
+      }
+    } else if (['chord'].includes(chartType)) {
       groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
     } else if (chartType === 'bubble_v2') {
       if (groupByColumns.length > 0) {
