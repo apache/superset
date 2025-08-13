@@ -23,60 +23,58 @@ from superset.initialization import SupersetAppInitializer
 
 
 class TestSupersetAppInitializer:
-    @patch("superset.initialization.db")
-    @patch("superset.initialization.inspect")
     @patch("superset.initialization.logger")
-    def test_init_database_dependent_features_skips_when_no_tables(
-        self, mock_logger, mock_inspect_func, mock_db
-    ):
-        """Test that initialization is skipped when core tables don't exist."""
+    def test_init_database_dependent_features_skips_when_no_tables(self, mock_logger):
+        """Test that initialization is skipped when database is not up-to-date."""
         # Setup
         mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
         app_initializer = SupersetAppInitializer(mock_app)
-        mock_inspector = MagicMock()
-        mock_inspector.has_table.return_value = False
-        mock_inspect_func.return_value = mock_inspector
-        mock_db.engine = MagicMock()
 
-        # Execute
-        app_initializer._init_database_dependent_features()
+        # Mock _is_database_up_to_date to return False
+        with patch.object(
+            app_initializer, "_is_database_up_to_date", return_value=False
+        ):
+            # Execute
+            app_initializer._init_database_dependent_features()
 
         # Assert
-        mock_inspect_func.assert_called_once_with(mock_db.engine)
-        mock_inspector.has_table.assert_called_once_with("dashboards")
-        mock_logger.debug.assert_called_once_with(
-            "Superset tables not yet created. Skipping database-dependent "
-            "initialization. These features will be initialized after "
-            "migration."
+        mock_logger.info.assert_called_once_with(
+            "Pending database migrations: run 'superset db upgrade'"
         )
 
     @patch("superset.initialization.db")
-    @patch("superset.initialization.inspect")
     @patch("superset.initialization.logger")
     def test_init_database_dependent_features_handles_operational_error(
-        self, mock_logger, mock_inspect_func, mock_db
+        self, mock_logger, mock_db
     ):
-        """Test that OperationalError during inspection is handled gracefully."""
+        """Test that OperationalError during migration check is handled gracefully."""
         # Setup
         mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
         app_initializer = SupersetAppInitializer(mock_app)
         error_msg = "Cannot connect to database"
-        mock_inspect_func.side_effect = OperationalError(error_msg, None, None)
-        mock_db.engine = MagicMock()
+
+        # Mock db.engine.connect to raise an OperationalError
+        mock_db.engine.connect.side_effect = OperationalError(error_msg, None, None)
 
         # Execute
         app_initializer._init_database_dependent_features()
 
-        # Assert
-        mock_inspect_func.assert_called_once_with(mock_db.engine)
+        # Assert - _is_database_up_to_date should catch the error and return False
+        # which causes the info log about pending migrations
+        mock_logger.info.assert_called_once_with(
+            "Pending database migrations: run 'superset db upgrade'"
+        )
+        # Should also log the debug message about the error
         mock_logger.debug.assert_called_once()
-        call_args = mock_logger.debug.call_args
-        assert "Error inspecting database tables" in call_args[0][0]
-        # The error is passed as second argument with %s formatting
-        assert str(call_args[0][1]) == str(OperationalError(error_msg, None, None))
+        debug_call = mock_logger.debug.call_args[0]
+        assert "Could not check migration status" in debug_call[0]
 
-    @patch("superset.initialization.db")
-    @patch("superset.initialization.inspect")
     @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.register_sqla_event_listeners")
     @patch("superset.initialization.logger")
@@ -87,30 +85,26 @@ class TestSupersetAppInitializer:
         mock_logger,
         mock_register_listeners,
         mock_feature_flag_manager,
-        mock_inspect_func,
-        mock_db,
     ):
-        """Test that features are initialized when database tables exist."""
+        """Test that features are initialized when database is up-to-date."""
         # Setup
         mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
         app_initializer = SupersetAppInitializer(mock_app)
-        mock_inspector = MagicMock()
-        mock_inspector.has_table.return_value = True
-        mock_inspect_func.return_value = mock_inspector
-        mock_db.engine = MagicMock()
         mock_feature_flag_manager.is_feature_enabled.return_value = True
         mock_seed_themes = MagicMock()
         mock_seed_themes_command.return_value = mock_seed_themes
 
-        # Execute
-        app_initializer._init_database_dependent_features()
+        # Mock _is_database_up_to_date to return True
+        with patch.object(
+            app_initializer, "_is_database_up_to_date", return_value=True
+        ):
+            # Execute
+            app_initializer._init_database_dependent_features()
 
         # Assert
-        mock_inspect_func.assert_called_once_with(mock_db.engine)
-        # Check both tables are checked
-        assert mock_inspector.has_table.call_count == 2
-        mock_inspector.has_table.assert_any_call("dashboards")
-        mock_inspector.has_table.assert_any_call("themes")
         mock_feature_flag_manager.is_feature_enabled.assert_called_with(
             "TAGGING_SYSTEM"
         )
@@ -118,11 +112,9 @@ class TestSupersetAppInitializer:
         # Should seed themes
         mock_seed_themes_command.assert_called_once()
         mock_seed_themes.run.assert_called_once()
-        # Should not log skip message when tables exist
-        mock_logger.debug.assert_not_called()
+        # Should not log skip message when database is up-to-date
+        mock_logger.info.assert_not_called()
 
-    @patch("superset.initialization.db")
-    @patch("superset.initialization.inspect")
     @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.register_sqla_event_listeners")
     @patch("superset.commands.theme.seed.SeedSystemThemesCommand")
@@ -131,60 +123,63 @@ class TestSupersetAppInitializer:
         mock_seed_themes_command,
         mock_register_listeners,
         mock_feature_flag_manager,
-        mock_inspect_func,
-        mock_db,
     ):
         """Test that tagging system is not initialized when feature flag is disabled."""
         # Setup
         mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
         app_initializer = SupersetAppInitializer(mock_app)
-        mock_inspector = MagicMock()
-        mock_inspector.has_table.return_value = True
-        mock_inspect_func.return_value = mock_inspector
-        mock_db.engine = MagicMock()
         mock_feature_flag_manager.is_feature_enabled.return_value = False
         mock_seed_themes = MagicMock()
         mock_seed_themes_command.return_value = mock_seed_themes
 
-        # Execute
-        app_initializer._init_database_dependent_features()
+        # Mock _is_database_up_to_date to return True
+        with patch.object(
+            app_initializer, "_is_database_up_to_date", return_value=True
+        ):
+            # Execute
+            app_initializer._init_database_dependent_features()
 
         # Assert
         mock_feature_flag_manager.is_feature_enabled.assert_called_with(
             "TAGGING_SYSTEM"
         )
         mock_register_listeners.assert_not_called()
-        # Check both tables are checked
-        assert mock_inspector.has_table.call_count == 2
-        mock_inspector.has_table.assert_any_call("dashboards")
-        mock_inspector.has_table.assert_any_call("themes")
+        # Should still seed themes even when tagging is disabled
+        mock_seed_themes_command.assert_called_once()
+        mock_seed_themes.run.assert_called_once()
 
     @patch("superset.initialization.db")
-    @patch("superset.initialization.inspect")
     @patch("superset.initialization.logger")
     def test_init_database_dependent_features_handles_inspector_error_in_has_table(
-        self, mock_logger, mock_inspect_func, mock_db
+        self, mock_logger, mock_db
     ):
-        """Test that OperationalError from has_table check is handled gracefully."""
+        """Test that error during migration check is handled gracefully."""
         # Setup
         mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
         app_initializer = SupersetAppInitializer(mock_app)
-        mock_inspector = MagicMock()
-        error_msg = "Table check failed"
-        mock_inspector.has_table.side_effect = OperationalError(error_msg, None, None)
-        mock_inspect_func.return_value = mock_inspector
-        mock_db.engine = MagicMock()
+        error_msg = "Connection failed"
+
+        # Mock db.engine.connect to raise an error
+        mock_connection = MagicMock()
+        mock_connection.__enter__ = MagicMock(
+            side_effect=OperationalError(error_msg, None, None)
+        )
+        mock_connection.__exit__ = MagicMock(return_value=False)
+        mock_db.engine.connect.return_value = mock_connection
 
         # Execute
         app_initializer._init_database_dependent_features()
 
-        # Assert
-        mock_inspect_func.assert_called_once_with(mock_db.engine)
-        mock_inspector.has_table.assert_called_once_with("dashboards")
-        # Should handle the error gracefully
-        mock_logger.debug.assert_called_once()
-        call_args = mock_logger.debug.call_args
-        assert "Error inspecting database tables" in call_args[0][0]
+        # Assert - should log info about pending migrations (fallback behavior)
+        mock_logger.info.assert_called_once_with(
+            "Pending database migrations: run 'superset db upgrade'"
+        )
 
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""
@@ -404,10 +399,8 @@ class TestSupersetAppInitializer:
             )
 
     @patch("superset.initialization.logger")
-    @patch("superset.initialization.inspect")
-    @patch("superset.initialization.db")
     def test_init_database_dependent_features_skips_with_fallback_uri(
-        self, mock_db, mock_inspect, mock_logger
+        self, mock_logger
     ):
         """Test that database-dependent features are skipped when URI is a fallback."""
         # Setup
@@ -418,13 +411,169 @@ class TestSupersetAppInitializer:
         }
         app_initializer = SupersetAppInitializer(mock_app)
 
-        # Execute
-        app_initializer._init_database_dependent_features()
+        # Mock _is_database_up_to_date to ensure it's not called
+        with patch.object(app_initializer, "_is_database_up_to_date") as mock_check:
+            # Execute
+            app_initializer._init_database_dependent_features()
 
-        # Assert - should not try to inspect database
-        mock_inspect.assert_not_called()
+            # Assert - should not try to check migration status
+            mock_check.assert_not_called()
+
         # Should log warning about fallback URI
         mock_logger.warning.assert_called_once()
         warning_message = mock_logger.warning.call_args[0][0]
         assert "fallback value" in warning_message
-        assert "workspace context" in warning_message
+        assert "Skipping database-dependent initialization" in warning_message
+
+    @patch("superset.initialization.ScriptDirectory")
+    @patch("superset.initialization.Config")
+    @patch("superset.initialization.MigrationContext")
+    @patch("superset.initialization.db")
+    def test_is_database_up_to_date_when_current(
+        self, mock_db, mock_migration_context, mock_config, mock_script_directory
+    ):
+        """Test _is_database_up_to_date returns True when migrations are current."""
+        # Setup
+        mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        # Mock the migration check components
+        mock_connection = MagicMock()
+        mock_db.engine.connect.return_value.__enter__.return_value = mock_connection
+        mock_db.engine.connect.return_value.__exit__.return_value = None
+
+        mock_context = MagicMock()
+        mock_context.get_current_revision.return_value = "abc123"
+        mock_migration_context.configure.return_value = mock_context
+
+        mock_script = MagicMock()
+        mock_script.get_current_head.return_value = "abc123"  # Same as current
+        mock_script_directory.from_config.return_value = mock_script
+
+        # Execute
+        result = app_initializer._is_database_up_to_date()
+
+        # Assert
+        assert result is True
+        mock_migration_context.configure.assert_called_once_with(mock_connection)
+        mock_script.get_current_head.assert_called_once()
+
+    @patch("superset.initialization.logger")
+    @patch("superset.initialization.ScriptDirectory")
+    @patch("superset.initialization.Config")
+    @patch("superset.initialization.MigrationContext")
+    @patch("superset.initialization.db")
+    def test_is_database_up_to_date_when_pending(
+        self,
+        mock_db,
+        mock_migration_context,
+        mock_config,
+        mock_script_directory,
+        mock_logger,
+    ):
+        """Test _is_database_up_to_date returns False when migrations are pending."""
+        # Setup
+        mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        # Mock the migration check components
+        mock_connection = MagicMock()
+        mock_db.engine.connect.return_value.__enter__.return_value = mock_connection
+        mock_db.engine.connect.return_value.__exit__.return_value = None
+
+        mock_context = MagicMock()
+        mock_context.get_current_revision.return_value = "abc123"
+        mock_migration_context.configure.return_value = mock_context
+
+        mock_script = MagicMock()
+        mock_script.get_current_head.return_value = "def456"  # Different from current
+        mock_script_directory.from_config.return_value = mock_script
+
+        # Execute
+        result = app_initializer._is_database_up_to_date()
+
+        # Assert
+        assert result is False
+        mock_logger.debug.assert_called_once_with(
+            "Pending migrations. Current: %s, Head: %s",
+            "abc123",
+            "def456",
+        )
+
+    @patch("superset.initialization.logger")
+    @patch("superset.initialization.db")
+    def test_is_database_up_to_date_when_connection_fails(self, mock_db, mock_logger):
+        """Test _is_database_up_to_date returns False when database connection fails."""
+        # Setup
+        mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        # Mock connection to raise an error
+        mock_db.engine.connect.side_effect = OperationalError(
+            "Connection failed", None, None
+        )
+
+        # Execute
+        result = app_initializer._is_database_up_to_date()
+
+        # Assert
+        assert result is False
+        mock_logger.debug.assert_called_once()
+        debug_message = mock_logger.debug.call_args[0][0]
+        assert "Could not check migration status" in debug_message
+
+    @patch("superset.initialization.logger")
+    @patch("superset.initialization.ScriptDirectory")
+    @patch("superset.initialization.Config")
+    @patch("superset.initialization.MigrationContext")
+    @patch("superset.initialization.db")
+    def test_is_database_up_to_date_when_script_directory_fails(
+        self,
+        mock_db,
+        mock_migration_context,
+        mock_config,
+        mock_script_directory,
+        mock_logger,
+    ):
+        """
+        Test _is_database_up_to_date returns False when getting
+        head revision fails.
+        """
+        # Setup
+        mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"
+        }
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        # Mock the migration check components
+        mock_connection = MagicMock()
+        mock_db.engine.connect.return_value.__enter__.return_value = mock_connection
+        mock_db.engine.connect.return_value.__exit__.return_value = None
+
+        mock_context = MagicMock()
+        mock_context.get_current_revision.return_value = "abc123"
+        mock_migration_context.configure.return_value = mock_context
+
+        # Make ScriptDirectory.from_config raise an error
+        mock_script_directory.from_config.side_effect = Exception(
+            "Failed to load migration scripts"
+        )
+
+        # Execute
+        result = app_initializer._is_database_up_to_date()
+
+        # Assert
+        assert result is False
+        mock_logger.debug.assert_called_once()
+        debug_message = mock_logger.debug.call_args[0][0]
+        assert "Could not check migration status" in debug_message
