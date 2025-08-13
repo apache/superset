@@ -43,17 +43,17 @@ export function DatabaseErrorMessage({
 
   const isVisualization = ['dashboard', 'explore'].includes(source || '');
   const [firstLine, ...remainingLines] = message.split('\n');
-  let alertMessage: ReactNode = firstLine;
   const alertDescription =
     remainingLines.length > 0 ? remainingLines.join('\n') : null;
+  let alertMessage: ReactNode = firstLine;
 
-  if (extra?.custom_doc_links) {
+  if (Array.isArray(extra?.custom_doc_links)) {
     alertMessage = (
       <>
         {firstLine}
-        {extra.custom_doc_links.map((url, index) => (
+        {extra.custom_doc_links.map((link, index) => (
           <div key={index}>
-            <CustomDocLink {...url} />
+            <CustomDocLink {...link} />
           </div>
         ))}
       </>

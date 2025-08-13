@@ -74,6 +74,18 @@ const mockedPropsWithCustomError = {
   },
 };
 
+
+const mockedPropsWithCustomErrorAndBadLinks = {
+  ...mockedProps,
+  error: {
+    ...mockedProps.error,
+    extra: {
+      ...mockedProps.error.extra,
+      custom_doc_links: true,
+    },
+  },
+};
+
 test('should render', () => {
   const nullExtraProps = {
     ...mockedProps,
@@ -148,4 +160,13 @@ test('should NOT render see more button when show_issue_info is false', () => {
   });
   const button = screen.queryByText('See more');
   expect(button).not.toBeInTheDocument();
+});
+
+test('should render message when wrong value provided for custom_doc_urls', () => {
+  // @ts-ignore
+  render(<DatabaseErrorMessage {...mockedPropsWithCustomErrorAndBadLinks} />, {
+    useRedux: true,
+  });
+  const button = screen.queryByText('Error message');
+  expect(button).toBeInTheDocument();
 });
