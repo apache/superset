@@ -26,7 +26,6 @@ export default function buildQuery(formData: QueryFormData) {
   const columns = [
     ...ensureIsArray(formData.entity),
     ...ensureIsArray(formData.series),
-    ...ensureIsArray(formData.groupby),
   ];
 
   return buildQueryContext(formData, baseQueryObject => [
