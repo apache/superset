@@ -131,7 +131,6 @@ const Styles = styled.div`
         margin-right: ${theme.sizeUnit * 2}px;
       }
       .ant-radio-wrapper {
-        font-weight: ${theme.fontWeight};
         color: ${theme.colorText};
       }
     }
