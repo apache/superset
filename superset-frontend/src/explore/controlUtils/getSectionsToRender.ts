@@ -60,12 +60,6 @@ const getMemoizedSectionsToRender = memoizeOne(
 
     const { datasourceAndVizType } = sections;
 
-    // list of datasource-specific controls that should be removed if the datasource is a specific type
-    const filterControlsForTypes = [DatasourceType.Query, DatasourceType.Table];
-    const invalidControls = filterControlsForTypes.includes(datasourceType)
-      ? ['granularity']
-      : ['granularity_sqla', 'time_grain_sqla'];
-
     return [datasourceAndVizType as ControlPanelSectionConfig]
       .concat(controlPanelSections.filter(isControlPanelSectionConfig))
       .map(section => {
@@ -75,12 +69,7 @@ const getMemoizedSectionsToRender = memoizeOne(
           controlSetRows:
             controlSetRows?.map(row =>
               row
-                .filter(
-                  control =>
-                    // Filter out legacy string controls that are invalid for this datasource type
-                    typeof control !== 'string' ||
-                    !invalidControls.includes(control),
-                )
+                .filter(control => control !== null && control !== undefined)
                 .map(item => expandControlConfig(item, controlOverrides)),
             ) || [],
         };
