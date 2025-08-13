@@ -44,7 +44,7 @@ from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
 from superset.common.db_query_status import QueryStatus
-from superset.constants import CACHE_NO_TIMEOUT
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -528,7 +528,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         stacktrace = None
         df = None
         cache_timeout = self.cache_timeout
-        force = self.force or cache_timeout == CACHE_NO_TIMEOUT
+        force = self.force or cache_timeout == CACHE_DISABLED_TIMEOUT
         if cache_key and cache_manager.data_cache and not force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:

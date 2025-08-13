@@ -28,7 +28,7 @@ from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
 
 from superset import db
-from superset.constants import CACHE_NO_TIMEOUT
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
 from superset.utils.hashing import md5_sha_from_dict
@@ -58,8 +58,8 @@ def set_and_log_cache(
         else app.config["CACHE_DEFAULT_TIMEOUT"]
     )
 
-    # Skip caching if timeout is CACHE_NO_TIMEOUT (no caching requested)
-    if timeout == CACHE_NO_TIMEOUT:
+    # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+    if timeout == CACHE_DISABLED_TIMEOUT:
         return
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
@@ -140,8 +140,8 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
                 return obj
             obj = f(*args, **kwargs)
 
-            # Skip caching if timeout is CACHE_NO_TIMEOUT (no caching requested)
-            if cache_timeout != CACHE_NO_TIMEOUT:
+            # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+            if cache_timeout != CACHE_DISABLED_TIMEOUT:
                 cache.set(cache_key, obj, timeout=cache_timeout)
             return obj
 
