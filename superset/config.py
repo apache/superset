@@ -837,6 +837,9 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 
+# Cache warmup user
+SUPERSET_CACHE_WARMUP_USER = "admin"
+
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
