@@ -56,167 +56,165 @@ jest.mock('ag-grid-community', () => ({
   ModuleRegistry: { registerModules: jest.fn() },
 }));
 
-describe('ThemedAgGridReact', () => {
-  const mockRowData = [
-    { id: 1, name: 'Test 1' },
-    { id: 2, name: 'Test 2' },
-  ];
+const mockRowData = [
+  { id: 1, name: 'Test 1' },
+  { id: 2, name: 'Test 2' },
+];
 
-  const mockColumnDefs = [
-    { field: 'id', headerName: 'ID' },
-    { field: 'name', headerName: 'Name' },
-  ];
+const mockColumnDefs = [
+  { field: 'id', headerName: 'ID' },
+  { field: 'name', headerName: 'Name' },
+];
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset to light mode by default
-    (themeUtils.useThemeMode as jest.Mock).mockReturnValue(false);
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Reset to light mode by default
+  (themeUtils.useThemeMode as jest.Mock).mockReturnValue(false);
+});
 
-  it('renders the AgGridReact component', () => {
-    render(
-      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />,
-    );
+test('renders the AgGridReact component', () => {
+  render(
+    <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />,
+  );
 
-    expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
-  });
+  expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
+});
 
-  it('applies light theme when background is light', () => {
-    const lightTheme = {
-      ...supersetTheme,
-      colorBgBase: '#ffffff',
-      colorText: '#000000',
-    };
+test('applies light theme when background is light', () => {
+  const lightTheme = {
+    ...supersetTheme,
+    colorBgBase: '#ffffff',
+    colorText: '#000000',
+  };
 
-    render(
-      <ThemeProvider theme={lightTheme}>
-        <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-      </ThemeProvider>,
-    );
+  render(
+    <ThemeProvider theme={lightTheme}>
+      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
+    </ThemeProvider>,
+  );
 
-    const agGrid = screen.getByTestId('ag-grid-react');
-    const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
 
-    expect(theme.browserColorScheme).toBe('light');
-    expect(theme.foregroundColor).toBe('#000000');
-  });
+  expect(theme.browserColorScheme).toBe('light');
+  expect(theme.foregroundColor).toBe('#000000');
+});
 
-  it('applies dark theme when background is dark', () => {
-    // Mock dark mode
-    (themeUtils.useThemeMode as jest.Mock).mockReturnValue(true);
+test('applies dark theme when background is dark', () => {
+  // Mock dark mode
+  (themeUtils.useThemeMode as jest.Mock).mockReturnValue(true);
 
-    const darkTheme = {
-      ...supersetTheme,
-      colorBgBase: '#1a1a1a',
-      colorText: '#ffffff',
-    };
+  const darkTheme = {
+    ...supersetTheme,
+    colorBgBase: '#1a1a1a',
+    colorText: '#ffffff',
+  };
 
-    render(
-      <ThemeProvider theme={darkTheme}>
-        <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-      </ThemeProvider>,
-    );
+  render(
+    <ThemeProvider theme={darkTheme}>
+      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
+    </ThemeProvider>,
+  );
 
-    const agGrid = screen.getByTestId('ag-grid-react');
-    const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
 
-    expect(theme.browserColorScheme).toBe('dark');
-    expect(theme.foregroundColor).toBe('#ffffff');
-  });
+  expect(theme.browserColorScheme).toBe('dark');
+  expect(theme.foregroundColor).toBe('#ffffff');
+});
 
-  it('forwards ref to AgGridReact', () => {
-    const ref = createRef<AgGridReact>();
+test('forwards ref to AgGridReact', () => {
+  const ref = createRef<AgGridReact>();
 
-    render(
-      <ThemedAgGridReact
-        ref={ref}
-        rowData={mockRowData}
-        columnDefs={mockColumnDefs}
-      />,
-    );
+  render(
+    <ThemedAgGridReact
+      ref={ref}
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+    />,
+  );
 
-    // Check that AgGridReact was called with the ref
-    expect(AgGridReact).toHaveBeenCalledWith(
-      expect.objectContaining({
-        rowData: mockRowData,
-        columnDefs: mockColumnDefs,
-      }),
-      expect.any(Object), // ref is passed as second argument
-    );
-  });
+  // Check that AgGridReact was called with the ref
+  expect(AgGridReact).toHaveBeenCalledWith(
+    expect.objectContaining({
+      rowData: mockRowData,
+      columnDefs: mockColumnDefs,
+    }),
+    expect.any(Object), // ref is passed as second argument
+  );
+});
 
-  it('passes all props through to AgGridReact', () => {
-    const onGridReady = jest.fn();
-    const onCellClicked = jest.fn();
+test('passes all props through to AgGridReact', () => {
+  const onGridReady = jest.fn();
+  const onCellClicked = jest.fn();
 
-    render(
-      <ThemedAgGridReact
-        rowData={mockRowData}
-        columnDefs={mockColumnDefs}
-        onGridReady={onGridReady}
-        onCellClicked={onCellClicked}
-        pagination
-        paginationPageSize={10}
-      />,
-    );
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onGridReady={onGridReady}
+      onCellClicked={onCellClicked}
+      pagination
+      paginationPageSize={10}
+    />,
+  );
 
-    expect(AgGridReact).toHaveBeenCalledWith(
-      expect.objectContaining({
-        rowData: mockRowData,
-        columnDefs: mockColumnDefs,
-        onGridReady,
-        onCellClicked,
-        pagination: true,
-        paginationPageSize: 10,
-      }),
-      expect.any(Object),
-    );
-  });
+  expect(AgGridReact).toHaveBeenCalledWith(
+    expect.objectContaining({
+      rowData: mockRowData,
+      columnDefs: mockColumnDefs,
+      onGridReady,
+      onCellClicked,
+      pagination: true,
+      paginationPageSize: 10,
+    }),
+    expect.any(Object),
+  );
+});
 
-  it('applies custom theme colors from Superset theme', () => {
-    const customTheme = {
-      ...supersetTheme,
-      colorFillTertiary: '#e5e5e5',
-      colorSplit: '#d9d9d9',
-    };
+test('applies custom theme colors from Superset theme', () => {
+  const customTheme = {
+    ...supersetTheme,
+    colorFillTertiary: '#e5e5e5',
+    colorSplit: '#d9d9d9',
+  };
 
-    render(
-      <ThemeProvider theme={customTheme}>
-        <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-      </ThemeProvider>,
-    );
+  render(
+    <ThemeProvider theme={customTheme}>
+      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
+    </ThemeProvider>,
+  );
 
-    const agGrid = screen.getByTestId('ag-grid-react');
-    const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
 
-    // Just verify a couple key theme properties are applied
-    expect(theme.headerBackgroundColor).toBe('#e5e5e5');
-    expect(theme.borderColor).toBe('#d9d9d9');
-  });
+  // Just verify a couple key theme properties are applied
+  expect(theme.headerBackgroundColor).toBe('#e5e5e5');
+  expect(theme.borderColor).toBe('#d9d9d9');
+});
 
-  it('wraps component with proper container div', () => {
-    const { container } = render(
-      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />,
-    );
+test('wraps component with proper container div', () => {
+  const { container } = render(
+    <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />,
+  );
 
-    const wrapper = container.querySelector('[data-themed-ag-grid="true"]');
-    expect(wrapper).toBeInTheDocument();
-    expect(wrapper).toHaveStyle({ width: '100%', height: '100%' });
-  });
+  const wrapper = container.querySelector('[data-themed-ag-grid="true"]');
+  expect(wrapper).toBeInTheDocument();
+  expect(wrapper).toHaveStyle({ width: '100%', height: '100%' });
+});
 
-  it('handles missing theme gracefully', () => {
-    const incompleteTheme = {
-      ...supersetTheme,
-      colorBgBase: undefined,
-    };
+test('handles missing theme gracefully', () => {
+  const incompleteTheme = {
+    ...supersetTheme,
+    colorBgBase: undefined,
+  };
 
-    render(
-      <ThemeProvider theme={incompleteTheme}>
-        <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-      </ThemeProvider>,
-    );
+  render(
+    <ThemeProvider theme={incompleteTheme}>
+      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
+    </ThemeProvider>,
+  );
 
-    // Should still render without crashing
-    expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
-  });
+  // Should still render without crashing
+  expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
 });
