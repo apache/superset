@@ -53,6 +53,27 @@ const mockedProps = {
   subtitle: 'Error message',
 };
 
+const mockedPropsWithCustomError = {
+  ...mockedProps,
+  error: {
+    ...mockedProps.error,
+    extra: {
+      ...mockedProps.error.extra,
+      custom_doc_links: [
+        {
+          label: 'Custom Doc Link 1',
+          url: 'https://example.com/custom-doc-1',
+        },
+        {
+          label: 'Custom Doc Link 2',
+          url: 'https://example.com/custom-doc-2',
+        },
+      ],
+      show_issue_info: false,
+    },
+  },
+};
+
 test('should render', () => {
   const nullExtraProps = {
     ...mockedProps,
@@ -111,4 +132,20 @@ test('should NOT render the owners', () => {
   expect(
     screen.queryByText('Chart Owners: Owner A, Owner B'),
   ).not.toBeInTheDocument();
+});
+
+test('should render custom documentation links when provided', () => {
+  render(<DatabaseErrorMessage {...mockedPropsWithCustomError} />, {
+    useRedux: true,
+  });
+  expect(screen.getByText('Custom Doc Link 1')).toBeInTheDocument();
+  expect(screen.getByText('Custom Doc Link 2')).toBeInTheDocument();
+});
+
+test('should NOT render see more button when show_issue_info is false', () => {
+  render(<DatabaseErrorMessage {...mockedPropsWithCustomError} />, {
+    useRedux: true,
+  });
+  const button = screen.queryByText('See more');
+  expect(button).not.toBeInTheDocument();
 });
