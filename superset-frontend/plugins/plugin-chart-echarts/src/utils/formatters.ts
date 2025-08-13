@@ -92,11 +92,8 @@ export function getXAxisFormatter(
   if (format === SMART_DATE_ID) {
     return getSmartDateFormatter();
   }
-  if (!format) {
-    return undefined;
-  }
   if (format) {
     return getTimeFormatter(format);
   }
-  return String;
+  return undefined;
 }
