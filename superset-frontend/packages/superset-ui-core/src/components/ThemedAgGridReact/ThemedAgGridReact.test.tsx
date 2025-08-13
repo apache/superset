@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
 import { ThemeProvider, supersetTheme } from '../../theme';
