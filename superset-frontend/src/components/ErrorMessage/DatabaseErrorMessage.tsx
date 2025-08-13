@@ -31,8 +31,8 @@ interface DatabaseErrorExtra {
     message: string;
   }[];
   engine_name: string | null;
-  custom_doc_links: CustomDocLinkProps[];
-  show_issue_info: boolean;
+  custom_doc_links?: CustomDocLinkProps[];
+  show_issue_info?: boolean;
 }
 
 export function DatabaseErrorMessage({
@@ -51,12 +51,10 @@ export function DatabaseErrorMessage({
     alertMessage = (
       <>
         {firstLine}
-        <br />
         {extra.custom_doc_links.map((url, index) => (
-          <>
-            <CustomDocLink {...url} key={index} />
-            <br />
-          </>
+          <div key={index}>
+            <CustomDocLink {...url} />
+          </div>
         ))}
       </>
     );
