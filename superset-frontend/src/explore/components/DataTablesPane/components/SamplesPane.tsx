@@ -43,7 +43,7 @@ export const SamplesPane = ({
   isRequest,
   datasource,
   queryForce,
-  actions,
+  setForceQuery,
   dataSize = 50,
   isVisible,
   canDownload,
@@ -75,8 +75,8 @@ export const SamplesPane = ({
           setRowCount(response.rowcount);
           setResponseError('');
           cache.add(datasource);
-          if (queryForce && actions) {
-            actions.setForceQuery(false);
+          if (queryForce) {
+            setForceQuery?.(false);
           }
         })
         .catch(error => {
