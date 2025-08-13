@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { CustomCellRendererProps } from 'ag-grid-react';
+import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
 import { useIsDark } from '../utils/useTableTheme';
 

@@ -38,6 +38,10 @@ import {
   CustomFilterModule,
 } from 'ag-grid-community';
 
+/**
+ * Registers the AG-Grid modules required for Superset's table functionality.
+ * This should be called once during application initialization.
+ */
 export const setupAGGridModules = () => {
   ModuleRegistry.registerModules([
     ColumnAutoSizeModule,

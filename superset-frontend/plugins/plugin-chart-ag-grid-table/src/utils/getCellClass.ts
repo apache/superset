@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { CellClassParams } from 'ag-grid-community';
+import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { InputColumn } from '../types';
 
 type GetCellClassParams = CellClassParams & {

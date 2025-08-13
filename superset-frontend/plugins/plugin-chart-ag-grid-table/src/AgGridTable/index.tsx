@@ -27,7 +27,9 @@ import {
   useEffect,
 } from 'react';
 
+import { ThemedAgGridReact } from '@superset-ui/core/components';
 import {
+  AgGridReact,
   AllCommunityModule,
   ClientSideRowModelModule,
   type ColDef,
@@ -36,9 +38,7 @@ import {
   GridState,
   CellClickedEvent,
   IMenuActionParams,
-  themeQuartz,
-} from 'ag-grid-community';
-import { AgGridReact } from 'ag-grid-react';
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { type FunctionComponent } from 'react';
 import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
@@ -257,11 +257,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     return (
-      <div
-        className="ag-theme-quartz"
-        style={containerStyles}
-        ref={containerRef}
-      >
+      <div style={containerStyles} ref={containerRef}>
         <div className="dropdown-controls-container">
           {renderTimeComparisonDropdown && (
             <div className="time-comparison-dropdown">
@@ -301,10 +297,9 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           )}
         </div>
 
-        <AgGridReact
+        <ThemedAgGridReact
           ref={gridRef}
           onGridReady={onGridReady}
-          theme={themeQuartz}
           className="ag-container"
           rowData={rowData}
           headerHeight={36}

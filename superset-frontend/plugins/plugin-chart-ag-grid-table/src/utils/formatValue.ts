@@ -25,7 +25,10 @@ import {
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
-import { ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
+import {
+  ValueFormatterParams,
+  ValueGetterParams,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 

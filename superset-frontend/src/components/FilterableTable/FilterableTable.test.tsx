@@ -23,7 +23,7 @@ import {
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { setupAGGridModules } from 'src/setup/setupAGGridModules';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { FilterableTable } from '.';
 
 describe('FilterableTable', () => {

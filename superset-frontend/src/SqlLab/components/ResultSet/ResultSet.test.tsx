@@ -27,7 +27,7 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { setupAGGridModules } from 'src/setup/setupAGGridModules';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
