@@ -26,6 +26,7 @@ __pycache__
 .cache
 .bento*
 .cache-loader
+.claude_rc
 .coverage
 cover
 .DS_Store
