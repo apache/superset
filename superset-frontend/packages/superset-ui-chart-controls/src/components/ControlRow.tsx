@@ -16,23 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { styled } from '@superset-ui/core';
 
-import { JsonFormsRendererRegistryEntry } from '@jsonforms/core';
-import MetricControlRenderer, {
-  metricControlTester,
-} from './MetricControlRenderer';
-import GranularityControlRenderer, {
-  granularityControlTester,
-} from './GranularityControlRenderer';
+const StyledRow = styled.div`
+  display: flex;
+  gap: ${({ theme }: any) => theme.gridUnit * 3}px;
+  margin-bottom: ${({ theme }: any) => theme.gridUnit * 3}px;
 
-/**
- * Superset-specific control renderers for JSON Forms
- * These handle complex controls like metrics, filters, etc.
- */
-export const supersetRenderers: JsonFormsRendererRegistryEntry[] = [
-  { tester: metricControlTester, renderer: MetricControlRenderer },
-  { tester: granularityControlTester, renderer: GranularityControlRenderer },
-];
+  & > * {
+    flex: 1;
+  }
 
-export * from './MetricControlRenderer';
-export * from './GranularityControlRenderer';
+  .control-wrapper {
+    min-width: 0; // Allow flex items to shrink
+  }
+`;
+
+export interface ControlRowProps {
+  children: React.ReactNode;
+}
+
+export const ControlRow: React.FC<ControlRowProps> = ({ children }) => (
+  <StyledRow>{children}</StyledRow>
+);

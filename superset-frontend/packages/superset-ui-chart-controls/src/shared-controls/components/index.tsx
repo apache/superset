@@ -20,7 +20,6 @@ export * from './RadioButtonControl';
 export { default as RadioButtonControl } from './RadioButtonControl';
 export { default as GranularityControl } from './GranularityControl';
 export * from './ReactControlPanel';
-export * from './JsonFormBuilder';
 export { default as AxisControlSection } from './AxisControlSection';
 export { default as FormatControlGroup } from './FormatControlGroup';
 export { default as OpacityControl } from './OpacityControl';
@@ -49,24 +48,8 @@ export {
 // ColorPickerControl from here does NOT take props - it's for the shared 'color_picker' control
 export * from './SharedControlComponents';
 
-// Export JSON Forms control panel components
-export {
-  default as JsonFormsControlPanel,
-  createVerticalLayout,
-  createHorizontalLayout,
-  createCollapsibleGroup,
-  createTabbedLayout,
-  createControl,
-  customRenderers,
-  isCollapsibleSection,
-  isTabbedSection,
-} from './JsonFormsControlPanel';
-
-// Export Superset control renderers
-export {
-  supersetControlRenderers,
-  getControlType,
-} from './SupersetControlRenderers';
+// Export React control panel
+export { default as ReactControlPanel } from './ReactControlPanel';
 
 // Export inline control helpers with renamed ColorPickerControl to avoid conflict
 export {

@@ -20,14 +20,14 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
-  AdhocFiltersControl,
-  ColorSchemeControl,
-  MetricControl,
-  RowLimitControl,
   SeriesControl,
+  MetricControl,
+  AdhocFiltersControl,
+  RowLimitControl,
   SortByMetricControl,
-  InlineTextControl as TextControl,
-  InlineSelectControl as SelectControl,
+  InlineTextControl,
+  InlineSelectControl,
+  ColorSchemeControl,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -48,16 +48,14 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         [
-          TextControl({
-            name: 'size_from',
+          InlineTextControl('sizeFrom', {
             isInt: true,
             label: t('Minimum Font Size'),
             renderTrigger: true,
             default: 10,
             description: t('Font size for the smallest value in the list'),
           }),
-          TextControl({
-            name: 'size_to',
+          InlineTextControl('sizeTo', {
             isInt: true,
             label: t('Maximum Font Size'),
             renderTrigger: true,
@@ -66,8 +64,7 @@ const config: ControlPanelConfig = {
           }),
         ],
         [
-          SelectControl({
-            name: 'rotation',
+          InlineSelectControl('rotation', {
             label: t('Word Rotation'),
             choices: [
               ['random', t('random')],

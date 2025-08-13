@@ -24,9 +24,9 @@ import { WordCloudFormData } from '../types';
 import thumbnail from '../images/thumbnail.png';
 import example1 from '../images/Word_Cloud.jpg';
 import example2 from '../images/Word_Cloud_2.jpg';
-// Temporarily use modern control panel for testing
-// TODO: Remove old control panel once migration is complete
-import controlPanel from './controlPanelModern';
+// Use fixed control panel with React components
+import controlPanel from './controlPanelFixed';
+// import ControlPanel from './ControlPanel';
 import configureEncodable from '../configureEncodable';
 
 configureEncodable();

@@ -36,7 +36,6 @@ import { sharedControls } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlComponentProps } from './shared-controls/components/types';
-export * from './types/jsonForms';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;

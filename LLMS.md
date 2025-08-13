@@ -189,3 +189,77 @@ pre-commit run eslint            # Frontend linting
 ---
 
 **LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
+
+## Control Panel Migration Guide
+
+### New React-Based Control Panel Architecture
+
+We've successfully migrated from the complex string-referenced control panel system to a simpler React-based approach. Here's how to migrate existing control panels:
+
+#### Key Changes
+1. **No more string references** - Use React component functions instead of strings
+2. **Redux integration** - Controls connect directly to Redux via useFormData hook  
+3. **Type safety** - Full TypeScript support with proper types
+4. **Simplified architecture** - Direct React components, no JSON intermediary
+
+#### Migration Steps
+
+##### 1. Update imports
+Replace string references with component imports:
+```typescript
+// OLD
+controlSetRows: [
+  ['series'],
+  ['metric'],
+]
+
+// NEW  
+import { SeriesControl, MetricControl } from '@superset-ui/chart-controls';
+controlSetRows: [
+  [SeriesControl()],
+  [MetricControl()],
+]
+```
+
+##### 2. Custom controls
+Use InlineTextControl or InlineSelectControl for custom controls:
+```typescript
+// OLD
+{
+  name: 'size_from',
+  config: { type: 'TextControl', ... }
+}
+
+// NEW
+InlineTextControl('sizeFrom', {
+  label: t('Minimum Font Size'),
+  default: 10,
+  ...
+})
+```
+
+##### 3. Control naming
+Use camelCase for new controls, but handle both in transformProps:
+```typescript
+// In transformProps.ts
+const finalSizeFrom = sizeFrom ?? size_from ?? 10;
+```
+
+#### Available Control Components
+All these return CustomControlItem and can be used in controlSetRows:
+- `SeriesControl()` - Column selection
+- `MetricControl()` - Metric selection  
+- `AdhocFiltersControl()` - Filter configuration
+- `RowLimitControl()` - Row limit
+- `ColorSchemeControl()` - Color scheme picker
+- `InlineTextControl(name, config)` - Custom text input
+- `InlineSelectControl(name, config)` - Custom select
+
+#### Example Migration
+See `plugins/plugin-chart-word-cloud/src/plugin/controlPanelFixed.ts` for a complete example.
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

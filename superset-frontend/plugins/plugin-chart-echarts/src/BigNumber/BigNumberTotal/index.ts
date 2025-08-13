@@ -17,7 +17,8 @@
  * under the License.
  */
 import { t, Behavior } from '@superset-ui/core';
-import controlPanel from './controlPanel';
+// import controlPanel from './controlPanel';
+import controlPanel from './controlPanelReact';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
 import example1 from './images/BigNumber.jpg';

@@ -36,24 +36,35 @@ function getMetricLabel(
 
 export default function transformProps(chartProps: ChartProps): WordCloudProps {
   const { width, height, formData, queriesData } = chartProps;
+
   const {
     colorScheme,
+    color_scheme,
     metric,
     rotation,
     series,
-    sizeFrom = 0,
+    sizeFrom,
+    size_from,
     sizeTo,
+    size_to,
     sliceId,
-  } = formData as WordCloudFormData;
+    slice_id,
+  } = formData as any;
 
   const metricLabel = getMetricLabel(metric);
   const seriesLabel = getColumnLabel(series);
+
+  // Handle both camelCase and snake_case versions
+  const finalSizeFrom = sizeFrom ?? size_from ?? 10;
+  const finalSizeTo = sizeTo ?? size_to ?? 70;
+  const finalColorScheme = colorScheme ?? color_scheme ?? 'bnbColors';
+  const finalSliceId = sliceId ?? slice_id ?? 0;
 
   const encoding: Partial<WordCloudEncoding> = {
     color: {
       field: seriesLabel,
       scale: {
-        scheme: colorScheme,
+        scheme: finalColorScheme,
       },
       type: 'nominal',
     },
@@ -63,7 +74,7 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
         : {
             field: metricLabel,
             scale: {
-              range: [sizeFrom, sizeTo],
+              range: [finalSizeFrom, finalSizeTo],
               zero: true,
             },
             type: 'quantitative',
@@ -74,12 +85,12 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
   };
 
   return {
-    data: queriesData[0].data,
+    data: queriesData[0]?.data || [],
     encoding,
     height,
-    rotation,
+    rotation: rotation || 'square',
     width,
-    sliceId,
-    colorScheme,
+    sliceId: finalSliceId,
+    colorScheme: finalColorScheme,
   };
 }

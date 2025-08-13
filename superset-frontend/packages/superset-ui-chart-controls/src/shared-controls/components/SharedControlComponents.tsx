@@ -270,3 +270,26 @@ export const TemporalColumnsLookupControl = (): CustomControlItem => ({
   name: 'temporal_columns_lookup',
   config: sharedControls.temporal_columns_lookup,
 });
+
+// Inline controls - for creating custom controls with overrides
+export const InlineTextControl = (
+  name: string,
+  overrides?: Partial<CustomControlItem['config']>,
+): CustomControlItem => ({
+  name,
+  config: {
+    type: 'TextControl',
+    ...overrides,
+  },
+});
+
+export const InlineSelectControl = (
+  name: string,
+  overrides?: Partial<CustomControlItem['config']>,
+): CustomControlItem => ({
+  name,
+  config: {
+    type: 'SelectControl',
+    ...overrides,
+  },
+});

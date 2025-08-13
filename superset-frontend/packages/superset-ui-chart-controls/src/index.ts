@@ -21,6 +21,7 @@ import * as sectionsModule from './sections';
 export * from './utils';
 export * from './constants';
 export * from './operators';
+export * from './hooks/useFormData';
 
 // can't do `export * as sections from './sections'`, babel-transformer will fail
 export const sections = sectionsModule;
@@ -32,28 +33,13 @@ export * from './components/Dropdown';
 export * from './components/Menu';
 export * from './components/MetricOption';
 export * from './components/ControlHeader';
+export * from './components';
 
 export * from './shared-controls';
 export {
   GranularityControl,
   RadioButtonControl,
-  JsonFormsControlPanel,
-  createVerticalLayout,
-  createHorizontalLayout,
-  createCollapsibleGroup,
-  createTabbedLayout,
-  createControl,
-  customRenderers,
-  supersetControlRenderers,
+  ReactControlPanel,
 } from './shared-controls/components';
 export * from './types';
-export {
-  JsonFormsControlPanelConfig,
-  CollapsibleGroupOptions,
-  CollapsibleGroup,
-  ControlPanelLayout,
-  SupersetControlElement,
-  LayoutBuilder,
-  ControlPanelMigrationResult,
-} from './types/jsonForms';
 export * from './fixtures';

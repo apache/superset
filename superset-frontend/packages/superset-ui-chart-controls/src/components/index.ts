@@ -17,25 +17,17 @@
  * under the License.
  */
 
-// Main component
-export { default as ModernControlPanel } from './ModernControlPanel';
-export * from './ModernControlPanel';
+// Layout components
+export { ControlPanelSection } from './ControlPanelSection';
+export { ControlRow } from './ControlRow';
+export { ControlHeader } from './ControlHeader';
 
-// Schema generation
-export * from './schemaGenerator';
+// Control components
+export { TextControl as SimpleTextControl } from './controls/SimpleTextControl';
+export { SelectControl as SimpleSelectControl } from './controls/SimpleSelectControl';
 
-// Migration helpers
-export * from './migrationHelper';
-
-// Renderers
-export { antdRenderers } from './renderers/antd';
-export { supersetRenderers } from './renderers/superset';
-
-// Re-export JSON Forms types for convenience
-export type {
-  JsonSchema7,
-  UISchemaElement,
-  JsonFormsRendererRegistryEntry,
-  ControlElement,
-  Layout,
-} from '@jsonforms/core';
+// Wrapper controls for new simplified API
+export { DndColumnSelect } from './controls/DndColumnSelectWrapper';
+export { DndMetricSelect } from './controls/DndMetricSelectWrapper';
+export { AdhocFilterControl } from './controls/AdhocFilterControlWrapper';
+export { ColorSchemeControl as SimpleColorSchemeControl } from './controls/ColorSchemeControlWrapper';
