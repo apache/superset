@@ -23,6 +23,9 @@ import sys
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from colorama import Fore, Style
 from deprecation import deprecated
 from flask import abort, Flask, redirect, request, session, url_for
@@ -35,8 +38,6 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
-from sqlalchemy import inspect
-from sqlalchemy.exc import OperationalError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -503,11 +504,40 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
+    def _is_database_up_to_date(self) -> bool:
+        """
+        Check if database migrations are up to date.
+        Returns False if there are pending migrations or unable to determine.
+        """
+        try:
+            # Get current revision from database
+            with db.engine.connect() as connection:
+                context = MigrationContext.configure(connection)
+                current_rev = context.get_current_revision()
+
+            # Get head revision from migration files
+            alembic_cfg = Config()
+            alembic_cfg.set_main_option("script_location", "superset:migrations")
+            script = ScriptDirectory.from_config(alembic_cfg)
+            head_rev = script.get_current_head()
+
+            # Database is up-to-date if current revision matches head
+            is_current = current_rev == head_rev
+            if not is_current:
+                logger.debug(
+                    "Pending migrations. Current: %s, Head: %s",
+                    current_rev,
+                    head_rev,
+                )
+            return is_current
+        except Exception as e:
+            logger.debug("Could not check migration status: %s", e)
+            return False
+
     def _init_database_dependent_features(self) -> None:
         """
         Initialize features that require database tables to exist.
-        This is called during app initialization but checks table existence
-        to handle cases where the app starts before database migration.
+        Only runs when database migrations are up-to-date.
         """
         # Check if database URI is a fallback value before trying to connect
         db_uri = self.database_uri
@@ -517,30 +547,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         ):
             logger.warning(
                 "Database URI appears to be a fallback value. "
-                "Skipping database-dependent initialization. "
-                "This may indicate the workspace context is not ready yet."
+                "Skipping database-dependent initialization."
             )
             return
 
-        try:
-            inspector = inspect(db.engine)
-
-            # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
-            if not inspector.has_table("dashboards"):
-                logger.debug(
-                    "Superset tables not yet created. Skipping database-dependent "
-                    "initialization. These features will be initialized after "
-                    "migration."
-                )
-                return
-        except OperationalError as e:
-            logger.debug(
-                "Error inspecting database tables. Skipping database-dependent "
-                "initialization: %s",
-                e,
-            )
+        # Check if database is up-to-date with migrations
+        if not self._is_database_up_to_date():
+            logger.info("Pending database migrations: run 'superset db upgrade'")
             return
 
+        # Initialize all database-dependent features
         # Register SQLA event listeners for tagging system
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             register_sqla_event_listeners()
@@ -548,8 +564,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Seed system themes from configuration
         from superset.commands.theme.seed import SeedSystemThemesCommand
 
-        if inspector.has_table("themes"):
-            SeedSystemThemesCommand().run()
+        SeedSystemThemesCommand().run()
 
     def init_app_in_ctx(self) -> None:
         """
