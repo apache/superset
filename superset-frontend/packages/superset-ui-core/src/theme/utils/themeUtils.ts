@@ -17,7 +17,7 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
-import { useTheme } from '../index';
+import { useTheme as useEmotionTheme } from '@emotion/react';
 import type { SupersetTheme, FontSizeKey, ColorVariants } from '../types';
 
 const fontSizeMap: Record<FontSizeKey, keyof SupersetTheme> = {
@@ -118,6 +118,6 @@ export function isThemeDark(theme: SupersetTheme): boolean {
  * @returns true if theme is dark, false if light
  */
 export function useThemeMode(): boolean {
-  const theme = useTheme();
+  const theme = useEmotionTheme() as SupersetTheme;
   return isThemeDark(theme);
 }
