@@ -274,6 +274,11 @@ function GroupsList({ user }: GroupsListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
+        name: t('Bulk select'),
+        onClick: toggleBulkSelect,
+        buttonStyle: 'secondary',
+      },
+      {
         name: t('Group'),
         icon: <Icons.PlusOutlined iconSize="m" />,
         buttonStyle: 'primary',
@@ -282,11 +287,6 @@ function GroupsList({ user }: GroupsListProps) {
         },
         loading: loadingState.roles,
         'data-test': 'add-group-button',
-      },
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
       },
     );
   }

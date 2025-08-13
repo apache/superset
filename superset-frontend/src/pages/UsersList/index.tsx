@@ -372,6 +372,11 @@ function UsersList({ user }: UsersListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
+        name: t('Bulk select'),
+        onClick: toggleBulkSelect,
+        buttonStyle: 'secondary',
+      },
+      {
         icon: <Icons.PlusOutlined iconSize="m" />,
         name: t('User'),
         buttonStyle: 'primary',
@@ -380,11 +385,6 @@ function UsersList({ user }: UsersListProps) {
         },
         loading: loadingState.roles || loadingState.groups,
         'data-test': 'add-user-button',
-      },
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
       },
     );
   }
