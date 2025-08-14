@@ -44,10 +44,8 @@ interface SQLEditorWithValidationProps {
   // Validation props
   showValidation?: boolean;
   expressionType?: ExpressionType;
-  databaseId?: number;
-  tableName?: string;
-  schema?: string;
-  catalog?: string;
+  datasourceId?: number;
+  datasourceType?: string;
   clause?: string; // For filters: "WHERE" or "HAVING"
   onValidationComplete?: (isValid: boolean, errors?: ValidationError[]) => void;
 }
@@ -118,10 +116,8 @@ export default function SQLEditorWithValidation({
   // Validation props
   showValidation = false,
   expressionType = 'column',
-  databaseId,
-  tableName,
-  schema,
-  catalog,
+  datasourceId,
+  datasourceType,
   clause,
   onValidationComplete,
 }: SQLEditorWithValidationProps) {
@@ -140,11 +136,11 @@ export default function SQLEditorWithValidation({
   }, [value]);
 
   const handleValidate = useCallback(async () => {
-    if (!value || !databaseId) {
+    if (!value || !datasourceId || !datasourceType) {
       const error = {
         message: !value
           ? t('Expression cannot be empty')
-          : t('Database ID is required for validation'),
+          : t('Datasource is required for validation'),
       };
       setValidationResult({
         isValid: false,
@@ -158,13 +154,10 @@ export default function SQLEditorWithValidation({
     setValidationResult(null);
 
     try {
-      const endpoint = `/api/v1/database/${databaseId}/validate_expression/`;
+      const endpoint = `/api/v1/datasource/${datasourceType}/${datasourceId}/validate_expression/`;
       const payload = {
         expression: value,
         expression_type: expressionType,
-        table_name: tableName,
-        schema,
-        catalog,
         clause,
       };
 
@@ -206,10 +199,8 @@ export default function SQLEditorWithValidation({
   }, [
     value,
     expressionType,
-    databaseId,
-    tableName,
-    schema,
-    catalog,
+    datasourceId,
+    datasourceType,
     clause,
     onValidationComplete,
   ]);
@@ -290,7 +281,7 @@ export default function SQLEditorWithValidation({
             buttonStyle={validationResult ? 'secondary' : 'primary'}
             loading={isValidating}
             onClick={handleValidate}
-            disabled={!value || !databaseId || isValidating}
+            disabled={!value || !datasourceId || isValidating}
           >
             {t('Validate')}
           </Button>

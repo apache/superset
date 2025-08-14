@@ -499,12 +499,8 @@ export default class AdhocMetricEditPopover extends PureComponent {
                   wrapEnabled
                   showValidation
                   expressionType="metric"
-                  databaseId={datasource?.database?.id}
-                  tableName={
-                    datasource?.datasource_name || datasource?.table_name
-                  }
-                  schema={datasource?.schema}
-                  catalog={datasource?.catalog}
+                  datasourceId={datasource?.id}
+                  datasourceType={datasource?.type}
                 />
               ),
             },

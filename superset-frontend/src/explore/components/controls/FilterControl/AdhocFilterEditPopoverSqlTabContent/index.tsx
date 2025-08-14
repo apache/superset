@@ -140,10 +140,8 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           wrapEnabled
           showValidation
           expressionType="filter"
-          databaseId={datasource?.database?.id}
-          tableName={datasource?.datasource_name || datasource?.table_name}
-          schema={datasource?.schema}
-          catalog={datasource?.catalog}
+          datasourceId={datasource?.id}
+          datasourceType={datasource?.type}
           clause={adhocFilter.clause}
         />
       </div>

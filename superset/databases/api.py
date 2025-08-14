@@ -73,7 +73,6 @@ from superset.commands.database.uploaders.columnar_reader import ColumnarReader
 from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
-from superset.commands.database.validate_expression import ValidateExpressionCommand
 from superset.commands.database.validate_sql import ValidateSQLCommand
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
@@ -109,7 +108,6 @@ from superset.databases.schemas import (
     UploadFileMetadata,
     UploadFileMetadataPostSchema,
     UploadPostSchema,
-    ValidateExpressionRequest,
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
@@ -173,7 +171,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
-        "validate_expression",
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
@@ -1409,68 +1406,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             validator_errors = ValidateSQLCommand(pk, sql_request).run()
-            return self.response(200, result=validator_errors)
-        except DatabaseNotFoundError:
-            return self.response_404()
-
-    @expose("/<int:pk>/validate_expression/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.validate_expression",
-        log_to_statsd=False,
-    )
-    def validate_expression(self, pk: int) -> FlaskResponse:
-        """Validate that a SQL expression is syntactically correct.
-        ---
-        post:
-          summary: Validate SQL expression
-          description: >-
-            Validates that a SQL expression (not a full query) is syntactically correct
-            for the given database. Wraps the expression in a test query for validation.
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            description: Validate expression request
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/ValidateExpressionRequest'
-          responses:
-            200:
-              description: Validation result
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        description: >-
-                          A List of validation errors found in the expression
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/ValidateSQLResponse'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            expression_request = ValidateExpressionRequest().load(request.json)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        try:
-            validator_errors = ValidateExpressionCommand(pk, expression_request).run()
             return self.response(200, result=validator_errors)
         except DatabaseNotFoundError:
             return self.response_404()

@@ -756,41 +756,6 @@ class ValidateSQLResponse(Schema):
     message = fields.String()
 
 
-class ValidateExpressionRequest(Schema):
-    expression = fields.String(
-        required=True, metadata={"description": "SQL expression to validate"}
-    )
-    expression_type = fields.String(
-        required=False,
-        load_default="column",
-        validate=fields.validate.OneOf(["metric", "column", "filter"]),
-        metadata={"description": "Type of SQL expression (metric, column, or filter)"},
-    )
-    table_name = fields.String(
-        required=False,
-        allow_none=True,
-        metadata={"description": "Table name for context"},
-    )
-    catalog = fields.String(
-        required=False,
-        allow_none=True,
-        metadata={"description": "Database catalog for context"},
-    )
-    schema = fields.String(
-        required=False,
-        allow_none=True,
-        metadata={"description": "Database schema for context"},
-    )
-    clause = fields.String(
-        required=False,
-        allow_none=True,
-        validate=fields.validate.OneOf(["WHERE", "HAVING"]),
-        metadata={
-            "description": "SQL clause type for filter expressions (WHERE or HAVING)"
-        },
-    )
-
-
 class DatabaseRelatedChart(Schema):
     id = fields.Integer()
     slice_name = fields.String()

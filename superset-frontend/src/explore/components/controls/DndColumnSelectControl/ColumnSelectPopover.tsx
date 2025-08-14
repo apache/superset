@@ -480,12 +480,8 @@ const ColumnSelectPopover = ({
                   )}
                   showValidation
                   expressionType="column"
-                  databaseId={datasource?.database?.id}
-                  tableName={
-                    datasource?.datasource_name || datasource?.table_name
-                  }
-                  schema={datasource?.schema}
-                  catalog={datasource?.catalog}
+                  datasourceId={datasource?.id}
+                  datasourceType={datasourceType}
                 />
               </>
             ),
