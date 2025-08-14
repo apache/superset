@@ -648,6 +648,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
 
+
         if self.config["AUTH_TYPE"] == AUTH_REMOTE_USER:
             header = self.config.get("AUTH_REMOTE_USER_HEADER")
             if not header:
