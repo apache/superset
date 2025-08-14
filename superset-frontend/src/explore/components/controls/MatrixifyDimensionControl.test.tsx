@@ -29,6 +29,7 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     get: jest.fn(),
+    post: jest.fn(),
   },
   t: (str: string) => str,
   styled: jest.requireActual('@superset-ui/core').styled,
@@ -373,7 +374,7 @@ describe('MatrixifyDimensionControl', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should not load values in topn mode', async () => {
+    it('should not load dimension values in topn mode', async () => {
       const value: MatrixifyDimensionControlValue = {
         dimension: 'country',
         values: [],
@@ -390,6 +391,248 @@ describe('MatrixifyDimensionControl', () => {
       await waitFor(() => {
         expect(SupersetClient.get).not.toHaveBeenCalled();
       });
+    });
+
+    it('should fetch TopN values when all params are provided', async () => {
+      const mockTopNResponse = {
+        json: {
+          result: [
+            {
+              data: {
+                records: [
+                  { country_name: 'USA', sum__SP_POP_TOTL: 1000000 },
+                  { country_name: 'China', sum__SP_POP_TOTL: 900000 },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      (SupersetClient.post as jest.Mock).mockResolvedValue(mockTopNResponse);
+
+      const onChange = jest.fn();
+      const value: MatrixifyDimensionControlValue = {
+        dimension: 'country_name',
+        values: [],
+      };
+
+      render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          onChange={onChange}
+          selectionMode="topn"
+          topNMetric="sum__SP_POP_TOTL"
+          topNValue={2}
+          topNOrder="DESC"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(SupersetClient.post).toHaveBeenCalledWith(
+          expect.objectContaining({
+            endpoint: '/api/v1/query/',
+            jsonPayload: expect.objectContaining({
+              datasource: '1__table',
+              queries: expect.arrayContaining([
+                expect.objectContaining({
+                  columns: ['country_name'],
+                  metrics: ['sum__SP_POP_TOTL'],
+                  orderby: [['sum__SP_POP_TOTL', false]],
+                  row_limit: 2,
+                }),
+              ]),
+            }),
+          }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(onChange).toHaveBeenCalledWith({
+          dimension: 'country_name',
+          values: ['USA', 'China'],
+          topNValues: [
+            { country_name: 'USA', sum__SP_POP_TOTL: 1000000 },
+            { country_name: 'China', sum__SP_POP_TOTL: 900000 },
+          ],
+        });
+      });
+    });
+
+    it('should show loading state while fetching TopN values', async () => {
+      let resolvePromise: (value: any) => void;
+      const promise = new Promise(resolve => {
+        resolvePromise = resolve;
+      });
+      (SupersetClient.post as jest.Mock).mockReturnValue(promise);
+
+      const value: MatrixifyDimensionControlValue = {
+        dimension: 'country_name',
+        values: [],
+      };
+
+      render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          selectionMode="topn"
+          topNMetric="sum__SP_POP_TOTL"
+          topNValue={10}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Loading top values...')).toBeInTheDocument();
+      });
+
+      resolvePromise!({
+        json: { result: [{ data: { records: [] } }] },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Loading top values...'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('should display error when TopN fetch fails', async () => {
+      (SupersetClient.post as jest.Mock).mockRejectedValue(
+        new Error('Failed to fetch data'),
+      );
+
+      const value: MatrixifyDimensionControlValue = {
+        dimension: 'country_name',
+        values: [],
+      };
+
+      render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          selectionMode="topn"
+          topNMetric="sum__SP_POP_TOTL"
+          topNValue={10}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Error: Failed to fetch data'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should clear values when switching from topn to members mode', async () => {
+      const onChange = jest.fn();
+      const value: MatrixifyDimensionControlValue = {
+        dimension: 'country_name',
+        values: ['USA', 'China'],
+        topNValues: [
+          { country_name: 'USA', sum__SP_POP_TOTL: 1000000 } as any,
+          { country_name: 'China', sum__SP_POP_TOTL: 900000 } as any,
+        ],
+      };
+
+      const { rerender } = render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          onChange={onChange}
+          selectionMode="topn"
+          topNMetric="sum__SP_POP_TOTL"
+          topNValue={2}
+        />,
+      );
+
+      rerender(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          onChange={onChange}
+          selectionMode="members"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(onChange).toHaveBeenCalledWith({
+          dimension: 'country_name',
+          values: [],
+          topNValues: [],
+        });
+      });
+    });
+
+    it('should handle string topNValue and convert to number', async () => {
+      const mockTopNResponse = {
+        json: {
+          result: [{ data: { records: [] } }],
+        },
+      };
+
+      (SupersetClient.post as jest.Mock).mockResolvedValue(mockTopNResponse);
+
+      const value: MatrixifyDimensionControlValue = {
+        dimension: 'country_name',
+        values: [],
+      };
+
+      render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          selectionMode="topn"
+          topNMetric="sum__SP_POP_TOTL"
+          topNValue={'5' as any} // Pass string instead of number
+          topNOrder="DESC"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(SupersetClient.post).toHaveBeenCalledWith(
+          expect.objectContaining({
+            jsonPayload: expect.objectContaining({
+              queries: expect.arrayContaining([
+                expect.objectContaining({
+                  row_limit: 5, // Should be converted to number
+                }),
+              ]),
+            }),
+          }),
+        );
+      });
+    });
+
+    it('should abort TopN fetch when component unmounts', async () => {
+      let capturedSignal: AbortSignal | undefined;
+      (SupersetClient.post as jest.Mock).mockImplementation(({ signal }) => {
+        capturedSignal = signal;
+        return new Promise(() => {}); // Never resolves
+      });
+
+      const value: MatrixifyDimensionControlValue = {
+        dimension: 'country_name',
+        values: [],
+      };
+
+      const { unmount } = render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          value={value}
+          selectionMode="topn"
+          topNMetric="sum__SP_POP_TOTL"
+          topNValue={10}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(capturedSignal).toBeDefined();
+      });
+
+      unmount();
+
+      expect(capturedSignal?.aborted).toBe(true);
     });
   });
 

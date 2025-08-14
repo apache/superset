@@ -109,18 +109,7 @@ export const matrixifyRowSection: ControlPanelSectionConfig = {
   expanded: false,
   visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
-    [
-      {
-        name: 'matrixify_show_row_labels',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Show row labels'),
-          default: true,
-          renderTrigger: true,
-          description: t('Whether to show row labels in the matrix grid'),
-        },
-      },
-    ],
+    ['matrixify_show_row_labels'],
     ['matrixify_mode_rows'],
     ['matrixify_rows'],
     ['matrixify_dimension_rows'],
@@ -137,18 +126,7 @@ export const matrixifyColumnSection: ControlPanelSectionConfig = {
   expanded: false,
   visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
   controlSetRows: [
-    [
-      {
-        name: 'matrixify_show_column_headers',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Show column headers'),
-          default: true,
-          renderTrigger: true,
-          description: t('Whether to show column headers in the matrix grid'),
-        },
-      },
-    ],
+    ['matrixify_show_column_headers'],
     ['matrixify_mode_columns'],
     ['matrixify_columns'],
     ['matrixify_dimension_columns'],
