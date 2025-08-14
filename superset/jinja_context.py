@@ -940,7 +940,7 @@ def dataset_macro(
     metrics = [metric.metric_name for metric in dataset.metrics]
     query_obj = {
         "is_timeseries": False,
-        "filter": [],
+        "filters": [],
         "metrics": metrics if include_metrics else None,
         "columns": columns,
         "from_dttm": from_dttm,

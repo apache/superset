@@ -71,6 +71,7 @@ from sqlalchemy.types import JSON
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
+from superset.common.query_object import QueryObject
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -720,7 +721,7 @@ class AnnotationDatasource(BaseDatasource):
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         error_message = None
         qry = db.session.query(Annotation)
-        qry = qry.filter(Annotation.layer_id == query_obj["filter"][0]["val"])
+        qry = qry.filter(Annotation.layer_id == query_obj["filters"][0]["val"])
         if query_obj["from_dttm"]:
             qry = qry.filter(Annotation.start_dttm >= query_obj["from_dttm"])
         if query_obj["to_dttm"]:
@@ -1514,18 +1515,19 @@ class SqlaTable(
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: dict[str, SqlMetric],
-        columns_by_name: dict[str, TableColumn],
+        query_obj: QueryObject,
         template_processor: BaseTemplateProcessor | None = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric, query_obj.columns_by_name
+            )
         elif (
             isinstance(series_limit_metric, str)
-            and series_limit_metric in metrics_by_name
+            and series_limit_metric in query_obj.metrics_by_name
         ):
-            ob = metrics_by_name[series_limit_metric].get_sqla_col(
+            ob = query_obj.metrics_by_name[series_limit_metric].get_sqla_col(
                 template_processor=template_processor
             )
         else:
@@ -1857,7 +1859,10 @@ class SqlaTable(
         """
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
-            sqla_query = self.get_sqla_query(**query_obj)
+            from superset.common.query_object import QueryObject
+
+            query_object = QueryObject(datasource=self, **query_obj)
+            sqla_query = self.get_sqla_query(query_object)
             extra_cache_keys += sqla_query.extra_cache_keys
         return list(set(extra_cache_keys))
 
