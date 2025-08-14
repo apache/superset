@@ -45,8 +45,8 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, 
 
 
 def replace_verbose_with_column(
-    filters: list[dict],
-    columns: Iterable,
+    filters: list[dict[str, Any]],
+    columns: Iterable[Any],
     verbose_attr: str = "verbose_name",
     column_attr: str = "column_name",
 ) -> None:
@@ -103,6 +103,7 @@ def get_samples(  # pylint: disable=too-many-arguments
     else:
         # Use column names replacing verbose column names(Label)
         replace_verbose_with_column(payload.get("filters", []), datasource.columns)
+
         # constructing drill detail query
         # When query_type == 'samples' the `time filter` will be removed,
         # so it is not applicable drill detail query
