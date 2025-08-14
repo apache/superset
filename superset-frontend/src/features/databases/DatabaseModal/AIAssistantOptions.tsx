@@ -74,7 +74,7 @@ const AIAssistantOptions = ({
   );
 
   const contextStatus = useLlmContextStatus({
-    dbId: db?.id || 0,
+    dbId: db?.id || 1,
     onSuccess: result => {
       setRegenerating(result.status === 'building');
       if (result.context) {
@@ -85,7 +85,7 @@ const AIAssistantOptions = ({
   });
 
   useLlmDefaults({
-    dbId: db?.id || 0,
+    dbId: db?.id || 1,
     onSuccess: result => {
       if (result) {
         setLlmDefaults(result);

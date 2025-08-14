@@ -956,17 +956,17 @@ const SqlEditor: FC<Props> = ({
             : undefined;
 
     return (
-      // database?.llm_connection?.enabled && (
-      <AIAssistantEditor
-        queryEditorId={queryEditor.id}
-        onGenerateSql={runAiAssistant}
-        isGeneratingSql={
-          queryEditor?.queryGenerator?.isGeneratingQuery || false
-        }
-        disabledMessage={disabledMessage}
-        schema={storedQueryEditor.schema}
-      />
-      // )
+      database?.llm_connection?.enabled && (
+        <AIAssistantEditor
+          queryEditorId={queryEditor.id}
+          onGenerateSql={runAiAssistant}
+          isGeneratingSql={
+            queryEditor?.queryGenerator?.isGeneratingQuery || false
+          }
+          disabledMessage={disabledMessage}
+          schema={storedQueryEditor.schema}
+        />
+      )
     );
   };
 

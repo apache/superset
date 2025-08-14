@@ -23,64 +23,103 @@ Create Date: 2025-08-11 11:20:44.248026
 """
 
 # revision identifiers, used by Alembic.
-revision = '58200d37f074'
-down_revision = 'cd1fb11291f2'
+revision = "58200d37f074"
+down_revision = "cd1fb11291f2"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 def upgrade():
-    op.create_table('llm_connection',
-        sa.Column('created_on', sa.DateTime(), nullable=True),
-        sa.Column('changed_on', sa.DateTime(), nullable=True),
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('database_id', sa.Integer(), nullable=False),
-        sa.Column('enabled', sa.Boolean(), default=False, nullable=False),
-        sa.Column('provider', sa.String(length=255), nullable=False),
-        sa.Column('model', sa.String(length=255), nullable=False),
-        sa.Column('api_key', sa.VARCHAR(length=100), nullable=False),
-        sa.Column('created_by_fk', sa.Integer(), nullable=True),
-        sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-        sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-        sa.ForeignKeyConstraint(['database_id'], ['dbs.id'], ),
-        sa.PrimaryKeyConstraint('id')
+    op.create_table(
+        "llm_connection",
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("database_id", sa.Integer(), nullable=False),
+        sa.Column("enabled", sa.Boolean(), default=False, nullable=False),
+        sa.Column("provider", sa.String(length=255), nullable=False),
+        sa.Column("model", sa.String(length=255), nullable=False),
+        sa.Column("api_key", sa.Text(), nullable=False),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["database_id"],
+            ["dbs.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
     )
-    op.create_table('llm_context_options',
-        sa.Column('created_on', sa.DateTime(), nullable=True),
-        sa.Column('changed_on', sa.DateTime(), nullable=True),
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('database_id', sa.Integer(), nullable=True),
-        sa.Column('refresh_interval', sa.Integer(), nullable=True),
-        sa.Column('schemas', sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), 'mysql'), nullable=True),
-        sa.Column('include_indexes', sa.Boolean(), default=True),
-        sa.Column('top_k', sa.Integer(), default=10, nullable=True),
-        sa.Column('top_k_limit', sa.Integer(), default=50000, nullable=True),
-        sa.Column('instructions', sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), 'mysql'), nullable=True),
-        sa.Column('created_by_fk', sa.Integer(), nullable=True),
-        sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-        sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-        sa.ForeignKeyConstraint(['database_id'], ['dbs.id'], ),
-        sa.PrimaryKeyConstraint('id')
+    op.create_table(
+        "llm_context_options",
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("database_id", sa.Integer(), nullable=True),
+        sa.Column("refresh_interval", sa.Integer(), nullable=True),
+        sa.Column(
+            "schemas",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=True,
+        ),
+        sa.Column("include_indexes", sa.Boolean(), default=True),
+        sa.Column("top_k", sa.Integer(), default=10, nullable=True),
+        sa.Column("top_k_limit", sa.Integer(), default=50000, nullable=True),
+        sa.Column(
+            "instructions",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=True,
+        ),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["database_id"],
+            ["dbs.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
     )
 
-    op.drop_column('dbs', 'llm_api_key')
-    op.drop_column('dbs', 'llm_context_options')
-    op.drop_column('dbs', 'llm_model')
-    op.drop_column('dbs', 'llm_provider')
-    op.drop_column('dbs', 'llm_enabled')
+    op.create_table(
+        "context_builder_task",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("task_id", sa.String(length=255), nullable=True),
+        sa.Column("database_id", sa.Integer(), nullable=True),
+        sa.Column("started_time", sa.DateTime(), nullable=True),
+        sa.Column(
+            "params",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=True,
+        ),
+        sa.Column("ended_time", sa.DateTime(), nullable=True),
+        sa.Column("status", sa.String(length=255), nullable=True),
+        sa.Column("duration", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["database_id"],
+            ["dbs.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("task_id"),
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
-    op.add_column('dbs', sa.Column('llm_enabled', sa.BOOLEAN(), nullable=True))
-    op.add_column('dbs', sa.Column('llm_provider', sa.VARCHAR(length=100), nullable=True))
-    op.add_column('dbs', sa.Column('llm_model', sa.VARCHAR(length=100), nullable=True))
-    op.add_column('dbs', sa.Column('llm_context_options', sa.TEXT(), nullable=True))
-    op.add_column('dbs', sa.Column('llm_api_key', sa.VARCHAR(length=100), nullable=True))
-
-    op.drop_table('llm_context_options')
-    op.drop_table('llm_connection')
+    op.drop_table("llm_context_options")
+    op.drop_table("llm_connection")
+    op.drop_table("context_builder_task")
     # ### end Alembic commands ###

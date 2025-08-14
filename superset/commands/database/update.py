@@ -98,7 +98,6 @@ class UpdateDatabaseCommand(BaseCommand):
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
         new_catalog = database.get_default_catalog()
-
         # update assets when the database catalog changes, if the database was not
         # configured with multi-catalog support; if it was enabled or is enabled in the
         # update we don't update the assets
