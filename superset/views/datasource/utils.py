@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from flask import current_app as app
 
@@ -42,6 +42,35 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, 
         offset = max((int(page) - 1) * limit, 0)
 
     return {"row_offset": offset, "row_limit": limit}
+
+
+def replace_verbose_with_column(
+    filters: list[dict],
+    columns: Iterable,
+    verbose_attr: str = "verbose_name",
+    column_attr: str = "column_name",
+) -> None:
+    """
+    Replace filter 'col' values that match column verbose_name with the column_name.
+    Operates in-place on the filters list.
+
+    Args:
+        filters: List of filter dicts, each must have 'col' key.
+        columns: Iterable of column objects with verbose_name and column_name.
+        verbose_attr: Attribute name for verbose/label.
+        column_attr: Attribute name for actual column name.
+    """
+    for f in filters:
+        match = next(
+            (
+                getattr(col, column_attr)
+                for col in columns
+                if getattr(col, verbose_attr) == f["col"]
+            ),
+            None,
+        )
+        if match:
+            f["col"] = match
 
 
 def get_samples(  # pylint: disable=too-many-arguments
@@ -73,10 +102,7 @@ def get_samples(  # pylint: disable=too-many-arguments
         )
     else:
         # Use column names replacing verbose column names(Label)
-        rev_map = datasource.reverse_verbose_map
-        for f in payload.get("filters", []):
-            if f["col"] in rev_map:
-                f["col"] = rev_map[f["col"]]
+        replace_verbose_with_column(payload.get("filters", []), datasource.columns)
         # constructing drill detail query
         # When query_type == 'samples' the `time filter` will be removed,
         # so it is not applicable drill detail query
