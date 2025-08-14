@@ -20,11 +20,18 @@
  */
 
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
-import { JsonObject, t } from '@superset-ui/core';
+import { CategoricalColorNamespace, JsonObject, t } from '@superset-ui/core';
+import { Color } from '@deck.gl/core';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  isPointInBonds,
+} from '../../utilities/utils';
 import sandboxedEval from '../../utils/sandbox';
-import { commonLayerProps } from '../common';
+import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
@@ -41,7 +48,7 @@ function setTooltipContent(o: JsonObject) {
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Weight') + ': '}
-        value={`${o.object?.cellWeight}`}
+        value={`${o.object?.value}`}
       />
     </div>
   );
@@ -57,11 +64,9 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData;
-  const c = fd.color_picker;
-  let data = payload.data.features.map((d: JsonObject) => ({
-    ...d,
-    color: [c.r, c.g, c.b, 255 * c.a],
-  }));
+  const appliedScheme = fd.color_scheme;
+  const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
+  let data = payload.data.features;
 
   if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
@@ -69,16 +74,39 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     data = jsFnMutator(data);
   }
 
+  const colorSchemeType = fd.color_scheme_type as ColorSchemeType & 'default';
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    colorBreakpoints: fd.color_breakpoints,
+    fixedColor: fd.color_picker,
+    colorSchemeType,
+    colorScale,
+  });
+
+  const aggFunc = (d: JsonObject) => d.weight || 0;
+
+  const defaultScreenGridColorRange = [
+    [255, 255, 178],
+    [254, 217, 118],
+    [254, 178, 76],
+    [253, 141, 60],
+    [240, 59, 32],
+    [189, 0, 38],
+  ] as Color[];
+
   // Passing a layer creator function instead of a layer since the
   // layer needs to be regenerated at each render
   return new ScreenGridLayer({
     id: `screengrid-layer-${fd.slice_id}` as const,
     data,
     cellSizePixels: fd.grid_size,
-    minColor: [c.r, c.g, c.b, 0],
-    maxColor: [c.r, c.g, c.b, 255 * c.a],
+    colorDomain:
+      colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints && colorRange
+        ? [0, colorRange.length]
+        : undefined,
+    colorRange:
+      colorSchemeType === 'default' ? defaultScreenGridColorRange : colorRange,
     outline: false,
-    getWeight: (d: any) => d.weight || 0,
     ...commonLayerProps({
       formData: fd,
       setDataMask,
@@ -88,7 +116,41 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
+    getWeight: aggFunc,
+    colorScaleType: colorSchemeType === 'default' ? 'linear' : 'quantize',
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
-export default createDeckGLComponent(getLayer, getPoints);
+const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
+  formData,
+  filterState,
+  payload,
+}) {
+  const fd = formData;
+  let data = payload.data.features;
+
+  if (fd.js_data_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  const aggFunc = (d: JsonObject) => d.weight || 0;
+
+  return new ScreenGridLayer({
+    id: `screengrid-highlight-layer-${formData.slice_id}` as const,
+    data: dataInside,
+    cellSizePixels: formData.grid_size,
+    colorDomain: [0, 1],
+    colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
+    outline: false,
+    getWeight: aggFunc,
+    colorScaleType: 'quantize',
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

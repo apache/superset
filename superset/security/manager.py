@@ -95,6 +95,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+def get_conf() -> Any:
+    return current_app.config
+
+
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
@@ -302,7 +307,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Manage",
         "Queries",
         "ReportSchedule",
-        "TableSchemaView",
     }
 
     ALPHA_ONLY_PMVS = {
@@ -326,6 +330,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata",
         "can_external_metadata_by_name",
         "can_read",
+        "can_get_drill_info",
     }
 
     ALPHA_ONLY_PERMISSIONS = {
@@ -370,6 +375,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "Query Search"),
         ("can_read", "SqlLabPermalinkRestApi"),
         ("can_write", "SqlLabPermalinkRestApi"),
+        ("can_post", "TableSchemaView"),
+        ("can_expanded", "TableSchemaView"),
+        ("can_delete", "TableSchemaView"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -565,6 +573,74 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
+    def can_drill_dataset_via_dashboard_access(
+        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+    ) -> bool:
+        """
+        Return True if an embedded user or DASHBOARD_RBAC user can drill a dataset.
+        """
+        from superset import is_feature_enabled
+
+        if (
+            (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and self.has_guest_access(dashboard)
+            )
+            or (
+                is_feature_enabled("DASHBOARD_RBAC")
+                and dashboard.roles
+                and dashboard.published
+                and {role.id for role in dashboard.roles}
+                & {role.id for role in self.get_user_roles()}
+            )
+        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
+            return True
+
+        return False
+
+    def has_drill_by_access(
+        self,
+        form_data: dict[str, Any],
+        dashboard: "Dashboard",
+        datasource: "BaseDatasource",
+    ) -> bool:
+        """
+        Return True if the form_data is performing a supported drill by operation,
+        False otherwise.
+
+        :param form_data: The form_data included in the request.
+        :param dashboard: The dashboard the user is drilling from.
+        :returns: Whether the user has drill byaccess.
+        """
+
+        from superset.connectors.sqla.models import TableColumn
+        from superset.models.slice import Slice
+
+        return bool(
+            form_data.get("type") != "NATIVE_FILTER"
+            and form_data.get("slice_id") == 0
+            and (chart_id := form_data.get("chart_id"))
+            and (
+                slc := self.get_session.query(Slice)
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            )
+            and slc in dashboard.slices
+            and slc.datasource == datasource
+            and (dimensions := form_data.get("groupby"))
+            and (
+                drillable_columns := {
+                    row[0]
+                    for row in self.get_session.query(TableColumn.column_name)
+                    .filter(TableColumn.table_id == datasource.id)
+                    .filter(TableColumn.groupby)
+                    .all()
+                }
+            )
+            and set(dimensions).issubset(drillable_columns)
+        )
+
     def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
         """
         Return True if the user can access the specified dashboard, False otherwise.
@@ -652,7 +728,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
-        return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
+        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource"
@@ -670,6 +746,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             extra={
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.id,
+                "datasource_name": datasource.name,
             },
         )
 
@@ -712,7 +789,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
-        return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
+        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_user_datasources(self) -> list["BaseDatasource"]:
         """
@@ -1113,9 +1190,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
         # Configure public role
-        if current_app.config["PUBLIC_ROLE_LIKE"]:
+        if get_conf()["PUBLIC_ROLE_LIKE"]:
             self.copy_role(
-                current_app.config["PUBLIC_ROLE_LIKE"],
+                get_conf()["PUBLIC_ROLE_LIKE"],
                 self.auth_role_public,
                 merge=True,
             )
@@ -2395,6 +2472,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and slc in dashboard_.slices
                             and slc.datasource == datasource
                         )
+                        or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
                     and self.can_access_dashboard(dashboard_)
                 )
@@ -2473,7 +2551,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not user:
             user = g.user
         if user.is_anonymous:
-            public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
+            public_role = get_conf().get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
         return super().get_user_roles(user)
 
@@ -2590,7 +2668,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_guest_token_jwt_audience() -> str:
-        audience = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
+        audience = get_conf()["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
         if callable(audience):
             audience = audience()
         return audience
@@ -2619,9 +2697,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         resources: GuestTokenResources,
         rls: list[GuestTokenRlsRule],
     ) -> bytes:
-        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
-        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
+        secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
+        algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
+        exp_seconds = get_conf()["GUEST_TOKEN_JWT_EXP_SECONDS"]
         audience = self._get_guest_token_jwt_audience()
         # calculate expiration time
         now = self._get_current_epoch_time()
@@ -2648,7 +2726,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: A guest user object
         """
         raw_token = req.headers.get(
-            current_app.config["GUEST_TOKEN_HEADER_NAME"]
+            get_conf()["GUEST_TOKEN_HEADER_NAME"]
         ) or req.form.get("guest_token")
         if raw_token is None:
             return None
@@ -2674,7 +2752,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
             token=token,
-            roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            roles=[self.find_role(get_conf()["GUEST_ROLE_NAME"])],
         )
 
     def parse_jwt_guest_token(self, raw_token: str) -> dict[str, Any]:
@@ -2683,8 +2761,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param raw_token: the token gotten from the request
         :return: the same token that was passed in, tested but unchanged
         """
-        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
-        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+        secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
+        algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
         audience = self._get_guest_token_jwt_audience()
         return self.pyjwt_for_guest_token.decode(
             raw_token, secret, algorithms=[algo], audience=audience
@@ -2779,7 +2857,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the current user is an admin user
         """
 
-        return current_app.config["AUTH_ROLE_ADMIN"] in [
+        return get_conf()["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
 

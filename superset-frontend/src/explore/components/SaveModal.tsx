@@ -442,7 +442,12 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderFooter = () => (
     <div data-test="save-modal-footer">
-      <Button id="btn_cancel" buttonSize="small" onClick={this.onHide}>
+      <Button
+        id="btn_cancel"
+        buttonSize="small"
+        onClick={this.onHide}
+        buttonStyle="secondary"
+      >
         {t('Cancel')}
       </Button>
       <Button

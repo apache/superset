@@ -24,24 +24,25 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t } from '@superset-ui/core';
-import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import {
+  Icons,
+  Switch,
+  Button,
+  Skeleton,
+  Card,
+  Space,
+} from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { CopyButton } from 'src/explore/components/DataTableControl';
+import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { useHistory } from 'react-router-dom';
-
-const CopyButtonViewQuery = styled(CopyButton)`
-  ${({ theme }) => `
-		&& {
-			margin: 0 0 ${theme.sizeUnit}px;
-		}
-  `}
-`;
 
 export interface ViewQueryProps {
   sql: string;
@@ -55,26 +56,14 @@ const StyledSyntaxContainer = styled.div`
   flex-direction: column;
 `;
 
-const StyledHeaderMenuContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-top: ${({ theme }) => -theme.sizeUnit * 4}px;
-  align-items: flex-end;
-`;
-
-const StyledHeaderActionContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  column-gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
 `;
 
-const StyledLabel = styled.label`
-  font-size: ${({ theme }) => theme.fontSize}px;
+const StyledFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const DATASET_BACKEND_QUERY = {
@@ -84,11 +73,15 @@ const DATASET_BACKEND_QUERY = {
 
 const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
+  const theme = useTheme();
   const datasetId = datasource.split('__')[0];
   const [formattedSQL, setFormattedSQL] = useState<string>();
   const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
   const currentSQL = (showFormatSQL ? formattedSQL : sql) ?? sql;
+  const canAccessSQLLab = useSelector((state: RootState) =>
+    findPermission('menu_access', 'SQL Lab', state.user?.roles),
+  );
 
   // Preload the language when component mounts to ensure smooth experience
   useEffect(() => {
@@ -132,11 +125,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
         window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${currentSQL}`,
+          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
           '_blank',
         );
       } else {
-        history.push('/sqllab', { state: { requestedQuery } });
+        history.push({ pathname: '/sqllab', state: { requestedQuery } });
       }
     },
     [history, datasource, currentSQL],
@@ -147,44 +140,57 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   }, [sql]);
 
   return (
-    <StyledSyntaxContainer key={sql}>
-      <StyledHeaderMenuContainer>
-        <StyledHeaderActionContainer>
-          <CopyToClipboard
-            text={currentSQL}
-            shouldShowText={false}
-            copyNode={
-              <CopyButtonViewQuery
+    <Card bodyStyle={{ padding: theme.sizeUnit * 4 }}>
+      <StyledSyntaxContainer key={sql}>
+        {!formattedSQL && <Skeleton active />}
+        {formattedSQL && (
+          <StyledThemedSyntaxHighlighter
+            language={language}
+            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
+          >
+            {currentSQL}
+          </StyledThemedSyntaxHighlighter>
+        )}
+
+        <StyledFooter>
+          <Space size={theme.sizeUnit * 2}>
+            <CopyToClipboard
+              text={currentSQL}
+              shouldShowText={false}
+              copyNode={
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  icon={<Icons.CopyOutlined />}
+                >
+                  {t('Copy')}
+                </Button>
+              }
+            />
+            {canAccessSQLLab && (
+              <Button
+                buttonStyle="secondary"
                 buttonSize="small"
-                icon={<Icons.CopyOutlined />}
+                onClick={navToSQLLab}
               >
-                {t('Copy')}
-              </CopyButtonViewQuery>
-            }
-          />
-          <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
-        </StyledHeaderActionContainer>
-        <StyledHeaderActionContainer>
-          <Switch
-            id="formatSwitch"
-            checked={!showFormatSQL}
-            onChange={formatCurrentQuery}
-          />
-          <StyledLabel htmlFor="formatSwitch">
-            {t('Show original SQL')}
-          </StyledLabel>
-        </StyledHeaderActionContainer>
-      </StyledHeaderMenuContainer>
-      {!formattedSQL && <Skeleton active />}
-      {formattedSQL && (
-        <StyledThemedSyntaxHighlighter
-          language={language}
-          customStyle={{ flex: 1 }}
-        >
-          {currentSQL}
-        </StyledThemedSyntaxHighlighter>
-      )}
-    </StyledSyntaxContainer>
+                {t('View in SQL Lab')}
+              </Button>
+            )}
+          </Space>
+
+          <Space size={theme.sizeUnit * 2} align="center">
+            <Icons.ConsoleSqlOutlined />
+            <Switch
+              id="formatSwitch"
+              checked={showFormatSQL}
+              onChange={formatCurrentQuery}
+              checkedChildren={t('formatted')}
+              unCheckedChildren={t('original')}
+            />
+          </Space>
+        </StyledFooter>
+      </StyledSyntaxContainer>
+    </Card>
   );
 };
 

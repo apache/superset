@@ -20,7 +20,6 @@ import {
   getMetricLabel,
   DataRecordValue,
   tooltipHtml,
-  themeObject,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { TreeSeriesOption } from 'echarts/charts';
@@ -57,7 +56,7 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreeChartProps,
 ): TreeTransformedProps {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, theme } = chartProps;
   const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
@@ -182,7 +181,6 @@ export default function transformProps(
       }
     });
   }
-  const { theme } = themeObject;
   const series: TreeSeriesOption[] = [
     {
       type: 'tree',

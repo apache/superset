@@ -50,6 +50,7 @@ import {
   userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
+import { ErrorMessageWithStackTrace } from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -94,6 +95,7 @@ const Styles = styled.div`
   }
   .error-alert {
     margin: ${({ theme }) => 2 * theme.sizeUnit}px;
+    min-height: 150px;
   }
   .ant-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.sizeUnit}px;
@@ -281,7 +283,17 @@ class DatasourceControl extends PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = !datasource?.id;
+    let extra;
+    if (datasource?.extra) {
+      if (typeof datasource.extra === 'string') {
+        try {
+          extra = JSON.parse(datasource.extra);
+        } catch {} // eslint-disable-line no-empty
+      } else {
+        extra = datasource.extra; // eslint-disable-line prefer-destructuring
+      }
+    }
+    const isMissingDatasource = !datasource?.id || Boolean(extra?.error);
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -305,47 +317,59 @@ class DatasourceControl extends PureComponent {
       sql: datasource.sql,
     };
 
-    const defaultDatasourceMenu = (
-      <Menu onClick={this.handleMenuItemClick}>
-        {this.props.isEditable && !isMissingDatasource && (
-          <Menu.Item
-            key={EDIT_DATASET}
-            data-test="edit-dataset"
-            disabled={!allowEdit}
-          >
-            {!allowEdit ? (
-              <Tooltip
-                title={t(
-                  'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
-                )}
-              >
-                {editText}
-              </Tooltip>
-            ) : (
-              editText
+    const defaultDatasourceMenuItems = [];
+    if (this.props.isEditable && !isMissingDatasource) {
+      defaultDatasourceMenuItems.push({
+        key: EDIT_DATASET,
+        label: !allowEdit ? (
+          <Tooltip
+            title={t(
+              'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
             )}
-          </Menu.Item>
-        )}
-        <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
-        {!isMissingDatasource && canAccessSqlLab && (
-          <Menu.Item key={VIEW_IN_SQL_LAB}>
-            <Link
-              to={{
-                pathname: '/sqllab',
-                state: { requestedQuery },
-              }}
-              onClick={preventRouterLinkWhileMetaClicked}
-            >
-              {t('View in SQL Lab')}
-            </Link>
-          </Menu.Item>
-        )}
-      </Menu>
+          >
+            {editText}
+          </Tooltip>
+        ) : (
+          editText
+        ),
+        disabled: !allowEdit,
+        ...{ 'data-test': 'edit-dataset' },
+      });
+    }
+
+    defaultDatasourceMenuItems.push({
+      key: CHANGE_DATASET,
+      label: t('Swap dataset'),
+    });
+
+    if (!isMissingDatasource && canAccessSqlLab) {
+      defaultDatasourceMenuItems.push({
+        key: VIEW_IN_SQL_LAB,
+        label: (
+          <Link
+            to={{
+              pathname: '/sqllab',
+              state: { requestedQuery },
+            }}
+            onClick={preventRouterLinkWhileMetaClicked}
+          >
+            {t('View in SQL Lab')}
+          </Link>
+        ),
+      });
+    }
+
+    const defaultDatasourceMenu = (
+      <Menu
+        onClick={this.handleMenuItemClick}
+        items={defaultDatasourceMenuItems}
+      />
     );
 
-    const queryDatasourceMenu = (
-      <Menu onClick={this.handleMenuItemClick}>
-        <Menu.Item key={QUERY_PREVIEW}>
+    const queryDatasourceMenuItems = [
+      {
+        key: QUERY_PREVIEW,
+        label: (
           <ModalTrigger
             triggerNode={
               <div data-test="view-query-menu-item">{t('Query preview')}</div>
@@ -366,40 +390,45 @@ class DatasourceControl extends PureComponent {
             resizable={false}
             responsive
           />
-        </Menu.Item>
-        {canAccessSqlLab && (
-          <Menu.Item key={VIEW_IN_SQL_LAB}>
-            <Link
-              to={{
-                pathname: '/sqllab',
-                state: { requestedQuery },
-              }}
-              onClick={preventRouterLinkWhileMetaClicked}
-            >
-              {t('View in SQL Lab')}
-            </Link>
-          </Menu.Item>
-        )}
-        <Menu.Item key={SAVE_AS_DATASET}>{t('Save as dataset')}</Menu.Item>
-      </Menu>
+        ),
+      },
+    ];
+
+    if (canAccessSqlLab) {
+      queryDatasourceMenuItems.push({
+        key: VIEW_IN_SQL_LAB,
+        label: (
+          <Link
+            to={{
+              pathname: '/sqllab',
+              state: { requestedQuery },
+            }}
+            onClick={preventRouterLinkWhileMetaClicked}
+          >
+            {t('View in SQL Lab')}
+          </Link>
+        ),
+      });
+    }
+
+    queryDatasourceMenuItems.push({
+      key: SAVE_AS_DATASET,
+      label: t('Save as dataset'),
+    });
+
+    const queryDatasourceMenu = (
+      <Menu
+        onClick={this.handleMenuItemClick}
+        items={queryDatasourceMenuItems}
+      />
     );
 
     const { health_check_message: healthCheckMessage } = datasource;
 
-    let extra;
-    if (datasource?.extra) {
-      if (typeof datasource.extra === 'string') {
-        try {
-          extra = JSON.parse(datasource.extra);
-        } catch {} // eslint-disable-line no-empty
-      } else {
-        extra = datasource.extra; // eslint-disable-line prefer-destructuring
-      }
-    }
-
-    const titleText = isMissingDatasource
-      ? t('Missing dataset')
-      : getDatasourceTitle(datasource);
+    const titleText =
+      isMissingDatasource && !datasource.name
+        ? t('Missing dataset')
+        : getDatasourceTitle(datasource);
 
     const tooltip = titleText;
 
@@ -452,31 +481,42 @@ class DatasourceControl extends PureComponent {
         )}
         {isMissingDatasource && !isMissingParams && (
           <div className="error-alert">
-            <ErrorAlert
-              type="warning"
-              errorType={t('Missing dataset')}
-              descriptionPre={false}
-              descriptionDetailsCollapsed={false}
-              descriptionDetails={
-                <>
-                  <p>
-                    {t(
-                      'The dataset linked to this chart may have been deleted.',
-                    )}
-                  </p>
-                  <p>
-                    <Button
-                      buttonStyle="warning"
-                      onClick={() =>
-                        this.handleMenuItemClick({ key: CHANGE_DATASET })
-                      }
-                    >
-                      {t('Swap dataset')}
-                    </Button>
-                  </p>
-                </>
-              }
-            />
+            {extra?.error ? (
+              <ErrorMessageWithStackTrace
+                title={extra.error.statusText || extra.error.message}
+                subtitle={
+                  extra.error.statusText ? extra.error.message : undefined
+                }
+                error={extra.error}
+                source="explore"
+              />
+            ) : (
+              <ErrorAlert
+                type="warning"
+                errorType={t('Missing dataset')}
+                descriptionPre={false}
+                descriptionDetailsCollapsed={false}
+                descriptionDetails={
+                  <>
+                    <p>
+                      {t(
+                        'The dataset linked to this chart may have been deleted.',
+                      )}
+                    </p>
+                    <p>
+                      <Button
+                        buttonStyle="warning"
+                        onClick={() =>
+                          this.handleMenuItemClick({ key: CHANGE_DATASET })
+                        }
+                      >
+                        {t('Swap dataset')}
+                      </Button>
+                    </p>
+                  </>
+                }
+              />
+            )}
           </div>
         )}
         {showEditDatasourceModal && (

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t, useTheme } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -55,7 +55,6 @@ function DashboardTable({
   otherTabFilters,
   otherTabTitle,
 }: DashboardTableProps) {
-  const theme = useTheme();
   const history = useHistory();
   const defaultTab = getItem(
     LocalStorageKeys.HomepageDashboardFilter,
@@ -187,15 +186,13 @@ function DashboardTable({
         tabs={menuTabs}
         buttons={[
           {
-            name: (
-              <>
-                <Icons.PlusOutlined
-                  iconSize="m"
-                  iconColor={theme.colorPrimary}
-                />
-                {t('Dashboard')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
+            name: t('Dashboard'),
             buttonStyle: 'secondary',
             onClick: () => {
               navigateTo('/dashboard/new', { assign: true });
