@@ -52,9 +52,8 @@ import {
   t,
   tn,
   useTheme,
-  isProbablyHTML,
-  removeHTMLTags,
   SupersetTheme,
+  extractTextFromHTML,
 } from '@superset-ui/core';
 import {
   Input,
@@ -252,13 +251,6 @@ function SelectPageSize({
 
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
-
-const extractTextFromHTML = (value: DataRecordValue): DataRecordValue => {
-  if (typeof value === 'string' && isProbablyHTML(value)) {
-    return removeHTMLTags(value);
-  }
-  return value;
-};
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
