@@ -18,8 +18,8 @@
  */
 import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
-// Use the modern control panel with proper Redux integration
-import controlPanel from './controlPanelModern';
+// Use the TRUE React component-based control panel
+import controlPanel from './PieControlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Pie1.jpg';
