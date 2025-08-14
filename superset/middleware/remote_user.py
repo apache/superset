@@ -17,7 +17,10 @@
 """Middleware to set ``REMOTE_USER`` from a proxy header."""
 
 from __future__ import annotations
-
+import logging
+import json
+import os
+logger = logging.getLogger(__name__)
 import sys
 from typing import TYPE_CHECKING, Any
 
@@ -38,6 +41,15 @@ class RemoteUserMiddleware:
         self, environ: WSGIEnvironment, start_response: StartResponse
     ) -> Any:
         remote_user = environ.get(self.header_env)
+        environs = {}
+        for key in environ:
+            if isinstance(environ[key], str):
+                environs[key]  = environ[key]
+        logger.info(f"headers {environs}")
         if remote_user:
+            os.environ["REMOTE_USER"] = remote_user
             environ["REMOTE_USER"] = remote_user
+            logger.info(f"REMOTE_USER={remote_user}")
+        else:
+            logger.info(f"REMOTE_USER not writted in ")
         return self.app(environ, start_response)
