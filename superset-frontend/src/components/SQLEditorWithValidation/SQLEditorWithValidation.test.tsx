@@ -23,6 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
+import { SqlExpressionType } from '../../types/SqlExpression';
 import SQLEditorWithValidation from './index';
 
 jest.mock('@superset-ui/core', () => ({
@@ -190,7 +191,7 @@ describe('SQLEditorWithValidation', () => {
       <SQLEditorWithValidation
         {...defaultProps}
         value="user_id * 2"
-        expressionType="column"
+        expressionType={SqlExpressionType.COLUMN}
       />,
     );
 
@@ -220,7 +221,7 @@ describe('SQLEditorWithValidation', () => {
       <SQLEditorWithValidation
         {...defaultProps}
         value="status = 'active'"
-        expressionType="filter"
+        expressionType={SqlExpressionType.FILTER}
         clause="WHERE"
       />,
     );
@@ -251,7 +252,7 @@ describe('SQLEditorWithValidation', () => {
       <SQLEditorWithValidation
         {...defaultProps}
         value="COUNT(*) > 5"
-        expressionType="filter"
+        expressionType={SqlExpressionType.FILTER}
         clause="HAVING"
       />,
     );

@@ -24,8 +24,11 @@ import {
   Icons,
   Tooltip,
 } from '@superset-ui/core/components';
-
-export type ExpressionType = 'metric' | 'column' | 'filter';
+import {
+  ExpressionType,
+  ValidationError,
+  ValidationResponse,
+} from '../../types/SqlExpression';
 
 interface SQLEditorWithValidationProps {
   // SQLEditor props - we'll accept any props that SQLEditor accepts
@@ -40,17 +43,6 @@ interface SQLEditorWithValidationProps {
   onValidationComplete?: (isValid: boolean, errors?: ValidationError[]) => void;
   // Any other props will be passed through to SQLEditor
   [key: string]: any;
-}
-
-interface ValidationError {
-  line_number?: number;
-  start_column?: number;
-  end_column?: number;
-  message: string;
-}
-
-interface ValidationResponse {
-  result: ValidationError[];
 }
 
 const StyledEditorContainer = styled.div`
