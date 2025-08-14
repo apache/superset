@@ -445,7 +445,7 @@ export type SectionOverrides = {
 };
 
 // Ref:
-//  - superset-frontend/src/explore/components/ConditionalFormattingControl.tsx
+//  - superset-frontend/src/explore/components/ColumnColoringControl.tsx
 export enum Comparator {
   None = 'None',
   GreaterThan = '>',
@@ -474,6 +474,11 @@ export type ConditionalFormattingConfig = {
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+};
+
+export type ColumnColoringConfig = {
+  column: string;
+  colorScheme: string;
 };
 
 export type ColorFormatters = {

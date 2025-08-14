@@ -76,6 +76,7 @@ interface PivotTableCustomizeProps {
   currencyFormats: Record<string, Currency>;
   metricsLayout?: MetricsLayoutEnum;
   metricColorFormatters: ColorFormatters;
+  columnColorFormatters: ColorFormatters;
   dateFormatters: Record<string, DateFormatter | undefined>;
   legacy_order_by: QueryFormMetric[] | QueryFormMetric | null;
   order_desc: boolean;
@@ -88,6 +89,7 @@ interface PivotTableCustomizeProps {
   time_grain_sqla?: TimeGranularity;
   granularity_sqla?: string;
   allowRenderHtml?: boolean;
+  colorHeadersTotals?: boolean;
 }
 
 export type PivotTableQueryFormData = QueryFormData &

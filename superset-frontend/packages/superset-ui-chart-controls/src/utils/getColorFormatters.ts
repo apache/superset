@@ -22,6 +22,7 @@ import {
   ColorFormatters,
   Comparator,
   ConditionalFormattingConfig,
+  ColumnColoringConfig,
   MultipleValueComparators,
 } from '../types';
 
@@ -211,6 +212,22 @@ export const getColorFormatters = memoizeOne(
               data.map(row => row[config.column!] as number),
               alpha,
             ),
+          });
+        }
+        return acc;
+      },
+      [],
+    ) ?? [],
+);
+
+export const getColorColumns = memoizeOne(
+  (columnConfig: ColumnColoringConfig[] | undefined) =>
+    columnConfig?.reduce(
+      (acc: ColorFormatters, config: ColumnColoringConfig) => {
+        if (config?.column !== undefined && config?.colorScheme !== undefined) {
+          acc.push({
+            column: config.column,
+            getColorFromValue: () => config.colorScheme,
           });
         }
         return acc;
