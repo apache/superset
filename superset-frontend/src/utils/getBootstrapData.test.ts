@@ -106,5 +106,32 @@ describe('getBootstrapData and helpers', () => {
       expect(applicationRoot()).toEqual(expectedAppRoot);
       expect(staticAssetsPrefix()).toEqual(expectedStaticPrefix);
     });
+
+    it('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
+      // Set up the fake #app element
+      const customData = {
+        common: {
+          my_custom_property: 'custom-value',
+        },
+      };
+      document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+
+      // Reset modules and re-import the module so that cachedBootstrapData is clear.
+      jest.resetModules();
+      const {
+        default: getBootstrapData,
+        applicationRoot,
+        staticAssetsPrefix,
+      } = await import('./getBootstrapData');
+      const bootstrapData = getBootstrapData();
+      expect(bootstrapData).toEqual(customData);
+      const expectedAppRoot =
+        DEFAULT_BOOTSTRAP_DATA.common.application_root.replace(/\/$/, '');
+      const expectedStaticPrefix =
+        DEFAULT_BOOTSTRAP_DATA.common.static_assets_prefix.replace(/\/$/, '');
+
+      expect(applicationRoot()).toEqual(expectedAppRoot);
+      expect(staticAssetsPrefix()).toEqual(expectedStaticPrefix);
+    });
   });
 });
