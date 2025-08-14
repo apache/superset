@@ -52,6 +52,8 @@ import {
   t,
   tn,
   useTheme,
+  isProbablyHTML,
+  removeHTMLTags,
 } from '@superset-ui/core';
 import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
 import {
@@ -243,22 +245,11 @@ function SelectPageSize({
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
-const isHtml = (value: any): boolean => {
-  if (typeof value !== 'string') {
-    return false;
+const sanitizeHtmlValue = (value: DataRecordValue): DataRecordValue => {
+  if (typeof value === 'string' && isProbablyHTML(value)) {
+    return removeHTMLTags(value);
   }
-  return value.includes('<') && value.includes('>');
-};
-
-const stripHtmlAndGetValue = (value: any): string | number | boolean => {
-  // Create a temporary DOM element to parse the HTML
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = value;
-
-  // Get the text content (this removes all HTML tags)
-  const textContent = tempDiv.textContent || tempDiv.innerText || '';
-
-  return textContent.trim();
+  return value;
 };
 
 export default function TableChart<D extends DataRecord = DataRecord>(
@@ -487,9 +478,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           filteredColumnsMeta.forEach(col => {
             if (!col.isMetric) {
               let dataRecordValue = value[col.key];
-              if (isHtml(dataRecordValue)) {
-                dataRecordValue = stripHtmlAndGetValue(dataRecordValue);
-              }
+              dataRecordValue = sanitizeHtmlValue(dataRecordValue);
 
               drillToDetailFilters.push({
                 col: col.key,
@@ -511,12 +500,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     {
                       col: cellPoint.key,
                       op: '==',
-                      val: isHtml(cellPoint.value)
-                        ? (stripHtmlAndGetValue(cellPoint.value) as
-                            | string
-                            | number
-                            | boolean)
-                        : (cellPoint.value as string | number | boolean),
+                      val: sanitizeHtmlValue(cellPoint.value),
                     },
                   ],
                   groupbyFieldName: 'groupby',
