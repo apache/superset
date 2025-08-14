@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement } from 'react';
+import { isValidElement, type ReactChild } from 'react';
 import {
   render,
   screen,
@@ -25,6 +25,13 @@ import {
 } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { FilterableTable } from '.';
+
+jest.mock(
+  'react-virtualized-auto-sizer',
+  () =>
+    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
+      children({ height: 500 }),
+);
 
 describe('FilterableTable', () => {
   beforeAll(() => {
