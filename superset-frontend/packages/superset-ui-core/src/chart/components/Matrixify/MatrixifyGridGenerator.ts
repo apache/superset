@@ -19,13 +19,17 @@
 
 import Handlebars from 'handlebars';
 import type { QueryFormData } from '../../../query';
-import type { AdhocFilter } from '../../../query/types/Filter';
+import type {
+  AdhocFilter,
+  BinaryAdhocFilter,
+} from '../../../query/types/Filter';
 import {
   MatrixifyGrid,
   MatrixifyGridCell,
   MatrixifyFormData,
   getMatrixifyConfig,
   MatrixifyAxisConfig,
+  MatrixifyFilterConstants,
 } from '../../types/matrixify';
 
 /**
@@ -84,14 +88,18 @@ function getAxisLabel(axisConfig: MatrixifyAxisConfig, index: number): string {
 
 /**
  * Create filter for a specific dimension value
+ * Using Matrixify-specific constants that match the literal types defined in Filter.ts
  */
-function createDimensionFilter(dimension: string, value: any): AdhocFilter {
+function createDimensionFilter(
+  dimension: string,
+  value: any,
+): BinaryAdhocFilter {
   return {
-    expressionType: 'SIMPLE',
+    expressionType: MatrixifyFilterConstants.ExpressionType.SIMPLE,
     subject: dimension,
-    operator: '==',
+    operator: MatrixifyFilterConstants.Operator.EQUALS,
     comparator: value,
-    clause: 'WHERE',
+    clause: MatrixifyFilterConstants.Clause.WHERE,
     isExtra: false,
   };
 }

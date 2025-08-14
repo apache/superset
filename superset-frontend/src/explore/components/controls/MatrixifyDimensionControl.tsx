@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { t, SupersetClient, styled, getColumnLabel } from '@superset-ui/core';
-import { Select } from '@superset-ui/core/components';
+import { t, SupersetClient, getColumnLabel } from '@superset-ui/core';
+import { Select, Space } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { optionLabel } from 'src/utils/common';
 import {
@@ -26,12 +26,6 @@ import {
   extractDimensionValues,
   TopNValue,
 } from './MatrixifyControl/utils/fetchTopNValues';
-
-const StyledContainer = styled.div`
-  .dimension-select {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-  }
-`;
 
 export interface MatrixifyDimensionControlValue {
   dimension: string;
@@ -251,27 +245,25 @@ export default function MatrixifyDimensionControl(
   };
 
   return (
-    <StyledContainer>
-      <div className="dimension-select">
-        <Select
-          ariaLabel={t('Select dimension')}
-          value={value?.dimension || undefined}
-          header={
-            <ControlHeader
-              label={label || t('Dimension')}
-              description={description || t('Select a dimension')}
-              hovered={hovered}
-            />
-          }
-          onChange={handleDimensionChange}
-          options={dimensionOptions.map(([val, label]) => ({
-            value: val,
-            label,
-          }))}
-          placeholder={t('Select a dimension')}
-          allowClear
-        />
-      </div>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Select
+        ariaLabel={t('Select dimension')}
+        value={value?.dimension || undefined}
+        header={
+          <ControlHeader
+            label={label || t('Dimension')}
+            description={description || t('Select a dimension')}
+            hovered={hovered}
+          />
+        }
+        onChange={handleDimensionChange}
+        options={dimensionOptions.map(([val, label]) => ({
+          value: val,
+          label,
+        }))}
+        placeholder={t('Select a dimension')}
+        allowClear
+      />
 
       {value?.dimension && selectionMode === 'members' && (
         <Select
@@ -302,6 +294,6 @@ export default function MatrixifyDimensionControl(
           {t('Error: %s', topNError)}
         </div>
       )}
-    </StyledContainer>
+    </Space>
   );
 }

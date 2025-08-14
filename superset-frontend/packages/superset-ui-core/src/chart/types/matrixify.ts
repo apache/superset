@@ -20,6 +20,30 @@
 import { AdhocMetric } from '../../query';
 
 /**
+ * Constants for Matrixify filter generation
+ * These match the literal types used in Filter.ts
+ */
+export const MatrixifyFilterConstants = {
+  // Filter expression types
+  ExpressionType: {
+    SIMPLE: 'SIMPLE' as const,
+    SQL: 'SQL' as const,
+  },
+  // Filter clauses
+  Clause: {
+    WHERE: 'WHERE' as const,
+    HAVING: 'HAVING' as const,
+  },
+  // Filter operators
+  Operator: {
+    EQUALS: '==' as const,
+    NOT_EQUALS: '!=' as const,
+    IN: 'IN' as const,
+    NOT_IN: 'NOT IN' as const,
+  },
+};
+
+/**
  * Mode for selecting matrix axis values
  */
 export type MatrixifyMode = 'metrics' | 'dimensions';

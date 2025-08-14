@@ -32,6 +32,7 @@ import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySin
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import SuperChart from './SuperChart';
 
+// Using more specific states that align with chart loading process
 type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
 
 export interface StatefulChartProps {
