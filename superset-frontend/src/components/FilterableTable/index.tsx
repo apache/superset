@@ -17,8 +17,6 @@
  * under the License.
  */
 import { useMemo, useRef, useCallback } from 'react';
-import AutoSizer from 'react-virtualized-auto-sizer';
-import { styled } from '@superset-ui/core';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -31,11 +29,6 @@ import type { FilterableTableProps, Datum, CellDataType } from './types';
 // exponential notation, NaN, and Infinity.
 // See https://stackoverflow.com/a/30987109 for more details
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
-
-const StyledFilterableTable = styled.div`
-  flex: 1 1 auto;
-  overflow: hidden;
-`;
 
 const parseNumberFromString = (value: string | number | null) => {
   if (typeof value === 'string' && ONLY_NUMBER_REGEX.test(value)) {
@@ -67,6 +60,7 @@ const sortResults = (valueA: string | number, valueB: string | number) => {
 export const FilterableTable = ({
   orderedColumnKeys,
   data,
+  height,
   filterText = '',
   expandedColumns = [],
   allowHTML = true,
@@ -126,27 +120,20 @@ export const FilterableTable = ({
   }, []);
 
   return (
-    <StyledFilterableTable
-      className="filterable-table-container"
-      data-test="table-container"
-    >
-      <AutoSizer disableWidth>
-        {({ height }) => (
-          <GridTable
-            size={GridSize.Small}
-            usePagination={false}
-            height={height}
-            columns={columns}
-            data={data}
-            externalFilter={keywordFilter}
-            showRowNumber
-            striped={striped}
-            enableActions
-            columnReorderable
-          />
-        )}
-      </AutoSizer>
-    </StyledFilterableTable>
+    <div className="filterable-table-container" data-test="table-container">
+      <GridTable
+        size={GridSize.Small}
+        usePagination={false}
+        height={height}
+        columns={columns}
+        data={data}
+        externalFilter={keywordFilter}
+        showRowNumber
+        striped={striped}
+        enableActions
+        columnReorderable
+      />
+    </div>
   );
 };
 
