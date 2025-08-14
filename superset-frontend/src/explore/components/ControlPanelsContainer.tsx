@@ -68,6 +68,10 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  ModernControlPanelRenderer,
+  isModernControlPanel,
+} from './ModernControlPanelRenderer';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -607,6 +611,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
+                    // Check if it's a modern control panel
+                    if (isModernControlPanel(controlItem)) {
+                      return (
+                        <ModernControlPanelRenderer
+                          element={controlItem}
+                          formData={props.form_data}
+                          controls={props.controls}
+                          actions={props.actions}
+                          datasource={props.exploreState.datasource}
+                          validationErrors={props.controls}
+                        />
+                      );
+                    }
                     return controlItem;
                   }
                   if (

@@ -54,4 +54,7 @@ export { ReactControlPanel } from './ReactControlPanel';
 // Export control panel layout components
 export * from './ControlPanelLayout';
 
+// Export React control wrappers for modern panels
+export * from './ReactControlWrappers';
+
 // Inline control functions are exported from SharedControlComponents
