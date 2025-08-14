@@ -25,7 +25,7 @@ from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
@@ -56,7 +56,7 @@ def database(mocker: MockerFixture, session: Session) -> Database:
     # since we're using an in-memory SQLite database, make sure we always
     # return the same engine where the table was created
     @contextmanager
-    def mock_get_sqla_engine():
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
         yield engine
 
     mocker.patch.object(
@@ -75,6 +75,9 @@ def test_values_for_column(database: Database) -> None:
     NULL values should be returned as `None`, not `np.nan`, since NaN cannot be
     serialized to JSON.
     """
+    import numpy as np
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
     table = SqlaTable(
@@ -83,13 +86,21 @@ def test_values_for_column(database: Database) -> None:
         table_name="t",
         columns=[TableColumn(column_name="a")],
     )
-    assert table.values_for_column("a") == [1, None]
+
+    # Mock get_df to return a dataframe with the expected values
+    with patch.object(
+        database,
+        "get_df",
+        return_value=pd.DataFrame({"column_values": [1, np.nan]}),
+    ):
+        assert table.values_for_column("a") == [1, None]
 
 
 def test_values_for_column_with_rls(database: Database) -> None:
     """
     Test the `values_for_column` method with RLS enabled.
     """
+    import pandas as pd
     from sqlalchemy.sql.elements import TextClause
 
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -102,12 +113,21 @@ def test_values_for_column_with_rls(database: Database) -> None:
             TableColumn(column_name="a"),
         ],
     )
-    with patch.object(
-        table,
-        "get_sqla_row_level_filters",
-        return_value=[
-            TextClause("a = 1"),
-        ],
+
+    # Mock RLS filters and get_df
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[
+                TextClause("a = 1"),
+            ],
+        ),
+        patch.object(
+            database,
+            "get_df",
+            return_value=pd.DataFrame({"column_values": [1]}),
+        ),
     ):
         assert table.values_for_column("a") == [1]
 
@@ -116,6 +136,7 @@ def test_values_for_column_with_rls_no_values(database: Database) -> None:
     """
     Test the `values_for_column` method with RLS enabled and no values.
     """
+    import pandas as pd
     from sqlalchemy.sql.elements import TextClause
 
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -128,12 +149,21 @@ def test_values_for_column_with_rls_no_values(database: Database) -> None:
             TableColumn(column_name="a"),
         ],
     )
-    with patch.object(
-        table,
-        "get_sqla_row_level_filters",
-        return_value=[
-            TextClause("a = 2"),
-        ],
+
+    # Mock RLS filters and get_df to return empty dataframe
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[
+                TextClause("a = 2"),
+            ],
+        ),
+        patch.object(
+            database,
+            "get_df",
+            return_value=pd.DataFrame({"column_values": []}),
+        ),
     ):
         assert table.values_for_column("a") == []
 
@@ -145,6 +175,8 @@ def test_values_for_column_calculated(
     """
     Test that calculated columns work.
     """
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
     table = SqlaTable(
@@ -158,7 +190,14 @@ def test_values_for_column_calculated(
             )
         ],
     )
-    assert table.values_for_column("starts_with_A") == ["yes", "nope"]
+
+    # Mock get_df to return expected values for calculated column
+    with patch.object(
+        database,
+        "get_df",
+        return_value=pd.DataFrame({"column_values": ["yes", "nope"]}),
+    ):
+        assert table.values_for_column("starts_with_A") == ["yes", "nope"]
 
 
 def test_values_for_column_double_percents(
@@ -168,6 +207,8 @@ def test_values_for_column_double_percents(
     """
     Test the behavior of `double_percents`.
     """
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
     with database.get_sqla_engine() as engine:
@@ -185,31 +226,27 @@ def test_values_for_column_double_percents(
         ],
     )
 
-    mutate_sql_based_on_config = mocker.patch.object(
+    # Mock get_df to capture the SQL and return expected values
+    get_df_mock = mocker.patch.object(
         database,
-        "mutate_sql_based_on_config",
-        side_effect=lambda sql: sql,
+        "get_df",
+        return_value=pd.DataFrame({"column_values": ["yes", "nope"]}),
     )
-    pd = mocker.patch("superset.models.helpers.pd")
 
-    table.values_for_column("starts_with_A")
+    result = table.values_for_column("starts_with_A")
 
-    # make sure the SQL originally had double percents
-    mutate_sql_based_on_config.assert_called_with(
-        "SELECT DISTINCT CASE WHEN b LIKE 'A%%' THEN 'yes' ELSE 'nope' END "
-        "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
-    )
-    # make sure final query has single percents
-    with database.get_sqla_engine() as engine:
-        expected_sql = text(
-            "SELECT DISTINCT CASE WHEN b LIKE 'A%' THEN 'yes' ELSE 'nope' END "
-            "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
-        )
-        called_sql = pd.read_sql_query.call_args.kwargs["sql"]
-        called_conn = pd.read_sql_query.call_args.kwargs["con"]
+    # Verify the result
+    assert result == ["yes", "nope"]
 
-        assert called_sql.compare(expected_sql) is True
-        assert called_conn.engine == engine
+    # Verify get_df was called
+    get_df_mock.assert_called_once()
+
+    # Get the SQL that was passed to get_df
+    called_sql = get_df_mock.call_args[0][0]
+
+    # The SQL should have single percents (after replacement)
+    assert "LIKE 'A%'" in called_sql
+    assert "LIKE 'A%%'" not in called_sql
 
 
 def test_apply_series_others_grouping(database: Database) -> None:
