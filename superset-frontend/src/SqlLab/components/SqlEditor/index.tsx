@@ -586,21 +586,12 @@ const SqlEditor: FC<Props> = ({
   });
 
   useEffect(() => {
-    // We need to measure the height of the sql editor post render to figure the height of
-    // the south pane so it gets rendered properly
-    setHeight(getSqlEditorHeight());
-    const handleWindowResizeWithThrottle = throttle(
-      () => setHeight(getSqlEditorHeight()),
-      WINDOW_RESIZE_THROTTLE_MS,
-    );
     if (isActive) {
       loadQueryEditor();
-      window.addEventListener('resize', handleWindowResizeWithThrottle);
       window.addEventListener('beforeunload', onBeforeUnload);
     }
 
     return () => {
-      window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
@@ -982,6 +973,7 @@ const SqlEditor: FC<Props> = ({
   );
 
   const queryPane = () => {
+    const height = getSqlEditorHeight();
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
     return (
