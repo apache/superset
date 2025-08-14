@@ -46,7 +46,6 @@ import {
   validateMaxValue,
   getColumnLabel,
 } from '@superset-ui/core';
-import { Tag } from '@superset-ui/core/components/Tag';
 
 import {
   formatSelectOptions,
@@ -507,29 +506,45 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
     default: { dimension: '', values: [] },
     validators: [], // Not required
     renderTrigger: true,
-    mapStateToProps: ({ datasource, controls }) => ({
-      datasource,
-      selectionMode:
-        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ||
-        'members',
-    }),
+    shouldMapStateToProps: (prevState, state) => {
+      // Recalculate when any relevant form_data field changes
+      const fieldsToCheck = [
+        `matrixify_topn_value_${axis}`,
+        `matrixify_topn_metric_${axis}`,
+        `matrixify_topn_order_${axis}`,
+        `matrixify_dimension_selection_mode_${axis}`,
+      ];
+
+      return fieldsToCheck.some(
+        field => prevState?.form_data?.[field] !== state?.form_data?.[field],
+      );
+    },
+    mapStateToProps: ({ datasource, controls, form_data }) => {
+      // Helper to get value from form_data or controls
+      const getValue = (key: string, defaultValue?: any) =>
+        form_data?.[key] ?? controls?.[key]?.value ?? defaultValue;
+
+      return {
+        datasource,
+        selectionMode: getValue(
+          `matrixify_dimension_selection_mode_${axis}`,
+          'members',
+        ),
+        topNMetric: getValue(`matrixify_topn_metric_${axis}`),
+        topNValue: getValue(`matrixify_topn_value_${axis}`),
+        topNOrder: getValue(`matrixify_topn_order_${axis}`),
+        formData: form_data,
+      };
+    },
     visibility: ({ controls }) =>
-      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value !==
-        'topn',
+      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions',
   };
 
   // Dimension picker for TopN mode (just dimension, no values)
+  // NOTE: This is now handled by matrixify_dimension control, so hiding it
   sharedControls[`matrixify_topn_dimension_${axis}`] = {
     type: 'SelectControl',
-    label: (
-      <div>
-        <Tag color="error" style={{ marginBottom: '8px' }}>
-          Not Implemented Yet
-        </Tag>
-        <div>{t('Dimension')}</div>
-      </div>
-    ),
+    label: t('Dimension'),
     description: t(`Select dimension for Top N`),
     default: null,
     mapStateToProps: ({ datasource }) => ({
@@ -540,10 +555,8 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
         ]) || [],
     }),
     renderTrigger: true,
-    visibility: ({ controls }) =>
-      controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-      controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
-        'topn',
+    // Hide this control - now handled by matrixify_dimension control
+    visibility: () => false,
   };
 
   // Add selection mode control (Dimension Members vs TopN)
@@ -629,9 +642,13 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
       [2, '2'],
       [3, '3'],
       [4, '4'],
+      [5, '5'],
       [6, '6'],
+      [8, '8'],
+      [10, '10'],
       [12, '12'],
     ],
+    freeForm: true,
     clearable: false,
     renderTrigger: true,
     visibility: ({ controls }) =>

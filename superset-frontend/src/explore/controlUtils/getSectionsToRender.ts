@@ -63,7 +63,6 @@ const getMemoizedSectionsToRender = memoizeOne(
       matrixifyRows = null,
       matrixifyColumns = null,
       matrixifyCells = null,
-      matrixifyMatrix = null,
       matrixifyEnableSection = null,
     } = sections;
 
@@ -77,7 +76,6 @@ const getMemoizedSectionsToRender = memoizeOne(
       datasourceAndVizType as ControlPanelSectionConfig,
       matrixifyEnableSection as ControlPanelSectionConfig,
       matrixifyCells as ControlPanelSectionConfig,
-      matrixifyMatrix as ControlPanelSectionConfig,
       matrixifyColumns as ControlPanelSectionConfig,
       matrixifyRows as ControlPanelSectionConfig,
     ]

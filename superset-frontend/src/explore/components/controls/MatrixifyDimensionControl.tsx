@@ -21,6 +21,11 @@ import { t, SupersetClient, styled, getColumnLabel } from '@superset-ui/core';
 import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { optionLabel } from 'src/utils/common';
+import {
+  fetchTopNValues,
+  extractDimensionValues,
+  TopNValue,
+} from './MatrixifyControl/utils/fetchTopNValues';
 
 const StyledContainer = styled.div`
   .dimension-select {
@@ -31,6 +36,7 @@ const StyledContainer = styled.div`
 export interface MatrixifyDimensionControlValue {
   dimension: string;
   values: any[];
+  topNValues?: TopNValue[]; // Store topN values with their metric values
 }
 
 interface MatrixifyDimensionControlProps {
@@ -41,6 +47,10 @@ interface MatrixifyDimensionControlProps {
   description?: string;
   hovered?: boolean;
   selectionMode?: 'members' | 'topn';
+  topNMetric?: string;
+  topNValue?: number;
+  topNOrder?: 'ASC' | 'DESC';
+  formData?: any; // For access to filters and time range
 }
 
 export default function MatrixifyDimensionControl(
@@ -54,6 +64,10 @@ export default function MatrixifyDimensionControl(
     description,
     hovered,
     selectionMode = 'members',
+    topNMetric,
+    topNValue,
+    topNOrder = 'DESC',
+    formData,
   } = props;
 
   const [dimensionOptions, setDimensionOptions] = useState<
@@ -63,6 +77,8 @@ export default function MatrixifyDimensionControl(
     Array<{ label: string; value: any }>
   >([]);
   const [loadingValues, setLoadingValues] = useState(false);
+  const [loadingTopN, setLoadingTopN] = useState(false);
+  const [topNError, setTopNError] = useState<string | null>(null);
 
   // Initialize dimension options from datasource
   useEffect(() => {
@@ -116,7 +132,6 @@ export default function MatrixifyDimensionControl(
           })),
         );
       } catch (error) {
-        console.error('Error loading dimension values:', error);
         setValueOptions([]);
       } finally {
         setLoadingValues(false);
@@ -129,6 +144,96 @@ export default function MatrixifyDimensionControl(
       controller.abort();
     };
   }, [value?.dimension, datasource, selectionMode]);
+
+  // Convert topNValue to number for consistent comparison
+  const topNValueNum =
+    typeof topNValue === 'string' ? parseInt(topNValue, 10) : topNValue;
+
+  // Load TopN values when in TopN mode
+  useEffect(() => {
+    if (
+      !value?.dimension ||
+      !datasource ||
+      selectionMode !== 'topn' ||
+      !topNMetric ||
+      !topNValueNum
+    ) {
+      // Clear the values when not in topn mode
+      if (
+        selectionMode !== 'topn' &&
+        value?.values &&
+        value.values.length > 0
+      ) {
+        onChange({
+          dimension: value.dimension,
+          values: [],
+          topNValues: [],
+        });
+      }
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const loadTopNValues = async () => {
+      setLoadingTopN(true);
+      setTopNError(null);
+
+      try {
+        const datasourceId = `${datasource.id}__${datasource.type}`;
+        const values = await fetchTopNValues({
+          datasource: datasourceId,
+          column: value.dimension,
+          metric: topNMetric,
+          limit: topNValueNum,
+          sortAscending: topNOrder === 'ASC',
+          filters: formData?.adhoc_filters || [],
+          timeRange: formData?.time_range,
+        });
+
+        if (!signal.aborted) {
+          // Always update with the new topN values
+          const dimensionValues = extractDimensionValues(values);
+          onChange({
+            dimension: value.dimension,
+            values: dimensionValues,
+            topNValues: values,
+          });
+        }
+      } catch (error: any) {
+        if (!signal.aborted) {
+          setTopNError(error.message || t('Failed to load top values'));
+          // Clear values on error
+          onChange({
+            dimension: value.dimension,
+            values: [],
+            topNValues: [],
+          });
+        }
+      } finally {
+        if (!signal.aborted) {
+          setLoadingTopN(false);
+        }
+      }
+    };
+
+    loadTopNValues();
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    value?.dimension,
+    datasource,
+    selectionMode,
+    topNMetric,
+    topNValueNum, // Use the converted number
+    topNOrder,
+    formData?.adhoc_filters,
+    formData?.time_range,
+    onChange, // Add onChange to deps
+  ]);
 
   const handleDimensionChange = (dimension: string) => {
     // When dimension changes, clear the values
@@ -187,6 +292,15 @@ export default function MatrixifyDimensionControl(
           showSearch
           notFoundContent={t('No results')}
         />
+      )}
+
+      {value?.dimension && selectionMode === 'topn' && loadingTopN && (
+        <div>{t('Loading top values...')}</div>
+      )}
+      {value?.dimension && selectionMode === 'topn' && topNError && (
+        <div css={theme => ({ color: theme.colorError })}>
+          {t('Error: %s', topNError)}
+        </div>
       )}
     </StyledContainer>
   );
