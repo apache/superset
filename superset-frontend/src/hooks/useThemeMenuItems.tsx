@@ -17,44 +17,9 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { Icons, Menu } from '@superset-ui/core/components';
-import {
-  css,
-  styled,
-  t,
-  ThemeMode,
-  useTheme,
-  ThemeAlgorithm,
-} from '@superset-ui/core';
-
-const StyledThemeSubMenu = styled(Menu.SubMenu)`
-  ${({ theme }) => css`
-    [data-icon='caret-down'] {
-      color: ${theme.colorIcon};
-      font-size: ${theme.fontSizeXS}px;
-      margin-left: ${theme.sizeUnit}px;
-    }
-    &.ant-menu-submenu-active {
-      .ant-menu-title-content {
-        color: ${theme.colorPrimary};
-      }
-    }
-  `}
-`;
-
-const StyledThemeSubMenuItem = styled(Menu.Item)<{ selected: boolean }>`
-  ${({ theme, selected }) => css`
-    &:hover {
-      color: ${theme.colorPrimary} !important;
-      cursor: pointer !important;
-    }
-    ${selected &&
-    css`
-      background-color: ${theme.colors.primary.light4} !important;
-      color: ${theme.colors.primary.dark1} !important;
-    `}
-  `}
-`;
+import { Icons } from '@superset-ui/core/components';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
+import { t, ThemeMode, useTheme, ThemeAlgorithm } from '@superset-ui/core';
 
 export interface ThemeSubMenuOption {
   key: ThemeMode;
@@ -71,13 +36,13 @@ export interface ThemeSubMenuProps {
   allowOSPreference?: boolean;
 }
 
-export const ThemeSubMenu: React.FC<ThemeSubMenuProps> = ({
+export const useThemeMenuItems = ({
   setThemeMode,
   themeMode,
   hasLocalOverride = false,
   onClearLocalSettings,
   allowOSPreference = true,
-}: ThemeSubMenuProps) => {
+}: ThemeSubMenuProps): MenuItem => {
   const theme = useTheme();
 
   const handleSelect = (mode: ThemeMode) => {
@@ -107,64 +72,70 @@ export const ThemeSubMenu: React.FC<ThemeSubMenuProps> = ({
     [hasLocalOverride, theme.colors.error.base, themeIconMap, themeMode],
   );
 
-  const themeOptions: ThemeSubMenuOption[] = [
+  const themeOptions: MenuItem[] = [
     {
       key: ThemeMode.DEFAULT,
-      label: t('Light'),
-      icon: <Icons.SunOutlined />,
+      label: (
+        <>
+          <Icons.SunOutlined /> {t('Light')}
+        </>
+      ),
       onClick: () => handleSelect(ThemeMode.DEFAULT),
     },
     {
       key: ThemeMode.DARK,
-      label: t('Dark'),
-      icon: <Icons.MoonOutlined />,
+      label: (
+        <>
+          <Icons.MoonOutlined /> {t('Dark')}
+        </>
+      ),
       onClick: () => handleSelect(ThemeMode.DARK),
     },
     ...(allowOSPreference
       ? [
           {
             key: ThemeMode.SYSTEM,
-            label: t('Match system'),
-            icon: <Icons.FormatPainterOutlined />,
+            label: (
+              <>
+                <Icons.FormatPainterOutlined /> {t('Match system')}
+              </>
+            ),
             onClick: () => handleSelect(ThemeMode.SYSTEM),
           },
         ]
       : []),
   ];
 
-  // Add clear settings option only when there's a local theme active
-  const clearOption =
-    onClearLocalSettings && hasLocalOverride
-      ? {
-          key: 'clear-local',
-          label: t('Clear local theme'),
-          icon: <Icons.ClearOutlined />,
-          onClick: onClearLocalSettings,
-        }
-      : null;
+  const children: MenuItem[] = [
+    {
+      type: 'group' as const,
+      label: t('Theme'),
+      key: 'theme-group',
+      children: themeOptions,
+    },
+  ];
 
-  return (
-    <StyledThemeSubMenu
-      key="theme-sub-menu"
-      title={selectedThemeModeIcon}
-      icon={<Icons.CaretDownOutlined iconSize="xs" />}
-    >
-      <Menu.ItemGroup title={t('Theme')} />
-      {themeOptions.map(option => (
-        <StyledThemeSubMenuItem
-          key={option.key}
-          onClick={option.onClick}
-          selected={option.key === themeMode}
-        >
-          {option.icon} {option.label}
-        </StyledThemeSubMenuItem>
-      ))}
-      {clearOption && [
-        <Menu.Divider key="theme-divider" />,
-        <Menu.Item key={clearOption.key} onClick={clearOption.onClick}>
-          {clearOption.icon} {clearOption.label}
-        </Menu.Item>,
-      ]}
-    </StyledThemeSubMenu>
-  );
+  // Add clear settings option only when there's a local theme active
+  if (onClearLocalSettings && hasLocalOverride) {
+    children.push({
+      type: 'divider' as const,
+      key: 'theme-divider',
+    });
+    children.push({
+      key: 'clear-local',
+      label: (
+        <>
+          <Icons.ClearOutlined /> {t('Clear local theme')}
+        </>
+      ),
+      onClick: onClearLocalSettings,
+    });
+  }
+
+  return {
+    key: 'theme-sub-menu',
+    label: selectedThemeModeIcon,
+    icon: <Icons.CaretDownOutlined iconSize="xs" />,
+    children,
+  };
 };

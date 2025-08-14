@@ -137,7 +137,7 @@ export default function DrillDetailPane({
         title:
           resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
-              headerTitle={column}
+              headerTitle={dataset?.verbose_map?.[column] || column}
               groupTitle={t('Formatting')}
               groupOptions={[
                 { label: t('Original value'), value: TimeFormatting.Original },
@@ -159,7 +159,7 @@ export default function DrillDetailPane({
               }
             />
           ) : (
-            column
+            dataset?.verbose_map?.[column] || column
           ),
         render: value => {
           if (value === true || value === false) {
@@ -179,7 +179,12 @@ export default function DrillDetailPane({
         },
         width: 150,
       })) || [],
-    [resultsPage?.colNames, resultsPage?.colTypes, timeFormatting],
+    [
+      resultsPage?.colNames,
+      resultsPage?.colTypes,
+      timeFormatting,
+      dataset?.verbose_map,
+    ],
   );
 
   const data: DataType[] = useMemo(
