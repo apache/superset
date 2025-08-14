@@ -116,6 +116,7 @@ const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
   row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  height: 100%;
 `;
 
 const ResultlessStyles = styled.div`

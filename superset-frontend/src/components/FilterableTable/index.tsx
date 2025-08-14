@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo, useRef, useCallback } from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { styled } from '@superset-ui/core';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
@@ -32,7 +33,7 @@ import type { FilterableTableProps, Datum, CellDataType } from './types';
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 const StyledFilterableTable = styled.div`
-  height: 100%;
+  flex: 1 1 auto;
   overflow: hidden;
 `;
 
@@ -66,7 +67,6 @@ const sortResults = (valueA: string | number, valueB: string | number) => {
 export const FilterableTable = ({
   orderedColumnKeys,
   data,
-  height,
   filterText = '',
   expandedColumns = [],
   allowHTML = true,
@@ -130,18 +130,22 @@ export const FilterableTable = ({
       className="filterable-table-container"
       data-test="table-container"
     >
-      <GridTable
-        size={GridSize.Small}
-        height={height}
-        usePagination={false}
-        columns={columns}
-        data={data}
-        externalFilter={keywordFilter}
-        showRowNumber
-        striped={striped}
-        enableActions
-        columnReorderable
-      />
+      <AutoSizer disableWidth>
+        {({ height }) => (
+          <GridTable
+            size={GridSize.Small}
+            usePagination={false}
+            height={height}
+            columns={columns}
+            data={data}
+            externalFilter={keywordFilter}
+            showRowNumber
+            striped={striped}
+            enableActions
+            columnReorderable
+          />
+        )}
+      </AutoSizer>
     </StyledFilterableTable>
   );
 };
