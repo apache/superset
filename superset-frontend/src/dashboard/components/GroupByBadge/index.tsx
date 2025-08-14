@@ -234,6 +234,9 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     if (chartFormData.source) {
       existingColumns.add(chartFormData.source);
     }
+    if (chartFormData.target) {
+      existingColumns.add(chartFormData.target);
+    }
 
     if (chartType === 'box_plot') {
       const boxPlotColumns = chartFormData.columns || [];
