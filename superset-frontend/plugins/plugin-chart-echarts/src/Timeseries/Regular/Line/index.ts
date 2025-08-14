@@ -23,7 +23,7 @@ import {
   EchartsTimeseriesSeriesType,
 } from '../../types';
 import buildQuery from '../../buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from '../../../emptyControlPanel';
 import transformProps from '../../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Line1.png';

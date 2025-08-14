@@ -18,7 +18,8 @@
  */
 import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
-import controlPanel from './controlPanel';
+// Use the modern control panel with proper Redux integration
+import controlPanel from './controlPanelModern';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Pie1.jpg';

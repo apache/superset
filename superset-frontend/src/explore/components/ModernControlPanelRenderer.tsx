@@ -63,25 +63,29 @@ export const ModernControlPanelRenderer: FC<
 }) => {
   // Check if this is a modern control panel component
   // Modern panels will have specific prop expectations
+  const elementType = element.type as any;
   const isModernPanel =
     element.props &&
-    ('values' in element.props ||
+    ('value' in element.props ||
       'onChange' in element.props ||
-      element.type?.name?.includes('Modern'));
+      elementType?.name?.includes('PieControlPanel') ||
+      elementType?.name?.includes('Modern'));
 
   if (!isModernPanel) {
     // If it's not a modern panel, render as-is
     return element;
   }
 
-  // Create the modern props adapter
-  const modernProps: ModernControlPanelProps = {
-    values: formData,
+  // Create the modern props adapter for the new naming convention
+  const modernProps = {
+    value: formData,
     onChange: (name: string, value: JsonValue) => {
       actions.setControlValue(name, value);
     },
     datasource,
+    controls,
     formData,
+    actions,
     validationErrors,
   };
 
@@ -98,10 +102,12 @@ export const isModernControlPanel = (element: any): boolean => {
   }
 
   const elementType = element.type as any;
+  const props = element.props as any;
   return (
+    elementType?.name?.includes('PieControlPanel') ||
     elementType?.name?.includes('Modern') ||
     elementType?.displayName?.includes('Modern') ||
-    element.props?.isModernPanel === true
+    props?.isModernPanel === true
   );
 };
 
@@ -111,7 +117,7 @@ export const isModernControlPanel = (element: any): boolean => {
 export function withModernPanelMarker<P extends ModernControlPanelProps>(
   Component: FC<P>,
 ): FC<P> {
-  const WrappedComponent: FC<P> = props => <Component {...props} />;
+  const WrappedComponent: FC<P> = props => <Component {...(props as P)} />;
 
   WrappedComponent.displayName = `Modern${Component.displayName || Component.name}`;
 
