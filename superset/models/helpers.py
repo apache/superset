@@ -1444,17 +1444,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         with self.database.get_sqla_engine() as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
-            sql = self.database.mutate_sql_based_on_config(sql)
 
             # pylint: disable=protected-access
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
-            with engine.connect() as con:
-                df = pd.read_sql_query(sql=self.text(sql), con=con)
-                # replace NaN with None to ensure it can be serialized to JSON
-                df = df.replace({np.nan: None})
-                return df["column_values"].to_list()
+            # Use get_df for consistent query execution with logging
+            df = self.database.get_df(sql, self.catalog, self.schema)
+            # replace NaN with None to ensure it can be serialized to JSON
+            df = df.replace({np.nan: None})
+            return df["column_values"].to_list()
 
     def validate_expression(
         self,
@@ -1554,11 +1553,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 validation_query.compile(engine, compile_kwargs={"literal_binds": True})
             )
             sql = self._apply_cte(sql, cte)
-            sql = self.database.mutate_sql_based_on_config(sql)
 
-            # Execute to validate without fetching data
-            with engine.connect() as con:
-                con.execute(self.text(sql))
+            # Use the new execute_sql_statements method to get proper logging
+            # and SQL_QUERY_MUTATOR support
+            self.database.execute_sql_statements(
+                sql,
+                catalog=self.catalog,
+                schema=self.schema,
+            )
 
             return ValidationResultDict(valid=True, errors=[])
 
