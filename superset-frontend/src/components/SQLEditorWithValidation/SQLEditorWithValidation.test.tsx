@@ -36,9 +36,8 @@ const defaultProps = {
   value: 'SELECT * FROM users',
   onChange: jest.fn(),
   showValidation: true,
-  databaseId: 1,
-  tableName: 'users',
-  schema: 'public',
+  datasourceId: 1,
+  datasourceType: 'table',
 };
 
 describe('SQLEditorWithValidation', () => {
@@ -74,12 +73,12 @@ describe('SQLEditorWithValidation', () => {
     // Button should have primary styling (this would need to check actual class or style)
   });
 
-  it('disables validate button when no value or databaseId', () => {
+  it('disables validate button when no value or datasourceId', () => {
     render(
       <SQLEditorWithValidation
         {...defaultProps}
         value=""
-        databaseId={undefined}
+        datasourceId={undefined}
       />,
     );
 
@@ -192,7 +191,6 @@ describe('SQLEditorWithValidation', () => {
         {...defaultProps}
         value="user_id * 2"
         expressionType="column"
-        catalog="main"
       />,
     );
 
@@ -201,13 +199,10 @@ describe('SQLEditorWithValidation', () => {
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith({
-        endpoint: '/api/v1/database/1/validate_expression/',
+        endpoint: '/api/v1/datasource/table/1/validate_expression/',
         body: JSON.stringify({
           expression: 'user_id * 2',
           expression_type: 'column',
-          table_name: 'users',
-          schema: 'public',
-          catalog: 'main',
           clause: undefined,
         }),
         headers: { 'Content-Type': 'application/json' },
@@ -235,13 +230,10 @@ describe('SQLEditorWithValidation', () => {
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith({
-        endpoint: '/api/v1/database/1/validate_expression/',
+        endpoint: '/api/v1/datasource/table/1/validate_expression/',
         body: JSON.stringify({
           expression: "status = 'active'",
           expression_type: 'filter',
-          table_name: 'users',
-          schema: 'public',
-          catalog: undefined,
           clause: 'WHERE',
         }),
         headers: { 'Content-Type': 'application/json' },
@@ -269,13 +261,10 @@ describe('SQLEditorWithValidation', () => {
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith({
-        endpoint: '/api/v1/database/1/validate_expression/',
+        endpoint: '/api/v1/datasource/table/1/validate_expression/',
         body: JSON.stringify({
           expression: 'COUNT(*) > 5',
           expression_type: 'filter',
-          table_name: 'users',
-          schema: 'public',
-          catalog: undefined,
           clause: 'HAVING',
         }),
         headers: { 'Content-Type': 'application/json' },

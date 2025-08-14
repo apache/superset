@@ -28,26 +28,18 @@ import {
 export type ExpressionType = 'metric' | 'column' | 'filter';
 
 interface SQLEditorWithValidationProps {
-  // SQLEditor props
+  // SQLEditor props - we'll accept any props that SQLEditor accepts
   value: string;
   onChange: (value: string) => void;
-  width?: string;
-  height?: string;
-  showGutter?: boolean;
-  editorProps?: any;
-  enableLiveAutocompletion?: boolean;
-  className?: string;
-  wrapEnabled?: boolean;
-  keywords?: string[];
-  showLoadingForImport?: boolean;
-  onRef?: (ref: any) => void;
-  // Validation props
+  // Validation-specific props
   showValidation?: boolean;
   expressionType?: ExpressionType;
   datasourceId?: number;
   datasourceType?: string;
   clause?: string; // For filters: "WHERE" or "HAVING"
   onValidationComplete?: (isValid: boolean, errors?: ValidationError[]) => void;
+  // Any other props will be passed through to SQLEditor
+  [key: string]: any;
 }
 
 interface ValidationError {
@@ -100,19 +92,9 @@ const StyledValidationMessage = styled.div<{
 `;
 
 export default function SQLEditorWithValidation({
-  // SQLEditor props
+  // Required props
   value,
   onChange,
-  width = '100%',
-  height,
-  showGutter = false,
-  editorProps,
-  enableLiveAutocompletion,
-  className,
-  wrapEnabled,
-  keywords,
-  showLoadingForImport,
-  onRef,
   // Validation props
   showValidation = false,
   expressionType = 'column',
@@ -120,6 +102,8 @@ export default function SQLEditorWithValidation({
   datasourceType,
   clause,
   onValidationComplete,
+  // All other props will be passed through to SQLEditor
+  ...sqlEditorProps
 }: SQLEditorWithValidationProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -219,20 +203,7 @@ export default function SQLEditorWithValidation({
 
   return (
     <StyledEditorContainer>
-      <SQLEditor
-        ref={onRef}
-        value={value}
-        onChange={handleChange}
-        width={width}
-        height={height}
-        showGutter={showGutter}
-        editorProps={editorProps}
-        enableLiveAutocompletion={enableLiveAutocompletion}
-        className={className}
-        wrapEnabled={wrapEnabled}
-        keywords={keywords}
-        showLoadingForImport={showLoadingForImport}
-      />
+      <SQLEditor value={value} onChange={handleChange} {...sqlEditorProps} />
 
       {showValidation && (
         <StyledValidationBar>
