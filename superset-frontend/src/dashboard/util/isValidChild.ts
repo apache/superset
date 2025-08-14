@@ -44,6 +44,7 @@ import {
   TABS_TYPE,
   TAB_TYPE,
   DYNAMIC_TYPE,
+  HELLO_WORLD_TYPE,
 } from './componentTypes';
 
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';
@@ -65,6 +66,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthOne,
     [DYNAMIC_TYPE]: depthOne,
     [MARKDOWN_TYPE]: depthOne,
+    [HELLO_WORLD_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
     [HEADER_TYPE]: depthOne,
@@ -76,6 +78,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthFour,
     [DYNAMIC_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
+    [HELLO_WORLD_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
   },
 
@@ -87,6 +90,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthFive,
     [DYNAMIC_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
+    [HELLO_WORLD_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
@@ -98,6 +102,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
+    [HELLO_WORLD_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
     [TABS_TYPE]: depthThree,

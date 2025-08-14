@@ -49,7 +49,7 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+export const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   const rv = await makeApi<{}, ExploreResponsePayload>({
     method: 'GET',
     endpoint: 'api/v1/explore/',

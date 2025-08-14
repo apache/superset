@@ -288,6 +288,7 @@ class Chart extends PureComponent<ChartProps, {}> {
   }
 
   renderChartContainer() {
+    console.trace("Executed container")
     return (
       <div className="slice_container" data-test="slice-container">
         {this.props.isInView ||

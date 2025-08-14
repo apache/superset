@@ -29,6 +29,7 @@ import {
   TABS_TYPE,
   TAB_TYPE,
   DYNAMIC_TYPE,
+  HELLO_WORLD_TYPE,
 } from './componentTypes';
 
 import {
@@ -62,6 +63,7 @@ const typeToDefaultMetaData = {
     width: GRID_COLUMN_COUNT,
     background: BACKGROUND_TRANSPARENT,
   },
+  [HELLO_WORLD_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 20 },
 };
 
 function uuid(type) {

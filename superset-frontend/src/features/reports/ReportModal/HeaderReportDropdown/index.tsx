@@ -86,18 +86,6 @@ export const useHeaderReportMenuItems = ({
     const reportsState = state.reports || {};
     const resourceTypeReports = reportsState[resourceType] || {};
     const reportData = resourceTypeReports[resourceId];
-
-    // Debug logging to understand what's happening
-    console.log('Report selector called:', {
-      resourceId,
-      resourceType,
-      reportsState: Object.keys(reportsState),
-      resourceTypeReports: Object.keys(resourceTypeReports),
-      reportData: reportData
-        ? { id: reportData.id, name: reportData.name }
-        : null,
-    });
-
     return reportData || null;
   });
 
