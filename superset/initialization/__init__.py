@@ -62,6 +62,8 @@ from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+from superset.middleware.remote_user import RemoteUserMiddleware
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -645,6 +647,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     return self.app(environ, start_response)
 
             self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
+
+
+        if self.config["AUTH_TYPE"] == AUTH_REMOTE_USER:
+            header = self.config.get("AUTH_REMOTE_USER_HEADER")
+            if not header:
+                raise Exception(
+                    "AUTH_REMOTE_USER_HEADER must be set when using AUTH_REMOTE_USER"
+                )
+            self.superset_app.wsgi_app = RemoteUserMiddleware(
+                self.superset_app.wsgi_app, header
+            )
 
         if self.config["UPLOAD_FOLDER"]:
             with contextlib.suppress(OSError):
