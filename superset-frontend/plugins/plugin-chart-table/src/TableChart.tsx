@@ -253,7 +253,7 @@ function SelectPageSize({
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
-const sanitizeHtmlValue = (value: DataRecordValue): DataRecordValue => {
+const extractTextFromHTML = (value: DataRecordValue): DataRecordValue => {
   if (typeof value === 'string' && isProbablyHTML(value)) {
     return removeHTMLTags(value);
   }
@@ -488,7 +488,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           filteredColumnsMeta.forEach(col => {
             if (!col.isMetric) {
               let dataRecordValue = value[col.key];
-              dataRecordValue = sanitizeHtmlValue(dataRecordValue);
+              dataRecordValue = extractTextFromHTML(dataRecordValue);
 
               drillToDetailFilters.push({
                 col: col.key,
@@ -510,7 +510,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     {
                       col: cellPoint.key,
                       op: '==',
-                      val: sanitizeHtmlValue(cellPoint.value),
+                      val: extractTextFromHTML(cellPoint.value),
                     },
                   ],
                   groupbyFieldName: 'groupby',
