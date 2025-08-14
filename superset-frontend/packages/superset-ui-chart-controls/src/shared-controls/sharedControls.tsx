@@ -501,7 +501,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // Combined dimension and values control
   sharedControls[`matrixify_dimension_${axis}`] = {
     type: 'MatrixifyDimensionControl',
-    label: t(`Dimension Selection`),
+    label: t(`Dimension selection`),
     description: t(`Select dimension and values`),
     default: { dimension: '', values: [] },
     validators: [], // Not required
@@ -600,7 +600,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
 
   sharedControls[`matrixify_topn_order_${axis}`] = {
     type: 'RadioButtonControl',
-    label: t(`Sort Order`),
+    label: t(`Sort order`),
     default: 'desc',
     options: [
       ['asc', t('Ascending')],
