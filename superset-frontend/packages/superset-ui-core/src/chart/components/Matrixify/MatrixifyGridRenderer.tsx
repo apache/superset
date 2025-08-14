@@ -147,6 +147,7 @@ function MatrixifyGridRenderer({
     const colsPerRow = fitColumnsDynamically
       ? totalCols
       : Math.min(chartsPerRow, totalCols);
+
     const groups = [];
     for (let i = 0; i < totalCols; i += colsPerRow) {
       groups.push({
