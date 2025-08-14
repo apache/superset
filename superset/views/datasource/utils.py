@@ -72,6 +72,11 @@ def get_samples(  # pylint: disable=too-many-arguments
             force=force,
         )
     else:
+        # Use column names replacing verbose column names(Label)
+        rev_map = datasource.reverse_verbose_map
+        for f in payload.get("filters", []):
+            if f["col"] in rev_map:
+                f["col"] = rev_map[f["col"]]
         # constructing drill detail query
         # When query_type == 'samples' the `time filter` will be removed,
         # so it is not applicable drill detail query

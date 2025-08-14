@@ -361,6 +361,14 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return verb_map
 
     @property
+    def reverse_verbose_map(self) -> dict[str, str]:
+        """label -> column name"""
+        rev_map = {}
+        for k, v in self.verbose_map.items():
+            rev_map[v] = k
+        return rev_map
+
+    @property
     def data(self) -> dict[str, Any]:
         """Data representation of the datasource sent to the frontend"""
         return {
