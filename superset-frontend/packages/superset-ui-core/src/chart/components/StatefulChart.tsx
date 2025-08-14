@@ -30,10 +30,82 @@ import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
+import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
 
 // Using more specific states that align with chart loading process
 type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
+
+/**
+ * Helper function to determine if data should be refetched based on formData changes
+ * @param prevFormData Previous formData
+ * @param nextFormData New formData
+ * @param vizType Chart visualization type
+ * @returns true if data should be refetched, false if only re-render is needed
+ */
+function shouldRefetchData(
+  prevFormData: QueryFormData | undefined,
+  nextFormData: QueryFormData | undefined,
+  vizType: string | undefined,
+): boolean {
+  // If no previous formData or viz types don't match, always refetch
+  if (!prevFormData || !nextFormData || !vizType) {
+    return true;
+  }
+
+  // If viz_type changed, always refetch
+  if (prevFormData.viz_type !== nextFormData.viz_type) {
+    return true;
+  }
+
+  try {
+    // Try to get control panel configuration
+    const controlPanel = getChartControlPanelRegistry().get(vizType);
+    if (!controlPanel || !controlPanel.controlPanelSections) {
+      // If no control panel config available, be conservative and refetch
+      return true;
+    }
+
+    // Build a map of control names to their renderTrigger status
+    const renderTriggerControls = new Set<string>();
+    controlPanel.controlPanelSections.forEach((section: any) => {
+      if (section.controlSetRows) {
+        section.controlSetRows.forEach((row: any) => {
+          row.forEach((control: any) => {
+            if (control && typeof control === 'object') {
+              const controlName = control.name || control.config?.name;
+              if (controlName && control.config?.renderTrigger === true) {
+                renderTriggerControls.add(controlName);
+              }
+            }
+          });
+        });
+      }
+    });
+
+    // Check which fields changed
+    const changedFields = Object.keys(nextFormData).filter(
+      key =>
+        JSON.stringify(prevFormData[key]) !== JSON.stringify(nextFormData[key]),
+    );
+
+    // If no fields changed, no need to refetch
+    if (changedFields.length === 0) {
+      return false;
+    }
+
+    // Check if all changed fields are renderTrigger controls
+    const allChangesAreRenderTrigger = changedFields.every(field =>
+      renderTriggerControls.has(field),
+    );
+
+    // Only skip refetch if ALL changes are renderTrigger-only
+    return !allChangesAreRenderTrigger;
+  } catch (error) {
+    // If there's any error accessing the registry, be conservative and refetch
+    return true;
+  }
+}
 
 export interface StatefulChartProps {
   // Option 1: Provide chartId to load saved chart
@@ -111,13 +183,28 @@ export default class StatefulChart extends Component<
   componentDidUpdate(prevProps: StatefulChartProps) {
     const { chartId, formData, formDataOverrides, force } = this.props;
 
+    // Check if fundamental props changed that always require refetch
     if (
       chartId !== prevProps.chartId ||
-      formData !== prevProps.formData ||
       formDataOverrides !== prevProps.formDataOverrides ||
       force !== prevProps.force
     ) {
       this.fetchData();
+      return;
+    }
+
+    // Check if formData changed
+    if (formData !== prevProps.formData) {
+      // Determine the viz type
+      const vizType = formData?.viz_type || this.props.chartType;
+
+      // Check if we need to refetch data or just re-render
+      if (shouldRefetchData(prevProps.formData, formData, vizType)) {
+        this.fetchData();
+      } else {
+        // Just update the state to trigger re-render without fetching
+        this.setState({ formData });
+      }
     }
   }
 
