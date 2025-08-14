@@ -399,7 +399,7 @@ describe('getColorFunction()', () => {
     expect(colorFunction('Carlos')).toEqual('#FF0000FF');
   });
 
-  it('getColorFunction NotContaining', () => {
+  it('getColorFunction Equal', () => {
     const colorFunction = getColorFunction(
       {
         operator: Comparator.Equal,
@@ -413,7 +413,7 @@ describe('getColorFunction()', () => {
     expect(colorFunction('Diana')).toEqual('#FF0000FF');
   });
 
-  it('getColorFunction NotContaining', () => {
+  it('getColorFunction None', () => {
     const colorFunction = getColorFunction(
       {
         operator: Comparator.None,
