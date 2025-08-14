@@ -121,6 +121,26 @@ export type DatabaseObject = {
 
   // SSH Tunnel information
   ssh_tunnel?: SSHTunnelObject | null;
+
+  // AI Assistant
+  llm_connection?: LlmConnection;
+  llm_context_options?: LlmContextOptions;
+};
+
+export type LlmConnection = {
+  provider?: string;
+  api_key?: string;
+  model?: string;
+  enabled?: boolean;
+};
+
+export type LlmContextOptions = {
+  schemas?: string;
+  include_indexes?: boolean;
+  refresh_interval?: number;
+  top_k?: number;
+  top_k_limit?: number;
+  instructions?: string;
 };
 
 export type DatabaseForm = {
@@ -262,6 +282,15 @@ export interface ExtraJson {
     expand_rows?: boolean;
   };
   version?: string;
+}
+
+export interface LlmContextJson {
+  schemas: string[];
+  include_indexes: boolean;
+  refresh_interval: number;
+  top_k: number;
+  top_k_limit: number;
+  instructions: string;
 }
 
 export type CustomTextType = {

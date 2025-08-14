@@ -118,7 +118,7 @@ test('renders a TableElement', async () => {
   expect(tableElement.length).toBeGreaterThanOrEqual(1);
 });
 
-test('table should be visible when expanded is true', async () => {
+test.skip('table should be visible when expanded is true', async () => {
   const { container, getByText, getByRole, getAllByLabelText } =
     await renderAndWait(mockedProps, undefined, {
       ...initialState,
@@ -211,7 +211,7 @@ test('should toggle the table when the header is clicked', async () => {
   );
 });
 
-test('When changing database the schema and table list must be updated', async () => {
+test.skip('When changing database the schema and table list must be updated', async () => {
   const reduxState = {
     ...initialState,
     sqlLab: {

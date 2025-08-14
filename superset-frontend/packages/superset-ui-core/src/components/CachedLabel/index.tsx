@@ -40,6 +40,9 @@ export const CachedLabel: FC<CacheLabelProps> = ({
     >
       <Label
         className={`${className}`}
+        css={theme => css`
+          gap: ${theme.sizeUnit * 0.5}px;
+        `}
         type={labelType}
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
