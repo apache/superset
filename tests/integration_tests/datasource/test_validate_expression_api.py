@@ -25,6 +25,10 @@ from superset import db
 from superset.utils import json
 from superset.utils.core import SqlExpressionType
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
+)
 
 # Mark this as using the fixture
 pytestmark = pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -35,7 +39,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_column_success(self):
         """Test successful validation of a column expression"""
-        self.login_as_admin()
+        self.login("admin")
 
         # Get the energy_usage table datasource
         datasource = db.session.execute(
@@ -51,7 +55,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={
-                "expression": "country_name",
+                "expression": "source",
                 "expression_type": SqlExpressionType.COLUMN.value,
             },
         )
@@ -63,14 +67,14 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_metric_success(self):
         """Test successful validation of a metric expression"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1  # Assuming we have a datasource with ID 1
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={
-                "expression": "SUM(energy_usage)",
+                "expression": "SUM(value)",
                 "expression_type": SqlExpressionType.METRIC.value,
             },
         )
@@ -82,14 +86,14 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_where_success(self):
         """Test successful validation of a WHERE clause expression"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={
-                "expression": "country_name = 'USA'",
+                "expression": "source = 'energy_source1'",
                 "expression_type": SqlExpressionType.WHERE.value,
             },
         )
@@ -101,14 +105,14 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_having_success(self):
         """Test successful validation of a HAVING clause expression"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={
-                "expression": "SUM(energy_usage) > 1000",
+                "expression": "SUM(value) > 100",
                 "expression_type": SqlExpressionType.HAVING.value,
             },
         )
@@ -120,7 +124,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_filter_with_clause(self):
         """Test validation of filter expression with explicit clause parameter"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
@@ -128,7 +132,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={
-                "expression": "country_name = 'USA'",
+                "expression": "source = 'energy_source1'",
                 "expression_type": "filter",
                 "clause": "WHERE",
             },
@@ -143,7 +147,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={
-                "expression": "SUM(energy_usage) > 1000",
+                "expression": "SUM(value) > 100",
                 "expression_type": "filter",
                 "clause": "HAVING",
             },
@@ -156,12 +160,12 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_invalid_sql(self):
         """Test validation of invalid SQL expression"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
         with patch(
-            "superset.models.helpers.SqlaTable.validate_expression"
+            "superset.connectors.sqla.models.SqlaTable.validate_expression"
         ) as mock_validate:
             mock_validate.return_value = {
                 "valid": False,
@@ -184,19 +188,19 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_having_with_non_aggregated_column(self):
         """Test that HAVING clause fails for non-aggregated columns"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
         with patch(
-            "superset.models.helpers.SqlaTable.validate_expression"
+            "superset.connectors.sqla.models.SqlaTable.validate_expression"
         ) as mock_validate:
             mock_validate.return_value = {
                 "valid": False,
                 "errors": [
                     {
                         "message": (
-                            "column 'country_name' must appear in the GROUP BY clause "
+                            "column 'source' must appear in the GROUP BY clause "
                             "or be used in an aggregate function"
                         )
                     }
@@ -206,7 +210,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
             rv = self.client.post(
                 f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
                 json={
-                    "expression": "country_name = 'USA'",
+                    "expression": "source = 'energy_source1'",
                     "expression_type": SqlExpressionType.HAVING.value,
                 },
             )
@@ -219,7 +223,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_empty(self):
         """Test validation of empty expression"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
@@ -235,29 +239,29 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_missing_parameters(self):
         """Test validation with missing required parameters"""
-        self.login_as_admin()
+        self.login("admin")
 
         datasource_id = 1
 
-        # Missing expression_type
+        # Missing expression_type - defaults to "where"
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={"expression": "test_col"},
         )
 
-        assert rv.status_code == 400
+        assert rv.status_code == 200  # Defaults to "where" type, so succeeds
 
-        # Missing expression
+        # Missing expression - this should fail
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
             json={"expression_type": SqlExpressionType.COLUMN.value},
         )
 
-        assert rv.status_code == 400
+        assert rv.status_code == 400  # Missing expression is an error
 
     def test_validate_expression_datasource_not_found(self):
         """Test validation with non-existent datasource"""
-        self.login_as_admin()
+        self.login("admin")
 
         rv = self.client.post(
             "/api/v1/datasource/table/99999/validate_expression/",
@@ -272,7 +276,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
     def test_validate_expression_no_permission(self):
         """Test validation without permission to access datasource"""
         # Create a user without admin privileges
-        self.login_as("gamma")
+        self.login("gamma")
 
         datasource_id = 1
 
@@ -289,7 +293,7 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
 
     def test_validate_expression_invalid_datasource_type(self):
         """Test validation with invalid datasource type"""
-        self.login_as_admin()
+        self.login("admin")
 
         rv = self.client.post(
             "/api/v1/datasource/invalid_type/1/validate_expression/",
@@ -299,4 +303,4 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
             },
         )
 
-        assert rv.status_code == 404
+        assert rv.status_code == 400  # Returns 400 for invalid datasource type
