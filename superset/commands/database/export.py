@@ -88,7 +88,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
                     "schemas_allowed_for_file_upload"
                 )
 
-        if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(model.id):
+        if ssh_tunnel := model.ssh_tunnel:
             ssh_tunnel_payload = ssh_tunnel.export_to_dict(
                 recursive=False,
                 include_parent_ref=False,
