@@ -398,6 +398,34 @@ describe('getColorFunction()', () => {
     expect(colorFunction('Diana')).toBeUndefined();
     expect(colorFunction('Carlos')).toEqual('#FF0000FF');
   });
+
+  it('getColorFunction NotContaining', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: Comparator.Equal,
+        targetValue: 'Diana',
+        colorScheme: '#FF0000',
+        column: 'name',
+      },
+      strValues,
+    );
+    expect(colorFunction('Carlos')).toBeUndefined();
+    expect(colorFunction('Diana')).toEqual('#FF0000FF');
+  });
+
+  it('getColorFunction NotContaining', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        column: 'name',
+      },
+      strValues,
+    );
+    expect(colorFunction('Diana')).toEqual('#FF0000FF');
+    expect(colorFunction('Carlos')).toEqual('#FF0000FF');
+    expect(colorFunction('Brian')).toEqual('#FF0000FF');
+  });
 });
 
 describe('getColorFormatters()', () => {
