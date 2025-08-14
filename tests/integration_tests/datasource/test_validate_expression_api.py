@@ -25,20 +25,13 @@ from superset import db
 from superset.utils import json
 from superset.utils.core import SqlExpressionType
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-)
+
+# Mark this as using the fixture
+pytestmark = pytest.mark.usefixtures("load_energy_table_with_slice")
 
 
 class TestDatasourceValidateExpressionApi(SupersetTestCase):
     """Test the datasource validate_expression API endpoint"""
-
-    @pytest.fixture(autouse=True)
-    def setup_fixtures(self):
-        with self.create_app().app_context():
-            load_energy_table_with_slice()
-            yield
-            db.session.rollback()
 
     def test_validate_expression_column_success(self):
         """Test successful validation of a column expression"""
