@@ -339,6 +339,9 @@ FAB_API_SWAGGER_UI = True
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
 
+# The header to use for remote user authentication
+AUTH_REMOTE_USER_HEADER = "X-Forwarded-User"
+
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
 

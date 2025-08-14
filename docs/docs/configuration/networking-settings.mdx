@@ -136,6 +136,7 @@ Superset allows you to add your own middleware. To add your own middleware, upda
 `ADDITIONAL_MIDDLEWARE` key in your `superset_config.py`. `ADDITIONAL_MIDDLEWARE` should be a list
 of your additional middleware classes.
 
-For example, to use `AUTH_REMOTE_USER` from behind a proxy server like nginx, you have to add a
-simple middleware class to add the value of `HTTP_X_PROXY_REMOTE_USER` (or any other custom header
-from the proxy) to Gunicorn’s `REMOTE_USER` environment variable.
+For example, to use `AUTH_REMOTE_USER` from behind a proxy server like nginx, set
+`AUTH_REMOTE_USER_HEADER` to the header containing the authenticated user (by default
+`X-Forwarded-User`). Superset will copy the header value into Gunicorn's `REMOTE_USER`
+environment variable.
