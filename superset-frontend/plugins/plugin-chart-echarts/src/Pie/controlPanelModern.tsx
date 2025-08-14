@@ -41,19 +41,30 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'groupby',
-            config: sharedControls.groupby || {},
+            config: {
+              ...sharedControls.groupby,
+              label: t('Group by'),
+              description: t('One or many columns to group by'),
+            },
           },
         ],
         [
           {
             name: 'metric',
-            config: sharedControls.metrics || {},
+            config: {
+              ...sharedControls.metrics,
+              multi: false,
+              label: t('Metric'),
+              description: t('Metric to display in the pie chart'),
+            },
           },
         ],
         [
           {
             name: 'adhoc_filters',
-            config: sharedControls.adhoc_filters || {},
+            config: {
+              ...sharedControls.adhoc_filters,
+            },
           },
         ],
         [
@@ -68,7 +79,13 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'sort_by_metric',
-            config: sharedControls.sort_by_metric || {},
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort by metric'),
+              default: true,
+              renderTrigger: true,
+              description: t('Sort series by metric values'),
+            },
           },
         ],
       ],
@@ -80,7 +97,9 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'color_scheme',
-            config: sharedControls.color_scheme || {},
+            config: {
+              ...sharedControls.color_scheme,
+            },
           },
         ],
         [
@@ -370,12 +389,13 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metric: getStandardizedControls().shiftMetric(),
-    groupby: getStandardizedControls().popAllColumns(),
-    row_limit: formData.row_limit ?? 100,
-  }),
+  // Temporarily disable formDataOverrides to debug
+  // formDataOverrides: formData => ({
+  //   ...formData,
+  //   metric: getStandardizedControls().shiftMetric(),
+  //   groupby: getStandardizedControls().popAllColumns(),
+  //   row_limit: formData.row_limit ?? 100,
+  // }),
 };
 
 export default config;
