@@ -466,6 +466,7 @@ const ResultSet = ({
           {!limitReached && shouldUseDefaultDropdownAlert && (
             <div>
               <Alert
+                closable
                 type="warning"
                 message={t(
                   'The number of rows displayed is limited to %(rows)d by the dropdown.',
@@ -477,6 +478,7 @@ const ResultSet = ({
           {limitReached && (
             <div>
               <Alert
+                closable
                 type="warning"
                 message={
                   isAdmin
