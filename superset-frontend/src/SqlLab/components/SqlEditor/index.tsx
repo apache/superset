@@ -50,7 +50,7 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, throttle, isEmpty } from 'lodash';
+import { debounce, isEmpty } from 'lodash';
 import Mousetrap from 'mousetrap';
 import {
   Alert,
@@ -98,7 +98,6 @@ import {
   INITIAL_NORTH_PERCENT,
   INITIAL_SOUTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
-  WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import {
   getItem,
