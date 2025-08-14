@@ -461,9 +461,9 @@ const RightMenu = ({
                 <Typography.Link
                   href={child.url || ''}
                   css={css`
-                    display: flex !important;
-                    align-items: center !important;
-                    line-height: ${theme.sizeUnit * 10}px !important;
+                    display: flex;
+                    align-items: center;
+                    line-height: ${theme.sizeUnit * 10}px;
                   `}
                 >
                   {menuItemDisplay}

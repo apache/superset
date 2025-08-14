@@ -46,7 +46,7 @@ const NewComponent = styled.div`
     transform: translate(0, 0);
     color: ${theme.colorText};
     background-color: ${theme.colorBgLayout};
-    border-radius: 4px;
+    border-radius: ${theme.borderRadius}px;
     cursor: move;
 
     &:hover {
