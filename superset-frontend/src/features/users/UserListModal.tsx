@@ -17,14 +17,17 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
-import { FormItem } from 'src/components/Form';
-import { Input } from 'src/components/Input';
-import Checkbox from 'src/components/Checkbox';
-import Select from 'src/components/Select/Select';
-import { Group, Role, UserObject } from 'src/pages/UsersList';
-import { FormInstance } from 'src/components';
+import {
+  Checkbox,
+  FormModal,
+  Select,
+  Input,
+  FormItem,
+  FormInstance,
+} from '@superset-ui/core/components';
+import { Group, Role, UserObject } from 'src/pages/UsersList/types';
 import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';
@@ -118,7 +121,13 @@ function UserListModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={isEditMode ? t('Edit User') : t('Add User')}
+      name={isEditMode ? 'Edit User' : 'Add User'}
+      title={
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit User') : t('Add User')}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={requiredFields}
@@ -195,7 +204,7 @@ function UserListModal({
                 label: role.name,
               }))}
               getPopupContainer={trigger =>
-                trigger.closest('.antd5-modal-content')
+                trigger.closest('.ant-modal-content')
               }
             />
           </FormItem>
@@ -214,7 +223,7 @@ function UserListModal({
                 label: group.name,
               }))}
               getPopupContainer={trigger =>
-                trigger.closest('.antd5-modal-content')
+                trigger.closest('.ant-modal-content')
               }
             />
           </FormItem>

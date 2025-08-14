@@ -23,7 +23,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
@@ -46,6 +46,7 @@ import {
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
+import CrudThemeProvider from 'src/components/CrudThemeProvider';
 
 import { nanoid } from 'nanoid';
 import { RootState } from '../types';
@@ -115,6 +116,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
+  const dashboardTheme = useSelector(
+    (state: RootState) => state.dashboardInfo.theme,
+  );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -129,7 +133,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, id = 0 } = dashboard || {};
+  const { dashboard_title, id = 0 } = dashboard || {};
+
+  // Get CSS from Redux state (updated by updateCss action) instead of API
+  const css =
+    useSelector((state: RootState) => state.dashboardState.css) ||
+    dashboard?.css;
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -232,7 +241,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const globalStyles = useMemo(
     () => [
-      filterCardPopoverStyle(theme),
+      filterCardPopoverStyle(),
       headerStyles(theme),
       chartContextMenuStyles(theme),
       focusStyle(theme),
@@ -251,12 +260,20 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <DashboardContainer
-              activeFilters={activeFilters}
-              ownDataCharts={relevantDataMask}
+            <CrudThemeProvider
+              themeId={
+                dashboardTheme !== undefined
+                  ? dashboardTheme?.id
+                  : dashboard?.theme?.id
+              }
             >
-              {DashboardBuilderComponent}
-            </DashboardContainer>
+              <DashboardContainer
+                activeFilters={activeFilters}
+                ownDataCharts={relevantDataMask}
+              >
+                {DashboardBuilderComponent}
+              </DashboardContainer>
+            </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>
       ) : (

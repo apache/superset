@@ -18,13 +18,18 @@
  */
 
 import { useCallback, useState, FormEvent } from 'react';
-
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import { AsyncSelect } from 'src/components';
-import { Input } from 'src/components/Input';
-import StyledModal from 'src/components/Modal';
-import Button from 'src/components/Button';
-import Checkbox from 'src/components/Checkbox';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import {
+  AsyncSelect,
+  Button,
+  Checkbox,
+  Modal,
+  Input,
+  type SelectValue,
+  Icons,
+  Flex,
+} from '@superset-ui/core/components';
 import {
   styled,
   t,
@@ -52,8 +57,6 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-// eslint-disable-next-line no-restricted-imports
-import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 import { isEmpty } from 'lodash';
 
 interface QueryDatabase {
@@ -101,33 +104,47 @@ interface SaveDatasetModalProps {
 
 const Styles = styled.div`
   ${({ theme }) => `
-  .sdm-body {
-    margin: 0 ${theme.gridUnit * 2}px;
-  }
-  .sdm-input {
-    margin-left: ${theme.gridUnit * 10}px;
-    width: 401px;
-  }
-  .sdm-autocomplete {
-    width: 401px;
-    align-self: center;
-    margin-left: ${theme.gridUnit}px;
-  }
-  .sdm-radio {
-    height: 30px;
-    margin: 10px 0px;
-    line-height: 30px;
-  }
-  .sdm-radio span {
-    display: inline-flex;
-    padding-right: 0px;
-  }
-  .sdm-overwrite-msg {
-    margin: ${theme.gridUnit * 2}px;
-  }
-  .sdm-overwrite-container {
-    flex: 1 1 auto;
-    display: flex;
+    .sdm-body {
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+    }
+
+    .sdm-prompt {
+      margin-bottom: ${theme.sizeUnit * 4}px;
+      color: ${theme.colorTextSecondary};
+    }
+
+    .sdm-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit * 6}px;
+    }
+
+    .sdm-radio-option {
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit * 3}px;
+    }
+
+    .sdm-radio {
+      margin: 0;
+      .ant-radio {
+        margin-right: ${theme.sizeUnit * 2}px;
+      }
+      .ant-radio-wrapper {
+        color: ${theme.colorText};
+      }
+    }
+
+    .sdm-form-field {
+      margin-left: 0;
+      max-width: 400px;
+    }
+
+    .sdm-overwrite-msg {
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+      text-align: center;
+      color: ${theme.colorText};
+    }
   `}
 `;
 const updateDataset = async (
@@ -369,25 +386,25 @@ export const SaveDatasetModal = ({
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   return (
-    <StyledModal
+    <Modal
       show={visible}
-      title={t('Save or Overwrite Dataset')}
+      name={t('Save or Overwrite Dataset')}
+      title={
+        <ModalTitleWithIcon
+          title={t('Save or Overwrite Dataset')}
+          icon={<Icons.SaveOutlined />}
+          data-test="save-or-overwrite-dataset-title"
+        />
+      }
       onHide={onHide}
       footer={
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '8px',
-          }}
-        >
+        <Flex align="center" justify="flex-end" gap="8px">
           {isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && (
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <Checkbox
                 checked={includeTemplateParameters}
-                onChange={checked =>
-                  setIncludeTemplateParameters(checked ?? false)
+                onChange={e =>
+                  setIncludeTemplateParameters(e.target.checked ?? false)
                 }
               />
               <span style={{ marginLeft: '5px' }}>
@@ -421,7 +438,7 @@ export const SaveDatasetModal = ({
               </Button>
             </>
           )}
-        </div>
+        </Flex>
       }
     >
       <Styles>
@@ -435,21 +452,27 @@ export const SaveDatasetModal = ({
                 setNewOrOverwrite(Number(e.target.value));
               }}
               value={newOrOverwrite}
+              className="sdm-radio-group"
             >
-              <Radio className="sdm-radio" value={1}>
-                {t('Save as new')}
-                <Input
-                  className="sdm-input"
-                  value={datasetName}
-                  onChange={handleDatasetNameChange}
-                  disabled={newOrOverwrite !== 1}
-                />
-              </Radio>
-              <div className="sdm-overwrite-container">
+              <div className="sdm-radio-option">
+                <Radio className="sdm-radio" value={1}>
+                  {t('Save as new')}
+                </Radio>
+                <div className="sdm-form-field">
+                  <Input
+                    value={datasetName}
+                    onChange={handleDatasetNameChange}
+                    disabled={newOrOverwrite !== 1}
+                    placeholder={t('Dataset name')}
+                  />
+                </div>
+              </div>
+
+              <div className="sdm-radio-option">
                 <Radio className="sdm-radio" value={2}>
                   {t('Overwrite existing')}
                 </Radio>
-                <div className="sdm-autocomplete">
+                <div className="sdm-form-field">
                   <AsyncSelect
                     allowClear
                     showSearch
@@ -473,6 +496,6 @@ export const SaveDatasetModal = ({
           </div>
         )}
       </Styles>
-    </StyledModal>
+    </Modal>
   );
 };

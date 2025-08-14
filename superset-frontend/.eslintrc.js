@@ -52,7 +52,7 @@ const restrictedImportsRules = {
     message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
   },
   'no-testing-library-react': {
-    name: '@testing-library/react',
+    name: '@superset-ui/core/spec',
     message: 'Please use spec/helpers/testing-library instead',
   },
   'no-testing-library-react-dom-utils': {
@@ -63,15 +63,15 @@ const restrictedImportsRules = {
     name: 'antd',
     message: 'Please import Ant components from the index of src/components',
   },
-  'no-antd-v5': {
-    name: 'antd-v5',
-    message: 'Please import Ant v5 components from the index of src/components',
-  },
   'no-superset-theme': {
     name: '@superset-ui/core',
     importNames: ['supersetTheme'],
     message:
       'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
+  },
+  'no-query-string': {
+    name: 'query-string',
+    message: 'Please use the URLSearchParams API instead of query-string.',
   },
 };
 
@@ -86,9 +86,7 @@ module.exports = {
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-    },
+    ecmaVersion: 2018,
   },
   env: {
     browser: true,
@@ -100,6 +98,15 @@ module.exports = {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
         moduleDirectory: ['node_modules', '.'],
+      },
+      typescript: {
+        alwaysTryTypes: true,
+        project: [
+          './tsconfig.json',
+          './packages/superset-ui-core/tsconfig.json',
+          './packages/superset-ui-chart-controls/',
+          './plugins/*/tsconfig.json',
+        ],
       },
     },
     // only allow import from top level of module
@@ -118,6 +125,11 @@ module.exports = {
     'react-prefer-function-component',
     'prettier',
   ],
+  // Add this TS ESlint rule in separate `rules` section to avoid breakages with JS/TS files in /cypress-base.
+  // TODO(hainenber): merge it to below `rules` section.
+  rules: {
+    '@typescript-eslint/prefer-optional-chain': 'error',
+  },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -151,7 +163,7 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
-        '@typescript-eslint/prefer-optional-chain': 2,
+        '@typescript-eslint/no-unused-vars': 'warn', // downgrade to Warning severity for Jest v30 upgrade
         camelcase: 0,
         'class-methods-use-this': 0,
         'func-names': 0,
@@ -295,9 +307,9 @@ module.exports = {
           'error',
           {
             paths: Object.values(restrictedImportsRules).filter(
-              r => r.name !== 'antd-v5',
+              r => r.name !== 'antd',
             ),
-            patterns: ['antd/*'],
+            patterns: [],
           },
         ],
       },
@@ -330,7 +342,9 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { devDependencies: true },
+          {
+            devDependencies: true,
+          },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
@@ -373,7 +387,7 @@ module.exports = {
         'fixtures.*',
         'cypress-base/cypress/**/*',
         'Stories.tsx',
-        'packages/superset-ui-core/src/style/index.tsx',
+        'packages/superset-ui-core/src/theme/index.tsx',
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
@@ -384,10 +398,12 @@ module.exports = {
       },
     },
   ],
+  // eslint-disable-next-line no-dupe-keys
   rules: {
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/sentence-case-buttons': 'error',
     camelcase: [
       'error',
       {

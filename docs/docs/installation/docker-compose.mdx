@@ -26,25 +26,28 @@ Superset locally is using Docker Compose on a Linux or Mac OSX
 computer. Superset does not have official support for Windows. It's also the easiest
 way to launch a fully functioning **development environment** quickly.
 
-Note that there are 3 major ways we support to run `docker compose`:
+Note that there are 4 major ways we support to run `docker compose`:
 
 1. **docker-compose.yml:** for interactive development, where we mount your local folder with the
   frontend/backend files that you can edit and experience the changes you
   make in the app in real time
+1. **docker-compose-light.yml:** a lightweight configuration with minimal services (database,
+  Superset app, and frontend dev server) for development. Uses in-memory caching instead of Redis
+  and is designed for running multiple instances simultaneously
 1. **docker-compose-non-dev.yml** where we just build a more immutable image based on the
   local branch and get all the required images running. Changes in the local branch
   at the time you fire this up will be reflected, but changes to the code
   while `up` won't be reflected in the app
 1. **docker-compose-image-tag.yml** where we fetch an image from docker-hub say for the
-  `3.0.0` release for instance, and fire it up so you can try it. Here what's in
+  `5.0.0` release for instance, and fire it up so you can try it. Here what's in
   the local branch has no effects on what's running, we just fetch and run
   pre-built images from docker-hub. For `docker compose` to work along with the
   Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
-  `export TAG=4.0.0-dev` or `export TAG=3.0.0-dev`, with `latest-dev` being the default.
-  That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
+  `export TAG=5.0.0-dev` or `export TAG=4.1.2-dev`, with `latest-dev` being the default.
+  The `dev` builds include the `psycopg2-binary` required to connect
   to the Postgres database launched as part of the `docker compose` builds.
 
-More on these two approaches after setting up the requirements for either.
+More on these approaches after setting up the requirements for either.
 
 ## Requirements
 
@@ -103,17 +106,40 @@ and help you start fresh. In the context of `docker compose` setting
 from within docker. This will slow down the startup, but will fix various npm-related issues.
 :::
 
-### Option #2 - build a set of immutable images from the local branch
+### Option #2 - lightweight development with multiple instances
+
+For a lighter development setup that uses fewer resources and supports running multiple instances:
+
+```bash
+# Single lightweight instance (default port 9001)
+docker compose -f docker-compose-light.yml up
+
+# Multiple instances with different ports
+NODE_PORT=9001 docker compose -p superset-1 -f docker-compose-light.yml up
+NODE_PORT=9002 docker compose -p superset-2 -f docker-compose-light.yml up
+NODE_PORT=9003 docker compose -p superset-3 -f docker-compose-light.yml up
+```
+
+This configuration includes:
+- PostgreSQL database (internal network only)
+- Superset application server
+- Frontend development server with webpack hot reloading
+- In-memory caching (no Redis)
+- Isolated volumes and networks per instance
+
+Access each instance at `http://localhost:{NODE_PORT}` (e.g., `http://localhost:9001`).
+
+### Option #3 - build a set of immutable images from the local branch
 
 ```bash
 docker compose -f docker-compose-non-dev.yml up
 ```
 
-### Option #3 - boot up an official release
+### Option #4 - boot up an official release
 
 ```bash
 # Set the version you want to run
-export TAG=3.1.1
+export TAG=5.0.0
 # Fetch the tag you're about to check out (assuming you shallow-cloned the repo)
 git fetch --depth=1 origin tag $TAG
 # Could also fetch all tags too if you've got bandwidth to spare
@@ -129,8 +155,8 @@ Refer to the docker-related documentation to learn more about existing tags you 
 from Docker Hub.
 
 :::note
-For option #2 and #3, we recommend checking out the release tag from the better repository
-(ie: `git checkout 4.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
+For option #2 and #3, we recommend checking out the release tag from the git repository
+(ie: `git checkout 5.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
 configurations and that the mounted `docker/` scripts are in sync with the image you are
 looking to fire up.
 :::
@@ -143,7 +169,7 @@ its metadata database. In production, this database should be backed up.  The de
 with docker compose will store that data in a PostgreSQL database contained in a Docker
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
-Again, **DO NOT USE THIS FOR PRODUCTION**
+Again, **THE DOCKER-COMPOSE INSTALLATION IS NOT PRODUCTION-READY OUT OF THE BOX.**
 
 :::
 

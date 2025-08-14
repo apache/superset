@@ -18,17 +18,14 @@
  */
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
-import { css, SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import { FormItem, FormLabel } from 'src/components/Form';
-import { Icons } from 'src/components/Icons';
+import { css, SupersetTheme, useTheme } from '@superset-ui/core';
+import {
+  Icons,
+  Tooltip,
+  FormItem,
+  FormLabel,
+} from '@superset-ui/core/components';
 
-const formItemInlineCss = css`
-  .ant-form-item-control-input-content {
-    display: flex;
-    flex-direction: row;
-  }
-`;
 interface FieldProps<V> {
   fieldKey: string;
   value?: V;
@@ -61,10 +58,39 @@ export default function Field<V>({
     [onChange, fieldKey],
   );
 
+  const theme = useTheme();
+  const extra = !compact && description ? description : undefined;
+  const infoTooltip =
+    compact && description ? (
+      <Tooltip
+        css={css`
+          color: ${theme.colorTextTertiary};
+        `}
+        id="field-descr"
+        placement="right"
+        title={description}
+      >
+        <Icons.InfoCircleOutlined
+          iconSize="s"
+          css={css`
+            margin-left: ${theme.marginXXS}px;
+          `}
+          iconColor={theme.colorTextTertiary}
+        />
+      </Tooltip>
+    ) : undefined;
+
   const hookedControl = cloneElement(control, {
     value,
     onChange: onControlChange,
+    label: (
+      <FormLabel>
+        {label || fieldKey}
+        {infoTooltip}
+      </FormLabel>
+    ),
   });
+
   return (
     <div
       css={
@@ -76,36 +102,23 @@ export default function Field<V>({
     >
       {additionalControl}
       <FormItem
-        label={
-          <FormLabel className="m-r-5">
-            {label || fieldKey}
-            {compact && description && (
-              <Tooltip id="field-descr" placement="right" title={description}>
-                <Icons.InfoCircleFilled iconSize="s" className="m-l-5" />
-              </Tooltip>
-            )}
-          </FormLabel>
+        extra={extra}
+        css={
+          !inline &&
+          css`
+            .ControlHeader {
+              margin-bottom: ${theme.marginXXS}px;
+            }
+          `
         }
-        css={inline && formItemInlineCss}
       >
         {hookedControl}
-        {!compact && description && (
-          <div
-            css={(theme: SupersetTheme) => ({
-              color: theme.colors.grayscale.base,
-              [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
-            })}
-          >
-            {description}
-          </div>
-        )}
       </FormItem>
       {errorMessage && (
         <div
           css={(theme: SupersetTheme) => ({
-            color: theme.colors.error.base,
-            marginTop: -16,
-            fontSize: theme.typography.sizes.s,
+            color: theme.colorText,
+            [inline ? 'marginLeft' : 'marginTop']: theme.marginXXS,
           })}
         >
           {errorMessage}

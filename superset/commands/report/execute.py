@@ -21,8 +21,9 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException, UpdateFailedError
@@ -310,6 +311,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
+
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
@@ -407,6 +409,7 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
+
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
@@ -880,6 +883,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
+
             _, username = get_executor(
                 executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,

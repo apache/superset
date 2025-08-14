@@ -22,8 +22,6 @@ import {
   styled,
   SupersetClient,
   t,
-  css,
-  useTheme,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
@@ -35,43 +33,48 @@ import {
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { PublishedLabel } from 'src/components/Label';
-import { TagsList } from 'src/components/Tags';
+import {
+  CertifiedBadge,
+  ConfirmStatusChange,
+  DeleteModal,
+  FaveStar,
+  Loading,
+  PublishedLabel,
+  Tooltip,
+} from '@superset-ui/core/components';
+import {
+  FacePile,
+  TagType,
+  TagsList,
+  ModifiedInfo,
+  ImportModal as ImportModelsModal,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilter,
+  type ListViewFilters,
+} from 'src/components';
 import handleResourceExport from 'src/utils/export';
-import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ListView, {
-  ListViewProps,
-  Filter,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
-import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import FacePile from 'src/components/FacePile';
-import { Icons } from 'src/components/Icons';
-import DeleteModal from 'src/components/DeleteModal';
-import FaveStar from 'src/components/FaveStar';
+import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import { Tooltip } from 'src/components/Tooltip';
-import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
 } from 'src/views/CRUD/types';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import { loadTags } from 'src/components/Tags/utils';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
+import { loadTags } from 'src/components/Tag/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { navigateTo } from 'src/utils/navigationUtils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -107,7 +110,7 @@ export interface Dashboard {
   url: string;
   thumbnail_url: string;
   owners: Owner[];
-  tags: Tag[];
+  tags: TagType[];
   created_by: object;
 }
 
@@ -141,7 +144,6 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
-  const theme = useTheme();
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -344,6 +346,8 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
+        size: 'xxl',
+        id: 'dashboard_title',
       },
       {
         Cell: ({
@@ -355,7 +359,8 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'xl',
+        size: 'sm',
+        id: 'published',
       },
       {
         Cell: ({
@@ -365,14 +370,16 @@ function DashboardList(props: DashboardListProps) {
         }: {
           row: {
             original: {
-              tags: Tag[];
+              tags: TagType[];
             };
           };
         }) => (
           // Only show custom type tags
           <TagsList
             tags={tags.filter(
-              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
+              (tag: TagType) =>
+                tag.type === 'TagTypes.custom' ||
+                tag.type === TagTypeEnum.Custom,
             )}
             maxTags={3}
           />
@@ -380,7 +387,9 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
+        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -392,6 +401,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
+        id: 'owners',
       },
       {
         Cell: ({
@@ -405,6 +415,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -495,6 +506,7 @@ function DashboardList(props: DashboardListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [
@@ -510,7 +522,7 @@ function DashboardList(props: DashboardListProps) {
     ],
   );
 
-  const favoritesFilter: Filter = useMemo(
+  const favoritesFilter: ListViewFilter = useMemo(
     () => ({
       Header: t('Favorite'),
       key: 'favorite',
@@ -527,7 +539,7 @@ function DashboardList(props: DashboardListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(() => {
+  const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
@@ -582,6 +594,7 @@ function DashboardList(props: DashboardListProps) {
           props.user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(user?.userId ? [favoritesFilter] : []),
       {
@@ -616,8 +629,9 @@ function DashboardList(props: DashboardListProps) {
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
-    ] as Filters;
+    ] as ListViewFilters;
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 
@@ -674,6 +688,23 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
+
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import dashboards')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openDashboardImportModal,
+    });
+  }
+
   if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -682,39 +713,15 @@ function DashboardList(props: DashboardListProps) {
       onClick: toggleBulkSelect,
     });
   }
+
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
-          {t('Dashboard')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
         navigateTo('/dashboard/new', { assign: true });
       },
-    });
-
-    subMenuButtons.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import dashboards')}
-          placement="bottomRight"
-        >
-          <Icons.DownloadOutlined data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDashboardImportModal,
     });
   }
   return (
@@ -728,6 +735,7 @@ function DashboardList(props: DashboardListProps) {
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -807,7 +815,7 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                enableBulkTag
+                enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
               />
             </>

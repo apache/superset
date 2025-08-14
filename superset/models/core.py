@@ -36,7 +36,7 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import g
+from flask import current_app as app, g, has_app_context
 from flask_appbuilder import Model
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
@@ -61,7 +61,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db, db_engine_specs, is_feature_enabled
+from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -90,18 +90,12 @@ from superset.utils.oauth2 import (
     OAuth2ClientConfigSchema,
 )
 
-config = app.config
-custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
-stats_logger = config["STATS_LOGGER"]
-log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.sql_lab import Query
-
-DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
@@ -119,6 +113,25 @@ class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
     css = Column(utils.MediumText(), default="")
+
+
+class Theme(AuditMixinNullable, ImportExportMixin, Model):
+    """Themes for dashboards"""
+
+    __tablename__ = "themes"
+    __table_args__ = (
+        sqla.Index("idx_theme_is_system_default", "is_system_default"),
+        sqla.Index("idx_theme_is_system_dark", "is_system_dark"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    theme_name = Column(String(250))
+    json_data = Column(utils.MediumText(), default="")
+    is_system = Column(Boolean, default=False, nullable=False)
+    is_system_default = Column(Boolean, default=False, nullable=False)
+    is_system_dark = Column(Boolean, default=False, nullable=False)
+
+    export_fields = ["theme_name", "json_data"]
 
 
 class ConfigurationMethod(StrEnum):
@@ -383,6 +396,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
         conn = make_url_safe(uri.strip())
+        custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
@@ -452,7 +466,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     ssh_context,
                 )
 
-            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
                     yield self._get_sqla_engine(
@@ -521,7 +535,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         self.update_params_from_encrypted_extra(engine_kwargs)
 
-        if DB_CONNECTION_MUTATOR:
+        if DB_CONNECTION_MUTATOR := app.config["DB_CONNECTION_MUTATOR"]:  # noqa: N806
             source = source or get_query_source_from_request()
 
             sqlalchemy_url, engine_kwargs = DB_CONNECTION_MUTATOR(
@@ -642,8 +656,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
           on the group of queries as a whole. Here the called passes the context
           as to whether the SQL is split or already.
         """  # noqa: E501
-        sql_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
+        sql_mutator = app.config["SQL_QUERY_MUTATOR"]
+        if sql_mutator and (is_split == app.config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
                 sql_,
                 security_manager=security_manager,
@@ -661,6 +675,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         script = SQLScript(sql, self.db_engine_spec.engine)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
+
+        log_query = app.config["QUERY_LOGGER"]
 
         def _log_query(sql: str) -> None:
             if log_query:
@@ -1038,7 +1054,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             allowed_databases = literal_eval(allowed_databases)
 
         if hasattr(g, "user"):
-            extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
+            extra_allowed_databases = app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
             )
             allowed_databases += extra_allowed_databases
@@ -1052,8 +1068,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
-        if custom_password_store:
-            conn = conn.set(password=custom_password_store(conn))
+        if has_app_context():
+            if custom_password_store := app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
+                conn = conn.set(password=custom_password_store(conn))
+            else:
+                conn = conn.set(password=self.password)
         else:
             conn = conn.set(password=self.password)
         return str(conn)

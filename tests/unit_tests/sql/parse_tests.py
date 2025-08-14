@@ -1163,7 +1163,6 @@ def test_custom_dialect(app: None) -> None:
         "pydoris",
         "redshift",
         "risingwave",
-        "rockset",
         "shillelagh",
         "snowflake",
         "solr",
@@ -1188,6 +1187,43 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
     Global tests for `is_mutating`, covering all supported engines.
     """
     assert SQLStatement(sql, engine).is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        (
+            """
+DO $$
+BEGIN
+  INSERT INTO public.users (name, real_name)
+    VALUES ('SQLLab bypass DML', 'SQLLab bypass DML');
+END;
+$$;
+            """,
+            True,
+        ),
+        (
+            """
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM orders WHERE status = 'pending') > 100 THEN
+        RAISE NOTICE 'High pending order volume detected';
+    END IF;
+END;
+$$;
+            """,
+            True,
+        ),
+    ],
+)
+def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
+    """
+    Test for `is_mutating` with a Postgres anonymous block.
+
+    Since we can't parse the PL/pgSQL inside the block we always assume it is mutating.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
 
 
 def test_optimize() -> None:
@@ -1236,7 +1272,7 @@ WHERE
     """.strip()
 
     assert SQLStatement(sql, "sqlite").optimize().format() == optimized
-    assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
+    assert SQLStatement(sql, "crate").optimize().format() == not_optimized
 
     # also works for scripts
     assert SQLScript(sql, "sqlite").optimize().format() == optimized
@@ -1852,7 +1888,7 @@ FROM (
   FROM some_table
   WHERE
     id = 42
-) AS some_table
+) AS "some_table"
 WHERE
   1 = 1
             """.strip(),
@@ -1869,7 +1905,7 @@ FROM (
   FROM table
   WHERE
     id = 42
-) AS table
+) AS "table"
 WHERE
   1 = 1
             """.strip(),
@@ -1926,7 +1962,7 @@ JOIN (
   FROM other_table
   WHERE
     id = 42
-) AS other_table
+) AS "other_table"
   ON table.id = other_table.id
             """.strip(),
         ),
@@ -1962,7 +1998,7 @@ FROM (
     FROM some_table
     WHERE
       id = 42
-  ) AS some_table
+  ) AS "some_table"
 )
             """.strip(),
         ),
@@ -1978,7 +2014,7 @@ FROM (
   FROM table
   WHERE
     id = 42
-) AS table
+) AS "table"
 UNION ALL
 SELECT
   *
@@ -2001,7 +2037,7 @@ FROM (
   FROM other_table
   WHERE
     id = 42
-) AS other_table
+) AS "other_table"
             """.strip(),
         ),
         (
@@ -2039,6 +2075,22 @@ FROM (
 INNER JOIN tbl_b AS b
   ON a.col = b.col
             """.strip(),
+        ),
+        (
+            "SELECT * FROM public.flights LIMIT 100",
+            {Table("flights", "public", "catalog1"): "\"AIRLINE\" like 'A%'"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM public.flights
+  WHERE
+    "AIRLINE" LIKE 'A%'
+) AS "public.flights"
+LIMIT 100
+        """.strip(),
         ),
     ],
 )

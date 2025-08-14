@@ -31,7 +31,7 @@ from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import app, appbuilder, db, security_manager, viz
+from superset import appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -1495,6 +1495,9 @@ class TestRolePermission(SupersetTestCase):
             ("menu_access", "SQL Lab"),
             ("can_read", "SqlLabPermalinkRestApi"),
             ("can_write", "SqlLabPermalinkRestApi"),
+            ("can_post", "TableSchemaView"),
+            ("can_expanded", "TableSchemaView"),
+            ("can_delete", "TableSchemaView"),
         }
 
         self.assert_cannot_alpha(sql_lab_set)
@@ -1553,6 +1556,10 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetIndexView", "index"],
             ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
+            ["SupersetAuthView", "login"],
+            ["SupersetAuthView", "logout"],
+            ["SupersetRegisterUserView", "register"],
+            ["SupersetRegisterUserView", "activation"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -2183,7 +2190,7 @@ class TestGuestTokens(SupersetTestCase):
     def test_create_guest_access_token_callable_audience(self, get_time_mock):
         now = time.time()
         get_time_mock.return_value = now
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
 
         user = {"username": "test_guest"}
         resources = [{"some": "resource"}]
@@ -2196,7 +2203,7 @@ class TestGuestTokens(SupersetTestCase):
             algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
             audience="cool_code",
         )
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
         assert "cool_code" == decoded_token["aud"]
         assert "guest" == decoded_token["type"]
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None

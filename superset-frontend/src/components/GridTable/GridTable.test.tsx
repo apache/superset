@@ -17,13 +17,8 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { setupAGGridModules } from 'src/setup/setupAGGridModules';
-import GridTable from '.';
-
-jest.mock('src/components/ErrorBoundary', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { GridTable } from '.';
 
 const mockedProps = {
   queryId: 'abc',

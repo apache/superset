@@ -18,12 +18,12 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  screen,
   render,
   userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
@@ -86,7 +86,7 @@ describe('ResultsPaneOnDashboard', () => {
     },
   );
 
-  const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
+  const setForceQuery = jest.fn();
 
   afterAll(() => {
     fetchMock.reset();
@@ -122,7 +122,7 @@ describe('ResultsPaneOnDashboard', () => {
       useRedux: true,
     });
     expect(await findByText('0 rows')).toBeVisible();
-    expect(await findByText('Bad Request')).toBeVisible();
+    expect(await findByText('Bad request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {
@@ -131,7 +131,7 @@ describe('ResultsPaneOnDashboard', () => {
       queryForce: true,
     });
     const { queryByText, getByPlaceholderText } = render(
-      <ResultsPaneOnDashboard {...props} />,
+      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
       },
@@ -168,11 +168,20 @@ describe('ResultsPaneOnDashboard', () => {
       sliceId: 196,
       vizType: VizType.MixedTimeseries,
     });
-    const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
+
+    render(<ResultsPaneOnDashboard {...props} />, {
       useRedux: true,
     });
-    expect(await findByText('Results')).toBeVisible();
-    expect(await findByText('Results 2')).toBeVisible();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('status', { name: 'Loading' }),
+    );
+
+    const tab1 = document.querySelector('[data-node-key="results"]');
+    const tab2 = document.querySelector('[data-node-key="results 2"]');
+
+    expect(tab1).toBeVisible();
+    expect(tab2).toBeVisible();
   });
 
   test('dynamic number of results pane', async () => {
@@ -193,14 +202,21 @@ describe('ResultsPaneOnDashboard', () => {
       sliceId: 196,
       vizType: VizType.MixedTimeseries,
     });
-    const { findByText, queryByText } = render(
-      <ResultsPaneOnDashboard {...props} />,
-      {
-        useRedux: true,
-      },
+
+    render(<ResultsPaneOnDashboard {...props} />, {
+      useRedux: true,
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('status', { name: 'Loading' }),
     );
-    expect(await findByText('Results')).toBeVisible();
-    expect(await findByText('Results 2')).toBeVisible();
-    expect(queryByText('Results 3')).not.toBeInTheDocument();
+
+    const tab1 = document.querySelector('[data-node-key="results"]');
+    const tab2 = document.querySelector('[data-node-key="results 2"]');
+    const tab3 = document.querySelector('[data-node-key="results 3"]');
+
+    expect(tab1).toBeVisible();
+    expect(tab2).toBeVisible();
+    expect(tab3).toBeNull();
   });
 });

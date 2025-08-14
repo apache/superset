@@ -20,7 +20,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { css, t, SupersetClient, useTheme, styled } from '@superset-ui/core';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Descriptions } from 'src/components/Descriptions';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -28,56 +27,51 @@ import {
   UserInfoEditModal,
   UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
-import Collapse from 'src/components/Collapse';
-
-interface UserInfoProps {
-  user: UserWithPermissionsAndRoles;
-}
+import { Icons, Collapse } from '@superset-ui/core/components';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
     text-align: left;
     font-size: 18px;
-    padding: ${theme.gridUnit * 3}px;
-    padding-left: ${theme.gridUnit * 7}px;
+    padding: ${theme.sizeUnit * 3}px;
+    padding-left: ${theme.sizeUnit * 7}px;
     display: inline-block;
-    line-height: ${theme.gridUnit * 9}px;
+    line-height: ${theme.sizeUnit * 9}px;
     width: 100%;
     background-color: ${theme.colors.grayscale.light5};
-    margin-bottom: ${theme.gridUnit * 6}px;
+    margin-bottom: ${theme.sizeUnit * 6}px;
   `}
 `;
 
 const DescriptionsContainer = styled.div`
   ${({ theme }) => css`
-    margin: 0px ${theme.gridUnit * 3}px ${theme.gridUnit * 6}px
-      ${theme.gridUnit * 3}px;
+    margin: 0px ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px
+      ${theme.sizeUnit * 3}px;
     background-color: ${theme.colors.grayscale.light5};
   `}
 `;
 
 const StyledLayout = styled.div`
   ${({ theme }) => css`
-    .antd5-row {
-      margin: 0px ${theme.gridUnit * 3}px ${theme.gridUnit * 6}px
-        ${theme.gridUnit * 3}px;
+    .ant-row {
+      margin: 0px ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px
+        ${theme.sizeUnit * 3}px;
     }
-    && .menu > .antd5-menu {
+    && .menu > .ant-menu {
       padding: 0px;
     }
     && .nav-right {
       left: 0;
-      padding-left: ${theme.gridUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
       position: relative;
-      height: ${theme.gridUnit * 15}px;
-      background-color: ${theme.colors.grayscale.light5};
+      height: ${theme.sizeUnit * 15}px;
     }
   `}
 `;
 
 const DescriptionTitle = styled.span`
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
 enum ModalType {
@@ -85,7 +79,7 @@ enum ModalType {
   Edit = 'edit',
 }
 
-export function UserInfo({ user }: UserInfoProps) {
+export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
   const theme = useTheme();
   const [modalState, setModalState] = useState({
     resetPassword: false,
@@ -122,10 +116,10 @@ export function UserInfo({ user }: UserInfoProps) {
       name: (
         <>
           <Icons.LockOutlined
-            iconColor={theme.colors.primary.base}
+            iconColor={theme.colorPrimary}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
           />
@@ -142,10 +136,9 @@ export function UserInfo({ user }: UserInfoProps) {
       name: (
         <>
           <Icons.FormOutlined
-            iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
           />

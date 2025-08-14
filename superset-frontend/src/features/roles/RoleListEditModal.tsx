@@ -18,21 +18,25 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import {
+  EmptyWrapperType,
+  FormModal,
+  TableView,
+  FormInstance,
+  Icons,
+} from '@superset-ui/core/components';
 import {
   BaseModalProps,
   FormattedPermission,
   RoleForm,
 } from 'src/features/roles/types';
-import { CellProps } from 'react-table';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
 import { GroupObject } from 'src/pages/GroupsList';
-import { FormInstance } from 'src/components';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import { UserObject } from 'src/pages/UsersList';
+import { type UserObject } from 'src/pages/UsersList/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   GroupsField,
   PermissionsField,
@@ -66,25 +70,29 @@ const roleTabs = {
 const userColumns = [
   {
     accessor: 'first_name',
-    Header: 'First Name',
+    Header: t('First Name'),
+    id: 'first_name',
   },
   {
     accessor: 'last_name',
-    Header: 'Last Name',
+    Header: t('Last Name'),
+    id: 'last_name',
   },
   {
     accessor: 'username',
-    Header: 'User Name',
+    Header: t('User Name'),
+    id: 'username',
   },
   {
     accessor: 'email',
-    Header: 'Email',
+    Header: t('Email'),
+    id: 'email',
   },
   {
     accessor: 'active',
-    Header: 'Is Active?',
-    Cell: ({ cell }: CellProps<{ active: boolean }>) =>
-      cell.value ? 'Yes' : 'No',
+    Header: t('Is Active?'),
+    Cell: ({ value }: { value: boolean }) => (value ? t('Yes') : t('No')),
+    id: 'active',
   },
 ];
 
@@ -174,7 +182,13 @@ function RoleListEditModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={t('Edit Role')}
+      name="Edit Role"
+      title={
+        <ModalTitleWithIcon
+          title={t('Edit Role')}
+          icon={<Icons.EditOutlined />}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       initialValues={initialValues}

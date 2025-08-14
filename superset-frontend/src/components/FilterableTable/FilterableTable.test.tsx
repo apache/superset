@@ -17,14 +17,14 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import FilterableTable from 'src/components/FilterableTable';
 import {
   render,
   screen,
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { setupAGGridModules } from 'src/setup/setupAGGridModules';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { FilterableTable } from '.';
 
 describe('FilterableTable', () => {
   beforeAll(() => {

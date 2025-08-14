@@ -18,9 +18,13 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-import { EmptyState } from 'src/components/EmptyState';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import {
+  TableView,
+  TableSize,
+  EmptyState,
+  Loading,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
 import {
   useFilteredTableData,
   useTableColumns,
@@ -30,7 +34,7 @@ import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const cache = new WeakSet();
@@ -39,7 +43,7 @@ export const SamplesPane = ({
   isRequest,
   datasource,
   queryForce,
-  actions,
+  setForceQuery,
   dataSize = 50,
   isVisible,
   canDownload,
@@ -71,8 +75,8 @@ export const SamplesPane = ({
           setRowCount(response.rowcount);
           setResponseError('');
           cache.add(datasource);
-          if (queryForce && actions) {
-            actions.setForceQuery(false);
+          if (queryForce) {
+            setForceQuery?.(false);
           }
         })
         .catch(error => {
@@ -148,6 +152,7 @@ export const SamplesPane = ({
         className="table-condensed"
         isPaginationSticky
         showRowCount={false}
+        size={TableSize.Small}
         small
       />
     </>

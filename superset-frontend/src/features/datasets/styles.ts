@@ -22,12 +22,12 @@ export const StyledLayoutWrapper = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colorBgContainer};
 `;
 
 export const LeftColumn = styled.div<{ width?: number }>`
-  width: ${({ theme, width }) => width ?? theme.gridUnit * 80}px;
-  max-width: ${({ theme, width }) => width ?? theme.gridUnit * 80}px;
+  width: ${({ theme, width }) => width ?? theme.sizeUnit * 80}px;
+  max-width: ${({ theme, width }) => width ?? theme.sizeUnit * 80}px;
   flex-direction: column;
   flex: 1 0 auto;
 `;
@@ -57,27 +57,29 @@ export const PanelRow = styled(Row)`
 
 export const FooterRow = styled(Row)`
   flex: 0 0 auto;
-  height: ${({ theme }) => theme.gridUnit * 16}px;
+  height: ${({ theme }) => theme.sizeUnit * 16}px;
   z-index: 0;
 `;
 
 export const StyledLayoutHeader = styled.div`
   ${({ theme }) => `
   flex: 0 0 auto;
-  height: ${theme.gridUnit * 16}px;
-  border-bottom: 2px solid ${theme.colors.grayscale.light2};
+  display: flex;
+  align-items: center;
+  height: ${theme.sizeUnit * 16}px;
+  border-bottom: 1px solid ${theme.colorBorder};
 
   .header-with-actions {
-    height: ${theme.gridUnit * 15.5}px;
+    height: ${theme.sizeUnit * 15.5}px;
   }
   `}
 `;
 
 export const StyledCreateDatasetTitle = styled.div`
   ${({ theme }) => `
-  margin: ${theme.gridUnit * 4}px;
-  font-size: ${theme.typography.sizes.xl}px;
-  font-weight: ${theme.typography.weights.bold};
+  margin: ${theme.sizeUnit * 4}px;
+  font-size: ${theme.fontSizeXL}px;
+  font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
@@ -96,29 +98,29 @@ export const StyledLayoutDatasetPanel = styled.div`
 export const StyledLayoutRightPanel = styled.div`
   ${({ theme }) => `
   border-left: 1px solid ${theme.colors.grayscale.light2};
-  color: ${theme.colors.success.base};
+  color: ${theme.colorSuccess};
   `}
 `;
 
 export const StyledLayoutFooter = styled.div`
   ${({ theme }) => `
-  height: ${theme.gridUnit * 16}px;
+  height: ${theme.sizeUnit * 16}px;
   width: 100%;
   border-top: 1px solid ${theme.colors.grayscale.light2};
   border-bottom: 1px solid ${theme.colors.grayscale.light2};
-  color: ${theme.colors.info.base};
-  border-top: ${theme.gridUnit / 4}px solid
+  color: ${theme.colorInfo};
+  border-top: ${theme.sizeUnit / 4}px solid
     ${theme.colors.grayscale.light2};
-  padding: ${theme.gridUnit * 4}px;
+  padding: ${theme.sizeUnit * 4}px;
   display: flex;
   justify-content: flex-end;
-  background-color: ${theme.colors.grayscale.light5};
-  z-index: ${theme.zIndex.max}
+  background-color: ${theme.colorBgContainer};
+  z-index: ${theme.zIndexPopupBase}
   `}
 `;
 
 export const HeaderComponentStyles = styled.div`
-  .antd5-btn {
+  .ant-btn {
     span {
       margin-right: 0;
     }
@@ -132,7 +134,7 @@ export const HeaderComponentStyles = styled.div`
 `;
 
 export const disabledSaveBtnStyles = (theme: SupersetTheme) => css`
-  width: ${theme.gridUnit * 21.5}px;
+  width: ${theme.sizeUnit * 21.5}px;
 
   &:disabled {
     background-color: ${theme.colors.grayscale.light3};
