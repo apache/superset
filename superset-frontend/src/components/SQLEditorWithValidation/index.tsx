@@ -23,6 +23,7 @@ import {
   Button,
   Icons,
   Tooltip,
+  Flex,
 } from '@superset-ui/core/components';
 import {
   ExpressionType,
@@ -44,21 +45,6 @@ interface SQLEditorWithValidationProps {
   // Any other props will be passed through to SQLEditor
   [key: string]: any;
 }
-
-const StyledEditorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
-const StyledValidationBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-  padding: ${({ theme }) => theme.sizeUnit}px 0;
-  min-height: 32px;
-`;
 
 const StyledValidationMessage = styled.div<{
   isError?: boolean;
@@ -194,11 +180,11 @@ export default function SQLEditorWithValidation({
   );
 
   return (
-    <StyledEditorContainer>
+    <Flex vertical gap="middle">
       <SQLEditor value={value} onChange={handleChange} {...sqlEditorProps} />
 
       {showValidation && (
-        <StyledValidationBar>
+        <Flex justify="space-between" align="center" style={{ minHeight: 32 }}>
           <StyledValidationMessage
             isError={validationResult ? !validationResult.isValid : false}
             isUnverified={!validationResult && !isValidating}
@@ -248,8 +234,8 @@ export default function SQLEditorWithValidation({
           >
             {t('Validate')}
           </Button>
-        </StyledValidationBar>
+        </Flex>
       )}
-    </StyledEditorContainer>
+    </Flex>
   );
 }
