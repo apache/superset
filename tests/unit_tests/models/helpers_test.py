@@ -87,10 +87,9 @@ def test_values_for_column(database: Database) -> None:
         columns=[TableColumn(column_name="a")],
     )
 
-    # Mock get_df to return a dataframe with the expected values
-    with patch.object(
-        database,
-        "get_df",
+    # Mock pd.read_sql_query to return a dataframe with the expected values
+    with patch(
+        "pandas.read_sql_query",
         return_value=pd.DataFrame({"column_values": [1, np.nan]}),
     ):
         assert table.values_for_column("a") == [1, None]
@@ -114,7 +113,7 @@ def test_values_for_column_with_rls(database: Database) -> None:
         ],
     )
 
-    # Mock RLS filters and get_df
+    # Mock RLS filters and pd.read_sql_query
     with (
         patch.object(
             table,
@@ -123,9 +122,8 @@ def test_values_for_column_with_rls(database: Database) -> None:
                 TextClause("a = 1"),
             ],
         ),
-        patch.object(
-            database,
-            "get_df",
+        patch(
+            "pandas.read_sql_query",
             return_value=pd.DataFrame({"column_values": [1]}),
         ),
     ):
@@ -150,7 +148,7 @@ def test_values_for_column_with_rls_no_values(database: Database) -> None:
         ],
     )
 
-    # Mock RLS filters and get_df to return empty dataframe
+    # Mock RLS filters and pd.read_sql_query to return empty dataframe
     with (
         patch.object(
             table,
@@ -159,9 +157,8 @@ def test_values_for_column_with_rls_no_values(database: Database) -> None:
                 TextClause("a = 2"),
             ],
         ),
-        patch.object(
-            database,
-            "get_df",
+        patch(
+            "pandas.read_sql_query",
             return_value=pd.DataFrame({"column_values": []}),
         ),
     ):
@@ -191,10 +188,9 @@ def test_values_for_column_calculated(
         ],
     )
 
-    # Mock get_df to return expected values for calculated column
-    with patch.object(
-        database,
-        "get_df",
+    # Mock pd.read_sql_query to return expected values for calculated column
+    with patch(
+        "pandas.read_sql_query",
         return_value=pd.DataFrame({"column_values": ["yes", "nope"]}),
     ):
         assert table.values_for_column("starts_with_A") == ["yes", "nope"]
@@ -226,10 +222,9 @@ def test_values_for_column_double_percents(
         ],
     )
 
-    # Mock get_df to capture the SQL and return expected values
-    get_df_mock = mocker.patch.object(
-        database,
-        "get_df",
+    # Mock pd.read_sql_query to capture the SQL and return expected values
+    read_sql_mock = mocker.patch(
+        "pandas.read_sql_query",
         return_value=pd.DataFrame({"column_values": ["yes", "nope"]}),
     )
 
@@ -238,11 +233,11 @@ def test_values_for_column_double_percents(
     # Verify the result
     assert result == ["yes", "nope"]
 
-    # Verify get_df was called
-    get_df_mock.assert_called_once()
+    # Verify read_sql_query was called
+    read_sql_mock.assert_called_once()
 
-    # Get the SQL that was passed to get_df
-    called_sql = get_df_mock.call_args[0][0]
+    # Get the SQL that was passed to read_sql_query
+    called_sql = str(read_sql_mock.call_args[1]["sql"])
 
     # The SQL should have single percents (after replacement)
     assert "LIKE 'A%'" in called_sql
