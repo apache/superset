@@ -2178,25 +2178,27 @@ SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 # links using custom_doc_links. Set show_issue_info=False to hide default error codes.
 # Example:
 # CUSTOM_DATABASE_ERRORS = {
-#     re.compile(r'message="(?P<message>[^"]*)"'): (
-#        __(
-#            'Unexpected error: "%(message)s"'
-#        ),
-#        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-#        {
-#            "custom_doc_links": [
-#                {
-#                    "url": "https://example.com/docs/1",
-#                    "label": "Check documentation"
-#                },
-#            ],
-#            "show_issue_info": False,
-#        }
-#    )
+#     "trino": {
+#         re.compile(r'message="(?P<message>[^"]*)"'): (
+#             __(
+#                 'Unexpected error: "%(message)s"'
+#             ),
+#             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+#             {
+#                 "custom_doc_links": [
+#                     {
+#                         "url": "https://example.com/docs/1",
+#                         "label": "Check documentation"
+#                     },
+#                 ],
+#                 "show_issue_info": False,
+#             }
+#         )
+#     }
 # }
 
 CUSTOM_DATABASE_ERRORS: dict[
-    re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
+    str, dict[re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]]
 ] = {}
 
 
