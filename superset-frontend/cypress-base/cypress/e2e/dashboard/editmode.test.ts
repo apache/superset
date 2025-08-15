@@ -49,6 +49,8 @@ function openProperties() {
 
 function assertMetadata(text: string) {
   const regex = new RegExp(text);
+  // Ensure the JSON metadata editor is visible first
+  cy.get('#json_metadata').scrollIntoView();
   cy.get('#json_metadata')
     .should('be.visible')
     .then(() => {
@@ -67,6 +69,8 @@ function openAdvancedProperties() {
     .contains('Advanced Settings')
     .should('be.visible')
     .click({ force: true });
+  // After expanding the section, scroll to the JSON metadata editor
+  cy.get('#json_metadata').scrollIntoView();
   cy.get('#json_metadata').should('be.visible');
 }
 
@@ -195,6 +199,8 @@ function saveChanges() {
 }
 
 function clearMetadata() {
+  // Ensure the JSON metadata editor is visible first
+  cy.get('#json_metadata').scrollIntoView();
   cy.get('#json_metadata').then($jsonmetadata => {
     cy.wrap($jsonmetadata).find('.ace_content').click({ force: true });
     cy.wrap($jsonmetadata)
@@ -209,6 +215,8 @@ function clearMetadata() {
 }
 
 function writeMetadata(metadata: string) {
+  // Ensure the JSON metadata editor is visible first
+  cy.get('#json_metadata').scrollIntoView();
   cy.get('#json_metadata').then($jsonmetadata => {
     cy.wrap($jsonmetadata).find('.ace_content').click({ force: true });
     cy.wrap($jsonmetadata)
