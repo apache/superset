@@ -531,6 +531,8 @@ const Header = () => {
         owners: updates.owners,
         roles: updates.roles,
         tags: updates.tags,
+        theme_id: updates.themeId,
+        css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);
       boundActionCreators.dashboardTitleChanged(updates.title);

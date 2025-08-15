@@ -431,6 +431,8 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
+      themeId: selectedThemeId,
+      css: customCss,
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
