@@ -34,6 +34,7 @@ const mockedProps = {
       url: '/lang/it',
     },
   },
+  setDirection: () => {},
 };
 
 test('should render', async () => {
