@@ -1252,15 +1252,10 @@ describe('async actions', () => {
             // new qe has a different id
             newQueryEditor: {
               ...oldQueryEditor,
-              id: '1',
+              tabViewId: '1',
               inLocalStorage: false,
               loaded: true,
             },
-          },
-          {
-            type: actions.MIGRATE_TAB_HISTORY,
-            newId: '1',
-            oldId: 'abcd',
           },
           {
             type: actions.MIGRATE_TABLE,

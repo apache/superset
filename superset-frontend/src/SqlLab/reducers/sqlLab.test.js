@@ -255,18 +255,6 @@ describe('sqlLabReducer', () => {
       expect(newState.queryEditors[index].id).toEqual('updatedNewId');
       expect(newState.queryEditors[index]).toEqual(newQueryEditor);
     });
-    it('should migrate tab history by new query editor id', () => {
-      expect(newState.tabHistory).toContain(qe.id);
-      const action = {
-        type: actions.MIGRATE_TAB_HISTORY,
-        oldId: qe.id,
-        newId: 'updatedNewId',
-      };
-      newState = sqlLabReducer(newState, action);
-
-      expect(newState.tabHistory).toContain('updatedNewId');
-      expect(newState.tabHistory).not.toContain(qe.id);
-    });
     it('should clear the destroyed query editors', () => {
       const expectedQEId = '1233289';
       const action = {
