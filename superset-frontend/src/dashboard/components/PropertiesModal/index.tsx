@@ -722,6 +722,8 @@ const PropertiesModal = ({
                         loadAccessOptions('owners', input, page, pageSize)
                       }
                       value={handleOwnersSelectValue()}
+                      showSearch
+                      placeholder={t('Search owners')}
                     />
                   </ModalFormField>
                   {isFeatureEnabled(FeatureFlag.DashboardRbac) && (
@@ -744,6 +746,8 @@ const PropertiesModal = ({
                           loadAccessOptions('roles', input, page, pageSize)
                         }
                         value={handleRolesSelectValue()}
+                        showSearch
+                        placeholder={t('Search roles')}
                       />
                     </ModalFormField>
                   )}
@@ -763,6 +767,8 @@ const PropertiesModal = ({
                         onChange={handleChangeTags}
                         onClear={handleClearTags}
                         allowClear
+                        showSearch
+                        placeholder={t('Search tags')}
                       />
                     </ModalFormField>
                   )}
