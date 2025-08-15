@@ -208,7 +208,7 @@ describe('PropertiesModal', () => {
     expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug
 
     // Expand Styling section to see the ColorSchemeControlWrapper
-    const stylingPanel = screen.getByText('Styling').closest('[role="tab"]');
+    const stylingPanel = screen.getByText('Styling').closest('[role="button"]');
     if (stylingPanel) {
       userEvent.click(stylingPanel);
     }
@@ -251,7 +251,7 @@ describe('PropertiesModal', () => {
     // Expand Access & Ownership to see Tags
     const accessPanel = screen
       .getByText('Access & Ownership')
-      .closest('[role="tab"]');
+      .closest('[role="button"]');
     if (accessPanel) {
       userEvent.click(accessPanel);
     }
@@ -265,7 +265,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
     // Expand Styling section to check ColorSchemeControlWrapper
-    const stylingPanel = screen.getByText('Styling').closest('[role="tab"]');
+    const stylingPanel = screen.getByText('Styling').closest('[role="button"]');
     if (stylingPanel) {
       userEvent.click(stylingPanel);
     }
@@ -293,7 +293,7 @@ describe('PropertiesModal', () => {
     // Click on the Advanced Settings collapse panel to expand it
     const advancedPanel = screen
       .getByText('Advanced Settings')
-      .closest('[role="tab"]');
+      .closest('[role="button"]');
     expect(advancedPanel).toBeTruthy();
     userEvent.click(advancedPanel!);
 
@@ -394,7 +394,7 @@ describe('PropertiesModal', () => {
     // Expand the Certification section first to access certification details
     const certificationPanel = screen
       .getByText('Certification')
-      .closest('[role="tab"]');
+      .closest('[role="button"]');
     if (certificationPanel) {
       userEvent.click(certificationPanel);
     }
@@ -435,7 +435,7 @@ describe('PropertiesModal', () => {
     // Expand the Access & Ownership section first to access roles
     const accessPanel = screen
       .getByText('Access & Ownership')
-      .closest('[role="tab"]');
+      .closest('[role="button"]');
     if (accessPanel) {
       userEvent.click(accessPanel);
     }
@@ -489,7 +489,7 @@ describe('PropertiesModal', () => {
     // Expand the Access & Ownership section first to access owners
     const accessPanel = screen
       .getByText('Access & Ownership')
-      .closest('[role="tab"]');
+      .closest('[role="button"]');
     if (accessPanel) {
       userEvent.click(accessPanel);
     }
@@ -541,7 +541,7 @@ describe('PropertiesModal', () => {
     // Expand the Access & Ownership section first to access owners
     const accessPanel = screen
       .getByText('Access & Ownership')
-      .closest('[role="tab"]');
+      .closest('[role="button"]');
     if (accessPanel) {
       userEvent.click(accessPanel);
     }
