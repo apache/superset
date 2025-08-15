@@ -147,12 +147,14 @@ function selectColorScheme(
 ) {
   // First, expand the Styling section if it's collapsed
   cy.get(`[data-test="${target}"]`).within(() => {
+    // Find the Collapse header that contains "Styling" text
+    // In Ant Design 5, collapse headers have role="button"
     cy.contains('Styling')
-      .closest('[role="tab"]')
-      .then($tab => {
-        const isExpanded = $tab.attr('aria-expanded') === 'true';
+      .closest('.ant-collapse-header')
+      .then($header => {
+        const isExpanded = $header.attr('aria-expanded') === 'true';
         if (!isExpanded) {
-          cy.wrap($tab).click();
+          cy.wrap($header).click();
         }
       });
   });
@@ -287,7 +289,7 @@ describe('Dashboard edit', () => {
       openTab(0, 1, 'control-tabs');
 
       // Expand Styling section first
-      cy.contains('Styling').closest('[role="tab"]').click();
+      cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -319,7 +321,7 @@ describe('Dashboard edit', () => {
       openTab(0, 1, 'control-tabs');
 
       // Expand Styling section first
-      cy.contains('Styling').closest('[role="tab"]').click();
+      cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -841,7 +843,7 @@ describe('Dashboard edit', () => {
 
       openProperties();
       // Expand Styling section first
-      cy.contains('Styling').closest('[role="tab"]').click();
+      cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
       openAdvancedProperties();
       clearMetadata();
