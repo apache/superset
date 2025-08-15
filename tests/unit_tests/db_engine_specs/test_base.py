@@ -587,16 +587,19 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
         "flask.current_app.config",
         {
             "CUSTOM_DATABASE_ERRORS": {
-                re.compile("This connector does not support roles"): (
-                    "Custom error message",
-                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    {},
-                )
+                "trino": {
+                    re.compile("This connector does not support roles"): (
+                        "Custom error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
             }
         },
     )
 
     msg = "This connector does not support roles"
+    BaseEngineSpec.engine_name = "trino"
     result = BaseEngineSpec.extract_errors(Exception(msg))
 
     assert result == [
@@ -605,7 +608,51 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": None,
+                "engine_name": "trino",
+                "issue_codes": [
+                    {
+                        "code": 1002,
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
+                    }
+                ],
+            },
+        )
+    ]
+
+
+def test_extract_errors_only_to_specified_engine(mocker: MockerFixture) -> None:
+    """
+    Test that custom error messages are only applied to the specified engine.
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "trino": {
+                    re.compile("This connector does not support roles"): (
+                        "Custom error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "This connector does not support roles"
+    BaseEngineSpec.engine_name = "mysql"
+    result = BaseEngineSpec.extract_errors(Exception(msg))
+
+    assert result == [
+        SupersetError(
+            message="This connector does not support roles",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "engine_name": "mysql",
                 "issue_codes": [
                     {
                         "code": 1002,
@@ -629,19 +676,21 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
         "flask.current_app.config",
         {
             "CUSTOM_DATABASE_ERRORS": {
-                re.compile(r'message="(?P<message>[^"]*)"'): (
-                    'Unexpected error: "%(message)s"',
-                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    {
-                        "custom_doc_links": [
-                            {
-                                "url": "https://example.com/docs",
-                                "label": "Check documentation",
-                            },
-                        ],
-                        "show_issue_info": False,
-                    },
-                )
+                "trino": {
+                    re.compile(r'message="(?P<message>[^"]*)"'): (
+                        'Unexpected error: "%(message)s"',
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {
+                            "custom_doc_links": [
+                                {
+                                    "url": "https://example.com/docs",
+                                    "label": "Check documentation",
+                                },
+                            ],
+                            "show_issue_info": False,
+                        },
+                    )
+                }
             }
         },
     )
@@ -651,6 +700,7 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
         "message=\"line 3:6: Table 'postgresql.pg_catalog.pg_authid' does not exist\", "
         "query_id=20250812_074513_00084_kju62)"
     )
+    BaseEngineSpec.engine_name = "trino"
     result = BaseEngineSpec.extract_errors(Exception(msg))
 
     assert result == [
@@ -662,7 +712,7 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": None,
+                "engine_name": "trino",
                 "issue_codes": [
                     {
                         "code": 1002,

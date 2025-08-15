@@ -1777,21 +1777,24 @@ This feature lets you transform raw database errors into user-friendly messages,
 **Example usage:**
 ```Python
 CUSTOM_DATABASE_ERRORS = {
-    re.compile(r'message="(?P<message>[^"]*)"'): (
-        __(
-            'Unexpected error: "%(message)s"'
-        ),
-        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-        {
-            "custom_doc_links": [
-                {
-                    "url": "https://example.com/docs/1",
-                    "label": "Check documentation"
-                },
-            ],
-            "show_issue_info": False,
-        }
-    )
+    "trino": {
+        re.compile(r'message="(?P<message>[^"]*)"'): (
+            __(
+                'Unexpected error: "%(message)s"'
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {
+                "custom_doc_links": [
+                    {
+                        "url": "https://example.com/docs/1",
+                        "label": "Check documentation"
+                    },
+                ],
+                "show_issue_info": False,
+            }
+        )
+    },
+    "postgres": {}
 }
 ```
 
