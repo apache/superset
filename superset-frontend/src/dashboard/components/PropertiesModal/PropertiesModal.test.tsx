@@ -180,7 +180,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    // Check for collapse section texts instead of headings
+    // Check for collapse section texts (not headings anymore)
     expect(screen.getByText('Basic Information')).toBeInTheDocument();
     expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
     expect(screen.getByText('Color Scheme')).toBeInTheDocument();
@@ -191,8 +191,11 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(4);
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    // Only Basic Information section is expanded by default
+    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug
+
+    // Color Scheme component is rendered (mocked in tests)
+    expect(screen.getByText('ColorSchemeControlWrapper')).toBeInTheDocument();
 
     expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
       expect.objectContaining({ colorScheme: 'supersetColors' }),
@@ -218,15 +221,23 @@ describe('PropertiesModal', () => {
     expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
     expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
     expect(screen.getByText('Certification')).toBeInTheDocument();
-    // Tags will be included since isFeatureFlag always returns true in this test
-    expect(screen.getByText('Tags')).toBeInTheDocument();
+    // Tags section is collapsed initially, so we need to expand Access & Ownership to see it
+    const accessPanel = screen
+      .getByText('Access & Ownership')
+      .closest('[role="tab"]');
+    if (accessPanel) {
+      userEvent.click(accessPanel);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+    });
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(4);
-    expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Only Name and Slug are visible in Basic Information (expanded)
 
     expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
       expect.objectContaining({ colorScheme: 'supersetColors' }),
@@ -244,8 +255,7 @@ describe('PropertiesModal', () => {
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(4);
-    expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Only Name and Slug visible initially
 
     // Click on the Advanced Settings collapse panel to expand it
     const advancedPanel = screen
@@ -253,9 +263,12 @@ describe('PropertiesModal', () => {
       .closest('[role="tab"]');
     expect(advancedPanel).toBeTruthy();
     userEvent.click(advancedPanel!);
+
+    // After expanding Advanced Settings, we should see more elements
+    // Note: JSON editor may not render as a standard textbox in tests
     await waitFor(() => {
-      expect(screen.getAllByRole('textbox')).toHaveLength(5);
-      expect(screen.getAllByRole('combobox')).toHaveLength(3);
+      // Check that the Advanced Settings section is expanded by looking for its content
+      expect(screen.getByText('JSON Metadata')).toBeInTheDocument();
     });
   });
 
@@ -349,9 +362,19 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
-    expect(
-      screen.getByRole('textbox', { name: 'Certification details' }),
-    ).toHaveValue('');
+    // Expand the Certification section first to access certification details
+    const certificationPanel = screen
+      .getByText('Certification')
+      .closest('[role="tab"]');
+    if (certificationPanel) {
+      userEvent.click(certificationPanel);
+    }
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('textbox', { name: 'Certification details' }),
+      ).toHaveValue('');
+    });
   });
 
   test('should show all roles', async () => {
@@ -380,13 +403,20 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
+    // Expand the Access & Ownership section first to access roles
+    const accessPanel = screen
+      .getByText('Access & Ownership')
+      .closest('[role="tab"]');
+    if (accessPanel) {
+      userEvent.click(accessPanel);
+    }
+
     await waitFor(() => {
       expect(screen.getAllByRole('combobox')).toHaveLength(3);
+      expect(
+        screen.getByRole('combobox', { name: SupersetCore.t('Roles') }),
+      ).toBeInTheDocument();
     });
-
-    expect(
-      screen.getByRole('combobox', { name: SupersetCore.t('Roles') }),
-    ).toBeInTheDocument();
 
     await open();
 
@@ -425,13 +455,20 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
+    // Expand the Access & Ownership section first to access owners
+    const accessPanel = screen
+      .getByText('Access & Ownership')
+      .closest('[role="tab"]');
+    if (accessPanel) {
+      userEvent.click(accessPanel);
+    }
+
     await waitFor(() => {
       expect(screen.getAllByRole('combobox')).toHaveLength(3);
+      expect(
+        screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+      ).toBeInTheDocument();
     });
-
-    expect(
-      screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
-    ).toBeInTheDocument();
 
     await open();
 
@@ -469,13 +506,19 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
-    });
+    // Expand the Access & Ownership section first to access owners
+    const accessPanel = screen
+      .getByText('Access & Ownership')
+      .closest('[role="tab"]');
+    if (accessPanel) {
+      userEvent.click(accessPanel);
+    }
 
-    expect(
-      screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+      ).toBeInTheDocument();
+    });
 
     await open();
 

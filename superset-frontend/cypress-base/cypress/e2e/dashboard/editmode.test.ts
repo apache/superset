@@ -145,6 +145,19 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
+  // First, expand the Color Scheme section if it's collapsed
+  cy.get(`[data-test="${target}"]`).within(() => {
+    cy.contains('Color Scheme')
+      .closest('[role="tab"]')
+      .then($tab => {
+        const isExpanded = $tab.attr('aria-expanded') === 'true';
+        if (!isExpanded) {
+          cy.wrap($tab).click();
+        }
+      });
+  });
+
+  // Now select the color scheme
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .should('exist')
     .then($input => {
@@ -273,6 +286,8 @@ describe('Dashboard edit', () => {
 
       openTab(0, 1, 'control-tabs');
 
+      // Expand Color Scheme section first
+      cy.contains('Color Scheme').closest('[role="tab"]').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -303,6 +318,8 @@ describe('Dashboard edit', () => {
 
       openTab(0, 1, 'control-tabs');
 
+      // Expand Color Scheme section first
+      cy.contains('Color Scheme').closest('[role="tab"]').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -823,6 +840,8 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(90, 193, 137)');
 
       openProperties();
+      // Expand Color Scheme section first
+      cy.contains('Color Scheme').closest('[role="tab"]').click();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
       openAdvancedProperties();
       clearMetadata();
