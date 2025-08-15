@@ -21,16 +21,13 @@ import { omit } from 'lodash';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   AsyncSelect,
-  Button,
-  Col,
   Form,
   FormItem,
-  Icons,
   Input,
   JsonEditor,
   Modal,
-  Row,
-  Typography,
+  Collapse,
+  CollapseLabelInModal,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
@@ -44,11 +41,9 @@ import {
   SupersetClient,
   t,
   getClientErrorObject,
-  css,
 } from '@superset-ui/core';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
-import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tag/utils';
@@ -65,7 +60,11 @@ import {
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import {
+  StandardModal,
+  ModalFormField,
+  useModalValidation,
+} from 'src/components/Modal';
 
 const StyledJsonEditor = styled(JsonEditor)`
   /* Border is already applied by AceEditor itself */
@@ -116,7 +115,6 @@ const PropertiesModal = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
@@ -440,120 +438,6 @@ const PropertiesModal = ({
     }
   };
 
-  const getRowsWithoutRoles = () => {
-    const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelsColor = !!Object.keys(
-      jsonMetadataObj?.label_colors || {},
-    ).length;
-
-    return (
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Typography.Title level={4} style={{ marginTop: '1em' }}>
-            {t('Access')}
-          </Typography.Title>
-          <FormItem
-            label={t('Owners')}
-            extra={t(
-              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
-          >
-            <AsyncSelect
-              allowClear
-              ariaLabel={t('Owners')}
-              disabled={isLoading}
-              mode="multiple"
-              onChange={handleOnChangeOwners}
-              options={(input, page, pageSize) =>
-                loadAccessOptions('owners', input, page, pageSize)
-              }
-              value={handleOwnersSelectValue()}
-            />
-          </FormItem>
-        </Col>
-        <Col xs={24} md={12}>
-          <Typography.Title level={4} style={{ marginTop: '1em' }}>
-            {t('Colors')}
-          </Typography.Title>
-          <ColorSchemeControlWrapper
-            hasCustomLabelsColor={hasCustomLabelsColor}
-            onChange={onColorSchemeChange}
-            colorScheme={colorScheme}
-          />
-        </Col>
-      </Row>
-    );
-  };
-
-  const getRowsWithRoles = () => {
-    const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelsColor = !!Object.keys(
-      jsonMetadataObj?.label_colors || {},
-    ).length;
-
-    return (
-      <>
-        <Row>
-          <Col xs={24} md={24}>
-            <Typography.Title level={4} style={{ marginTop: '1em' }}>
-              {t('Access')}
-            </Typography.Title>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <FormItem
-              label={t('Owners')}
-              extra={t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            >
-              <AsyncSelect
-                allowClear
-                allowNewOptions
-                ariaLabel={t('Owners')}
-                disabled={isLoading}
-                mode="multiple"
-                onChange={handleOnChangeOwners}
-                options={(input, page, pageSize) =>
-                  loadAccessOptions('owners', input, page, pageSize)
-                }
-                value={handleOwnersSelectValue()}
-              />
-            </FormItem>
-          </Col>
-          <Col xs={24} md={12}>
-            <FormItem
-              label={t('Roles')}
-              extra="Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply."
-            >
-              <AsyncSelect
-                allowClear
-                ariaLabel={t('Roles')}
-                disabled={isLoading}
-                mode="multiple"
-                onChange={handleOnChangeRoles}
-                options={(input, page, pageSize) =>
-                  loadAccessOptions('roles', input, page, pageSize)
-                }
-                value={handleRolesSelectValue()}
-              />
-            </FormItem>
-          </Col>
-        </Row>
-        <Row>
-          <Col xs={24} md={12}>
-            <ColorSchemeControlWrapper
-              hasCustomLabelsColor={hasCustomLabelsColor}
-              onChange={onColorSchemeChange}
-              colorScheme={colorScheme}
-            />
-          </Col>
-        </Row>
-      </>
-    );
-  };
-
   useEffect(() => {
     if (show) {
       if (!currentDashboardInfo) {
@@ -611,45 +495,93 @@ const PropertiesModal = ({
     setTags([]);
   };
 
+  // Validation setup
+  const modalSections = useMemo(
+    () => [
+      {
+        key: 'basic',
+        name: t('Basic Information'),
+        validator: () => {
+          const errors = [];
+          const values = form.getFieldsValue();
+          if (!values.title || values.title.trim().length === 0) {
+            errors.push(t('Dashboard name is required'));
+          }
+          return errors;
+        },
+      },
+      {
+        key: 'access',
+        name: t('Access & Ownership'),
+        validator: () => [],
+      },
+      {
+        key: 'colors',
+        name: t('Color Scheme'),
+        validator: () => [],
+      },
+      {
+        key: 'certification',
+        name: t('Certification'),
+        validator: () => [],
+      },
+      {
+        key: 'advanced',
+        name: t('Advanced Settings'),
+        validator: () => {
+          if (jsonAnnotations.length > 0) {
+            return [t('Invalid JSON metadata')];
+          }
+          return [];
+        },
+      },
+    ],
+    [form, jsonAnnotations],
+  );
+
+  const {
+    validationStatus,
+    validateAll,
+    validateSection,
+    errorTooltip,
+    hasErrors,
+  } = useModalValidation({
+    sections: modalSections,
+  });
+
+  // Validate basic section when title changes
+  useEffect(() => {
+    validateSection('basic');
+  }, [dashboardTitle, validateSection]);
+
+  // Validate advanced section when JSON changes
+  useEffect(() => {
+    validateSection('advanced');
+  }, [jsonMetadata, validateSection]);
+
   return (
-    <Modal
+    <StandardModal
       show={show}
       onHide={handleOnCancel}
-      title={
-        <ModalTitleWithIcon isEditMode title={t('Dashboard properties')} />
+      onSave={() => {
+        if (validateAll()) {
+          form.submit();
+        }
+      }}
+      title={t('Dashboard Properties')}
+      isEditMode
+      saveDisabled={
+        isLoading || dashboardInfo?.isManagedExternally || hasErrors
       }
-      footer={
-        <>
-          <Button
-            htmlType="button"
-            buttonSize="small"
-            buttonStyle="secondary"
-            onClick={handleOnCancel}
-            data-test="properties-modal-cancel-button"
-            cta
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            data-test="properties-modal-apply-button"
-            onClick={form.submit}
-            buttonSize="small"
-            buttonStyle="primary"
-            cta
-            disabled={dashboardInfo?.isManagedExternally}
-            tooltip={
-              dashboardInfo?.isManagedExternally
-                ? t(
-                    "This dashboard is managed externally, and can't be edited in Superset",
-                  )
-                : ''
-            }
-          >
-            {saveLabel}
-          </Button>
-        </>
+      errorTooltip={
+        dashboardInfo?.isManagedExternally
+          ? t(
+              "This dashboard is managed externally, and can't be edited in Superset",
+            )
+          : errorTooltip
       }
-      responsive
+      saveText={saveLabel}
+      wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
       <Form
         form={form}
@@ -658,137 +590,219 @@ const PropertiesModal = ({
         layout="vertical"
         initialValues={dashboardInfo}
       >
-        <Row>
-          <Col xs={24} md={24}>
-            <Typography.Title level={4}>
-              {t('Basic information')}
-            </Typography.Title>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <FormItem
-              label={t('Name')}
-              name="title"
-              extra={t('A readable URL for your dashboard')}
-            >
-              <Input
-                data-test="dashboard-title-input"
-                type="text"
-                disabled={isLoading}
-              />
-            </FormItem>
-          </Col>
-          <Col xs={24} md={12}>
-            <FormItem label={t('URL slug')} name="slug">
-              <Input type="text" disabled={isLoading} />
-            </FormItem>
-          </Col>
-        </Row>
-        {isFeatureEnabled(FeatureFlag.DashboardRbac)
-          ? getRowsWithRoles()
-          : getRowsWithoutRoles()}
-        <Row>
-          <Col xs={24} md={24}>
-            <Typography.Title level={4}>{t('Certification')}</Typography.Title>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <FormItem
-              label={t('Certified by')}
-              name="certifiedBy"
-              extra={t('Person or group that has certified this dashboard.')}
-            >
-              <Input type="text" disabled={isLoading} />
-            </FormItem>
-          </Col>
-          <Col xs={24} md={12}>
-            <FormItem
-              label={t('Certification details')}
-              name="certificationDetails"
-              extra={t(
-                'Any additional detail to show in the certification tooltip.',
-              )}
-            >
-              <Input type="text" disabled={isLoading} />
-            </FormItem>
-          </Col>
-        </Row>
-        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Typography.Title level={4} css={{ marginTop: '1em' }}>
-                {t('Tags')}
-              </Typography.Title>
-            </Col>
-          </Row>
-        ) : null}
-        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <FormItem
-                extra={t(
-                  'A list of tags that have been applied to this chart.',
-                )}
-              >
-                <AsyncSelect
-                  ariaLabel="Tags"
-                  mode="multiple"
-                  value={tagsAsSelectValues}
-                  options={loadTags}
-                  onChange={handleChangeTags}
-                  onClear={handleClearTags}
-                  allowClear
+        <Collapse
+          expandIconPosition="end"
+          defaultActiveKey="basic"
+          accordion
+          modalMode
+          items={[
+            {
+              key: 'basic',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Basic Information')}
+                  subtitle={t('Dashboard name and URL configuration')}
+                  validateCheckStatus={!validationStatus.basic?.hasErrors}
+                  testId="basic-section"
                 />
-              </FormItem>
-            </Col>
-          </Row>
-        ) : null}
-        <Row>
-          <Col xs={24} md={24}>
-            <Typography.Title level={4} style={{ marginTop: '1em' }}>
-              <Button
-                buttonStyle="link"
-                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-                css={css`
-                  padding: 0;
-                `}
-              >
-                {t('Advanced')}
-                {isAdvancedOpen ? <Icons.UpOutlined /> : <Icons.DownOutlined />}
-              </Button>
-            </Typography.Title>
-            {isAdvancedOpen && (
-              <>
-                <FormItem
-                  label={t('JSON metadata')}
-                  extra={
-                    <div>
-                      {t(
-                        'This JSON object is generated dynamically when clicking the save ' +
-                          'or overwrite button in the dashboard view. It is exposed here for ' +
-                          'reference and for power users who may want to alter specific parameters.',
+              ),
+              children: (
+                <>
+                  <ModalFormField
+                    label={t('Name')}
+                    required
+                    helperText={t('A readable URL for your dashboard')}
+                    error={
+                      validationStatus.basic?.hasErrors &&
+                      (!form.getFieldValue('title') ||
+                        form.getFieldValue('title').trim().length === 0)
+                        ? t('Dashboard name is required')
+                        : undefined
+                    }
+                  >
+                    <FormItem name="title" noStyle>
+                      <Input
+                        data-test="dashboard-title-input"
+                        type="text"
+                        disabled={isLoading}
+                      />
+                    </FormItem>
+                  </ModalFormField>
+                  <ModalFormField
+                    label={t('URL Slug')}
+                    helperText={t('A readable URL for your dashboard')}
+                    bottomSpacing={false}
+                  >
+                    <FormItem name="slug" noStyle>
+                      <Input type="text" disabled={isLoading} />
+                    </FormItem>
+                  </ModalFormField>
+                </>
+              ),
+            },
+            {
+              key: 'access',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Access & Ownership')}
+                  subtitle={t('Manage dashboard owners and access permissions')}
+                  validateCheckStatus={!validationStatus.access?.hasErrors}
+                  testId="access-section"
+                />
+              ),
+              children: (
+                <>
+                  <ModalFormField
+                    label={t('Owners')}
+                    helperText={t(
+                      'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+                    )}
+                  >
+                    <AsyncSelect
+                      allowClear
+                      ariaLabel={t('Owners')}
+                      disabled={isLoading}
+                      mode="multiple"
+                      onChange={handleOnChangeOwners}
+                      options={(input, page, pageSize) =>
+                        loadAccessOptions('owners', input, page, pageSize)
+                      }
+                      value={handleOwnersSelectValue()}
+                    />
+                  </ModalFormField>
+                  {isFeatureEnabled(FeatureFlag.DashboardRbac) && (
+                    <ModalFormField
+                      label={t('Roles')}
+                      helperText={t(
+                        'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
                       )}
-                      {onlyApply && (
-                        <>
-                          {' '}
-                          {t(
-                            'Please DO NOT overwrite the "filter_scopes" key.',
-                          )}{' '}
-                          <FilterScopeModal
-                            triggerNode={
-                              <span className="alert-link">
-                                {t('Use "%(menuName)s" menu instead.', {
-                                  menuName: t('Set filter mapping'),
-                                })}
-                              </span>
-                            }
-                          />
-                        </>
+                      bottomSpacing={
+                        !isFeatureEnabled(FeatureFlag.TaggingSystem)
+                      }
+                    >
+                      <AsyncSelect
+                        allowClear
+                        ariaLabel={t('Roles')}
+                        disabled={isLoading}
+                        mode="multiple"
+                        onChange={handleOnChangeRoles}
+                        options={(input, page, pageSize) =>
+                          loadAccessOptions('roles', input, page, pageSize)
+                        }
+                        value={handleRolesSelectValue()}
+                      />
+                    </ModalFormField>
+                  )}
+                  {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+                    <ModalFormField
+                      label={t('Tags')}
+                      helperText={t(
+                        'A list of tags that have been applied to this dashboard.',
                       )}
-                    </div>
+                      bottomSpacing={false}
+                    >
+                      <AsyncSelect
+                        ariaLabel="Tags"
+                        mode="multiple"
+                        value={tagsAsSelectValues}
+                        options={loadTags}
+                        onChange={handleChangeTags}
+                        onClear={handleClearTags}
+                        allowClear
+                      />
+                    </ModalFormField>
+                  )}
+                </>
+              ),
+            },
+            {
+              key: 'colors',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Color Scheme')}
+                  subtitle={t(
+                    'Configure dashboard color scheme and label colors',
+                  )}
+                  validateCheckStatus={!validationStatus.colors?.hasErrors}
+                  testId="colors-section"
+                />
+              ),
+              children: (
+                <ModalFormField label={t('Color Scheme')} bottomSpacing={false}>
+                  <ColorSchemeControlWrapper
+                    hasCustomLabelsColor={
+                      !!Object.keys(getJsonMetadata()?.label_colors || {})
+                        .length
+                    }
+                    onChange={onColorSchemeChange}
+                    colorScheme={colorScheme}
+                  />
+                </ModalFormField>
+              ),
+            },
+            {
+              key: 'certification',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Certification')}
+                  subtitle={t('Add certification details for this dashboard')}
+                  validateCheckStatus={
+                    !validationStatus.certification?.hasErrors
                   }
+                  testId="certification-section"
+                />
+              ),
+              children: (
+                <>
+                  <ModalFormField
+                    label={t('Certified by')}
+                    helperText={t(
+                      'Person or group that has certified this dashboard.',
+                    )}
+                  >
+                    <FormItem name="certifiedBy" noStyle>
+                      <Input type="text" disabled={isLoading} />
+                    </FormItem>
+                  </ModalFormField>
+                  <ModalFormField
+                    label={t('Certification details')}
+                    helperText={t(
+                      'Any additional detail to show in the certification tooltip.',
+                    )}
+                    bottomSpacing={false}
+                  >
+                    <FormItem name="certificationDetails" noStyle>
+                      <Input type="text" disabled={isLoading} />
+                    </FormItem>
+                  </ModalFormField>
+                </>
+              ),
+            },
+            {
+              key: 'advanced',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Advanced Settings')}
+                  subtitle={t('JSON metadata and advanced configuration')}
+                  validateCheckStatus={!validationStatus.advanced?.hasErrors}
+                  testId="advanced-section"
+                />
+              ),
+              children: (
+                <ModalFormField
+                  label={t('JSON Metadata')}
+                  helperText={t(
+                    'This JSON object is generated dynamically when clicking the save ' +
+                      'or overwrite button in the dashboard view. It is exposed here for ' +
+                      'reference and for power users who may want to alter specific parameters.',
+                  )}
+                  error={
+                    validationStatus.advanced?.hasErrors &&
+                    jsonAnnotations.length > 0
+                      ? t('Invalid JSON metadata')
+                      : undefined
+                  }
+                  bottomSpacing={false}
                 >
                   <StyledJsonEditor
                     showLoadingForImport
@@ -801,13 +815,13 @@ const PropertiesModal = ({
                     wrapEnabled
                     annotations={jsonAnnotations}
                   />
-                </FormItem>
-              </>
-            )}
-          </Col>
-        </Row>
+                </ModalFormField>
+              ),
+            },
+          ]}
+        />
       </Form>
-    </Modal>
+    </StandardModal>
   );
 };
 
