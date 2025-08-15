@@ -743,7 +743,7 @@ const PropertiesModal = ({
               ),
               children: (
                 <>
-                  <ModalFormField label={t('Color Scheme')}>
+                  <ModalFormField label="">
                     <ColorSchemeControlWrapper
                       hasCustomLabelsColor={
                         !!Object.keys(getJsonMetadata()?.label_colors || {})
@@ -764,6 +764,9 @@ const PropertiesModal = ({
                       onChange={setCustomCss}
                       value={customCss}
                       width="100%"
+                      minLines={10}
+                      maxLines={50}
+                      editorProps={{ $blockScrolling: true }}
                     />
                   </ModalFormField>
                 </>
