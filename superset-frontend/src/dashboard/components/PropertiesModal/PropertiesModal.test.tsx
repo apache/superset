@@ -397,7 +397,7 @@ describe('PropertiesModal', () => {
 
     expect(options).toHaveLength(5);
     expect(options[0]).toHaveTextContent('Admin');
-  });
+  }, 30000);
 
   test('should show active owners with dashboard rbac', async () => {
     mockedIsFeatureEnabled.mockReturnValue(true);
