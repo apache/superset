@@ -19,8 +19,12 @@
 import { PureComponent } from 'react';
 import rison from 'rison';
 import PropTypes from 'prop-types';
-import { CompactPicker } from 'react-color';
-import { Button, AsyncSelect, EmptyState } from '@superset-ui/core/components';
+import {
+  Button,
+  AsyncSelect,
+  EmptyState,
+  ColorPicker,
+} from '@superset-ui/core/components';
 import {
   t,
   SupersetClient,
@@ -836,23 +840,38 @@ class AnnotationLayer extends PureComponent {
           value={opacity}
           onChange={value => this.setState({ opacity: value })}
         />
-        <div>
-          <ControlHeader label={t('Color')} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <CompactPicker
-              color={color}
-              colors={colorScheme}
-              onChangeComplete={v => this.setState({ color: v.hex })}
-            />
-            <Button
-              style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
-              buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
-              buttonSize="xsmall"
-              onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
-            >
-              {t('Automatic color')}
-            </Button>
-          </div>
+        <div
+          style={{
+            marginTop: this.props.theme.sizeUnit * 2,
+            marginBottom: this.props.theme.sizeUnit * 2,
+          }}
+        >
+          <CheckboxControl
+            name="annotation-layer-automatic-color"
+            label={t('Use automatic color')}
+            value={color === AUTOMATIC_COLOR}
+            onChange={useAutomatic => {
+              if (useAutomatic) {
+                this.setState({ color: AUTOMATIC_COLOR });
+              } else {
+                // Set to first theme color or black as fallback
+                this.setState({ color: colorScheme[0] || '#000000' });
+              }
+            }}
+          />
+          {color !== AUTOMATIC_COLOR && (
+            <div style={{ marginTop: this.props.theme.sizeUnit * 2 }}>
+              <ControlHeader label={t('Color')} />
+              <ColorPicker
+                value={color}
+                presets={[{ label: 'Theme colors', colors: colorScheme }]}
+                onChangeComplete={colorValue =>
+                  this.setState({ color: colorValue.toHexString() })
+                }
+                showText
+              />
+            </div>
+          )}
         </div>
         <TextControl
           name="annotation-layer-stroke-width"

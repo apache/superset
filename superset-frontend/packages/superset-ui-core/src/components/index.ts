@@ -67,6 +67,12 @@ export {
   type CheckboxChangeEvent,
 } from './Checkbox';
 export {
+  ColorPicker,
+  type ColorPickerProps,
+  type RGBColor,
+  type ColorValue,
+} from './ColorPicker';
+export {
   Collapse,
   type CollapseProps,
   CollapseLabelInModal,
