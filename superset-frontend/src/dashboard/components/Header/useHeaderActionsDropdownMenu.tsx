@@ -276,8 +276,14 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Divider
-    menuItems.push({ type: 'divider' });
+    // Only add divider if there are items after it
+    const hasItemsAfterDivider =
+      (!editMode && reportMenuItem) ||
+      (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes));
+
+    if (hasItemsAfterDivider) {
+      menuItems.push({ type: 'divider' });
+    }
 
     // Report dropdown
     if (!editMode && reportMenuItem) {
