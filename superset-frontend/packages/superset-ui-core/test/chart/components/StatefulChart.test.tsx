@@ -37,23 +37,15 @@ jest.mock('../../../src/chart/clients/ChartClient');
 jest.mock('../../../src/chart/components/SuperChart', () => ({
   __esModule: true,
   // eslint-disable-next-line react/display-name
-  default: ({ formData }: any) => {
-    // eslint-disable-next-line no-restricted-syntax, global-require, @typescript-eslint/no-var-requires
-    const React = require('react');
-    return (
-      <div data-test="super-chart">SuperChart: {JSON.stringify(formData)}</div>
-    );
-  },
+  default: ({ formData }: any) => (
+    <div data-test="super-chart">SuperChart: {JSON.stringify(formData)}</div>
+  ),
 }));
 
 // Mock Loading component
 jest.mock('../../../src/components/Loading', () => ({
   // eslint-disable-next-line react/display-name
-  Loading: () => {
-    // eslint-disable-next-line no-restricted-syntax, global-require, @typescript-eslint/no-var-requires
-    const React = require('react');
-    return <div data-test="loading">Loading...</div>;
-  },
+  Loading: () => <div data-test="loading">Loading...</div>,
 }));
 
 describe('StatefulChart', () => {
@@ -92,8 +84,7 @@ describe('StatefulChart', () => {
 
     // Mock ChartClient constructor
     // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-    const ChartClient =
-      require('../../../src/chart/clients/ChartClient').default;
+    const ChartClient = require('../../../src/chart/clients/ChartClient').default; // eslint-disable-line
     ChartClient.mockImplementation(() => mockChartClient);
   });
 
