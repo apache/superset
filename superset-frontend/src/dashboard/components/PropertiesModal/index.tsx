@@ -136,6 +136,13 @@ const PropertiesModal = ({
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
   const [refreshFrequency, setRefreshFrequency] = useState(0);
+  const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
+  const [themes, setThemes] = useState<
+    Array<{
+      id: number;
+      theme_name: string;
+    }>
+  >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
 
@@ -221,6 +228,7 @@ const PropertiesModal = ({
       setRoles(roles);
       setCustomCss(dashboardData.css || '');
       setCurrentColorScheme(metadata.color_scheme);
+      setSelectedThemeId(dashboardData.theme_id || null);
 
       const metaDataCopy = omit(metadata, [
         'positions',
@@ -442,6 +450,7 @@ const PropertiesModal = ({
           certification_details:
             certifiedBy && certificationDetails ? certificationDetails : null,
           css: customCss || null,
+          theme_id: selectedThemeId,
           ...morePutProps,
         }),
       }).then(() => {
@@ -459,10 +468,38 @@ const PropertiesModal = ({
       } else {
         handleDashboardData(currentDashboardInfo);
       }
+
+      // Fetch themes (excluding system themes)
+      const themeQuery = rison.encode({
+        columns: ['id', 'theme_name', 'is_system'],
+        filters: [
+          {
+            col: 'is_system',
+            opr: 'eq',
+            value: false,
+          },
+        ],
+      });
+      SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
+        .then(({ json }) => {
+          const fetchedThemes = json.result;
+          setThemes(fetchedThemes);
+        })
+        .catch(() => {
+          addDangerToast(
+            t('An error occurred while fetching available themes'),
+          );
+        });
     }
 
     JsonEditor.preload();
-  }, [currentDashboardInfo, fetchDashboardDetails, handleDashboardData, show]);
+  }, [
+    currentDashboardInfo,
+    fetchDashboardDetails,
+    handleDashboardData,
+    show,
+    addDangerToast,
+  ]);
 
   useEffect(() => {
     // the title can be changed inline in the dashboard, this catches it
@@ -743,6 +780,27 @@ const PropertiesModal = ({
               ),
               children: (
                 <>
+                  {themes.length > 0 && (
+                    <ModalFormField
+                      label={t('Theme')}
+                      helperText={t(
+                        'Clear the selection to revert to the system default theme',
+                      )}
+                    >
+                      <Select
+                        value={selectedThemeId}
+                        onChange={(value: any) =>
+                          setSelectedThemeId(value || null)
+                        }
+                        options={themes.map(theme => ({
+                          value: theme.id,
+                          label: theme.theme_name,
+                        }))}
+                        allowClear
+                        placeholder={t('Select a theme')}
+                      />
+                    </ModalFormField>
+                  )}
                   <ModalFormField label="">
                     <ColorSchemeControlWrapper
                       hasCustomLabelsColor={
