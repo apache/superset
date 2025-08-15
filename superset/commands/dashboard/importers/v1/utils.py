@@ -159,27 +159,38 @@ def update_cross_filter_scoping(
         ]
 
     if "chart_configuration" in (metadata := fixed.get("metadata", {})):
-        # in cross_filter_scopes the key is the chart ID as a string; we need to update
-        # them to be the new ID as a string:
-        metadata["chart_configuration"] = {
-            str(id_map[int(old_id)]): columns
-            for old_id, columns in metadata["chart_configuration"].items()
-            if int(old_id) in id_map
-        }
-        # now update scope excluded to use new IDs:
-        for chart_config in metadata["chart_configuration"].values():
-            if "id" in chart_config and chart_config["id"] in id_map:
-                chart_config["id"] = id_map[chart_config["id"]]
-            scope = chart_config.get("crossFilters", {}).get("scope", {})
-
-            if not isinstance(scope, dict):
+        # Build remapped configuration in a single pass for clarity/readability.
+        new_chart_configuration: dict[str, Any] = {}
+        for old_id_str, chart_config in metadata["chart_configuration"].items():
+            try:
+                old_id_int = int(old_id_str)
+            except (TypeError, ValueError):
                 continue
 
-            excluded_scope = scope.get("excluded", [])
-            if excluded_scope:
-                chart_config["crossFilters"]["scope"]["excluded"] = [
-                    id_map[old_id] for old_id in excluded_scope if old_id in id_map
-                ]
+            new_id = id_map.get(old_id_int)
+            if new_id is None:
+                continue
+
+            # Update inner id if present
+            if isinstance(chart_config, dict):
+                inner_id = chart_config.get("id")
+                if isinstance(inner_id, int) and inner_id in id_map:
+                    chart_config["id"] = id_map[inner_id]
+
+                # Update cross filter scope excluded ids
+                scope = chart_config.get("crossFilters", {}).get("scope", {})
+                if isinstance(scope, dict):
+                    excluded_scope = scope.get("excluded", [])
+                    if excluded_scope:
+                        chart_config["crossFilters"]["scope"]["excluded"] = [
+                            id_map[old_id]
+                            for old_id in excluded_scope
+                            if old_id in id_map
+                        ]
+
+            new_chart_configuration[str(new_id)] = chart_config
+
+        metadata["chart_configuration"] = new_chart_configuration
     return fixed
 
 
