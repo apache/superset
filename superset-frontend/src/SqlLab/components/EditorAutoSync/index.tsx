@@ -69,15 +69,17 @@ const EditorAutoSync: FC = () => {
   const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
     state => state.sqlLab.queryEditors,
   );
-  const queryEditorsById = useMemo(() => {
-    return queryEditors.reduce(
-      (acc, queryEditor) => {
-        acc[queryEditor.id] = queryEditor;
-        return acc;
-      },
-      {} as Record<string, QueryEditor>,
-    );
-  }, [queryEditors]);
+  const queryEditorsById = useMemo(
+    () =>
+      queryEditors.reduce(
+        (acc, queryEditor) => {
+          acc[queryEditor.id] = queryEditor;
+          return acc;
+        },
+        {} as Record<string, QueryEditor>,
+      ),
+    [queryEditors],
+  );
   const unsavedQueryEditor = useSelector<SqlLabRootState, UnsavedQueryEditor>(
     state => state.sqlLab.unsavedQueryEditor,
   );
