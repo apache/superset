@@ -45,6 +45,11 @@ PATTERNS = {
     "docs": [
         r"^docs/",
     ],
+    "superset-cli": [
+        r"^\.github/workflows/superset-cli\.yml",
+        r"^superset-cli/",
+        r"^superset-core/",
+    ],
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 

@@ -82,6 +82,7 @@
     "last 3 edge versions"
   ],
   "dependencies": {
+    "@apache-superset/core": "file:packages/superset-core",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",

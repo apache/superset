@@ -616,6 +616,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
@@ -2152,6 +2155,8 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
+
+LOCAL_EXTENSIONS: list[str] = []
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
