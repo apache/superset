@@ -245,7 +245,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
     expect(screen.getByText('Certification')).toBeInTheDocument();
 
-    // Basic Information section is expanded by default
+    // General Information section is expanded by default
     expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug are visible
 
     // Expand Access & Ownership to see Tags
