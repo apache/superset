@@ -99,6 +99,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
