@@ -62,7 +62,7 @@ function assertMetadata(text: string) {
 
 function openAdvancedProperties() {
   cy.get('.ant-modal-body')
-    .contains('Advanced')
+    .contains('Advanced Settings')
     .should('be.visible')
     .click({ force: true });
   cy.get('#json_metadata').should('be.visible');
@@ -145,9 +145,9 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
-  // First, expand the Color Scheme section if it's collapsed
+  // First, expand the Styling section if it's collapsed
   cy.get(`[data-test="${target}"]`).within(() => {
-    cy.contains('Color Scheme')
+    cy.contains('Styling')
       .closest('[role="tab"]')
       .then($tab => {
         const isExpanded = $tab.attr('aria-expanded') === 'true';
@@ -180,7 +180,7 @@ function saveAndGo(dashboard = 'Tabbed Dashboard') {
 }
 
 function applyChanges() {
-  cy.getBySel('properties-modal-apply-button').click({ force: true });
+  cy.getBySel('modal-confirm-button').click({ force: true });
 }
 
 function saveChanges() {
@@ -286,8 +286,8 @@ describe('Dashboard edit', () => {
 
       openTab(0, 1, 'control-tabs');
 
-      // Expand Color Scheme section first
-      cy.contains('Color Scheme').closest('[role="tab"]').click();
+      // Expand Styling section first
+      cy.contains('Styling').closest('[role="tab"]').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -318,8 +318,8 @@ describe('Dashboard edit', () => {
 
       openTab(0, 1, 'control-tabs');
 
-      // Expand Color Scheme section first
-      cy.contains('Color Scheme').closest('[role="tab"]').click();
+      // Expand Styling section first
+      cy.contains('Styling').closest('[role="tab"]').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -840,8 +840,8 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(90, 193, 137)');
 
       openProperties();
-      // Expand Color Scheme section first
-      cy.contains('Color Scheme').closest('[role="tab"]').click();
+      // Expand Styling section first
+      cy.contains('Styling').closest('[role="tab"]').click();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
       openAdvancedProperties();
       clearMetadata();
