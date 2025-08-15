@@ -1126,10 +1126,15 @@ describe('Dashboard edit', () => {
       applyChanges();
       cy.get('.ant-modal-body')
         .contains('A valid color scheme is required')
+        .scrollIntoView();
+      cy.get('.ant-modal-body')
+        .contains('A valid color scheme is required')
         .should('be.visible');
     });
 
     it('should edit the title', () => {
+      // Ensure title input is visible in the modal
+      cy.getBySel('dashboard-title-input').scrollIntoView();
       cy.getBySel('dashboard-title-input').clear();
       cy.getBySel('dashboard-title-input').type('Edited title');
       applyChanges();
