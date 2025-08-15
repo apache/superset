@@ -102,282 +102,292 @@ const mockSharedControls = {
   },
 };
 
-describe('Matrixify shouldMapStateToProps', () => {
-  const createMockState = (
-    formData: any = {},
-    controls: any = {},
-  ): ControlPanelState => ({
-    slice: { slice_id: 123 },
-    form_data: formData,
-    datasource: null,
-    controls,
-    common: {},
-    metadata: {},
+const createMockState = (
+  formData: any = {},
+  controls: any = {},
+): ControlPanelState => ({
+  slice: { slice_id: 123 },
+  form_data: formData,
+  datasource: null,
+  controls,
+  common: {},
+  metadata: {},
+});
+
+const createMockControlState = (value: any = null) => ({ value });
+
+test('matrixify_dimension_x should return true when topN value changes', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const prevState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
   });
 
-  const createMockControlState = (value: any = null) => ({ value });
-
-  describe('matrixify_dimension_x shouldMapStateToProps', () => {
-    const control = mockSharedControls.matrixify_dimension_x;
-
-    it('should return true when topN value changes', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 10, // Changed
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
-
-    it('should return true when topN metric changes', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric2', // Changed
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
-
-    it('should return true when topN order changes', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'asc', // Changed
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
-
-    it('should return true when selection mode changes', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'members', // Changed
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
-
-    it('should return false when no relevant fields change', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-        unrelated_field: 'value1',
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-        unrelated_field: 'value2', // Changed, but not relevant
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(false);
-    });
-
-    it('should return false when states are identical', () => {
-      const state = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_order_x: 'desc',
-        matrixify_dimension_selection_mode_x: 'topn',
-      });
-
-      expect(control.shouldMapStateToProps!(state, state)).toBe(false);
-    });
-
-    it('should handle missing form_data gracefully', () => {
-      const prevState = createMockState(); // No form_data
-      const nextState = createMockState({
-        matrixify_topn_value_x: 5,
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
-
-    it('should handle undefined values gracefully', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: undefined,
-        matrixify_topn_metric_x: null,
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 5,
-        matrixify_topn_metric_x: 'metric1',
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
+  const nextState = createMockState({
+    matrixify_topn_value_x: 10, // Changed
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
   });
 
-  describe('matrixify_dimension_y shouldMapStateToProps', () => {
-    const control = mockSharedControls.matrixify_dimension_y;
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
 
-    it('should check y-axis specific fields', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_y: 5,
-        matrixify_topn_metric_y: 'metric1',
-      });
+test('matrixify_dimension_x should return true when topN metric changes', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
 
-      const nextState = createMockState({
-        matrixify_topn_value_y: 10, // Changed
-        matrixify_topn_metric_y: 'metric1',
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
-    });
-
-    it('should not trigger on x-axis changes', () => {
-      const prevState = createMockState({
-        matrixify_topn_value_x: 5, // x-axis field
-        matrixify_topn_value_y: 5, // y-axis field (unchanged)
-      });
-
-      const nextState = createMockState({
-        matrixify_topn_value_x: 10, // x-axis field changed
-        matrixify_topn_value_y: 5, // y-axis field (unchanged)
-      });
-
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(false);
-    });
+  const prevState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
   });
 
-  describe('mapStateToProps functionality', () => {
-    const control = mockSharedControls.matrixify_dimension_x;
-
-    it('should map form_data values correctly', () => {
-      const state = createMockState({
-        matrixify_dimension_selection_mode_x: 'topn',
-        matrixify_topn_metric_x: 'metric1',
-        matrixify_topn_value_x: 10,
-        matrixify_topn_order_x: 'desc',
-      });
-
-      const mockDatasource: any = { id: 1, columns: [] };
-      state.datasource = mockDatasource;
-
-      const result = control.mapStateToProps!(state);
-
-      expect(result).toEqual({
-        datasource: mockDatasource,
-        selectionMode: 'topn',
-        topNMetric: 'metric1',
-        topNValue: 10,
-        topNOrder: 'desc',
-        formData: state.form_data,
-      });
-    });
-
-    it('should fall back to control values when form_data is missing', () => {
-      const state = createMockState(
-        {}, // Empty form_data
-        {
-          matrixify_dimension_selection_mode_x:
-            createMockControlState('members'),
-          matrixify_topn_metric_x: createMockControlState('metric2'),
-          matrixify_topn_value_x: createMockControlState(15),
-        },
-      );
-
-      const result = control.mapStateToProps!(state);
-
-      expect(result.selectionMode).toBe('members');
-      expect(result.topNMetric).toBe('metric2');
-      expect(result.topNValue).toBe(15);
-    });
-
-    it('should use default values when both form_data and controls are missing', () => {
-      const state = createMockState({}, {});
-
-      const result = control.mapStateToProps!(state);
-
-      expect(result.selectionMode).toBe('members'); // Default value
-      expect(result.topNMetric).toBeUndefined();
-      expect(result.topNValue).toBeUndefined();
-      expect(result.topNOrder).toBeUndefined();
-    });
-
-    it('should prioritize form_data over control values', () => {
-      const state = createMockState(
-        {
-          matrixify_dimension_selection_mode_x: 'topn', // form_data value
-        },
-        {
-          matrixify_dimension_selection_mode_x:
-            createMockControlState('members'), // control value
-        },
-      );
-
-      const result = control.mapStateToProps!(state);
-
-      expect(result.selectionMode).toBe('topn'); // Should use form_data value
-    });
+  const nextState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric2', // Changed
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
   });
 
-  describe('performance considerations', () => {
-    const control = mockSharedControls.matrixify_dimension_x;
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
 
-    it('should efficiently check only relevant fields', () => {
-      const prevState = createMockState({
-        // Many fields, only some relevant
-        field1: 'value1',
-        field2: 'value2',
-        matrixify_topn_value_x: 5, // Relevant
-        field3: 'value3',
-        matrixify_topn_metric_x: 'metric1', // Relevant
-        field4: 'value4',
-        matrixify_other_control: 'value5',
-      });
+test('matrixify_dimension_x should return true when topN order changes', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
 
-      const nextState = createMockState({
-        field1: 'value1_changed', // Not relevant
-        field2: 'value2_changed', // Not relevant
-        matrixify_topn_value_x: 5, // Relevant, unchanged
-        field3: 'value3_changed', // Not relevant
-        matrixify_topn_metric_x: 'metric1', // Relevant, unchanged
-        field4: 'value4_changed', // Not relevant
-        matrixify_other_control: 'value5_changed', // Not relevant
-      });
-
-      // Should return false because no relevant fields changed
-      expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(false);
-    });
+  const prevState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
   });
+
+  const nextState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'asc', // Changed
+    matrixify_dimension_selection_mode_x: 'topn',
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
+
+test('matrixify_dimension_x should return true when selection mode changes', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const prevState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
+  });
+
+  const nextState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'members', // Changed
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
+
+test('matrixify_dimension_x should return false when no relevant fields change', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const prevState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
+    unrelated_field: 'value1',
+  });
+
+  const nextState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
+    unrelated_field: 'value2', // Changed, but not relevant
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(false);
+});
+
+test('matrixify_dimension_x should return false when states are identical', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const state = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_order_x: 'desc',
+    matrixify_dimension_selection_mode_x: 'topn',
+  });
+
+  expect(control.shouldMapStateToProps!(state, state)).toBe(false);
+});
+
+test('matrixify_dimension_x should handle missing form_data gracefully', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const prevState = createMockState(); // No form_data
+  const nextState = createMockState({
+    matrixify_topn_value_x: 5,
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
+
+test('matrixify_dimension_x should handle undefined values gracefully', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const prevState = createMockState({
+    matrixify_topn_value_x: undefined,
+    matrixify_topn_metric_x: null,
+  });
+
+  const nextState = createMockState({
+    matrixify_topn_value_x: 5,
+    matrixify_topn_metric_x: 'metric1',
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
+
+test('matrixify_dimension_y should check y-axis specific fields', () => {
+  const control = mockSharedControls.matrixify_dimension_y;
+
+  const prevState = createMockState({
+    matrixify_topn_value_y: 5,
+    matrixify_topn_metric_y: 'metric1',
+  });
+
+  const nextState = createMockState({
+    matrixify_topn_value_y: 10, // Changed
+    matrixify_topn_metric_y: 'metric1',
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(true);
+});
+
+test('matrixify_dimension_y should not trigger on x-axis changes', () => {
+  const control = mockSharedControls.matrixify_dimension_y;
+
+  const prevState = createMockState({
+    matrixify_topn_value_x: 5, // x-axis field
+    matrixify_topn_value_y: 5, // y-axis field (unchanged)
+  });
+
+  const nextState = createMockState({
+    matrixify_topn_value_x: 10, // x-axis field changed
+    matrixify_topn_value_y: 5, // y-axis field (unchanged)
+  });
+
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(false);
+});
+
+test('mapStateToProps should map form_data values correctly', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const state = createMockState({
+    matrixify_dimension_selection_mode_x: 'topn',
+    matrixify_topn_metric_x: 'metric1',
+    matrixify_topn_value_x: 10,
+    matrixify_topn_order_x: 'desc',
+  });
+
+  const mockDatasource: any = { id: 1, columns: [] };
+  state.datasource = mockDatasource;
+
+  const result = control.mapStateToProps!(state);
+
+  expect(result).toEqual({
+    datasource: mockDatasource,
+    selectionMode: 'topn',
+    topNMetric: 'metric1',
+    topNValue: 10,
+    topNOrder: 'desc',
+    formData: state.form_data,
+  });
+});
+
+test('mapStateToProps should fall back to control values when form_data is missing', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const state = createMockState(
+    {}, // Empty form_data
+    {
+      matrixify_dimension_selection_mode_x: createMockControlState('members'),
+      matrixify_topn_metric_x: createMockControlState('metric2'),
+      matrixify_topn_value_x: createMockControlState(15),
+    },
+  );
+
+  const result = control.mapStateToProps!(state);
+
+  expect(result.selectionMode).toBe('members');
+  expect(result.topNMetric).toBe('metric2');
+  expect(result.topNValue).toBe(15);
+});
+
+test('mapStateToProps should use default values when both form_data and controls are missing', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const state = createMockState({}, {});
+
+  const result = control.mapStateToProps!(state);
+
+  expect(result.selectionMode).toBe('members'); // Default value
+  expect(result.topNMetric).toBeUndefined();
+  expect(result.topNValue).toBeUndefined();
+  expect(result.topNOrder).toBeUndefined();
+});
+
+test('mapStateToProps should prioritize form_data over control values', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const state = createMockState(
+    {
+      matrixify_dimension_selection_mode_x: 'topn', // form_data value
+    },
+    {
+      matrixify_dimension_selection_mode_x: createMockControlState('members'), // control value
+    },
+  );
+
+  const result = control.mapStateToProps!(state);
+
+  expect(result.selectionMode).toBe('topn'); // Should use form_data value
+});
+
+test('should efficiently check only relevant fields', () => {
+  const control = mockSharedControls.matrixify_dimension_x;
+
+  const prevState = createMockState({
+    // Many fields, only some relevant
+    field1: 'value1',
+    field2: 'value2',
+    matrixify_topn_value_x: 5, // Relevant
+    field3: 'value3',
+    matrixify_topn_metric_x: 'metric1', // Relevant
+    field4: 'value4',
+    matrixify_other_control: 'value5',
+  });
+
+  const nextState = createMockState({
+    field1: 'value1_changed', // Not relevant
+    field2: 'value2_changed', // Not relevant
+    matrixify_topn_value_x: 5, // Relevant, unchanged
+    field3: 'value3_changed', // Not relevant
+    matrixify_topn_metric_x: 'metric1', // Relevant, unchanged
+    field4: 'value4_changed', // Not relevant
+    matrixify_other_control: 'value5_changed', // Not relevant
+  });
+
+  // Should return false because no relevant fields changed
+  expect(control.shouldMapStateToProps!(prevState, nextState)).toBe(false);
 });
