@@ -129,7 +129,7 @@
     "dayjs": "^1.11.13",
     "dom-to-image-more": "^3.6.0",
     "dom-to-pdf": "^0.3.2",
-    "echarts": "^5.6.0",
+    "echarts": "^6.0.0",
     "emotion-rgba": "0.0.12",
     "eslint-plugin-i18n-strings": "file:eslint-rules/eslint-plugin-i18n-strings",
     "fast-glob": "^3.3.2",
