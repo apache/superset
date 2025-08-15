@@ -363,6 +363,13 @@ const config = {
         },
       },
       {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
+        },
+      },
+      {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/],
         use: [
