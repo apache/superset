@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
@@ -25,8 +25,6 @@ import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import { useDownloadMenuItems } from 'src/dashboard/components/menu/DownloadMenuItems';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
-import CssEditor from 'src/dashboard/components/CssEditor';
-import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
@@ -36,7 +34,6 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
-import { updateDashboardTheme } from 'src/dashboard/actions/dashboardInfo';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -72,7 +69,6 @@ export const useHeaderActionsMenu = ({
   logEvent,
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
-  const dispatch = useDispatch();
   const [css, setCss] = useState(customCss || '');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const directPathToChild = useSelector(
@@ -85,15 +81,6 @@ export const useHeaderActionsMenu = ({
       injectCustomCss(customCss);
     }
   }, [css, customCss]);
-
-  const handleThemeChange = useCallback(
-    async (themeId: number | null) => {
-      // Save the theme to the dashboard
-      // The CrudThemeProvider will handle applying the theme to dashboard content only
-      dispatch(updateDashboardTheme(themeId));
-    },
-    [dispatch],
-  );
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -210,8 +197,6 @@ export const useHeaderActionsMenu = ({
 
   const menu = useMemo(() => {
     const isEmbedded = !dashboardInfo?.userId;
-    const refreshIntervalOptions =
-      dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
     const menuItems: MenuItem[] = [];
 
@@ -240,23 +225,6 @@ export const useHeaderActionsMenu = ({
         key: MenuKeys.EditProperties,
         label: t('Edit properties'),
       });
-    }
-
-    // Edit CSS
-    if (editMode) {
-      menuItems.push(
-        createModalMenuItem(
-          MenuKeys.EditCss,
-          <CssEditor
-            triggerNode={<div>{t('Theme & CSS')}</div>}
-            initialCss={css}
-            onChange={changeCss}
-            addDangerToast={addDangerToast}
-            currentThemeId={dashboardInfo.theme?.id || null}
-            onThemeChange={handleThemeChange}
-          />,
-        ),
-      );
     }
 
     // Divider
@@ -327,23 +295,6 @@ export const useHeaderActionsMenu = ({
         ),
       );
     }
-
-    // Auto-refresh interval
-    menuItems.push(
-      createModalMenuItem(
-        MenuKeys.AutorefreshModal,
-        <RefreshIntervalModal
-          addSuccessToast={addSuccessToast}
-          refreshFrequency={refreshFrequency}
-          refreshLimit={refreshLimit}
-          refreshWarning={refreshWarning}
-          onChange={changeRefreshInterval}
-          editMode={editMode}
-          refreshIntervalOptions={refreshIntervalOptions}
-          triggerNode={<div>{t('Set auto-refresh interval')}</div>}
-        />,
-      ),
-    );
 
     return (
       <Menu
