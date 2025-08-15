@@ -27,14 +27,10 @@ import {
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
-  isRecordAnnotationResult,
   isTableAnnotationLayer,
   isTimeseriesAnnotationLayer,
-  isTimeseriesAnnotationResult,
-  RecordAnnotationResult,
   TableAnnotationLayer,
   TimeseriesAnnotationLayer,
-  TimeseriesAnnotationResult,
 } from '@superset-ui/core';
 
 describe('AnnotationLayer type guards', () => {
@@ -82,23 +78,6 @@ describe('AnnotationLayer type guards', () => {
     show: true,
     showLabel: false,
   };
-  const timeseriesAnnotationResult: TimeseriesAnnotationResult = [
-    {
-      key: 'My Key',
-      values: [
-        { x: -1000, y: 0 },
-        { x: 0, y: 1000 },
-        { x: 1000, y: 2000 },
-      ],
-    },
-  ];
-  const recordAnnotationResult: RecordAnnotationResult = {
-    records: [
-      { a: 1, b: 2 },
-      { a: 2, b: 3 },
-    ],
-  };
-
   describe('isFormulaAnnotationLayer', () => {
     it('should return true when it is the correct type', () => {
       expect(isFormulaAnnotationLayer(formulaAnnotationLayer)).toEqual(true);
@@ -159,30 +138,6 @@ describe('AnnotationLayer type guards', () => {
     });
     it('should return false otherwise', () => {
       expect(isTableAnnotationLayer(formulaAnnotationLayer)).toEqual(false);
-    });
-  });
-
-  describe('isTimeseriesAnnotationResult', () => {
-    it('should return true when it is the correct type', () => {
-      expect(isTimeseriesAnnotationResult(timeseriesAnnotationResult)).toEqual(
-        true,
-      );
-    });
-    it('should return false otherwise', () => {
-      expect(isTimeseriesAnnotationResult(recordAnnotationResult)).toEqual(
-        false,
-      );
-    });
-  });
-
-  describe('isRecordAnnotationResult', () => {
-    it('should return true when it is the correct type', () => {
-      expect(isRecordAnnotationResult(recordAnnotationResult)).toEqual(true);
-    });
-    it('should return false otherwise', () => {
-      expect(isRecordAnnotationResult(timeseriesAnnotationResult)).toEqual(
-        false,
-      );
     });
   });
 });
