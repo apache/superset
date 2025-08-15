@@ -52,8 +52,6 @@ export const useHeaderActionsMenu = ({
   userCanSave,
   userCanCurate,
   isLoading,
-  refreshLimit,
-  refreshWarning,
   lastModifiedTime,
   addSuccessToast,
   addDangerToast,
@@ -61,26 +59,20 @@ export const useHeaderActionsMenu = ({
   showPropertiesModal,
   showReportModal,
   manageEmbedded,
-  onChange,
-  updateCss,
-  startPeriodicRender,
-  setRefreshFrequency,
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
-  const [css, setCss] = useState(customCss || '');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
 
   useEffect(() => {
-    if (customCss !== css) {
-      setCss(customCss || '');
+    if (customCss) {
       injectCustomCss(customCss);
     }
-  }, [css, customCss]);
+  }, [customCss]);
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -118,22 +110,6 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       manageEmbedded,
     ],
-  );
-
-  const changeCss = useCallback(
-    (newCss: string) => {
-      onChange();
-      updateCss(newCss);
-    },
-    [onChange, updateCss],
-  );
-
-  const changeRefreshInterval = useCallback(
-    (refreshInterval: number, isPersistent: boolean) => {
-      setRefreshFrequency(refreshInterval, isPersistent);
-      startPeriodicRender(refreshInterval * 1000);
-    },
-    [setRefreshFrequency, startPeriodicRender],
   );
 
   const emailSubject = useMemo(
@@ -313,11 +289,8 @@ export const useHeaderActionsMenu = ({
   }, [
     addDangerToast,
     addSuccessToast,
-    changeRefreshInterval,
-    changeCss,
     colorNamespace,
     colorScheme,
-    css,
     customCss,
     dashboardId,
     dashboardInfo,
@@ -331,8 +304,6 @@ export const useHeaderActionsMenu = ({
     layout,
     onSave,
     refreshFrequency,
-    refreshLimit,
-    refreshWarning,
     reportMenuItem,
     shareMenuItems,
     shouldPersistRefreshFrequency,

@@ -210,6 +210,8 @@ const PropertiesModal = ({
         roles,
         metadata,
         is_managed_externally,
+        theme_id,
+        css,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -218,7 +220,7 @@ const PropertiesModal = ({
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
-        css: dashboardData.css || '',
+        css: css || '',
         metadata,
       };
 
@@ -226,9 +228,9 @@ const PropertiesModal = ({
       setDashboardInfo(dashboardInfo);
       setOwners(owners);
       setRoles(roles);
-      setCustomCss(dashboardData.css || '');
-      setCurrentColorScheme(metadata.color_scheme);
-      setSelectedThemeId(dashboardData.theme_id || null);
+      setCustomCss(css || '');
+      setCurrentColorScheme(metadata?.color_scheme);
+      setSelectedThemeId(theme_id || null);
 
       const metaDataCopy = omit(metadata, [
         'positions',
