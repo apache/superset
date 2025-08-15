@@ -18,6 +18,8 @@ import os
 from dataclasses import dataclass
 from typing import Any, Optional
 from unittest.mock import MagicMock, patch
+import humanize
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -46,6 +48,7 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     QuerySource,
     remove_extra_adhoc_filters,
+    activate_humanize_locale,
 )
 from tests.conftest import with_config
 
@@ -1122,3 +1125,25 @@ def test_get_stacktrace():
     except Exception:
         stacktrace = get_stacktrace()
         assert stacktrace is None
+
+
+@pytest.mark.parametrize(
+    "mock_locale,expected_phrase",
+    [
+        ("en", "a day ago"),
+        ("fr", "il y a 1 jour"),
+        ("es", "hace 1 día"),
+    ],
+)
+def test_activate_humanize_locale_changes_naturaltime(mock_locale, expected_phrase):
+    """
+    Test that activate_humanize_locale sets the correct locale for humanize.naturaltime.
+    This test mocks flask_babel.get_locale to simulate different user locales and checks
+    that humanize.naturaltime returns the expected translation for '1 day ago'.
+    """
+    with patch("superset.utils.core.get_locale", return_value=mock_locale), \
+        patch.dict("superset.utils.core.LOCALES_LANGUAGE_MAP", {"en": "en_US", "fr": "fr_FR", "es": "es_ES"}):
+        activate_humanize_locale()
+        result = humanize.naturaltime(datetime.now() - timedelta(days=1))
+        assert expected_phrase.lower() in result.lower()
+
