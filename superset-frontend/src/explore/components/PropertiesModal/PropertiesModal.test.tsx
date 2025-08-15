@@ -200,29 +200,25 @@ test('Should render all elements inside modal', async () => {
 
   await waitFor(
     () => {
-      expect(screen.getAllByRole('textbox')).toHaveLength(5);
+      // Only General Settings is expanded by default, so only Name and Description textboxes are visible
+      expect(screen.getAllByRole('textbox')).toHaveLength(2);
       expect(screen.getByRole('combobox')).toBeInTheDocument();
-      expect(
-        screen.getByRole('heading', { name: 'Basic information' }),
-      ).toBeInTheDocument();
+
+      // Check for collapse sections instead of headings
+      expect(screen.getByText('General Settings')).toBeInTheDocument();
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();
 
-      expect(
-        screen.getByRole('heading', { name: 'Configuration' }),
-      ).toBeInTheDocument();
-      expect(screen.getByText('Cache timeout')).toBeInTheDocument();
-
-      expect(
-        screen.getByRole('heading', { name: 'Access' }),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Configuration')).toBeInTheDocument();
       expect(screen.getByText('Owners')).toBeInTheDocument();
+      expect(screen.getByText('Advanced')).toBeInTheDocument();
 
+      // These fields are in collapsed sections, so check their labels aren't visible yet
+      expect(screen.queryByText('Cache timeout')).not.toBeInTheDocument();
+      expect(screen.queryByText('Certified by')).not.toBeInTheDocument();
       expect(
-        screen.getByRole('heading', { name: 'Configuration' }),
-      ).toBeInTheDocument();
-      expect(screen.getByText('Certified by')).toBeInTheDocument();
-      expect(screen.getByText('Certification details')).toBeInTheDocument();
+        screen.queryByText('Certification details'),
+      ).not.toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -286,12 +282,20 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
   };
   renderModal(noCertifiedByProps);
 
-  expect(
-    await screen.findByRole('textbox', { name: 'Certification details' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('textbox', { name: 'Certification details' }),
-  ).toHaveValue('');
+  // Expand the Advanced section first to access certification details
+  const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
+  if (advancedPanel) {
+    userEvent.click(advancedPanel);
+  }
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('textbox', { name: 'Certification details' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Certification details' }),
+    ).toHaveValue('');
+  });
 });
 
 test('"Name" should not be empty', async () => {
@@ -336,19 +340,27 @@ test('"Cache timeout" should not be empty when saved', async () => {
   const props = createProps();
   renderModal(props);
 
-  const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
+  // Expand the Configuration section first to access cache timeout
+  const configPanel = screen.getByText('Configuration').closest('[role="tab"]');
+  if (configPanel) {
+    userEvent.click(configPanel);
+  }
 
-  userEvent.clear(cacheTimeout);
-  userEvent.type(cacheTimeout, '1000');
+  await waitFor(() => {
+    const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
 
-  expect(cacheTimeout).toHaveValue('1000');
+    userEvent.clear(cacheTimeout);
+    userEvent.type(cacheTimeout, '1000');
+
+    expect(cacheTimeout).toHaveValue('1000');
+  });
 
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
     expect(props.onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ cache_timeout: '1000' }),
+      expect.objectContaining({ cache_timeout: 1000 }),
     );
   });
 });
@@ -378,12 +390,20 @@ test('"Certified by" should not be empty when saved', async () => {
   const props = createProps();
   renderModal(props);
 
-  const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
+  // Expand the Advanced section first to access certified by
+  const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
+  if (advancedPanel) {
+    userEvent.click(advancedPanel);
+  }
 
-  userEvent.clear(certifiedBy);
-  userEvent.type(certifiedBy, 'Test certified by');
+  await waitFor(() => {
+    const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
 
-  expect(certifiedBy).toHaveValue('Test certified by');
+    userEvent.clear(certifiedBy);
+    userEvent.type(certifiedBy, 'Test certified by');
+
+    expect(certifiedBy).toHaveValue('Test certified by');
+  });
 
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -399,14 +419,22 @@ test('"Certification details" should not be empty when saved', async () => {
   const props = createProps();
   renderModal(props);
 
-  const certificationDetails = screen.getByRole('textbox', {
-    name: 'Certification details',
+  // Expand the Advanced section first to access certification details
+  const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
+  if (advancedPanel) {
+    userEvent.click(advancedPanel);
+  }
+
+  await waitFor(() => {
+    const certificationDetails = screen.getByRole('textbox', {
+      name: 'Certification details',
+    });
+
+    userEvent.clear(certificationDetails);
+    userEvent.type(certificationDetails, 'Test certification details');
+
+    expect(certificationDetails).toHaveValue('Test certification details');
   });
-
-  userEvent.clear(certificationDetails);
-  userEvent.type(certificationDetails, 'Test certification details');
-
-  expect(certificationDetails).toHaveValue('Test certification details');
 
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -432,9 +460,7 @@ test('Should display only custom tags when tagging system is enabled', async () 
   renderModal(props);
 
   await waitFor(async () => {
-    expect(
-      await screen.findByRole('heading', { name: 'Tags' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Tags')).toBeInTheDocument();
     expect(
       await screen.findByRole('combobox', { name: 'Tags' }),
     ).toBeInTheDocument();
