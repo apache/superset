@@ -1133,6 +1133,7 @@ def test_get_stacktrace():
         ("en", "a day ago"),
         ("fr", "il y a 1 jour"),
         ("es", "hace 1 día"),
+        ("xx", "a day ago"),
     ],
 )
 def test_activate_humanize_locale_changes_naturaltime(mock_locale, expected_phrase):
