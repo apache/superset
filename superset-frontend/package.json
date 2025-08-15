@@ -286,7 +286,7 @@
     "eslint-plugin-file-progress": "^1.5.0",
     "eslint-plugin-icons": "file:eslint-rules/eslint-plugin-icons",
     "eslint-plugin-import": "^2.24.2",
-    "eslint-plugin-jest": "^27.8.0",
+    "eslint-plugin-jest": "^29.0.1",
     "eslint-plugin-jest-dom": "^5.5.0",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-lodash": "^7.4.0",
