@@ -233,11 +233,12 @@ export class Theme {
   }
 
   setDirection(direction: DirectionType): void {
-    const newTheme = { ...this.theme };
-    newTheme.direction = direction;
-
     // Update the providers with the fully formed theme
-    this.updateProviders(newTheme, this.antdConfig, this.createCache());
+    this.updateProviders(
+      { ...this.theme, direction },
+      this.antdConfig,
+      this.createCache(),
+    );
   }
 
   json(): string {
