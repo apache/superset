@@ -28,6 +28,8 @@ import {
   Modal,
   Collapse,
   CollapseLabelInModal,
+  CssEditor,
+  Select,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
@@ -68,6 +70,11 @@ import {
 
 const StyledJsonEditor = styled(JsonEditor)`
   /* Border is already applied by AceEditor itself */
+`;
+
+const StyledCssEditor = styled(CssEditor)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
 type PropertiesModalProps = {
@@ -127,6 +134,8 @@ const PropertiesModal = ({
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
+  const [customCss, setCustomCss] = useState('');
+  const [refreshFrequency, setRefreshFrequency] = useState(0);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
 
@@ -202,6 +211,7 @@ const PropertiesModal = ({
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
+        css: dashboardData.css || '',
         metadata,
       };
 
@@ -209,6 +219,7 @@ const PropertiesModal = ({
       setDashboardInfo(dashboardInfo);
       setOwners(owners);
       setRoles(roles);
+      setCustomCss(dashboardData.css || '');
       setCurrentColorScheme(metadata.color_scheme);
 
       const metaDataCopy = omit(metadata, [
@@ -219,6 +230,7 @@ const PropertiesModal = ({
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
+      setRefreshFrequency(metadata?.refresh_frequency || 0);
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -365,6 +377,7 @@ const PropertiesModal = ({
         ? resettableCustomLabels
         : false;
     const jsonMetadataObj = getJsonMetadata();
+    jsonMetadataObj.refresh_frequency = refreshFrequency;
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
@@ -428,6 +441,7 @@ const PropertiesModal = ({
           certified_by: certifiedBy || null,
           certification_details:
             certifiedBy && certificationDetails ? certificationDetails : null,
+          css: customCss || null,
           ...morePutProps,
         }),
       }).then(() => {
@@ -500,7 +514,7 @@ const PropertiesModal = ({
     () => [
       {
         key: 'basic',
-        name: t('Basic Information'),
+        name: t('General Information'),
         validator: () => {
           const errors = [];
           const values = form.getFieldsValue();
@@ -523,6 +537,11 @@ const PropertiesModal = ({
       {
         key: 'certification',
         name: t('Certification'),
+        validator: () => [],
+      },
+      {
+        key: 'customCss',
+        name: t('Custom CSS'),
         validator: () => [],
       },
       {
@@ -600,7 +619,7 @@ const PropertiesModal = ({
               key: 'basic',
               label: (
                 <CollapseLabelInModal
-                  title={t('Basic Information')}
+                  title={t('General Information')}
                   subtitle={t('Dashboard name and URL configuration')}
                   validateCheckStatus={!validationStatus.basic?.hasErrors}
                   testId="basic-section"
@@ -741,6 +760,44 @@ const PropertiesModal = ({
               ),
             },
             {
+              key: 'refresh',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Refresh Settings')}
+                  subtitle={t('Configure automatic dashboard refresh')}
+                  validateCheckStatus={!validationStatus.refresh?.hasErrors}
+                  testId="refresh-section"
+                />
+              ),
+              children: (
+                <ModalFormField
+                  label={t('Refresh frequency')}
+                  helperText={t(
+                    'Set the automatic refresh frequency for this dashboard. The dashboard will reload its data at the specified interval.',
+                  )}
+                  bottomSpacing={false}
+                >
+                  <Select
+                    ariaLabel={t('Refresh frequency')}
+                    value={refreshFrequency}
+                    onChange={(value: any) => setRefreshFrequency(value)}
+                    options={[
+                      { value: 0, label: t("Don't refresh") },
+                      { value: 10, label: t('10 seconds') },
+                      { value: 30, label: t('30 seconds') },
+                      { value: 60, label: t('1 minute') },
+                      { value: 300, label: t('5 minutes') },
+                      { value: 1800, label: t('30 minutes') },
+                      { value: 3600, label: t('1 hour') },
+                      { value: 21600, label: t('6 hours') },
+                      { value: 43200, label: t('12 hours') },
+                      { value: 86400, label: t('24 hours') },
+                    ]}
+                  />
+                </ModalFormField>
+              ),
+            },
+            {
               key: 'certification',
               label: (
                 <CollapseLabelInModal
@@ -776,6 +833,32 @@ const PropertiesModal = ({
                     </FormItem>
                   </ModalFormField>
                 </>
+              ),
+            },
+            {
+              key: 'customCss',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Custom CSS')}
+                  subtitle={t('Apply custom styles to your dashboard')}
+                  validateCheckStatus={!validationStatus.customCss?.hasErrors}
+                  testId="custom-css-section"
+                />
+              ),
+              children: (
+                <ModalFormField
+                  label={t('CSS')}
+                  helperText={t(
+                    'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
+                  )}
+                  bottomSpacing={false}
+                >
+                  <StyledCssEditor
+                    onChange={setCustomCss}
+                    value={customCss}
+                    width="100%"
+                  />
+                </ModalFormField>
               ),
             },
             {
