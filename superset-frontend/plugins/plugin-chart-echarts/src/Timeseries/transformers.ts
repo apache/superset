@@ -25,7 +25,6 @@ import {
   FilterState,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  isTimeseriesAnnotationResult,
   LegendState,
   SupersetTheme,
   TimeseriesAnnotationLayer,
@@ -554,26 +553,30 @@ export function transformTimeseriesAnnotation(
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
-  if (isTimeseriesAnnotationResult(result)) {
-    result.forEach(annotation => {
-      const { key, values } = annotation;
-      series.push({
-        type: 'line',
-        id: key,
-        name: key,
-        data: values.map(({ x, y }) =>
-          isHorizontal
-            ? ([y, x] as [number, OptionName])
-            : ([x, y] as [OptionName, number]),
-        ),
-        symbolSize: showMarkers ? markerSize : 0,
-        lineStyle: {
-          opacity: parseAnnotationOpacity(opacity),
-          type: style as ZRLineType,
-          width: hideLine ? 0 : width,
-          color: color || colorScale(name, sliceId),
-        },
-      });
+  const { records } = result;
+  if (records) {
+    const data = records.map(record => {
+      const keys = Object.keys(record);
+      const x = keys.length > 0 ? record[keys[0]] : 0;
+      const y = keys.length > 1 ? record[keys[1]] : 0;
+      return isHorizontal
+        ? ([y, x] as [number, OptionName])
+        : ([x, y] as [OptionName, number]);
+    });
+    const computedStyle = {
+      opacity: parseAnnotationOpacity(opacity),
+      type: style as ZRLineType,
+      width: hideLine ? 0 : width,
+      color: color || colorScale(name, sliceId),
+    };
+    series.push({
+      type: 'line',
+      id: name,
+      name,
+      data,
+      symbolSize: showMarkers ? markerSize : 0,
+      itemStyle: computedStyle,
+      lineStyle: computedStyle,
     });
   }
   return series;

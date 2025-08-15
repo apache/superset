@@ -662,7 +662,7 @@ export default function transformProps(
             ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers, annotationData)),
+        .concat(extractAnnotationLabels(annotationLayers)),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
