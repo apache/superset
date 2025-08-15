@@ -458,7 +458,14 @@ const RightMenu = ({
               label: isFrontendRoute(child.url) ? (
                 <Link to={child.url || ''}>{menuItemDisplay}</Link>
               ) : (
-                <Typography.Link href={child.url || ''}>
+                <Typography.Link
+                  href={child.url || ''}
+                  css={css`
+                    display: flex;
+                    align-items: center;
+                    line-height: ${theme.sizeUnit * 10}px;
+                  `}
+                >
                   {menuItemDisplay}
                 </Typography.Link>
               ),

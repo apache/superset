@@ -41,6 +41,9 @@ const CheckBoxControlWrapper = styled.div`
     span:has(label) {
       padding-right: ${theme.sizeUnit * 2}px;
     }
+    .ant-checkbox-wrapper {
+      font-size: ${theme.fontSizeSM}px;
+    }
   `}
 `;
 
