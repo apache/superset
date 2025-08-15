@@ -323,8 +323,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
-      if (typeof data?.[0]?.[key] === 'number') {
-        const nums = data.map(row => row[key]) as number[];
+      const nums = data
+        ?.map(row => row?.[key])
+        .filter(value => typeof value === 'number') as number[];
+      if (data && nums.length === data.length) {
         return (
           alignPositiveNegative
             ? [0, d3Max(nums.map(Math.abs))]

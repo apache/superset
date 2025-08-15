@@ -79,6 +79,7 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0",
     "pgsanity",
+    "Pillow>=11.0.0, <12",
     "polyline>=2.0.0, <3.0",
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
@@ -181,7 +182,7 @@ tdengine = [
     "taos-ws-py>=0.3.8"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
-thumbnails = ["Pillow>=10.0.1, <11"]
+thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
@@ -195,6 +196,7 @@ development = [
     "grpcio>=1.55.3",
     "openapi-spec-validator",
     "parameterized",
+    "pip",
     "pre-commit",
     "progress>=1.5,<2",
     "psutil",
@@ -399,6 +401,7 @@ authorized_licenses = [
     "isc license (iscl)",
     "isc license",
     "mit",
+    "mit-cmu",
     "mozilla public license 2.0 (mpl 2.0)",
     "osi approved",
     "osi approved",

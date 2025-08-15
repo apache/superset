@@ -131,3 +131,6 @@ superset/static/stats/statistics.html
 # LLM-related
 CLAUDE.local.md
 .aider*
+.claude_rc*
+.env.local
+PROJECT.md
