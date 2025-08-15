@@ -180,26 +180,16 @@ describe('PropertiesModal', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('heading', { name: 'Basic information' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Colors' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Advanced down' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Certification' }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole('heading')).toHaveLength(6);
+    // Check for collapse section texts instead of headings
+    expect(screen.getByText('Basic Information')).toBeInTheDocument();
+    expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
+    expect(screen.getByText('Color Scheme')).toBeInTheDocument();
+    expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
+    expect(screen.getByText('Certification')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Advanced down' }),
-    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(4);
 
     expect(screen.getAllByRole('textbox')).toHaveLength(4);
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -221,29 +211,19 @@ describe('PropertiesModal', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard properties')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard Properties')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('heading', { name: 'Basic information' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Advanced down' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Certification' }),
-    ).toBeInTheDocument();
+    // Check for collapse section texts instead of headings
+    expect(screen.getByText('Basic Information')).toBeInTheDocument();
+    expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
+    expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
+    expect(screen.getByText('Certification')).toBeInTheDocument();
     // Tags will be included since isFeatureFlag always returns true in this test
-    expect(screen.getByRole('heading', { name: 'Tags' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading')).toHaveLength(6);
+    expect(screen.getByText('Tags')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Advanced down' }),
-    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(4);
 
     expect(screen.getAllByRole('textbox')).toHaveLength(4);
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
@@ -266,9 +246,17 @@ describe('PropertiesModal', () => {
 
     expect(screen.getAllByRole('textbox')).toHaveLength(4);
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
-    userEvent.click(screen.getByRole('button', { name: 'Advanced down' }));
-    expect(screen.getAllByRole('textbox')).toHaveLength(5);
-    expect(screen.getAllByRole('combobox')).toHaveLength(3);
+
+    // Click on the Advanced Settings collapse panel to expand it
+    const advancedPanel = screen
+      .getByText('Advanced Settings')
+      .closest('[role="tab"]');
+    expect(advancedPanel).toBeTruthy();
+    userEvent.click(advancedPanel!);
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox')).toHaveLength(5);
+      expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    });
   });
 
   test('should close modal', async () => {
