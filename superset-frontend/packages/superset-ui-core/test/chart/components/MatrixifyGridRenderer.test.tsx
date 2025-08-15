@@ -33,14 +33,11 @@ jest.mock(
 );
 
 // Mock MatrixifyGridCell component
-jest.mock(
-  '../../../src/chart/components/Matrixify/MatrixifyGridCell',
-  () => {
-    // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
-    return ({ cell, rowHeight, datasource, hooks }: any) => (
-      <div data-testid={`grid-cell-${cell.id}`}>Cell: {cell.id}</div>
-    );
-  },
+jest.mock('../../../src/chart/components/Matrixify/MatrixifyGridCell', () =>
+  // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
+  ({ cell, rowHeight, datasource, hooks }: any) => (
+    <div data-testid={`grid-cell-${cell.id}`}>Cell: {cell.id}</div>
+  ),
 );
 
 const mockGenerateMatrixifyGrid = generateMatrixifyGrid as jest.MockedFunction<
@@ -57,7 +54,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
 
   describe('column grouping logic', () => {
     it('should create single group when fitting columns dynamically', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1', 'Row 2'],
         colHeaders: ['Col 1', 'Col 2', 'Col 3', 'Col 4', 'Col 5'],
         cells: [
@@ -106,7 +103,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
     });
 
     it('should create multiple groups when not fitting columns dynamically', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1', 'Row 2'],
         colHeaders: ['Col 1', 'Col 2', 'Col 3', 'Col 4', 'Col 5'],
         cells: [
@@ -149,10 +146,17 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
     });
 
     it('should handle exact division of columns', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1'],
         colHeaders: ['Col 1', 'Col 2', 'Col 3', 'Col 4'],
-        cells: [[{ id: 'cell-0-0' }, { id: 'cell-0-1' }, { id: 'cell-0-2' }, { id: 'cell-0-3' }]],
+        cells: [
+          [
+            { id: 'cell-0-0' },
+            { id: 'cell-0-1' },
+            { id: 'cell-0-2' },
+            { id: 'cell-0-3' },
+          ],
+        ],
       };
 
       mockGenerateMatrixifyGrid.mockReturnValue(mockGrid);
@@ -177,7 +181,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
     });
 
     it('should handle case where charts_per_row exceeds total columns', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1'],
         colHeaders: ['Col 1', 'Col 2'],
         cells: [[{ id: 'cell-0-0' }, { id: 'cell-0-1' }]],
@@ -206,7 +210,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
 
   describe('header visibility with wrapping', () => {
     it('should show headers for each group when wrapping occurs', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1', 'Row 2'],
         colHeaders: ['Col 1', 'Col 2', 'Col 3'],
         cells: [
@@ -240,7 +244,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
     });
 
     it('should show headers only on first row when not wrapping', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1', 'Row 2'],
         colHeaders: ['Col 1', 'Col 2'],
         cells: [
@@ -272,7 +276,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
     });
 
     it('should hide headers when disabled', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1'],
         colHeaders: ['Col 1', 'Col 2'],
         cells: [[{ id: 'cell-0-0' }, { id: 'cell-0-1' }]],
@@ -301,7 +305,7 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
 
   describe('grid cell placement', () => {
     it('should place cells correctly in wrapped layout', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1'],
         colHeaders: ['Col 1', 'Col 2', 'Col 3'],
         cells: [[{ id: 'cell-0-0' }, { id: 'cell-0-1' }, { id: 'cell-0-2' }]],
@@ -325,9 +329,15 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
       // All cells should be rendered
       const cells = container.querySelectorAll('[data-testid^="grid-cell-"]');
       expect(cells).toHaveLength(3);
-      expect(container.querySelector('[data-testid="grid-cell-cell-0-0"]')).toBeInTheDocument();
-      expect(container.querySelector('[data-testid="grid-cell-cell-0-1"]')).toBeInTheDocument();
-      expect(container.querySelector('[data-testid="grid-cell-cell-0-2"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="grid-cell-cell-0-0"]'),
+      ).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="grid-cell-cell-0-1"]'),
+      ).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="grid-cell-cell-0-2"]'),
+      ).toBeInTheDocument();
     });
   });
 
@@ -344,11 +354,11 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
         <MatrixifyGridRenderer formData={formData} />,
       );
 
-      expect(container.firstChild).toBeNull();
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('should handle empty grid gracefully', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: [],
         colHeaders: [],
         cells: [],
@@ -366,13 +376,15 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
       );
 
       // Should render container but no cells
-      expect(container.firstChild).not.toBeNull();
-      const gridCells = container.querySelectorAll('[data-testid^="grid-cell-"]');
+      expect(container).not.toBeEmptyDOMElement();
+      const gridCells = container.querySelectorAll(
+        '[data-testid^="grid-cell-"]',
+      );
       expect(gridCells).toHaveLength(0);
     });
 
     it('should use default values for missing configuration', () => {
-      const mockGrid = {
+      const mockGrid: any = {
         rowHeaders: ['Row 1'],
         colHeaders: ['Col 1', 'Col 2'],
         cells: [[{ id: 'cell-0-0' }, { id: 'cell-0-1' }]],
@@ -391,8 +403,10 @@ describe('MatrixifyGridRenderer Column Wrapping', () => {
       );
 
       // Should still render with defaults
-      expect(container.firstChild).not.toBeNull();
-      const gridCells = container.querySelectorAll('[data-testid^="grid-cell-"]');
+      expect(container).not.toBeEmptyDOMElement();
+      const gridCells = container.querySelectorAll(
+        '[data-testid^="grid-cell-"]',
+      );
       expect(gridCells).toHaveLength(2);
     });
   });

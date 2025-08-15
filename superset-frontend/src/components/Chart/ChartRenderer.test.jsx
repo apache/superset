@@ -108,11 +108,8 @@ describe('Matrixify change detection', () => {
       chartStatus: 'success',
     };
 
+    // eslint-disable-next-line no-unused-vars
     const wrapper = render(<ChartRenderer {...initialProps} />);
-
-    // Mock shouldComponentUpdate to capture its behavior
-    const instance =
-      wrapper.container.querySelector('div')?.parentElement?.constructor;
 
     // Since we can't directly test shouldComponentUpdate, we verify the component
     // correctly identifies matrixify-related properties by checking the implementation
@@ -124,11 +121,9 @@ describe('Matrixify change detection', () => {
   });
 
   test('should identify matrixify property changes correctly', () => {
-    const ChartRendererClass =
-      require('src/components/Chart/ChartRenderer').default;
-    const instance = new ChartRendererClass(requiredProps);
-
-    const currentProps = {
+    // Test that formData with different matrixify properties triggers updates
+    const initialProps = {
+      ...requiredProps,
       formData: {
         matrixify_enabled: true,
         matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
@@ -138,38 +133,38 @@ describe('Matrixify change detection', () => {
       chartStatus: 'success',
     };
 
-    const nextProps = {
+    const { rerender, getByTestId } = render(
+      <ChartRenderer {...initialProps} />,
+    );
+
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(initialProps.formData),
+    );
+
+    // Update with changed matrixify_dimension_x values
+    const updatedProps = {
+      ...initialProps,
       formData: {
         matrixify_enabled: true,
         matrixify_dimension_x: {
           dimension: 'country',
-          values: ['USA', 'Canada'],
-        }, // Changed
+          values: ['USA', 'Canada'], // Changed
+        },
         matrixify_charts_per_row: 3,
       },
-      queriesResponse: [{ data: 'current' }],
-      chartStatus: 'success',
     };
 
-    // Set current props to instance
-    Object.assign(instance.props, currentProps);
+    rerender(<ChartRenderer {...updatedProps} />);
 
-    // Test shouldComponentUpdate
-    const shouldUpdate = instance.shouldComponentUpdate(
-      nextProps,
-      instance.state,
+    // Verify the component re-rendered with new props
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(updatedProps.formData),
     );
-
-    // Should return true because matrixify_dimension_x values changed
-    expect(shouldUpdate).toBe(true);
   });
 
   test('should handle matrixify-related form data changes', () => {
-    const ChartRendererClass =
-      require('src/components/Chart/ChartRenderer').default;
-    const instance = new ChartRendererClass(requiredProps);
-
-    const currentProps = {
+    const initialProps = {
+      ...requiredProps,
       formData: {
         matrixify_enabled: false,
         regular_control: 'value1',
@@ -178,34 +173,34 @@ describe('Matrixify change detection', () => {
       chartStatus: 'success',
     };
 
-    const nextProps = {
+    const { rerender, getByTestId } = render(
+      <ChartRenderer {...initialProps} />,
+    );
+
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(initialProps.formData),
+    );
+
+    // Enable matrixify
+    const updatedProps = {
+      ...initialProps,
       formData: {
         matrixify_enabled: true, // This is a significant change
         regular_control: 'value1',
       },
-      queriesResponse: [{ data: 'current' }],
-      chartStatus: 'success',
     };
 
-    // Set current props to instance
-    Object.assign(instance.props, currentProps);
+    rerender(<ChartRenderer {...updatedProps} />);
 
-    // Test shouldComponentUpdate
-    const shouldUpdate = instance.shouldComponentUpdate(
-      nextProps,
-      instance.state,
+    // Verify the component re-rendered with matrixify enabled
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(updatedProps.formData),
     );
-
-    // Should return true because matrixify was enabled
-    expect(shouldUpdate).toBe(true);
   });
 
   test('should detect matrixify property addition', () => {
-    const ChartRendererClass =
-      require('src/components/Chart/ChartRenderer').default;
-    const instance = new ChartRendererClass(requiredProps);
-
-    const currentProps = {
+    const initialProps = {
+      ...requiredProps,
       formData: {
         matrixify_enabled: true,
         // No matrixify_dimension_x initially
@@ -214,34 +209,34 @@ describe('Matrixify change detection', () => {
       chartStatus: 'success',
     };
 
-    const nextProps = {
+    const { rerender, getByTestId } = render(
+      <ChartRenderer {...initialProps} />,
+    );
+
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(initialProps.formData),
+    );
+
+    // Add matrixify_dimension_x
+    const updatedProps = {
+      ...initialProps,
       formData: {
         matrixify_enabled: true,
         matrixify_dimension_x: { dimension: 'country', values: ['USA'] }, // Added
       },
-      queriesResponse: [{ data: 'current' }],
-      chartStatus: 'success',
     };
 
-    // Set current props to instance
-    Object.assign(instance.props, currentProps);
+    rerender(<ChartRenderer {...updatedProps} />);
 
-    // Test shouldComponentUpdate
-    const shouldUpdate = instance.shouldComponentUpdate(
-      nextProps,
-      instance.state,
+    // Verify the component re-rendered with the new property
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(updatedProps.formData),
     );
-
-    // Should return true because matrixify_dimension_x was added
-    expect(shouldUpdate).toBe(true);
   });
 
   test('should detect nested matrixify property changes', () => {
-    const ChartRendererClass =
-      require('src/components/Chart/ChartRenderer').default;
-    const instance = new ChartRendererClass(requiredProps);
-
-    const currentProps = {
+    const initialProps = {
+      ...requiredProps,
       formData: {
         matrixify_enabled: true,
         matrixify_dimension_x: {
@@ -254,7 +249,17 @@ describe('Matrixify change detection', () => {
       chartStatus: 'success',
     };
 
-    const nextProps = {
+    const { rerender, getByTestId } = render(
+      <ChartRenderer {...initialProps} />,
+    );
+
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(initialProps.formData),
+    );
+
+    // Change nested topN value
+    const updatedProps = {
+      ...initialProps,
       formData: {
         matrixify_enabled: true,
         matrixify_dimension_x: {
@@ -263,20 +268,13 @@ describe('Matrixify change detection', () => {
           topN: { metric: 'sales', value: 15 }, // Nested change
         },
       },
-      queriesResponse: [{ data: 'current' }],
-      chartStatus: 'success',
     };
 
-    // Set current props to instance
-    Object.assign(instance.props, currentProps);
+    rerender(<ChartRenderer {...updatedProps} />);
 
-    // Test shouldComponentUpdate
-    const shouldUpdate = instance.shouldComponentUpdate(
-      nextProps,
-      instance.state,
+    // Verify the component re-rendered with the nested change
+    expect(getByTestId('mock-super-chart')).toHaveTextContent(
+      JSON.stringify(updatedProps.formData),
     );
-
-    // Should return true because nested topN value changed
-    expect(shouldUpdate).toBe(true);
   });
 });
