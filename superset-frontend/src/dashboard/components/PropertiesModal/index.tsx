@@ -45,7 +45,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 
-import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
+import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tag/utils';
@@ -801,14 +801,23 @@ const PropertiesModal = ({
                       />
                     </ModalFormField>
                   )}
-                  <ModalFormField label="">
-                    <ColorSchemeControlWrapper
+                  <ModalFormField
+                    label={t('Color scheme')}
+                    helperText={t(
+                      "Any color palette selected here will override the colors applied to this dashboard's individual charts",
+                    )}
+                  >
+                    <ColorSchemeSelect
+                      value={colorScheme}
+                      onChange={onColorSchemeChange}
                       hasCustomLabelsColor={
                         !!Object.keys(getJsonMetadata()?.label_colors || {})
                           .length
                       }
-                      onChange={onColorSchemeChange}
-                      colorScheme={colorScheme}
+                      showWarning={
+                        !!Object.keys(getJsonMetadata()?.label_colors || {})
+                          .length
+                      }
                     />
                   </ModalFormField>
                   <ModalFormField

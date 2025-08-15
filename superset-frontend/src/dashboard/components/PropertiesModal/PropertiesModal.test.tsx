@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import * as ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
+import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled } from '@superset-ui/core';
 import PropertiesModal from '.';
@@ -40,15 +40,12 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-const spyColorSchemeControlWrapper = jest.spyOn(
-  ColorSchemeControlWrapper,
-  'default',
-);
+const spyColorSchemeSelect = jest.spyOn(ColorSchemeSelect, 'default');
 const mockedJsonMetadata =
   '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
 
-spyColorSchemeControlWrapper.mockImplementation(
-  () => (<div>ColorSchemeControlWrapper</div>) as any,
+spyColorSchemeSelect.mockImplementation(
+  () => (<div>ColorSchemeSelect</div>) as any,
 );
 
 fetchMock.get(
@@ -218,11 +215,11 @@ describe('PropertiesModal', () => {
 
     await waitFor(() => {
       // Color Scheme component is rendered (mocked in tests)
-      expect(screen.getByText('ColorSchemeControlWrapper')).toBeInTheDocument();
+      expect(screen.getByText('ColorSchemeSelect')).toBeInTheDocument();
     });
 
-    expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
-      expect.objectContaining({ colorScheme: 'supersetColors' }),
+    expect(spyColorSchemeSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 'supersetColors' }),
       {},
     );
   });
@@ -274,8 +271,8 @@ describe('PropertiesModal', () => {
     }
 
     await waitFor(() => {
-      expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
-        expect.objectContaining({ colorScheme: 'supersetColors' }),
+      expect(spyColorSchemeSelect).toHaveBeenCalledWith(
+        expect.objectContaining({ value: 'supersetColors' }),
         {},
       );
     });
