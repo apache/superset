@@ -85,7 +85,7 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "python-geohash",
-    "pyarrow>=18.1.0, <19",
+    "pyarrow>=16.1.0, <17", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=4.6.0, <5.0",

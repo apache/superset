@@ -588,7 +588,7 @@ psutil==6.1.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
-pyarrow==18.1.0
+pyarrow==16.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
