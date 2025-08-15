@@ -79,9 +79,8 @@ export default function ColorPickerControl({
       <ColorPicker
         value={hexValue}
         onChange={handleChange}
-        presets={presetColors.map(color => ({ label: color, colors: [color] }))}
+        presets={[{ label: 'Theme colors', colors: presetColors }]}
         showText
-        format="hex"
       />
     </div>
   );

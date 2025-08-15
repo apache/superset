@@ -844,11 +844,11 @@ class AnnotationLayer extends PureComponent {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <ColorPicker
               value={color}
-              presets={colorScheme.map(c => ({ label: c, colors: [c] }))}
+              presets={[{ label: 'Theme colors', colors: colorScheme }]}
               onChange={colorValue =>
                 this.setState({ color: colorValue.toHexString() })
               }
-              format="hex"
+              showText
             />
             <Button
               style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
