@@ -64,7 +64,8 @@ export default function LanguagePicker(props: LanguagePickerProps) {
   const theme = useTheme();
 
   useEffect(() => {
-    const isRtl = rtlLanguages.some(l => locale.startsWith(l));
+    const languageCode = locale.split('-')[0];
+	  const isRtl = rtlLanguages.includes(languageCode);
     setDirection(isRtl ? 'rtl' : 'ltr');
   }, [locale, setDirection]);
 
