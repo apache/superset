@@ -240,21 +240,12 @@ describe('EchartsTimeseries transformProps', () => {
           },
         ],
       },
-      'My Timeseries': [
-        {
-          key: 'My Line',
-          values: [
-            {
-              x: 10000,
-              y: 11000,
-            },
-            {
-              x: 20000,
-              y: 21000,
-            },
-          ],
-        },
-      ],
+      'My Timeseries': {
+        records: [
+          { x: 10000, y: 11000 },
+          { x: 20000, y: 21000 },
+        ],
+      },
     };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
@@ -274,12 +265,12 @@ describe('EchartsTimeseries transformProps', () => {
       expect.objectContaining({
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
-            data: ['San Francisco', 'New York', 'My Line'],
+            data: ['San Francisco', 'New York', 'My Timeseries'],
           }),
           series: expect.arrayContaining([
             expect.objectContaining({
               type: 'line',
-              id: 'My Line',
+              id: 'My Timeseries',
             }),
             expect.objectContaining({
               type: 'line',

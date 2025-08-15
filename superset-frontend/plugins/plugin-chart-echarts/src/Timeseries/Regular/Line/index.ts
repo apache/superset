@@ -60,6 +60,7 @@ export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin
           'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
         ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
+        canBeAnnotationTypes: [AnnotationType.Timeseries],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,

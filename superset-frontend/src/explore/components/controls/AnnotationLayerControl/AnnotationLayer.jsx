@@ -31,6 +31,7 @@ import {
   styled,
   getColumnLabel,
   withTheme,
+  VizType,
 } from '@superset-ui/core';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
@@ -244,7 +245,7 @@ class AnnotationLayer extends PureComponent {
         chartMetadata.canBeAnnotationType(annotationType),
       )
       .map(({ key, value: chartMetadata }) => ({
-        value: key,
+        value: key === VizType.Line ? 'line' : key,
         label: chartMetadata.name,
       }));
     // Prepend native source if applicable
