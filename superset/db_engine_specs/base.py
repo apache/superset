@@ -1331,7 +1331,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
-        for regex, (message, error_type, extra) in cls.custom_errors.items():
+
+        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
+        db_engine_custom_errors = config_custom_errors.get(cls.engine_name, {})
+
+        if not isinstance(db_engine_custom_errors, dict):
+            db_engine_custom_errors = {}
+
+        for regex, (message, error_type, extra) in [
+            *db_engine_custom_errors.items(),
+            *cls.custom_errors.items(),
+        ]:
             if match := regex.search(raw_message):
                 params = {**context, **match.groupdict()}
                 extra["engine_name"] = cls.engine_name
