@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useMemo, useRef, useCallback } from 'react';
-import { styled } from '@superset-ui/core';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -30,11 +29,6 @@ import type { FilterableTableProps, Datum, CellDataType } from './types';
 // exponential notation, NaN, and Infinity.
 // See https://stackoverflow.com/a/30987109 for more details
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
-
-const StyledFilterableTable = styled.div`
-  height: 100%;
-  overflow: hidden;
-`;
 
 const parseNumberFromString = (value: string | number | null) => {
   if (typeof value === 'string' && ONLY_NUMBER_REGEX.test(value)) {
@@ -126,14 +120,11 @@ export const FilterableTable = ({
   }, []);
 
   return (
-    <StyledFilterableTable
-      className="filterable-table-container"
-      data-test="table-container"
-    >
+    <div className="filterable-table-container" data-test="table-container">
       <GridTable
         size={GridSize.Small}
-        height={height}
         usePagination={false}
+        height={height}
         columns={columns}
         data={data}
         externalFilter={keywordFilter}
@@ -142,7 +133,7 @@ export const FilterableTable = ({
         enableActions
         columnReorderable
       />
-    </StyledFilterableTable>
+    </div>
   );
 };
 
