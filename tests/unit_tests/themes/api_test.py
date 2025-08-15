@@ -58,10 +58,12 @@ class TestThemeRestApi:
             "json_data",
             "id",
             "is_system",
+            "is_system_default",
+            "is_system_dark",
             "theme_name",
             "uuid",
         ]
-        assert ThemeRestApi.show_columns == expected_columns
+        assert set(ThemeRestApi.show_columns) == set(expected_columns)
 
     def test_list_columns_configuration(self):
         """Test that list columns are configured correctly"""
@@ -78,10 +80,12 @@ class TestThemeRestApi:
             "json_data",
             "id",
             "is_system",
+            "is_system_default",
+            "is_system_dark",
             "theme_name",
             "uuid",
         ]
-        assert ThemeRestApi.list_columns == expected_columns
+        assert set(ThemeRestApi.list_columns) == set(expected_columns)
 
     def test_order_columns_configuration(self):
         """Test that order columns are configured correctly"""

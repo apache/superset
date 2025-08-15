@@ -166,7 +166,11 @@ export * from './Table';
 export * from './TableView';
 export * from './Tag';
 export * from './TelemetryPixel';
-export * from './ThemeSubMenu';
 export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';
+export {
+  ThemedAgGridReact,
+  type ThemedAgGridReactProps,
+  setupAGGridModules,
+} from './ThemedAgGridReact';
