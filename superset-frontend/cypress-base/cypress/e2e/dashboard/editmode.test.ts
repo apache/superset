@@ -61,6 +61,8 @@ function assertMetadata(text: string) {
 }
 
 function openAdvancedProperties() {
+  // Scroll to Advanced Settings section first since modal content is scrollable
+  cy.get('.ant-modal-body').contains('Advanced Settings').scrollIntoView();
   cy.get('.ant-modal-body')
     .contains('Advanced Settings')
     .should('be.visible')
@@ -149,6 +151,7 @@ function selectColorScheme(
   cy.get(`[data-test="${target}"]`).within(() => {
     // Find the Collapse header that contains "Styling" text
     // In Ant Design 5, collapse headers have role="button"
+    cy.contains('Styling').scrollIntoView();
     cy.contains('Styling')
       .closest('.ant-collapse-header')
       .then($header => {
@@ -289,6 +292,7 @@ describe('Dashboard edit', () => {
       openTab(0, 1, 'control-tabs');
 
       // Expand Styling section first
+      cy.contains('Styling').scrollIntoView();
       cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
@@ -321,6 +325,7 @@ describe('Dashboard edit', () => {
       openTab(0, 1, 'control-tabs');
 
       // Expand Styling section first
+      cy.contains('Styling').scrollIntoView();
       cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
@@ -843,6 +848,7 @@ describe('Dashboard edit', () => {
 
       openProperties();
       // Expand Styling section first
+      cy.contains('Styling').scrollIntoView();
       cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
       openAdvancedProperties();
