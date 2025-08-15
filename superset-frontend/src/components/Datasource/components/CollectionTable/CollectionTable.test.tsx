@@ -19,7 +19,7 @@
 import { render } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import CollectionTable from './CollectionTable';
+import CollectionTable from '.';
 
 const props = {
   collection: mockDatasource['7__table'].columns,
