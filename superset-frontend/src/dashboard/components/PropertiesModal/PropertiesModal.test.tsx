@@ -181,7 +181,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Check for collapse section texts (not headings anymore)
-    expect(screen.getByText('Basic Information')).toBeInTheDocument();
+    expect(screen.getByText('General Information')).toBeInTheDocument();
     expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
     expect(screen.getByText('Color Scheme')).toBeInTheDocument();
     expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
@@ -191,11 +191,21 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
-    // Only Basic Information section is expanded by default
+    // Only General Information section is expanded by default
     expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug
 
-    // Color Scheme component is rendered (mocked in tests)
-    expect(screen.getByText('ColorSchemeControlWrapper')).toBeInTheDocument();
+    // Expand Color Scheme section to see the ColorSchemeControlWrapper
+    const colorSchemePanel = screen
+      .getByText('Color Scheme')
+      .closest('[role="tab"]');
+    if (colorSchemePanel) {
+      userEvent.click(colorSchemePanel);
+    }
+
+    await waitFor(() => {
+      // Color Scheme component is rendered (mocked in tests)
+      expect(screen.getByText('ColorSchemeControlWrapper')).toBeInTheDocument();
+    });
 
     expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
       expect.objectContaining({ colorScheme: 'supersetColors' }),
@@ -217,7 +227,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByText('Dashboard Properties')).toBeInTheDocument();
 
     // Check for collapse section texts instead of headings
-    expect(screen.getByText('Basic Information')).toBeInTheDocument();
+    expect(screen.getByText('General Information')).toBeInTheDocument();
     expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
     expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
     expect(screen.getByText('Certification')).toBeInTheDocument();
