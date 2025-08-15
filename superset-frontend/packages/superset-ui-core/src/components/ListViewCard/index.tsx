@@ -48,11 +48,6 @@ const StyledCard = styled(Card)`
         transform: translateY(0);
       }
     }
-
-    .card-description {
-      display: flex;
-      justify-content: space-between;
-    }
   `}
 `;
 
@@ -84,9 +79,8 @@ const TitleContainer = styled.div`
 
   .titleRow {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     flex-direction: row;
-    gap: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -100,9 +94,10 @@ const TitleLink = styled.span`
 
 const TitleRight = styled.span`
   ${({ theme }) => css`
+    position: absolute;
     font-weight: 400;
     bottom: ${theme.sizeUnit * 3}px;
-    right: ${theme.sizeUnit * 2}px;
+    inset-inline-end: ${theme.sizeUnit * 2}px;
   `}
 `;
 const CoverFooter = styled.div`
@@ -246,18 +241,14 @@ function ListViewCard({
                     {title}
                   </TitleLink>
                 </Tooltip>
+                {titleRight && <TitleRight>{titleRight}</TitleRight>}
                 <div className="card-actions" data-test="card-actions">
                   {actions}
                 </div>
               </div>
             </TitleContainer>
           }
-          description={
-            <div className="card-description">
-              {description}
-              {titleRight && <TitleRight>{titleRight}</TitleRight>}
-            </div>
-          }
+          description={description}
           avatar={avatar || null}
         />
       )}
