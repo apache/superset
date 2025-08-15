@@ -78,7 +78,7 @@ export default function ColorPickerControl({
       <ControlHeader {...headerProps} />
       <ColorPicker
         value={hexValue}
-        onChange={handleChange}
+        onChangeComplete={handleChange}
         presets={[{ label: 'Theme colors', colors: presetColors }]}
         showText
       />

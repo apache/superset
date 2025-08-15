@@ -864,7 +864,7 @@ class AnnotationLayer extends PureComponent {
               <ColorPicker
                 value={color}
                 presets={[{ label: 'Theme colors', colors: colorScheme }]}
-                onChange={colorValue =>
+                onChangeComplete={colorValue =>
                   this.setState({ color: colorValue.toHexString() })
                 }
                 showText
