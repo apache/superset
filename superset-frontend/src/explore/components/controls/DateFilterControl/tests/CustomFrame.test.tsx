@@ -26,7 +26,6 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { CustomFrame } from '../components';
-import 'dayjs/locale/fr';
 
 const TODAY = '2024-06-03';
 jest.useFakeTimers();
