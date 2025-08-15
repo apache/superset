@@ -530,18 +530,13 @@ const PropertiesModal = ({
         validator: () => [],
       },
       {
-        key: 'colors',
-        name: t('Color Scheme'),
+        key: 'styling',
+        name: t('Styling'),
         validator: () => [],
       },
       {
         key: 'certification',
         name: t('Certification'),
-        validator: () => [],
-      },
-      {
-        key: 'customCss',
-        name: t('Custom CSS'),
         validator: () => [],
       },
       {
@@ -735,28 +730,43 @@ const PropertiesModal = ({
               ),
             },
             {
-              key: 'colors',
+              key: 'styling',
               label: (
                 <CollapseLabelInModal
-                  title={t('Color Scheme')}
+                  title={t('Styling')}
                   subtitle={t(
-                    'Configure dashboard color scheme and label colors',
+                    'Configure dashboard appearance, colors, and custom CSS',
                   )}
-                  validateCheckStatus={!validationStatus.colors?.hasErrors}
-                  testId="colors-section"
+                  validateCheckStatus={!validationStatus.styling?.hasErrors}
+                  testId="styling-section"
                 />
               ),
               children: (
-                <ModalFormField label={t('Color Scheme')} bottomSpacing={false}>
-                  <ColorSchemeControlWrapper
-                    hasCustomLabelsColor={
-                      !!Object.keys(getJsonMetadata()?.label_colors || {})
-                        .length
-                    }
-                    onChange={onColorSchemeChange}
-                    colorScheme={colorScheme}
-                  />
-                </ModalFormField>
+                <>
+                  <ModalFormField label={t('Color Scheme')}>
+                    <ColorSchemeControlWrapper
+                      hasCustomLabelsColor={
+                        !!Object.keys(getJsonMetadata()?.label_colors || {})
+                          .length
+                      }
+                      onChange={onColorSchemeChange}
+                      colorScheme={colorScheme}
+                    />
+                  </ModalFormField>
+                  <ModalFormField
+                    label={t('Custom CSS')}
+                    helperText={t(
+                      'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
+                    )}
+                    bottomSpacing={false}
+                  >
+                    <StyledCssEditor
+                      onChange={setCustomCss}
+                      value={customCss}
+                      width="100%"
+                    />
+                  </ModalFormField>
+                </>
               ),
             },
             {
@@ -833,32 +843,6 @@ const PropertiesModal = ({
                     </FormItem>
                   </ModalFormField>
                 </>
-              ),
-            },
-            {
-              key: 'customCss',
-              label: (
-                <CollapseLabelInModal
-                  title={t('Custom CSS')}
-                  subtitle={t('Apply custom styles to your dashboard')}
-                  validateCheckStatus={!validationStatus.customCss?.hasErrors}
-                  testId="custom-css-section"
-                />
-              ),
-              children: (
-                <ModalFormField
-                  label={t('CSS')}
-                  helperText={t(
-                    'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
-                  )}
-                  bottomSpacing={false}
-                >
-                  <StyledCssEditor
-                    onChange={setCustomCss}
-                    value={customCss}
-                    width="100%"
-                  />
-                </ModalFormField>
               ),
             },
             {
