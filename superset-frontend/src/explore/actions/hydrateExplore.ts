@@ -50,6 +50,99 @@ enum ColorSchemeType {
   SEQUENTIAL = 'SEQUENTIAL',
 }
 
+/**
+ * Apply dataset chart defaults to form data for new charts
+ */
+export function applyDatasetChartDefaults(
+  formData: any,
+  dataset: any,
+  isNewChart: boolean,
+  defaultTimeFilter?: string,
+): any {
+  // Only apply defaults to new charts
+  if (!isNewChart || !dataset?.extra) {
+    return formData;
+  }
+
+  try {
+    const datasetExtra =
+      typeof dataset.extra === 'string'
+        ? JSON.parse(dataset.extra)
+        : dataset.extra || {};
+    const chartDefaults = datasetExtra?.default_chart_metadata || {};
+    const updatedFormData = { ...formData };
+
+    // Apply default metric
+    if (chartDefaults.default_metric && !updatedFormData.metrics?.length) {
+      const defaultMetric = dataset.metrics?.find(
+        (metric: any) => metric.metric_name === chartDefaults.default_metric,
+      );
+      if (defaultMetric) {
+        updatedFormData.metrics = [chartDefaults.default_metric];
+      }
+    }
+
+    // Apply default dimension/groupby
+    if (chartDefaults.default_dimension && !updatedFormData.groupby?.length) {
+      const defaultColumn = dataset.columns?.find(
+        (col: any) =>
+          col.column_name === chartDefaults.default_dimension && col.groupby,
+      );
+      if (defaultColumn) {
+        updatedFormData.groupby = [chartDefaults.default_dimension];
+      }
+    }
+
+    // Apply default time grain
+    if (chartDefaults.default_time_grain && !updatedFormData.time_grain_sqla) {
+      updatedFormData.time_grain_sqla = chartDefaults.default_time_grain;
+    }
+
+    // Apply default time range (but don't override if already set above)
+    if (
+      chartDefaults.default_time_range &&
+      updatedFormData.time_range === (defaultTimeFilter || NO_TIME_RANGE)
+    ) {
+      updatedFormData.time_range = chartDefaults.default_time_range;
+    }
+
+    // Apply default row limit
+    if (chartDefaults.default_row_limit && !updatedFormData.row_limit) {
+      updatedFormData.row_limit = chartDefaults.default_row_limit;
+    }
+
+    // Apply default filters
+    if (
+      chartDefaults.default_filters?.length &&
+      !updatedFormData.adhoc_filters?.length
+    ) {
+      updatedFormData.adhoc_filters = chartDefaults.default_filters;
+    }
+
+    // Apply default temporal column (X-axis)
+    if (
+      chartDefaults.default_temporal_column &&
+      !updatedFormData.granularity_sqla
+    ) {
+      const defaultTemporalColumn = dataset.columns?.find(
+        (col: any) =>
+          col.column_name === chartDefaults.default_temporal_column &&
+          col.is_dttm,
+      );
+      if (defaultTemporalColumn) {
+        updatedFormData.granularity_sqla =
+          chartDefaults.default_temporal_column;
+      }
+    }
+
+    return updatedFormData;
+  } catch (error) {
+    // Silently ignore JSON parsing errors - defaults will not be applied
+    console.warn('Failed to parse dataset chart defaults:', error);
+    return formData;
+  }
+}
+
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
   ({
@@ -77,6 +170,17 @@ export const hydrateExplore =
       initialFormData.time_range =
         common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
     }
+
+    // Apply dataset chart defaults if this is a new chart (no existing slice)
+    const isNewChart = !initialSlice?.slice_id;
+    const formDataWithDefaults = applyDatasetChartDefaults(
+      initialFormData,
+      dataset,
+      isNewChart,
+      common?.conf?.DEFAULT_TIME_FILTER,
+    );
+    Object.assign(initialFormData, formDataWithDefaults);
+
     if (
       initialFormData.include_time &&
       initialFormData.granularity_sqla &&
