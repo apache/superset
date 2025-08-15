@@ -203,7 +203,7 @@ describe('SQLEditorWithValidation', () => {
         endpoint: '/api/v1/datasource/table/1/validate_expression/',
         body: JSON.stringify({
           expression: 'user_id * 2',
-          expression_type: 'column',
+          expression_type: SqlExpressionType.COLUMN,
           clause: undefined,
         }),
         headers: { 'Content-Type': 'application/json' },
@@ -211,7 +211,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('sends correct payload for filter expression with WHERE clause', async () => {
+  it('sends correct payload for WHERE expression', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -221,8 +221,7 @@ describe('SQLEditorWithValidation', () => {
       <SQLEditorWithValidation
         {...defaultProps}
         value="status = 'active'"
-        expressionType={SqlExpressionType.FILTER}
-        clause="WHERE"
+        expressionType={SqlExpressionType.WHERE}
       />,
     );
 
@@ -234,15 +233,14 @@ describe('SQLEditorWithValidation', () => {
         endpoint: '/api/v1/datasource/table/1/validate_expression/',
         body: JSON.stringify({
           expression: "status = 'active'",
-          expression_type: 'filter',
-          clause: 'WHERE',
+          expression_type: SqlExpressionType.WHERE,
         }),
         headers: { 'Content-Type': 'application/json' },
       });
     });
   });
 
-  it('sends correct payload for filter expression with HAVING clause', async () => {
+  it('sends correct payload for HAVING expression', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -252,8 +250,7 @@ describe('SQLEditorWithValidation', () => {
       <SQLEditorWithValidation
         {...defaultProps}
         value="COUNT(*) > 5"
-        expressionType={SqlExpressionType.FILTER}
-        clause="HAVING"
+        expressionType={SqlExpressionType.HAVING}
       />,
     );
 
@@ -265,8 +262,7 @@ describe('SQLEditorWithValidation', () => {
         endpoint: '/api/v1/datasource/table/1/validate_expression/',
         body: JSON.stringify({
           expression: 'COUNT(*) > 5',
-          expression_type: 'filter',
-          clause: 'HAVING',
+          expression_type: SqlExpressionType.HAVING,
         }),
         headers: { 'Content-Type': 'application/json' },
       });

@@ -25,6 +25,7 @@ import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilt
 import { OptionSortType } from 'src/explore/types';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
+import { SqlExpressionType } from 'src/types/SqlExpression';
 import { Clauses, ExpressionTypes } from '../types';
 
 const StyledSelect = styled(Select)`
@@ -139,10 +140,13 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           className="filter-sql-editor"
           wrapEnabled
           showValidation
-          expressionType="filter"
+          expressionType={
+            adhocFilter.clause === 'HAVING'
+              ? SqlExpressionType.HAVING
+              : SqlExpressionType.WHERE
+          }
           datasourceId={datasource?.id}
           datasourceType={datasource?.type}
-          clause={adhocFilter.clause}
         />
       </div>
     </span>

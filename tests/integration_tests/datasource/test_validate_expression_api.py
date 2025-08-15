@@ -122,46 +122,6 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         assert "result" in data
         assert data["result"] == []
 
-    @patch("superset.connectors.sqla.models.SqlaTable.validate_expression")
-    def test_validate_expression_filter_with_clause(self, mock_validate):
-        """Test validation of filter expression with explicit clause parameter"""
-        self.login("admin")
-
-        # Mock successful validation
-        mock_validate.return_value = {"valid": True, "errors": []}
-
-        datasource_id = 1
-
-        # Test WHERE clause through filter type
-        rv = self.client.post(
-            f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
-            json={
-                "expression": "status = 'active'",
-                "expression_type": "filter",
-                "clause": "WHERE",
-            },
-        )
-
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        assert "result" in data
-        assert data["result"] == []
-
-        # Test HAVING clause through filter type
-        rv = self.client.post(
-            f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
-            json={
-                "expression": "SUM(amount) > 100",
-                "expression_type": "filter",
-                "clause": "HAVING",
-            },
-        )
-
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        assert "result" in data
-        assert data["result"] == []
-
     def test_validate_expression_invalid_sql(self):
         """Test validation of invalid SQL expression"""
         self.login("admin")

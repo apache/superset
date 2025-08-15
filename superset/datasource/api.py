@@ -281,27 +281,22 @@ class DatasourceRestApi(BaseSupersetApi):
         request_data = request.json or {}
         expression = request_data.get("expression")
         expression_type = request_data.get("expression_type", "where")
-        clause = request_data.get("clause")
 
         if not expression:
             raise ValueError("Expression is required")
 
         # Convert string expression_type to SqlExpressionType enum
         expression_type_enum = self._convert_expression_type_for_validation(
-            expression_type, clause
+            expression_type
         )
 
         return expression, expression_type_enum
 
     def _convert_expression_type_for_validation(
-        self, expression_type: str, clause: str | None
+        self, expression_type: str
     ) -> SqlExpressionType:
         """Convert expression type to enum. Raises ValueError on error."""
         try:
-            # Support backward compatibility for "filter" type
-            if expression_type == "filter":
-                expression_type = "having" if clause == "HAVING" else "where"
-
             return SqlExpressionType(expression_type)
         except ValueError:
             raise ValueError(

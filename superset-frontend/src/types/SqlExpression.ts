@@ -25,7 +25,6 @@ export enum SqlExpressionType {
   METRIC = 'metric',
   WHERE = 'where',
   HAVING = 'having',
-  FILTER = 'filter', // Deprecated: maps to WHERE/HAVING based on clause
 }
 
 export type ExpressionType = `${SqlExpressionType}`;
