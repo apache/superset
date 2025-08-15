@@ -18,11 +18,11 @@
  */
 import {
   forwardRef,
-  ReactNode,
   useContext,
-  useEffect,
   useRef,
   useState,
+  useCallback,
+  useMemo,
 } from 'react';
 import {
   css,
@@ -179,8 +179,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     const shouldShowRowLimitWarning =
       !isEmbedded() || uiConfig.showRowLimitWarning;
     const dashboardPageId = useContext(DashboardPageIdContext);
-    const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
     const headerRef = useRef<HTMLDivElement>(null);
+    const [isHovering, setIsHovering] = useState(false); // Add hover state
     // TODO: change to indicator field after it will be implemented
     const crossFilterValue = useSelector<RootState, any>(
       state => state.dataMask[slice?.slice_id]?.filterState?.value,
@@ -200,20 +200,20 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const canExplore = !editMode && supersetCanExplore;
 
-    useEffect(() => {
-      const headerElement = headerRef.current;
+    const tooltipContent = useMemo(() => {
       if (canExplore) {
-        setHeaderTooltip(getSliceHeaderTooltip(sliceName));
-      } else if (
-        headerElement &&
-        (headerElement.scrollWidth > headerElement.offsetWidth ||
-          headerElement.scrollHeight > headerElement.offsetHeight)
-      ) {
-        setHeaderTooltip(sliceName ?? null);
-      } else {
-        setHeaderTooltip(null);
+        return getSliceHeaderTooltip(sliceName);
       }
-    }, [sliceName, width, height, canExplore]);
+      return sliceName ?? null;
+    }, [canExplore, sliceName]);
+
+    const handleMouseEnter = useCallback(() => {
+      setIsHovering(true);
+    }, []);
+
+    const handleMouseLeave = useCallback(() => {
+      setIsHovering(false);
+    }, []);
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
@@ -235,23 +235,38 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
-        <div className="header-title" ref={headerRef}>
-          <Tooltip title={headerTooltip}>
-            <EditableTitle
-              title={
-                sliceName ||
-                (editMode
-                  ? '---' // this makes an empty title clickable
-                  : '')
-              }
-              canEdit={editMode}
-              onSaveTitle={updateSliceName}
-              showTooltip={false}
-              renderLink={
-                canExplore && exploreUrl ? renderExploreLink : undefined
-              }
-            />
-          </Tooltip>
+        <div
+          className="header-title"
+          ref={headerRef}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div>
+            <Tooltip
+              title={tooltipContent}
+              open={!!(isHovering && tooltipContent)}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <EditableTitle
+                  title={sliceName || (editMode ? '---' : '')}
+                  canEdit={editMode}
+                  onSaveTitle={updateSliceName}
+                  showTooltip={false}
+                  renderLink={
+                    canExplore && exploreUrl ? renderExploreLink : undefined
+                  }
+                />
+              </span>
+            </Tooltip>
+          </div>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"
