@@ -21,7 +21,7 @@ Orchestrates schema, dataset, and runtime validations.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
@@ -97,7 +97,7 @@ class ValidationPipeline:
 
     @staticmethod
     def _validate_dataset(
-        config: ChartConfig, dataset_id: Union[int, str]
+        config: ChartConfig, dataset_id: int | str
     ) -> Tuple[bool, Optional[ChartGenerationError]]:
         """Validate configuration against dataset schema."""
         try:
@@ -117,7 +117,7 @@ class ValidationPipeline:
 
     @staticmethod
     def _validate_runtime(
-        config: ChartConfig, dataset_id: Union[int, str]
+        config: ChartConfig, dataset_id: int | str
     ) -> Tuple[bool, Optional[ChartGenerationError]]:
         """Validate runtime issues (performance, compatibility)."""
         try:

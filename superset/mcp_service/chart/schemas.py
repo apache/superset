@@ -24,7 +24,7 @@ from __future__ import annotations
 import html
 import re
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol
 
 from pydantic import (
     BaseModel,
@@ -675,7 +675,7 @@ class XYChartConfig(BaseModel):
 
 # Discriminated union entry point with custom error handling
 ChartConfig = Annotated[
-    Union[XYChartConfig, TableChartConfig],
+    XYChartConfig | TableChartConfig,
     Field(
         discriminator="chart_type",
         description="Chart configuration - specify chart_type as 'xy' or 'table'",

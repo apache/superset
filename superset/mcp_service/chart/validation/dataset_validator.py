@@ -22,7 +22,7 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
@@ -43,7 +43,7 @@ class DatasetValidator:
 
     @staticmethod
     def validate_against_dataset(
-        config: Union[TableChartConfig, XYChartConfig], dataset_id: Union[int, str]
+        config: TableChartConfig | XYChartConfig, dataset_id: int | str
     ) -> Tuple[bool, Optional[ChartGenerationError]]:
         """
         Validate chart configuration against dataset schema.
@@ -98,7 +98,7 @@ class DatasetValidator:
         return True, None
 
     @staticmethod
-    def _get_dataset_context(dataset_id: Union[int, str]) -> Optional[DatasetContext]:
+    def _get_dataset_context(dataset_id: int | str) -> Optional[DatasetContext]:
         """Get dataset context with column information."""
         try:
             from superset.daos.dataset import DatasetDAO
@@ -161,7 +161,7 @@ class DatasetValidator:
 
     @staticmethod
     def _extract_column_references(
-        config: Union[TableChartConfig, XYChartConfig],
+        config: TableChartConfig | XYChartConfig,
     ) -> List[ColumnRef]:
         """Extract all column references from configuration."""
         refs = []

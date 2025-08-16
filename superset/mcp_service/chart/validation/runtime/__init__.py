@@ -21,7 +21,7 @@ Validates performance, compatibility, and user experience issues.
 """
 
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
@@ -37,7 +37,7 @@ class RuntimeValidator:
 
     @staticmethod
     def validate_runtime_issues(
-        config: ChartConfig, dataset_id: Union[int, str]
+        config: ChartConfig, dataset_id: int | str
     ) -> Tuple[bool, Optional[ChartGenerationError]]:
         """
         Validate runtime issues that could affect chart rendering or performance.
@@ -117,7 +117,7 @@ class RuntimeValidator:
 
     @staticmethod
     def _validate_cardinality(
-        config: XYChartConfig, dataset_id: Union[int, str]
+        config: XYChartConfig, dataset_id: int | str
     ) -> Tuple[List[str], List[str]]:
         """Validate cardinality issues."""
         warnings: List[str] = []
@@ -151,7 +151,7 @@ class RuntimeValidator:
 
     @staticmethod
     def _validate_chart_type(
-        config: ChartConfig, dataset_id: Union[int, str]
+        config: ChartConfig, dataset_id: int | str
     ) -> Tuple[List[str], List[str]]:
         """Validate chart type appropriateness."""
         warnings: List[str] = []
