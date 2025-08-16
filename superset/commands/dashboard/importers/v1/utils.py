@@ -139,7 +139,55 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             native_filter["scope"]["excluded"] = [
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
+    fixed = update_cross_filter_scoping(fixed, id_map)
+    return fixed
 
+
+def update_cross_filter_scoping(
+    config: dict[str, Any], id_map: dict[int, int]
+) -> dict[str, Any]:
+    # fix cross filter references
+    fixed = config.copy()
+
+    cross_filter_global_config = fixed.get("metadata", {}).get(
+        "global_chart_configuration", {}
+    )
+    scope_excluded = cross_filter_global_config.get("scope", {}).get("excluded", [])
+    if scope_excluded:
+        cross_filter_global_config["scope"]["excluded"] = [
+            id_map[old_id] for old_id in scope_excluded if old_id in id_map
+        ]
+
+    if "chart_configuration" in (metadata := fixed.get("metadata", {})):
+        # Build remapped configuration in a single pass for clarity/readability.
+        new_chart_configuration: dict[str, Any] = {}
+        for old_id_str, chart_config in metadata["chart_configuration"].items():
+            try:
+                old_id_int = int(old_id_str)
+            except (TypeError, ValueError):
+                continue
+
+            new_id = id_map.get(old_id_int)
+            if new_id is None:
+                continue
+
+            if isinstance(chart_config, dict):
+                chart_config["id"] = new_id
+
+                # Update cross filter scope excluded ids
+                scope = chart_config.get("crossFilters", {}).get("scope", {})
+                if isinstance(scope, dict):
+                    excluded_scope = scope.get("excluded", [])
+                    if excluded_scope:
+                        chart_config["crossFilters"]["scope"]["excluded"] = [
+                            id_map[old_id]
+                            for old_id in excluded_scope
+                            if old_id in id_map
+                        ]
+
+            new_chart_configuration[str(new_id)] = chart_config
+
+        metadata["chart_configuration"] = new_chart_configuration
     return fixed
 
 
