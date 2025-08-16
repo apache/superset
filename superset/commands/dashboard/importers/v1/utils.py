@@ -171,16 +171,19 @@ def update_cross_filter_scoping(
             if new_id is None:
                 continue
 
-            chart_config["id"] = new_id
+            if isinstance(chart_config, dict):
+                chart_config["id"] = new_id
 
-            # Update cross filter scope excluded ids
-            scope = chart_config.get("crossFilters", {}).get("scope", {})
-            if isinstance(scope, dict):
-                excluded_scope = scope.get("excluded", [])
-                if excluded_scope:
-                    chart_config["crossFilters"]["scope"]["excluded"] = [
-                        id_map[old_id] for old_id in excluded_scope if old_id in id_map
-                    ]
+                # Update cross filter scope excluded ids
+                scope = chart_config.get("crossFilters", {}).get("scope", {})
+                if isinstance(scope, dict):
+                    excluded_scope = scope.get("excluded", [])
+                    if excluded_scope:
+                        chart_config["crossFilters"]["scope"]["excluded"] = [
+                            id_map[old_id]
+                            for old_id in excluded_scope
+                            if old_id in id_map
+                        ]
 
             new_chart_configuration[str(new_id)] = chart_config
 
