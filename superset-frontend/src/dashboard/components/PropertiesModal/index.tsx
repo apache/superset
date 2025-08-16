@@ -626,6 +626,7 @@ const PropertiesModal = ({
         <Collapse
           expandIconPosition="end"
           defaultActiveKey="basic"
+          accordion
           modalMode
           items={[
             {
