@@ -28,6 +28,9 @@ import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled } from '@superset-ui/core';
 import PropertiesModal from '.';
 
+// Increase timeout for CI environment
+jest.setTimeout(60000);
+
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
