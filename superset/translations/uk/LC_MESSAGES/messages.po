@@ -164,16 +164,16 @@ msgid "!= (Is not equal)"
 msgstr "! = (Не рівний)"
 
 #, fuzzy, python-format
-msgid "% calculation"
-msgstr "Тип обчислення"
+msgid "%% calculation"
+msgstr "%% обчислення"
 
 #, fuzzy, python-format
-msgid "% of parent"
-msgstr "Батько"
+msgid "%% of parent"
+msgstr "%% батьківського"
 
 #, fuzzy, python-format
-msgid "% of total"
-msgstr "Показати загалом"
+msgid "%% of total"
+msgstr "%% від загального"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -181,7 +181,7 @@ msgstr "%(dialect)s не можна використовувати як джер
 
 #, fuzzy, python-format
 msgid "%(label)s file"
-msgstr "%(prefix)s %(title)s"
+msgstr "%(label)s файл"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -296,7 +296,7 @@ msgstr "%s варіант(и)"
 
 #, fuzzy, python-format
 msgid "%s recipients"
-msgstr "недавні"
+msgstr "%s отримувачі"
 
 #, fuzzy, python-format
 msgid "%s row"
@@ -362,7 +362,7 @@ msgstr ""
 "\n"
 "%(description)s\n"
 "\n"
-"<%(URL)s | Ознайомтеся з Superset>\n"
+"<%(url)s | Ознайомтеся з Superset>\n"
 "\n"
 "%(table)s\n"
 
@@ -1174,14 +1174,14 @@ msgstr "Попередній запит повернув більше одног
 
 #, fuzzy, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "Попередній запит повернув більше одного стовпця. повернуті стовпці %s"
+msgstr "Попередній запит повернув більше одного стовпця. Повернуто %(num_cols)s стовпців"
 
 msgid "Alert query returned more than one row."
 msgstr "Попередній запит повернув більше одного ряду."
 
 #, fuzzy, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "Попередній запит повернув більше одного ряду. %s Рядки повернулися"
+msgstr "Попередній запит повернув більше одного ряду. Повернуто %(num_rows)s рядків"
 
 msgid "Alert running"
 msgstr "Попередження"
@@ -1209,7 +1209,7 @@ msgstr "Всі"
 
 #, fuzzy, python-format
 msgid "All %s hidden columns"
-msgstr "Стовпці таблиці"
+msgstr "Усі %s приховані стовпці"
 
 msgid "All Text"
 msgstr "Весь текст"
@@ -1675,7 +1675,7 @@ msgstr "Застосовані фільтри (%d)"
 
 #, fuzzy, python-format
 msgid "Applied filters (%s)"
-msgstr "Застосовані фільтри (%d)"
+msgstr "Застосовані фільтри (%s)"
 
 #, python-format
 msgid "Applied filters: %s"
@@ -3660,7 +3660,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Data for %s"
-msgstr "Додаткові дані для JS"
+msgstr "Дані для %s"
 
 #, fuzzy
 msgid "Data imported"
@@ -3771,7 +3771,7 @@ msgstr "Набір даних"
 
 #, fuzzy, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "Набір даних %(name)s вже існує"
+msgstr "Набір даних %(table)s вже існує"
 
 msgid "Dataset Name"
 msgstr "Назва набору даних"
@@ -4139,63 +4139,63 @@ msgstr "Видалений"
 #, fuzzy, python-format
 msgid "Deleted %(num)d annotation"
 msgid_plural "Deleted %(num)d annotations"
-msgstr[0] "Видалено %(число) d анотація"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалено %(num)d анотація"
+msgstr[1] "Видалено %(num)d анотації"
+msgstr[2] "Видалено %(num)d анотацій"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
-msgstr[0] "Видалений %(число) D шар анотації"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалений %(num)d шар анотації"
+msgstr[1] "Видалено %(num)d шари анотацій"
+msgstr[2] "Видалений %(num)d шарів анотацій"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
-msgstr[0] "Видалено %(число) D діаграми"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалено %(num)d діаграму"
+msgstr[1] "Видалено %(num)d діаграми"
+msgstr[2] "Видалено %(num)d діаграм"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d css template"
 msgid_plural "Deleted %(num)d css templates"
-msgstr[0] "Видалений %(num) d шаблон CSS"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалений %(num)d шаблон CSS"
+msgstr[1] "Видалений %(num)d шаблони CSS"
+msgstr[2] "Видалений %(num)d шаблонів CSS"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d dashboard"
 msgid_plural "Deleted %(num)d dashboards"
-msgstr[0] "Видалено %(num)d інформаційних панелей"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалено %(num)d дашборд"
+msgstr[1] "Видалено %(num)d дашборди"
+msgstr[2] "Видалено %(num)d дашбордів"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d dataset"
 msgid_plural "Deleted %(num)d datasets"
-msgstr[0] "Видалено %(число) D набору даних"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалено %(num)d набір даних"
+msgstr[1] "Видалено %(num)d набори даних"
+msgstr[2] "Видалено %(num)d наборів даних"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d report schedule"
 msgid_plural "Deleted %(num)d report schedules"
-msgstr[0] "Видалений %(число) d Розклад звіту"
+msgstr[0] "Видалений %(num)d Розклад звіту"
 msgstr[1] ""
 msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d rules"
 msgid_plural "Deleted %(num)d rules"
-msgstr[0] "Видалено %(число) D Правила"
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Видалено %(num)d правило"
+msgstr[1] "Видалено %(num)d правила"
+msgstr[2] "Видалено %(num)d правил"
 
 #, fuzzy, python-format
 msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
-msgstr[0] "Видалений %(число) d Зберегти запит"
+msgstr[0] "Видалений %(num)d Зберегти запит"
 msgstr[1] ""
 msgstr[2] ""
 
@@ -4553,11 +4553,11 @@ msgstr "Дублікат набору даних"
 
 #, fuzzy
 msgid "Duplicate role"
-msgstr "Дублікат"
+msgstr "Дублікат ролі"
 
 #, fuzzy, python-format
 msgid "Duplicate role %(name)s"
-msgstr "Дублікат назви стовпців: %(columns)s"
+msgstr "Дублікат назви ролі: %(name)s"
 
 msgid "Duplicate tab"
 msgstr "Вкладка дублікатів"
@@ -5594,27 +5594,27 @@ msgid "Force categorical"
 msgstr "Категорія джерела"
 
 msgid "Force date format"
-msgstr "Формат дат сили"
+msgstr "Формат дати примусово"
 
 msgid "Force refresh"
-msgstr "Оновити"
+msgstr "Примусово оновити"
 
 #, fuzzy
 msgid "Force refresh Slack channels list"
-msgstr "Список схеми оновлення сили"
+msgstr "Примусово оновити список каналів Slack"
 
 #, fuzzy
 msgid "Force refresh catalog list"
-msgstr "Список таблиць оновлення сили оновлення"
+msgstr "Примусово оновити список каталогів"
 
 msgid "Force refresh schema list"
-msgstr "Список схеми оновлення сили"
+msgstr "Примусово оновити список схем"
 
 msgid "Force refresh table list"
-msgstr "Список таблиць оновлення сили оновлення"
+msgstr "Примусово оновити список таблиць"
 
 msgid "Forecast periods"
-msgstr "Прогнозна періоди"
+msgstr "Прогнозні періоди"
 
 msgid "Foreign key"
 msgstr "Зовнішній ключ"
@@ -6022,7 +6022,7 @@ msgstr "Включіть опис, який буде надіслано з ва�
 
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
-msgstr "Включіть опис, який буде надіслано з вашим звітом"
+msgstr "Включіть опис, який буде надіслано з %s"
 
 msgid "Include series name as an axis"
 msgstr "Включіть назву серії як вісь"
@@ -6203,7 +6203,7 @@ msgstr "Недійсне Rolling_Type: %(type)s"
 
 #, fuzzy, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Недійсна просторова точка, що зустрічається: %s"
+msgstr "Недійсна неправильна просторова точка: %(latlong)s"
 
 msgid "Invalid state."
 msgstr "Недійсна держава."
@@ -9440,7 +9440,7 @@ msgstr "Пошук"
 
 #, fuzzy, python-format
 msgid "Search %s records"
-msgstr "RAW Records"
+msgstr "Пошук %s записів"
 
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"
@@ -9955,17 +9955,17 @@ msgstr ""
 "порядок сезонності Фур'є."
 
 msgid "Show"
-msgstr "Показувати"
+msgstr "Показати"
 
 #, fuzzy, python-format
 msgid "Show %s entries"
-msgstr "Показати показник"
+msgstr "Показати %s записів"
 
 msgid "Show Bubbles"
 msgstr "Показати бульбашки"
 
 msgid "Show CREATE VIEW statement"
-msgstr "Показати заяву про створення перегляду"
+msgstr "Показати вираз CREATE VIEW"
 
 #, fuzzy
 msgid "Show cell bars"
@@ -10706,12 +10706,12 @@ msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr ""
-"Таблиця [%(table_name)s] Не вдалося знайти, будь ласка, перевірте "
+"Таблицю [%(table)s] не вдається знайти, будь ласка, перевірте "
 "підключення до бази даних, схеми та назву таблиці"
 
 #, fuzzy
 msgid "Table actions"
-msgstr "Стовпці таблиці"
+msgstr "Дії над таблицею"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' "
@@ -10733,7 +10733,7 @@ msgstr "Назва таблиці не визначена"
 
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
-msgstr "Таблиця або переглянути \"%(таблиця)s\" не існує."
+msgstr "Таблиця або предсталення \"%(table)s\" не існує."
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -11274,10 +11274,10 @@ msgid ""
 "configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
 "download to csv to see more rows up to the %(limit)d limit."
 msgstr ""
-"Кількість відображених результатів обмежена %(рядами) d за допомогою "
-"конфігурації Display_max_Rows. Будь ласка, додайте додаткові "
+"Кількість відображених результатів обмежена %(rows)d за допомогою "
+"конфігурації DISPLAY_MAX_ROW. Будь ласка, додайте додаткові "
 "обмеження/фільтри або завантажте в CSV, щоб побачити більше рядків до "
-"обмеження %(ліміт) D."
+"обмеження %(limit)d."
 
 #, python-format
 msgid ""
@@ -11285,30 +11285,30 @@ msgid ""
 "additional limits/filters, download to csv, or contact an admin to see "
 "more rows up to the %(limit)d limit."
 msgstr ""
-"Кількість відображених результатів обмежена %(рядки) d. Будь ласка, "
+"Кількість відображених результатів обмежена %(rows)d. Будь ласка, "
 "додайте додаткові ліміти/фільтри, завантажте в CSV або зв’яжіться з "
-"адміністратором, щоб побачити більше рядків до обмеження (ліміт) D."
+"адміністратором, щоб побачити більше рядків до обмеження %(limit)d."
 
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the dropdown."
 msgstr ""
-"Кількість відображених рядків обмежена %(рядами) d шляхом спадного "
+"Кількість відображених рядків обмежена %(rows)d шляхом спадного "
 "падіння."
 
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the limit dropdown."
-msgstr "Кількість відображених рядків обмежена %(рядами) d шляхом спадного краплі."
+msgstr "Кількість відображених рядків обмежена %(rows)d шляхом спадного краплі."
 
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the query"
-msgstr "Кількість відображених рядків обмежена %(рядами) d за запитом"
+msgstr "Кількість відображених рядків обмежена %(rows)d за запитом"
 
 #, python-format
 msgid ""
 "The number of rows displayed is limited to %(rows)d by the query and "
 "limit dropdown."
 msgstr ""
-"Кількість відображених рядків обмежена %(рядами) d шляхом запиту та "
+"Кількість відображених рядків обмежена %(rows)d шляхом запиту та "
 "спадного падіння."
 
 msgid "The number of seconds before expiring the cache"
@@ -11720,7 +11720,7 @@ msgstr "Є пов'язані сповіщення або звіти"
 
 #, fuzzy, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Існують пов'язані сповіщення або звіти: %s,"
+msgstr "Існують пов'язані сповіщення або звіти: %(report_names)s"
 
 msgid "There are no charts added to this dashboard"
 msgstr "На цю інформаційну панель не додано діаграм"
@@ -12675,7 +12675,7 @@ msgstr "Збережених виразів не знайдено"
 
 #, fuzzy, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Несподіваний часовий діапазон: %s"
+msgstr "Неочікуваний часовий діапазон: %(error)s"
 
 #, fuzzy
 msgid "Unhide"
@@ -13223,7 +13223,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Waiting on %s"
-msgstr "Показуючи %s %s"
+msgstr "Очікування на %s"
 
 #, fuzzy
 msgid "Waiting on database..."
@@ -13938,7 +13938,7 @@ msgstr "У вас немає дозволу на зміну значення."
 
 #, python-format
 msgid "You don't have the rights to alter %(resource)s"
-msgstr "Ви не маєте прав на зміну %(ресурси)s"
+msgstr "Ви не маєте прав на змінювати %(resource)s"
 
 msgid "You don't have the rights to alter this chart"
 msgstr "Ви не маєте прав на зміну цієї діаграми"
@@ -14532,22 +14532,20 @@ msgid ""
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"База даних %s пов'язана з діаграмами %s, які з’являються на інформаційних"
-" панелях %s, а користувачі мають %s SQL Lab вкладки, використовуючи цю "
-"базу даних. Ви впевнені, що хочете продовжувати? Видалення бази даних "
-"порушить ці об'єкти."
+"пов'язана з діаграмами %s, які показані на %s дашбордах і користувачі мають %s"
+"вкладки SQL Lab, що використовують цю базу даних. Ви впевнені, що хочете "
+"продовжувати? Видалення бази данихпорушить ці об'єкти."
 
 #, fuzzy, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"DataSet %s пов'язаний з діаграмами %s, які з’являються на інформаційних "
-"панелях %s. Ви впевнені, що хочете продовжувати? Видалення набору даних "
-"порушить ці об'єкти."
+"пов'язаний з діаграмами %s, які з’являються на дашбордах %s. Ви впевнені, "
+"що хочете продовжувати? Видалення набору даних порушить ці об'єкти."
 
 msgid "is not"
-msgstr ""
+msgstr "не є"
 
 msgid "key a-z"
 msgstr "літера A-Z"
