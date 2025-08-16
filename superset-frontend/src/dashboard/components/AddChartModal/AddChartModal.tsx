@@ -40,6 +40,8 @@ import { addSlice } from 'src/dashboard/actions/dashboardState';
 import { addSlices } from 'src/dashboard/actions/sliceEntities';
 import { ChartState } from 'src/explore/types';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
+import { bindActionCreators } from 'redux';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
 
 interface FormData {
   vizType: string;
@@ -118,7 +120,7 @@ const DEFAULT_PIE_FORM_DATA = {
 const ADD_CHART_STATE: ChartState & {
   form_data: QueryFormData | null;
 } = {
-  id: 7,
+  id: 1.5,
   chartAlert: null,
   chartStatus: 'loading',
   chartStackTrace: null,
@@ -133,7 +135,7 @@ const ADD_CHART_STATE: ChartState & {
   form_data: null,
 };
 
-const ADD_CHART_KEY = 7;
+const ADD_CHART_KEY = 1.5;
 
 const ModalContent = styled.div`
   ${({ theme }) => css`
@@ -548,7 +550,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
 
   const portableChartProps = {
     componentId: 'CHART-KltoVNVW0LvnQ27LL0kdD',
-    id: 7,
+    id: 1.5,
     width: 499,
     height: 508,
     // sliceName: 'Weekly Messages',
@@ -563,11 +565,18 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
 
   const dispatch = useDispatch();
 
+  // Create bound actions similar to ExploreViewContainer
+  const actions = useMemo(
+    () => bindActionCreators(saveModalActions, dispatch),
+    [dispatch],
+  );
+
   const [selectedDatasource, setSelectedDatasource] =
     useState<DatasourceOption | null>(null);
   const [availableMetrics, setAvailableMetrics] = useState<MetricOption[]>([]);
   const [availableColumns, setAvailableColumns] = useState<ColumnOption[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
+  const [sliceFormData, setSliceFormData] = useState();
 
   const vizTypes = ['Pie Chart'];
 
@@ -784,6 +793,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     vizFormData.slice_id = ADD_CHART_KEY;
     const newChartState = ADD_CHART_STATE;
     newChartState.form_data = vizFormData;
+    setSliceFormData(vizFormData);
 
     const actions = [
       dispatch(addChart(newChartState, ADD_CHART_KEY)),
@@ -819,12 +829,47 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     return <Chart {...portableChartProps} sliceName={formData.title} />;
   };
 
+  const handleSaveOrOverWriteSlice = async () => {
+    try {
+      if (!sliceFormData) return;
+      // Create dashboard info if needed (similar to SaveModal)
+      const dashboardInfo = selectedDatasource
+        ? {
+            title: formData.title,
+            new: false, // or true if creating new dashboard
+          }
+        : null;
+
+      const value = await actions.createSlice(
+        formData.title, // slice name
+        [], // dashboard ids array
+        dashboardInfo, // dashboard info object
+        sliceFormData,
+      );
+      console.log(actions, 'actions');
+      console.log(value, 'value from create slice');
+      const id = value?.id;
+      // use this id and append it to the component meta
+
+      // console.log('Slice created successfully:', value);
+      // onClose();
+    } catch (error) {
+      console.error('Error creating slice:', error);
+    }
+  };
+
   return (
     <Modal
       show={isOpen}
       onHide={onClose}
       title={t('Edit Chart')}
       width="1200px"
+      onHandledPrimaryAction={async () => {
+        // save slice here
+        // call the save api
+        console.log('Hello');
+        await handleSaveOrOverWriteSlice();
+      }}
     >
       <ModalContent>
         <div className="left-panel">
@@ -981,7 +1026,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
             !selectedDatasource || !formData.metric || !formData.groupBy
           }
         >
-          {t('Create Chart')}
+          {chartLoading ? t('Create Chart') : t('Update Chart')}
         </Button>
       </div>
     </Modal>
