@@ -36,6 +36,10 @@ const CustomInputContainer = styled.div`
   text-align: center;
 `;
 
+const ModalContent = styled.div`
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
 interface RefreshIntervalModalProps {
   show: boolean;
   onHide: () => void;
@@ -122,84 +126,75 @@ const RefreshIntervalModal = ({
       width={400}
       saveText={editMode ? t('Save') : t('Save for this session')}
     >
-      <ModalFormField
-        label={t('Refresh frequency')}
-        helperText={
-          editMode
-            ? t('Set the automatic refresh frequency for this dashboard.')
-            : t('Set refresh frequency for the current session only.')
-        }
-      >
-        <RefreshFrequencySelect
-          value={customMode ? -1 : refreshFrequency}
-          onChange={handleFrequencyChange}
-          includeCustomOption
-        />
-      </ModalFormField>
-
-      {customMode && (
+      <ModalContent>
         <ModalFormField
-          label={t('Custom refresh interval')}
-          helperText={t(
-            'Enter hours, minutes, and seconds for a custom refresh interval.',
-          )}
+          label={t('Refresh frequency')}
+          helperText={
+            editMode
+              ? t('Set the automatic refresh frequency for this dashboard.')
+              : t('Set refresh frequency for current session only.')
+          }
         >
-          <StyledDiv>
-            <CustomInputContainer>
-              <div>{t('Hours')}</div>
-              <Input
-                type="number"
-                min="0"
-                value={customHour}
-                onChange={e => setCustomHour(Number(e.target.value) || 0)}
-                placeholder="0"
-              />
-            </CustomInputContainer>
-            <CustomInputContainer>
-              <div>{t('Minutes')}</div>
-              <Input
-                type="number"
-                min="0"
-                max="59"
-                value={customMin}
-                onChange={e => setCustomMin(Number(e.target.value) || 0)}
-                placeholder="0"
-              />
-            </CustomInputContainer>
-            <CustomInputContainer>
-              <div>{t('Seconds')}</div>
-              <Input
-                type="number"
-                min="0"
-                max="59"
-                value={customSec}
-                onChange={e => setCustomSec(Number(e.target.value) || 0)}
-                placeholder="0"
-              />
-            </CustomInputContainer>
-          </StyledDiv>
+          <RefreshFrequencySelect
+            value={customMode ? -1 : refreshFrequency}
+            onChange={handleFrequencyChange}
+            includeCustomOption
+          />
         </ModalFormField>
-      )}
 
-      {!editMode && (
-        <Alert
-          type="info"
-          message={t('Session-only refresh settings')}
-          description={t(
-            "Refresh settings only apply to the current session and won't persist when the page is reloaded. To make refresh settings permanent, use Dashboard Properties in edit mode.",
-          )}
-          showIcon
-        />
-      )}
+        {customMode && (
+          <ModalFormField
+            label={t('Custom refresh interval')}
+            helperText={t(
+              'Enter hours, minutes, and seconds for a custom refresh interval.',
+            )}
+          >
+            <StyledDiv>
+              <CustomInputContainer>
+                <div>{t('Hours')}</div>
+                <Input
+                  type="number"
+                  min="0"
+                  value={customHour}
+                  onChange={e => setCustomHour(Number(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </CustomInputContainer>
+              <CustomInputContainer>
+                <div>{t('Minutes')}</div>
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={customMin}
+                  onChange={e => setCustomMin(Number(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </CustomInputContainer>
+              <CustomInputContainer>
+                <div>{t('Seconds')}</div>
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={customSec}
+                  onChange={e => setCustomSec(Number(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </CustomInputContainer>
+            </StyledDiv>
+          </ModalFormField>
+        )}
 
-      {warningMessage && (
-        <Alert
-          type="warning"
-          message={warningMessage}
-          description={t('Are you sure you want to proceed?')}
-          showIcon
-        />
-      )}
+        {warningMessage && (
+          <Alert
+            type="warning"
+            message={warningMessage}
+            description={t('Are you sure you want to proceed?')}
+            showIcon
+          />
+        )}
+      </ModalContent>
     </StandardModal>
   );
 };
