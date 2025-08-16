@@ -139,8 +139,8 @@ export default function HelloWorld({
     parentComponent,
     index,
     depth,
-    handleComponentDrop
-  })
+    handleComponentDrop,
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleAddChart = () => {
@@ -201,7 +201,7 @@ export default function HelloWorld({
         depth={0}
         component={component}
         parentComponent={{ id: 'blah', type: 'ROW' }}
-        orientation="row"
+        orientation="column"
         useEmptyDragPreview
         style={{}}
         editMode

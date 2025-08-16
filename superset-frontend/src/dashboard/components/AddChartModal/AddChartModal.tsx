@@ -17,10 +17,29 @@
  * under the License.
  */
 import React, { useState, useMemo } from 'react';
-import { styled, css, t, SupersetClient } from '@superset-ui/core';
-import { Modal, AsyncSelect, Select } from '@superset-ui/core/components';
+import {
+  styled,
+  css,
+  t,
+  SupersetClient,
+  QueryFormData,
+} from '@superset-ui/core';
+import {
+  Modal,
+  AsyncSelect,
+  Select,
+  Button,
+  EmptyState,
+} from '@superset-ui/core/components';
 import { fetchExploreData } from 'src/pages/Chart';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
+import { useDispatch } from 'react-redux';
+import { addChart } from 'src/components/Chart/chartAction';
+import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
+import { addSlice } from 'src/dashboard/actions/dashboardState';
+import { addSlices } from 'src/dashboard/actions/sliceEntities';
+import { ChartState } from 'src/explore/types';
+import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 
 interface FormData {
   vizType: string;
@@ -67,6 +86,54 @@ interface SelectOption {
   value: string;
   label: string;
 }
+
+const DEFAULT_PIE_FORM_DATA = {
+  adhoc_filters: [],
+  color_scheme: 'supersetColors',
+  datasource: null,
+  donut: true,
+  granularity_sqla: 'time_start',
+  groupby: null,
+  innerRadius: 44,
+  label_line: true,
+  labels_outside: true,
+  metric: 'count',
+  number_format: 'SMART_NUMBER',
+  outerRadius: 69,
+  label_type: 'key',
+  queryFields: {
+    groupby: 'groupby',
+    metric: 'metrics',
+  },
+  row_limit: 10000,
+  show_labels: true,
+  show_legend: false,
+  slice_id: null,
+  time_range: 'No filter',
+  url_params: {},
+  viz_type: 'pie',
+  annotation_layers: [],
+};
+
+const ADD_CHART_STATE: ChartState & {
+  form_data: QueryFormData | null;
+} = {
+  id: 7,
+  chartAlert: null,
+  chartStatus: 'loading',
+  chartStackTrace: null,
+  chartUpdateEndTime: null,
+  chartUpdateStartTime: 0,
+  latestQueryFormData: {},
+  sliceFormData: null,
+  queryController: null,
+  queriesResponse: null,
+  triggerQuery: true,
+  lastRendered: 0,
+  form_data: null,
+};
+
+const ADD_CHART_KEY = 7;
 
 const ModalContent = styled.div`
   ${({ theme }) => css`
@@ -471,7 +538,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   onSave,
 }) => {
   const [formData, setFormData] = useState<FormData>({
-    vizType: 'Bar Chart',
+    vizType: 'Pie Chart',
     title: 'Monthly Revenue by Region',
     description: 'Breakdown of revenue by geographic region',
     dataset: null,
@@ -481,10 +548,10 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
 
   const portableChartProps = {
     componentId: 'CHART-KltoVNVW0LvnQ27LL0kdD',
-    id: 121,
+    id: 7,
     width: 499,
-    height: 568,
-    sliceName: 'Weekly Messages',
+    height: 508,
+    // sliceName: 'Weekly Messages',
     isComponentVisible: true,
     isFullSize: false,
     extraControls: {},
@@ -494,19 +561,15 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     setControlValue: () => {},
   };
 
+  const dispatch = useDispatch();
+
   const [selectedDatasource, setSelectedDatasource] =
     useState<DatasourceOption | null>(null);
   const [availableMetrics, setAvailableMetrics] = useState<MetricOption[]>([]);
   const [availableColumns, setAvailableColumns] = useState<ColumnOption[]>([]);
+  const [chartLoading, setChartLoading] = useState(true);
 
-  const vizTypes = [
-    'Bar Chart',
-    'Line Chart',
-    'Pie Chart',
-    'Area Chart',
-    'Scatter Plot',
-    'Table View',
-  ];
+  const vizTypes = ['Pie Chart'];
 
   // Memoized options for Select components
   const metricOptions: SelectOption[] = useMemo(
@@ -606,7 +669,8 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     }));
   };
 
-  const handleDatasourceChange = async (value: any) => {
+  const handleDatasourceChange = async (value: any, dt) => {
+    console.log(value, dt);
     const datasource = value as DatasourceOption | null;
     setSelectedDatasource(datasource);
     setFormData(prev => ({
@@ -683,85 +747,76 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     }
   };
 
-  const handleSave = () => {
-    if (!selectedDatasource) {
-      console.warn('Cannot save chart without a datasource');
-      return;
-    }
-    onSave(formData);
+  const createSliceObject = formData => {
+    const dummySliceObj = {
+      slice_id: null,
+      slice_url: null,
+      slice_name: '',
+      form_data: null,
+      datasource: '',
+      change_on: 0,
+      description: null,
+      description_markdown: '',
+      viz_type: null,
+      modified: '',
+      changed_on_humanized: '',
+      thumbnail_url: '',
+      owners: [],
+      created_by: null,
+    };
+    dummySliceObj.form_data = formData;
+    dummySliceObj.viz_type = formData?.viz_type;
+    dummySliceObj.slice_id = formData?.slice_id;
+    dummySliceObj.datasource = formData?.datasource;
+    return dummySliceObj;
+  };
+
+  const handleSave = async () => {
+    // before coming here we need to construct the form data for all actions with
+    // required info
+    console.log({
+      formData,
+    });
+    const vizFormData = DEFAULT_PIE_FORM_DATA;
+    vizFormData.groupby = [formData?.groupBy];
+    vizFormData.metric = formData?.metric;
+    vizFormData.datasource = `${formData.dataset.key}__table`;
+    vizFormData.slice_id = ADD_CHART_KEY;
+    const newChartState = ADD_CHART_STATE;
+    newChartState.form_data = vizFormData;
+
+    const actions = [
+      dispatch(addChart(newChartState, ADD_CHART_KEY)),
+      dispatch(fetchDatasourceMetadata(newChartState.form_data.datasource)),
+    ];
+    await Promise.all(actions).then(() => {
+      const sliceObject = createSliceObject(newChartState.form_data);
+      dispatch(
+        addSlices({
+          // @ts-ignore
+          [sliceObject.slice_id]: sliceObject,
+        }),
+      );
+      addSlice({ slice_id: newChartState.id });
+      setChartLoading(false);
+    });
+
+    // onSave(formData);
   };
 
   const renderChartPreview = () => {
-    return <Chart {...portableChartProps} />;
-    if (!selectedDatasource) {
+    if (chartLoading)
       return (
-        <div className="no-datasource-message">
-          {t('Please select a dataset to preview the chart')}
+        <div>
+          <EmptyState
+            size="large"
+            title={t('Add required control values to preview chart')}
+            description={getChartRequiredFieldsMissingMessage(true)}
+            image="chart.svg"
+          />
         </div>
       );
-    }
-
-    switch (formData.vizType) {
-      case 'Bar Chart':
-        return (
-          <div className="preview-chart">
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-          </div>
-        );
-      case 'Line Chart':
-        return (
-          <div className="preview-line-chart">
-            <svg>
-              <polyline
-                className="line"
-                points="20,100 60,60 100,80 140,40 180,20"
-              />
-              <circle className="dot" cx="20" cy="100" r="4" />
-              <circle className="dot" cx="60" cy="60" r="4" />
-              <circle className="dot" cx="100" cy="80" r="4" />
-              <circle className="dot" cx="140" cy="40" r="4" />
-              <circle className="dot" cx="180" cy="20" r="4" />
-            </svg>
-          </div>
-        );
-      case 'Pie Chart':
-        return <div className="preview-pie-chart" />;
-      case 'Table View':
-        return (
-          <div className="preview-table">
-            <div className="table-header">
-              <div className="header-cell">Region</div>
-              <div className="header-cell">Revenue</div>
-            </div>
-            <div className="table-row">
-              <div className="table-cell">North</div>
-              <div className="table-cell">$100K</div>
-            </div>
-            <div className="table-row">
-              <div className="table-cell">South</div>
-              <div className="table-cell">$80K</div>
-            </div>
-            <div className="table-row">
-              <div className="table-cell">East</div>
-              <div className="table-cell">$120K</div>
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="preview-chart">
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-          </div>
-        );
-    }
+    return <Chart {...portableChartProps} sliceName={formData.title} />;
   };
 
   return (
@@ -909,6 +964,26 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
           </div>
         </div>
       </ModalContent>
+
+      <div>
+        <Button
+          // type="Button"
+          className="cancel-btn"
+          onClick={onClose}
+        >
+          {t('Cancel')}
+        </Button>
+        <Button
+          // type="Button"
+          className="save-btn"
+          onClick={handleSave}
+          disabled={
+            !selectedDatasource || !formData.metric || !formData.groupBy
+          }
+        >
+          {t('Create Chart')}
+        </Button>
+      </div>
     </Modal>
   );
 };

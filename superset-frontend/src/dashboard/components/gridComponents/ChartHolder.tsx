@@ -283,25 +283,6 @@ const ChartHolder = ({
                   }`}
             </style>
           )}
-          {console.log(
-            {
-              componentId: component.id,
-              id: component.meta.chartId,
-              dashboardId,
-              width: chartWidth,
-              height: chartHeight,
-              sliceName:
-                component.meta.sliceNameOverride ||
-                component.meta.sliceName ||
-                '',
-              updateSliceName: handleUpdateSliceName,
-              isComponentVisible,
-              isFullSize,
-              extraControls,
-              isInView,
-            },
-            'portable chart props',
-          )}
           <Chart
             componentId={component.id}
             id={component.meta.chartId}
