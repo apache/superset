@@ -22,6 +22,8 @@ MCP server for Apache Superset
 import logging
 import os
 
+# Apply Flask-AppBuilder compatibility patches before any Superset imports
+from superset.mcp_service import flask_appbuilder_compat  # noqa: F401
 from superset.mcp_service.mcp_app import init_fastmcp_server, mcp
 
 
