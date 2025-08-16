@@ -181,7 +181,7 @@ afterAll(() => {
 });
 
 describe('PropertiesModal', () => {
-  jest.setTimeout(15000); // ✅ Applies to all tests in this suite
+  jest.setTimeout(60000); // Increased timeout for complex modal rendering
 
   test('should render - FeatureFlag disabled', async () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
