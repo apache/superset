@@ -40,6 +40,12 @@ const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
+const StyledRefreshModal = styled(StandardModal)`
+  .ant-modal-body {
+    overflow: visible;
+  }
+`;
+
 interface RefreshIntervalModalProps {
   show: boolean;
   onHide: () => void;
@@ -118,7 +124,7 @@ const RefreshIntervalModal = ({
   );
 
   return (
-    <StandardModal
+    <StyledRefreshModal
       show={show}
       onHide={handleCancel}
       onSave={handleSave}
@@ -195,7 +201,7 @@ const RefreshIntervalModal = ({
           />
         )}
       </ModalContent>
-    </StandardModal>
+    </StyledRefreshModal>
   );
 };
 
