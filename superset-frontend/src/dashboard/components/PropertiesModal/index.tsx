@@ -348,7 +348,7 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    currentJsonMetadata = jsonStringify(metadata);
+    currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
     const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
     const morePutProps: {
