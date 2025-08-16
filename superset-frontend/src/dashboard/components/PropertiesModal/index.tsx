@@ -20,16 +20,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
-  AsyncSelect,
   Form,
-  FormItem,
-  Input,
-  JsonEditor,
   Modal,
   Collapse,
   CollapseLabelInModal,
-  CssEditor,
-  Select,
+  JsonEditor,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
@@ -39,43 +34,33 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
-  styled,
   SupersetClient,
   t,
   getClientErrorObject,
 } from '@superset-ui/core';
 
-import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,
   getFreshLabelsColorMapEntries,
 } from 'src/utils/colorScheme';
-import getOwnerName from 'src/utils/getOwnerName';
-import Owner from 'src/types/Owner';
 import { useDispatch } from 'react-redux';
 import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { StandardModal, useModalValidation } from 'src/components/Modal';
 import {
-  StandardModal,
-  ModalFormField,
-  useModalValidation,
-} from 'src/components/Modal';
-
-const StyledJsonEditor = styled(JsonEditor)`
-  /* Border is already applied by AceEditor itself */
-`;
-
-const StyledCssEditor = styled(CssEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-`;
+  BasicInfoSection,
+  AccessSection,
+  StylingSection,
+  RefreshSection,
+  CertificationSection,
+  AdvancedSection,
+} from './sections';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -105,6 +90,11 @@ type DashboardInfo = {
   certificationDetails: string;
   isManagedExternally: boolean;
   metadata: Record<string, any>;
+  common?: {
+    conf?: {
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT?: number;
+    };
+  };
 };
 
 const PropertiesModal = ({
@@ -146,14 +136,6 @@ const PropertiesModal = ({
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
 
-  const tagsAsSelectValues = useMemo(() => {
-    const selectTags = tags.map((tag: { id: number; name: string }) => ({
-      value: tag.id,
-      label: tag.name,
-    }));
-    return selectTags;
-  }, [tags.length]);
-
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
@@ -173,30 +155,6 @@ const PropertiesModal = ({
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
   };
-
-  const loadAccessOptions = useCallback(
-    (accessType = 'owners', input = '', page: number, pageSize: number) => {
-      const query = rison.encode({
-        filter: input,
-        page,
-        page_size: pageSize,
-      });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-      }).then(response => ({
-        data: response.json.result
-          .filter((item: { extra: { active: boolean } }) =>
-            item.extra.active !== undefined ? item.extra.active : true,
-          )
-          .map((item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          })),
-        totalCount: response.json.count,
-      }));
-    },
-    [],
-  );
 
   const handleDashboardData = useCallback(
     dashboardData => {
@@ -294,24 +252,6 @@ const PropertiesModal = ({
       name: r.label,
     }));
     setRoles(parsedRoles);
-  };
-
-  const handleOwnersSelectValue = () => {
-    const parsedOwners = (owners || []).map((owner: Owner) => ({
-      value: owner.id,
-      label: getOwnerName(owner),
-    }));
-    return parsedOwners;
-  };
-
-  const handleRolesSelectValue = () => {
-    const parsedRoles = (roles || []).map(
-      (role: { id: number; name: string }) => ({
-        value: role.id,
-        label: `${role.name}`,
-      }),
-    );
-    return parsedRoles;
   };
 
   const handleOnCancel = () => onHide();
@@ -550,6 +490,16 @@ const PropertiesModal = ({
     setTags([]);
   };
 
+  // Section handlers for extracted components
+  const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
+  const handleRefreshFrequencyChange = (value: any) =>
+    setRefreshFrequency(value);
+
+  // Helper function for styling section
+  const hasCustomLabelsColor = !!Object.keys(
+    getJsonMetadata()?.label_colors || {},
+  ).length;
+
   // Validation setup
   const modalSections = useMemo(
     () => [
@@ -576,6 +526,29 @@ const PropertiesModal = ({
         validator: () => [],
       },
       {
+        key: 'refresh',
+        name: t('Refresh Settings'),
+        validator: () => {
+          const errors = [];
+          const refreshLimit =
+            dashboardInfo?.common?.conf
+              ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+          if (
+            refreshLimit &&
+            refreshFrequency > 0 &&
+            refreshFrequency < refreshLimit
+          ) {
+            errors.push(
+              t(
+                'Refresh frequency must be at least %s seconds',
+                refreshLimit / 1000,
+              ),
+            );
+          }
+          return errors;
+        },
+      },
+      {
         key: 'certification',
         name: t('Certification'),
         validator: () => [],
@@ -591,7 +564,7 @@ const PropertiesModal = ({
         },
       },
     ],
-    [form, jsonAnnotations],
+    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
   );
 
   const {
@@ -613,6 +586,11 @@ const PropertiesModal = ({
   useEffect(() => {
     validateSection('advanced');
   }, [jsonMetadata, validateSection]);
+
+  // Validate refresh section when refresh frequency changes
+  useEffect(() => {
+    validateSection('refresh');
+  }, [refreshFrequency, validateSection]);
 
   return (
     <StandardModal
@@ -661,37 +639,11 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <>
-                  <ModalFormField
-                    label={t('Name')}
-                    required
-                    helperText={t('A readable URL for your dashboard')}
-                    error={
-                      validationStatus.basic?.hasErrors &&
-                      (!form.getFieldValue('title') ||
-                        form.getFieldValue('title').trim().length === 0)
-                        ? t('Dashboard name is required')
-                        : undefined
-                    }
-                  >
-                    <FormItem name="title" noStyle>
-                      <Input
-                        data-test="dashboard-title-input"
-                        type="text"
-                        disabled={isLoading}
-                      />
-                    </FormItem>
-                  </ModalFormField>
-                  <ModalFormField
-                    label={t('URL Slug')}
-                    helperText={t('A readable URL for your dashboard')}
-                    bottomSpacing={false}
-                  >
-                    <FormItem name="slug" noStyle>
-                      <Input type="text" disabled={isLoading} />
-                    </FormItem>
-                  </ModalFormField>
-                </>
+                <BasicInfoSection
+                  form={form}
+                  isLoading={isLoading}
+                  validationStatus={validationStatus}
+                />
               ),
             },
             {
@@ -705,74 +657,16 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <>
-                  <ModalFormField
-                    label={t('Owners')}
-                    helperText={t(
-                      'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-                    )}
-                  >
-                    <AsyncSelect
-                      allowClear
-                      ariaLabel={t('Owners')}
-                      disabled={isLoading}
-                      mode="multiple"
-                      onChange={handleOnChangeOwners}
-                      options={(input, page, pageSize) =>
-                        loadAccessOptions('owners', input, page, pageSize)
-                      }
-                      value={handleOwnersSelectValue()}
-                      showSearch
-                      placeholder={t('Search owners')}
-                    />
-                  </ModalFormField>
-                  {isFeatureEnabled(FeatureFlag.DashboardRbac) && (
-                    <ModalFormField
-                      label={t('Roles')}
-                      helperText={t(
-                        'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
-                      )}
-                      bottomSpacing={
-                        !isFeatureEnabled(FeatureFlag.TaggingSystem)
-                      }
-                    >
-                      <AsyncSelect
-                        allowClear
-                        ariaLabel={t('Roles')}
-                        disabled={isLoading}
-                        mode="multiple"
-                        onChange={handleOnChangeRoles}
-                        options={(input, page, pageSize) =>
-                          loadAccessOptions('roles', input, page, pageSize)
-                        }
-                        value={handleRolesSelectValue()}
-                        showSearch
-                        placeholder={t('Search roles')}
-                      />
-                    </ModalFormField>
-                  )}
-                  {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
-                    <ModalFormField
-                      label={t('Tags')}
-                      helperText={t(
-                        'A list of tags that have been applied to this dashboard.',
-                      )}
-                      bottomSpacing={false}
-                    >
-                      <AsyncSelect
-                        ariaLabel="Tags"
-                        mode="multiple"
-                        value={tagsAsSelectValues}
-                        options={loadTags}
-                        onChange={handleChangeTags}
-                        onClear={handleClearTags}
-                        allowClear
-                        showSearch
-                        placeholder={t('Search tags')}
-                      />
-                    </ModalFormField>
-                  )}
-                </>
+                <AccessSection
+                  isLoading={isLoading}
+                  owners={owners}
+                  roles={roles}
+                  tags={tags}
+                  onChangeOwners={handleOnChangeOwners}
+                  onChangeRoles={handleOnChangeRoles}
+                  onChangeTags={handleChangeTags}
+                  onClearTags={handleClearTags}
+                />
               ),
             },
             {
@@ -788,64 +682,16 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <>
-                  {themes.length > 0 && (
-                    <ModalFormField
-                      label={t('Theme')}
-                      helperText={t(
-                        'Clear the selection to revert to the system default theme',
-                      )}
-                    >
-                      <Select
-                        value={selectedThemeId}
-                        onChange={(value: any) =>
-                          setSelectedThemeId(value || null)
-                        }
-                        options={themes.map(theme => ({
-                          value: theme.id,
-                          label: theme.theme_name,
-                        }))}
-                        allowClear
-                        placeholder={t('Select a theme')}
-                      />
-                    </ModalFormField>
-                  )}
-                  <ModalFormField
-                    label={t('Color scheme')}
-                    helperText={t(
-                      "Any color palette selected here will override the colors applied to this dashboard's individual charts",
-                    )}
-                  >
-                    <ColorSchemeSelect
-                      value={colorScheme}
-                      onChange={onColorSchemeChange}
-                      hasCustomLabelsColor={
-                        !!Object.keys(getJsonMetadata()?.label_colors || {})
-                          .length
-                      }
-                      showWarning={
-                        !!Object.keys(getJsonMetadata()?.label_colors || {})
-                          .length
-                      }
-                    />
-                  </ModalFormField>
-                  <ModalFormField
-                    label={t('Custom CSS')}
-                    helperText={t(
-                      'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
-                    )}
-                    bottomSpacing={false}
-                  >
-                    <StyledCssEditor
-                      onChange={setCustomCss}
-                      value={customCss}
-                      width="100%"
-                      minLines={10}
-                      maxLines={50}
-                      editorProps={{ $blockScrolling: true }}
-                    />
-                  </ModalFormField>
-                </>
+                <StylingSection
+                  themes={themes}
+                  selectedThemeId={selectedThemeId}
+                  colorScheme={colorScheme}
+                  customCss={customCss}
+                  hasCustomLabelsColor={hasCustomLabelsColor}
+                  onThemeChange={handleThemeChange}
+                  onColorSchemeChange={onColorSchemeChange}
+                  onCustomCssChange={setCustomCss}
+                />
               ),
             },
             {
@@ -859,31 +705,10 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <ModalFormField
-                  label={t('Refresh frequency')}
-                  helperText={t(
-                    'Set the automatic refresh frequency for this dashboard. The dashboard will reload its data at the specified interval.',
-                  )}
-                  bottomSpacing={false}
-                >
-                  <Select
-                    ariaLabel={t('Refresh frequency')}
-                    value={refreshFrequency}
-                    onChange={(value: any) => setRefreshFrequency(value)}
-                    options={[
-                      { value: 0, label: t("Don't refresh") },
-                      { value: 10, label: t('10 seconds') },
-                      { value: 30, label: t('30 seconds') },
-                      { value: 60, label: t('1 minute') },
-                      { value: 300, label: t('5 minutes') },
-                      { value: 1800, label: t('30 minutes') },
-                      { value: 3600, label: t('1 hour') },
-                      { value: 21600, label: t('6 hours') },
-                      { value: 43200, label: t('12 hours') },
-                      { value: 86400, label: t('24 hours') },
-                    ]}
-                  />
-                </ModalFormField>
+                <RefreshSection
+                  refreshFrequency={refreshFrequency}
+                  onRefreshFrequencyChange={handleRefreshFrequencyChange}
+                />
               ),
             },
             {
@@ -898,31 +723,7 @@ const PropertiesModal = ({
                   testId="certification-section"
                 />
               ),
-              children: (
-                <>
-                  <ModalFormField
-                    label={t('Certified by')}
-                    helperText={t(
-                      'Person or group that has certified this dashboard.',
-                    )}
-                  >
-                    <FormItem name="certifiedBy" noStyle>
-                      <Input type="text" disabled={isLoading} />
-                    </FormItem>
-                  </ModalFormField>
-                  <ModalFormField
-                    label={t('Certification details')}
-                    helperText={t(
-                      'Any additional detail to show in the certification tooltip.',
-                    )}
-                    bottomSpacing={false}
-                  >
-                    <FormItem name="certificationDetails" noStyle>
-                      <Input type="text" disabled={isLoading} />
-                    </FormItem>
-                  </ModalFormField>
-                </>
-              ),
+              children: <CertificationSection isLoading={isLoading} />,
             },
             {
               key: 'advanced',
@@ -935,33 +736,12 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <ModalFormField
-                  label={t('JSON Metadata')}
-                  helperText={t(
-                    'This JSON object is generated dynamically when clicking the save ' +
-                      'or overwrite button in the dashboard view. It is exposed here for ' +
-                      'reference and for power users who may want to alter specific parameters.',
-                  )}
-                  error={
-                    validationStatus.advanced?.hasErrors &&
-                    jsonAnnotations.length > 0
-                      ? t('Invalid JSON metadata')
-                      : undefined
-                  }
-                  bottomSpacing={false}
-                >
-                  <StyledJsonEditor
-                    showLoadingForImport
-                    name="json_metadata"
-                    value={jsonMetadata}
-                    onChange={setJsonMetadata}
-                    tabSize={2}
-                    width="100%"
-                    height="200px"
-                    wrapEnabled
-                    annotations={jsonAnnotations}
-                  />
-                </ModalFormField>
+                <AdvancedSection
+                  jsonMetadata={jsonMetadata}
+                  jsonAnnotations={jsonAnnotations}
+                  validationStatus={validationStatus}
+                  onJsonMetadataChange={setJsonMetadata}
+                />
               ),
             },
           ]}
