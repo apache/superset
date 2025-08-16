@@ -47,7 +47,7 @@ export const MODAL_LARGE_WIDTH = 900;
 
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    max-height: 80vh;
+    max-height: 60vh;
     height: auto;
     overflow-y: auto;
     padding: 0;
