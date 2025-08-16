@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css, useTheme } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';
@@ -34,6 +34,7 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
+import { StyledDropdownSubMenu } from './StyledDropdownSubMenu';
 
 interface MenuProps {
   data: MenuData;
@@ -125,26 +126,6 @@ const StyledHeader = styled.header`
       }
   `}
 `;
-const { SubMenu } = MainNav;
-
-const StyledSubMenu = styled(SubMenu)`
-  ${({ theme }) => css`
-    [data-icon="caret-down"] {
-      color: ${theme.colors.grayscale.base};
-      font-size: ${theme.fontSizeXS}px;
-      margin-left: ${theme.sizeUnit}px;
-    }
-    &.ant-menu-submenu {
-        padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-        display: flex;
-        align-items: center;
-        height: 100%;  &.ant-menu-submenu-active {
-    .ant-menu-title-content {
-      color: ${theme.colorPrimary};
-    }
-  }
-  `}
-`;
 const { useBreakpoint } = Grid;
 
 export function Menu({
@@ -228,7 +209,7 @@ export function Menu({
       );
     }
     return (
-      <StyledSubMenu
+      <StyledDropdownSubMenu
         key={index}
         title={label}
         icon={
@@ -264,7 +245,7 @@ export function Menu({
           }
           return null;
         })}
-      </StyledSubMenu>
+      </StyledDropdownSubMenu>
     );
   };
   const renderBrand = () => {

@@ -55,6 +55,7 @@ import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
 import { useLanguageMenuItems } from './LanguagePicker';
+import { menuCaretStyles } from './StyledDropdownSubMenu';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
@@ -673,6 +674,8 @@ const RightMenu = ({
           display: flex;
           flex-direction: row;
           align-items: center;
+
+          ${menuCaretStyles(theme)}
         `}
         selectable={false}
         mode="horizontal"
