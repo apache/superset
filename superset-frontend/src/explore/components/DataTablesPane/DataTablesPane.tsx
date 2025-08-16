@@ -93,7 +93,7 @@ export const DataTablesPane = ({
   chartStatus,
   ownState,
   errorMessage,
-  actions,
+  setForceQuery,
   canDownload,
 }: DataTablesPaneProps) => {
   const theme = useTheme();
@@ -197,7 +197,7 @@ export const DataTablesPane = ({
     queryForce,
     ownState,
     isRequest: isRequest.results,
-    actions,
+    setForceQuery,
     isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
   }).map((pane, idx) => ({
@@ -217,7 +217,7 @@ export const DataTablesPane = ({
             datasource={datasource}
             queryForce={queryForce}
             isRequest={isRequest.samples}
-            actions={actions}
+            setForceQuery={setForceQuery}
             isVisible={ResultTypes.Samples === activeTabKey}
             canDownload={canDownload}
           />

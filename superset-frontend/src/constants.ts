@@ -143,7 +143,6 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   theme: {
     default: {},
     dark: {},
-    settings: {},
   },
   menu_data: {
     menu: [],

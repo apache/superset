@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
-import { MainNav as Menu } from '@superset-ui/core/components/Menu';
-import { styled, css, useTheme } from '@superset-ui/core';
+import { useMemo, useEffect } from 'react';
+import { MenuItem } from '@superset-ui/core/components/Menu';
+import { styled, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { DirectionType } from 'antd/es/config-provider';
 import { rtlLanguages } from 'src/constants';
 
-const { SubMenu } = Menu;
 export interface Languages {
   [key: string]: {
     flag: string;
@@ -55,54 +54,42 @@ const StyledLabel = styled.div`
   }
 `;
 
-const StyledFlag = styled.i`
-  margin-top: 2px;
-`;
-
-export default function LanguagePicker(props: LanguagePickerProps) {
-  const { locale, languages, setDirection, ...rest } = props;
-  const theme = useTheme();
-
+export const useLanguageMenuItems = ({
+  locale,
+  languages,
+  setDirection,
+}: LanguagePickerProps): MenuItem => {
   useEffect(() => {
     const languageCode = locale.split('-')[0];
-	  const isRtl = rtlLanguages.includes(languageCode);
+    const isRtl = rtlLanguages.includes(languageCode);
     setDirection(isRtl ? 'rtl' : 'ltr');
   }, [locale, setDirection]);
 
-  return (
-    <SubMenu
-      css={css`
-        .f16 {
-          font-size: 16px;
-        }
-        [data-icon='caret-down'] {
-          color: ${theme.colors.grayscale.base};
-          font-size: ${theme.fontSizeXS}px;
-          margin-left: ${theme.sizeUnit}px;
-        }
-      `}
-      aria-label="Languages"
-      title={
-        <span className="f16">
-          <StyledFlag className={`flag ${languages[locale].flag}`} />
+  return useMemo(() => {
+    const items: MenuItem[] = Object.keys(languages).map(langKey => ({
+      key: langKey,
+      label: (
+        <StyledLabel className="f16">
+          <i className={`flag ${languages[langKey].flag}`} />
+          <Typography.Link href={languages[langKey].url}>
+            {languages[langKey].name}
+          </Typography.Link>
+        </StyledLabel>
+      ),
+      style: { whiteSpace: 'normal', height: 'auto' },
+    }));
+
+    return {
+      key: 'language-submenu',
+      type: 'submenu' as const,
+      label: (
+        <span className="f16" aria-label={t('Languages')}>
+          <i className={`flag ${languages[locale].flag}`} />
         </span>
-      }
-      icon={<Icons.CaretDownOutlined iconSize="xs" />}
-      {...rest}
-    >
-      {Object.keys(languages).map(langKey => (
-        <Menu.Item
-          key={langKey}
-          style={{ whiteSpace: 'normal', height: 'auto' }}
-        >
-          <StyledLabel className="f16">
-            <i className={`flag ${languages[langKey].flag}`} />
-            <Typography.Link href={languages[langKey].url}>
-              {languages[langKey].name}
-            </Typography.Link>
-          </StyledLabel>
-        </Menu.Item>
-      ))}
-    </SubMenu>
-  );
-}
+      ),
+      icon: <Icons.CaretDownOutlined iconSize="xs" />,
+      children: items,
+      popupClassName: 'language-picker-popup',
+    };
+  }, [languages, locale]);
+};
