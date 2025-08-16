@@ -53,6 +53,7 @@ export interface HeaderDropdownProps {
   refreshFrequency: number;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
+  showRefreshModal: () => void;
   userCanEdit: boolean;
   userCanSave: boolean;
   userCanShare: boolean;

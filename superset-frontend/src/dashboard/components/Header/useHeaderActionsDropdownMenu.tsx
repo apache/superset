@@ -57,6 +57,7 @@ export const useHeaderActionsMenu = ({
   addDangerToast,
   forceRefreshAllCharts,
   showPropertiesModal,
+  showRefreshModal,
   showReportModal,
   manageEmbedded,
   dashboardTitle,
@@ -84,6 +85,9 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.EditProperties:
           showPropertiesModal();
           break;
+        case MenuKeys.AutorefreshModal:
+          showRefreshModal();
+          break;
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
             Number(getUrlParam(URL_PARAMS.standalone)) === 1;
@@ -108,6 +112,7 @@ export const useHeaderActionsMenu = ({
       forceRefreshAllCharts,
       addSuccessToast,
       showPropertiesModal,
+      showRefreshModal,
       manageEmbedded,
     ],
   );
@@ -181,6 +186,13 @@ export const useHeaderActionsMenu = ({
       menuItems.push({
         key: MenuKeys.RefreshDashboard,
         label: t('Refresh dashboard'),
+        disabled: isLoading,
+      });
+
+      // Auto-refresh settings (session-only in view mode)
+      menuItems.push({
+        key: MenuKeys.AutorefreshModal,
+        label: t('Set auto-refresh'),
         disabled: isLoading,
       });
     }

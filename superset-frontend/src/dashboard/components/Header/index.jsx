@@ -47,6 +47,7 @@ import { safeStringify } from 'src/utils/safeStringify';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -170,6 +171,7 @@ const Header = () => {
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
+  const [showingRefreshModal, setShowingRefreshModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const [showingReportModal, setShowingReportModal] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
@@ -486,6 +488,12 @@ const Header = () => {
   const hidePropertiesModal = useCallback(() => {
     setShowingPropertiesModal(false);
   }, []);
+  const showRefreshModal = useCallback(() => {
+    setShowingRefreshModal(true);
+  }, []);
+  const hideRefreshModal = useCallback(() => {
+    setShowingRefreshModal(false);
+  }, []);
 
   const showEmbedModal = useCallback(() => {
     setShowingEmbedModal(true);
@@ -529,6 +537,13 @@ const Header = () => {
       });
       boundActionCreators.setUnsavedChanges(true);
       boundActionCreators.dashboardTitleChanged(updates.title);
+    },
+    [boundActionCreators],
+  );
+
+  const handleRefreshChange = useCallback(
+    (refreshFrequency, editMode) => {
+      boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
     },
     [boundActionCreators],
   );
@@ -746,6 +761,7 @@ const Header = () => {
     isLoading,
     showReportModal,
     showPropertiesModal,
+    showRefreshModal,
     setCurrentReportDeleting,
     manageEmbedded: showEmbedModal,
     lastModifiedTime: actualLastModifiedTime,
@@ -782,6 +798,23 @@ const Header = () => {
           colorScheme={colorScheme}
           onSubmit={handleOnPropertiesChange}
           onlyApply
+        />
+      )}
+      {showingRefreshModal && (
+        <RefreshIntervalModal
+          show={showingRefreshModal}
+          onHide={hideRefreshModal}
+          refreshFrequency={refreshFrequency}
+          onChange={handleRefreshChange}
+          editMode={editMode}
+          refreshLimit={
+            dashboardInfo.common?.conf
+              ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
+          }
+          refreshWarning={
+            dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_WARNING_MESSAGE
+          }
+          addSuccessToast={boundActionCreators.addSuccessToast}
         />
       )}
 
