@@ -47,15 +47,16 @@ export const MODAL_LARGE_WIDTH = 900;
 
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    height: 720px;
+    max-height: 80vh;
+    height: auto;
     overflow-y: auto;
     padding: 0;
   }
 
   .ant-modal-header {
-    padding: ${({ theme }) => theme.sizeUnit * 4.5}px
+    padding: ${({ theme }) => theme.sizeUnit * 3}px
       ${({ theme }) => theme.sizeUnit * 4}px
-      ${({ theme }) => theme.sizeUnit * 4}px;
+      ${({ theme }) => theme.sizeUnit * 3}px;
     margin-bottom: 0;
     border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
   }
