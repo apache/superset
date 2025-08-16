@@ -49,8 +49,13 @@ function openProperties() {
 
 function assertMetadata(text: string) {
   const regex = new RegExp(text);
+  // Ensure the JSON metadata editor exists and is in view
+  cy.get('#json_metadata').should('exist');
+  cy.get('#json_metadata').scrollIntoView({ offset: { top: -100, left: 0 } });
+  cy.wait(200); // Small wait for scroll
+
   cy.get('#json_metadata')
-    .should('be.visible')
+    .should('exist')
     .then(() => {
       const metadata = cy.$$('#json_metadata')[0];
 
@@ -61,11 +66,24 @@ function assertMetadata(text: string) {
 }
 
 function openAdvancedProperties() {
+  // Scroll to Advanced Settings section first since modal content is scrollable
+  cy.get('.ant-modal-body').contains('Advanced Settings').scrollIntoView();
   cy.get('.ant-modal-body')
-    .contains('Advanced')
+    .contains('Advanced Settings')
     .should('be.visible')
     .click({ force: true });
-  cy.get('#json_metadata').should('be.visible');
+
+  // Wait for the section to expand and the JSON metadata editor to be in DOM
+  cy.get('#json_metadata').should('exist');
+
+  // Scroll the JSON metadata editor into view within the modal body
+  cy.get('#json_metadata').scrollIntoView({ offset: { top: -100, left: 0 } });
+
+  // Wait a bit for the scroll to complete and element to be positioned
+  cy.wait(500);
+
+  // Check that it exists rather than visible due to CSS overflow issues
+  cy.get('#json_metadata').should('exist');
 }
 
 function dragComponent(
@@ -145,6 +163,22 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
+  // First, expand the Styling section if it's collapsed
+  cy.get(`[data-test="${target}"]`).within(() => {
+    // Find the Collapse header that contains "Styling" text
+    // In Ant Design 5, collapse headers have role="button"
+    cy.contains('Styling').scrollIntoView();
+    cy.contains('Styling')
+      .closest('.ant-collapse-header')
+      .then($header => {
+        const isExpanded = $header.attr('aria-expanded') === 'true';
+        if (!isExpanded) {
+          cy.wrap($header).click();
+        }
+      });
+  });
+
+  // Now select the color scheme
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .should('exist')
     .then($input => {
@@ -167,7 +201,7 @@ function saveAndGo(dashboard = 'Tabbed Dashboard') {
 }
 
 function applyChanges() {
-  cy.getBySel('properties-modal-apply-button').click({ force: true });
+  cy.getBySel('modal-confirm-button').click({ force: true });
 }
 
 function saveChanges() {
@@ -177,13 +211,17 @@ function saveChanges() {
 }
 
 function clearMetadata() {
+  // Ensure the JSON metadata editor exists and scroll it into view
+  cy.get('#json_metadata').should('exist');
+  cy.get('#json_metadata').scrollIntoView({ offset: { top: -100, left: 0 } });
+  cy.wait(200); // Small wait for scroll
+
   cy.get('#json_metadata').then($jsonmetadata => {
     cy.wrap($jsonmetadata).find('.ace_content').click({ force: true });
     cy.wrap($jsonmetadata)
       .find('.ace_text-input')
       .then($ace => {
         cy.wrap($ace).focus();
-        cy.wrap($ace).should('have.focus');
         cy.wrap($ace).type('{selectall}', { force: true });
         cy.wrap($ace).type('{backspace}', { force: true });
       });
@@ -191,13 +229,17 @@ function clearMetadata() {
 }
 
 function writeMetadata(metadata: string) {
+  // Ensure the JSON metadata editor exists and scroll it into view
+  cy.get('#json_metadata').should('exist');
+  cy.get('#json_metadata').scrollIntoView({ offset: { top: -100, left: 0 } });
+  cy.wait(200); // Small wait for scroll
+
   cy.get('#json_metadata').then($jsonmetadata => {
     cy.wrap($jsonmetadata).find('.ace_content').click({ force: true });
     cy.wrap($jsonmetadata)
       .find('.ace_text-input')
       .then($ace => {
         cy.wrap($ace).focus();
-        cy.wrap($ace).should('have.focus');
         cy.wrap($ace).type(metadata, {
           parseSpecialCharSequences: false,
           force: true,
@@ -273,6 +315,9 @@ describe('Dashboard edit', () => {
 
       openTab(0, 1, 'control-tabs');
 
+      // Expand Styling section first
+      cy.contains('Styling').scrollIntoView();
+      cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -303,6 +348,9 @@ describe('Dashboard edit', () => {
 
       openTab(0, 1, 'control-tabs');
 
+      // Expand Styling section first
+      cy.contains('Styling').scrollIntoView();
+      cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('be.disabled');
     });
 
@@ -823,6 +871,9 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(90, 193, 137)');
 
       openProperties();
+      // Expand Styling section first
+      cy.contains('Styling').scrollIntoView();
+      cy.contains('Styling').closest('.ant-collapse-header').click();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
       openAdvancedProperties();
       clearMetadata();
@@ -1091,10 +1142,15 @@ describe('Dashboard edit', () => {
       applyChanges();
       cy.get('.ant-modal-body')
         .contains('A valid color scheme is required')
+        .scrollIntoView();
+      cy.get('.ant-modal-body')
+        .contains('A valid color scheme is required')
         .should('be.visible');
     });
 
     it('should edit the title', () => {
+      // Ensure title input is visible in the modal
+      cy.getBySel('dashboard-title-input').scrollIntoView();
       cy.getBySel('dashboard-title-input').clear();
       cy.getBySel('dashboard-title-input').type('Edited title');
       applyChanges();

@@ -88,7 +88,6 @@ import {
   setMaxUndoHistoryExceeded,
   setRefreshFrequency,
   setUnsavedChanges,
-  updateCss,
 } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
 import { dashboardInfoChanged } from '../../actions/dashboardInfo';
@@ -242,7 +241,6 @@ const Header = () => {
           savePublished,
           fetchCharts,
           updateDashboardTitle,
-          updateCss,
           onChange,
           onSave: saveDashboardRequest,
           setMaxUndoHistoryExceeded,
@@ -514,11 +512,6 @@ const Header = () => {
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
-  const refreshLimit =
-    dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-  const refreshWarning =
-    dashboardInfo.common?.conf
-      ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
   const isEmbedded = !dashboardInfo?.userId;
 
   const handleOnPropertiesChange = useCallback(
@@ -531,6 +524,8 @@ const Header = () => {
         owners: updates.owners,
         roles: updates.roles,
         tags: updates.tags,
+        theme_id: updates.themeId,
+        css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);
       boundActionCreators.dashboardTitleChanged(updates.title);
@@ -739,13 +734,9 @@ const Header = () => {
     colorNamespace,
     colorScheme,
     onSave: boundActionCreators.onSave,
-    onChange: boundActionCreators.onChange,
     forceRefreshAllCharts: forceRefresh,
-    startPeriodicRender,
     refreshFrequency,
     shouldPersistRefreshFrequency,
-    setRefreshFrequency: boundActionCreators.setRefreshFrequency,
-    updateCss: boundActionCreators.updateCss,
     editMode,
     hasUnsavedChanges,
     userCanEdit,
@@ -757,8 +748,6 @@ const Header = () => {
     showPropertiesModal,
     setCurrentReportDeleting,
     manageEmbedded: showEmbedModal,
-    refreshLimit,
-    refreshWarning,
     lastModifiedTime: actualLastModifiedTime,
     logEvent: boundActionCreators.logEvent,
   });

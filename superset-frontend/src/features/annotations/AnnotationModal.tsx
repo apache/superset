@@ -278,7 +278,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       }
     >
       <StyledAnnotationTitle>
-        <h4>{t('Basic information')}</h4>
+        <h4>{t('General information')}</h4>
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">
