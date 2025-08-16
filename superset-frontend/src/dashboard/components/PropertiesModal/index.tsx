@@ -168,7 +168,7 @@ const PropertiesModal = ({
         roles,
         metadata,
         is_managed_externally,
-        theme_id,
+        theme,
         css,
       } = dashboardData;
       const dashboardInfo = {
@@ -188,7 +188,7 @@ const PropertiesModal = ({
       setRoles(roles);
       setCustomCss(css || '');
       setCurrentColorScheme(metadata?.color_scheme);
-      setSelectedThemeId(theme_id || null);
+      setSelectedThemeId(theme?.id || null);
 
       const metaDataCopy = omit(metadata, [
         'positions',
@@ -382,21 +382,23 @@ const PropertiesModal = ({
       onHide();
       addSuccessToast(t('Dashboard properties updated'));
     } else {
+      const saveData = {
+        dashboard_title: title,
+        slug: slug || null,
+        json_metadata: currentJsonMetadata || null,
+        owners: (owners || []).map(o => o.id),
+        certified_by: certifiedBy || null,
+        certification_details:
+          certifiedBy && certificationDetails ? certificationDetails : null,
+        css: customCss || null,
+        theme_id: selectedThemeId,
+        ...morePutProps,
+      };
+
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dashboard_title: title,
-          slug: slug || null,
-          json_metadata: currentJsonMetadata || null,
-          owners: (owners || []).map(o => o.id),
-          certified_by: certifiedBy || null,
-          certification_details:
-            certifiedBy && certificationDetails ? certificationDetails : null,
-          css: customCss || null,
-          theme_id: selectedThemeId,
-          ...morePutProps,
-        }),
+        body: JSON.stringify(saveData),
       }).then(() => {
         onSubmit(onSubmitProps);
         onHide();
