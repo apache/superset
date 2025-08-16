@@ -102,7 +102,7 @@ Returned by tools to indicate cache usage:
 ### get_dashboard_info
 
 **Input:** `GetDashboardInfoRequest`
-- `identifier`: `Union[int, str]` — Dashboard identifier (supports ID, UUID, or slug)
+- `identifier`: `int | str` — Dashboard identifier (supports ID, UUID, or slug)
 
 **Returns:** `DashboardInfo` or `DashboardError`
 
@@ -152,7 +152,7 @@ Returned by tools to indicate cache usage:
 ### get_dataset_info
 
 **Input:** `GetDatasetInfoRequest`
-- `identifier`: `Union[int, str]` — Dataset identifier (supports ID or UUID)
+- `identifier`: `int | str` — Dataset identifier (supports ID or UUID)
 
 **Returns:** `DatasetInfo` or `DatasetError` (now includes columns and metrics)
 
@@ -222,7 +222,7 @@ Returned by tools to indicate cache usage:
 ### get_chart_info
 
 **Input:** `GetChartInfoRequest`
-- `identifier`: `Union[int, str]` — Chart identifier (supports ID or UUID)
+- `identifier`: `int | str` — Chart identifier (supports ID or UUID)
 
 **Returns:** `ChartInfo` or `ChartError`
 
@@ -285,7 +285,7 @@ Returned by tools to indicate cache usage:
 #### FilterConfig
 - `column`: `str` — Column to filter on
 - `op`: `Literal["=", ">", "<", ">=", "<=", "!="]` — Filter operator
-- `value`: `Union[str, int, float, bool]` — Filter value
+- `value`: `str | int | float | bool` — Filter value
 
 #### Supported Chart Types
 - **Table charts** (`table`) — Simple column display with filters and sorting
