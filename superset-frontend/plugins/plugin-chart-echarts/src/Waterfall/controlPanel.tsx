@@ -161,11 +161,19 @@ const config: ControlPanelConfig = {
       multi: false,
     },
   },
-  formDataOverrides: formData => ({
-    ...formData,
-    metric: getStandardizedControls().shiftMetric(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    const controls = getStandardizedControls();
+
+    // Keep the 0th element and discard the rest, and modify the original instance array directly
+    if (controls.controls.metrics.length > 1) {
+      controls.controls.metrics = [controls.controls.metrics[0]];
+    }
+
+    return {
+      ...formData,
+      groupby: controls.popAllColumns(),
+    };
+  },
 };
 
 export default config;
