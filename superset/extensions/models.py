@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from base64 import b64decode
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
@@ -44,6 +45,10 @@ class Extension(AuditMixinNullable, ImportExportMixin, Model):
     created_on = Column(DateTime, nullable=True)
     changed_on = Column(DateTime, nullable=True)
 
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._checksum_cache: str | None = None
+
     @property
     def frontend_dict(self) -> dict[str, bytes] | None:
         return _decode_assets(self.frontend)
@@ -55,3 +60,14 @@ class Extension(AuditMixinNullable, ImportExportMixin, Model):
     @property
     def manifest_dict(self) -> Manifest:
         return json.loads(self.manifest)
+
+    @property
+    def checksum(self) -> str:
+        """Calculate deterministic checksum for this database extension (cached)."""
+        if not hasattr(self, "_checksum_cache") or self._checksum_cache is None:
+            from superset.extensions.checksum import ExtensionChecksumService
+
+            self._checksum_cache = ExtensionChecksumService.calculate_checksum(
+                self.name, self.manifest_dict, self.frontend_dict, self.backend_dict
+            )
+        return self._checksum_cache

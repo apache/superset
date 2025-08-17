@@ -17,7 +17,6 @@
 import mimetypes
 from io import BytesIO
 from typing import Any
-from zipfile import is_zipfile, ZipFile
 
 from flask import request, send_file
 from flask.wrappers import Response
@@ -26,7 +25,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset.commands.extension.delete import DeleteExtensionCommand
-from superset.commands.extension.upsert import UpsertExtensionCommand
 from superset.daos.extension import ExtensionDAO
 from superset.extensions import event_logger
 from superset.extensions.models import Extension
@@ -34,13 +32,10 @@ from superset.extensions.schemas import delete_schema, ExtensionPutSchema
 from superset.extensions.utils import (
     build_extension_data,
     build_loaded_extension,
-    get_bundle_files_from_zip,
     get_extensions,
-    get_loaded_extension,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    requires_form_data,
     requires_json,
     statsd_metrics,
 )
@@ -195,70 +190,6 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             mimetype = "application/octet-stream"
 
         return send_file(BytesIO(chunk), mimetype=mimetype)
-
-    @expose("/import/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def import_(self) -> Response:
-        """Import extension.
-        ---
-        post:
-          summary: Import extension bundle
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  type: object
-                  properties:
-                    bundle:
-                      description: extension bundle
-                      type: string
-                      format: binary
-          responses:
-            200:
-              description: Extension import result
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        upload = request.files.get("bundle")
-        if not upload or not is_zipfile(upload):
-            return self.response_400(message="Missing extensions bundle")
-
-        with ZipFile(upload) as uploaded_file:
-            try:
-                files = get_bundle_files_from_zip(uploaded_file)
-                extension = get_loaded_extension(files)
-                result = UpsertExtensionCommand(
-                    {
-                        "name": extension.name,
-                        "manifest": extension.manifest,
-                        "frontend": extension.frontend,
-                        "backend": extension.backend,
-                        "enabled": True,
-                    }
-                ).run()
-                return self.response(200, id=result.id)
-            except Exception as ex:
-                return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=("PUT",))
     @protect()

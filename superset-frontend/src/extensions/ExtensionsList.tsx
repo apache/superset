@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, useTheme, css, t } from '@superset-ui/core';
-import { FunctionComponent, useMemo, useState } from 'react';
+import { FunctionComponent, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
@@ -36,7 +36,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonModal } from 'src/components/JsonModal';
 import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 import ExtensionsManager from './ExtensionsManager';
-import UploadModal from './UploadModal';
 
 const PAGE_SIZE = 25;
 
@@ -80,8 +79,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   addSuccessToast,
 }) => {
   const theme = useTheme();
-
-  const [uploadOpen, setUploadOpen] = useState(false);
 
   const {
     state: { loading, resourceCount, resourceCollection, bulkSelectEnabled },
@@ -270,35 +267,11 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         onClick: toggleBulkSelect,
         buttonStyle: 'secondary',
       },
-      {
-        name: (
-          <>
-            <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-              css={css`
-                vertical-align: text-top;
-              `}
-            />
-            {t('Extension')}
-          </>
-        ),
-        onClick: () => setUploadOpen(true),
-        buttonStyle: 'primary',
-      },
     ],
   };
 
   return (
     <>
-      <UploadModal
-        onHide={() => setUploadOpen(false)}
-        onUploadSuccess={() => {
-          setUploadOpen(false);
-          refreshData();
-        }}
-        show={uploadOpen}
-      />
       <SubMenu {...menuData} />
       <ConfirmStatusChange
         title={t('Please confirm')}

@@ -94,13 +94,13 @@ test('displays contributions information', async () => {
   });
 });
 
-test('has upload functionality', async () => {
+test('displays extensions management interface', async () => {
   renderWithStore();
 
-  // Look for upload-related elements
+  // Look for extensions management elements
   await waitFor(() => {
     const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/upload|extension/i);
+    expect(bodyText).toMatch(/extension/i);
   });
 });
 
