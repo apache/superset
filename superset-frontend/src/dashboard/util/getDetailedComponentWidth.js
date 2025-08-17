@@ -24,7 +24,7 @@ import {
   MARKDOWN_TYPE,
   CHART_TYPE,
   DYNAMIC_TYPE,
-  HELLO_WORLD_TYPE,
+  EASY_CHART_TYPE,
 } from './componentTypes';
 
 function getTotalChildWidth({ id, components }) {
@@ -89,7 +89,7 @@ export default function getDetailedComponentWidth({
     component.type === DYNAMIC_TYPE ||
     component.type === MARKDOWN_TYPE ||
     component.type === CHART_TYPE ||
-    component.type === HELLO_WORLD_TYPE
+    component.type === EASY_CHART_TYPE
   ) {
     result.minimumWidth = GRID_MIN_COLUMN_COUNT;
   }

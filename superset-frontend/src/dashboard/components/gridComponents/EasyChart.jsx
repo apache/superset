@@ -36,9 +36,9 @@ const ContainerDiv = styled.div`
   }
 `;
 
-const HelloWorldStyles = styled.div`
+const EasyChartStyles = styled.div`
   ${({ theme }) => css`
-    &.dashboard-helloworld {
+    &.dashboard-EasyChart {
       overflow: hidden;
       color: ${theme.colorText};
       display: flex;
@@ -137,7 +137,7 @@ const HelloWorldStyles = styled.div`
   `}
 `;
 
-export default function HelloWorld({
+export default function EasyChart({
   id,
   editMode,
   component,
@@ -215,10 +215,10 @@ export default function HelloWorld({
   console.log(component);
 
   const renderContent = ({ dragSourceRef }) => (
-    <HelloWorldStyles
-      className={cx('dashboard-helloworld')}
+    <EasyChartStyles
+      className={cx('dashboard-EasyChart')}
       id={id}
-      data-test="dashboard-helloworld"
+      data-test="dashboard-EasyChart"
       ref={dragSourceRef}
     >
       {component.meta.chartId ? (
@@ -263,7 +263,7 @@ export default function HelloWorld({
           </div>
         </>
       )}
-    </HelloWorldStyles>
+    </EasyChartStyles>
   );
 
   return (
@@ -296,7 +296,7 @@ export default function HelloWorld({
   );
 }
 
-HelloWorld.propTypes = {
+EasyChart.propTypes = {
   id: PropTypes.string.isRequired,
   editMode: PropTypes.bool,
   component: componentShape.isRequired,

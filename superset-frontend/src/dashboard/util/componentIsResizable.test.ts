@@ -24,7 +24,7 @@ import {
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
-  HELLO_WORLD_TYPE,
+  EASY_CHART_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
   TABS_TYPE,
@@ -41,7 +41,7 @@ const notResizable = [
   TAB_TYPE,
 ];
 
-const resizable = [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, HELLO_WORLD_TYPE];
+const resizable = [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, EASY_CHART_TYPE];
 
 describe('componentIsResizable', () => {
   resizable.forEach(type => {

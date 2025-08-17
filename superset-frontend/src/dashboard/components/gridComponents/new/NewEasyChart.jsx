@@ -18,14 +18,14 @@
  */
 import { t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components';
-import { HELLO_WORLD_TYPE } from '../../../util/componentTypes';
+import { EASY_CHART_TYPE } from '../../../util/componentTypes';
 import DraggableNewComponent from './DraggableNewComponent';
 
-export default function NewHelloWorld() {
+export default function NewEasyChart() {
   return (
     <DraggableNewComponent
-      id="NEW_HELLO_WORLD"
-      type={HELLO_WORLD_TYPE}
+      id="NEW_EASY_CHART"
+      type={EASY_CHART_TYPE}
       label={t('Easy Chart')}
       IconComponent={Icons.SmileOutlined}
     />
