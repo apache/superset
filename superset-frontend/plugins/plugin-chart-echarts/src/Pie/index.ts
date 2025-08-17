@@ -18,8 +18,8 @@
  */
 import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
-// Use the TRUE React component-based control panel
-import controlPanel from './PieControlPanel';
+// Use the simplified TRUE React component-based control panel
+import controlPanel from './PieControlPanelSimple';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Pie1.jpg';
@@ -44,6 +44,18 @@ export default class EchartsPieChartPlugin extends EchartsChartPlugin<
    * (pivoting, rolling aggregations, sorting etc) or submitting multiple queries.
    */
   constructor() {
+    console.log(
+      'EchartsPieChartPlugin constructor - controlPanel:',
+      controlPanel,
+    );
+    console.log(
+      'EchartsPieChartPlugin constructor - typeof controlPanel:',
+      typeof controlPanel,
+    );
+    console.log(
+      'EchartsPieChartPlugin constructor - isModernPanel?:',
+      (controlPanel as any)?.isModernPanel,
+    );
     super({
       buildQuery,
       controlPanel,

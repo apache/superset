@@ -191,10 +191,33 @@ function getState(
   const querySections: ControlPanelSectionConfig[] = [];
   const customizeSections: ControlPanelSectionConfig[] = [];
 
-  getSectionsToRender(vizType, datasourceType).forEach(section => {
-    // if at least one control in the section is not `renderTrigger`
-    // or asks to be displayed at the Data tab
-    if (
+  console.log(
+    'getState - vizType:',
+    vizType,
+    'datasourceType:',
+    datasourceType,
+  );
+  const sections = getSectionsToRender(vizType, datasourceType);
+  console.log('getState - sections:', sections);
+
+  sections.forEach(section => {
+    // Check if this section contains a modern panel
+    const hasModernPanel = section.controlSetRows.some(rows =>
+      rows.some(
+        control =>
+          typeof control === 'function' && (control as any).isModernPanel,
+      ),
+    );
+
+    if (hasModernPanel) {
+      // Modern panels should show in the data tab
+      console.log(
+        'getState - Found modern panel section, adding to querySections',
+      );
+      querySections.push(section);
+    } else if (
+      // if at least one control in the section is not `renderTrigger`
+      // or asks to be displayed at the Data tab
       section.tabOverride === 'data' ||
       section.controlSetRows.some(rows =>
         rows.some(
@@ -375,15 +398,21 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     expandedCustomizeSections,
     querySections,
     customizeSections,
-  } = useMemo(
-    () =>
-      getState(
-        form_data.viz_type,
-        props.exploreState.datasource,
-        props.datasource_type,
-      ),
-    [props.exploreState.datasource, form_data.viz_type, props.datasource_type],
-  );
+  } = useMemo(() => {
+    console.log(
+      'ControlPanelsContainer - Computing sections for viz_type:',
+      form_data.viz_type,
+    );
+    return getState(
+      form_data.viz_type,
+      props.exploreState.datasource,
+      props.datasource_type,
+    );
+  }, [
+    props.exploreState.datasource,
+    form_data.viz_type,
+    props.datasource_type,
+  ]);
 
   const resetTransferredControls = useCallback(() => {
     ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
@@ -531,6 +560,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ) => {
     const { controls } = props;
     const { label, description, visibility } = section;
+    console.log('renderControlPanelSection - section:', section);
 
     // Section label can be a ReactNode but in some places we want to
     // have a string ID. Using forced type conversion for now,
@@ -603,11 +633,36 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {isVisible && (
           <>
             {section.controlSetRows.map((controlSets, i) => {
+              console.log('Processing controlSetRow', i, ':', controlSets);
               const renderedControls = controlSets
-                .map(controlItem => {
+                .map((controlItem, j) => {
+                  console.log(
+                    `Processing control item [${i}][${j}]:`,
+                    typeof controlItem,
+                    controlItem,
+                  );
                   if (!controlItem) {
                     // When the item is invalid
                     return null;
+                  }
+                  // Check if it's a modern panel component (function with isModernPanel flag)
+                  if (
+                    typeof controlItem === 'function' &&
+                    (controlItem as any).isModernPanel
+                  ) {
+                    console.log(
+                      'ControlPanelsContainer - Found modern panel in controlSetRows!!! 🎉',
+                    );
+                    return (
+                      <ModernControlPanelRenderer
+                        element={controlItem}
+                        formData={props.form_data}
+                        controls={props.controls}
+                        actions={props.actions}
+                        datasource={props.exploreState.datasource}
+                        validationErrors={props.controls}
+                      />
+                    );
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
@@ -733,11 +788,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ]);
 
   const controlPanelRegistry = getChartControlPanelRegistry();
+  console.log('ControlPanelsContainer - viz_type:', form_data.viz_type);
+  console.log(
+    'ControlPanelsContainer - controlPanel:',
+    controlPanelRegistry.get(form_data.viz_type),
+  );
   if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
     return <Loading />;
   }
 
   const showCustomizeTab = customizeSections.length > 0;
+
+  console.log('ControlPanelsContainer - querySections:', querySections);
+  console.log('ControlPanelsContainer - customizeSections:', customizeSections);
 
   return (
     <Styles ref={containerRef}>

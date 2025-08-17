@@ -84,8 +84,51 @@ export function getSectionsToRender(
   vizType: string,
   datasourceType: DatasourceType,
 ) {
-  const controlPanelConfig =
-    // TODO: update `chartControlPanelRegistry` type to use ControlPanelConfig
-    (getChartControlPanelRegistry().get(vizType) as ControlPanelConfig) || {};
+  const controlPanel = getChartControlPanelRegistry().get(vizType);
+  console.log('getSectionsToRender - vizType:', vizType);
+  console.log('getSectionsToRender - controlPanel:', controlPanel);
+
+  // Check if the control panel has our modern component embedded
+  if (controlPanel && controlPanel.controlPanelSections) {
+    const firstSection = controlPanel.controlPanelSections[0];
+    if (
+      firstSection &&
+      firstSection.controlSetRows &&
+      firstSection.controlSetRows[0]
+    ) {
+      const firstControl = firstSection.controlSetRows[0][0];
+      console.log('First control in panel:', typeof firstControl, firstControl);
+      if (
+        typeof firstControl === 'function' &&
+        (firstControl as any).isModernPanel
+      ) {
+        console.log('Found embedded modern panel! 🎉');
+        // Return the existing structure which already has our modern panel
+        return getMemoizedSectionsToRender(
+          datasourceType,
+          controlPanel as ControlPanelConfig,
+        );
+      }
+    }
+  }
+
+  // Check if this is a modern React component at the top level
+  if (
+    typeof controlPanel === 'function' &&
+    (controlPanel as any).isModernPanel
+  ) {
+    // For modern panels, return a single section containing the component
+    console.log('Returning modern panel section (top level)');
+    return [
+      {
+        label: null,
+        expanded: true,
+        controlSetRows: [[controlPanel as any]],
+      },
+    ];
+  }
+
+  // Otherwise, treat it as a traditional ControlPanelConfig
+  const controlPanelConfig = (controlPanel as ControlPanelConfig) || {};
   return getMemoizedSectionsToRender(datasourceType, controlPanelConfig);
 }

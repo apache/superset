@@ -61,36 +61,69 @@ export const ModernControlPanelRenderer: FC<
   datasource,
   validationErrors,
 }) => {
-  // Check if this is a modern control panel component
-  // Modern panels will have specific prop expectations
-  const elementType = element.type as any;
-  const isModernPanel =
-    element.props &&
-    ('value' in element.props ||
-      'onChange' in element.props ||
-      elementType?.name?.includes('PieControlPanel') ||
-      elementType?.name?.includes('Modern'));
+  console.log('ModernControlPanelRenderer - element:', element);
+  console.log('ModernControlPanelRenderer - typeof element:', typeof element);
+  console.log(
+    'ModernControlPanelRenderer - isModernPanel?:',
+    (element as any)?.isModernPanel,
+  );
 
-  if (!isModernPanel) {
-    // If it's not a modern panel, render as-is
-    return element;
+  // Check if this is a modern control panel component constructor (not an instance)
+  if (typeof element === 'function' && (element as any).isModernPanel) {
+    console.log('ModernControlPanelRenderer - Rendering modern panel');
+    const ModernPanel = element as FC<ModernControlPanelProps>;
+
+    // Create the modern props for the component
+    const modernProps = {
+      value: formData,
+      onChange: (name: string, value: JsonValue) => {
+        actions.setControlValue(name, value);
+      },
+      datasource,
+      form_data: formData,
+      controls,
+      actions,
+      validationErrors,
+    };
+
+    return <ModernPanel {...modernProps} />;
   }
 
-  // Create the modern props adapter for the new naming convention
-  const modernProps = {
-    value: formData,
-    onChange: (name: string, value: JsonValue) => {
-      actions.setControlValue(name, value);
-    },
-    datasource,
-    controls,
-    formData,
-    actions,
-    validationErrors,
-  };
+  // Check if this is already a React element instance
+  if (isValidElement(element)) {
+    const elementType = element.type as any;
+    const isModernPanel =
+      element.props &&
+      ('value' in element.props ||
+        'onChange' in element.props ||
+        elementType?.name?.includes('PieControlPanel') ||
+        elementType?.name?.includes('Modern') ||
+        elementType?.isModernPanel);
 
-  // Clone the element with the modern props
-  return cloneElement(element, modernProps);
+    if (!isModernPanel) {
+      // If it's not a modern panel, render as-is
+      return element;
+    }
+
+    // Create the modern props adapter for the new naming convention
+    const modernProps = {
+      value: formData,
+      onChange: (name: string, value: JsonValue) => {
+        actions.setControlValue(name, value);
+      },
+      datasource,
+      controls,
+      formData,
+      actions,
+      validationErrors,
+    };
+
+    // Clone the element with the modern props
+    return cloneElement(element, modernProps);
+  }
+
+  // If it's neither a function nor an element, just return it
+  return element as ReactElement;
 };
 
 /**

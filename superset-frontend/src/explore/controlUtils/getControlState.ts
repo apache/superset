@@ -22,6 +22,7 @@ import {
   ensureIsArray,
   JsonValue,
   QueryFormData,
+  getChartControlPanelRegistry,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -171,16 +172,41 @@ export function getAllControlsState(
   formData: QueryFormData,
 ) {
   const controlsState: Record<string, ControlState<any> | null> = {};
+
+  // Get the control panel config to check for controlOverrides
+  const controlPanelRegistry = getChartControlPanelRegistry();
+  const controlPanel = controlPanelRegistry.get(vizType);
+  const controlOverrides = (controlPanel as any)?.controlOverrides || {};
+
+  // First, apply controlOverrides if they exist (for modern panels with default values)
+  Object.entries(controlOverrides).forEach(([name, config]: [string, any]) => {
+    console.log('getAllControlsState - Processing override for:', name);
+    controlsState[name] = getControlStateFromControlConfig(
+      config as ControlConfig<any>,
+      state,
+      formData[name],
+    );
+  });
+
+  // Then process regular controls from sections
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach((field: CustomControlItem) => {
+        // Skip modern panel components - they manage their own state
+        if (typeof field === 'function' && (field as any).isModernPanel) {
+          console.log('getAllControlsState - Skipping modern panel component');
+          return;
+        }
         if (field?.config && field.name) {
           const { config, name } = field;
-          controlsState[name] = getControlStateFromControlConfig(
-            config,
-            state,
-            formData[name],
-          );
+          // Only add if not already in controlsState from overrides
+          if (!controlsState[name]) {
+            controlsState[name] = getControlStateFromControlConfig(
+              config,
+              state,
+              formData[name],
+            );
+          }
         }
       }),
     ),

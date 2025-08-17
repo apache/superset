@@ -45,6 +45,11 @@ export function expandControlConfig(
   if (!control || isValidElement(control)) {
     return control as ReactElement;
   }
+  // Check if it's a modern panel component (function with isModernPanel flag)
+  if (typeof control === 'function' && (control as any).isModernPanel) {
+    console.log('expandControlConfig - Found modern panel, returning as-is');
+    return control as any;
+  }
   // String controls are no longer supported - they must be migrated to React components
   if (typeof control === 'string') {
     throw new Error(

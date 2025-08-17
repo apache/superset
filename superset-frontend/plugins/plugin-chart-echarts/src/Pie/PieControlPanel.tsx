@@ -19,7 +19,7 @@
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
 import { Collapse, Row, Col, Typography } from 'antd';
-import { 
+import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
@@ -31,6 +31,8 @@ import {
 import controlMap from 'src/explore/components/controls';
 
 import { DEFAULT_FORM_DATA } from './types';
+
+console.log('PieControlPanel.tsx - Loading file');
 
 const { Panel } = Collapse;
 const { Title } = Typography;
@@ -49,139 +51,214 @@ interface PieControlPanelProps {
  * No legacy controlPanelSections, no controlSetRows, no config objects.
  * Just pure React components with Ant Design layout.
  */
-export const PieControlPanel: FC<PieControlPanelProps> = ({ 
-  onChange, 
-  value, 
+export const PieControlPanel: FC<PieControlPanelProps> = ({
+  onChange,
+  value,
   datasource,
   form_data,
+  actions,
+  controls,
 }) => {
+  console.log('PieControlPanel rendering with:', {
+    value,
+    datasource,
+    form_data,
+    controls,
+  });
+
+  // If no valid data yet, show loading state
+  if (!datasource || !form_data) {
+    return <div>Loading control panel...</div>;
+  }
+
   // Get control components from controlMap
-  const DndColumnSelect = controlMap.DndColumnSelect;
-  const DndMetricSelect = controlMap.DndMetricSelect;
-  const AdhocFilterControl = controlMap.AdhocFilterControl;
-  const CheckboxControl = controlMap.CheckboxControl;
-  const SelectControl = controlMap.SelectControl;
-  const TextControl = controlMap.TextControl;
-  const SliderControl = controlMap.SliderControl;
-  const ColorSchemeControl = controlMap.ColorSchemeControl;
-  
-  // Helper to handle control changes
+  const { DndColumnSelect } = controlMap;
+  const { DndMetricSelect } = controlMap;
+  const { AdhocFilterControl } = controlMap;
+  const { CheckboxControl } = controlMap;
+  const { SelectControl } = controlMap;
+  const { TextControl } = controlMap;
+  const { SliderControl } = controlMap;
+  const { ColorSchemeControl } = controlMap;
+
+  // Helper to handle control changes using actions if available
   const handleChange = (field: string) => (val: any) => {
-    onChange(field, val);
+    console.log('Control change:', field, val);
+    if (actions?.setControlValue) {
+      actions.setControlValue(field, val);
+    } else if (onChange) {
+      onChange(field, val);
+    }
   };
 
+  // Make sure we have valid values or defaults
+  const formValues = form_data || value || {};
+
   return (
-    <div style={{ padding: '16px' }}>
-      <Collapse defaultActiveKey={['query', 'chart', 'labels', 'pie', 'legend']} ghost>
+    <div
+      style={{
+        padding: '16px',
+        width: '100%',
+        background: '#f0f0f0',
+        minHeight: '500px',
+      }}
+    >
+      <h2>🎉 Pie Control Panel - Pure React Based! 🎉</h2>
+      <p>This is a TRUE React component control panel with:</p>
+      <ul>
+        <li>✅ No controlPanelSections</li>
+        <li>✅ No controlSetRows</li>
+        <li>✅ No config objects</li>
+        <li>✅ Just pure React + Ant Design</li>
+      </ul>
+      <Collapse
+        defaultActiveKey={['query', 'chart', 'labels', 'pie', 'legend']}
+        ghost
+      >
         {/* Query Section */}
         <Panel header={<Title level={5}>{t('Query')}</Title>} key="query">
           <Row gutter={[16, 16]}>
             <Col span={24}>
-              <DndColumnSelect
-                name="groupby"
-                label={t('Group by')}
-                onChange={handleChange('groupby')}
-                value={value.groupby || []}
-                datasource={datasource}
-                multi
-              />
+              <div
+                style={{
+                  padding: '10px',
+                  border: '1px dashed #999',
+                  borderRadius: '4px',
+                }}
+              >
+                <strong>Group by</strong>
+                <p>Current value: {JSON.stringify(formValues.groupby)}</p>
+                <button
+                  onClick={() => handleChange('groupby')(['test_column'])}
+                >
+                  Set test value
+                </button>
+              </div>
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={24}>
-              <DndMetricSelect
-                name="metric"
-                label={t('Metric')}
-                onChange={handleChange('metric')}
-                value={value.metric}
-                datasource={datasource}
-                multi={false}
-              />
+              <div
+                style={{
+                  padding: '10px',
+                  border: '1px dashed #999',
+                  borderRadius: '4px',
+                }}
+              >
+                <strong>Metric</strong>
+                <p>Current value: {JSON.stringify(formValues.metric)}</p>
+                <button onClick={() => handleChange('metric')('COUNT(*)')}>
+                  Set COUNT(*)
+                </button>
+              </div>
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={24}>
-              <AdhocFilterControl
-                name="adhoc_filters"
-                label={t('Filters')}
-                onChange={handleChange('adhoc_filters')}
-                value={value.adhoc_filters || []}
-                datasource={datasource}
-              />
+              <div
+                style={{
+                  padding: '10px',
+                  border: '1px dashed #999',
+                  borderRadius: '4px',
+                }}
+              >
+                <strong>Filters</strong>
+                <p>Current value: {JSON.stringify(formValues.adhoc_filters)}</p>
+              </div>
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
-              <TextControl
-                label={t('Row limit')}
-                onChange={handleChange('row_limit')}
-                value={value.row_limit || 100}
-                controlId="row_limit"
-                renderTrigger
-              />
+              <div
+                style={{
+                  padding: '10px',
+                  border: '1px dashed #999',
+                  borderRadius: '4px',
+                }}
+              >
+                <strong>Row limit</strong>
+                <input
+                  type="number"
+                  value={formValues.row_limit || 100}
+                  onChange={e =>
+                    handleChange('row_limit')(parseInt(e.target.value))
+                  }
+                />
+              </div>
             </Col>
             <Col span={12}>
-              <CheckboxControl
-                label={t('Sort by metric')}
-                onChange={handleChange('sort_by_metric')}
-                value={value.sort_by_metric ?? true}
-                controlId="sort_by_metric"
-                renderTrigger
-              />
+              <div
+                style={{
+                  padding: '10px',
+                  border: '1px dashed #999',
+                  borderRadius: '4px',
+                }}
+              >
+                <strong>Sort by metric</strong>
+                <input
+                  type="checkbox"
+                  checked={formValues.sort_by_metric ?? true}
+                  onChange={e =>
+                    handleChange('sort_by_metric')(e.target.checked)
+                  }
+                />
+              </div>
             </Col>
           </Row>
         </Panel>
-        
+
         {/* Chart Options */}
-        <Panel header={<Title level={5}>{t('Chart Options')}</Title>} key="chart">
+        <Panel
+          header={<Title level={5}>{t('Chart Options')}</Title>}
+          key="chart"
+        >
           <Row gutter={[16, 16]}>
             <Col span={24}>
-              <ColorSchemeControl
-                name="color_scheme"
-                label={t('Color scheme')}
-                onChange={handleChange('color_scheme')}
-                value={value.color_scheme || 'supersetColors'}
-                schemes={() => {}}
-                isLinear={false}
-              />
+              <div
+                style={{
+                  padding: '10px',
+                  border: '1px dashed #999',
+                  borderRadius: '4px',
+                }}
+              >
+                <strong>Color scheme</strong>
+                <p>
+                  Current value: {formValues.color_scheme || 'supersetColors'}
+                </p>
+              </div>
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
               <TextControl
                 label={t('Percentage threshold')}
-                
                 onChange={handleChange('show_labels_threshold')}
-                value={value.show_labels_threshold ?? 5}
+                value={formValues.show_labels_threshold ?? 5}
                 controlId="show_labels_threshold"
                 renderTrigger
-                
               />
             </Col>
             <Col span={12}>
               <TextControl
                 label={t('Threshold for Other')}
-                
                 onChange={handleChange('threshold_for_other')}
-                value={value.threshold_for_other ?? 0}
+                value={formValues.threshold_for_other ?? 0}
                 controlId="threshold_for_other"
                 renderTrigger
-                
               />
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
               <SelectControl
                 label={t('Rose Type')}
-                
                 onChange={handleChange('roseType')}
-                value={value.roseType || null}
+                value={formValues.roseType || null}
                 choices={[
                   ['area', t('Area')],
                   ['radius', t('Radius')],
@@ -192,16 +269,15 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
             </Col>
           </Row>
         </Panel>
-        
+
         {/* Labels Section */}
         <Panel header={<Title level={5}>{t('Labels')}</Title>} key="labels">
           <Row gutter={[16, 16]}>
             <Col span={24}>
               <SelectControl
                 label={t('Label Type')}
-                
                 onChange={handleChange('label_type')}
-                value={value.label_type || 'key'}
+                value={formValues.label_type || 'key'}
                 choices={[
                   ['key', t('Category Name')],
                   ['value', t('Value')],
@@ -216,28 +292,27 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               />
             </Col>
           </Row>
-          
-          {value.label_type === 'template' && (
+
+          {formValues.label_type === 'template' && (
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
               <Col span={24}>
                 <TextControl
                   label={t('Label Template')}
                   onChange={handleChange('label_template')}
-                  value={value.label_template || ''}
+                  value={formValues.label_template || ''}
                   controlId="label_template"
                   renderTrigger
                 />
               </Col>
             </Row>
           )}
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
               <SelectControl
                 label={t('Number format')}
-                
                 onChange={handleChange('number_format')}
-                value={value.number_format || 'SMART_NUMBER'}
+                value={formValues.number_format || 'SMART_NUMBER'}
                 choices={D3_FORMAT_OPTIONS}
                 freeForm
               />
@@ -245,22 +320,20 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
             <Col span={12}>
               <SelectControl
                 label={t('Date format')}
-                
                 onChange={handleChange('date_format')}
-                value={value.date_format || 'smart_date'}
+                value={formValues.date_format || 'smart_date'}
                 choices={D3_TIME_FORMAT_OPTIONS}
                 freeForm
               />
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={8}>
               <CheckboxControl
                 label={t('Show Labels')}
-                
                 onChange={handleChange('show_labels')}
-                value={value.show_labels ?? DEFAULT_FORM_DATA.showLabels}
+                value={formValues.show_labels ?? DEFAULT_FORM_DATA.showLabels}
                 controlId="show_labels"
                 renderTrigger
               />
@@ -268,9 +341,10 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
             <Col span={8}>
               <CheckboxControl
                 label={t('Put labels outside')}
-                
                 onChange={handleChange('labels_outside')}
-                value={value.labels_outside ?? DEFAULT_FORM_DATA.labelsOutside}
+                value={
+                  formValues.labels_outside ?? DEFAULT_FORM_DATA.labelsOutside
+                }
                 controlId="labels_outside"
                 renderTrigger
               />
@@ -278,29 +352,27 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
             <Col span={8}>
               <CheckboxControl
                 label={t('Label Line')}
-                
                 onChange={handleChange('label_line')}
-                value={value.label_line ?? DEFAULT_FORM_DATA.labelLine}
+                value={formValues.label_line ?? DEFAULT_FORM_DATA.labelLine}
                 controlId="label_line"
                 renderTrigger
               />
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
               <CheckboxControl
                 label={t('Show Total')}
-                
                 onChange={handleChange('show_total')}
-                value={value.show_total ?? false}
+                value={formValues.show_total ?? false}
                 controlId="show_total"
                 renderTrigger
               />
             </Col>
           </Row>
         </Panel>
-        
+
         {/* Pie Shape Section */}
         <Panel header={<Title level={5}>{t('Pie shape')}</Title>} key="pie">
           <Row gutter={[16, 16]}>
@@ -308,61 +380,60 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               <SliderControl
                 label={t('Outer Radius')}
                 onChange={handleChange('outerRadius')}
-                value={value.outerRadius ?? DEFAULT_FORM_DATA.outerRadius}
+                value={formValues.outerRadius ?? DEFAULT_FORM_DATA.outerRadius}
               />
             </Col>
           </Row>
-          
+
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
               <CheckboxControl
                 label={t('Donut')}
-                
                 onChange={handleChange('donut')}
-                value={value.donut ?? DEFAULT_FORM_DATA.donut}
+                value={formValues.donut ?? DEFAULT_FORM_DATA.donut}
                 controlId="donut"
                 renderTrigger
               />
             </Col>
           </Row>
-          
-          {value.donut && (
+
+          {formValues.donut && (
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
               <Col span={24}>
                 <SliderControl
                   label={t('Inner Radius')}
                   onChange={handleChange('innerRadius')}
-                  value={value.innerRadius ?? DEFAULT_FORM_DATA.innerRadius}
+                  value={
+                    formValues.innerRadius ?? DEFAULT_FORM_DATA.innerRadius
+                  }
                 />
               </Col>
             </Row>
           )}
         </Panel>
-        
+
         {/* Legend Section */}
         <Panel header={<Title level={5}>{t('Legend')}</Title>} key="legend">
           <Row gutter={[16, 16]}>
             <Col span={24}>
               <CheckboxControl
                 label={t('Show legend')}
-                
                 onChange={handleChange('show_legend')}
-                value={value.show_legend ?? true}
+                value={formValues.show_legend ?? true}
                 controlId="show_legend"
                 renderTrigger
               />
             </Col>
           </Row>
-          
-          {value.show_legend && (
+
+          {formValues.show_legend && (
             <>
               <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
                 <Col span={12}>
                   <SelectControl
                     label={t('Legend type')}
-                    
                     onChange={handleChange('legendType')}
-                    value={value.legendType || 'scroll'}
+                    value={formValues.legendType || 'scroll'}
                     choices={[
                       ['scroll', t('Scroll')],
                       ['plain', t('Plain')],
@@ -373,9 +444,8 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
                 <Col span={12}>
                   <SelectControl
                     label={t('Legend orientation')}
-                    
                     onChange={handleChange('legendOrientation')}
-                    value={value.legendOrientation || 'top'}
+                    value={formValues.legendOrientation || 'top'}
                     choices={[
                       ['top', t('Top')],
                       ['bottom', t('Bottom')],
@@ -386,17 +456,15 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
                   />
                 </Col>
               </Row>
-              
+
               <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
                 <Col span={24}>
                   <TextControl
                     label={t('Legend margin')}
-                    
                     onChange={handleChange('legendMargin')}
-                    value={value.legendMargin || 0}
+                    value={formValues.legendMargin || 0}
                     controlId="legendMargin"
                     renderTrigger
-                    
                   />
                 </Col>
               </Row>
@@ -409,25 +477,14 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
 };
 
 /**
- * Export as a ControlPanelConfig that just contains our React component.
- * This is the bridge between the old system and our new approach.
+ * Mark this component as a modern panel so the renderer knows how to handle it
  */
-const config: ControlPanelConfig = {
-  controlPanelSections: [
-    {
-      label: t('React Control Panel'),
-      expanded: true,
-      controlSetRows: [
-        [
-          <PieControlPanel
-            onChange={() => {}}
-            value={{}}
-            datasource={{}}
-          />,
-        ],
-      ],
-    },
-  ],
-};
+(PieControlPanel as any).isModernPanel = true;
 
-export default config;
+console.log(
+  'PieControlPanel.tsx - Component defined, isModernPanel:',
+  (PieControlPanel as any).isModernPanel,
+);
+
+// Export the component directly as the default export
+export default PieControlPanel;
