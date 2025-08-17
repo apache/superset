@@ -121,7 +121,7 @@ class ExtensionStartupUpdateOrchestrator:
             Dictionary with update statistics
         """
         from superset.daos.extension import ExtensionDAO
-        from superset.extensions.discovery import ExtensionBundleDiscovery
+        from superset.extensions.discovery import discover_and_load_extensions
 
         stats = {
             "discovered": 0,
@@ -135,9 +135,7 @@ class ExtensionStartupUpdateOrchestrator:
 
         try:
             # Discover and load extensions from filesystem
-            for (
-                filesystem_extension
-            ) in ExtensionBundleDiscovery.discover_and_load_extensions(extensions_path):
+            for filesystem_extension in discover_and_load_extensions(extensions_path):
                 stats["discovered"] += 1
 
                 try:

@@ -539,6 +539,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         This method coordinates extension updates across distributed workers using
         per-extension locking to ensure consistency while allowing parallel updates.
         """
+        # Skip extension updates in Flask reloader process to avoid duplicate runs
+        if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+            logger.debug("Skipping extension update check in Flask reloader process")
+            return
+
         logger.info("Starting extension update check during worker startup")
 
         try:
