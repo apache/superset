@@ -13,9 +13,9 @@ apache-superset>=6.0
 Superset now rides on **Ant Design v5's token-based theming**.
 Every Antd token works, plus a handful of Superset-specific ones for charts and dashboard chrome.
 
-## Managing Themes via CRUD Interface
+## Managing Themes via UI
 
-Superset now includes a built-in **Theme Management** interface accessible from the admin menu under **Settings > Themes**.
+Superset includes a built-in **Theme Management** interface accessible from the admin menu under **Settings > Themes**.
 
 ### Creating a New Theme
 
@@ -29,22 +29,38 @@ Superset now includes a built-in **Theme Management** interface accessible from 
 
 You can also extend with Superset-specific tokens (documented in the default theme object) before you import.
 
+### System Theme Administration
+
+When `ENABLE_UI_THEME_ADMINISTRATION = True` is configured, administrators can manage system-wide themes directly from the UI:
+
+#### Setting System Themes
+- **System Default Theme**: Click the sun icon on any theme to set it as the system-wide default
+- **System Dark Theme**: Click the moon icon on any theme to set it as the system dark mode theme
+- **Automatic OS Detection**: When both default and dark themes are set, Superset automatically detects and applies the appropriate theme based on OS preferences
+
+#### Managing System Themes
+- System themes are indicated with special badges in the theme list
+- Only administrators with write permissions can modify system theme settings
+- Removing a system theme designation reverts to configuration file defaults
+
 ### Applying Themes to Dashboards
 
 Once created, themes can be applied to individual dashboards:
 - Edit any dashboard and select your custom theme from the theme dropdown
 - Each dashboard can have its own theme, allowing for branded or context-specific styling
 
-## Alternative: Instance-wide Configuration
+## Configuration Options
 
-For system-wide theming, you can configure default themes via Python configuration:
+### Python Configuration
 
-### Setting Default Themes
+Configure theme behavior via `superset_config.py`:
 
 ```python
-# superset_config.py
+# Enable UI-based theme administration for admins
+ENABLE_UI_THEME_ADMINISTRATION = True
 
-# Default theme (light mode)
+# Optional: Set initial default themes via configuration
+# These can be overridden via the UI when ENABLE_UI_THEME_ADMINISTRATION = True
 THEME_DEFAULT = {
     "token": {
         "colorPrimary": "#2893B3",
@@ -53,7 +69,7 @@ THEME_DEFAULT = {
     }
 }
 
-# Dark theme configuration
+# Optional: Dark theme configuration
 THEME_DARK = {
     "algorithm": "dark",
     "token": {
@@ -62,23 +78,28 @@ THEME_DARK = {
     }
 }
 
-# Theme behavior settings
-THEME_SETTINGS = {
-    "enforced": False,          # If True, forces default theme always
-    "allowSwitching": True,     # Allow users to switch between themes
-    "allowOSPreference": True,  # Auto-detect system theme preference
-}
+# To force a single theme on all users, set THEME_DARK = None
+# When both themes are defined (via UI or config):
+# - Users can manually switch between themes
+# - OS preference detection is automatically enabled
 ```
 
-### Copying Themes from CRUD Interface
+### Migration from Configuration to UI
 
-To use a theme created via the CRUD interface as your system default:
+When `ENABLE_UI_THEME_ADMINISTRATION = True`:
 
-1. Navigate to **Settings > Themes** and edit your desired theme
-2. Copy the complete JSON configuration from the theme definition field
-3. Paste it directly into your `superset_config.py` as shown above
+1. System themes set via the UI take precedence over configuration file settings
+2. The UI shows which themes are currently set as system defaults
+3. Administrators can change system themes without restarting Superset
+4. Configuration file themes serve as fallbacks when no UI themes are set
 
-Restart Superset to apply changes.
+### Copying Themes Between Systems
+
+To export a theme for use in configuration files or another instance:
+
+1. Navigate to **Settings > Themes** and click the export icon on your desired theme
+2. Extract the JSON configuration from the exported YAML file
+3. Use this JSON in your `superset_config.py` or import it into another Superset instance
 
 ## Theme Development Workflow
 
@@ -146,7 +167,26 @@ This feature works with the stock Docker image - no custom build required!
 
 ## Advanced Features
 
-- **System Themes**: Superset includes built-in light and dark themes
+- **System Themes**: Manage system-wide default and dark themes via UI or configuration
 - **Per-Dashboard Theming**: Each dashboard can have its own visual identity
 - **JSON Editor**: Edit theme configurations directly within Superset's interface
 - **Custom Fonts**: Load external fonts via configuration without rebuilding
+- **OS Dark Mode Detection**: Automatically switches themes based on system preferences
+- **Theme Import/Export**: Share themes between instances via YAML files
+
+## API Access
+
+For programmatic theme management, Superset provides REST endpoints:
+
+- `GET /api/v1/theme/` - List all themes
+- `POST /api/v1/theme/` - Create a new theme
+- `PUT /api/v1/theme/{id}` - Update a theme
+- `DELETE /api/v1/theme/{id}` - Delete a theme
+- `PUT /api/v1/theme/{id}/set_system_default` - Set as system default theme (admin only)
+- `PUT /api/v1/theme/{id}/set_system_dark` - Set as system dark theme (admin only)
+- `DELETE /api/v1/theme/unset_system_default` - Remove system default designation
+- `DELETE /api/v1/theme/unset_system_dark` - Remove system dark designation
+- `GET /api/v1/theme/export/` - Export themes as YAML
+- `POST /api/v1/theme/import/` - Import themes from YAML
+
+These endpoints require appropriate permissions and are subject to RBAC controls.

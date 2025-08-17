@@ -44,24 +44,8 @@ class Theme(TypedDict, total=False):
     inherit: Optional[bool]
 
 
-class ThemeSettings(TypedDict, total=False):
-    """
-    Represents the settings for themes in the application.
-    """
-
-    enforced: Optional[bool]
-    allowSwitching: Optional[bool]
-    allowOSPreference: Optional[bool]
-
-
 class ThemeMode(str, Enum):
     DEFAULT = "default"
     DARK = "dark"
     SYSTEM = "system"
     COMPACT = "compact"
-
-
-class ThemeSettingsKey(str, Enum):
-    ENFORCED = "enforced"
-    ALLOW_SWITCHING = "allowSwitching"
-    ALLOW_OS_PREFERENCE = "allowOSPreference"

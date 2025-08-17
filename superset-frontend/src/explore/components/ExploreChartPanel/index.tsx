@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
+import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import Split from 'react-split';
 import {
   css,
@@ -30,8 +29,10 @@ import {
   SupersetClient,
   t,
   useTheme,
+  QueryFormData,
+  JsonObject,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
-import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
@@ -43,43 +44,63 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
+import type { ChartState, Datasource } from 'src/explore/types';
+import type { Slice } from 'src/types/Chart';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  onQuery: PropTypes.func,
-  can_overwrite: PropTypes.bool.isRequired,
-  can_download: PropTypes.bool.isRequired,
-  datasource: PropTypes.object,
-  dashboardId: PropTypes.number,
-  column_formats: PropTypes.object,
-  containerId: PropTypes.string.isRequired,
-  isStarred: PropTypes.bool.isRequired,
-  slice: PropTypes.object,
-  sliceName: PropTypes.string,
-  table_name: PropTypes.string,
-  vizType: PropTypes.string.isRequired,
-  form_data: PropTypes.object,
-  ownState: PropTypes.object,
-  standalone: PropTypes.bool,
-  force: PropTypes.bool,
-  timeout: PropTypes.number,
-  chartIsStale: PropTypes.bool,
-  chart: chartPropShape,
-  errorMessage: PropTypes.node,
-  triggerRender: PropTypes.bool,
-};
+const extensionsRegistry = getExtensionsRegistry();
+const DefaultHeader: React.FC = ({ children }) => <>{children}</>;
+
+export interface ExploreChartPanelProps {
+  actions: {
+    setForceQuery: (force: boolean) => void;
+    postChartFormData: (
+      formData: QueryFormData,
+      force: boolean,
+      timeout: number,
+      chartId: number,
+      dashboardId?: number,
+      ownState?: JsonObject,
+    ) => void;
+    updateQueryFormData: (formData: QueryFormData, chartId: number) => void;
+    setControlValue: (controlName: string, value: any, chartId: number) => void;
+  };
+  onQuery?: () => void;
+  can_overwrite: boolean;
+  can_download: boolean;
+  datasource: Datasource;
+  dashboardId?: number;
+  column_formats?: Record<string, any>;
+  containerId: string;
+  isStarred: boolean;
+  slice?: Slice;
+  sliceName?: string;
+  table_name?: string;
+  vizType: string;
+  form_data: QueryFormData;
+  ownState?: JsonObject;
+  standalone?: boolean;
+  force?: boolean;
+  timeout?: number;
+  chartIsStale?: boolean;
+  chart: ChartState;
+  errorMessage?: ReactNode;
+  triggerRender?: boolean;
+  chartAlert?: string;
+}
+
+type PanelSizes = [number, number];
 
 const GUTTER_SIZE_FACTOR = 1.25;
 
-const INITIAL_SIZES = [100, 0];
-const MIN_SIZES = [300, 65];
+const INITIAL_SIZES: PanelSizes = [100, 0];
+const MIN_SIZES: PanelSizes = [300, 65];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
-const Styles = styled.div`
+const Styles = styled.div<{ showSplite: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -122,7 +143,7 @@ const ExploreChartPanel = ({
   chartIsStale,
   chartAlert,
   can_download: canDownload,
-}) => {
+}: ExploreChartPanelProps) => {
   const theme = useTheme();
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
@@ -132,7 +153,10 @@ const ExploreChartPanel = ({
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
-  const [splitSizes, setSplitSizes] = useState(
+
+  const ChartHeaderExtension =
+    extensionsRegistry.get('explore.chart.header') ?? DefaultHeader;
+  const [splitSizes, setSplitSizes] = useState<PanelSizes>(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES
       : getItem(LocalStorageKeys.ChartSplitSizes, INITIAL_SIZES),
@@ -190,7 +214,7 @@ const ExploreChartPanel = ({
     setItem(LocalStorageKeys.ChartSplitSizes, splitSizes);
   }, [splitSizes]);
 
-  const onDragEnd = useCallback(sizes => {
+  const onDragEnd = useCallback((sizes: PanelSizes) => {
     setSplitSizes(sizes);
   }, []);
 
@@ -199,7 +223,7 @@ const ExploreChartPanel = ({
     actions.postChartFormData(
       formData,
       true,
-      timeout,
+      timeout ?? 0,
       chart.id,
       undefined,
       ownState,
@@ -207,8 +231,8 @@ const ExploreChartPanel = ({
     actions.updateQueryFormData(formData, chart.id);
   }, [actions, chart.id, formData, ownState, timeout]);
 
-  const onCollapseChange = useCallback(isOpen => {
-    let splitSizes;
+  const onCollapseChange = useCallback((isOpen: boolean) => {
+    let splitSizes: PanelSizes;
     if (!isOpen) {
       splitSizes = INITIAL_SIZES;
     } else {
@@ -237,10 +261,7 @@ const ExploreChartPanel = ({
             height={chartPanelHeight}
             ownState={ownState}
             annotationData={chart.annotationData}
-            chartAlert={chart.chartAlert}
-            chartStackTrace={chart.chartStackTrace}
             chartId={chart.id}
-            chartStatus={chart.chartStatus}
             triggerRender={triggerRender}
             force={force}
             datasource={datasource}
@@ -254,6 +275,11 @@ const ExploreChartPanel = ({
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
+            {...(chart.chartAlert && { chartAlert: chart.chartAlert })}
+            {...(chart.chartStackTrace && {
+              chartStackTrace: chart.chartStackTrace,
+            })}
+            {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
           />
         )}
       </div>
@@ -348,14 +374,29 @@ const ExploreChartPanel = ({
             `}
           />
         )}
-        <ChartPills
+        <ChartHeaderExtension
+          chartId={chart.id}
           queriesResponse={chart.queriesResponse}
-          chartStatus={chart.chartStatus}
+          sliceFormData={slice?.form_data ?? null}
+          queryFormData={formData}
+          lastRendered={chart.lastRendered}
+          latestQueryFormData={chart.latestQueryFormData}
+          chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
           chartUpdateStartTime={chart.chartUpdateStartTime}
-          chartUpdateEndTime={chart.chartUpdateEndTime}
-          refreshCachedQuery={refreshCachedQuery}
-          rowLimit={formData?.row_limit}
-        />
+          queryController={chart.queryController}
+          triggerQuery={chart.triggerQuery}
+        >
+          <ChartPills
+            chartUpdateStartTime={chart.chartUpdateStartTime}
+            chartUpdateEndTime={chart.chartUpdateEndTime ?? 0}
+            refreshCachedQuery={refreshCachedQuery}
+            rowLimit={formData?.row_limit ?? 0}
+            {...(chart.queriesResponse && {
+              queriesResponse: chart.queriesResponse,
+            })}
+            {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
+          />
+        </ChartHeaderExtension>
         {renderChart()}
       </div>
     ),
@@ -391,7 +432,11 @@ const ExploreChartPanel = ({
   }, [chart.latestQueryFormData]);
 
   const elementStyle = useCallback(
-    (dimension, elementSize, gutterSize) => ({
+    (
+      dimension: 'width' | 'height',
+      elementSize: number,
+      gutterSize: number,
+    ) => ({
       [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
     }),
     [gutterMargin],
@@ -427,11 +472,11 @@ const ExploreChartPanel = ({
           ownState={ownState}
           queryFormData={queryFormData}
           datasource={datasource}
-          queryForce={force}
+          queryForce={Boolean(force)}
           onCollapseChange={onCollapseChange}
           chartStatus={chart.chartStatus}
           errorMessage={errorMessage}
-          actions={actions}
+          setForceQuery={actions.setForceQuery}
           canDownload={canDownload}
         />
       </Split>
@@ -449,7 +494,5 @@ const ExploreChartPanel = ({
     </Styles>
   );
 };
-
-ExploreChartPanel.propTypes = propTypes;
 
 export default ExploreChartPanel;

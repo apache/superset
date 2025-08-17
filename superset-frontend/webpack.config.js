@@ -180,7 +180,22 @@ if (!isDevMode) {
   );
 
   // Runs type checking on a separate process to speed up the build
-  plugins.push(new ForkTsCheckerWebpackPlugin());
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        memoryLimit: 4096,
+        build: true,
+        exclude: [
+          '**/node_modules/**',
+          '**/dist/**',
+          '**/coverage/**',
+          '**/storybook/**',
+          '**/*.stories.{ts,tsx,js,jsx}',
+          '**/*.{test,spec}.{ts,tsx,js,jsx}',
+        ],
+      },
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -343,13 +358,6 @@ const config = {
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
       ),
-      // Workaround for react-color trying to import non-existent icon
-      '@icons/material/UnfoldMoreHorizontalIcon': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@icons/material/CubeUnfoldedIcon.js',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -368,6 +376,13 @@ const config = {
         loader: 'imports-loader',
         options: {
           additionalCode: 'var define = false;',
+        },
+      },
+      {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
         },
       },
       {
