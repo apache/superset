@@ -163,7 +163,7 @@ const config: ControlPanelConfig = {
   },
   formDataOverrides: formData => ({
     ...formData,
-    metric: [getStandardizedControls().shiftMetric()[0]],
+    metric: getStandardizedControls().shiftMetric(),
     groupby: getStandardizedControls().popAllColumns(),
   }),
 };
