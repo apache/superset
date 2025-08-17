@@ -18,32 +18,15 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { Alert, Input } from '@superset-ui/core/components';
-import { StandardModal, ModalFormField } from 'src/components/Modal';
+import { Alert, Form } from '@superset-ui/core/components';
+import { StandardModal } from 'src/components/Modal';
 import {
   RefreshFrequencySelect,
   getRefreshWarningMessage,
 } from './RefreshFrequency/RefreshFrequencySelect';
 
-const StyledDiv = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
-`;
-
-const CustomInputContainer = styled.div`
-  flex: 1;
-  text-align: center;
-`;
-
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
-
-const StyledRefreshModal = styled(StandardModal)`
-  .ant-modal-body {
-    overflow: visible;
-  }
 `;
 
 interface RefreshIntervalModalProps {
@@ -72,37 +55,13 @@ const RefreshIntervalModal = ({
   addSuccessToast,
 }: RefreshIntervalModalProps) => {
   const [refreshFrequency, setRefreshFrequency] = useState(initialFrequency);
-  const [customMode, setCustomMode] = useState(false);
-  const [customHour, setCustomHour] = useState(0);
-  const [customMin, setCustomMin] = useState(0);
-  const [customSec, setCustomSec] = useState(0);
 
   const handleFrequencyChange = (value: number) => {
-    if (value === -1) {
-      setCustomMode(true);
-      setCustomHour(0);
-      setCustomMin(0);
-      setCustomSec(0);
-    } else {
-      setCustomMode(false);
-      setRefreshFrequency(value);
-    }
+    setRefreshFrequency(value);
   };
 
   const handleSave = () => {
-    let finalFrequency = refreshFrequency;
-
-    if (customMode) {
-      // Convert custom time to seconds
-      finalFrequency = customHour * 3600 + customMin * 60 + customSec;
-
-      if (finalFrequency <= 0) {
-        addSuccessToast(t('Please enter a positive time value'));
-        return;
-      }
-    }
-
-    onChange(finalFrequency, editMode);
+    onChange(refreshFrequency, editMode);
     onHide();
     addSuccessToast(
       editMode
@@ -113,7 +72,6 @@ const RefreshIntervalModal = ({
 
   const handleCancel = () => {
     setRefreshFrequency(initialFrequency);
-    setCustomMode(false);
     onHide();
   };
 
@@ -124,7 +82,7 @@ const RefreshIntervalModal = ({
   );
 
   return (
-    <StyledRefreshModal
+    <StandardModal
       show={show}
       onHide={handleCancel}
       onSave={handleSave}
@@ -133,64 +91,21 @@ const RefreshIntervalModal = ({
       saveText={editMode ? t('Save') : t('Save for this session')}
     >
       <ModalContent>
-        <ModalFormField
-          label={t('Refresh frequency')}
-          helperText={
-            editMode
-              ? t('Set the automatic refresh frequency for this dashboard.')
-              : t('Set refresh frequency for current session only.')
-          }
-        >
-          <RefreshFrequencySelect
-            value={customMode ? -1 : refreshFrequency}
-            onChange={handleFrequencyChange}
-            includeCustomOption
-          />
-        </ModalFormField>
-
-        {customMode && (
-          <ModalFormField
-            label={t('Custom refresh interval')}
-            helperText={t(
-              'Enter hours, minutes, and seconds for a custom refresh interval.',
-            )}
+        <Form layout="vertical">
+          <Form.Item
+            label={t('Refresh frequency')}
+            help={
+              editMode
+                ? t('Set the automatic refresh frequency for this dashboard.')
+                : t('Set refresh frequency for current session only.')
+            }
           >
-            <StyledDiv>
-              <CustomInputContainer>
-                <div>{t('Hours')}</div>
-                <Input
-                  type="number"
-                  min="0"
-                  value={customHour}
-                  onChange={e => setCustomHour(Number(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </CustomInputContainer>
-              <CustomInputContainer>
-                <div>{t('Minutes')}</div>
-                <Input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={customMin}
-                  onChange={e => setCustomMin(Number(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </CustomInputContainer>
-              <CustomInputContainer>
-                <div>{t('Seconds')}</div>
-                <Input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={customSec}
-                  onChange={e => setCustomSec(Number(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </CustomInputContainer>
-            </StyledDiv>
-          </ModalFormField>
-        )}
+            <RefreshFrequencySelect
+              value={refreshFrequency}
+              onChange={handleFrequencyChange}
+            />
+          </Form.Item>
+        </Form>
 
         {warningMessage && (
           <Alert
@@ -201,7 +116,7 @@ const RefreshIntervalModal = ({
           />
         )}
       </ModalContent>
-    </StyledRefreshModal>
+    </StandardModal>
   );
 };
 

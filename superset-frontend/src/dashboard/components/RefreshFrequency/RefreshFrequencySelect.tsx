@@ -16,8 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { Select } from '@superset-ui/core/components';
+import { useState } from 'react';
+import { t, styled } from '@superset-ui/core';
+import { Radio, Input } from '@superset-ui/core/components';
+
+// Minimum safe refresh interval to prevent server overload
+export const MINIMUM_REFRESH_INTERVAL = 10;
+
+const StyledRadioGroup = styled(Radio.Group)`
+  padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
+
+  .ant-radio-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+`;
+
+const CustomContent = styled.div`
+  display: flex;
+  align-items: center;
+
+  .ant-input {
+    width: 80px;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
+  }
+`;
 
 // Standard refresh frequency options used across modals
 export const REFRESH_FREQUENCY_OPTIONS = [
@@ -31,14 +60,13 @@ export const REFRESH_FREQUENCY_OPTIONS = [
   { value: 21600, label: t('6 hours') },
   { value: 43200, label: t('12 hours') },
   { value: 86400, label: t('24 hours') },
+  { value: -1, label: t('Custom') },
 ];
 
 interface RefreshFrequencySelectProps {
   value: number;
   onChange: (value: number) => void;
-  includeCustomOption?: boolean;
   ariaLabel?: string;
-  placeholder?: string;
 }
 
 /**
@@ -48,22 +76,69 @@ interface RefreshFrequencySelectProps {
 export const RefreshFrequencySelect = ({
   value,
   onChange,
-  includeCustomOption = false,
   ariaLabel = t('Refresh frequency'),
-  placeholder,
 }: RefreshFrequencySelectProps) => {
-  const options = includeCustomOption
-    ? [{ value: -1, label: t('Custom interval') }, ...REFRESH_FREQUENCY_OPTIONS]
-    : REFRESH_FREQUENCY_OPTIONS;
+  // Separate radio selection state from value state
+  const [radioSelection, setRadioSelection] = useState(() =>
+    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value) ? value : -1,
+  );
+
+  const [customValue, setCustomValue] = useState(() =>
+    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value)
+      ? ''
+      : value.toString(),
+  );
+
+  const handleRadioChange = (e: any) => {
+    const selectedValue = parseInt(e.target.value, 10);
+    setRadioSelection(selectedValue);
+
+    if (selectedValue === -1) {
+      // Custom selected - use current custom value or minimum
+      const numValue = parseInt(customValue, 10) || MINIMUM_REFRESH_INTERVAL;
+      onChange(numValue);
+      if (!customValue) {
+        setCustomValue(MINIMUM_REFRESH_INTERVAL.toString());
+      }
+    } else {
+      onChange(selectedValue);
+    }
+  };
+
+  const handleCustomInputChange = (e: any) => {
+    const inputValue = e.target.value;
+    setCustomValue(inputValue);
+
+    const numValue = parseInt(inputValue, 10);
+    if (numValue >= MINIMUM_REFRESH_INTERVAL) {
+      onChange(numValue);
+    }
+  };
 
   return (
-    <Select
-      ariaLabel={ariaLabel}
-      value={value}
-      onChange={onChange}
-      options={options}
-      placeholder={placeholder}
-    />
+    <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
+      {REFRESH_FREQUENCY_OPTIONS.slice(0, -1).map(option => (
+        <Radio key={option.value} value={option.value}>
+          {option.label}
+        </Radio>
+      ))}
+
+      <Radio value={-1}>
+        <CustomContent>
+          {t('Custom')}
+          <Input
+            type="number"
+            min={MINIMUM_REFRESH_INTERVAL}
+            value={customValue}
+            onChange={handleCustomInputChange}
+            placeholder={`${MINIMUM_REFRESH_INTERVAL}+`}
+            disabled={radioSelection !== -1}
+            onClick={e => e.stopPropagation()}
+          />
+          <span>{t('seconds')}</span>
+        </CustomContent>
+      </Radio>
+    </StyledRadioGroup>
   );
 };
 

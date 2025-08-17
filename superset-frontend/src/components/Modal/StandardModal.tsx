@@ -29,6 +29,7 @@ interface StandardModalProps {
   onHide: () => void;
   onSave: () => void;
   saveDisabled?: boolean;
+  saveLoading?: boolean;
   saveText?: string;
   cancelText?: string;
   errorTooltip?: ReactNode;
@@ -102,6 +103,7 @@ export function StandardModal({
   onHide,
   onSave,
   saveDisabled = false,
+  saveLoading = false,
   saveText,
   cancelText,
   errorTooltip,
@@ -116,7 +118,8 @@ export function StandardModal({
 
   return (
     <StyledModal
-      disablePrimaryButton={saveDisabled}
+      disablePrimaryButton={saveDisabled || saveLoading}
+      primaryButtonLoading={saveLoading}
       primaryTooltipMessage={errorTooltip}
       onHandledPrimaryAction={onSave}
       onHide={onHide}

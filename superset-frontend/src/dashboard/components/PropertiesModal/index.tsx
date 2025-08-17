@@ -112,6 +112,7 @@ const PropertiesModal = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
@@ -378,9 +379,14 @@ const PropertiesModal = ({
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
-      onSubmit(onSubmitProps);
-      onHide();
-      addSuccessToast(t('Dashboard properties updated'));
+      setIsApplying(true);
+      try {
+        onSubmit(onSubmitProps);
+        onHide();
+        addSuccessToast(t('Dashboard properties updated'));
+      } finally {
+        setIsApplying(false);
+      }
     } else {
       const saveData = {
         dashboard_title: title,
@@ -608,6 +614,7 @@ const PropertiesModal = ({
       saveDisabled={
         isLoading || dashboardInfo?.isManagedExternally || hasErrors
       }
+      saveLoading={isApplying}
       errorTooltip={
         dashboardInfo?.isManagedExternally
           ? t(

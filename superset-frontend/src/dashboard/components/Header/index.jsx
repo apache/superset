@@ -419,6 +419,7 @@ const Header = () => {
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
+      theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
