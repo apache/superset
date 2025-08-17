@@ -541,7 +541,11 @@ function ExploreViewContainer(props) {
       .map(message => {
         const matchingLabels = controlsWithErrors
           .filter(control => control.validationErrors?.includes(message))
-          .map(control => control.label);
+          .map(control =>
+            typeof control.label === 'function'
+              ? control.label(props.exploreState)
+              : control.label,
+          );
         return [matchingLabels, message];
       })
       .map(([labels, message]) => (
@@ -560,7 +564,7 @@ function ExploreViewContainer(props) {
   }, [props.controls]);
 
   function renderChartContainer() {
-    console.log("chart container props", props)
+    console.log('chart container props', props);
     return (
       <ExploreChartPanel
         {...props}
