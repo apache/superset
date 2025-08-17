@@ -34,15 +34,13 @@ class LoadedExtension:
     backend: dict[str, bytes]
     enabled: bool
     id: int | None = None
-    _checksum_cache: str | None = None
 
     @property
     def checksum(self) -> str:
-        """Calculate deterministic checksum for this extension (cached)."""
-        if self._checksum_cache is None:
-            from superset.extensions.checksum import ExtensionChecksumService
+        """Calculate deterministic checksum for this extension."""
+        # Import here to avoid circular imports
+        from superset.extensions.utils import calculate_extension_checksum
 
-            self._checksum_cache = ExtensionChecksumService.calculate_checksum(
-                self.name, self.manifest, self.frontend, self.backend
-            )
-        return self._checksum_cache
+        return calculate_extension_checksum(
+            self.name, self.manifest, self.frontend, self.backend
+        )

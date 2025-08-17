@@ -121,7 +121,6 @@ class ExtensionStartupUpdateOrchestrator:
             Dictionary with update statistics
         """
         from superset.daos.extension import ExtensionDAO
-        from superset.extensions.checksum import ExtensionChecksumComparator
         from superset.extensions.discovery import ExtensionBundleDiscovery
 
         stats = {
@@ -146,8 +145,9 @@ class ExtensionStartupUpdateOrchestrator:
                     db_extension = ExtensionDAO.get_by_name(filesystem_extension.name)
 
                     # Compare checksums to determine if update is needed
-                    if not ExtensionChecksumComparator.needs_update(
-                        filesystem_extension, db_extension
+                    if (
+                        db_extension
+                        and filesystem_extension.checksum == db_extension.checksum
                     ):
                         stats["skipped_unchanged"] += 1
                         continue
