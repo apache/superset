@@ -16,13 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { styled, css, t } from '@superset-ui/core';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
+import { useDispatch } from 'react-redux';
+import { updateEasyChartMeta } from 'src/dashboard/actions/dashboardLayout';
+import Chart from 'src/dashboard/components/gridComponents/Chart';
+import { fetchSlices } from 'src/dashboard/actions/sliceEntities';
+import { addSliceToDashboard } from 'src/dashboard/actions/dashboardState';
+
+const ContainerDiv = styled.div`
+  .dragdroppable {
+    width: 499px;
+    height: 508px;
+  }
+`;
 
 const HelloWorldStyles = styled.div`
   ${({ theme }) => css`
@@ -132,16 +144,41 @@ export default function HelloWorld({
   parentComponent,
   index,
   depth,
-  handleComponentDrop,
+  // handleComponentDrop,
 }) {
-  console.log({
-    editMode,
-    parentComponent,
-    index,
-    depth,
-    handleComponentDrop,
-  });
+  const dispatch = useDispatch();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [chartDimensions, setChartDimensions] = useState({
+    width: 499,
+    height: 508,
+  });
+  const containerRef = useRef(null);
+
+  // Update chart dimensions based on container size
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setChartDimensions({
+          width: rect.width || 499,
+          height: rect.height || 508,
+        });
+      }
+    };
+
+    // Initial measurement
+    updateDimensions();
+
+    // Add resize observer to track dimension changes
+    // const resizeObserver = new ResizeObserver(updateDimensions);
+    // if (containerRef.current) {
+    //   resizeObserver.observe(containerRef.current);
+    // }
+
+    // return () => {
+    //   resizeObserver.disconnect();
+    // };
+  }, []);
 
   const handleAddChart = () => {
     setIsModalOpen(true);
@@ -152,8 +189,21 @@ export default function HelloWorld({
     setIsModalOpen(false);
   };
 
-  const handleSaveChart = formData => {
-    console.log('Saving chart with data:', formData);
+  const handleUpdateMeta = id => {
+    // need action to rename the key from 0 to generated slice id
+    dispatch(fetchSlices());
+    setTimeout(() => {
+      dispatch(addSliceToDashboard(id));
+    }, 500);
+
+    setTimeout(() => {
+      dispatch(updateEasyChartMeta(component?.id, id));
+    }, 3000);
+  };
+
+  const handleSaveChart = id => {
+    console.log('Saving chart with data:', id);
+    handleUpdateMeta(id);
     setIsModalOpen(false);
     // TODO: Implement chart creation logic
   };
@@ -162,34 +212,62 @@ export default function HelloWorld({
     console.log('Close clicked');
   };
 
-  const renderContent = () => (
+  console.log(component);
+
+  const renderContent = ({ dragSourceRef }) => (
     <HelloWorldStyles
       className={cx('dashboard-helloworld')}
       id={id}
       data-test="dashboard-helloworld"
+      ref={dragSourceRef}
     >
-      <div className="header">
-        <span>{t('Empty Chart Container')}</span>
-        <button className="close-button" onClick={handleClose} type="button">
-          ×
-        </button>
-      </div>
+      {component.meta.chartId ? (
+        <Chart
+          {...{
+            componentId: component.id,
+            id: component.meta.chartId,
+            width: chartDimensions.width,
+            height: chartDimensions.height,
+            isComponentVisible: true,
+            isFullSize: false,
+            extraControls: {},
+            isInView: true,
+            handleToggleFullSize: () => {},
+            updateSliceName: () => {},
+            setControlValue: () => {},
+          }}
+          sliceName="School Degree Chart"
+        />
+      ) : (
+        <>
+          <div className="header">
+            <span>{t('Empty Chart Container')}</span>
+            <button
+              className="close-button"
+              onClick={handleClose}
+              type="button"
+            >
+              ×
+            </button>
+          </div>
 
-      <div className="content">
-        <button
-          className="add-chart-button"
-          onClick={handleAddChart}
-          type="button"
-        >
-          <div className="plus-icon">+</div>
-          <div className="button-text">{t('Add Chart')}</div>
-        </button>
-      </div>
+          <div className="content">
+            <button
+              className="add-chart-button"
+              onClick={handleAddChart}
+              type="button"
+            >
+              <div className="plus-icon">+</div>
+              <div className="button-text">{t('Add Chart')}</div>
+            </button>
+          </div>
+        </>
+      )}
     </HelloWorldStyles>
   );
 
   return (
-    <>
+    <ContainerDiv ref={containerRef}>
       <DragDroppable
         onDrop={dropProps => {
           console.log('drop props', dropProps);
@@ -197,16 +275,16 @@ export default function HelloWorld({
         onHover={hoverProps => {
           console.log('hovered', hoverProps);
         }}
-        index={0}
-        depth={0}
+        index={index}
+        depth={depth}
         component={component}
-        parentComponent={{ id: 'blah', type: 'ROW' }}
+        parentComponent={parentComponent}
         orientation="column"
         useEmptyDragPreview
         style={{}}
-        editMode
+        editMode={editMode}
       >
-        {({ dragSourceRef = null }) => <>{renderContent({ dragSourceRef })}</>}
+        {({ dragSourceRef = null }) => renderContent({ dragSourceRef })}
       </DragDroppable>
 
       <AddChartModal
@@ -214,7 +292,7 @@ export default function HelloWorld({
         onClose={handleCloseModal}
         onSave={handleSaveChart}
       />
-    </>
+    </ContainerDiv>
   );
 }
 

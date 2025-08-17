@@ -41,6 +41,7 @@ import {
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
   ROW_TYPE,
+  HELLO_WORLD_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
@@ -79,6 +80,9 @@ export const hydrateDashboard =
     const chartIdToLayoutId = {};
     Object.values(layout).forEach(layoutComponent => {
       if (layoutComponent.type === CHART_TYPE) {
+        chartIdToLayoutId[layoutComponent.meta.chartId] = layoutComponent.id;
+      }
+      if (layoutComponent.type === HELLO_WORLD_TYPE) {
         chartIdToLayoutId[layoutComponent.meta.chartId] = layoutComponent.id;
       }
     });

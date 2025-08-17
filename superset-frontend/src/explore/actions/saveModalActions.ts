@@ -268,9 +268,15 @@ export const createSlice =
       title: string;
       new?: boolean;
     },
+    formDataFromProps?: any,
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const formData = getState().explore?.form_data;
+    let formData;
+    if (formDataFromProps) {
+      formData = formDataFromProps;
+    } else {
+      formData = getState().explore?.form_data;
+    }
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,

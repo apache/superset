@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -120,7 +121,7 @@ const DEFAULT_PIE_FORM_DATA = {
 const ADD_CHART_STATE: ChartState & {
   form_data: QueryFormData | null;
 } = {
-  id: 1.5,
+  id: 0,
   chartAlert: null,
   chartStatus: 'loading',
   chartStackTrace: null,
@@ -135,7 +136,7 @@ const ADD_CHART_STATE: ChartState & {
   form_data: null,
 };
 
-const ADD_CHART_KEY = 1.5;
+const ADD_CHART_KEY = 0;
 
 const ModalContent = styled.div`
   ${({ theme }) => css`
@@ -550,7 +551,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
 
   const portableChartProps = {
     componentId: 'CHART-KltoVNVW0LvnQ27LL0kdD',
-    id: 1.5,
+    id: 0,
     width: 499,
     height: 508,
     // sliceName: 'Weekly Messages',
@@ -849,6 +850,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
       console.log(actions, 'actions');
       console.log(value, 'value from create slice');
       const id = value?.id;
+      onSave(id);
       // use this id and append it to the component meta
 
       // console.log('Slice created successfully:', value);

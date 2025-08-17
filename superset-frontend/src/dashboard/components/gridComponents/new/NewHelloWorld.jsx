@@ -26,7 +26,7 @@ export default function NewHelloWorld() {
     <DraggableNewComponent
       id="NEW_HELLO_WORLD"
       type={HELLO_WORLD_TYPE}
-      label={t('Hello World')}
+      label={t('Easy Chart')}
       IconComponent={Icons.SmileOutlined}
     />
   );
