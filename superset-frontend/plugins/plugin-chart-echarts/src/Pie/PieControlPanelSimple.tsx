@@ -18,11 +18,14 @@
  */
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
+import { ColorSchemeControl } from '@superset-ui/chart-controls';
 import { DndColumnSelect } from '../../../../src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
 import { DndMetricSelect } from '../../../../src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import TextControl from '../../../../src/explore/components/controls/TextControl';
 import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
+import SliderControl from '../../../../src/explore/components/controls/SliderControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import Control from '../../../../src/explore/components/Control';
 
 interface PieControlPanelProps {
   onChange?: (field: string, value: any) => void;
@@ -81,7 +84,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
       <div style={{ marginBottom: 24 }}>
         <h4>{t('Query')}</h4>
 
-        {/* Group by */}
+        {/* Group by - NO DOUBLE HEADER */}
         <div style={{ marginBottom: 16 }}>
           <ControlHeader
             label={t('Group by')}
@@ -94,7 +97,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               onChange={handleChange('groupby')}
               options={safeColumns}
               name="groupby"
-              label={t('Group by')}
+              label="" // Remove the duplicate label
               multi
               canDelete
               ghostButtonText={t('Add dimension')}
@@ -108,7 +111,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
           )}
         </div>
 
-        {/* Metric */}
+        {/* Metric - NO DOUBLE HEADER */}
         <div style={{ marginBottom: 16 }}>
           <ControlHeader
             label={t('Metric')}
@@ -121,7 +124,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               onChange={handleChange('metric')}
               datasource={safeDataSource}
               name="metric"
-              label={t('Metric')}
+              label="" // Remove the duplicate label
               multi={false}
               savedMetrics={safeMetrics}
             />
@@ -164,6 +167,43 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
       <div style={{ marginBottom: 24 }}>
         <h4>{t('Chart Options')}</h4>
 
+        {/* Color Scheme */}
+        <div style={{ marginBottom: 16 }}>
+          {(() => {
+            const colorSchemeControl = ColorSchemeControl();
+            const { hidden, ...cleanConfig } = colorSchemeControl.config || {};
+            return (
+              <Control
+                {...cleanConfig}
+                name="color_scheme"
+                value={formValues.color_scheme}
+                actions={{
+                  ...actions,
+                  setControlValue: (field: string, val: any) => {
+                    handleChange('color_scheme')(val);
+                  },
+                }}
+                renderTrigger
+              />
+            );
+          })()}
+        </div>
+
+        {/* Outer Radius Slider */}
+        <div style={{ marginBottom: 16 }}>
+          <ControlHeader
+            label={t('Outer Radius')}
+            description={t('Outer edge of the pie/donut')}
+            renderTrigger
+            hovered
+          />
+          <SliderControl
+            value={formValues.outerRadius || 70}
+            onChange={handleChange('outerRadius')}
+            {...{ min: 10, max: 100, step: 1 }}
+          />
+        </div>
+
         {/* Donut checkbox */}
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
@@ -176,6 +216,23 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
           />
         </div>
 
+        {/* Inner Radius Slider - CONDITIONAL */}
+        {formValues.donut && (
+          <div style={{ marginBottom: 16 }}>
+            <ControlHeader
+              label={t('Inner Radius')}
+              description={t('Inner radius of donut hole')}
+              renderTrigger
+              hovered
+            />
+            <SliderControl
+              value={formValues.innerRadius || 30}
+              onChange={handleChange('innerRadius')}
+              {...{ min: 0, max: 100, step: 1 }}
+            />
+          </div>
+        )}
+
         {/* Show Labels checkbox */}
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
@@ -187,6 +244,20 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
             hovered
           />
         </div>
+
+        {/* Label Line checkbox - CONDITIONAL */}
+        {formValues.show_labels && (
+          <div style={{ marginBottom: 16 }}>
+            <CheckboxControl
+              label={t('Label Line')}
+              description={t('Draw a line from the label to the slice')}
+              value={formValues.label_line ?? false}
+              onChange={handleChange('label_line')}
+              renderTrigger
+              hovered
+            />
+          </div>
+        )}
 
         {/* Show Legend checkbox */}
         <div style={{ marginBottom: 16 }}>
@@ -234,14 +305,34 @@ const config = {
       default: true,
       label: t('Sort by metric'),
     },
+    color_scheme: {
+      default: 'supersetColors',
+      label: t('Color scheme'),
+      renderTrigger: true,
+    },
+    outerRadius: {
+      default: 70,
+      label: t('Outer Radius'),
+      renderTrigger: true,
+    },
     donut: {
       default: false,
       label: t('Donut'),
       renderTrigger: true,
     },
+    innerRadius: {
+      default: 30,
+      label: t('Inner Radius'),
+      renderTrigger: true,
+    },
     show_labels: {
       default: true,
       label: t('Show labels'),
+      renderTrigger: true,
+    },
+    label_line: {
+      default: false,
+      label: t('Label Line'),
       renderTrigger: true,
     },
     show_legend: {
