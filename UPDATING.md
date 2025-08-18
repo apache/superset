@@ -22,7 +22,7 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 6.0.0
 - [34536](https://github.com/apache/superset/pull/34536): The `ENVIRONMENT_TAG_CONFIG` color values have changed to support only Ant Design semantic colors. Update your `superset_config.py`:
   - Change `"error.base"` to just `"error"` after this PR
   - Change any hex color values to one of: `"success"`, `"processing"`, `"error"`, `"warning"`, `"default"`
