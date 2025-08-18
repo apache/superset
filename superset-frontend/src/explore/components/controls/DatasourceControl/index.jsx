@@ -127,7 +127,7 @@ const Styles = styled.div`
     flex: none;
   }
   span[aria-label='dataset-physical'] {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
   }
   span[aria-label='more'] {
     color: ${({ theme }) => theme.colorPrimary};

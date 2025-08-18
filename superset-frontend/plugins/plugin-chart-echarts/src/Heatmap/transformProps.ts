@@ -176,9 +176,9 @@ export default function transformProps(
       },
       emphasis: {
         itemStyle: {
-          borderColor: supersetTheme.colors.grayscale.light5,
+          borderColor: supersetTheme.colorBgContainer,
           shadowBlur: 10,
-          shadowColor: supersetTheme.colors.grayscale.dark2,
+          shadowColor: supersetTheme.colorTextBase,
         },
       },
     },

@@ -140,7 +140,7 @@ const StyledSubMenu = styled(AntdMenu.SubMenu)`
         height: 3px;
         opacity: 0;
         transform: translateX(-50%);
-        transition: all ${theme.transitionTiming}s;
+        transition: all ${theme.motionDurationMid}s;
       }
     }
   `}

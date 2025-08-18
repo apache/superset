@@ -25,7 +25,7 @@ import type { LabelProps } from './types';
 
 export function Label(props: LabelProps) {
   const theme = useTheme();
-  const { transitionTiming } = theme;
+  // Use Ant Design's motion duration instead of deprecated transitionTiming
   const {
     type = 'default',
     monospace = false,
@@ -46,7 +46,7 @@ export function Label(props: LabelProps) {
   const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
   const labelStyles = css`
-    transition: background-color ${transitionTiming}s;
+    transition: background-color ${theme.motionDurationMid}s;
     white-space: nowrap;
     cursor: ${onClick ? 'pointer' : 'default'};
     overflow: hidden;
