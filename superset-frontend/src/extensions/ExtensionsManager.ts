@@ -23,7 +23,6 @@ import {
   logging,
 } from '@superset-ui/core';
 import type { contributions, core } from '@apache-superset/core';
-import rison from 'rison';
 import { ExtensionContext } from '../core/core';
 
 class ExtensionsManager {
@@ -109,7 +108,7 @@ class ExtensionsManager {
    * Enables an extension by its instance.
    * @param extension The extension to enable.
    */
-  public async enableExtension(extension: core.Extension): Promise<void> {
+  private async enableExtension(extension: core.Extension): Promise<void> {
     const { name } = extension;
     if (extension && typeof extension.activate === 'function') {
       // If already enabled, do nothing
@@ -133,70 +132,6 @@ class ExtensionsManager {
         });
       }
     }
-  }
-
-  /**
-   * Enables an extension by its id.
-   * @param id The id of the extension to enable.
-   */
-  public async enableExtensionById(id: number): Promise<void> {
-    const extension = this.extensionIndex.get(id);
-    if (extension) {
-      return this.enableExtension(extension);
-    }
-    logging.warn(`Extension with id ${id} not found`);
-    return Promise.resolve();
-  }
-
-  private deactivateAndCleanupExtension(extension: core.Extension) {
-    this.deactivateExtension(extension.id);
-    this.contextIndex.delete(extension.name);
-    this.removeContributions(extension);
-  }
-
-  /**
-   * Disables an extension by its id.
-   * @param id The id of the extension to disable.
-   */
-  public async disableExtensionById(id: number): Promise<void> {
-    const extension = this.extensionIndex.get(id);
-    if (extension) {
-      this.deactivateAndCleanupExtension(extension);
-      if (extension.enabled) {
-        const updatedExtension = { ...extension, enabled: false };
-        this.extensionIndex.set(updatedExtension.id, updatedExtension);
-        await SupersetClient.put({
-          endpoint: `/api/v1/extensions/${extension.id}`,
-          jsonPayload: {
-            enabled: false,
-          },
-        });
-      }
-    } else {
-      logging.warn(`Extension with id ${id} not found`);
-    }
-    return Promise.resolve();
-  }
-
-  /**
-   * Removes extensions by their ids.
-   * This will deactivate the extensions, remove their contributions,
-   * and delete them from the server.
-   * @param ids The ids of the extensions to remove.
-   */
-  public async removeExtensionsByIds(ids: number[]): Promise<void> {
-    ids.forEach(id => {
-      const extension = this.extensionIndex.get(id);
-      if (extension) {
-        this.deactivateAndCleanupExtension(extension);
-        this.extensionIndex.delete(id);
-      } else {
-        logging.warn(`Extension with id ${id} not found`);
-      }
-    });
-    await SupersetClient.delete({
-      endpoint: `/api/v1/extensions/?q=${rison.encode(ids)}`,
-    });
   }
 
   /**
@@ -241,7 +176,7 @@ class ExtensionsManager {
    * @param extension The extension to activate.
    * @param context The context to pass to the activate method.
    */
-  private activateExtension(
+  public activateExtension(
     extension: core.Extension,
     context: ExtensionContext,
   ): void {
@@ -259,7 +194,7 @@ class ExtensionsManager {
    * @param id The id of the extension to deactivate.
    * @returns True if deactivated, false otherwise.
    */
-  private deactivateExtension(id: number): boolean {
+  public deactivateExtension(id: number): boolean {
     const extension = this.extensionIndex.get(id);
     const context = extension
       ? this.contextIndex.get(extension.name)
@@ -293,15 +228,6 @@ class ExtensionsManager {
       views: contributions.views,
       commands: contributions.commands,
     });
-  }
-
-  /**
-   * Removes all contributions from an extension.
-   * @param extension The extension whose contributions should be removed.
-   */
-  private removeContributions(extension: core.Extension): void {
-    const { name } = extension;
-    this.extensionContributions.delete(name);
   }
 
   /**
