@@ -74,16 +74,6 @@ test('displays extension names in the list', async () => {
   });
 });
 
-test('shows enabled/disabled status for extensions', async () => {
-  renderWithStore();
-
-  await waitFor(() => {
-    // The component should show enabled status
-    const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/enabled|disabled|true|false/i);
-  });
-});
-
 test('displays contributions information', async () => {
   renderWithStore();
 
@@ -91,36 +81,6 @@ test('displays contributions information', async () => {
     // Should show contributions-related content
     const bodyText = document.body.textContent || '';
     expect(bodyText).toMatch(/contribution/i);
-  });
-});
-
-test('displays extensions management interface', async () => {
-  renderWithStore();
-
-  // Look for extensions management elements
-  await waitFor(() => {
-    const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/extension/i);
-  });
-});
-
-test('shows action buttons for extensions', async () => {
-  renderWithStore();
-
-  await waitFor(() => {
-    // Should show action-related content
-    const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/action|enable|disable|delete/i);
-  });
-});
-
-test('has bulk select functionality', async () => {
-  renderWithStore();
-
-  await waitFor(() => {
-    // Should show bulk select option
-    const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/bulk|select/i);
   });
 });
 

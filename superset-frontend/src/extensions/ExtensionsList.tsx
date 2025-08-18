@@ -16,52 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, useTheme, css, t } from '@superset-ui/core';
+import { useTheme, css, t } from '@superset-ui/core';
 import { FunctionComponent, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
-  ConfirmStatusChange,
-  Tooltip,
-  Icons,
-  Popconfirm,
-} from '@superset-ui/core/components';
-import {
   ListView,
   ListViewFilterOperator as FilterOperator,
-  type ListViewProps,
   type ListViewFilters,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonModal } from 'src/components/JsonModal';
 import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
-import ExtensionsManager from './ExtensionsManager';
 
 const PAGE_SIZE = 25;
-
-const Actions = styled.div`
-  ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
-
-    .disabled {
-      svg,
-      i {
-        &:hover {
-          path {
-            fill: ${theme.colors.grayscale.light1};
-          }
-        }
-      }
-      color: ${theme.colors.grayscale.light1};
-      .antd5-menu-item:hover {
-        cursor: default;
-      }
-      &::after {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
-  `}
-`;
 
 type Extension = {
   id: number;
@@ -81,80 +49,14 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const theme = useTheme();
 
   const {
-    state: { loading, resourceCount, resourceCollection, bulkSelectEnabled },
+    state: { loading, resourceCount, resourceCollection },
     fetchData,
-    toggleBulkSelect,
     refreshData,
   } = useListViewResource<Extension>(
     'extensions',
     t('Extensions'),
     addDangerToast,
   );
-
-  const deleteExtensions = async (extensions: Extension[]) => {
-    try {
-      await ExtensionsManager.getInstance().removeExtensionsByIds(
-        extensions.map(extension => extension.id),
-      );
-      refreshData();
-      addSuccessToast(
-        t('Successfully deleted %s extension(s)', extensions.length),
-      );
-    } catch (error) {
-      addDangerToast(
-        t('There was an error deleting the extension(s): %s', error.message),
-      );
-    }
-  };
-
-  const enableExtensions = async (extensions: Extension[]) => {
-    await Promise.all(
-      extensions.map(extension =>
-        ExtensionsManager.getInstance().enableExtensionById(extension.id),
-      ),
-    );
-    refreshData();
-  };
-
-  const disableExtensions = async (extensions: Extension[]) => {
-    await Promise.all(
-      extensions.map(extension =>
-        ExtensionsManager.getInstance().disableExtensionById(extension.id),
-      ),
-    );
-    refreshData();
-  };
-
-  const confirmationAction = (
-    actionName: string,
-    actionFn: (extensions: Extension[]) => void,
-    extension: Extension,
-    icon: React.ReactNode,
-  ) => {
-    const { name } = extension;
-    const title = t(actionName);
-    const description = (
-      <>
-        {t('Are you sure you want to %s', actionName.toLowerCase())}{' '}
-        <b>{name}</b>?
-      </>
-    );
-    return (
-      <Popconfirm
-        title={title}
-        description={description}
-        onConfirm={() => actionFn([extension])}
-        okText={t('Yes')}
-        cancelText={t('No')}
-      >
-        <Tooltip title={title} placement="bottom">
-          <span role="button" tabIndex={0} className="action-button">
-            {icon}
-          </span>
-        </Tooltip>
-      </Popconfirm>
-    );
-  };
 
   const columns = useMemo(
     () => [
@@ -193,42 +95,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
           </div>
         ),
       },
-      {
-        Header: t('Enabled'),
-        accessor: 'enabled',
-        id: 'enabled',
-        size: 'lg',
-        Cell: ({
-          row: {
-            original: { enabled },
-          },
-        }: any) => enabled.toString(),
-      },
-      {
-        Cell: ({ row: { original } }: any) => (
-          <Actions className="actions">
-            {confirmationAction(
-              t('Delete'),
-              deleteExtensions,
-              original,
-              <Icons.DeleteOutlined iconSize="l" />,
-            )}
-            {confirmationAction(
-              original.enabled ? t('Disable') : t('Enable'),
-              original.enabled ? disableExtensions : enableExtensions,
-              original,
-              original.enabled ? (
-                <Icons.StopOutlined iconSize="l" />
-              ) : (
-                <Icons.CheckCircleOutlined iconSize="l" />
-              ),
-            )}
-          </Actions>
-        ),
-        Header: t('Actions'),
-        id: 'actions',
-        disableSortBy: true,
-      },
     ],
     [loading], // We need to monitor loading to avoid stale state in actions
   );
@@ -242,18 +108,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         input: 'search',
         operator: FilterOperator.Contains,
       },
-      {
-        Header: t('Enabled'),
-        key: 'enabled',
-        id: 'enabled',
-        input: 'select',
-        operator: FilterOperator.Equals,
-        unfilteredLabel: t('All'),
-        selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
-        ],
-      },
     ],
     [],
   );
@@ -261,66 +115,25 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const menuData: SubMenuProps = {
     activeChild: 'Extensions',
     name: t('Extensions'),
-    buttons: [
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
-      },
-    ],
+    buttons: [],
   };
 
   return (
     <>
       <SubMenu {...menuData} />
-      <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t(
-          'Are you sure you want to delete the selected extensions?',
-        )}
-        onConfirm={deleteExtensions}
-      >
-        {deleteExtensions => {
-          const bulkActions: ListViewProps['bulkActions'] = [
-            {
-              key: 'delete',
-              name: t('Delete'),
-              onSelect: deleteExtensions,
-              type: 'danger',
-            },
-            {
-              key: 'enable',
-              name: t('Enable'),
-              onSelect: enableExtensions,
-              type: 'primary',
-            },
-            {
-              key: 'disable',
-              name: t('Disable'),
-              onSelect: disableExtensions,
-              type: 'primary',
-            },
-          ];
-          return (
-            <ListView<Extension>
-              columns={columns}
-              count={resourceCount}
-              data={resourceCollection}
-              initialSort={[{ id: 'name', desc: false }]}
-              pageSize={PAGE_SIZE}
-              fetchData={fetchData}
-              filters={filterTypes}
-              loading={loading}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={toggleBulkSelect}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
-              refreshData={refreshData}
-            />
-          );
-        }}
-      </ConfirmStatusChange>
+      <ListView<Extension>
+        columns={columns}
+        count={resourceCount}
+        data={resourceCollection}
+        initialSort={[{ id: 'name', desc: false }]}
+        pageSize={PAGE_SIZE}
+        fetchData={fetchData}
+        filters={filterTypes}
+        loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={refreshData}
+      />
     </>
   );
 };
