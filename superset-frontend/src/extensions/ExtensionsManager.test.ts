@@ -178,14 +178,11 @@ async function createMultipleActivatedExtensions(
   manager: ExtensionsManager,
   extensionConfigs: MockExtensionOptions[],
 ): Promise<core.Extension[]> {
-  const extensions: core.Extension[] = [];
+  const extensionPromises = extensionConfigs.map(config =>
+    createActivatedExtension(manager, config),
+  );
 
-  for (const config of extensionConfigs) {
-    const extension = await createActivatedExtension(manager, config);
-    extensions.push(extension);
-  }
-
-  return extensions;
+  return Promise.all(extensionPromises);
 }
 
 /**
