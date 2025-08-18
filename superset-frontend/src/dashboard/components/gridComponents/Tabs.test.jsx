@@ -17,7 +17,6 @@
  * under the License.
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
-import { Modal } from '@superset-ui/core/components';
 import fetchMock from 'fetch-mock';
 import Tabs from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
@@ -178,10 +177,19 @@ test('should direct display direct-link tab', () => {
 
 test('should render Modal when clicked remove tab button', () => {
   const deleteComponent = jest.fn();
-  const modalMock = jest.spyOn(Modal, 'confirm');
-  const { container } = setup({ editMode: true, deleteComponent });
+  const { container, getByText, queryByText } = setup({
+    editMode: true,
+    deleteComponent,
+  });
+
+  // Initially no modal should be visible
+  expect(queryByText('Delete dashboard tab?')).not.toBeInTheDocument();
+
+  // Click the remove tab button
   fireEvent.click(container.querySelector('.ant-tabs-tab-remove'));
-  expect(modalMock).toHaveBeenCalledTimes(1);
+
+  // Modal should now be visible
+  expect(getByText('Delete dashboard tab?')).toBeInTheDocument();
   expect(deleteComponent).toHaveBeenCalledTimes(0);
 });
 
