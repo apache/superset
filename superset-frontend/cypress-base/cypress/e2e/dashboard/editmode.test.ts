@@ -173,6 +173,9 @@ function selectColorScheme(
 
     // Wait for animation to complete
     cy.wait(300);
+
+    // Ensure the color scheme input is visible before proceeding
+    cy.get('input[aria-label="Select color scheme"]').should('be.visible');
   });
 
   // Now select the color scheme
@@ -1103,6 +1106,7 @@ describe('Dashboard edit', () => {
       cy.createSampleDashboards([0]);
       openProperties();
       selectColorScheme('supersetColors');
+      applyChanges(); // Save and close the modal
     });
 
     it('should accept a valid color scheme', () => {
@@ -1177,6 +1181,7 @@ describe('Dashboard edit', () => {
 
     it('should filter charts', () => {
       interceptCharts();
+      cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click();
       cy.getBySel('dashboard-charts-filter-search-input').type('Unicode');
       cy.wait('@filtering');
@@ -1188,6 +1193,7 @@ describe('Dashboard edit', () => {
 
     // TODO fix this test! This was the #1 flaky test as of 4/21/23 according to cypress dashboard.
     it.skip('should disable the Save button when undoing', () => {
+      cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
@@ -1202,12 +1208,14 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
+      cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click();
       dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
     it.skip('should remove added charts', () => {
+      cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click();
       dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
@@ -1251,6 +1259,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should save', () => {
+      cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click();
       dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
