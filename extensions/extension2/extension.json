@@ -1,0 +1,20 @@
+{
+  "name": "extension2",
+  "version": "1.0.0",
+  "frontend": {
+    "contributions": {
+      "views": {
+        "sqllab.panels": [
+          {
+            "id": "extension2.example",
+            "name": "Logger"
+          }
+        ]
+      }
+    },
+    "moduleFederation": {
+      "exposes": ["./index"]
+    }
+  },
+  "permissions": ["can_view"]
+}
