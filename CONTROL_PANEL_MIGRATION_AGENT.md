@@ -696,6 +696,85 @@ const handleChange = (field: string) => (val: any) => {
 };
 ```
 
+## Additional Migration Patterns
+
+### Single Column Selection
+When a control expects a single column value (not an array):
+```typescript
+// For Sankey source/target columns
+const handleSingleColumnChange = (field: string) => (val: any) => {
+  const singleValue = Array.isArray(val) ? val[0] : val;
+  actions.setControlValue(field, singleValue);
+};
+
+// Usage
+<DndColumnSelect
+  value={formValues.source ? [formValues.source] : []}
+  onChange={handleSingleColumnChange('source')}
+  options={safeColumns}
+  multi={false}
+/>
+```
+
+### Required Field Validation
+For controls that must have values:
+```typescript
+import { validateNonEmpty } from '@superset-ui/core';
+
+// In controlOverrides
+source: {
+  validators: [validateNonEmpty],
+  label: t('Source Column'),
+},
+```
+
+### Chart Type Descriptions
+Add helpful descriptions at the top of control panels:
+```typescript
+<div style={{ marginBottom: 16, padding: '12px', borderRadius: '4px' }}>
+  <div style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>
+    {t('Sankey Diagram')}
+  </div>
+  <div style={{ fontSize: '12px', opacity: 0.65 }}>
+    {t('Visualize flow between different entities')}
+  </div>
+</div>
+```
+
+## Common Migration Issues & Solutions
+
+### Issue 1: "Cannot read properties of undefined (reading 'map')"
+**Problem:** DndColumnSelect crashes when datasource is undefined
+**Solution:** Pass `options={datasource?.columns || []}` instead of `datasource={datasource}`
+
+### Issue 2: Tabs import error ("Element type is invalid")
+**Problem:** Runtime error when loading control panel
+**Solution:** Import from 'antd' directly: `import { Tabs } from 'antd';` (NOT from '@superset-ui/core')
+
+### Issue 3: React hooks error
+**Problem:** "React Hook 'useState' is called conditionally"
+**Solution:** Always declare state hooks before any conditional returns:
+```typescript
+const [activeTab, setActiveTab] = useState('data'); // FIRST
+if (!datasource) return <div>Loading...</div>;      // THEN conditions
+```
+
+### Issue 4: ESLint color literal warnings
+**Problem:** theme-colors/no-literal-colors ESLint rule
+**Solution:** Use opacity instead of color literals:
+```typescript
+// Bad: style={{ color: '#666' }}
+// Good: style={{ opacity: 0.65 }}
+```
+
+### Issue 5: Single value vs array handling
+**Problem:** Some controls expect single values but DndColumnSelect returns arrays
+**Solution:** See "Single Column Selection" pattern above
+
+### Issue 6: antd import warnings
+**Problem:** "'antd' should be listed in the project's dependencies"
+**Solution:** Use `SKIP=eslint-frontend` when committing if antd is already available
+
 ## Reference Implementation
 
 The Pie chart control panel migration (`PieControlPanelSimple.tsx`) serves as the definitive reference implementation showing:
