@@ -16,25 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Disposable } from './core';
 
 /**
- * Commands are functions with unique identifiers. The function is sometimes also called _command handler_.
+ * @fileoverview Command system API for Superset extensions.
  *
- * Commands can be added using the {@link registerCommand registerCommand}
- * function. Commands can be executed {@link executeCommand manually} or from a UI gesture.
- *
- * Commands from other extensions and from the editor itself are accessible to an extension. However,
- * when invoking an editor command not all argument types are supported.
- *
- * This is a sample that registers a command handler and adds an entry for that command to the palette. First
- * register a command handler with the identifier `extension.sayHello`.
- * ```javascript
- * registerCommand('extension.sayHello', () => {
- * 	window.showInformationMessage('Hello World!');
- * });
- * ```
+ * This module provides a command registry and execution system that allows extensions
+ * to register custom commands and invoke them programmatically. Commands can be triggered
+ * via keyboard shortcuts, menu items, programmatic calls, or other user interactions.
  */
+
+import { Disposable } from './core';
 
 /**
  * Registers a command that can be invoked via a keyboard shortcut,

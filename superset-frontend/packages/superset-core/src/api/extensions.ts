@@ -16,57 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Event, Extension } from './core';
 
 /**
- * Extensions are represented by an {@link Extension}-interface which enables reflection on them.
+ * @fileoverview Extensions API for Superset extension management.
  *
- * Extension writers can provide APIs to other extensions by returning their API public
- * surface from the `activate`-call.
- *
- * ```javascript
- * export function activate(context: vscode.ExtensionContext) {
- * 	let api = {
- * 		sum(a, b) {
- * 			return a + b;
- * 		},
- * 		mul(a, b) {
- * 			return a * b;
- * 		}
- * 	};
- * 	// 'export' public api-surface
- * 	return api;
- * }
- * ```
- * When depending on the API of another extension add an `extensionDependencies`-entry
- * to `package.json`, and use the {@link getExtension getExtension}-function
- * and the {@link Extension.exports exports}-property, like below:
- *
- * ```javascript
- * let mathExt = getExtension('genius.math');
- * let importedApi = mathExt.exports;
- *
- * console.log(importedApi.mul(42, 1));
- * ```
+ * This module provides functions and events for managing Superset extensions,
+ * including querying extension metadata and monitoring extension lifecycle events.
+ * Extensions can use this API to discover other extensions and react to changes
+ * in the extension ecosystem.
  */
+
+import { Extension } from './core';
 
 /**
  * Get an extension by its full identifier in the form of: `publisher.name`.
+ * This function allows extensions to discover and interact with other extensions
+ * in the Superset ecosystem.
  *
- * @param extensionId An extension identifier.
- * @returns An extension or `undefined`.
+ * @param extensionId An extension identifier in the format "publisher.name".
+ * @returns The extension object if found, or `undefined` if no extension matches the identifier.
+ *
+ * @example
+ * ```typescript
+ * const chartExtension = getExtension('superset.chart-plugins');
+ * if (chartExtension) {
+ *   console.log('Chart extension is available:', chartExtension.displayName);
+ * } else {
+ *   console.log('Chart extension not found');
+ * }
+ * ```
  */
 export declare function getExtension(
   extensionId: string,
 ): Extension | undefined;
 
 /**
- * All extensions currently known to the system.
+ * Get all extensions currently known to the system.
+ * This function returns a readonly array containing all extensions that are installed
+ * and available, regardless of their activation status.
+ *
+ * @returns A readonly array of all extension objects in the system.
+ *
+ * @example
+ * ```typescript
+ * const extensions = getAllExtensions();
+ * console.log(`Total extensions: ${extensions.length}`);
+ * extensions.forEach(ext => {
+ *   console.log(`- ${ext.id}: ${ext.name} (enabled: ${ext.enabled})`);
+ * });
+ * ```
  */
-export declare const all: readonly Extension[];
-
-/**
- * An event which fires when `all` changes. This can happen when extensions are
- * installed, uninstalled, enabled or disabled.
- */
-export declare const onDidChange: Event<void>;
+export declare function getAllExtensions(): readonly Extension[];

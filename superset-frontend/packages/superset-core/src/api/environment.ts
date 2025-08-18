@@ -16,53 +16,89 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * @fileoverview Environment API for Superset extensions.
+ *
+ * This module provides access to the execution environment, including system
+ * clipboard operations, logging capabilities, internationalization features,
+ * and environment variables. It allows extensions to interact with the host
+ * system and platform in a controlled manner.
+ */
+
 import { Event } from './core';
 
+/**
+ * Interface for system clipboard operations.
+ * Provides methods to read from and write to the system clipboard.
+ */
 export interface Clipboard {
   /**
    * Read the current clipboard contents as text.
-   * @returns A promise that resolves to a string.
+   *
+   * @returns A promise that resolves to the clipboard text content.
+   *
+   * @example
+   * ```typescript
+   * const clipboardText = await clipboard.readText();
+   * console.log('Clipboard contains:', clipboardText);
+   * ```
    */
   readText(): Promise<string>;
 
   /**
-   * Writes text into the clipboard.
-   * @returns A promise that resolves when writing happened.
+   * Writes text into the clipboard, replacing any existing content.
+   *
+   * @param value The text to write to the clipboard.
+   * @returns A promise that resolves when the write operation completes.
+   *
+   * @example
+   * ```typescript
+   * await clipboard.writeText('Hello, world!');
+   * console.log('Text copied to clipboard');
+   * ```
    */
   writeText(value: string): Promise<void>;
 }
 
 /**
- * Log levels
+ * Logging levels for controlling the verbosity of log output.
+ * Higher numeric values indicate more restrictive logging levels.
  */
 export enum LogLevel {
   /**
    * No messages are logged with this level.
+   * Use this to completely disable logging.
    */
   Off = 0,
 
   /**
    * All messages are logged with this level.
+   * Most verbose logging level, includes all types of messages.
    */
   Trace = 1,
 
   /**
    * Messages with debug and higher log level are logged with this level.
+   * Useful for development and troubleshooting.
    */
   Debug = 2,
 
   /**
    * Messages with info and higher log level are logged with this level.
+   * General informational messages about application flow.
    */
   Info = 3,
 
   /**
    * Messages with warning and higher log level are logged with this level.
+   * Indicates potential issues that don't prevent operation.
    */
   Warning = 4,
 
   /**
    * Only error messages are logged with this level.
+   * Most restrictive level, shows only critical failures.
    */
   Error = 5,
 }
@@ -87,7 +123,25 @@ export declare const logLevel: LogLevel;
  */
 export declare const onDidChangeLogLevel: Event<LogLevel>;
 
-export declare function openExternal(target: URL): Promise<boolean>; // TODO: URL or URI?
+/**
+ * Opens an external URL in the default system browser or application.
+ * This function provides a secure way to open external resources while
+ * respecting user security preferences.
+ *
+ * @param target The URL to open externally.
+ * @returns A promise that resolves to true if the URL was successfully opened, false otherwise.
+ *
+ * @example
+ * ```typescript
+ * const success = await openExternal(new URL('https://superset.apache.org'));
+ * if (success) {
+ *   console.log('URL opened successfully');
+ * } else {
+ *   console.log('Failed to open URL');
+ * }
+ * ```
+ */
+export declare function openExternal(target: URL): Promise<boolean>;
 
 /**
  * Gets an environment variable value.

@@ -16,6 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * @fileoverview Contributions API for Superset extension UI integration.
+ *
+ * This module defines the interfaces and types for extension contributions to the
+ * Superset user interface. Extensions use these contribution types to register
+ * commands, menu items, and custom views that integrate seamlessly with the
+ * Superset platform. The contribution system allows extensions to extend the
+ * application's functionality while maintaining a consistent user experience.
+ */
+
 /**
  * Describes a command that can be contributed to the application.
  */

@@ -16,28 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * @fileoverview Core types and utilities for Superset extensions.
+ *
+ * This module provides fundamental types and interfaces used throughout the
+ * Superset extension API. It includes database metadata types, event handling,
+ * resource management, and extension lifecycle definitions.
+ */
+
 import { ReactElement } from 'react';
 import { Contributions } from './contributions';
 
+/**
+ * Represents a database column with its name and data type.
+ */
 export declare interface Column {
+  /** The name of the column */
   name: string;
+  /** The data type of the column (e.g., 'INTEGER', 'VARCHAR', 'TIMESTAMP') */
   type: string;
 }
+
+/**
+ * Represents a database table with its name and column definitions.
+ */
 export declare interface Table {
+  /** The name of the table */
   name: string;
+  /** Array of columns in this table */
   columns: Column[];
 }
 
+/**
+ * Represents a database catalog.
+ * @todo This interface needs to be expanded with catalog-specific properties.
+ */
 export declare interface Catalog {}
 
+/**
+ * Represents a database schema containing tables.
+ */
 export declare interface Schema {
+  /** Array of tables in this schema */
   tables: Table[];
 }
 
+/**
+ * Represents a database connection with its metadata.
+ */
 export declare interface Database {
+  /** Unique identifier for the database */
   id: number;
+  /** Display name of the database */
   name: string;
+  /** Array of catalogs available in this database */
   catalogs: Catalog[];
+  /** Array of schemas available in this database */
   schemas: Schema[];
 }
 
@@ -81,52 +116,127 @@ export declare class Disposable {
 }
 
 /**
- * Represents a typed event.
+ * Represents a typed event system for handling asynchronous notifications.
  *
  * A function that represents an event to which you subscribe by calling it with
- * a listener function as argument.
+ * a listener function as argument. This provides a type-safe way to handle
+ * events throughout the Superset extension system.
+ *
+ * @template T The type of data that will be passed to event listeners.
  *
  * @example
- * item.onDidChange(function(event) { console.log("Event happened: " + event); });
+ * ```typescript
+ * // Subscribe to an event
+ * const disposable = myEvent((data) => {
+ *   console.log("Event happened:", data);
+ * });
+ *
+ * // Unsubscribe when done
+ * disposable.dispose();
+ * ```
  */
 export declare interface Event<T> {
   /**
-   * A function that represents an event to which you subscribe by calling it with
-   * a listener function as argument.
+   * Subscribe to this event by providing a listener function.
    *
-   * @param listener The listener function will be called when the event happens.
-   * @param thisArgs The `this`-argument which will be used when calling the event listener.
-   * @returns A disposable which unsubscribes the event listener.
+   * @param listener The listener function that will be called when the event is fired.
+   *   The function receives the event data as its parameter.
+   * @param thisArgs Optional `this` context that will be used when calling the event listener.
+   * @returns A Disposable object that can be used to unsubscribe from the event.
+   *
+   * @example
+   * ```typescript
+   * const subscription = onSomeEvent((data) => {
+   *   console.log('Received:', data);
+   * });
+   *
+   * // Later, clean up the subscription
+   * subscription.dispose();
+   * ```
    */
   (listener: (e: T) => any, thisArgs?: any): Disposable;
 }
 
+/**
+ * Represents a Superset extension with its metadata and lifecycle methods.
+ * Extensions are modular components that can extend Superset's functionality.
+ */
 export interface Extension {
+  /** Function called when the extension is activated */
   activate: Function;
+  /** UI contributions provided by this extension */
   contributions: Contributions;
+  /** Function called when the extension is deactivated */
   deactivate: Function;
+  /** Human-readable description of the extension */
   description: string;
+  /** Whether the extension is currently enabled */
   enabled: boolean;
+  /** List of modules exposed by this extension for use by other extensions */
   exposedModules: string[];
+  /** List of other extensions that this extension depends on */
   extensionDependencies: string[];
+  /** Unique numeric identifier for the extension */
   id: number;
+  /** Name of the extension */
   name: string;
+  /** URL or path to the extension's remote entry point */
   remoteEntry: string;
 }
 
+/**
+ * Context object provided to extensions during activation.
+ * Contains utilities and resources that extensions can use during their lifecycle.
+ */
 export interface ExtensionContext {
   /**
-   * Disposable objects that will be automatically disposed when the extension is deactivated.
+   * Array of disposable objects that will be automatically disposed when the extension is deactivated.
+   * Extensions should add any resources that need cleanup to this array.
+   *
+   * @example
+   * ```typescript
+   * export function activate(context: ExtensionContext) {
+   *   // Register an event listener
+   *   const disposable = onSomeEvent(() => { ... });
+   *
+   *   // Add to context so it's cleaned up automatically
+   *   context.disposables.push(disposable);
+   * }
+   * ```
    */
   disposables: Disposable[];
 
   /**
-   * We might want to add more properties to this interface in the future like
-   * storage, configuration, etc.
-   * For now, it is just a placeholder to allow for future extensibility.
+   * @todo We might want to add more properties to this interface in the future like
+   * storage, configuration, logging, etc. For now, it serves as a placeholder
+   * to allow for future extensibility without breaking existing extensions.
    */
 }
 
+/**
+ * Registers a view provider that can render custom React components in Superset.
+ * View providers allow extensions to contribute custom UI components that can be
+ * displayed in various parts of the Superset interface.
+ *
+ * @param id Unique identifier for the view provider. This ID is used to reference
+ *   the view provider from other parts of the system.
+ * @param viewProvider Function that returns a React element to be rendered.
+ *   This function will be called whenever the view needs to be displayed.
+ * @returns A Disposable object that can be used to unregister the view provider.
+ *
+ * @example
+ * ```typescript
+ * const disposable = registerViewProvider('my-extension.custom-view', () => (
+ *   <div>
+ *     <h1>My Custom View</h1>
+ *     <p>This is a custom component from my extension.</p>
+ *   </div>
+ * ));
+ *
+ * // Later, unregister the view provider
+ * disposable.dispose();
+ * ```
+ */
 export declare const registerViewProvider: (
   id: string,
   viewProvider: () => ReactElement,

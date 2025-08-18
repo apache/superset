@@ -16,6 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * @fileoverview Main entry point for the Superset Extension API.
+ *
+ * This module exports all public APIs for Superset extensions, providing
+ * a unified interface for extension developers to interact with the Superset
+ * platform. The API includes:
+ *
+ * - `authentication`: Handle user authentication and authorization
+ * - `commands`: Execute Superset commands and operations
+ * - `contributions`: Register UI contributions and customizations
+ * - `core`: Access fundamental Superset types and utilities
+ * - `environment`: Interact with the execution environment
+ * - `extensions`: Manage extension lifecycle and metadata
+ * - `sqlLab`: Integrate with SQL Lab functionality
+ */
+
 export * as authentication from './authentication';
 export * as commands from './commands';
 export * as contributions from './contributions';
