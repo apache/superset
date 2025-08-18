@@ -397,7 +397,7 @@ export function generateSql(databaseId, queryEditor, prompt) {
         database_id: databaseId,
         user_prompt: prompt,
         prior_context: sql,
-        schemas: queryEditor.schema,
+        schemas: [queryEditor.schema],
       }),
       headers: { 'Content-Type': 'application/json' },
     })

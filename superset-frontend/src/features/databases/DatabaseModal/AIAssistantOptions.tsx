@@ -67,7 +67,7 @@ const AIAssistantOptions = ({
   const [selectedModelTokenLimit, setSelectedModelTokenLimit] = useState<
     number | null
   >(null);
-  const tables = useDatabaseTables(db?.id || 0);
+  const tables = useDatabaseTables(db?.id || 1);
   const contextSettings = db?.llm_context_options;
   const [activeKey, setActiveKey] = useState<string | string[] | undefined>(
     undefined,
