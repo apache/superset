@@ -36,9 +36,6 @@ import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
-const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/7*';
-const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
-const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
 jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
@@ -61,6 +58,19 @@ const defaultColumns = [
   { column_name: 'col11', groupby: true },
 ];
 
+const mockDataset = {
+  id: 7,
+  table_name: 'test_table',
+  columns: defaultColumns,
+  drillable_columns: defaultColumns,
+  changed_on_humanized: '1 day ago',
+  created_on_humanized: '2 days ago',
+  description: 'Test dataset',
+  owners: [],
+  changed_by: { first_name: 'Test', last_name: 'User' },
+  created_by: { first_name: 'Test', last_name: 'User' },
+};
+
 const defaultFilters = [
   {
     col: 'filter_col',
@@ -72,6 +82,7 @@ const defaultFilters = [
 const renderMenu = ({
   formData = defaultFormData,
   drillByConfig = { filters: defaultFilters, groupbyFieldName: 'groupby' },
+  dataset = mockDataset,
   ...rest
 }: Partial<DrillByMenuItemsProps>) =>
   render(
@@ -79,6 +90,7 @@ const renderMenu = ({
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
         drillByConfig={drillByConfig}
+        dataset={dataset}
         open
         {...rest}
       />
@@ -151,23 +163,27 @@ test('render enabled menu item for supported chart, no filters', async () => {
 });
 
 test('render disabled menu item for supported chart, no columns', async () => {
-  fetchMock.get(DATASET_ENDPOINT, { result: { columns: [] } });
-  renderMenu({});
-  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
+  const emptyDataset = { ...mockDataset, columns: [], drillable_columns: [] };
+  renderMenu({ dataset: emptyDataset });
   await expectDrillByEnabled();
   screen.getByText('No columns found');
 });
 
 test('render menu item with submenu without searchbox', async () => {
   const slicedColumns = defaultColumns.slice(0, 9);
-  fetchMock.get(DATASET_ENDPOINT, {
-    result: { columns: slicedColumns },
-  });
-  renderMenu({});
-  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
+  const datasetWithSlicedColumns = {
+    ...mockDataset,
+    columns: slicedColumns,
+    drillable_columns: slicedColumns,
+  };
+  renderMenu({ dataset: datasetWithSlicedColumns });
   await expectDrillByEnabled();
+
+  // Check that each column appears in the drill-by submenu
   slicedColumns.forEach(column => {
-    expect(screen.getByText(column.column_name)).toBeInTheDocument();
+    const submenus = screen.getAllByTestId('drill-by-submenu');
+    const submenu = submenus[0]; // Use the first submenu
+    expect(within(submenu).getByText(column.column_name)).toBeInTheDocument();
   });
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
@@ -176,25 +192,25 @@ test('render menu item with submenu without searchbox', async () => {
 jest.setTimeout(20000);
 
 test('render menu item with submenu and searchbox', async () => {
-  fetchMock.get(DATASET_ENDPOINT, {
-    result: { columns: defaultColumns },
-  });
-  renderMenu({});
-  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
+  renderMenu({ dataset: mockDataset });
   await expectDrillByEnabled();
 
   // Wait for all columns to be visible
   await waitFor(
     () => {
+      const submenus = screen.getAllByTestId('drill-by-submenu');
+      const submenu = submenus[0];
       defaultColumns.forEach(column => {
-        expect(screen.getByText(column.column_name)).toBeInTheDocument();
+        expect(
+          within(submenu).getByText(column.column_name),
+        ).toBeInTheDocument();
       });
     },
     { timeout: 10000 },
   );
 
   const searchbox = await waitFor(
-    () => screen.getAllByPlaceholderText('Search columns')[1],
+    () => screen.getAllByPlaceholderText('Search columns')[0],
   );
   expect(searchbox).toBeInTheDocument();
 
@@ -204,72 +220,85 @@ test('render menu item with submenu and searchbox', async () => {
 
   // Wait for filtered results
   await waitFor(() => {
+    const submenus = screen.getAllByTestId('drill-by-submenu');
+    const submenu = submenus[0];
     expectedFilteredColumnNames.forEach(colName => {
-      expect(screen.getByText(colName)).toBeInTheDocument();
+      expect(within(submenu).getByText(colName)).toBeInTheDocument();
     });
   });
+
+  const submenus = screen.getAllByTestId('drill-by-submenu');
+  const submenu = submenus[0];
 
   defaultColumns
     .filter(col => !expectedFilteredColumnNames.includes(col.column_name))
     .forEach(col => {
-      expect(screen.queryByText(col.column_name)).not.toBeInTheDocument();
+      expect(
+        within(submenu).queryByText(col.column_name),
+      ).not.toBeInTheDocument();
     });
 
   expectedFilteredColumnNames.forEach(colName => {
-    expect(screen.getByText(colName)).toBeInTheDocument();
+    expect(within(submenu).getByText(colName)).toBeInTheDocument();
   });
 });
 
 test('Do not display excluded column in the menu', async () => {
-  fetchMock.get(DATASET_ENDPOINT, {
-    result: { columns: defaultColumns },
-  });
-
   const excludedColNames = ['col3', 'col5'];
+  const filteredColumns = defaultColumns.filter(
+    col => !excludedColNames.includes(col.column_name),
+  );
+  const datasetWithFilteredColumns = {
+    ...mockDataset,
+    drillable_columns: filteredColumns,
+  };
   renderMenu({
+    dataset: datasetWithFilteredColumns,
     excludedColumns: excludedColNames.map(colName => ({
       column_name: colName,
     })),
   });
 
-  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
 
   // Wait for menu items to be loaded
   await waitFor(
     () => {
+      const submenus = screen.getAllByTestId('drill-by-submenu');
+      const submenu = submenus[0];
       defaultColumns
         .filter(column => !excludedColNames.includes(column.column_name))
         .forEach(column => {
-          expect(screen.getByText(column.column_name)).toBeInTheDocument();
+          expect(
+            within(submenu).getByText(column.column_name),
+          ).toBeInTheDocument();
         });
     },
     { timeout: 10000 },
   );
 
+  const submenus = screen.getAllByTestId('drill-by-submenu');
+  const submenu = submenus[0];
   excludedColNames.forEach(colName => {
-    expect(screen.queryByText(colName)).not.toBeInTheDocument();
+    expect(within(submenu).queryByText(colName)).not.toBeInTheDocument();
   });
 });
 
 test('When menu item is clicked, call onSelection with clicked column and drill by filters', async () => {
-  fetchMock
-    .get(DATASET_ENDPOINT, {
-      result: { columns: defaultColumns },
-    })
-    .post(FORM_DATA_KEY_ENDPOINT, {})
-    .post(CHART_DATA_ENDPOINT, {});
-
   const onSelectionMock = jest.fn();
   renderMenu({
+    dataset: mockDataset,
     onSelection: onSelectionMock,
   });
 
-  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
 
   // Wait for col1 to be visible before clicking
-  const col1Element = await waitFor(() => screen.getByText('col1'));
+  const col1Element = await waitFor(() => {
+    const submenus = screen.getAllByTestId('drill-by-submenu');
+    const submenu = submenus[0];
+    return within(submenu).getByText('col1');
+  });
   userEvent.click(col1Element);
 
   expect(onSelectionMock).toHaveBeenCalledWith(

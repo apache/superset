@@ -537,10 +537,12 @@ pgsanity==0.2.9
     # via
     #   -c requirements/base.txt
     #   apache-superset
-pillow==10.3.0
+pillow==11.3.0
     # via
     #   apache-superset
     #   matplotlib
+pip==25.1.1
+    # via apache-superset
 platformdirs==4.3.8
     # via
     #   -c requirements/base.txt
@@ -586,7 +588,7 @@ psutil==6.1.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
-pyarrow==18.1.0
+pyarrow==16.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -795,14 +797,14 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-bigquery
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.12.0
+sqlalchemy-bigquery==1.15.0
     # via apache-superset
 sqlalchemy-utils==0.38.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.28.1
+sqlglot==27.3.0
     # via
     #   -c requirements/base.txt
     #   apache-superset

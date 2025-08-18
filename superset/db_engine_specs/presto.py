@@ -30,7 +30,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
 from sqlalchemy import Column, literal_column, types
@@ -700,7 +700,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     def _create_column_info(
-        cls, name: str, data_type: types.TypeEngine
+        cls,
+        name: str,
+        data_type: types.TypeEngine,
     ) -> ResultSetColumnType:
         """
         Create column info object
@@ -711,7 +713,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return {
             "column_name": name,
             "name": name,
-            "type": f"{data_type}",
+            "type": data_type,
             "is_dttm": None,
             "type_generic": None,
         }
@@ -1318,7 +1320,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
-            "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]
+            "poll_interval", app.config["PRESTO_POLL_INTERVAL"]
         )
         logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()

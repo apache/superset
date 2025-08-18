@@ -98,7 +98,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -194,7 +194,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
@@ -206,7 +206,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
@@ -230,7 +230,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
             original: { start_time },
@@ -253,18 +253,21 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
-            original: { status, start_time, end_time },
+            original: { status, start_time, start_running_time, end_time },
           },
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
-          const timerTime = end_time
-            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
-                TIME_WITH_MS,
-              )
-            : '00:00:00.000';
+          // Use start_running_time if available for more accurate duration
+          const startTime = start_running_time || start_time;
+          const timerTime =
+            end_time && startTime
+              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
+                  TIME_WITH_MS,
+                )
+              : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
               {timerTime}
@@ -282,7 +285,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -293,7 +296,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -331,7 +334,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },
@@ -354,7 +357,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
-        size: 'md',
+        size: 'sm',
         id: QueryObjectColumns.Rows,
       },
       {
@@ -385,12 +388,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </StyledCodeSyntaxHighlighter>
           </div>
         ),
+        size: 'xxl',
         id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        size: 'sm',
         Cell: ({
           row: {
             original: { id },

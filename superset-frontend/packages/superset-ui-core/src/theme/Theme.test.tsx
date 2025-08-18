@@ -58,8 +58,9 @@ describe('Theme', () => {
       // Verify default font family is set
       expect(theme.theme.fontFamily).toContain('Inter');
 
-      // Verify the theme is initialized with colors
-      expect(theme.theme.colors).toBeDefined();
+      // Verify the theme is initialized with semantic color tokens
+      expect(theme.theme.colorText).toBeDefined();
+      expect(theme.theme.colorBgBase).toBeDefined();
     });
 
     it('creates a theme with custom tokens when provided', () => {
@@ -186,24 +187,6 @@ describe('Theme', () => {
       expect(serialized.algorithm).toContain(ThemeAlgorithm.DEFAULT);
       expect(serialized.algorithm).toContain(ThemeAlgorithm.COMPACT);
       expect(serialized.algorithm).not.toContain(ThemeAlgorithm.DARK);
-    });
-  });
-
-  describe('getFontSize', () => {
-    it('returns correct font size for given key', () => {
-      const theme = Theme.fromConfig();
-
-      // Test different font size keys
-      expect(theme.getFontSize('xs')).toBe('8');
-      expect(theme.getFontSize('m')).toBeTruthy();
-      expect(theme.getFontSize('xxl')).toBe('28');
-    });
-
-    it('defaults to medium font size when no key is provided', () => {
-      const theme = Theme.fromConfig();
-      const mediumSize = theme.getFontSize('m');
-
-      expect(theme.getFontSize()).toBe(mediumSize);
     });
   });
 

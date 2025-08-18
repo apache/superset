@@ -124,7 +124,7 @@ function Calendar(element, props) {
         colorScale,
         min: legendColors[0],
         max: legendColors[legendColors.length - 1],
-        empty: theme.colors.grayscale.light5,
+        empty: theme.colorBgElevated,
       },
       displayLegend: showLegend,
       itemName: '',

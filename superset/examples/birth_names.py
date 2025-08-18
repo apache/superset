@@ -19,10 +19,11 @@ import textwrap
 from typing import Union
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -31,7 +32,7 @@ from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
-from ..utils.database import get_example_database
+from ..utils.database import get_example_database  # noqa: TID252
 from .helpers import (
     get_slice_json,
     get_table_connector_registry,
@@ -57,7 +58,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = read_example_data("birth_names2.json.gz", compression="gzip")
+    pdf = read_example_data("examples://birth_names2.json.gz", compression="gzip")
 
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
@@ -173,7 +174,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
@@ -584,7 +585,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
-    # pylint: disable=echarts_timeseries_line-too-long
     pos = json.loads(
         textwrap.dedent(
             """\
@@ -859,11 +859,10 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
-    # pylint: enable=echarts_timeseries_line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
-    dash.position_json = json.dumps(pos, indent=4)
+    dash.position_json = json.dumps(pos, indent=4)  # noqa: TID251
     dash.slug = "births"
     return dash

@@ -24,6 +24,7 @@ describe('ChartLayer', () => {
   it('creates div and loading mask', () => {
     const options: ChartLayerOptions = {
       chartVizType: 'pie',
+      locale: 'en',
     };
     const chartLayer = new ChartLayer(options);
 
@@ -34,6 +35,7 @@ describe('ChartLayer', () => {
   it('can remove chart elements', () => {
     const options: ChartLayerOptions = {
       chartVizType: 'pie',
+      locale: 'en',
     };
     const chartLayer = new ChartLayer(options);
     chartLayer.charts = [

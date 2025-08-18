@@ -17,12 +17,17 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
-import { Theme } from '@superset-ui/core';
+import {
+  type AnyThemeConfig,
+  type SupersetThemeConfig,
+  Theme,
+  ThemeAlgorithm,
+  ThemeMode,
+} from '@superset-ui/core';
 import type {
   BootstrapThemeDataConfig,
   CommonBootstrapData,
 } from 'src/types/bootstrapTypes';
-import { ThemeAlgorithm, ThemeMode } from '@superset-ui/core/theme/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { LocalStorageAdapter, ThemeController } from '../ThemeController';
 
@@ -43,7 +48,7 @@ const mockThemeFromConfig = jest.fn();
 const mockSetConfig = jest.fn();
 
 // Mock data constants
-const DEFAULT_THEME = {
+const DEFAULT_THEME: AnyThemeConfig = {
   token: {
     colorBgBase: '#ededed',
     colorTextBase: '#120f0f',
@@ -55,7 +60,7 @@ const DEFAULT_THEME = {
   },
 };
 
-const DARK_THEME = {
+const DARK_THEME: AnyThemeConfig = {
   token: {
     colorBgBase: '#141118',
     colorTextBase: '#fdc7c7',
@@ -65,13 +70,7 @@ const DARK_THEME = {
     colorSuccess: '#3c7c1b',
     colorWarning: '#dc9811',
   },
-  algorithm: ThemeMode.DARK,
-};
-
-const THEME_SETTINGS = {
-  enforced: false,
-  allowSwitching: true,
-  allowOSPreference: true,
+  algorithm: ThemeAlgorithm.DARK,
 };
 
 // BootstrapData common template generator
@@ -79,7 +78,6 @@ const createMockBootstrapData = (
   themeConfig: BootstrapThemeDataConfig = {
     default: DEFAULT_THEME,
     dark: DARK_THEME,
-    settings: THEME_SETTINGS,
   },
 ): { common: CommonBootstrapData } => ({
   common: {
@@ -251,7 +249,6 @@ describe('ThemeController', () => {
       createMockBootstrapData({
         default: {},
         dark: {},
-        settings: {},
       }),
     );
 
@@ -276,32 +273,11 @@ describe('ThemeController', () => {
     );
   });
 
-  it('should respect enforced theme settings', () => {
-    mockGetBootstrapData.mockReturnValue(
-      createMockBootstrapData({
-        default: {},
-        dark: {},
-        settings: { enforced: true, allowSwitching: false },
-      }),
-    );
-
-    mockLocalStorage.getItem.mockReturnValue(ThemeMode.DARK);
-
-    controller = new ThemeController({
-      themeObject: mockThemeObject,
-    });
-
-    expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
-    expect(controller.canSetTheme()).toBe(false);
-    expect(controller.canSetMode()).toBe(false);
-  });
-
   it('should handle system theme preference', () => {
     mockGetBootstrapData.mockReturnValue(
       createMockBootstrapData({
-        default: {},
-        dark: {},
-        settings: { allowOSPreference: true },
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
       }),
     );
 
@@ -317,7 +293,6 @@ describe('ThemeController', () => {
       createMockBootstrapData({
         default: DEFAULT_THEME,
         dark: {},
-        settings: {},
       }),
     );
 
@@ -328,12 +303,13 @@ describe('ThemeController', () => {
     // Clear the call from initialization
     jest.clearAllMocks();
 
-    controller.setThemeMode(ThemeMode.DARK);
-
-    expect(mockSetConfig).toHaveBeenCalledTimes(1);
-    expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining(DEFAULT_THEME),
+    // Should throw when trying to change mode with only one theme
+    expect(() => controller.setThemeMode(ThemeMode.DARK)).toThrow(
+      'Theme mode changes are not allowed when only one theme is available',
     );
+
+    // Config should not have been called since the error was thrown
+    expect(mockSetConfig).not.toHaveBeenCalled();
   });
 
   it('should handle only dark theme', () => {
@@ -341,7 +317,6 @@ describe('ThemeController', () => {
       createMockBootstrapData({
         default: {},
         dark: DARK_THEME,
-        settings: {},
       }),
     );
 
@@ -349,47 +324,22 @@ describe('ThemeController', () => {
       themeObject: mockThemeObject,
     });
 
+    // When only dark theme is available, controller uses the default fallback theme initially
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
-    expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...DARK_THEME,
-        algorithm: antdThemeImport.darkAlgorithm,
-      }),
-    );
-  });
 
-  it('should handle only settings', () => {
-    const fallbackTheme = {
-      token: {
-        colorBgBase: '#ffffff',
-        colorPrimary: '#1890ff',
-      },
-    };
+    const calledWith = mockSetConfig.mock.calls[0][0];
 
-    mockGetBootstrapData.mockReturnValue(
-      createMockBootstrapData({
-        default: {},
-        dark: {},
-        settings: { enforced: true },
-      }),
-    );
+    // Should use the default theme fallback (not dark) for initial load
+    expect(calledWith.colorBgBase).toBe('#fff');
+    expect(calledWith.colorTextBase).toBe('#000');
 
-    controller = new ThemeController({
-      themeObject: mockThemeObject,
-      defaultTheme: fallbackTheme,
-    });
+    // Should allow mode changes since dark theme exists
+    expect(controller.canSetMode()).toBe(true);
 
-    expect(controller.canSetTheme()).toBe(false);
+    // Should be able to switch to dark mode
+    jest.clearAllMocks();
+    controller.setThemeMode(ThemeMode.DARK);
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
-    expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        token: expect.objectContaining({
-          colorBgBase: '#ffffff',
-          colorPrimary: '#1890ff',
-        }),
-        algorithm: antdThemeImport.defaultAlgorithm,
-      }),
-    );
   });
 
   it('should handle completely empty BootstrapData', () => {
@@ -404,7 +354,6 @@ describe('ThemeController', () => {
       createMockBootstrapData({
         default: {},
         dark: {},
-        settings: {},
       }),
     );
 
@@ -461,42 +410,6 @@ describe('ThemeController', () => {
     );
   });
 
-  it('should allow theme switching if there is no bootstrap themes', () => {
-    const fallbackTheme = {
-      token: {
-        colorBgBase: '#ffffff',
-        colorPrimary: '#1890ff',
-      },
-    };
-
-    mockGetBootstrapData.mockReturnValue(
-      createMockBootstrapData({
-        default: {},
-        dark: {},
-        settings: {},
-      }),
-    );
-
-    controller = new ThemeController({
-      themeObject: mockThemeObject,
-      defaultTheme: fallbackTheme,
-    });
-
-    // Clear initialization calls
-    jest.clearAllMocks();
-
-    // Switch to dark mode
-    controller.setThemeMode(ThemeMode.DARK);
-
-    expect(mockSetConfig).toHaveBeenCalledTimes(1);
-    expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...fallbackTheme,
-        algorithm: antdThemeImport.darkAlgorithm,
-      }),
-    );
-  });
-
   describe('Theme Management', () => {
     beforeEach(() => {
       controller = new ThemeController({
@@ -519,29 +432,6 @@ describe('ThemeController', () => {
       );
     });
 
-    it('should throw error when theme updates are not allowed', () => {
-      mockGetBootstrapData.mockReturnValue(
-        createMockBootstrapData({
-          default: {},
-          dark: {},
-          settings: { enforced: true },
-        }),
-      );
-
-      controller = new ThemeController({
-        themeObject: mockThemeObject,
-      });
-
-      expect(() => {
-        controller.setTheme({
-          token: {
-            colorBgBase: '#000000',
-            colorPrimary: '#ff0000',
-          },
-        });
-      }).toThrow('User does not have permission to update the theme');
-    });
-
     it('should change theme mode when allowed', () => {
       // Clear initialization calls
       jest.clearAllMocks();
@@ -556,72 +446,11 @@ describe('ThemeController', () => {
       );
     });
 
-    it('should throw error when mode updates are not allowed but OS preference is', () => {
-      mockGetBootstrapData.mockReturnValue(
-        createMockBootstrapData({
-          default: DEFAULT_THEME,
-          dark: DARK_THEME,
-          settings: { allowSwitching: false },
-        }),
-      );
-
-      controller = new ThemeController({
-        themeObject: mockThemeObject,
-      });
-
-      expect(() => {
-        controller.setThemeMode(ThemeMode.DARK);
-      }).toThrow(
-        'Theme mode changes are not allowed when OS preference is enforced',
-      );
-    });
-
-    it('should throw error when mode updates and OS preference are not allowed', () => {
-      mockGetBootstrapData.mockReturnValue(
-        createMockBootstrapData({
-          default: DEFAULT_THEME,
-          dark: DARK_THEME,
-          settings: { allowOSPreference: false, allowSwitching: false },
-        }),
-      );
-
-      controller = new ThemeController({
-        themeObject: mockThemeObject,
-      });
-
-      expect(() => {
-        controller.setThemeMode(ThemeMode.DARK);
-      }).toThrow('User does not have permission to update the theme mode');
-    });
-
-    it('should throw error when system mode is not allowed', () => {
-      mockGetBootstrapData.mockReturnValue(
-        createMockBootstrapData({
-          default: DEFAULT_THEME,
-          dark: DARK_THEME,
-          settings: {
-            allowOSPreference: false,
-            allowSwitching: true,
-            enforced: false,
-          },
-        }),
-      );
-
-      controller = new ThemeController({
-        themeObject: mockThemeObject,
-      });
-
-      expect(() => {
-        controller.setThemeMode(ThemeMode.SYSTEM);
-      }).toThrow('System theme mode is not allowed');
-    });
-
     it('should handle missing theme gracefully', () => {
       mockGetBootstrapData.mockReturnValue(
         createMockBootstrapData({
           default: DEFAULT_THEME,
           dark: {},
-          settings: THEME_SETTINGS,
         }),
       );
 
@@ -629,9 +458,13 @@ describe('ThemeController', () => {
         themeObject: mockThemeObject,
       });
 
-      controller.setThemeMode(ThemeMode.DARK);
+      // Should throw when trying to set mode with only one theme
+      expect(() => controller.setThemeMode(ThemeMode.DARK)).toThrow(
+        'Theme mode changes are not allowed when only one theme is available',
+      );
 
-      expect(controller.getCurrentMode()).toBe(ThemeMode.DARK);
+      // Mode should remain unchanged
+      expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
       expect(consoleSpy).not.toHaveBeenCalled();
     });
 
@@ -752,7 +585,6 @@ describe('ThemeController', () => {
         createMockBootstrapData({
           default: {},
           dark: {},
-          settings: { allowOSPreference: false },
         }),
       );
 
@@ -870,7 +702,6 @@ describe('ThemeController', () => {
             algorithm: [ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT],
           },
           dark: DARK_THEME,
-          settings: THEME_SETTINGS,
         }),
       );
 
@@ -1046,6 +877,209 @@ describe('ThemeController', () => {
       expect(mockMediaQueryInstance.removeEventListener).toHaveBeenCalledWith(
         'change',
         expect.any(Function),
+      );
+    });
+  });
+
+  describe('setThemeConfig', () => {
+    beforeEach(() => {
+      mockGetBootstrapData.mockReturnValue(
+        createMockBootstrapData({
+          default: {},
+          dark: {},
+        }),
+      );
+
+      controller = new ThemeController({
+        themeObject: mockThemeObject,
+        defaultTheme: { token: {} },
+      });
+
+      jest.clearAllMocks();
+    });
+
+    it('should set complete theme configuration', () => {
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+        theme_dark: DARK_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      expect(mockSetConfig).toHaveBeenCalledTimes(1);
+      expect(mockSetConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining(DEFAULT_THEME.token),
+          algorithm: antdThemeImport.defaultAlgorithm,
+        }),
+      );
+
+      expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+      expect(controller.canSetTheme()).toBe(true);
+      expect(controller.canSetMode()).toBe(true);
+    });
+
+    it('should handle theme_default only', () => {
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      expect(mockSetConfig).toHaveBeenCalledTimes(1);
+      expect(mockSetConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining(DEFAULT_THEME.token),
+          algorithm: antdThemeImport.defaultAlgorithm,
+        }),
+      );
+
+      expect(controller.canSetTheme()).toBe(true);
+      expect(controller.canSetMode()).toBe(false);
+    });
+
+    it('should handle theme_default and theme_dark without settings', () => {
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+        theme_dark: DARK_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      expect(mockSetConfig).toHaveBeenCalledTimes(1);
+      expect(mockSetConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining(DEFAULT_THEME.token),
+        }),
+      );
+
+      jest.clearAllMocks();
+      controller.setThemeMode(ThemeMode.DARK);
+
+      expect(mockSetConfig).toHaveBeenCalledTimes(1);
+      expect(mockSetConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining(DARK_THEME.token),
+          algorithm: antdThemeImport.darkAlgorithm,
+        }),
+      );
+    });
+
+    it('should apply appropriate theme after configuration', () => {
+      jest.clearAllMocks();
+
+      const themeConfig = {
+        theme_default: {
+          token: {
+            colorPrimary: '#00ff00',
+          },
+        },
+        theme_dark: {
+          token: {
+            colorPrimary: '#ff0000',
+            colorBgBase: '#000000',
+          },
+          algorithm: 'dark',
+        },
+      };
+
+      controller.setThemeConfig(themeConfig as SupersetThemeConfig);
+
+      expect(mockSetConfig).toHaveBeenCalledTimes(1);
+      expect(mockSetConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining({
+            colorPrimary: '#00ff00',
+          }),
+          algorithm: antdThemeImport.defaultAlgorithm,
+        }),
+      );
+    });
+
+    it('should handle missing theme_dark gracefully', () => {
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      // Can't set dark mode when there's no dark theme
+      expect(controller.canSetMode()).toBe(false);
+    });
+
+    it('should preserve existing theme mode when possible', () => {
+      // First create controller with dark theme available
+      mockGetBootstrapData.mockReturnValue(
+        createMockBootstrapData({
+          default: DEFAULT_THEME,
+          dark: DARK_THEME,
+        }),
+      );
+
+      controller = new ThemeController({
+        themeObject: mockThemeObject,
+      });
+
+      controller.setThemeMode(ThemeMode.DARK);
+      const initialMode = controller.getCurrentMode();
+
+      jest.clearAllMocks();
+
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+        theme_dark: DARK_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      expect(controller.getCurrentMode()).toBe(initialMode);
+    });
+
+    it('should trigger onChange callbacks', () => {
+      const changeCallback = jest.fn();
+      controller.onChange(changeCallback);
+
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+        theme_dark: DARK_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      expect(changeCallback).toHaveBeenCalledTimes(1);
+      expect(changeCallback).toHaveBeenCalledWith(mockThemeObject);
+    });
+
+    it('should handle error in theme application', () => {
+      mockSetConfig.mockImplementationOnce(() => {
+        throw new Error('Theme application error');
+      });
+
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+      };
+
+      expect(() => {
+        controller.setThemeConfig(themeConfig);
+      }).not.toThrow();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to apply theme:',
+        expect.any(Error),
+      );
+    });
+
+    it('should update stored theme mode', () => {
+      const themeConfig = {
+        theme_default: DEFAULT_THEME,
+        theme_dark: DARK_THEME,
+      };
+
+      controller.setThemeConfig(themeConfig);
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'superset-theme-mode',
+        expect.any(String),
       );
     });
   });

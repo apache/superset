@@ -27,7 +27,9 @@ import {
   useEffect,
 } from 'react';
 
+import { ThemedAgGridReact } from '@superset-ui/core/components';
 import {
+  AgGridReact,
   AllCommunityModule,
   ClientSideRowModelModule,
   type ColDef,
@@ -36,11 +38,9 @@ import {
   GridState,
   CellClickedEvent,
   IMenuActionParams,
-  themeQuartz,
-} from 'ag-grid-community';
-import { AgGridReact } from 'ag-grid-react';
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { type FunctionComponent } from 'react';
-import { JsonObject, DataRecordValue, DataRecord } from '@superset-ui/core';
+import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -257,11 +257,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     return (
-      <div
-        className="ag-theme-quartz"
-        style={containerStyles}
-        ref={containerRef}
-      >
+      <div style={containerStyles} ref={containerRef}>
         <div className="dropdown-controls-container">
           {renderTimeComparisonDropdown && (
             <div className="time-comparison-dropdown">
@@ -301,10 +297,9 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           )}
         </div>
 
-        <AgGridReact
+        <ThemedAgGridReact
           ref={gridRef}
           onGridReady={onGridReady}
-          theme={themeQuartz}
           className="ag-container"
           rowData={rowData}
           headerHeight={36}
@@ -326,6 +321,79 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
           suppressDragLeaveHidesColumns
           pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
+          localeText={{
+            // Pagination controls
+            next: t('Next'),
+            previous: t('Previous'),
+            page: t('Page'),
+            more: t('More'),
+            to: t('to'),
+            of: t('of'),
+            first: t('First'),
+            last: t('Last'),
+            loadingOoo: t('Loading...'),
+            // Set Filter
+            selectAll: t('Select All'),
+            searchOoo: t('Search...'),
+            blanks: t('Blanks'),
+            // Filter operations
+            filterOoo: t('Filter'),
+            applyFilter: t('Apply Filter'),
+            equals: t('Equals'),
+            notEqual: t('Not Equal'),
+            lessThan: t('Less Than'),
+            greaterThan: t('Greater Than'),
+            lessThanOrEqual: t('Less Than or Equal'),
+            greaterThanOrEqual: t('Greater Than or Equal'),
+            inRange: t('In Range'),
+            contains: t('Contains'),
+            notContains: t('Not Contains'),
+            startsWith: t('Starts With'),
+            endsWith: t('Ends With'),
+            // Logical conditions
+            andCondition: t('AND'),
+            orCondition: t('OR'),
+            // Panel and group labels
+            group: t('Group'),
+            columns: t('Columns'),
+            filters: t('Filters'),
+            valueColumns: t('Value Columns'),
+            pivotMode: t('Pivot Mode'),
+            groups: t('Groups'),
+            values: t('Values'),
+            pivots: t('Pivots'),
+            toolPanelButton: t('Tool Panel'),
+            // Enterprise menu items
+            pinColumn: t('Pin Column'),
+            valueAggregation: t('Value Aggregation'),
+            autosizeThiscolumn: t('Autosize This Column'),
+            autosizeAllColumns: t('Autosize All Columns'),
+            groupBy: t('Group By'),
+            ungroupBy: t('Ungroup By'),
+            resetColumns: t('Reset Columns'),
+            expandAll: t('Expand All'),
+            collapseAll: t('Collapse All'),
+            toolPanel: t('Tool Panel'),
+            export: t('Export'),
+            csvExport: t('CSV Export'),
+            excelExport: t('Excel Export'),
+            excelXmlExport: t('Excel XML Export'),
+            // Aggregation functions
+            sum: t('Sum'),
+            min: t('Min'),
+            max: t('Max'),
+            none: t('None'),
+            count: t('Count'),
+            average: t('Average'),
+            // Standard menu items
+            copy: t('Copy'),
+            copyWithHeaders: t('Copy with Headers'),
+            paste: t('Paste'),
+            // Column menu and sorting
+            sortAscending: t('Sort Ascending'),
+            sortDescending: t('Sort Descending'),
+            sortUnSort: t('Clear Sort'),
+          }}
           context={{
             onColumnHeaderClicked: handleColumnHeaderClick,
             initialSortState: getInitialSortState(

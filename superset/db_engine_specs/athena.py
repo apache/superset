@@ -36,6 +36,8 @@ class AthenaEngineSpec(BaseEngineSpec):
     engine_name = "Amazon Athena"
     allows_escaped_colons = False
     disable_ssh_tunneling = True
+    # Athena doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
 
     _time_grain_expressions = {
         None: "{col}",

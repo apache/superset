@@ -294,7 +294,7 @@ const HighlightLabel = styled.div`
     border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
     border-radius: ${theme.borderRadius}px;
-    background: ${theme.colors.grayscale.light5};
+    background: ${theme.colorBgContainer};
     line-height: ${theme.sizeUnit * 2.5}px;
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
@@ -573,6 +573,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     // When you first click on the search bar, the input is focused and nothing else happens.
     // Once you begin typing, the selected category is cleared and the displayed viz entries change.
     setIsSearchFocused(true);
+  }, []);
+
+  // Auto-focus the search input when the modal opens
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   }, []);
 
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(

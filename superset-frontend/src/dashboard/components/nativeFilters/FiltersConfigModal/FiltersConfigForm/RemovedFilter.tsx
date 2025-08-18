@@ -27,7 +27,7 @@ const RemovedContent = styled.div`
   text-align: center;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 type RemovedFilterProps = {
@@ -43,7 +43,7 @@ const RemovedFilter: FC<RemovedFilterProps> = ({ onClick }) => (
         buttonStyle="primary"
         onClick={onClick}
       >
-        {t('Restore Filter')}
+        {t('Restore filter')}
       </Button>
     </div>
   </RemovedContent>

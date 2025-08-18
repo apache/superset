@@ -89,6 +89,7 @@ from superset.dashboards.schemas import (
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
+    DashboardScreenshotPostSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -190,6 +191,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "id",
+        "uuid",
         "published",
         "status",
         "slug",
@@ -239,6 +241,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "position_json",
         "css",
+        "theme_id",
         "json_metadata",
         "published",
     ]
@@ -249,6 +252,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "dashboard_title",
         "id",
+        "uuid",
         "owners",
         "published",
         "roles",
@@ -311,6 +315,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
+        DashboardScreenshotPostSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

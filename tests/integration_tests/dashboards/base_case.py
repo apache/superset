@@ -16,9 +16,9 @@
 # under the License.
 
 import prison
-from flask import Response
+from flask import current_app, Response
 
-from superset import app, security_manager
+from superset import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.dashboards.consts import *  # noqa: F403
 from tests.integration_tests.dashboards.dashboard_test_utils import (
@@ -78,5 +78,5 @@ class DashboardTestCase(SupersetTestCase):
         assert view_menu is None
 
     def clean_created_objects(self):
-        with app.test_request_context():
+        with current_app.test_request_context():
             delete_all_inserted_objects()

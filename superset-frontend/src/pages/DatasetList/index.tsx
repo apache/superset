@@ -82,6 +82,7 @@ const DatasetDeleteRelatedExtension = extensionsRegistry.get(
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   svg {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
@@ -90,7 +91,7 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIcon};
 
     .disabled {
       svg,
@@ -101,12 +102,12 @@ const Actions = styled.div`
           }
         }
       }
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
       .ant-menu-item:hover {
         cursor: default;
       }
       &::after {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextDisabled};
       }
     }
   `}
@@ -347,6 +348,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxl',
         id: 'table_name',
       },
       {
@@ -358,13 +360,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'md',
+        size: 'sm',
         id: 'kind',
       },
       {
         Header: t('Database'),
         accessor: 'database.database_name',
-        size: 'lg',
+        size: 'xl',
         id: 'database.database_name',
       },
       {
@@ -634,28 +636,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr: Array<ButtonProps> = [];
 
-  if (canDelete || canExport) {
-    buttonArr.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-    });
-  }
-
   if (canCreate) {
-    buttonArr.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dataset')}
-        </>
-      ),
-      onClick: () => {
-        history.push('/dataset/add/');
-      },
-      buttonStyle: 'primary',
-    });
-
     buttonArr.push({
       name: (
         <Tooltip
@@ -672,6 +653,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ),
       buttonStyle: 'link',
       onClick: openDatasetImportModal,
+    });
+  }
+
+  if (canDelete || canExport) {
+    buttonArr.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  if (canCreate) {
+    buttonArr.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dataset'),
+      onClick: () => {
+        history.push('/dataset/add/');
+      },
+      buttonStyle: 'primary',
     });
   }
 
