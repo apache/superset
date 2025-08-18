@@ -38,7 +38,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
 )
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import CacheRegion, TimeGrain
+from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion, TimeGrain
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -131,7 +131,7 @@ class QueryContextProcessor:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
-        force_query = self._query_context.force or timeout == -1
+        force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
         cache = QueryCacheManager.get(
             key=cache_key,
             region=CacheRegion.DATA,
