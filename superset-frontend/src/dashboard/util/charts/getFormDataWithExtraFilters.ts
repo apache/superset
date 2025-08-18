@@ -371,14 +371,26 @@ function processGroupByCustomizations(
       chartType?.startsWith('echarts_timeseries') ||
       chartType?.startsWith('echarts_area')
     ) {
-      if (groupByColumns.length > 1) {
-        console.warn(
-          `Time series charts only support one x-axis dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+      if (xAxisColumn) {
+        const nonConflictingGroupByColumns = groupByColumns.filter(
+          columnName => columnName !== xAxisColumn,
         );
+
+        if (nonConflictingGroupByColumns.length > 0) {
+          groupByFormData.groupby = nonConflictingGroupByColumns;
+        } else {
+          groupByFormData.groupby = existingGroupBy;
+        }
+      } else {
+        if (groupByColumns.length > 1) {
+          console.warn(
+            `Time series charts only support one x-axis dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+          );
+        }
+        const newXAxis = groupByColumns[0];
+        groupByFormData.x_axis = newXAxis;
+        groupByFormData.groupby = [];
       }
-      const newXAxis = groupByColumns[0];
-      groupByFormData.x_axis = newXAxis;
-      groupByFormData.groupby = [];
     } else if (chartType === 'word_cloud') {
       if (groupByColumns.length > 1) {
         console.warn(
