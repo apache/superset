@@ -202,7 +202,7 @@ const Header = () => {
       refreshFrequency: state.dashboardState.refreshFrequency,
       shouldPersistRefreshFrequency:
         !!state.dashboardState.shouldPersistRefreshFrequency,
-      customCss: state.dashboardState.css,
+      customCss: state.dashboardInfo.css,
       colorNamespace: state.dashboardState.colorNamespace,
       colorScheme: state.dashboardState.colorScheme,
       isStarred: !!state.dashboardState.isStarred,
@@ -324,6 +324,13 @@ const Header = () => {
   useEffect(() => {
     startPeriodicRender(refreshFrequency * 1000);
   }, [refreshFrequency, startPeriodicRender]);
+
+  // Ensure theme changes are tracked as unsaved changes
+  useEffect(() => {
+    if (editMode && dashboardInfo.theme !== undefined) {
+      boundActionCreators.setUnsavedChanges(true);
+    }
+  }, [dashboardInfo.theme, editMode, boundActionCreators]);
 
   useEffect(() => {
     if (UNDO_LIMIT - undoLength <= 0 && !didNotifyMaxUndoHistoryToast) {

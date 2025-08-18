@@ -180,11 +180,6 @@ export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };
 }
 
-export const UPDATE_CSS = 'UPDATE_CSS';
-export function updateCss(css) {
-  return { type: UPDATE_CSS, css };
-}
-
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';
 export function setEditMode(editMode) {
   return { type: SET_EDIT_MODE, editMode };

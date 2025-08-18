@@ -381,9 +381,15 @@ const PropertiesModal = ({
     if (onlyApply) {
       setIsApplying(true);
       try {
+        console.log('Apply CSS debug:', {
+          css_being_sent: customCss,
+          onSubmitProps_css: onSubmitProps.css,
+        });
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('Dashboard properties updated'));
+      } catch (error) {
+        console.error('Apply failed:', error);
       } finally {
         setIsApplying(false);
       }
