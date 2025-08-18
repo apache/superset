@@ -38,6 +38,32 @@ from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
+def create_expected_superset_error(
+    message: str,
+    error_type: SupersetErrorType = SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+    engine_name: str | None = None,
+) -> SupersetError:
+    """
+    Helper function to create expected SupersetError objects for testing.
+    """
+    extra = {
+        "engine_name": engine_name,
+        "issue_codes": [
+            {
+                "code": 1002,
+                "message": "Issue 1002 - The database returned an unexpected error.",
+            }
+        ],
+    }
+
+    return SupersetError(
+        message=message,
+        error_type=error_type,
+        level=ErrorLevel.ERROR,
+        extra=extra,
+    )
+
+
 def test_get_text_clause_with_colon() -> None:
     """
     Make sure text clauses are correctly escaped
@@ -558,22 +584,11 @@ def test_extract_errors(mocker: MockerFixture) -> None:
     msg = "This connector does not support roles"
     result = BaseEngineSpec.extract_errors(Exception(msg))
 
-    assert result == [
-        SupersetError(
-            message="This connector does not support roles",
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "engine_name": None,
-                "issue_codes": [
-                    {
-                        "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
-                    }
-                ],
-            },
-        )
-    ]
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name=None,
+    )
+    assert result == [expected]
 
 
 def test_extract_errors_from_config(mocker: MockerFixture) -> None:
@@ -602,22 +617,11 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
     BaseEngineSpec.engine_name = "trino"
     result = BaseEngineSpec.extract_errors(Exception(msg))
 
-    assert result == [
-        SupersetError(
-            message="Custom error message",
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "engine_name": "trino",
-                "issue_codes": [
-                    {
-                        "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
-                    }
-                ],
-            },
-        )
-    ]
+    expected = create_expected_superset_error(
+        message="Custom error message",
+        engine_name="trino",
+    )
+    assert result == [expected]
 
 
 def test_extract_errors_only_to_specified_engine(mocker: MockerFixture) -> None:
@@ -646,22 +650,11 @@ def test_extract_errors_only_to_specified_engine(mocker: MockerFixture) -> None:
     BaseEngineSpec.engine_name = "mysql"
     result = BaseEngineSpec.extract_errors(Exception(msg))
 
-    assert result == [
-        SupersetError(
-            message="This connector does not support roles",
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "engine_name": "mysql",
-                "issue_codes": [
-                    {
-                        "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
-                    }
-                ],
-            },
-        )
-    ]
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="mysql",
+    )
+    assert result == [expected]
 
 
 def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
@@ -746,22 +739,12 @@ def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
     msg = "This connector does not support roles"
     BaseEngineSpec.engine_name = "trino"
     result = BaseEngineSpec.extract_errors(Exception(msg))
-    assert result == [
-        SupersetError(
-            message="This connector does not support roles",
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "engine_name": "trino",
-                "issue_codes": [
-                    {
-                        "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
-                    }
-                ],
-            },
-        )
-    ]
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="trino",
+    )
+    assert result == [expected]
 
 
 def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture):
@@ -779,19 +762,9 @@ def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture
     msg = "This connector does not support roles"
     BaseEngineSpec.engine_name = "trino"
     result = BaseEngineSpec.extract_errors(Exception(msg))
-    assert result == [
-        SupersetError(
-            message="This connector does not support roles",
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "engine_name": "trino",
-                "issue_codes": [
-                    {
-                        "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
-                    }
-                ],
-            },
-        )
-    ]
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="trino",
+    )
+    assert result == [expected]
