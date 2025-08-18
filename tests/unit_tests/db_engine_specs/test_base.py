@@ -729,3 +729,36 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
             },
         )
     ]
+
+
+def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
+    """
+    Test that extract_errors doesn't fail when custom database errors
+    are in wrong format.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"CUSTOM_DATABASE_ERRORS": "not a dict"},
+    )
+
+    msg = "This connector does not support roles"
+    BaseEngineSpec.engine_name = "trino"
+    result = BaseEngineSpec.extract_errors(Exception(msg))
+    assert result == [
+        SupersetError(
+            message="This connector does not support roles",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "engine_name": "trino",
+                "issue_codes": [
+                    {
+                        "code": 1002,
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
+                    }
+                ],
+            },
+        )
+    ]

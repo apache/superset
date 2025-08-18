@@ -1335,8 +1335,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         context = context or {}
 
         config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
+        if not isinstance(config_custom_errors, dict):
+            config_custom_errors = {}
         db_engine_custom_errors = config_custom_errors.get(cls.engine_name, {})
-
         if not isinstance(db_engine_custom_errors, dict):
             db_engine_custom_errors = {}
 
