@@ -726,6 +726,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               title={props.errorMessage}
             >
               <Icons.CloseCircleOutlined
+                data-test="query-error-tooltip-trigger"
                 iconColor={theme.colorErrorText}
                 iconSize="s"
               />

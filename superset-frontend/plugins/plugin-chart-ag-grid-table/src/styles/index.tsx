@@ -342,8 +342,15 @@ export const StyledChartContainer = styled.div<{
       height: fit-content;
     }
 
-    .ag-header,
-    .ag-row,
+    .ag-header {
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightStrong};
+    }
+
+    .ag-row {
+      font-size: ${theme.fontSizeSM}px;
+    }
+
     .ag-spanned-row {
       font-size: ${theme.fontSizeSM}px;
       font-weight: ${theme.fontWeightStrong};

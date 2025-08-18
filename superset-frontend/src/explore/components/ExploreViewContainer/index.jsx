@@ -636,7 +636,11 @@ function ExploreViewContainer(props) {
       .map(message => {
         const matchingLabels = controlsWithErrors
           .filter(control => control.validationErrors?.includes(message))
-          .map(control => control.label);
+          .map(control =>
+            typeof control.label === 'function'
+              ? control.label(props.exploreState)
+              : control.label,
+          );
         return [matchingLabels, message];
       })
       .map(([labels, message]) => (
