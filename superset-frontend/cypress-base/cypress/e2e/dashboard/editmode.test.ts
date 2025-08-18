@@ -169,10 +169,13 @@ function selectColorScheme(
     cy.contains('Styling').scrollIntoView();
     cy.contains('Styling')
       .closest('.ant-collapse-header')
+      .should('have.attr', 'aria-expanded', 'false') // Ensure it's collapsed first
       .click({ force: true });
 
-    // Wait for animation to complete
-    cy.wait(300);
+    // Wait for animation and check that section expanded
+    cy.contains('Styling')
+      .closest('.ant-collapse-header')
+      .should('have.attr', 'aria-expanded', 'true');
 
     // Ensure the color scheme input is visible before proceeding
     cy.get('input[aria-label="Select color scheme"]').should('be.visible');
@@ -1104,12 +1107,10 @@ describe('Dashboard edit', () => {
 
     beforeEach(() => {
       cy.createSampleDashboards([0]);
-      openProperties();
-      selectColorScheme('supersetColors');
-      applyChanges(); // Save and close the modal
     });
 
     it('should accept a valid color scheme', () => {
+      openProperties(); // Need to open modal first
       openAdvancedProperties();
       clearMetadata();
       writeMetadata('{"color_scheme":"lyftColors"}');
@@ -1121,6 +1122,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should overwrite the color scheme when advanced is closed', () => {
+      openProperties(); // Need to open modal first
       selectColorScheme('blueToGreen');
       openAdvancedProperties();
       assertMetadata('blueToGreen');
@@ -1128,6 +1130,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should overwrite the color scheme when advanced is open', () => {
+      openProperties(); // Need to open modal first
       openAdvancedProperties();
       selectColorScheme('modernSunset');
       assertMetadata('modernSunset');
@@ -1150,6 +1153,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should edit the title', () => {
+      openProperties(); // Need to open modal first
       // Ensure title input is visible in the modal
       cy.getBySel('dashboard-title-input').scrollIntoView();
       cy.getBySel('dashboard-title-input').clear();
