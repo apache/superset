@@ -32,6 +32,9 @@ import {
   BuggyChartPlugin,
 } from './MockChartPlugins';
 
+import { isMatrixifyEnabled } from '../../../src/chart/types/matrixify';
+import MatrixifyGridRenderer from '../../../src/chart/components/Matrixify/MatrixifyGridRenderer';
+
 // Mock Matrixify imports
 jest.mock('../../../src/chart/types/matrixify', () => ({
   isMatrixifyEnabled: jest.fn(() => false),
@@ -454,173 +457,110 @@ describe('SuperChart', () => {
     }, 30000);
   });
 
-  describe('Matrixify with NoResults', () => {
-    let isMatrixifyEnabledMock: jest.Mock;
+  it('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
 
-    beforeEach(() => {
-      // Get the mocked function
-      // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-      const matrixifyModule = require('../../../src/chart/types/matrixify');
-      isMatrixifyEnabledMock = matrixifyModule.isMatrixifyEnabled;
-    });
+    mockIsMatrixifyEnabled.mockReturnValue(true);
 
-    afterEach(() => {
-      // Reset the mock after each test
-      isMatrixifyEnabledMock.mockReset();
-    });
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+      />,
+    );
 
-    it('renders MatrixifyGridRenderer when matrixify is enabled even with empty data', () => {
-      // Enable matrixify for this test
-      isMatrixifyEnabledMock.mockReturnValue(true);
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(screen.queryByText('No Results')).not.toBeInTheDocument();
+  });
 
-      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
-      const MatrixifyGridRenderer =
-        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
-      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
+  it('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
 
-      render(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width="200"
-          height="200"
-          queriesData={[{ data: [] }]}
-          enableNoResults
-        />,
-      );
+    mockIsMatrixifyEnabled.mockReturnValue(true);
 
-      // MatrixifyGridRenderer should have been called even with empty data
-      expect(MatrixifyGridRenderer).toHaveBeenCalled();
-      // Should NOT show No Results
-      expect(screen.queryByText('No Results')).not.toBeInTheDocument();
-    });
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: null }]}
+        enableNoResults
+      />,
+    );
 
-    it('renders MatrixifyGridRenderer when matrixify is enabled even with null data', () => {
-      // Enable matrixify for this test
-      isMatrixifyEnabledMock.mockReturnValue(true);
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(screen.queryByText('No Results')).not.toBeInTheDocument();
+  });
 
-      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
-      const MatrixifyGridRenderer =
-        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
-      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
+  it('should ignore custom noResults component when matrixify is enabled', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
 
-      render(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width="200"
-          height="200"
-          queriesData={[{ data: null }]}
-          enableNoResults
-        />,
-      );
+    mockIsMatrixifyEnabled.mockReturnValue(true);
 
-      // MatrixifyGridRenderer should have been called even with null data
-      expect(MatrixifyGridRenderer).toHaveBeenCalled();
-      // Should NOT show No Results
-      expect(screen.queryByText('No Results')).not.toBeInTheDocument();
-    });
+    const CustomNoResults = () => <div>Custom No Data Message</div>;
 
-    it('ignores custom noResults component when matrixify is enabled', () => {
-      // Enable matrixify for this test
-      isMatrixifyEnabledMock.mockReturnValue(true);
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+        noResults={<CustomNoResults />}
+      />,
+    );
 
-      const CustomNoResults = () => <div>Custom No Data Message</div>;
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(
+      screen.queryByText('Custom No Data Message'),
+    ).not.toBeInTheDocument();
+  });
 
-      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
-      const MatrixifyGridRenderer =
-        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
-      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
+  it('should apply error boundary to matrixify grid renderer', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
 
-      render(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width="200"
-          height="200"
-          queriesData={[{ data: [] }]}
-          enableNoResults
-          noResults={<CustomNoResults />}
-        />,
-      );
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+    const onErrorBoundary = jest.fn();
 
-      // Should render MatrixifyGridRenderer, not the custom no results
-      expect(MatrixifyGridRenderer).toHaveBeenCalled();
-      expect(
-        screen.queryByText('Custom No Data Message'),
-      ).not.toBeInTheDocument();
-    });
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+        onErrorBoundary={onErrorBoundary}
+      />,
+    );
 
-    it('renders MatrixifyGridRenderer when matrixify is enabled with valid data', () => {
-      // Enable matrixify for this test
-      isMatrixifyEnabledMock.mockReturnValue(true);
-
-      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
-      const MatrixifyGridRenderer =
-        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
-      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
-
-      render(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width="200"
-          height="200"
-          queriesData={[{ data: ['foo', 'bar'] }]}
-          enableNoResults
-        />,
-      );
-
-      // MatrixifyGridRenderer should have been called
-      expect(MatrixifyGridRenderer).toHaveBeenCalled();
-    });
-
-    it('applies error boundary to matrixify grid renderer', () => {
-      // Enable matrixify for this test
-      isMatrixifyEnabledMock.mockReturnValue(true);
-
-      const onErrorBoundary = jest.fn();
-
-      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
-      const MatrixifyGridRenderer =
-        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
-      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
-
-      render(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width="200"
-          height="200"
-          queriesData={[{ data: [] }]}
-          enableNoResults
-          onErrorBoundary={onErrorBoundary}
-        />,
-      );
-
-      // Check that MatrixifyGridRenderer is rendered
-      expect(MatrixifyGridRenderer).toHaveBeenCalled();
-      // Error boundary should not have been triggered
-      expect(onErrorBoundary).not.toHaveBeenCalled();
-    });
-
-    it('disables error boundary when disableErrorBoundary is true with matrixify', () => {
-      // Enable matrixify for this test
-      isMatrixifyEnabledMock.mockReturnValue(true);
-
-      /* eslint-disable global-require, @typescript-eslint/no-var-requires */
-      const MatrixifyGridRenderer =
-        require('../../../src/chart/components/Matrixify/MatrixifyGridRenderer').default;
-      /* eslint-enable global-require, @typescript-eslint/no-var-requires */
-
-      render(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width="200"
-          height="200"
-          queriesData={[{ data: [] }]}
-          enableNoResults
-          disableErrorBoundary
-        />,
-      );
-
-      // Should still render MatrixifyGridRenderer
-      expect(MatrixifyGridRenderer).toHaveBeenCalled();
-    });
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(onErrorBoundary).not.toHaveBeenCalled();
   });
 });

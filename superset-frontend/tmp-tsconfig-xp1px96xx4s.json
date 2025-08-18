@@ -1,0 +1,71 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@superset-ui/core": [
+        "./packages/superset-ui-core/src"
+      ],
+      "@superset-ui/core/*": [
+        "./packages/superset-ui-core/src/*"
+      ],
+      "@superset-ui/chart-controls": [
+        "./packages/superset-ui-chart-controls/src"
+      ],
+      "@superset-ui/legacy-plugin-chart-*": [
+        "./plugins/legacy-plugin-chart-*/src"
+      ],
+      "@superset-ui/legacy-preset-chart-*": [
+        "./plugins/legacy-preset-chart-*/src"
+      ],
+      "@superset-ui/plugin-chart-*": [
+        "./plugins/plugin-chart-*/src"
+      ],
+      "@superset-ui/preset-chart-*": [
+        "./plugins/preset-chart-*/src"
+      ],
+      "@superset-ui/switchboard": [
+        "./packages/superset-ui-switchboard/src"
+      ]
+    },
+    "typeRoots": [
+      "src/types",
+      "node_modules/@types"
+    ]
+  },
+  "exclude": [
+    "./packages/generator-superset/test/**/*"
+  ],
+  "files": [
+    "packages/superset-ui-core/test/chart/components/SuperChart.test.tsx",
+    "packages/generator-superset/generators/plugin-chart/templates/types/external.d.ts",
+    "packages/superset-ui-chart-controls/src/ace-builds.d.ts",
+    "packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/type-icons/svgType.d.ts",
+    "packages/superset-ui-core/src/types/react-syntax-highlighter.d.ts",
+    "packages/superset-ui-core/types/ace-builds.d.ts",
+    "packages/superset-ui-core/types/assets.d.ts",
+    "packages/superset-ui-core/types/brace.d.ts",
+    "packages/superset-ui-core/types/external.d.ts",
+    "packages/superset-ui-core/types/react-table-config.d.ts",
+    "packages/superset-ui-core/types/resize-observer-polyfill.d.ts",
+    "plugins/legacy-plugin-chart-country-map/src/geojson.d.ts",
+    "plugins/legacy-plugin-chart-parallel-coordinates/types/d3-parcoords.d.ts",
+    "plugins/legacy-plugin-chart-parallel-coordinates/types/d3.d.ts",
+    "plugins/legacy-preset-chart-deckgl/types/external.d.ts",
+    "plugins/plugin-chart-ag-grid-table/types/external.d.ts",
+    "plugins/plugin-chart-cartodiagram/types/external.d.ts",
+    "plugins/plugin-chart-echarts/types/external.d.ts",
+    "plugins/plugin-chart-handlebars/types/external.d.ts",
+    "plugins/plugin-chart-pivot-table/types/external.d.ts",
+    "plugins/plugin-chart-table/src/DataTable/types/react-table.d.ts",
+    "plugins/plugin-chart-table/types/external.d.ts",
+    "plugins/plugin-chart-word-cloud/types/external.d.ts",
+    "src/globals.d.ts",
+    "src/types/brace.d.ts",
+    "src/types/dom-to-image-more.d.ts",
+    "src/types/dom-to-pdf.d.ts",
+    "src/types/files.d.ts",
+    "src/types/react-lines-ellipsis.d.ts",
+    "src/visualizations/TimeTable/types.d.ts"
+  ]
+}
