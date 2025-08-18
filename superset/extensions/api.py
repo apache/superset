@@ -90,7 +90,12 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             extension_data = build_extension_data(extension)
             result.append(extension_data)
 
-        return self.response(200, result=result)
+        response = {
+            "result": result,
+            "count": len(result),
+        }
+
+        return self.response(200, **response)
 
     @protect()
     @safe

@@ -19,11 +19,7 @@
 import { useTheme, css, t } from '@superset-ui/core';
 import { FunctionComponent, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import {
-  ListView,
-  ListViewFilterOperator as FilterOperator,
-  type ListViewFilters,
-} from 'src/components';
+import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonModal } from 'src/components/JsonModal';
@@ -99,19 +95,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     [loading], // We need to monitor loading to avoid stale state in actions
   );
 
-  const filterTypes: ListViewFilters = useMemo(
-    () => [
-      {
-        Header: t('Name'),
-        key: 'search',
-        id: 'name',
-        input: 'search',
-        operator: FilterOperator.Contains,
-      },
-    ],
-    [],
-  );
-
   const menuData: SubMenuProps = {
     activeChild: 'Extensions',
     name: t('Extensions'),
@@ -128,7 +111,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         initialSort={[{ id: 'name', desc: false }]}
         pageSize={PAGE_SIZE}
         fetchData={fetchData}
-        filters={filterTypes}
         loading={loading}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
