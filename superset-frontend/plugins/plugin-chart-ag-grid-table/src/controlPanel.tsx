@@ -722,6 +722,8 @@ const config: ControlPanelConfig = {
                           label: Array.isArray(verboseMap)
                             ? colname
                             : (verboseMap[colname] ?? colname),
+                          dataType:
+                            colnames && coltypes[colnames?.indexOf(colname)],
                         }))
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value
