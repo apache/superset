@@ -82,7 +82,7 @@ export const FilterItem = styled.button`
     background: none;
     outline: none;
     width: 100%;
-    color: ${theme.colors.grayscale.light5};
+    color: inherit;
 
     &::-moz-focus-inner {
       border: 0;
