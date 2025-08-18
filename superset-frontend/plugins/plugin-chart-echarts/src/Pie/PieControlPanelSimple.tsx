@@ -18,12 +18,21 @@
  */
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
-import { ColorSchemeControl } from '@superset-ui/chart-controls';
+import {
+  ColorSchemeControl,
+  D3_FORMAT_OPTIONS,
+  D3_TIME_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
+} from '@superset-ui/chart-controls';
 import { DndColumnSelect } from '../../../../src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
 import { DndMetricSelect } from '../../../../src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
+import { DndFilterSelect } from '../../../../src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import TextControl from '../../../../src/explore/components/controls/TextControl';
 import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
 import SliderControl from '../../../../src/explore/components/controls/SliderControl';
+import SelectControl from '../../../../src/explore/components/controls/SelectControl';
+import CurrencyControl from '../../../../src/explore/components/controls/CurrencyControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
 import Control from '../../../../src/explore/components/Control';
 
@@ -84,7 +93,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
       <div style={{ marginBottom: 24 }}>
         <h4>{t('Query')}</h4>
 
-        {/* Group by - NO DOUBLE HEADER */}
+        {/* Group by */}
         <div style={{ marginBottom: 16 }}>
           <ControlHeader
             label={t('Group by')}
@@ -97,7 +106,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               onChange={handleChange('groupby')}
               options={safeColumns}
               name="groupby"
-              label="" // Remove the duplicate label
+              label=""
               multi
               canDelete
               ghostButtonText={t('Add dimension')}
@@ -111,7 +120,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
           )}
         </div>
 
-        {/* Metric - NO DOUBLE HEADER */}
+        {/* Metric */}
         <div style={{ marginBottom: 16 }}>
           <ControlHeader
             label={t('Metric')}
@@ -124,12 +133,39 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               onChange={handleChange('metric')}
               datasource={safeDataSource}
               name="metric"
-              label="" // Remove the duplicate label
+              label=""
               multi={false}
               savedMetrics={safeMetrics}
             />
           ) : (
             <div style={{ padding: '10px' }}>{t('No metrics available.')}</div>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div style={{ marginBottom: 16 }}>
+          <ControlHeader
+            label={t('Filters')}
+            description={t('Filters to apply to the data')}
+            hovered
+          />
+          {safeDataSource && safeColumns.length > 0 ? (
+            <DndFilterSelect
+              value={formValues.adhoc_filters || []}
+              onChange={handleChange('adhoc_filters')}
+              datasource={safeDataSource}
+              columns={safeColumns}
+              formData={formValues}
+              name="adhoc_filters"
+              savedMetrics={safeMetrics}
+              selectedMetrics={formValues.metric ? [formValues.metric] : []}
+              type="DndFilterSelect"
+              actions={actions}
+            />
+          ) : (
+            <div style={{ padding: '10px' }}>
+              {t('No columns available for filtering.')}
+            </div>
           )}
         </div>
 
@@ -145,7 +181,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
               value={formValues.row_limit}
               onChange={handleChange('row_limit')}
               isInt
-              placeholder="10000"
+              placeholder="100"
               controlId="row_limit"
             />
           </div>
@@ -189,11 +225,222 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
           })()}
         </div>
 
+        {/* Percentage threshold */}
+        <div style={{ marginBottom: 16 }}>
+          <ControlHeader
+            label={t('Percentage threshold')}
+            description={t(
+              'Minimum threshold in percentage points for showing labels.',
+            )}
+            renderTrigger
+            hovered
+          />
+          <TextControl
+            value={formValues.show_labels_threshold ?? 5}
+            onChange={handleChange('show_labels_threshold')}
+            isFloat
+            placeholder="5"
+            controlId="show_labels_threshold"
+          />
+        </div>
+
+        {/* Threshold for Other */}
+        <div style={{ marginBottom: 16 }}>
+          <ControlHeader
+            label={t('Threshold for Other')}
+            description={t(
+              'Values less than this percentage will be grouped into the Other category.',
+            )}
+            renderTrigger
+            hovered
+          />
+          <TextControl
+            value={formValues.threshold_for_other ?? 0}
+            onChange={handleChange('threshold_for_other')}
+            isFloat
+            placeholder="0"
+            controlId="threshold_for_other"
+          />
+        </div>
+
+        {/* Rose Type (Nightingale chart) */}
+        <div style={{ marginBottom: 16 }}>
+          <SelectControl
+            label={t('Rose Type')}
+            description={t('Whether to show as Nightingale chart.')}
+            value={formValues.roseType || null}
+            onChange={handleChange('roseType')}
+            choices={[
+              ['area', t('Area')],
+              ['radius', t('Radius')],
+              [null, t('None')],
+            ]}
+            clearable={false}
+            renderTrigger
+            hovered
+          />
+        </div>
+
+        {/* Show Legend checkbox */}
+        <div style={{ marginBottom: 16 }}>
+          <CheckboxControl
+            label={t('Show Legend')}
+            description={t('Whether to display a legend for the chart')}
+            value={formValues.show_legend ?? true}
+            onChange={handleChange('show_legend')}
+            renderTrigger
+            hovered
+          />
+        </div>
+      </div>
+
+      {/* Labels Section */}
+      <div style={{ marginBottom: 24 }}>
+        <h4>{t('Labels')}</h4>
+
+        {/* Label Type */}
+        <div style={{ marginBottom: 16 }}>
+          <SelectControl
+            label={t('Label Type')}
+            description={t('What should be shown on the label?')}
+            value={formValues.label_type || 'key'}
+            onChange={handleChange('label_type')}
+            choices={[
+              ['key', t('Category Name')],
+              ['value', t('Value')],
+              ['percent', t('Percentage')],
+              ['key_value', t('Category and Value')],
+              ['key_percent', t('Category and Percentage')],
+              ['key_value_percent', t('Category, Value and Percentage')],
+              ['value_percent', t('Value and Percentage')],
+              ['template', t('Template')],
+            ]}
+            clearable={false}
+            renderTrigger
+            hovered
+          />
+        </div>
+
+        {/* Label Template - CONDITIONAL */}
+        {formValues.label_type === 'template' && (
+          <div style={{ marginBottom: 16 }}>
+            <ControlHeader
+              label={t('Label Template')}
+              description={t(
+                'Format data labels. Use variables: {name}, {value}, {percent}. \\n represents a new line. ECharts compatibility: {a} (series), {b} (name), {c} (value), {d} (percentage)',
+              )}
+              renderTrigger
+              hovered
+            />
+            <TextControl
+              value={formValues.label_template || ''}
+              onChange={handleChange('label_template')}
+              placeholder="{name}: {value}"
+              controlId="label_template"
+            />
+          </div>
+        )}
+
+        {/* Number format */}
+        <div style={{ marginBottom: 16 }}>
+          <SelectControl
+            label={t('Number format')}
+            description={`${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`}
+            value={formValues.number_format || 'SMART_NUMBER'}
+            onChange={handleChange('number_format')}
+            choices={D3_FORMAT_OPTIONS}
+            freeForm
+            renderTrigger
+            hovered
+          />
+        </div>
+
+        {/* Currency format */}
+        <div style={{ marginBottom: 16 }}>
+          <CurrencyControl
+            value={formValues.currency_format}
+            onChange={handleChange('currency_format')}
+          />
+        </div>
+
+        {/* Date format */}
+        <div style={{ marginBottom: 16 }}>
+          <SelectControl
+            label={t('Date format')}
+            description={D3_FORMAT_DOCS}
+            value={formValues.date_format || 'smart_date'}
+            onChange={handleChange('date_format')}
+            choices={D3_TIME_FORMAT_OPTIONS}
+            freeForm
+            renderTrigger
+            hovered
+          />
+        </div>
+
+        {/* Show Labels checkbox */}
+        <div style={{ marginBottom: 16 }}>
+          <CheckboxControl
+            label={t('Show Labels')}
+            description={t('Whether to display the labels.')}
+            value={formValues.show_labels ?? true}
+            onChange={handleChange('show_labels')}
+            renderTrigger
+            hovered
+          />
+        </div>
+
+        {/* Put labels outside - CONDITIONAL */}
+        {formValues.show_labels && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <CheckboxControl
+                label={t('Put labels outside')}
+                description={t('Put the labels outside of the pie?')}
+                value={formValues.labels_outside ?? true}
+                onChange={handleChange('labels_outside')}
+                renderTrigger
+                hovered
+              />
+            </div>
+
+            {/* Label Line - CONDITIONAL */}
+            <div style={{ marginBottom: 16 }}>
+              <CheckboxControl
+                label={t('Label Line')}
+                description={t(
+                  'Draw line from Pie to label when labels outside?',
+                )}
+                value={formValues.label_line ?? false}
+                onChange={handleChange('label_line')}
+                renderTrigger
+                hovered
+              />
+            </div>
+          </>
+        )}
+
+        {/* Show Total */}
+        <div style={{ marginBottom: 16 }}>
+          <CheckboxControl
+            label={t('Show Total')}
+            description={t('Whether to display the aggregate count')}
+            value={formValues.show_total ?? false}
+            onChange={handleChange('show_total')}
+            renderTrigger
+            hovered
+          />
+        </div>
+      </div>
+
+      {/* Pie shape Section */}
+      <div style={{ marginBottom: 24 }}>
+        <h4>{t('Pie shape')}</h4>
+
         {/* Outer Radius Slider */}
         <div style={{ marginBottom: 16 }}>
           <ControlHeader
             label={t('Outer Radius')}
-            description={t('Outer edge of the pie/donut')}
+            description={t('Outer edge of Pie chart')}
             renderTrigger
             hovered
           />
@@ -232,44 +479,6 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
             />
           </div>
         )}
-
-        {/* Show Labels checkbox */}
-        <div style={{ marginBottom: 16 }}>
-          <CheckboxControl
-            label={t('Show Labels')}
-            description={t('Whether to display labels on the pie slices')}
-            value={formValues.show_labels ?? true}
-            onChange={handleChange('show_labels')}
-            renderTrigger
-            hovered
-          />
-        </div>
-
-        {/* Label Line checkbox - CONDITIONAL */}
-        {formValues.show_labels && (
-          <div style={{ marginBottom: 16 }}>
-            <CheckboxControl
-              label={t('Label Line')}
-              description={t('Draw a line from the label to the slice')}
-              value={formValues.label_line ?? false}
-              onChange={handleChange('label_line')}
-              renderTrigger
-              hovered
-            />
-          </div>
-        )}
-
-        {/* Show Legend checkbox */}
-        <div style={{ marginBottom: 16 }}>
-          <CheckboxControl
-            label={t('Show Legend')}
-            description={t('Whether to display a legend for the chart')}
-            value={formValues.show_legend ?? true}
-            onChange={handleChange('show_legend')}
-            renderTrigger
-            hovered
-          />
-        </div>
       </div>
     </div>
   );
@@ -297,6 +506,10 @@ const config = {
       default: null,
       label: t('Metric'),
     },
+    adhoc_filters: {
+      default: [],
+      label: t('Filters'),
+    },
     row_limit: {
       default: 100,
       label: t('Row limit'),
@@ -308,6 +521,66 @@ const config = {
     color_scheme: {
       default: 'supersetColors',
       label: t('Color scheme'),
+      renderTrigger: true,
+    },
+    show_labels_threshold: {
+      default: 5,
+      label: t('Percentage threshold'),
+      renderTrigger: true,
+    },
+    threshold_for_other: {
+      default: 0,
+      label: t('Threshold for Other'),
+      renderTrigger: true,
+    },
+    roseType: {
+      default: null,
+      label: t('Rose Type'),
+      renderTrigger: true,
+    },
+    label_type: {
+      default: 'key',
+      label: t('Label Type'),
+      renderTrigger: true,
+    },
+    label_template: {
+      default: '',
+      label: t('Label Template'),
+      renderTrigger: true,
+    },
+    number_format: {
+      default: 'SMART_NUMBER',
+      label: t('Number format'),
+      renderTrigger: true,
+    },
+    currency_format: {
+      default: undefined,
+      label: t('Currency format'),
+      renderTrigger: true,
+    },
+    date_format: {
+      default: 'smart_date',
+      label: t('Date format'),
+      renderTrigger: true,
+    },
+    show_labels: {
+      default: true,
+      label: t('Show labels'),
+      renderTrigger: true,
+    },
+    labels_outside: {
+      default: true,
+      label: t('Put labels outside'),
+      renderTrigger: true,
+    },
+    label_line: {
+      default: false,
+      label: t('Label Line'),
+      renderTrigger: true,
+    },
+    show_total: {
+      default: false,
+      label: t('Show Total'),
       renderTrigger: true,
     },
     outerRadius: {
@@ -323,16 +596,6 @@ const config = {
     innerRadius: {
       default: 30,
       label: t('Inner Radius'),
-      renderTrigger: true,
-    },
-    show_labels: {
-      default: true,
-      label: t('Show labels'),
-      renderTrigger: true,
-    },
-    label_line: {
-      default: false,
-      label: t('Label Line'),
       renderTrigger: true,
     },
     show_legend: {
