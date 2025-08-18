@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { t } from '@superset-ui/core';
+import { Tabs } from 'antd';
 import {
   ColorSchemeControl,
   D3_FORMAT_OPTIONS,
@@ -87,118 +88,122 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
   // Get form values
   const formValues = form_data || value || {};
 
-  return (
-    <div style={{ padding: '16px' }}>
-      {/* Query Section */}
-      <div style={{ marginBottom: 24 }}>
-        <h4>{t('Query')}</h4>
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('data');
 
-        {/* Group by */}
-        <div style={{ marginBottom: 16 }}>
-          <ControlHeader
-            label={t('Group by')}
-            description={t('Columns to group by')}
-            hovered
+  // Data tab content
+  const dataTabContent = (
+    <div>
+      {/* Group by */}
+      <div style={{ marginBottom: 16 }}>
+        <ControlHeader
+          label={t('Group by')}
+          description={t('Columns to group by')}
+          hovered
+        />
+        {safeColumns.length > 0 ? (
+          <DndColumnSelect
+            value={formValues.groupby || []}
+            onChange={handleChange('groupby')}
+            options={safeColumns}
+            name="groupby"
+            label=""
+            multi
+            canDelete
+            ghostButtonText={t('Add dimension')}
+            type="DndColumnSelect"
+            actions={actions}
           />
-          {safeColumns.length > 0 ? (
-            <DndColumnSelect
-              value={formValues.groupby || []}
-              onChange={handleChange('groupby')}
-              options={safeColumns}
-              name="groupby"
-              label=""
-              multi
-              canDelete
-              ghostButtonText={t('Add dimension')}
-              type="DndColumnSelect"
-              actions={actions}
-            />
-          ) : (
-            <div style={{ padding: '10px' }}>
-              {t('No columns available. Please select a dataset first.')}
-            </div>
-          )}
-        </div>
-
-        {/* Metric */}
-        <div style={{ marginBottom: 16 }}>
-          <ControlHeader
-            label={t('Metric')}
-            description={t('Metric to display')}
-            hovered
-          />
-          {safeDataSource && safeDataSource.columns ? (
-            <DndMetricSelect
-              value={formValues.metric}
-              onChange={handleChange('metric')}
-              datasource={safeDataSource}
-              name="metric"
-              label=""
-              multi={false}
-              savedMetrics={safeMetrics}
-            />
-          ) : (
-            <div style={{ padding: '10px' }}>{t('No metrics available.')}</div>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div style={{ marginBottom: 16 }}>
-          <ControlHeader
-            label={t('Filters')}
-            description={t('Filters to apply to the data')}
-            hovered
-          />
-          {safeDataSource && safeColumns.length > 0 ? (
-            <DndFilterSelect
-              value={formValues.adhoc_filters || []}
-              onChange={handleChange('adhoc_filters')}
-              datasource={safeDataSource}
-              columns={safeColumns}
-              formData={formValues}
-              name="adhoc_filters"
-              savedMetrics={safeMetrics}
-              selectedMetrics={formValues.metric ? [formValues.metric] : []}
-              type="DndFilterSelect"
-              actions={actions}
-            />
-          ) : (
-            <div style={{ padding: '10px' }}>
-              {t('No columns available for filtering.')}
-            </div>
-          )}
-        </div>
-
-        {/* Row limit and Sort by metric */}
-        <div style={{ display: 'flex', gap: 16 }}>
-          <div style={{ flex: 1 }}>
-            <ControlHeader
-              label={t('Row limit')}
-              description={t('Limit the number of rows that are returned')}
-              hovered
-            />
-            <TextControl
-              value={formValues.row_limit}
-              onChange={handleChange('row_limit')}
-              isInt
-              placeholder="100"
-              controlId="row_limit"
-            />
+        ) : (
+          <div style={{ padding: '10px' }}>
+            {t('No columns available. Please select a dataset first.')}
           </div>
-          <div style={{ flex: 1 }}>
-            <CheckboxControl
-              label={t('Sort by metric')}
-              description={t(
-                'Whether to sort results by the selected metric in descending order',
-              )}
-              value={formValues.sort_by_metric ?? true}
-              onChange={handleChange('sort_by_metric')}
-              hovered
-            />
-          </div>
-        </div>
+        )}
       </div>
 
+      {/* Metric */}
+      <div style={{ marginBottom: 16 }}>
+        <ControlHeader
+          label={t('Metric')}
+          description={t('Metric to display')}
+          hovered
+        />
+        {safeDataSource && safeDataSource.columns ? (
+          <DndMetricSelect
+            value={formValues.metric}
+            onChange={handleChange('metric')}
+            datasource={safeDataSource}
+            name="metric"
+            label=""
+            multi={false}
+            savedMetrics={safeMetrics}
+          />
+        ) : (
+          <div style={{ padding: '10px' }}>{t('No metrics available.')}</div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div style={{ marginBottom: 16 }}>
+        <ControlHeader
+          label={t('Filters')}
+          description={t('Filters to apply to the data')}
+          hovered
+        />
+        {safeDataSource && safeColumns.length > 0 ? (
+          <DndFilterSelect
+            value={formValues.adhoc_filters || []}
+            onChange={handleChange('adhoc_filters')}
+            datasource={safeDataSource}
+            columns={safeColumns}
+            formData={formValues}
+            name="adhoc_filters"
+            savedMetrics={safeMetrics}
+            selectedMetrics={formValues.metric ? [formValues.metric] : []}
+            type="DndFilterSelect"
+            actions={actions}
+          />
+        ) : (
+          <div style={{ padding: '10px' }}>
+            {t('No columns available for filtering.')}
+          </div>
+        )}
+      </div>
+
+      {/* Row limit and Sort by metric */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <ControlHeader
+            label={t('Row limit')}
+            description={t('Limit the number of rows that are returned')}
+            hovered
+          />
+          <TextControl
+            value={formValues.row_limit}
+            onChange={handleChange('row_limit')}
+            isInt
+            placeholder="100"
+            controlId="row_limit"
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <CheckboxControl
+            label={t('Sort by metric')}
+            description={t(
+              'Whether to sort results by the selected metric in descending order',
+            )}
+            value={formValues.sort_by_metric ?? true}
+            onChange={handleChange('sort_by_metric')}
+            hovered
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Customize tab content
+  const customizeTabContent = (
+    <div>
       {/* Chart Options Section */}
       <div style={{ marginBottom: 24 }}>
         <h4>{t('Chart Options')}</h4>
@@ -480,6 +485,42 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
           </div>
         )}
       </div>
+    </div>
+  );
+
+  // Tab items
+  const tabItems = [
+    {
+      key: 'data',
+      label: t('Data'),
+      children: dataTabContent,
+    },
+    {
+      key: 'customize',
+      label: t('Customize'),
+      children: customizeTabContent,
+    },
+  ];
+
+  return (
+    <div style={{ padding: '16px' }}>
+      {/* Chart/Viz Type Picker */}
+      <div style={{ marginBottom: 16, padding: '12px', borderRadius: '4px' }}>
+        <div style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>
+          {t('Pie Chart')}
+        </div>
+        <div style={{ fontSize: '12px', color: '#666' }}>
+          {t('Visualize data as a pie or donut chart')}
+        </div>
+      </div>
+
+      {/* Tabs for Data and Customize */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={tabItems}
+        size="large"
+      />
     </div>
   );
 };
