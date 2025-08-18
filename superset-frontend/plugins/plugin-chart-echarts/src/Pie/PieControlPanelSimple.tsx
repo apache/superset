@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { t } from '@superset-ui/core';
+import { Tabs } from 'antd';
 import {
   ColorSchemeControl,
   D3_FORMAT_OPTIONS,
@@ -46,9 +47,9 @@ interface PieControlPanelProps {
 }
 
 /**
- * Data tab content - Query controls
+ * A modern React component-based control panel for Pie charts.
  */
-export const PieDataPanel: FC<PieControlPanelProps> = ({
+export const PieControlPanel: FC<PieControlPanelProps> = ({
   onChange,
   value,
   datasource,
@@ -87,7 +88,11 @@ export const PieDataPanel: FC<PieControlPanelProps> = ({
   // Get form values
   const formValues = form_data || value || {};
 
-  return (
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('data');
+
+  // Data tab content
+  const dataTabContent = (
     <div>
       {/* Group by */}
       <div style={{ marginBottom: 16 }}>
@@ -195,40 +200,9 @@ export const PieDataPanel: FC<PieControlPanelProps> = ({
       </div>
     </div>
   );
-};
 
-// Mark as modern panel
-(PieDataPanel as any).isModernPanel = true;
-
-/**
- * Customize tab content - Chart customization controls
- */
-export const PieCustomizePanel: FC<PieControlPanelProps> = ({
-  onChange,
-  value,
-  datasource,
-  form_data,
-  actions,
-  controls,
-}) => {
-  // If no valid data yet, show loading state
-  if (!form_data) {
-    return <div>Loading customize panel...</div>;
-  }
-
-  // Helper to handle control changes
-  const handleChange = (field: string) => (val: any) => {
-    if (actions?.setControlValue) {
-      actions.setControlValue(field, val);
-    } else if (onChange) {
-      onChange(field, val);
-    }
-  };
-
-  // Get form values
-  const formValues = form_data || value || {};
-
-  return (
+  // Customize tab content
+  const customizeTabContent = (
     <div>
       {/* Chart Options Section */}
       <div style={{ marginBottom: 24 }}>
@@ -513,26 +487,54 @@ export const PieCustomizePanel: FC<PieControlPanelProps> = ({
       </div>
     </div>
   );
+
+  // Tab items
+  const tabItems = [
+    {
+      key: 'data',
+      label: t('Data'),
+      children: dataTabContent,
+    },
+    {
+      key: 'customize',
+      label: t('Customize'),
+      children: customizeTabContent,
+    },
+  ];
+
+  return (
+    <div style={{ padding: '16px' }}>
+      {/* Chart/Viz Type Picker */}
+      <div style={{ marginBottom: 16, padding: '12px', borderRadius: '4px' }}>
+        <div style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>
+          {t('Pie Chart')}
+        </div>
+        <div style={{ fontSize: '12px', color: '#666' }}>
+          {t('Visualize data as a pie or donut chart')}
+        </div>
+      </div>
+
+      {/* Tabs for Data and Customize */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={tabItems}
+        size="large"
+      />
+    </div>
+  );
 };
 
-// Mark as modern panel
-(PieCustomizePanel as any).isModernPanel = true;
+// Mark this component as a modern panel
+(PieControlPanel as any).isModernPanel = true;
 
-// Provide the config with both panels in proper sections
+// Provide a minimal config structure to prevent errors
 const config = {
   controlPanelSections: [
-    // Data tab content
     {
-      label: t('Query'),
+      label: null,
       expanded: true,
-      controlSetRows: [[PieDataPanel as any]],
-    },
-    // Customize tab content - multiple sections will all go in Customize
-    {
-      label: t('Chart Options'),
-      expanded: true,
-      tabOverride: 'customize',
-      controlSetRows: [[PieCustomizePanel as any]],
+      controlSetRows: [[PieControlPanel as any]],
     },
   ],
   // Provide default control overrides
