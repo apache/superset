@@ -41,6 +41,51 @@ export type AntdMenuItemType = ReactElement & {
 
 export type MenuItemChildType = AntdMenuItemType;
 
+// Shared menu item styling for consistent underline animation
+const sharedMenuItemStyles = (theme: any) => css`
+  &.ant-menu-horizontal > .ant-menu-item,
+  &.ant-menu-horizontal > .ant-menu-submenu {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+    ::after {
+      content: '';
+      position: absolute;
+      width: 98%;
+      height: 2px;
+      background-color: ${theme.colorPrimaryBorderHover};
+      bottom: ${theme.sizeUnit / 4}px;
+      left: 0;
+      transform: scale(0);
+      transition: 0.2s all ease-out;
+    }
+    :hover::after {
+      transform: scale(1);
+    }
+  }
+  &.ant-menu-horizontal > .ant-menu-item-selected::after,
+  &.ant-menu-horizontal > .ant-menu-submenu-selected::after {
+    transform: scale(1);
+  }
+  &.ant-menu-horizontal > .ant-menu-submenu .ant-menu-submenu-title {
+    height: 100%;
+    display: flex;
+    align-items: center;
+
+    .ant-menu-title-content {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Hide the empty arrow element */
+    .ant-menu-submenu-arrow {
+      display: none;
+    }
+  }
+`;
+
 const StyledMenuItem = styled(AntdMenu.Item)`
   ${({ theme }) => css`
     a {
@@ -76,10 +121,13 @@ const StyledMenuItem = styled(AntdMenu.Item)`
 `;
 
 const StyledMenu = styled(AntdMenu)`
-  &.ant-menu-horizontal {
-    background-color: inherit;
-    border-bottom: 1px solid transparent;
-  }
+  ${({ theme }) => css`
+    &.ant-menu-horizontal {
+      background-color: inherit;
+      border-bottom: 1px solid transparent;
+    }
+    ${sharedMenuItemStyles(theme)}
+  `}
 `;
 
 const StyledNav = styled(AntdMenu)`
@@ -90,60 +138,12 @@ const StyledNav = styled(AntdMenu)`
     gap: 0;
     border-bottom: 0;
     line-height: ${theme.lineHeight};
-    &.ant-menu-horizontal > .ant-menu-item {
-      height: 100%;
-      display: flex;
-      align-items: center;
-      margin: 0;
-      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-      ::after {
-        content: '';
-        position: absolute;
-        width: 98%;
-        height: 2px;
-        background-color: ${theme.colorPrimaryBorderHover};
-        bottom: ${theme.sizeUnit / 4}px;
-        left: 0;
-        transform: scale(0);
-        transition: 0.2s all ease-out;
-      }
-      :hover::after {
-        transform: scale(1);
-      }
-    }
-    &.ant-menu-horizontal > .ant-menu-item-selected::after {
-      transform: scale(1);
-    }
+    ${sharedMenuItemStyles(theme)}
   `}
 `;
 
 const StyledSubMenu = styled(AntdMenu.SubMenu)`
-  ${({ theme }) => css`
-    .ant-menu-submenu-open,
-    .ant-menu-submenu-active {
-      .ant-menu-submenu-title {
-        &:after {
-          opacity: 1;
-          width: calc(100% - 1);
-        }
-      }
-    }
-    .ant-menu-submenu-title {
-      display: flex;
-      flex-direction: row-reverse;
-      &:after {
-        content: '';
-        position: absolute;
-        bottom: -3px;
-        left: 50%;
-        width: 0;
-        height: 3px;
-        opacity: 0;
-        transform: translateX(-50%);
-        transition: all ${theme.transitionTiming}s;
-      }
-    }
-  `}
+  /* No custom styling - use shared styles from parent Menu component */
 `;
 
 export type MenuMode = AntdMenuProps['mode'];

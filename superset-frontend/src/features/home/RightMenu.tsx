@@ -55,7 +55,6 @@ import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
 import { useLanguageMenuItems } from './LanguagePicker';
-import { menuCaretStyles } from './StyledDropdownSubMenu';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
@@ -571,7 +570,6 @@ const RightMenu = ({
             data-test="new-dropdown-icon"
           />
         ),
-        icon: <Icons.CaretDownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
         ...{ 'data-test': 'new-dropdown' },
       });
@@ -588,7 +586,6 @@ const RightMenu = ({
     items.push({
       key: 'settings',
       label: t('Settings'),
-      icon: <Icons.CaretDownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
     });
 
@@ -674,8 +671,6 @@ const RightMenu = ({
           display: flex;
           flex-direction: row;
           align-items: center;
-
-          ${menuCaretStyles(theme)}
         `}
         selectable={false}
         mode="horizontal"

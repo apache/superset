@@ -24,7 +24,6 @@ import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
@@ -34,7 +33,6 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
-import { StyledDropdownSubMenu } from './StyledDropdownSubMenu';
 
 interface MenuProps {
   data: MenuData;
@@ -209,17 +207,7 @@ export function Menu({
       );
     }
     return (
-      <StyledDropdownSubMenu
-        key={index}
-        title={label}
-        icon={
-          showMenu === 'inline' ? (
-            <></>
-          ) : (
-            <Icons.CaretDownOutlined iconSize="xs" />
-          )
-        }
-      >
+      <MainNav.SubMenu key={index} title={label}>
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <MainNav.Divider key={`$${index1}`} />;
@@ -245,7 +233,7 @@ export function Menu({
           }
           return null;
         })}
-      </StyledDropdownSubMenu>
+      </MainNav.SubMenu>
     );
   };
   const renderBrand = () => {
