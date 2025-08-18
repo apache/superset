@@ -200,9 +200,9 @@ const DatasourcePanelItem = ({
             <SectionHeaderTextContainer>
               <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
               {collapsedFolderIds.has(folder.id) ? (
-                <Icons.DownOutlined iconSize="s" />
+                <Icons.DownOutlined iconSize="s" iconColor={theme.colorText} />
               ) : (
-                <Icons.UpOutlined iconSize="s" />
+                <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
               )}
             </SectionHeaderTextContainer>
           </Tooltip>
