@@ -57,6 +57,9 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
   actions,
   controls,
 }) => {
+  // State for active tab - must be before any early returns
+  const [activeTab, setActiveTab] = useState('data');
+
   // If no valid data yet, show loading state
   if (!datasource || !form_data) {
     return <div>Loading control panel...</div>;
@@ -87,9 +90,6 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
 
   // Get form values
   const formValues = form_data || value || {};
-
-  // State for active tab
-  const [activeTab, setActiveTab] = useState('data');
 
   // Data tab content
   const dataTabContent = (
@@ -509,7 +509,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
         <div style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>
           {t('Pie Chart')}
         </div>
-        <div style={{ fontSize: '12px', color: '#666' }}>
+        <div style={{ fontSize: '12px', opacity: 0.65 }}>
           {t('Visualize data as a pie or donut chart')}
         </div>
       </div>
@@ -528,7 +528,7 @@ export const PieControlPanel: FC<PieControlPanelProps> = ({
 // Mark this component as a modern panel
 (PieControlPanel as any).isModernPanel = true;
 
-// Provide a minimal config structure to prevent errors
+// Create a config that wraps our React component
 const config = {
   controlPanelSections: [
     {
@@ -537,7 +537,6 @@ const config = {
       controlSetRows: [[PieControlPanel as any]],
     },
   ],
-  // Provide default control overrides
   controlOverrides: {
     groupby: {
       default: [],
