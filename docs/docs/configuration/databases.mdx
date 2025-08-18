@@ -1770,7 +1770,7 @@ You can use the `Extra` field in the **Edit Databases** form to configure SSL:
 }
 ```
 ##### Custom Error Messages
-You can use the ``CUSTOM_DATABASE_ERRORS`` setting in your ``superset_config.py`` to configure custom error messages for database exceptions.
+You can use the `CUSTOM_DATABASE_ERRORS` in the `superset/custom_database_errors.py` file or overwrite it in your config file to configure custom error messages for database exceptions.
 
 This feature lets you transform raw database errors into user-friendly messages, optionally including documentation links and hiding default error codes.
 
@@ -1794,7 +1794,7 @@ CUSTOM_DATABASE_ERRORS = {
             }
         )
     },
-    "postgres": {}
+    "PostgreSQL": {}
 }
 ```
 

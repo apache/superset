@@ -52,7 +52,6 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
-from superset.errors import SupersetErrorType
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -2173,33 +2172,13 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
-# CUSTOM_DATABASE_ERRORS: Configure custom error messages for database exceptions.
+# CUSTOM_DATABASE_ERRORS: Configure custom error messages for database exceptions
+# in superset/custom_database_errors.py.
 # Transform raw database errors into user-friendly messages with optional documentation
-# links using custom_doc_links. Set show_issue_info=False to hide default error codes.
-# Example:
-# CUSTOM_DATABASE_ERRORS = {
-#     "trino": {
-#         re.compile(r'message="(?P<message>[^"]*)"'): (
-#             __(
-#                 'Unexpected error: "%(message)s"'
-#             ),
-#             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-#             {
-#                 "custom_doc_links": [
-#                     {
-#                         "url": "https://example.com/docs/1",
-#                         "label": "Check documentation"
-#                     },
-#                 ],
-#                 "show_issue_info": False,
-#             }
-#         )
-#     }
-# }
-
-CUSTOM_DATABASE_ERRORS: dict[
-    str, dict[re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]]
-] = {}
+try:
+    from superset.custom_database_errors import CUSTOM_DATABASE_ERRORS
+except ImportError:
+    CUSTOM_DATABASE_ERRORS = {}
 
 
 LOCAL_EXTENSIONS: list[str] = []
