@@ -46,7 +46,7 @@ export function Label(props: LabelProps) {
   const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
   const labelStyles = css`
-    transition: background-color ${theme.motionDurationMid}s;
+    transition: background-color ${theme.motionDurationMid};
     white-space: nowrap;
     cursor: ${onClick ? 'pointer' : 'default'};
     overflow: hidden;

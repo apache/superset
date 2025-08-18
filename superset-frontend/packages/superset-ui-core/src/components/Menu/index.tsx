@@ -53,7 +53,7 @@ const StyledMenuItem = styled(AntdMenu.Item)`
         justify-content: space-between;
       }
       a {
-        transition: background-color ${theme.motionDurationMid}s;
+        transition: background-color ${theme.motionDurationMid};
         &:after {
           content: '';
           position: absolute;
@@ -63,7 +63,7 @@ const StyledMenuItem = styled(AntdMenu.Item)`
           height: 3px;
           opacity: 0;
           transform: translateX(-50%);
-          transition: translate ${theme.motionDurationMid}s;
+          transition: translate ${theme.motionDurationMid};
         }
         &:focus {
           @media (max-width: 767px) {
@@ -140,7 +140,7 @@ const StyledSubMenu = styled(AntdMenu.SubMenu)`
         height: 3px;
         opacity: 0;
         transform: translateX(-50%);
-        transition: all ${theme.motionDurationMid}s;
+        transition: all ${theme.motionDurationMid};
       }
     }
   `}
