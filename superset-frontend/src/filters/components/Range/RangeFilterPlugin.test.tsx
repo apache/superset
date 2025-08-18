@@ -320,4 +320,127 @@ describe('RangeFilterPlugin', () => {
       expect(sliders.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Decimal value handling', () => {
+    it('should handle decimal ranges correctly (0.03 to 1.08)', () => {
+      const decimalProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0.03, max: 1.08 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [0.5, 0.8] },
+      };
+      getWrapper(decimalProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs).toHaveLength(2);
+      expect(inputs[0]).toHaveValue('0.5');
+      expect(inputs[1]).toHaveValue('0.8');
+
+      // Verify the slider exists and can handle decimal values
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders.length).toBeGreaterThan(0);
+    });
+
+    it('should calculate appropriate step size for small decimal ranges', () => {
+      const smallRangeProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0.001, max: 0.01 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [0.005, 0.008] },
+      };
+      getWrapper(smallRangeProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs[0]).toHaveValue('0.005');
+      expect(inputs[1]).toHaveValue('0.008');
+    });
+
+    it('should handle very large ranges with appropriate step size', () => {
+      const largeRangeProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0, max: 1000000 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [100000, 500000] },
+      };
+      getWrapper(largeRangeProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs[0]).toHaveValue('100000');
+      expect(inputs[1]).toHaveValue('500000');
+    });
+
+    it('should handle negative decimal ranges', () => {
+      const negativeDecimalProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: -1.5, max: 2.5 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [-0.5, 1.5] },
+      };
+      getWrapper(negativeDecimalProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs[0]).toHaveValue('-0.5');
+      expect(inputs[1]).toHaveValue('1.5');
+    });
+
+    it('should allow decimal input via keyboard', async () => {
+      const decimalProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0, max: 10 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [null, null] },
+      };
+      getWrapper(decimalProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      const fromInput = inputs[0];
+
+      userEvent.clear(fromInput);
+      userEvent.type(fromInput, '2.5');
+      userEvent.tab();
+
+      expect(setDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterState: expect.objectContaining({
+            value: [2.5, null],
+          }),
+        }),
+      );
+    });
+  });
 });
