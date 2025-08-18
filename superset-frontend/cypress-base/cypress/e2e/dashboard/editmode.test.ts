@@ -166,16 +166,13 @@ function selectColorScheme(
   // First, expand the Styling section if it's collapsed
   cy.get(`[data-test="${target}"]`).within(() => {
     // Find the Collapse header that contains "Styling" text
-    // In Ant Design 5, collapse headers have role="button"
     cy.contains('Styling').scrollIntoView();
     cy.contains('Styling')
       .closest('.ant-collapse-header')
-      .then($header => {
-        const isExpanded = $header.attr('aria-expanded') === 'true';
-        if (!isExpanded) {
-          cy.wrap($header).click();
-        }
-      });
+      .click({ force: true });
+
+    // Wait for animation to complete
+    cy.wait(300);
   });
 
   // Now select the color scheme
