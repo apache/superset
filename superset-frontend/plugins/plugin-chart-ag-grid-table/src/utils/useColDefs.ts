@@ -93,7 +93,7 @@ const getFilterType = (col: InputColumn) => {
     case GenericDataType.Numeric:
       return 'agNumberColumnFilter';
     case GenericDataType.String:
-      return 'agMultiColumnFilter';
+      return 'agTextColumnFilter';
     case GenericDataType.Temporal:
       return 'agDateColumnFilter';
     default:

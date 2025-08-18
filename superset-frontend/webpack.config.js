@@ -335,13 +335,6 @@ const config = {
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
       ),
-      // Workaround for react-color trying to import non-existent icon
-      '@icons/material/UnfoldMoreHorizontalIcon': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@icons/material/CubeUnfoldedIcon.js',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -360,6 +353,13 @@ const config = {
         loader: 'imports-loader',
         options: {
           additionalCode: 'var define = false;',
+        },
+      },
+      {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
         },
       },
       {
