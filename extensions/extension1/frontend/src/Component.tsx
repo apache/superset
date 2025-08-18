@@ -19,7 +19,8 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React, { useEffect } from "react";
-import { authentication, sqlLab, Avatar } from "@apache-superset/core";
+import { authentication, sqlLab } from "@apache-superset/core";
+import { Avatar } from "antd";
 import binaryImage from "./assets/binary.jpg";
 
 const Component: React.FC = () => {

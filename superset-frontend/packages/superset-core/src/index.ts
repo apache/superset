@@ -17,4 +17,3 @@
  * under the License.
  */
 export * from './api';
-export * from './components/Avatar';

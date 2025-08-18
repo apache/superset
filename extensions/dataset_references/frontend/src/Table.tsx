@@ -18,7 +18,7 @@
  */
 // eslint-disable-next-line no-restricted-syntax
 import React from "react";
-import { Avatar } from "@apache-superset/core";
+import { Avatar } from "antd";
 import { MetadataRow } from "./types";
 
 const BORDER_COLOR = "#e0e0e0";
