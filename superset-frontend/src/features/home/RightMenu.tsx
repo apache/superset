@@ -66,7 +66,7 @@ const extensionsRegistry = getExtensionsRegistry();
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
     ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
-  color: ${theme.colors.grayscale.base};
+  color: ${theme.colorText};
   font-size: ${theme.fontSizeSM}px;
   white-space: nowrap;
 `;
@@ -100,7 +100,7 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
     }
     ${disabled &&
     css`
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
     `}
   `}
 `;

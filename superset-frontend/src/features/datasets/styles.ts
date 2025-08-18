@@ -86,7 +86,7 @@ export const StyledCreateDatasetTitle = styled.div`
 export const StyledLayoutLeftPanel = styled.div`
   ${({ theme }) => `
   height: 100%;
-  border-right: 1px solid ${theme.colors.grayscale.light2};
+  border-right: 1px solid ${theme.colorBorderSecondary};
   `}
 `;
 
@@ -97,7 +97,7 @@ export const StyledLayoutDatasetPanel = styled.div`
 
 export const StyledLayoutRightPanel = styled.div`
   ${({ theme }) => `
-  border-left: 1px solid ${theme.colors.grayscale.light2};
+  border-left: 1px solid ${theme.colorBorderSecondary};
   color: ${theme.colorSuccess};
   `}
 `;
@@ -106,11 +106,11 @@ export const StyledLayoutFooter = styled.div`
   ${({ theme }) => `
   height: ${theme.sizeUnit * 16}px;
   width: 100%;
-  border-top: 1px solid ${theme.colors.grayscale.light2};
-  border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  border-top: 1px solid ${theme.colorBorderSecondary};
+  border-bottom: 1px solid ${theme.colorBorderSecondary};
   color: ${theme.colorInfo};
   border-top: ${theme.sizeUnit / 4}px solid
-    ${theme.colors.grayscale.light2};
+    ${theme.colorBorderSecondary};
   padding: ${theme.sizeUnit * 4}px;
   display: flex;
   justify-content: flex-end;
@@ -127,7 +127,7 @@ export const HeaderComponentStyles = styled.div`
 
     &:disabled {
       svg {
-        color: ${({ theme }) => theme.colors.grayscale.light1};
+        color: ${({ theme }) => theme.colorIconHover};
       }
     }
   }
@@ -137,7 +137,7 @@ export const disabledSaveBtnStyles = (theme: SupersetTheme) => css`
   width: ${theme.sizeUnit * 21.5}px;
 
   &:disabled {
-    background-color: ${theme.colors.grayscale.light3};
-    color: ${theme.colors.grayscale.light1};
+    background-color: ${theme.colorBgContainerDisabled};
+    color: ${theme.colorTextDisabled};
   }
 `;

@@ -154,7 +154,7 @@ function Footer({
         icon={
           <Icons.DownOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.light5}
+            iconColor={theme.colorTextLightSolid}
           />
         }
         trigger={['click']}

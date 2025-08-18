@@ -130,18 +130,18 @@ const StyledUndoRedoButton = styled(Button)`
 `;
 
 const undoRedoStyle = theme => css`
-  color: ${theme.colors.grayscale.light1};
+  color: ${theme.colorIcon};
   &:hover {
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIconHover};
   }
 `;
 
 const undoRedoEmphasized = theme => css`
-  color: ${theme.colors.grayscale.base};
+  color: ${theme.colorIcon};
 `;
 
 const undoRedoDisabled = theme => css`
-  color: ${theme.colors.grayscale.light2};
+  color: ${theme.colorTextDisabled};
 `;
 
 const saveBtnStyle = theme => css`
