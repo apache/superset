@@ -164,15 +164,15 @@ export default styled(NVD3)`
   .d3-tip.nv-event-annotation-layer-NATIVE {
     width: 200px;
     border-radius: 2px;
-    background-color: ${({ theme }) => theme.grayscale.base};
+    background-color: ${({ theme }) => theme.colorBgContainer};
     fill-opacity: 0.6;
     margin: ${({ theme }) => theme.sizeUnit * 2}px;
     padding: ${({ theme }) => theme.sizeUnit * 2}px;
-    color: ${({ theme }) => theme.grayscale.light5};
+    color: ${({ theme }) => theme.colorTextLightSolid};
     &:after {
       content: '\\25BC';
       font-size: ${({ theme }) => theme.fontSize};
-      color: ${({ theme }) => theme.grayscale.base};
+      color: ${({ theme }) => theme.colorText};
       position: absolute;
       bottom: -14px;
       left: 94px;
