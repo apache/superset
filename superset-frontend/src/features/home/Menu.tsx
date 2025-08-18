@@ -158,6 +158,8 @@ export function Menu({
     Dashboard = '/dashboard',
     Chart = '/chart',
     Datasets = '/tablemodelview',
+    SqlLab = '/sqllab',
+    SavedQueries = '/savedqueryview',
   }
 
   const defaultTabSelection: string[] = [];
@@ -174,6 +176,10 @@ export function Menu({
         break;
       case path.startsWith(Paths.Datasets):
         setActiveTabs(['Datasets']);
+        break;
+      case path.startsWith(Paths.SqlLab):
+      case path.startsWith(Paths.SavedQueries):
+        setActiveTabs(['SQL Lab']);
         break;
       default:
         setActiveTabs(defaultTabSelection);
