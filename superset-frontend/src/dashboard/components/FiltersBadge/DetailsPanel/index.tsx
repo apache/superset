@@ -175,7 +175,7 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      color={`${theme.colors.grayscale.dark2}cc`}
+      color={`${theme.colorBgElevated}cc`}
       content={content}
       open={popoverVisible}
       onOpenChange={handleVisibility}

@@ -65,7 +65,7 @@ const Styles = styled.span`
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
     svg {
       vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;

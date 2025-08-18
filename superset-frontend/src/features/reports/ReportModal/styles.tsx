@@ -32,7 +32,7 @@ export const StyledTopSection = styled.div`
     `${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px ${theme.sizeUnit * 2}px`};
   label {
     font-size: ${({ theme }) => theme.fontSizeSM}px;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextSecondary};
   }
 `;
 
@@ -45,7 +45,7 @@ export const StyledBottomSection = styled.div`
   }
   .control-label {
     font-size: ${({ theme }) => theme.fontSizeSM}px;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextSecondary};
   }
 `;
 

@@ -740,7 +740,7 @@ function FiltersConfigModal({
           <StyledExpandButtonWrapper>
             <ToggleIcon
               iconSize="l"
-              iconColor={theme.colors.grayscale.dark2}
+              iconColor={theme.colorIcon}
               onClick={toggleExpand}
             />
           </StyledExpandButtonWrapper>

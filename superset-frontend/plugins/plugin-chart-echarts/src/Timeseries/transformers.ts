@@ -424,7 +424,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -432,19 +432,19 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         }
       : {
           show: false,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         };
     series.push({
@@ -505,25 +505,25 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         }
       : {
           show: false,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         };
 

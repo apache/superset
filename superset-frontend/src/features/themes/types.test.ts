@@ -25,7 +25,7 @@ describe('Theme Types', () => {
       const validTheme: ThemeObject = {
         id: 1,
         theme_name: 'Test Theme',
-        json_data: '{"colors": {"primary": "#1890ff"}}',
+        json_data: '{"token": {"colorPrimary": "#1890ff"}}',
         uuid: '123e4567-e89b-12d3-a456-426614174000',
         is_system: false,
         is_system_default: false,
@@ -68,7 +68,7 @@ describe('Theme Types', () => {
       const systemTheme: ThemeObject = {
         id: 2,
         theme_name: 'System Theme',
-        json_data: '{"colors": {"primary": "#000000"}}',
+        json_data: '{}',
         is_system: true,
         is_system_default: true,
         is_system_dark: false,
@@ -100,12 +100,13 @@ describe('Theme Types', () => {
     it('should parse valid JSON data', () => {
       const theme: ThemeObject = {
         theme_name: 'Parse Test',
-        json_data: '{"colors": {"primary": "#1890ff", "secondary": "#52c41a"}}',
+        json_data:
+          '{"token": {"colorPrimary": "#1890ff", "colorSuccess": "#52c41a"}}',
       };
 
       const parsed = JSON.parse(theme.json_data!);
-      expect(parsed.colors.primary).toBe('#1890ff');
-      expect(parsed.colors.secondary).toBe('#52c41a');
+      expect(parsed.token.colorPrimary).toBe('#1890ff');
+      expect(parsed.token.colorSuccess).toBe('#52c41a');
     });
 
     it('should handle empty JSON', () => {

@@ -27,8 +27,8 @@ export default function FallbackComponent({ error, height, width }: Props) {
   return (
     <div
       css={(theme: SupersetTheme) => ({
-        backgroundColor: theme.colors.grayscale.dark2,
-        color: theme.colors.grayscale.light5,
+        backgroundColor: theme.colorBgContainer,
+        color: theme.colorText,
         overflow: 'auto',
         padding: 32,
       })}

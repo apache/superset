@@ -17,13 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, styled, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -96,7 +90,6 @@ export const DataTablesPane = ({
   setForceQuery,
   canDownload,
 }: DataTablesPaneProps) => {
-  const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
     results: false,
@@ -189,7 +182,7 @@ export const DataTablesPane = ({
         )}
       </TableControlsWrapper>
     );
-  }, [handleCollapseChange, panelOpen, theme.colors.grayscale.base]);
+  }, [handleCollapseChange, panelOpen]);
 
   const queryResultsPanes = useResultsPane({
     errorMessage,

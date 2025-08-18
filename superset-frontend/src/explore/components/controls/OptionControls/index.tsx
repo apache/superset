@@ -85,7 +85,7 @@ export const CaretContainer = styled.div`
 export const CloseContainer = styled.div`
   height: auto;
   width: ${({ theme }) => theme.sizeUnit * 6}px;
-  border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
+  border-right: solid 1px ${({ theme }) => theme.colorBorder};
   cursor: pointer;
 `;
 
@@ -158,7 +158,7 @@ export const DndLabelsContainer = styled.div<{
   &:after {
     display: ${isLoading || (canDrop && isOver) ? 'block' : 'none'};
     background-color: ${
-      isLoading ? theme.colors.grayscale.light3 : theme.colorPrimary
+      isLoading ? theme.colorFillTertiary : theme.colorPrimary
     };
     z-index: 11;
     opacity: 35%;
@@ -195,19 +195,19 @@ export const AddControlLabel = styled.div<{
   height: ${({ theme }) => theme.sizeUnit * 6}px;
   padding-left: ${({ theme }) => theme.sizeUnit}px;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextSecondary};
   border: dashed 1px ${({ theme }) => theme.colorSplit};
   border-radius: ${({ theme }) => theme.borderRadius}px;
   cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {
     background-color: ${({ cancelHover, theme }) =>
-      cancelHover ? 'inherit' : theme.colors.grayscale.light4};
+      cancelHover ? 'inherit' : theme.colorFillSecondary};
   }
 
   :active {
     background-color: ${({ cancelHover, theme }) =>
-      cancelHover ? 'inherit' : theme.colors.grayscale.light3};
+      cancelHover ? 'inherit' : theme.colorFillTertiary};
   }
   svg {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
@@ -227,7 +227,7 @@ export const AddIconButton = styled.button`
 
   :disabled {
     cursor: not-allowed;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
+    background-color: ${({ theme }) => theme.colorBgContainerDisabled};
   }
 `;
 
@@ -384,7 +384,7 @@ export const OptionControlLabel = ({
       >
         <Icons.CloseOutlined
           iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           css={css`
             vertical-align: sub;
           `}
@@ -414,7 +414,7 @@ export const OptionControlLabel = ({
             css={css`
               margin: ${theme.sizeUnit}px;
             `}
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorIcon}
           />
         </CaretContainer>
       )}

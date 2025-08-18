@@ -83,7 +83,7 @@ const Tabs = Object.assign(StyledTabs, {
 const StyledEditableTabs = styled(StyledTabs)`
   ${({ theme }) => `
     .ant-tabs-content-holder {
-      background: ${theme.colors.grayscale.light5};
+      background: ${theme.colorBgContainer};
     }
 
     & > .ant-tabs-nav {
@@ -99,7 +99,7 @@ const StyledEditableTabs = styled(StyledTabs)`
 `;
 
 const StyledCloseOutlined = styled(Icons.CloseOutlined)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 export const EditableTabs = Object.assign(StyledEditableTabs, {
   TabPane: StyledTabPane,

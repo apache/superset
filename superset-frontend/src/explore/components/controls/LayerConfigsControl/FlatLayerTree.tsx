@@ -36,12 +36,12 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
 
     border: none;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colors.grayscale.light3};
+    background-color: ${theme.colorFill};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightNormal};
 
     &:hover {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFill};
     }
 
     & .layer-tree-item-close {
@@ -70,12 +70,12 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
     & > button {
       border: none;
       background-color: unset;
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
     }
 
     & > button:hover {
       background-color: unset;
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
     }
   `}
 `;

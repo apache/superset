@@ -165,7 +165,7 @@ const MessageSpan = styled.span`
   text-align: center;
   margin: ${({ theme }) => theme.sizeUnit * 4}px auto;
   width: fit-content;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 class Chart extends PureComponent<ChartProps, {}> {

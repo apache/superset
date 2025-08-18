@@ -266,7 +266,7 @@ export default function downloadAsImageOptimized(
           : true;
 
       const dataUrl = await domToImage.toJpeg(clone, {
-        bgcolor: theme?.colors.grayscale.light4,
+        bgcolor: theme?.colorBgContainer,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
         height: clone.scrollHeight,

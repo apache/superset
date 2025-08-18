@@ -123,7 +123,7 @@ export default function TableControls({
       >
         <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
         <Icons.ReloadOutlined
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           iconSize="l"
           aria-label={t('Reload')}
           role="button"

@@ -42,7 +42,7 @@ import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextTertiary};
 `;
 
 export const CopyButton = styled(Button)`
@@ -161,7 +161,7 @@ const FormatPickerContainer = styled.div`
 
 const FormatPickerLabel = styled.span`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
   margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
@@ -216,7 +216,7 @@ const DataTableTemporalHeaderCell = ({
       >
         <Icons.SettingOutlined
           iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           css={{ marginRight: `${theme.sizeUnit}px` }}
           onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />

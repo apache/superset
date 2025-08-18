@@ -58,8 +58,9 @@ describe('Theme', () => {
       // Verify default font family is set
       expect(theme.theme.fontFamily).toContain('Inter');
 
-      // Verify the theme is initialized with colors
-      expect(theme.theme.colors).toBeDefined();
+      // Verify the theme is initialized with semantic color tokens
+      expect(theme.theme.colorText).toBeDefined();
+      expect(theme.theme.colorBgBase).toBeDefined();
     });
 
     it('creates a theme with custom tokens when provided', () => {

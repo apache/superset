@@ -19,7 +19,6 @@
 import { PureComponent } from 'react';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import { NEW_COMPONENT_SOURCE_TYPE } from 'src/dashboard/util/componentTypes';
@@ -37,30 +36,15 @@ interface DraggableNewComponentProps {
 const NewComponent = styled.div`
   ${({ theme }) => css`
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 ${theme.sizeUnit}px;
-    margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-
-    // hack to make the drag preview image corners rounded
-    transform: translate(0, 0);
-    color: ${theme.colorText};
-    background-color: ${theme.colorBgLayout};
-    border-radius: ${theme.borderRadius}px;
+    padding: ${theme.sizeUnit * 4}px;
+    background: ${theme.colorBgContainer};
     cursor: move;
-
-    &:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+    &:not(.static):hover {
+      background: ${theme.colorFillContentHover};
     }
-  `}
-`;
-
-const NewComponentContent = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    margin-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -99,15 +83,12 @@ export default class DraggableNewComponent extends PureComponent<DraggableNewCom
       >
         {({ dragSourceRef }) => (
           <NewComponent ref={dragSourceRef} data-test="new-component">
-            <NewComponentContent>
-              <NewComponentPlaceholder
-                className={cx('new-component-placeholder', className)}
-              >
-                {IconComponent && <IconComponent iconSize="xl" />}
-              </NewComponentPlaceholder>
-              {label}
-            </NewComponentContent>
-            <Icons.Drag iconSize="xl" />
+            <NewComponentPlaceholder
+              className={cx('new-component-placeholder', className)}
+            >
+              {IconComponent && <IconComponent iconSize="xl" />}
+            </NewComponentPlaceholder>
+            {label}
           </NewComponent>
         )}
       </DragDroppable>

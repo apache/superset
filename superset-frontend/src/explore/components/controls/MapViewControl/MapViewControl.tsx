@@ -20,7 +20,6 @@ import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
 import { Button, Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
-import { mix } from 'polished';
 import { MapViewConfigs, MapViewConfigsControlProps } from './types';
 import MapViewPopoverContent from './MapViewPopoverContent';
 import ExtentTag from './ExtentTag';
@@ -32,7 +31,7 @@ export const StyledExtentButton = styled(Button)`
     margin-right: 4px;
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colors.primary.light4};
+    background-color: ${theme.colorPrimaryBg};
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
@@ -46,11 +45,7 @@ export const StyledExtentButton = styled(Button)`
     margin-left: 9px;
     margin-top: 10px;
     &:hover {
-      background-color: ${mix(
-        0.1,
-        theme.colorPrimary,
-        theme.colors.primary.light4,
-      )};
+      background-color: ${theme.colorPrimaryBgHover};
       color: ${theme.colorPrimaryText};
     }
   `}

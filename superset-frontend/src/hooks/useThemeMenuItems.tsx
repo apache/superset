@@ -63,13 +63,11 @@ export const useThemeMenuItems = ({
   const selectedThemeModeIcon = useMemo(
     () =>
       hasLocalOverride ? (
-        <Icons.FormatPainterOutlined
-          style={{ color: theme.colors.error.base }}
-        />
+        <Icons.FormatPainterOutlined style={{ color: theme.colorError }} />
       ) : (
         themeIconMap[themeMode]
       ),
-    [hasLocalOverride, theme.colors.error.base, themeIconMap, themeMode],
+    [hasLocalOverride, theme.colorError, themeIconMap, themeMode],
   );
 
   const themeOptions: MenuItem[] = [

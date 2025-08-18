@@ -53,11 +53,11 @@ export const FormatterContainer = styled(OptionControlContainer)`
 
 export const CloseButton = styled.button`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorIcon};
     height: 100%;
     width: ${theme.sizeUnit * 6}px;
     border: none;
-    border-right: solid 1px ${theme.colors.grayscale.dark2}0C;
+    border-right: solid 1px ${theme.colorBorder};
     padding: 0;
     outline: none;
     border-bottom-left-radius: 3px;

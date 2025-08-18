@@ -108,36 +108,6 @@ export interface ColorVariants {
   textActive: string;
 }
 
-export interface DeprecatedColorVariations {
-  base: string;
-  light1: string;
-  light2: string;
-  light3: string;
-  light4: string;
-  light5: string;
-  dark1: string;
-  dark2: string;
-  dark3: string;
-  dark4: string;
-  dark5: string;
-}
-
-export interface DeprecatedThemeColors {
-  primary: DeprecatedColorVariations;
-  error: DeprecatedColorVariations;
-  warning: DeprecatedColorVariations;
-  success: DeprecatedColorVariations;
-  info: DeprecatedColorVariations;
-  grayscale: DeprecatedColorVariations;
-}
-
-export interface LegacySupersetTheme {
-  // Old colors structure with light/dark semantics still heavily referenced in code base
-  // TODO: replace/realign with antd-type tokens
-  colors: DeprecatedThemeColors;
-  transitionTiming: number;
-}
-
 export interface SupersetSpecificTokens {
   // Font-related
   fontSizeXS: string;
@@ -391,10 +361,8 @@ export type AllowedAntdTokenKeys = Extract<
 
 export type SharedAntdTokens = Pick<AntdTokens, AllowedAntdTokenKeys>;
 
-/** The final shape for our custom theme object, combining old theme + shared antd + superset specifics. */
-export type SupersetTheme = LegacySupersetTheme &
-  SharedAntdTokens &
-  SupersetSpecificTokens;
+/** The final shape for our custom theme object, combining shared antd + superset specifics. */
+export type SupersetTheme = SharedAntdTokens & SupersetSpecificTokens;
 
 export interface ThemeStorage {
   getItem(key: string): string | null;

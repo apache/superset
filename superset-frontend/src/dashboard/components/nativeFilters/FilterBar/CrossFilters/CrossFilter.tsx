@@ -103,7 +103,7 @@ const CrossFilter = (props: {
                 margin-bottom: ${theme.sizeUnit * 4}px;
                 margin-top: ${theme.sizeUnit * 4}px;
             `}
-            background: ${theme.colors.grayscale.light2};
+            background: ${theme.colorSplit};
           `}
         />
       )}
