@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Component } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
 import {
   QueryFormData,
@@ -153,93 +153,55 @@ export interface StatefulChartProps {
   hooks?: any;
 }
 
-interface StatefulChartState {
-  status: LoadingState;
-  data?: QueryData[];
-  error?: Error;
-  formData?: QueryFormData;
-}
+export default function StatefulChart(props: StatefulChartProps) {
+  const [status, setStatus] = useState<LoadingState>('uninitialized');
+  const [data, setData] = useState<QueryData[]>();
+  const [error, setError] = useState<Error>();
+  const [formData, setFormData] = useState<QueryFormData>();
 
-export default class StatefulChart extends Component<
-  StatefulChartProps,
-  StatefulChartState
-> {
-  private chartClient: ChartClient;
+  const chartClientRef = useRef<ChartClient>();
+  const abortControllerRef = useRef<AbortController>();
 
-  private abortController?: AbortController;
-
-  constructor(props: StatefulChartProps) {
-    super(props);
-    this.state = {
-      status: 'uninitialized',
-    };
-    this.chartClient = new ChartClient({ client: props.client });
+  // Initialize chart client
+  if (!chartClientRef.current) {
+    chartClientRef.current = new ChartClient({ client: props.client });
   }
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: StatefulChartProps) {
-    const { chartId, formData, formDataOverrides, force } = this.props;
-
-    // Check if fundamental props changed that always require refetch
-    if (
-      chartId !== prevProps.chartId ||
-      formDataOverrides !== prevProps.formDataOverrides ||
-      force !== prevProps.force
-    ) {
-      this.fetchData();
-      return;
-    }
-
-    // Check if formData changed
-    if (formData !== prevProps.formData) {
-      // Determine the viz type
-      const vizType = formData?.viz_type || this.props.chartType;
-
-      // Check if we need to refetch data or just re-render
-      if (shouldRefetchData(prevProps.formData, formData, vizType)) {
-        this.fetchData();
-      } else {
-        // Just update the state to trigger re-render without fetching
-        this.setState({ formData });
-      }
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.abortController) {
-      this.abortController.abort();
-    }
-  }
-
-  private async fetchData() {
-    const { chartId, formData, formDataOverrides, onError, onLoad } =
-      this.props;
+  const fetchData = useCallback(async () => {
+    const {
+      chartId,
+      formData: propsFormData,
+      formDataOverrides,
+      onError,
+      onLoad,
+      chartType,
+      force,
+      timeout,
+    } = props;
 
     // Cancel any in-flight requests
-    if (this.abortController) {
-      this.abortController.abort();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
 
     // Create new abort controller
-    this.abortController = new AbortController();
+    abortControllerRef.current = new AbortController();
 
-    this.setState({ status: 'loading', error: undefined });
+    setStatus('loading');
+    setError(undefined);
 
     try {
       let finalFormData: QueryFormData;
 
-      if (chartId && !formData) {
+      if (chartId && !propsFormData) {
         // Load formData from chartId
-        finalFormData = await this.chartClient.loadFormData(
+        finalFormData = await chartClientRef.current!.loadFormData(
           { sliceId: chartId },
-          { signal: this.abortController.signal } as RequestConfig,
+          { signal: abortControllerRef.current.signal } as RequestConfig,
         );
-      } else if (formData) {
+      } else if (propsFormData) {
         // Use provided formData
-        finalFormData = formData;
+        finalFormData = propsFormData;
       } else {
         throw new Error('Either chartId or formData must be provided');
       }
@@ -250,7 +212,7 @@ export default class StatefulChart extends Component<
       }
 
       // Ensure viz_type is set
-      const vizType = finalFormData.viz_type || this.props.chartType;
+      const vizType = finalFormData.viz_type || chartType;
       if (!vizType) {
         throw new Error('Chart type (viz_type) must be specified');
       }
@@ -280,184 +242,235 @@ export default class StatefulChart extends Component<
 
       const requestConfig: RequestConfig = {
         endpoint,
-        signal: this.abortController.signal,
-        ...(this.props.timeout && { timeout: this.props.timeout * 1000 }),
+        signal: abortControllerRef.current.signal,
+        ...(timeout && { timeout: timeout * 1000 }),
       };
 
       if (useLegacyApi) {
         requestConfig.postPayload = {
           form_data: {
             ...finalFormData,
-            ...(this.props.force && { force: true }),
+            ...(force && { force: true }),
           },
         };
       } else {
         requestConfig.jsonPayload = {
           ...queryContext,
-          ...(this.props.force && { force: true }),
+          ...(force && { force: true }),
         };
       }
 
-      const response = await this.chartClient.client.post(requestConfig);
-      let data = Array.isArray(response.json) ? response.json : [response.json];
+      const response = await chartClientRef.current!.client.post(requestConfig);
+      let responseData = Array.isArray(response.json)
+        ? response.json
+        : [response.json];
 
       // Handle the nested result structure from the new API
-      if (!useLegacyApi && data[0]?.result) {
-        data = data[0].result;
+      if (!useLegacyApi && responseData[0]?.result) {
+        responseData = responseData[0].result;
       }
 
-      this.setState({
-        status: 'loaded',
-        data,
-        formData: finalFormData,
-      });
+      setStatus('loaded');
+      setData(responseData);
+      setFormData(finalFormData);
 
       if (onLoad) {
-        onLoad(data);
+        onLoad(responseData);
       }
-    } catch (error) {
+    } catch (err) {
       // Ignore abort errors
-      if (error.name === 'AbortError') {
+      if (err.name === 'AbortError') {
         return;
       }
 
-      this.setState({
-        status: 'error',
-        error: error as Error,
-      });
+      const errorObj = err as Error;
+      setStatus('error');
+      setError(errorObj);
 
       if (onError) {
-        onError(error as Error);
+        onError(errorObj);
       }
     }
-  }
+  }, []);
 
-  render() {
-    const { status, data, formData, error } = this.state;
-    const {
-      width = '100%',
-      height = 400,
-      showLoading = true,
-      loadingComponent: LoadingComponent,
-      errorComponent: ErrorComponent,
-      noDataComponent: NoDataComponent,
-      disableErrorBoundary,
-      enableNoResults = true,
-      id,
-      className,
-      onRenderSuccess,
-      onRenderFailure,
-    } = this.props;
+  // Combined effect for all prop changes and lifecycle
+  const prevPropsRef = useRef<StatefulChartProps>();
+  useEffect(() => {
+    const currentProps = props;
+    const prevProps = prevPropsRef.current;
 
-    if (status === 'loading' && showLoading) {
-      if (LoadingComponent) {
-        return <LoadingComponent />;
+    // Update ref for next render
+    prevPropsRef.current = currentProps;
+
+    // Initial mount or fundamental props changed - always refetch
+    if (
+      !prevProps ||
+      currentProps.chartId !== prevProps.chartId ||
+      currentProps.formDataOverrides !== prevProps.formDataOverrides ||
+      currentProps.force !== prevProps.force
+    ) {
+      fetchData();
+      return;
+    }
+
+    // Check if formData changed
+    if (currentProps.formData !== prevProps.formData) {
+      // Determine the viz type
+      const vizType = currentProps.formData?.viz_type || currentProps.chartType;
+
+      // Check if we need to refetch data or just re-render
+      if (
+        shouldRefetchData(prevProps.formData, currentProps.formData, vizType)
+      ) {
+        fetchData();
+      } else {
+        // Just update the state to trigger re-render without fetching
+        setFormData(currentProps.formData);
       }
+    }
+  }, [
+    props.chartId,
+    props.formData,
+    props.formDataOverrides,
+    props.force,
+    props.chartType,
+  ]);
 
-      // If using percentage sizing, wrap Loading in a container
-      if (width === '100%' || height === '100%') {
-        return (
-          <div style={{ width, height, position: 'relative' }}>
-            <Loading position="floating" />
-          </div>
-        );
+  // Cleanup effect
+  useEffect(
+    () => () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
+    },
+    [],
+  );
 
+  // Render logic
+  const {
+    width = '100%',
+    height = 400,
+    showLoading = true,
+    loadingComponent: LoadingComponent,
+    errorComponent: ErrorComponent,
+    noDataComponent: NoDataComponent,
+    disableErrorBoundary,
+    enableNoResults = true,
+    id,
+    className,
+    onRenderSuccess,
+    onRenderFailure,
+    hooks,
+  } = props;
+
+  if (status === 'loading' && showLoading) {
+    if (LoadingComponent) {
+      return <LoadingComponent />;
+    }
+
+    // If using percentage sizing, wrap Loading in a container
+    if (width === '100%' || height === '100%') {
       return (
-        <div
-          style={{
-            width: typeof width === 'number' ? `${width}px` : width,
-            height: typeof height === 'number' ? `${height}px` : height,
-            position: 'relative',
-          }}
-        >
+        <div style={{ width, height, position: 'relative' }}>
           <Loading position="floating" />
         </div>
       );
     }
 
-    if (status === 'error' && error) {
-      if (ErrorComponent) {
-        return <ErrorComponent error={error} />;
-      }
-
-      const errorDiv = (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            width: '100%',
-            color: 'var(--danger-color)',
-            fontSize: '14px',
-            padding: '16px',
-            textAlign: 'center',
-          }}
-        >
-          Error: {error.message}
-        </div>
-      );
-
-      // If using percentage sizing, wrap in a container
-      if (width === '100%' || height === '100%') {
-        return <div style={{ width, height }}>{errorDiv}</div>;
-      }
-
-      return (
-        <div
-          style={{
-            width: typeof width === 'number' ? `${width}px` : width,
-            height: typeof height === 'number' ? `${height}px` : height,
-          }}
-        >
-          {errorDiv}
-        </div>
-      );
-    }
-
-    if (status === 'loaded' && formData && data) {
-      // Check if we need dynamic sizing
-      const needsDynamicSizing = width === '100%' || height === '100%';
-
-      const renderChart = (
-        chartWidth: number | string,
-        chartHeight: number | string,
-      ) => (
-        <SuperChart
-          id={id}
-          className={className}
-          chartType={formData.viz_type}
-          width={chartWidth}
-          height={chartHeight}
-          formData={formData}
-          queriesData={data}
-          disableErrorBoundary={disableErrorBoundary}
-          enableNoResults={enableNoResults}
-          noResults={NoDataComponent && <NoDataComponent />}
-          onRenderSuccess={onRenderSuccess}
-          onRenderFailure={onRenderFailure}
-          hooks={this.props.hooks}
-        />
-      );
-
-      if (needsDynamicSizing) {
-        return (
-          <div style={{ width: '100%', height: '100%' }}>
-            <ParentSize>
-              {({ width: parentWidth, height: parentHeight }) => {
-                const finalWidth = width === '100%' ? parentWidth : width;
-                const finalHeight = height === '100%' ? parentHeight : height;
-                return renderChart(finalWidth, finalHeight);
-              }}
-            </ParentSize>
-          </div>
-        );
-      }
-
-      return renderChart(width, height);
-    }
-
-    return null;
+    return (
+      <div
+        style={{
+          width: typeof width === 'number' ? `${width}px` : width,
+          height: typeof height === 'number' ? `${height}px` : height,
+          position: 'relative',
+        }}
+      >
+        <Loading position="floating" />
+      </div>
+    );
   }
+
+  if (status === 'error' && error) {
+    if (ErrorComponent) {
+      return <ErrorComponent error={error} />;
+    }
+
+    const errorDiv = (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          width: '100%',
+          color: 'var(--danger-color)',
+          fontSize: '14px',
+          padding: '16px',
+          textAlign: 'center',
+        }}
+      >
+        Error: {error.message}
+      </div>
+    );
+
+    // If using percentage sizing, wrap in a container
+    if (width === '100%' || height === '100%') {
+      return <div style={{ width, height }}>{errorDiv}</div>;
+    }
+
+    return (
+      <div
+        style={{
+          width: typeof width === 'number' ? `${width}px` : width,
+          height: typeof height === 'number' ? `${height}px` : height,
+        }}
+      >
+        {errorDiv}
+      </div>
+    );
+  }
+
+  if (status === 'loaded' && formData && data) {
+    // Check if we need dynamic sizing
+    const needsDynamicSizing = width === '100%' || height === '100%';
+
+    const renderChart = (
+      chartWidth: number | string,
+      chartHeight: number | string,
+    ) => (
+      <SuperChart
+        id={id}
+        className={className}
+        chartType={formData.viz_type}
+        width={chartWidth}
+        height={chartHeight}
+        formData={formData}
+        queriesData={data}
+        disableErrorBoundary={disableErrorBoundary}
+        enableNoResults={enableNoResults}
+        noResults={NoDataComponent && <NoDataComponent />}
+        onRenderSuccess={onRenderSuccess}
+        onRenderFailure={onRenderFailure}
+        hooks={hooks}
+      />
+    );
+
+    if (needsDynamicSizing) {
+      return (
+        <div style={{ width: '100%', height: '100%' }}>
+          <ParentSize>
+            {({ width: parentWidth, height: parentHeight }) => {
+              const finalWidth = width === '100%' ? parentWidth : width;
+              const finalHeight = height === '100%' ? parentHeight : height;
+              return renderChart(finalWidth, finalHeight);
+            }}
+          </ParentSize>
+        </div>
+      );
+    }
+
+    return renderChart(width, height);
+  }
+
+  return null;
 }
