@@ -395,6 +395,7 @@ const ExploreChartPanel = ({
               queriesResponse: chart.queriesResponse,
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
+            hideRowCount={formData?.matrixify_enabled === true}
           />
         </ChartHeaderExtension>
         {renderChart()}
@@ -411,6 +412,7 @@ const ExploreChartPanel = ({
       chart.chartUpdateEndTime,
       refreshCachedQuery,
       formData?.row_limit,
+      formData?.matrixify_enabled,
       renderChart,
     ],
   );

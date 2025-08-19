@@ -184,7 +184,8 @@ const ChartContextMenu = (
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
-    isDisplayed(ContextMenuItem.DrillBy);
+    isDisplayed(ContextMenuItem.DrillBy) &&
+    !formData.matrixify_enabled; // Disable drill by when matrixify is enabled
 
   const datasetResource = useDatasetDrillInfo(
     formData.datasource,
@@ -230,9 +231,9 @@ const ChartContextMenu = (
     datasetResource.status,
     datasetResource.result,
     showDrillBy,
-    filters?.drillBy?.groupbyFieldName,
+    enhancedFilters?.drillBy?.groupbyFieldName,
     formData.x_axis,
-    formData[filters?.drillBy?.groupbyFieldName ?? ''],
+    formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
     loadDrillByOptionsExtension,
   ]);
@@ -437,7 +438,7 @@ const ChartContextMenu = (
         <DrillDetailModal
           initialFilters={modalFilters}
           chartId={id}
-          formData={formData}
+          formData={drillFormData}
           showModal={drillModalIsOpen}
           onHideModal={() => {
             setDrillModalIsOpen(false);
@@ -448,10 +449,10 @@ const ChartContextMenu = (
       {showDrillByModal &&
         drillByColumn &&
         filteredDataset &&
-        filters?.drillBy && (
+        enhancedFilters?.drillBy && (
           <DrillByModal
             column={drillByColumn}
-            drillByConfig={filters?.drillBy}
+            drillByConfig={enhancedFilters?.drillBy}
             formData={formData}
             onHideModal={handleCloseDrillByModal}
             dataset={filteredDataset}

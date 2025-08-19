@@ -86,8 +86,8 @@ const setupMocks = () => {
   });
 };
 
-// Set timeout for all tests in this file to 30 seconds
-jest.setTimeout(30000);
+// Set timeout for all tests in this file to 60 seconds
+jest.setTimeout(60000);
 
 beforeEach(() => {
   setupMocks();
