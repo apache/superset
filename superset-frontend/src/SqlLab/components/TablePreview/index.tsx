@@ -382,9 +382,6 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                         visualize={false}
                         csv={false}
                         cache
-                        height={
-                          height - TAB_HEADER_HEIGHT - PREVIEW_TOP_ACTION_HEIGHT
-                        }
                         displayLimit={PREVIEW_QUERY_LIMIT}
                         defaultQueryLimit={PREVIEW_QUERY_LIMIT}
                       />
