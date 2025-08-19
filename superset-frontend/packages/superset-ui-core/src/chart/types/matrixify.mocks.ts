@@ -17,11 +17,6 @@
  * under the License.
  */
 
-export * from './sections';
-export * from './advancedAnalytics';
-export * from './annotationsAndLayers';
-export * from './forecastInterval';
-export * from './chartTitle';
-export * from './echartsTimeSeriesQuery';
-export * from './timeComparison';
-export * from './matrixify';
+export const isMatrixifyEnabled = jest.fn(() => false);
+
+export const MatrixifyGridRenderer = jest.fn(() => null);
