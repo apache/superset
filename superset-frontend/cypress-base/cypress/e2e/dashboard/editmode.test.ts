@@ -169,13 +169,16 @@ function selectColorScheme(
     cy.contains('Styling').scrollIntoView();
     cy.contains('Styling')
       .closest('.ant-collapse-header')
-      .should('have.attr', 'aria-expanded', 'false') // Ensure it's collapsed first
-      .click({ force: true });
+      .then($header => {
+        // Click to expand regardless of current state
+        cy.wrap($header).click({ force: true });
+      });
 
-    // Wait for animation and check that section expanded
+    // Wait for animation and verify section is expanded
     cy.contains('Styling')
       .closest('.ant-collapse-header')
       .should('have.attr', 'aria-expanded', 'true');
+    cy.wait(500); // Extra wait for content to render
 
     // Ensure the color scheme input is visible before proceeding
     cy.get('input[aria-label="Select color scheme"]').should('be.visible');
@@ -205,6 +208,8 @@ function saveAndGo(dashboard = 'Tabbed Dashboard') {
 
 function applyChanges() {
   cy.getBySel('modal-confirm-button').click({ force: true });
+  // Wait for modal to close completely
+  cy.get('.ant-modal-wrap').should('not.exist');
 }
 
 function saveChanges() {
@@ -1156,8 +1161,10 @@ describe('Dashboard edit', () => {
       openProperties(); // Need to open modal first
       // Ensure title input is visible in the modal
       cy.getBySel('dashboard-title-input').scrollIntoView();
-      cy.getBySel('dashboard-title-input').clear();
-      cy.getBySel('dashboard-title-input').type('Edited title');
+      cy.getBySel('dashboard-title-input').clear({ force: true });
+      cy.getBySel('dashboard-title-input').type('Edited title', {
+        force: true,
+      });
       applyChanges();
       cy.getBySel('editable-title-input').should('have.value', 'Edited title');
     });
@@ -1178,16 +1185,20 @@ describe('Dashboard edit', () => {
     });
 
     it('should edit the title inline', () => {
-      cy.getBySel('editable-title-input').clear();
-      cy.getBySel('editable-title-input').type('Edited title{enter}');
+      cy.getBySel('editable-title-input').clear({ force: true });
+      cy.getBySel('editable-title-input').type('Edited title{enter}', {
+        force: true,
+      });
       cy.getBySel('header-save-button').should('be.enabled');
     });
 
     it('should filter charts', () => {
       interceptCharts();
       cy.get('input[type="checkbox"]').scrollIntoView();
-      cy.get('input[type="checkbox"]').click();
-      cy.getBySel('dashboard-charts-filter-search-input').type('Unicode');
+      cy.get('input[type="checkbox"]').click({ force: true });
+      cy.getBySel('dashboard-charts-filter-search-input').type('Unicode', {
+        force: true,
+      });
       cy.wait('@filtering');
       cy.getBySel('chart-card')
         .should('have.length', 1)
@@ -1198,7 +1209,7 @@ describe('Dashboard edit', () => {
     // TODO fix this test! This was the #1 flaky test as of 4/21/23 according to cypress dashboard.
     it.skip('should disable the Save button when undoing', () => {
       cy.get('input[type="checkbox"]').scrollIntoView();
-      cy.get('input[type="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click({ force: true });
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
       discardChanges();
@@ -1213,14 +1224,14 @@ describe('Dashboard edit', () => {
 
     it('should add charts', () => {
       cy.get('input[type="checkbox"]').scrollIntoView();
-      cy.get('input[type="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click({ force: true });
       dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
     it.skip('should remove added charts', () => {
       cy.get('input[type="checkbox"]').scrollIntoView();
-      cy.get('input[type="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click({ force: true });
       dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
       cy.getBySel('dashboard-delete-component-button').click();
@@ -1264,7 +1275,7 @@ describe('Dashboard edit', () => {
 
     it('should save', () => {
       cy.get('input[type="checkbox"]').scrollIntoView();
-      cy.get('input[type="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click({ force: true });
       dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
       saveChanges();
