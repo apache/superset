@@ -134,6 +134,7 @@ export const useThemeMenuItems = ({
     key: 'theme-sub-menu',
     label: selectedThemeModeIcon,
     icon: <Icons.CaretDownOutlined iconSize="xs" />,
+    className: 'submenu-with-caret',
     children,
   };
 };
