@@ -183,6 +183,17 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       'gantt',
       'pivot_table_v2',
       'table',
+      'deck_arc',
+      'deck_geojson',
+      'deck_grid',
+      'deck_hex',
+      'deck_heatmap',
+      'deck_multi',
+      'deck_polygon',
+      'deck_scatter',
+      'deck_screengrid',
+      'deck_contour',
+      'deck_path',
     ];
 
     if (excludedChartTypes.includes(chartType)) {
