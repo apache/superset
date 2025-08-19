@@ -254,13 +254,10 @@ describe('SavedQuery', () => {
 
     const mockOnSave = jest.fn().mockImplementation(() => savePromise);
 
-    render(
-      <SaveQuery {...mockedProps} onSave={mockOnSave} />,
-      {
-        useRedux: true,
-        store: mockStore(mockState),
-      },
-    );
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
 
     // Open the modal
     const saveBtn = screen.getByRole('button', { name: /save/i });
@@ -307,7 +304,7 @@ describe('SavedQuery', () => {
             dbId: 1,
             catalog: null,
             schema: 'main',
-            sql: 'SELECT ...',  // Default SQL for new tabs
+            sql: 'SELECT ...', // Default SQL for new tabs
             name: undefined,
             description: undefined,
           },
@@ -315,13 +312,10 @@ describe('SavedQuery', () => {
       },
     };
 
-    render(
-      <SaveQuery {...mockedProps} onSave={mockOnSave} />,
-      {
-        useRedux: true,
-        store: mockStore(newTabState),
-      },
-    );
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(newTabState),
+    });
 
     // Open the modal
     const saveBtn = screen.getByRole('button', { name: /save/i });
@@ -334,7 +328,7 @@ describe('SavedQuery', () => {
 
     // The name field should have "Undefined" as default
     const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
-    expect(nameInput.value).toBe('Undefined');
+    expect(nameInput).toHaveValue('Undefined');
 
     // Click save button
     const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
