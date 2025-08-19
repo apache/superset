@@ -23,8 +23,8 @@ Create Date: 2025-08-13 19:09:41.796801
 """
 
 # revision identifiers, used by Alembic.
-revision = 'da125679ebb8'
-down_revision = 'c233f5365c9e'
+revision = "da125679ebb8"
+down_revision = "c233f5365c9e"
 
 
 from alembic import op
@@ -55,10 +55,10 @@ def upgrade():
             new_conditional_formatting = []
             for formatter in conditional_formatting:
                 color_scheme = formatter.get("colorScheme")
-               
+
                 if color_scheme not in ["Green", "Red"]:
                     new_conditional_formatting.append(
-                        {**formatter, "toAllRow": False, "toTextColor":False}
+                        {**formatter, "toAllRow": False, "toTextColor": False}
                     )
                 else:
                     new_conditional_formatting.append(formatter)
@@ -85,9 +85,9 @@ def downgrade():
                     new_conditional_formatting.append(new_formatter)
                 else:
                     new_conditional_formatting.append(formatter)
-            
+
             params["conditional_formatting"] = new_conditional_formatting
             slc.params = json.dumps(params)
             session.commit()
-    
+
     session.close()
