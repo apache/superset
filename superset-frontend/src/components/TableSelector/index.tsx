@@ -127,6 +127,8 @@ export const TableOption = ({ table }: { table: Table }) => {
     <TableLabel title={value}>
       {type === 'view' ? (
         <Icons.EyeOutlined iconSize="m" />
+      ) : type === 'materialized_view' ? (
+        <Icons.DatabaseOutlined iconSize="m" />
       ) : (
         <Icons.InsertRowAboveOutlined iconSize="m" />
       )}
