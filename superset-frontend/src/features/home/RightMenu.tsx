@@ -577,6 +577,7 @@ const RightMenu = ({
             data-test="new-dropdown-icon"
           />
         ),
+        className: 'submenu-with-caret',
         icon: <Icons.CaretDownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
         ...{ 'data-test': 'new-dropdown' },
@@ -596,6 +597,7 @@ const RightMenu = ({
       label: t('Settings'),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
+      className: 'submenu-with-caret',
     });
 
     return items;
@@ -680,6 +682,12 @@ const RightMenu = ({
           display: flex;
           flex-direction: row;
           align-items: center;
+
+          .submenu-with-caret > .ant-menu-submenu-title {
+            display: flex;
+            gap: ${theme.sizeUnit * 2}px;
+            flex-direction: row-reverse;
+          }
         `}
         selectable={false}
         mode="horizontal"
