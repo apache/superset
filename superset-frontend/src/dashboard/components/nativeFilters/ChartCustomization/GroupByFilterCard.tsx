@@ -203,7 +203,7 @@ const GroupByFilterCardContent: FC<{
   hidePopover: () => void;
 }> = ({ customizationItem }) => {
   const { description, customization } = customizationItem;
-  const { dataset, aggregation, name } = customization || {};
+  const { dataset, name } = customization || {};
   const [titleRef, , titleTruncated] = useTruncation();
   const displayName = name?.trim() || t('Dynamic group by');
 
@@ -240,10 +240,12 @@ const GroupByFilterCardContent: FC<{
     dataset,
   ]);
 
-  const aggregationDisplay = useMemo(
-    () => (aggregation ? aggregation.toUpperCase() : t('None')),
-    [aggregation],
-  );
+  const aggregationDisplay = useMemo(() => {
+    if (customization.sortMetric) {
+      return customization.sortMetric.toUpperCase();
+    }
+    return t('None');
+  }, [customization.sortMetric]);
 
   return (
     <div>
