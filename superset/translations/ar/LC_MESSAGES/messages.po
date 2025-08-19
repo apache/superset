@@ -835,11 +835,11 @@ msgid "Add Dashboard"
 msgstr "إضافة لوحة معلومات"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "مقسم"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "إضافة فلتر"
 
 #, fuzzy
@@ -1846,7 +1846,7 @@ msgstr "فلاتر الإكمال التلقائي"
 msgid "Autocomplete query predicate"
 msgstr "استعلام الإكمال التلقائي المسند"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "اللون التلقائي"
 
 #, fuzzy
@@ -3309,7 +3309,7 @@ msgstr "خريطة البلد"
 msgid "Create"
 msgstr "خلق"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "إنشاء مخطط"
 
 msgid "Create a dataset"
@@ -3435,7 +3435,7 @@ msgid "Custom"
 msgstr "تقليد"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "التنسيق الشرطي"
 
 msgid "Custom Plugin"
@@ -6032,7 +6032,7 @@ msgstr "صورة (PNG) مضمنة في البريد الإلكتروني"
 msgid "Image download failed, please refresh and try again."
 msgstr "فشل تنزيل الصورة، يرجى التحديث والمحاولة مرة أخرى."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "انتحال شخصية المستخدم الذي قام بتسجيل الدخول (بريستو، ترينو، دريل، هايف، "
 "وGSheets)"
@@ -9078,7 +9078,7 @@ msgstr "يحتوي المورد بالفعل على تقرير مرفق."
 msgid "Resource was not found."
 msgstr "لم يتم العثور على المورد."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "عامل تصفية الاستعادة"
 
 msgid "Results"
@@ -9666,7 +9666,7 @@ msgstr "حدد طريقة التسليم"
 msgid "Select Tags"
 msgstr "حدد العلامات"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "حدد نوع الفيز"
 
 msgid "Select a column"
@@ -10104,7 +10104,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "عرض بيان إنشاء عرض"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "عرض أشرطة الخلايا"
 
 msgid "Show Dashboard"
@@ -13884,7 +13884,7 @@ msgstr "فرز المحور السيني حسب"
 msgid "X-axis"
 msgstr "المحور السيني"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "الفاصل الزمني للمقياس"
 
 msgid "XYZ"
@@ -13942,7 +13942,7 @@ msgstr "المحور الصادي"
 msgid "Y-axis bounds"
 msgstr "حدود المحور Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "الفاصل الزمني للقياس"
 
 msgid "Year"
@@ -14308,7 +14308,7 @@ msgstr "يجب أن يكون `row_offset` أكبر من أو يساوي 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "يجب أن يكون «العرض» أكبر أو يساوي 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -14352,7 +14352,7 @@ msgid "background"
 msgstr "خلفية"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "التنسيق الشرطي"
 
 msgid "basis"

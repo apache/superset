@@ -485,7 +485,12 @@ const ColumnSelectPopover = ({
       />
 
       <div>
-        <Button buttonSize="small" onClick={onResetStateAndClose} cta>
+        <Button
+          buttonSize="small"
+          buttonStyle="secondary"
+          onClick={onResetStateAndClose}
+          cta
+        >
           {t('Close')}
         </Button>
         <Button

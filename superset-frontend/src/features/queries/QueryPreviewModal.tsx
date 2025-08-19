@@ -28,13 +28,13 @@ import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewStat
 import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.primary.light2};
+  color: ${({ theme }) => theme.colorTextSecondary};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
   font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 24px 0;
 `;
@@ -54,27 +54,19 @@ const TabButton = styled.div`
   &.active,
   &:focus,
   &:hover {
-    background: ${({ theme }) => theme.colors.primary.light4};
+    background: ${({ theme }) => theme.colorPrimaryBg};
     border-bottom: none;
     border-radius: ${({ theme }) => theme.borderRadius}px;
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   &:hover:not(.active) {
-    background: ${({ theme }) => theme.colors.primary.light5};
+    background: ${({ theme }) => theme.colorPrimaryBgHover};
   }
 `;
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: ${({ theme }) => theme.sizeUnit * 6}px;
-  }
-
-  pre {
-    font-size: ${({ theme }) => theme.fontSizeXS}px;
-    font-weight: ${({ theme }) => theme.fontWeightNormal};
-    line-height: ${({ theme }) => theme.fontSizeLG}px;
-    height: 375px;
-    border: none;
   }
 `;
 

@@ -716,7 +716,7 @@ function FiltersConfigModal({
       maskClosable={false}
       title={t('Add and edit filters')}
       expanded={expanded}
-      destroyOnClose
+      destroyOnHidden
       onCancel={handleCancel}
       onOk={handleSave}
       centered
@@ -740,7 +740,7 @@ function FiltersConfigModal({
           <StyledExpandButtonWrapper>
             <ToggleIcon
               iconSize="l"
-              iconColor={theme.colors.grayscale.dark2}
+              iconColor={theme.colorIcon}
               onClick={toggleExpand}
             />
           </StyledExpandButtonWrapper>

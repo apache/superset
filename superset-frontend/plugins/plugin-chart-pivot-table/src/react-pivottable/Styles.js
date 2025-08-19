@@ -62,7 +62,7 @@ export const Styles = styled.div`
     table.pvtTable thead th.pvtSubtotalLabel,
     table.pvtTable tbody tr:last-of-type th,
     table.pvtTable tbody tr:last-of-type td {
-      border-bottom: 1px solid ${theme.colors.grayscale.light2};
+      border-bottom: 1px solid ${theme.colorSplit};
     }
 
     table.pvtTable
@@ -77,7 +77,7 @@ export const Styles = styled.div`
 
     table.pvtTable tbody tr td:last-of-type,
     table.pvtTable thead tr th:last-of-type:not(.pvtSubtotalLabel) {
-      border-right: 1px solid ${theme.colors.grayscale.light2};
+      border-right: 1px solid ${theme.colorSplit};
     }
 
     table.pvtTable
@@ -89,7 +89,7 @@ export const Styles = styled.div`
     }
 
     table.pvtTable tr th.active {
-      background-color: ${theme.colors.primary.light3};
+      background-color: ${theme.colorPrimaryBg};
     }
 
     table.pvtTable .pvtTotalLabel {
@@ -102,11 +102,11 @@ export const Styles = styled.div`
     }
 
     table.pvtTable tbody tr td {
-      color: ${theme.colors.primary.dark2};
+      color: ${theme.colorPrimaryText};
       padding: ${theme.sizeUnit}px;
-      background-color: ${theme.colors.grayscale.light5};
-      border-top: 1px solid ${theme.colors.grayscale.light2};
-      border-left: 1px solid ${theme.colors.grayscale.light2};
+      background-color: ${theme.colorBgBase};
+      border-top: 1px solid ${theme.colorSplit};
+      border-left: 1px solid ${theme.colorSplit};
       vertical-align: top;
       text-align: right;
     }
@@ -138,7 +138,7 @@ export const Styles = styled.div`
     }
 
     .hoverable:hover {
-      background-color: ${theme.colors.primary.light4};
+      background-color: ${theme.colorPrimaryBgHover};
       cursor: pointer;
     }
   `}

@@ -363,9 +363,26 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
   cy.get(nativeFilters.modal.footer)
     .contains('Save')
     .should('be.visible')
-    .click();
+    .click({ force: true });
+
+  // Wait for modal to either close or remain open
+  cy.get('body').should($body => {
+    const modalExists = $body.find(nativeFilters.modal.container).length > 0;
+    if (modalExists) {
+      cy.get(nativeFilters.modal.footer)
+        .contains('Save')
+        .should('be.visible')
+        .click({ force: true });
+    }
+  });
+
+  // Ensure modal is closed
   cy.get(nativeFilters.modal.container).should('not.exist');
-  charts.forEach(waitForChartLoad);
+
+  // Wait for all charts to load
+  charts.forEach(chart => {
+    waitForChartLoad(chart);
+  });
 }
 
 /** ************************************************************************

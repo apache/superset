@@ -45,8 +45,22 @@ const ControlContainer = styled.div<{
   width: 100%;
   & > div,
   & > div:hover {
-    ${({ validateStatus, theme }) =>
-      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
+    ${({ validateStatus, theme }) => {
+      if (!validateStatus) return '';
+      switch (validateStatus) {
+        case 'error':
+          return `border-color: ${theme.colorError}`;
+        case 'warning':
+          return `border-color: ${theme.colorWarning}`;
+        case 'info':
+          return `border-color: ${theme.colorInfo}`;
+        default:
+          return `border-color: ${theme.colorError}`;
+      }
+    }}
+  }
+  & > div {
+    width: 100%;
   }
 `;
 

@@ -25,7 +25,6 @@ import {
   FilterState,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  isTimeseriesAnnotationResult,
   LegendState,
   SupersetTheme,
   TimeseriesAnnotationLayer,
@@ -425,7 +424,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -433,19 +432,19 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         }
       : {
           show: false,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         };
     series.push({
@@ -506,25 +505,25 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         }
       : {
           show: false,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextLabel,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorPrimaryBgHover,
           },
         };
 
@@ -557,26 +556,30 @@ export function transformTimeseriesAnnotation(
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
-  if (isTimeseriesAnnotationResult(result)) {
-    result.forEach(annotation => {
-      const { key, values } = annotation;
-      series.push({
-        type: 'line',
-        id: key,
-        name: key,
-        data: values.map(({ x, y }) =>
-          isHorizontal
-            ? ([y, x] as [number, OptionName])
-            : ([x, y] as [OptionName, number]),
-        ),
-        symbolSize: showMarkers ? markerSize : 0,
-        lineStyle: {
-          opacity: parseAnnotationOpacity(opacity),
-          type: style as ZRLineType,
-          width: hideLine ? 0 : width,
-          color: color || colorScale(name, sliceId),
-        },
-      });
+  const { records } = result;
+  if (records) {
+    const data = records.map(record => {
+      const keys = Object.keys(record);
+      const x = keys.length > 0 ? record[keys[0]] : 0;
+      const y = keys.length > 1 ? record[keys[1]] : 0;
+      return isHorizontal
+        ? ([y, x] as [number, OptionName])
+        : ([x, y] as [OptionName, number]);
+    });
+    const computedStyle = {
+      opacity: parseAnnotationOpacity(opacity),
+      type: style as ZRLineType,
+      width: hideLine ? 0 : width,
+      color: color || colorScale(name, sliceId),
+    };
+    series.push({
+      type: 'line',
+      id: name,
+      name,
+      data,
+      symbolSize: showMarkers ? markerSize : 0,
+      itemStyle: computedStyle,
+      lineStyle: computedStyle,
     });
   }
   return series;

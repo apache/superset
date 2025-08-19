@@ -78,19 +78,19 @@ const StyledContainer = styled.div`
     background-color: ${theme.colorBgContainer};
     margin-left: auto;
     margin-right: auto;
-    padding-left: ${theme.sizeUnit * 4}px;
-    padding-right: ${theme.sizeUnit * 4}px;
-    padding-bottom: ${theme.sizeUnit * 4}px;
+    padding-left: ${theme.padding}px;
+    padding-right: ${theme.padding}px;
+    padding-bottom: ${theme.padding}px;
 
     h3 {
-      padding-bottom: ${theme.sizeUnit * 3}px;
+      padding-bottom: ${theme.paddingSM}px;
     }
 
     & .dataset {
       display: flex;
       flex-direction: row;
       align-items: center;
-      margin-bottom: ${theme.sizeUnit * 5}px;
+      margin-bottom: ${theme.marginMD}px;
 
       & > div {
         min-width: 200px;
@@ -99,14 +99,14 @@ const StyledContainer = styled.div`
 
       & > span {
         color: ${theme.colorText};
-        margin-left: ${theme.sizeUnit * 4}px;
+        margin-left: ${theme.margin}px;
       }
     }
 
     & .viz-gallery {
       border: 1px solid ${theme.colorBorder};
       border-radius: ${theme.borderRadius}px;
-      margin: ${theme.sizeUnit}px 0px;
+      margin: ${theme.marginXXS}px 0px;
       max-height: calc(100vh - ${ELEMENTS_EXCEPT_VIZ_GALLERY}px);
       flex: 1;
     }
@@ -120,7 +120,7 @@ const StyledContainer = styled.div`
 
       & > span {
         color: ${theme.colorText};
-        margin-right: ${theme.sizeUnit * 4}px;
+        margin-right: ${theme.margin}px;
       }
     }
 
@@ -131,7 +131,7 @@ const StyledContainer = styled.div`
     }
 
     &&&& .ant-steps-item-icon {
-      margin-right: ${theme.sizeUnit * 2}px;
+      margin-right: ${theme.marginXS}px;
       width: ${theme.sizeUnit * 5}px;
       height: ${theme.sizeUnit * 5}px;
       line-height: ${theme.sizeUnit * 5}px;
@@ -153,18 +153,6 @@ const StyledContainer = styled.div`
     &&&& .ant-tooltip-open {
       display: inline;
     }
-
-    &&&& .ant-select-selector {
-      padding: 0;
-    }
-
-    &&&& .ant-select-selection-placeholder {
-      padding-left: ${theme.sizeUnit * 3}px;
-    }
-
-    &&&& .ant-select-selection-item {
-      padding-left: ${theme.sizeUnit * 3}px;
-    }
   `}
 `;
 
@@ -176,9 +164,10 @@ const StyledStepTitle = styled.span`
 `;
 
 const StyledStepDescription = styled.div`
-  ${({ theme: { sizeUnit } }) => `
-    margin-top: ${sizeUnit * 4}px;
-    margin-bottom: ${sizeUnit * 3}px;
+  ${({ theme }) => `
+    margin-top: ${theme.margin}px;
+    margin-bottom: ${theme.marginSM}px;
+    margin-left: ${theme.marginMD}px;
   `}
 `;
 
@@ -272,6 +261,7 @@ export class ChartCreation extends PureComponent<
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
         label: DatasetSelectLabel(item),
+        customLabel: item.table_name,
       }));
       return {
         data: list,
@@ -297,7 +287,7 @@ export class ChartCreation extends PureComponent<
           data-test="add-chart-new-dataset-instructions"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
+          <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
         </a>
         .
       </span>
@@ -309,7 +299,7 @@ export class ChartCreation extends PureComponent<
           target="_blank"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
+          <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
         </a>
         .
       </span>
@@ -330,7 +320,7 @@ export class ChartCreation extends PureComponent<
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
-                  optionFilterProps={['id', 'label']}
+                  optionFilterProps={['id', 'customLabel']}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}

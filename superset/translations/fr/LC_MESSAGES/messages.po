@@ -855,11 +855,11 @@ msgid "Add Dashboard"
 msgstr "Ajouter un tableau de bord"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Diviseur"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Ajouter un filtre"
 
 msgid "Add Group"
@@ -1951,7 +1951,7 @@ msgstr "Remplir automatiquement les filtres"
 msgid "Autocomplete query predicate"
 msgstr "Prédicat d'autocomplétion de la requête"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Couleur automatique"
 
 #, fuzzy
@@ -3547,7 +3547,7 @@ msgid "Create"
 msgstr "Créer"
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Créer un graphique"
 
 #, fuzzy
@@ -3686,7 +3686,7 @@ msgid "Custom"
 msgstr "Personnalisé"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Formatage conditionnel"
 
 msgid "Custom Plugin"
@@ -6391,7 +6391,7 @@ msgstr "Image (PNG) encapsulée dans le courriel"
 msgid "Image download failed, please refresh and try again."
 msgstr "Échec du téléchargement de l’image, veuillez actualiser et réessayer."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Se faire passer pour l'utilisateur·rice connecté·e (Presto, Trino, Drill,"
 " Hive, and GSheets)"
@@ -9724,7 +9724,7 @@ msgstr "La ressource a déjà un rapport joint."
 msgid "Resource was not found."
 msgstr "Base de données non trouvée."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Restaurer le filtre"
 
 msgid "Results"
@@ -10360,7 +10360,7 @@ msgstr "Sélectionner la méthode de livraison"
 msgid "Select Tags"
 msgstr "Tout Dé-Sélectionner"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selectionner un type de visualisation"
 
 msgid "Select a column"
@@ -10839,7 +10839,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "Afficher l’énoncé CREATE VIEW"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Afficher les barres de cellules"
 
 msgid "Show Dashboard"
@@ -15012,7 +15012,7 @@ msgstr "Axe des abscisses – Trier par"
 msgid "X-axis"
 msgstr "Axe des abscisses"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Intervalle XScale"
 
 msgid "XYZ"
@@ -15071,7 +15071,7 @@ msgid "Y-axis bounds"
 msgstr "Limites de l’axe des ordonnées"
 
 #, fuzzy
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Intervalle YScale"
 
 msgid "Year"
@@ -15474,7 +15474,7 @@ msgstr "« row_offset » doit être plus grand ou égal à 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "« width » doit être plus grand ou égal à 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "ajouter des couleurs aux barres de cellules pour +/-"
 
 msgid "aggregate"
@@ -15517,7 +15517,7 @@ msgstr "auto"
 msgid "background"
 msgstr "contexte"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "formatage conditionnel basique"
 
 #, fuzzy

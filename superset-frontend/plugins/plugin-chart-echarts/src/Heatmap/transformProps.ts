@@ -99,6 +99,7 @@ export default function transformProps(
     valueBounds,
     yAxisFormat,
     xAxisTimeFormat,
+    xAxisLabelRotation,
     currencyFormat,
   } = formData;
   const metricLabel = getMetricLabel(metric);
@@ -175,9 +176,9 @@ export default function transformProps(
       },
       emphasis: {
         itemStyle: {
-          borderColor: supersetTheme.colors.grayscale.light5,
+          borderColor: supersetTheme.colorBgContainer,
           shadowBlur: 10,
-          shadowColor: supersetTheme.colors.grayscale.dark2,
+          shadowColor: supersetTheme.colorTextBase,
         },
       },
     },
@@ -251,6 +252,7 @@ export default function transformProps(
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
+        rotate: xAxisLabelRotation,
       },
     },
     yAxis: {

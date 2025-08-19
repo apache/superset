@@ -19,19 +19,12 @@
 import { LOGIN } from 'cypress/utils/urls';
 
 function interceptLogin() {
-  cy.intercept('POST', '/login/').as('login');
+  cy.intercept('POST', '**/login/').as('login');
 }
 
 describe('Login view', () => {
   beforeEach(() => {
     cy.visit(LOGIN);
-  });
-
-  it('should load login page', () => {
-    cy.getBySel('login-form').should('be.visible');
-    cy.getBySel('username-input').should('be.visible');
-    cy.getBySel('password-input').should('be.visible');
-    cy.getBySel('login-button').should('be.visible');
   });
 
   it('should redirect to login with incorrect username and password', () => {

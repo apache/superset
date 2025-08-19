@@ -810,11 +810,11 @@ msgstr "Template CSS"
 msgid "Add Dashboard"
 msgstr ""
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr ""
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Aggiungi filtro"
 
 #, fuzzy
@@ -1831,7 +1831,7 @@ msgstr ""
 msgid "Autocomplete query predicate"
 msgstr ""
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr ""
 
 #, fuzzy
@@ -3296,7 +3296,7 @@ msgid "Create"
 msgstr "Creato il"
 
 #, fuzzy
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Esplora grafico"
 
 #, fuzzy
@@ -3428,7 +3428,7 @@ msgid "Custom"
 msgstr ""
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Formato Datetime"
 
 msgid "Custom Plugin"
@@ -5967,7 +5967,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -9070,7 +9070,7 @@ msgid "Resource was not found."
 msgstr "Template CSS"
 
 #, fuzzy
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Cerca / Filtra"
 
 msgid "Results"
@@ -9675,7 +9675,7 @@ msgid "Select Tags"
 msgstr "Seleziona data finale"
 
 #, fuzzy
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Seleziona un tipo di visualizzazione"
 
 #, fuzzy
@@ -10114,7 +10114,7 @@ msgid "Show CREATE VIEW statement"
 msgstr ""
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Grafico a Proiettile"
 
 msgid "Show Dashboard"
@@ -13705,7 +13705,7 @@ msgstr ""
 msgid "X-axis"
 msgstr ""
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr ""
 
 msgid "XYZ"
@@ -13764,7 +13764,7 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr ""
 
 #, fuzzy
@@ -14117,7 +14117,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -14162,7 +14162,7 @@ msgid "background"
 msgstr ""
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Formato Datetime"
 
 msgid "basis"

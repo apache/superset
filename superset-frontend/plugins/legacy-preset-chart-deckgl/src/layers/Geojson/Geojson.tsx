@@ -23,10 +23,12 @@ import { GeoJsonLayer } from '@deck.gl/layers';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import geojsonExtent from '@mapbox/geojson-extent';
 import {
+  FilterState,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 
 import {
@@ -40,6 +42,8 @@ import TooltipRow from '../../TooltipRow';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
+import { GetLayerType } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -116,15 +120,32 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-const getFillColor = (feature: JsonObject) => feature?.properties?.fillColor;
+const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
+  if (filterStateValue) {
+    if (
+      JSON.stringify(feature.geometry.coordinates) ===
+      JSON.stringify(filterStateValue?.[0])
+    ) {
+      return HIGHLIGHT_COLOR_ARRAY;
+    }
+
+    const fillColor = feature?.properties?.fillColor;
+    fillColor[3] = 125;
+    return fillColor;
+  }
+  return feature?.properties?.fillColor;
+};
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<GeoJsonLayer> = function ({
+  formData,
+  onContextMenu,
+  filterState,
+  setDataMask,
+  payload,
+  setTooltip,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -154,14 +175,23 @@ export function getLayer(
     extruded: fd.extruded,
     filled: fd.filled,
     stroked: fd.stroked,
-    getFillColor,
+    getFillColor: (feature: JsonObject) =>
+      getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
     pointRadiusScale: fd.point_radius_scale,
     lineWidthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export type DeckGLGeoJsonProps = {
   formData: QueryFormData;
@@ -171,6 +201,10 @@ export type DeckGLGeoJsonProps = {
   onAddFilter: HandlerFunction;
   height: number;
   width: number;
+  filterState: FilterState;
+  onContextMenu: HandlerFunction;
+  setDataMask: SetDataMaskHook;
+  emitCrossFilters?: boolean;
 };
 
 export function getPoints(data: Point[]) {
@@ -217,7 +251,16 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     width,
   ]);
 
-  const layer = getLayer(formData, payload, onAddFilter, setTooltip);
+  const layer = getLayer({
+    onContextMenu: props.onContextMenu,
+    filterState: props.filterState,
+    setDataMask: props.setDataMask,
+    setTooltip,
+    onAddFilter,
+    payload,
+    formData,
+    emitCrossFilters: props.emitCrossFilters,
+  });
 
   return (
     <DeckGLContainerStyledWrapper

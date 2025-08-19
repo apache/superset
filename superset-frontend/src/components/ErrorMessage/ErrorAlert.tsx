@@ -70,6 +70,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   const preStyle = {
     whiteSpace: 'pre-wrap',
     fontFamily: theme.fontFamilyCode,
+    margin: `${theme.sizeUnit}px 0`,
   };
   const renderDescription = () => (
     <div>
@@ -121,6 +122,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
           </span>
         </Tooltip>
         <Modal
+          name={errorType}
           title={errorType}
           show={showModal}
           onHide={() => setShowModal(false)}

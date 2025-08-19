@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Children, ReactElement, Fragment } from 'react';
-
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
@@ -70,7 +69,6 @@ export function Button(props: ButtonProps) {
   if (!buttonStyle || buttonStyle === 'primary') {
     variant = 'solid';
     antdType = 'primary';
-    color = 'primary';
   } else if (buttonStyle === 'secondary') {
     variant = 'filled';
     color = 'primary';
@@ -78,7 +76,6 @@ export function Button(props: ButtonProps) {
     variant = 'outlined';
     color = 'default';
   } else if (buttonStyle === 'dashed') {
-    color = 'primary';
     variant = 'dashed';
     antdType = 'dashed';
   } else if (buttonStyle === 'danger') {
@@ -90,6 +87,7 @@ export function Button(props: ButtonProps) {
   const element = children as ReactElement;
 
   let renderedChildren = [];
+
   if (element && element.type === Fragment) {
     renderedChildren = Children.toArray(element.props.children);
   } else {
@@ -120,7 +118,7 @@ export function Button(props: ButtonProps) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        lineHeight: 1.5715,
+        lineHeight: 1,
         fontSize: fontSizeSM,
         fontWeight: fontWeightStrong,
         height,
@@ -134,6 +132,12 @@ export function Button(props: ButtonProps) {
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
+        ':not(:hover)': effectiveButtonStyle === 'secondary' &&
+          !disabled && {
+            // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
+            // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
+            color: `${theme.colorPrimaryTextHover} !important`,
+          },
       }}
       icon={icon}
       {...restProps}

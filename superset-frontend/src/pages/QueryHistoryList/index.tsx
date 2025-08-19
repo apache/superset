@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useCallback, ReactElement } from 'react';
+import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
   css,
@@ -43,9 +43,9 @@ import {
   type ListViewProps,
   type ListViewFilters,
 } from 'src/components';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
+import CodeSyntaxHighlighter, {
+  preloadLanguages,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
@@ -64,12 +64,23 @@ const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
   }
 `;
 
-SyntaxHighlighter.registerLanguage('sql', sql);
-const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
+const StyledCodeSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   height: ${({ theme }) => theme.sizeUnit * 26}px;
   overflow: hidden !important; /* needed to override inline styles */
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  /* Ensure the syntax highlighter content respects the container constraints */
+  & > div {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  pre {
+    height: 100% !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
 `;
 
 interface QueryListProps {
@@ -87,7 +98,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -111,6 +122,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
 
   const theme = useTheme();
   const history = useHistory();
+
+  // Preload SQL language since this component will definitely display SQL
+  useEffect(() => {
+    preloadLanguages(['sql']);
+  }, []);
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -178,7 +194,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
@@ -190,7 +206,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
@@ -214,7 +230,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
             original: { start_time },
@@ -237,18 +253,21 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
-            original: { status, start_time, end_time },
+            original: { status, start_time, start_running_time, end_time },
           },
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
-          const timerTime = end_time
-            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
-                TIME_WITH_MS,
-              )
-            : '00:00:00.000';
+          // Use start_running_time if available for more accurate duration
+          const startTime = start_running_time || start_time;
+          const timerTime =
+            end_time && startTime
+              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
+                  TIME_WITH_MS,
+                )
+              : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
               {timerTime}
@@ -266,7 +285,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -277,7 +296,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -315,7 +334,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },
@@ -338,7 +357,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
-        size: 'md',
+        size: 'sm',
         id: QueryObjectColumns.Rows,
       },
       {
@@ -350,18 +369,33 @@ function QueryList({ addDangerToast }: QueryListProps) {
             role="button"
             data-test={`open-sql-preview-${id}`}
             onClick={() => setQueryCurrentlyPreviewing(original)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setQueryCurrentlyPreviewing(original);
+              }
+            }}
+            style={{ cursor: 'pointer' }}
           >
-            <StyledSyntaxHighlighter language="sql" style={github}>
+            <StyledCodeSyntaxHighlighter
+              language="sql"
+              customStyle={{
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
               {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
-            </StyledSyntaxHighlighter>
+            </StyledCodeSyntaxHighlighter>
           </div>
         ),
+        size: 'xxl',
         id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        size: 'sm',
         Cell: ({
           row: {
             original: { id },
@@ -375,7 +409,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         ),
       },
     ],
-    [],
+    [theme], // Add theme to dependencies since it's used in the columns
   );
 
   const filters: ListViewFilters = useMemo(

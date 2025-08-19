@@ -126,23 +126,25 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: 'name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'name',
       },
       {
         accessor: 'filter_type',
         Header: t('Filter Type'),
-        size: 'xl',
+        size: 'lg',
         id: 'filter_type',
       },
       {
         accessor: 'group_key',
         Header: t('Group Key'),
-        size: 'xl',
+        size: 'lg',
         id: 'group_key',
       },
       {
         accessor: 'clause',
         Header: t('Clause'),
+        size: 'xl',
         id: 'clause',
       },
       {
@@ -226,6 +228,7 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'actions',
         hidden: !canEdit && !canWrite && !canExport,
         disableSortBy: true,
+        size: 'lg',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -249,12 +252,10 @@ function RowLevelSecurityList(props: RLSProps) {
     title: t('No Rules yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleRuleEdit(null),
-    buttonText: canEdit ? (
-      <>
-        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
-        {t('Rule')}
-      </>
-    ) : null,
+    buttonIcon: canEdit ? (
+      <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
+    ) : undefined,
+    buttonText: canEdit ? t('Rule') : null,
   };
 
   const filters: ListViewFilters = useMemo(
@@ -316,20 +317,16 @@ function RowLevelSecurityList(props: RLSProps) {
 
   if (canWrite) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" data-test="add-rule" />
-          {t('Rule')}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => handleRuleEdit(null),
-    });
-    subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
+    });
+    subMenuButtons.push({
+      name: t('Rule'),
+      icon: <Icons.PlusOutlined iconSize="m" data-test="add-rule" />,
+      buttonStyle: 'primary',
+      onClick: () => handleRuleEdit(null),
     });
   }
 

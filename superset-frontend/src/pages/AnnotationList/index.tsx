@@ -165,6 +165,7 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        size: 'xxl',
         id: 'short_descr',
       },
       {
@@ -235,23 +236,19 @@ function AnnotationList({
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Annotation')}
-      </>
-    ),
-    buttonStyle: 'primary',
-    onClick: () => {
-      handleAnnotationEdit(null);
-    },
-  });
-
-  subMenuButtons.push({
     name: t('Bulk select'),
     onClick: toggleBulkSelect,
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
+  });
+
+  subMenuButtons.push({
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Annotation'),
+    buttonStyle: 'primary',
+    onClick: () => {
+      handleAnnotationEdit(null);
+    },
   });
 
   let hasHistory = true;
