@@ -216,6 +216,14 @@ export const extraQueryEditor2 = {
   name: 'Untitled Query 3',
 };
 
+export const extraQueryEditor3 = {
+  ...defaultQueryEditor,
+  id: 'kvk23',
+  sql: '',
+  name: 'Untitled Query 4',
+  tabViewId: 37,
+};
+
 export const queries = [
   {
     dbId: 1,
