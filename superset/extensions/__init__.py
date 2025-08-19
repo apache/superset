@@ -23,12 +23,12 @@ from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
-from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
+from superset.extensions.custom_talisman import CustomTalisman
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
@@ -136,4 +136,4 @@ results_backend_manager = ResultsBackendManager()
 security_manager: SupersetSecurityManager = LocalProxy(lambda: appbuilder.sm)
 ssh_manager_factory = SSHManagerFactory()
 stats_logger_manager = BaseStatsLoggerManager()
-talisman = Talisman()
+talisman = CustomTalisman()

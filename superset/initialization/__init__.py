@@ -160,6 +160,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
+        from superset.csp_config.api import CspConfigRestApi
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
@@ -271,6 +272,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
+        appbuilder.add_api(CspConfigRestApi)
         #
         # Setup regular views
         #
