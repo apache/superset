@@ -532,62 +532,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         core_api.rest_api = HostRestApi()
         core_api.query = HostQueryApi()
 
-    def check_extension_updates(self) -> None:
-        """
-        Check for extension updates during worker startup.
-
-        This method coordinates extension updates across distributed workers using
-        per-extension locking to ensure consistency while allowing parallel updates.
-        """
-        # Skip extension updates in Flask reloader process to avoid duplicate runs
-        if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-            logger.debug("Skipping extension update check in Flask reloader process")
-            return
-
-        logger.info("Starting extension update check during worker startup")
-
-        try:
-            # Get extensions path from environment variable
-            extensions_path = os.environ.get(self.config["EXTENSIONS_PATH_ENV_VAR"])
-
-            if not extensions_path:
-                logger.debug(
-                    f"No extensions path configured (environment variable "
-                    f"{self.config['EXTENSIONS_PATH_ENV_VAR']} not set), "
-                    "skipping extension updates"
-                )
-                return
-
-            if not os.path.exists(extensions_path):
-                logger.warning(
-                    f"Extensions path does not exist: {extensions_path}, "
-                    "skipping extension updates"
-                )
-                return
-
-            # Import here to avoid circular imports during app initialization
-            from superset.extensions.startup_upsert import (
-                ExtensionStartupUpdateOrchestrator,
-            )
-
-            # Create orchestrator with configured timeout
-            lock_timeout = self.config.get("EXTENSION_STARTUP_LOCK_TIMEOUT", 30)
-            orchestrator = ExtensionStartupUpdateOrchestrator(lock_timeout=lock_timeout)
-
-            # Perform extension updates
-            stats = orchestrator.update_extensions(extensions_path)
-
-            logger.info(
-                f"Extension update check completed successfully. "
-                f"Discovered: {stats['discovered']}, Updated: {stats['updated']}, "
-                f"Skipped: {stats['skipped_locked'] + stats['skipped_unchanged']}, "
-                f"Errors: {stats['errors']}"
-            )
-
-        except Exception as e:
-            logger.warning("Extension update check failed: %s", e)
-            # Continue with normal startup - don't let update failures block the app
-
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
             eager_import,
@@ -688,7 +632,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
-            self.check_extension_updates()
             self.init_core_api()
             self.init_extensions()
 

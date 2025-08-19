@@ -29,7 +29,6 @@ from zipfile import ZipFile
 from flask import current_app
 from superset_core.extensions.types import Manifest
 
-from superset.extensions.models import Extension
 from superset.extensions.types import BundleFile, LoadedExtension
 from superset.utils import json
 from superset.utils.core import check_is_safe_zip
@@ -183,37 +182,36 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
 
 
 def get_extensions() -> dict[str, LoadedExtension]:
-    from superset.daos.extension import ExtensionDAO
+    import os
 
     extensions: dict[str, LoadedExtension] = {}
+
+    # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
     for path in current_app.config["LOCAL_EXTENSIONS"]:
         files = get_bundle_files_from_path(path)
         extension = get_loaded_extension(files)
         extensions[extension.name] = extension
         logger.info(f"Loading extension {extension.name} from local filesystem")
 
-    # TODO: Do we allow local extensions that are not enabled in the metastore?
+    # Load extensions from discovery path (.supx files)
+    if extensions_path_env_var := current_app.config.get("EXTENSIONS_PATH_ENV_VAR"):
+        extensions_path = os.environ.get(extensions_path_env_var)
+        if extensions_path:
+            from superset.extensions.discovery import discover_and_load_extensions
 
-    for db_extension in ExtensionDAO.get_extensions():
-        if db_extension.name not in extensions:
-            extension = build_loaded_extension(db_extension)
-            extensions[extension.name] = extension
-            logger.info(f"Loading extension {db_extension.name} from metastore")
+            for extension in discover_and_load_extensions(extensions_path):
+                if extension.name not in extensions:  # Don't override LOCAL_EXTENSIONS
+                    extensions[extension.name] = extension
+                    logger.info(
+                        f"Loading extension {extension.name} from discovery path"
+                    )
+                else:
+                    logger.info(
+                        f"Extension {extension.name} already loaded from "
+                        "LOCAL_EXTENSIONS, skipping discovery version"
+                    )
 
     return extensions
-
-
-def build_loaded_extension(db_extension: Extension) -> LoadedExtension:
-    manifest = db_extension.manifest_dict
-    version = manifest.get("version", "1.0.0")  # Default version if not specified
-    extension = LoadedExtension(
-        name=db_extension.name,
-        manifest=manifest,
-        backend=db_extension.backend_dict or {},
-        frontend=db_extension.frontend_dict or {},
-        version=version,
-    )
-    return extension
 
 
 def calculate_extension_checksum(
