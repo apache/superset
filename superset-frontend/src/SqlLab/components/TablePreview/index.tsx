@@ -86,7 +86,6 @@ const MENUS = [
   },
 ];
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_TOP_ACTION_HEIGHT = 30;
 const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
