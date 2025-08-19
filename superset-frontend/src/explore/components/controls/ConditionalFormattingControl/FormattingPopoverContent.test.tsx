@@ -174,7 +174,7 @@ test('displays the toAllRow and toTextColor flags based on the selected string t
   expect(screen.getByTitle('Apply to text color')).toBeInTheDocument();
 });
 
-test('displays the toAllRow and toTextColor flags based on the selected string type operator', () => {
+test('Not displays the toAllRow and toTextColor flags', () => {
   render(
     <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
   );
