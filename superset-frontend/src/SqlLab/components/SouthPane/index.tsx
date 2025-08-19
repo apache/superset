@@ -30,6 +30,7 @@ import { SqlLabRootState } from 'src/SqlLab/types';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -99,6 +100,8 @@ const SouthPane = ({
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
+  const { id, tabViewId } = useQueryEditor(queryEditorId, ['tabViewId']);
+  const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useDispatch();
   const contributions =
@@ -117,11 +120,8 @@ const SouthPane = ({
     ) ?? 'Results';
 
   const pinnedTables = useMemo(
-    () =>
-      tables.filter(
-        ({ queryEditorId: qeId }) => String(queryEditorId) === qeId,
-      ),
-    [queryEditorId, tables],
+    () => tables.filter(({ queryEditorId: qeId }) => String(editorId) === qeId),
+    [editorId, tables],
   );
   const pinnedTableKeys = useMemo(
     () =>

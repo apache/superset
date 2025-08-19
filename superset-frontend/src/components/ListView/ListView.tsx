@@ -88,7 +88,7 @@ const ListViewStyles = styled.div`
 
     .row-count-container {
       margin-top: ${theme.sizeUnit * 2}px;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorText};
     }
   `}
 `;
@@ -160,7 +160,7 @@ const ViewModeContainer = styled.div`
     }
 
     .active {
-      background-color: ${theme.colors.grayscale.base};
+      background-color: ${theme.colorText};
 
       svg {
         color: ${theme.colorBgLayout};

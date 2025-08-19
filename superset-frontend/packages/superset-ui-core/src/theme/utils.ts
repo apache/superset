@@ -17,13 +17,10 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
-import tinycolor from 'tinycolor2';
 import {
   type AntdThemeConfig,
   type AnyThemeConfig,
   type SerializableThemeConfig,
-  type DeprecatedColorVariations,
-  type DeprecatedThemeColors,
   type SystemColors,
   type SupersetTheme,
   ThemeAlgorithm,
@@ -141,50 +138,6 @@ export function getAntdConfig(
   return {
     token: seed,
     algorithm,
-  };
-}
-
-/**
- * Generate deprecated color variations from a base color
- */
-export function genDeprecatedColorVariations(
-  color: string,
-  isDark: boolean,
-): DeprecatedColorVariations {
-  const bg = isDark ? '#FFF' : '#000';
-  const fg = isDark ? '#000' : '#FFF';
-  const adjustColor = (c: string, perc: number, tgt: string): string =>
-    tinycolor.mix(c, tgt, perc).toHexString();
-  return {
-    base: color,
-    light1: adjustColor(color, 20, fg),
-    light2: adjustColor(color, 45, fg),
-    light3: adjustColor(color, 70, fg),
-    light4: adjustColor(color, 90, fg),
-    light5: adjustColor(color, 95, fg),
-    dark1: adjustColor(color, 10, bg),
-    dark2: adjustColor(color, 20, bg),
-    dark3: adjustColor(color, 40, bg),
-    dark4: adjustColor(color, 60, bg),
-    dark5: adjustColor(color, 80, bg),
-  };
-}
-
-/**
- * Generate deprecated theme colors from system colors
- */
-export function getDeprecatedColors(
-  systemColors: SystemColors,
-  isDark: boolean,
-): DeprecatedThemeColors {
-  const sc: SystemColors = systemColors;
-  return {
-    primary: genDeprecatedColorVariations(sc.colorPrimary, isDark),
-    error: genDeprecatedColorVariations(sc.colorError, isDark),
-    warning: genDeprecatedColorVariations(sc.colorWarning, isDark),
-    success: genDeprecatedColorVariations(sc.colorSuccess, isDark),
-    info: genDeprecatedColorVariations(sc.colorInfo, isDark),
-    grayscale: genDeprecatedColorVariations('#666', isDark),
   };
 }
 
