@@ -28,7 +28,7 @@ import { ExtensionContext } from '../core/core';
 class ExtensionsManager {
   private static instance: ExtensionsManager;
 
-  private extensionIndex: Map<number, core.Extension> = new Map();
+  private extensionIndex: Map<string, core.Extension> = new Map();
 
   private contextIndex: Map<string, ExtensionContext> = new Map();
 
@@ -90,7 +90,7 @@ class ExtensionsManager {
           await this.enableExtension(loadedExtension);
         }
       }
-      this.extensionIndex.set(loadedExtension.id, loadedExtension);
+      this.extensionIndex.set(loadedExtension.name, loadedExtension);
     } catch (error) {
       logging.error(
         `Failed to initialize extension ${extension.name}\n`,
@@ -118,9 +118,9 @@ class ExtensionsManager {
 
       if (!extension.enabled) {
         const updatedExtension = { ...extension, enabled: true };
-        this.extensionIndex.set(updatedExtension.id, updatedExtension);
+        this.extensionIndex.set(updatedExtension.name, updatedExtension);
         await SupersetClient.put({
-          endpoint: `/api/v1/extensions/${extension.id}`,
+          endpoint: `/api/v1/extensions/${extension.name}`,
           jsonPayload: {
             enabled: true,
           },
@@ -205,11 +205,11 @@ class ExtensionsManager {
 
   /**
    * Deactivates an extension.
-   * @param id The id of the extension to deactivate.
+   * @param name The name of the extension to deactivate.
    * @returns True if deactivated, false otherwise.
    */
-  public deactivateExtension(id: number): boolean {
-    const extension = this.extensionIndex.get(id);
+  public deactivateExtension(name: string): boolean {
+    const extension = this.extensionIndex.get(name);
     const context = extension
       ? this.contextIndex.get(extension.name)
       : undefined;
@@ -332,12 +332,12 @@ class ExtensionsManager {
   }
 
   /**
-   * Retrieves a specific extension by its id.
-   * @param id The id of the extension.
-   * @returns The extension matching the id, or undefined if not found.
+   * Retrieves a specific extension by its name.
+   * @param name The name of the extension.
+   * @returns The extension matching the name, or undefined if not found.
    */
-  public getExtension(id: number): core.Extension | undefined {
-    return this.extensionIndex.get(id);
+  public getExtension(name: string): core.Extension | undefined {
+    return this.extensionIndex.get(name);
   }
 }
 

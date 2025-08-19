@@ -262,7 +262,7 @@ test('returns empty array for getExtensions initially', () => {
 });
 test('returns undefined for non-existent extension', () => {
   const manager = ExtensionsManager.getInstance();
-  const extension = manager.getExtension(999);
+  const extension = manager.getExtension('non-existent-extension');
 
   expect(extension).toBeUndefined();
 });
@@ -277,7 +277,7 @@ test('can store and retrieve extensions using initializeExtension', async () => 
   expect(extensions).toHaveLength(1);
   expect(extensions[0]).toEqual(mockExtension);
 
-  const retrievedExtension = manager.getExtension(1);
+  const retrievedExtension = manager.getExtension('Test Extension');
   expect(retrievedExtension).toEqual(mockExtension);
 });
 
@@ -300,11 +300,11 @@ test('handles multiple extensions', async () => {
   const extensions = manager.getExtensions();
   expect(extensions).toHaveLength(2);
 
-  expect(manager.getExtension(1)).toEqual(extension1);
-  expect(manager.getExtension(2)).toEqual(extension2);
+  expect(manager.getExtension('Extension 1')).toEqual(extension1);
+  expect(manager.getExtension('Extension 2')).toEqual(extension2);
 
-  expect(manager.getExtension(1)?.name).toBe('Extension 1');
-  expect(manager.getExtension(2)?.name).toBe('Extension 2');
+  expect(manager.getExtension('Extension 1')?.name).toBe('Extension 1');
+  expect(manager.getExtension('Extension 2')?.name).toBe('Extension 2');
 });
 
 test('initializeExtension properly stores extension in manager', async () => {
@@ -316,15 +316,15 @@ test('initializeExtension properly stores extension in manager', async () => {
     enabled: true,
   });
 
-  expect(manager.getExtension(1)).toBeUndefined();
+  expect(manager.getExtension('Test Extension')).toBeUndefined();
   expect(manager.getExtensions()).toHaveLength(0);
 
   await manager.initializeExtension(mockExtension);
 
-  expect(manager.getExtension(1)).toBeDefined();
+  expect(manager.getExtension('Test Extension')).toBeDefined();
   expect(manager.getExtensions()).toHaveLength(1);
-  expect(manager.getExtension(1)?.name).toBe('Test Extension');
-  expect(manager.getExtension(1)?.description).toBe(
+  expect(manager.getExtension('Test Extension')?.name).toBe('Test Extension');
+  expect(manager.getExtension('Test Extension')?.description).toBe(
     'A test extension for initialization',
   );
 });
@@ -340,13 +340,15 @@ test('initializeExtension handles extension without remoteEntry', async () => {
     commands: [createMockCommand('simple.command')],
   });
 
-  expect(manager.getExtension(1)).toBeUndefined();
+  expect(manager.getExtension('Simple Extension')).toBeUndefined();
 
   await manager.initializeExtension(mockExtension);
 
-  expect(manager.getExtension(1)).toBeDefined();
+  expect(manager.getExtension('Simple Extension')).toBeDefined();
   expect(manager.getExtensions()).toHaveLength(1);
-  expect(manager.getExtension(1)?.name).toBe('Simple Extension');
+  expect(manager.getExtension('Simple Extension')?.name).toBe(
+    'Simple Extension',
+  );
 
   // Since extension is not enabled, activate should not be called
   expect(mockExtension.activate).not.toHaveBeenCalled();
@@ -391,7 +393,7 @@ test('deactivateExtension successfully deactivates an enabled extension', async 
   expect(manager.getCommandContributions()).toHaveLength(1);
 
   // Deactivate the extension
-  const result = manager.deactivateExtension(1);
+  const result = manager.deactivateExtension('Test Extension');
 
   expectSuccessfulDeactivation(result, mockExtension);
 });
@@ -412,7 +414,7 @@ test('deactivateExtension disposes of context disposables', async () => {
   expect(mockDisposable.dispose).not.toHaveBeenCalled();
 
   // Deactivate the extension
-  const result = manager.deactivateExtension(1);
+  const result = manager.deactivateExtension('Test Extension');
 
   expectSuccessfulDeactivation(result);
   expect(mockDisposable.dispose).toHaveBeenCalledTimes(1);
@@ -425,7 +427,7 @@ test('deactivateExtension handles extension without deactivate function', async 
   });
 
   // Deactivate should still return true even without deactivate function
-  const result = manager.deactivateExtension(1);
+  const result = manager.deactivateExtension('Test Extension');
 
   expectSuccessfulDeactivation(result);
 });
@@ -433,7 +435,7 @@ test('deactivateExtension handles extension without deactivate function', async 
 test('deactivateExtension returns false for non-existent extension', () => {
   const manager = ExtensionsManager.getInstance();
 
-  const result = manager.deactivateExtension(999);
+  const result = manager.deactivateExtension('non-existent-extension');
 
   expectFailedDeactivation(result);
 });
@@ -446,7 +448,7 @@ test('deactivateExtension returns false for extension without context', async ()
 
   await manager.initializeExtension(mockExtension);
 
-  const result = manager.deactivateExtension(1);
+  const result = manager.deactivateExtension('Test Extension');
 
   expectFailedDeactivation(result);
 });
@@ -461,7 +463,7 @@ test('deactivateExtension handles errors during deactivation gracefully', async 
   });
 
   // Should return false when deactivation throws an error
-  const result = manager.deactivateExtension(1);
+  const result = manager.deactivateExtension('Test Extension');
 
   expectFailedDeactivation(result);
   expect(mockExtension.deactivate).toHaveBeenCalledTimes(1);
@@ -484,7 +486,7 @@ test('deactivateExtension handles errors during dispose gracefully', async () =>
   );
 
   // Should return false when disposal throws an error
-  const result = manager.deactivateExtension(1);
+  const result = manager.deactivateExtension('Test Extension');
 
   expectFailedDeactivation(result);
   expect(mockDisposable.dispose).toHaveBeenCalledTimes(1);
