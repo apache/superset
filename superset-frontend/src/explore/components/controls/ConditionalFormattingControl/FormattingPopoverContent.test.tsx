@@ -26,6 +26,7 @@ import { Comparator } from '@superset-ui/chart-controls';
 import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import { GenericDataType } from '@superset-ui/core';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
+import { ConditionalFormattingConfig } from './types';
 
 const mockOnChange = jest.fn();
 
@@ -49,6 +50,11 @@ const extraColorChoices = [
     label: 'Red for increase, green for decrease',
   },
 ];
+
+const config: ConditionalFormattingConfig = {
+  toAllRow: true,
+  toTextColor: true,
+};
 
 test('renders FormattingPopoverContent component', () => {
   render(
@@ -140,4 +146,39 @@ test('displays the correct input fields based on the selected string type operat
   });
   fireEvent.click(await screen.findByTitle('begins with'));
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+});
+
+test('displays the toAllRow and toTextColor flags based on the selected numeric type operator', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      config={config}
+    />,
+  );
+
+  expect(screen.getByTitle('Apply to entire row')).toBeInTheDocument();
+  expect(screen.getByTitle('Apply to text color')).toBeInTheDocument();
+});
+
+test('displays the toAllRow and toTextColor flags based on the selected string type operator', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsStringType}
+      config={config}
+    />,
+  );
+
+  expect(screen.getByTitle('Apply to entire row')).toBeInTheDocument();
+  expect(screen.getByTitle('Apply to text color')).toBeInTheDocument();
+});
+
+test('displays the toAllRow and toTextColor flags based on the selected string type operator', () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  expect(screen.queryByTitle('Apply to entire row')).not.toBeInTheDocument();
+  expect(screen.queryByTitle('Apply to text color')).not.toBeInTheDocument();
 });

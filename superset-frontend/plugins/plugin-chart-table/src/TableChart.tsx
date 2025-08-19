@@ -70,6 +70,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -813,6 +814,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
+          let color;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
@@ -825,17 +827,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           if (hasColumnColorFormatters) {
-            columnColorFormatters!
+            const applyFormatter = (
+              formatter: ColorFormatters[number],
+              valueToFormat: any,
+            ) => {
+              const hasValue =
+                valueToFormat !== undefined && valueToFormat !== null;
+              if (!hasValue) return;
+
+              const formatterResult =
+                formatter.getColorFromValue(valueToFormat);
+              if (!formatterResult) return;
+
+              if (formatter.toTextColor) {
+                color = formatterResult;
+              } else {
+                backgroundColor = formatterResult;
+              }
+            };
+            columnColorFormatters
               .filter(formatter => formatter.column === column.key)
-              .forEach(formatter => {
-                const formatterResult =
-                  value || value === 0
-                    ? formatter.getColorFromValue(value as number)
-                    : false;
-                if (formatterResult) {
-                  backgroundColor = formatterResult;
-                }
-              });
+              .forEach(formatter => applyFormatter(formatter, value));
+
+            columnColorFormatters
+              .filter(formatter => formatter.toAllRow)
+              .forEach(formatter =>
+                applyFormatter(formatter, row.original[formatter.column]),
+              );
           }
 
           if (
@@ -856,6 +874,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
+            color: ${color || undefined};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
               : `${theme.sizeUnit}px`};

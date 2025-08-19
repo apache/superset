@@ -29,6 +29,8 @@ export type ConditionalFormattingConfig = {
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
@@ -40,6 +42,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   label: string;
   description: string;
   extraColorChoices?: { label: string; value: string }[];
+  conditionalFormattingFlag?: ConditionalFormattingFlag;
 };
 
 export type FormattingPopoverProps = PopoverProps & {
@@ -49,4 +52,10 @@ export type FormattingPopoverProps = PopoverProps & {
   title: string;
   children: ReactNode;
   extraColorChoices?: { label: string; value: string }[];
+  conditionalFormattingFlag?: ConditionalFormattingFlag;
+};
+
+export type ConditionalFormattingFlag = {
+  toAllRowCheck?: boolean;
+  toColorTextCheck?: boolean;
 };
