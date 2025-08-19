@@ -41,6 +41,7 @@ export type ChartPillsProps = {
   chartUpdateEndTime?: number;
   refreshCachedQuery: () => void;
   rowLimit?: string | number;
+  hideRowCount?: boolean;
 };
 
 export const ChartPills = forwardRef(
@@ -52,6 +53,7 @@ export const ChartPills = forwardRef(
       chartUpdateEndTime,
       refreshCachedQuery,
       rowLimit,
+      hideRowCount = false,
     }: ChartPillsProps,
     ref: RefObject<HTMLDivElement>,
   ) => {
@@ -67,7 +69,7 @@ export const ChartPills = forwardRef(
             padding-bottom: ${theme.sizeUnit * 4}px;
           `}
         >
-          {!isLoading && firstQueryResponse && (
+          {!isLoading && !hideRowCount && firstQueryResponse && (
             <RowCountLabel
               rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
               limit={Number(rowLimit ?? 0)}

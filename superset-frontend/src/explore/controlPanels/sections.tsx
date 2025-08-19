@@ -273,3 +273,59 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
     ],
   },
 ];
+
+function buildMatrixifySection(
+  axis: 'columns' | 'rows',
+): ControlPanelSectionConfig {
+  const baseControls = [
+    [`matrixify_mode_${axis}`],
+    [`matrixify_${axis}`],
+    [`matrixify_dimension_selection_mode_${axis}`],
+    [`matrixify_dimension_${axis}`],
+    [`matrixify_topn_dimension_${axis}`],
+    [`matrixify_topn_value_${axis}`],
+    [`matrixify_topn_metric_${axis}`],
+    [`matrixify_topn_order_${axis}`],
+  ];
+
+  // Add specific controls for each axis
+  if (axis === 'rows') {
+    // Add show row labels at the beginning
+    baseControls.unshift(['matrixify_show_row_labels']);
+    // Add row height control after show labels
+    baseControls.splice(1, 0, ['matrixify_row_height']);
+  } else if (axis === 'columns') {
+    // Add show column headers at the beginning
+    baseControls.unshift(['matrixify_show_column_headers']);
+    // Add fit columns control after show headers
+    baseControls.splice(1, 0, ['matrixify_fit_columns_dynamically']);
+    // Add charts per row after fit columns control
+    baseControls.splice(2, 0, ['matrixify_charts_per_row']);
+  }
+
+  return {
+    label: axis === 'columns' ? t('Horizontal layout') : t('Vertical layout'),
+    expanded: true,
+    tabOverride: 'matrixify',
+    visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
+    controlSetRows: baseControls,
+  };
+}
+
+export const matrixifyRows = buildMatrixifySection('rows');
+export const matrixifyColumns = buildMatrixifySection('columns');
+
+export const matrixifyEnableSection: ControlPanelSectionConfig = {
+  label: t('Enable Matrixify'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  controlSetRows: [['matrixify_enabled']],
+};
+
+export const matrixifyCells: ControlPanelSectionConfig = {
+  label: t('Cells'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
+  controlSetRows: [['matrixify_cell_title_template']],
+};

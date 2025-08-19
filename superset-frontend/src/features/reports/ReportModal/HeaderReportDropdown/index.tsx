@@ -86,7 +86,6 @@ export const useHeaderReportMenuItems = ({
     const reportsState = state.reports || {};
     const resourceTypeReports = reportsState[resourceType] || {};
     const reportData = resourceTypeReports[resourceId];
-
     return reportData || null;
   });
 
