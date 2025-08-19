@@ -191,6 +191,7 @@ function processGroupByCustomizations(
   const groupByColumns: string[] = [];
   const allFilters: QueryFormExtraFilter[] = [];
   let orderByConfig: string[] | undefined;
+  let heatmapColumnAdded = false;
 
   const existingGroupBy = Array.isArray(chart.form_data?.groupby)
     ? chart.form_data.groupby
@@ -203,7 +204,7 @@ function processGroupByCustomizations(
 
   existingGroupBy.forEach((col: string) => existingColumns.add(col));
 
-  if (xAxisColumn) {
+  if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
     existingColumns.add(xAxisColumn);
   }
 
@@ -272,7 +273,11 @@ function processGroupByCustomizations(
     if (existingGroupBy.includes(columnName)) {
       return 'groupby';
     }
-    if (xAxisColumn === columnName) {
+    if (
+      xAxisColumn === columnName &&
+      chartType !== 'heatmap' &&
+      chartType !== 'heatmap_v2'
+    ) {
       return 'x-axis';
     }
     if (seriesColumn === columnName) {
@@ -364,11 +369,26 @@ function processGroupByCustomizations(
         return;
       }
 
-      nonConflictingColumns.forEach(columnName => {
-        if (!groupByColumns.includes(columnName)) {
-          groupByColumns.push(columnName);
+      if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
+        if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
+          const firstColumn = nonConflictingColumns[0];
+          if (!groupByColumns.includes(firstColumn)) {
+            groupByColumns.push(firstColumn);
+            heatmapColumnAdded = true;
+          }
         }
-      });
+        if (nonConflictingColumns.length > 1) {
+          console.warn(
+            `Heatmap charts only support one column dimension. Using "${nonConflictingColumns[0]}" only. Additional columns (${nonConflictingColumns.slice(1).join(', ')}) will be ignored.`,
+          );
+        }
+      } else {
+        nonConflictingColumns.forEach(columnName => {
+          if (!groupByColumns.includes(columnName)) {
+            groupByColumns.push(columnName);
+          }
+        });
+      }
 
       columnNames.forEach(columnName => {
         if (selectedValues.length > 0) {
@@ -424,6 +444,15 @@ function processGroupByCustomizations(
       }
       groupByFormData.series = groupByColumns[0];
       groupByFormData.groupby = [];
+    } else if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
+      if (groupByColumns.length > 0) {
+        groupByFormData.groupby = [groupByColumns[0]];
+      } else {
+        const groupbyWithoutXAxis = existingGroupBy.filter(
+          col => col !== xAxisColumn,
+        );
+        groupByFormData.groupby = groupbyWithoutXAxis;
+      }
     } else if (chartType === 'sunburst_v2') {
       groupByFormData.columns = groupByColumns;
       groupByFormData.groupby = [];
