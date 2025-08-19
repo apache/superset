@@ -793,7 +793,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('display text color using column color formatter for entire row', () => {
+      it('display text color using column color formatter', () => {
         render(
           ProviderWrapper({
             children: (
