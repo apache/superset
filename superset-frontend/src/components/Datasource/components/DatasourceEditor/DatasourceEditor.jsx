@@ -661,6 +661,7 @@ class DatasourceEditor extends PureComponent {
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
       usageCharts: [],
+      usageChartsCount: 0,
     };
 
     this.onChange = this.onChange.bind(this);
@@ -848,7 +849,7 @@ class DatasourceEditor extends PureComponent {
     }
   }
 
-  async fetchUsageData() {
+  async fetchUsageData(page = 1, pageSize = 25) {
     const { datasource } = this.state;
     try {
       const queryParams = rison.encode({
@@ -862,6 +863,7 @@ class DatasourceEditor extends PureComponent {
           'owners.last_name',
           'owners.id',
           'changed_on_delta_humanized',
+          'changed_on',
           'changed_by.first_name',
           'changed_by.last_name',
           'changed_by.id',
@@ -878,17 +880,33 @@ class DatasourceEditor extends PureComponent {
         ],
         order_column: 'changed_on_delta_humanized',
         order_direction: 'desc',
-        page: 0,
-        page_size: 25,
+        page: page - 1, // API uses 0-based pagination
+        page_size: pageSize,
       });
 
       const { json = {} } = await SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${queryParams}`,
       });
 
+      const charts = json?.result || [];
+      const ids = json?.ids || [];
+
+      // Map chart IDs to chart objects
+      const chartsWithIds = charts.map((chart, index) => ({
+        ...chart,
+        id: ids[index],
+      }));
+
       this.setState({
-        usageCharts: json?.result || [],
+        usageCharts: chartsWithIds,
+        usageChartsCount: json?.count || 0,
       });
+
+      return {
+        charts: chartsWithIds,
+        count: json?.count || 0,
+        ids,
+      };
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
@@ -899,7 +917,13 @@ class DatasourceEditor extends PureComponent {
       );
       this.setState({
         usageCharts: [],
+        usageChartsCount: 0,
       });
+      return {
+        charts: [],
+        count: 0,
+        ids: [],
+      };
     }
   }
 
@@ -1814,7 +1838,7 @@ class DatasourceEditor extends PureComponent {
               key: TABS_KEYS.USAGE,
               label: (
                 <CollectionTabTitle
-                  collection={this.state.usageCharts}
+                  collection={{ length: this.state.usageChartsCount }}
                   title={t('Usage')}
                 />
               ),
@@ -1823,11 +1847,8 @@ class DatasourceEditor extends PureComponent {
                   <DatasetUsageTab
                     datasourceId={datasource.id}
                     charts={this.state.usageCharts}
-                    onDataLoad={charts =>
-                      this.setState({
-                        usageCharts: charts,
-                      })
-                    }
+                    totalCount={this.state.usageChartsCount}
+                    onFetchCharts={this.fetchUsageData}
                     addDangerToast={this.props.addDangerToast}
                   />
                 </StyledTableTabWrapper>

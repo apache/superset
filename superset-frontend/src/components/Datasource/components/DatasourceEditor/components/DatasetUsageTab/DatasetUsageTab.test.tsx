@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  createWrapper,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { createWrapper } from 'spec/helpers/testing-library';
 import DatasetUsageTab from '.';
 
 const mockChartsResponse = {
@@ -76,12 +80,23 @@ const mockChartsResponse = {
     },
   ],
   count: 2,
+  ids: [1, 2],
 };
 
 const setupTest = (props = {}) => {
+  const mockOnFetchCharts = jest.fn(() =>
+    Promise.resolve({
+      charts: mockChartsResponse.result,
+      count: mockChartsResponse.count,
+      ids: mockChartsResponse.ids,
+    }),
+  );
+
   const defaultProps = {
     datasourceId: 123,
     charts: mockChartsResponse.result,
+    totalCount: mockChartsResponse.count,
+    onFetchCharts: mockOnFetchCharts,
     addDangerToast: jest.fn(),
     ...props,
   };
@@ -103,11 +118,10 @@ afterEach(() => {
   fetchMock.restore();
 });
 
-test('renders loading state initially when no charts provided', () => {
-  fetchMock.get('glob:*/api/v1/chart/*', mockChartsResponse);
-  setupTest({ charts: undefined });
+test('renders empty state when no charts provided', () => {
+  setupTest({ charts: [], totalCount: 0 });
 
-  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  expect(screen.getByText('No items')).toBeInTheDocument();
 });
 
 test('shows no items immediately when empty array provided (no loading flicker)', () => {
@@ -149,20 +163,6 @@ test('handles empty response correctly', async () => {
 
   expect(screen.getByText('No items')).toBeInTheDocument();
   expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
-});
-
-test('handles API error gracefully', async () => {
-  fetchMock.get('glob:*/api/v1/chart/*', 500);
-  const mockAddDangerToast = jest.fn();
-
-  setupTest({ charts: undefined, addDangerToast: mockAddDangerToast });
-
-  await waitFor(() => {
-    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
-  });
-
-  expect(mockAddDangerToast).toHaveBeenCalledWith('Error fetching charts');
-  expect(screen.getByText('No items')).toBeInTheDocument();
 });
 
 test('renders correct column headers', async () => {

@@ -30,7 +30,7 @@ const DashboardLinksWrapper = styled.span`
   }
 
   a {
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: none;
 
     &:hover {
