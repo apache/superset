@@ -1105,70 +1105,9 @@ describe('Dashboard edit', () => {
     });
   });
 
-  describe('Edit properties', () => {
-    before(() => {
-      visitEdit();
-    });
-
-    beforeEach(() => {
-      cy.createSampleDashboards([0]);
-    });
-
-    it('should accept a valid color scheme', () => {
-      openProperties(); // Need to open modal first
-      openAdvancedProperties();
-      clearMetadata();
-      writeMetadata('{"color_scheme":"lyftColors"}');
-      applyChanges();
-      openProperties();
-      openAdvancedProperties();
-      assertMetadata('lyftColors');
-      applyChanges();
-    });
-
-    it('should overwrite the color scheme when advanced is closed', () => {
-      openProperties(); // Need to open modal first
-      selectColorScheme('blueToGreen');
-      openAdvancedProperties();
-      assertMetadata('blueToGreen');
-      applyChanges();
-    });
-
-    it('should overwrite the color scheme when advanced is open', () => {
-      openProperties(); // Need to open modal first
-      openAdvancedProperties();
-      selectColorScheme('modernSunset');
-      assertMetadata('modernSunset');
-      applyChanges();
-    });
-
-    it.skip('should not accept an invalid color scheme', () => {
-      openAdvancedProperties();
-      clearMetadata();
-      // allow console error
-      cy.allowConsoleErrors(['Error: A valid color scheme is required']);
-      writeMetadata('{"color_scheme":"wrongcolorscheme"}');
-      applyChanges();
-      cy.get('.ant-modal-body')
-        .contains('A valid color scheme is required')
-        .scrollIntoView();
-      cy.get('.ant-modal-body')
-        .contains('A valid color scheme is required')
-        .should('be.visible');
-    });
-
-    it('should edit the title', () => {
-      openProperties(); // Need to open modal first
-      // Ensure title input is visible in the modal
-      cy.getBySel('dashboard-title-input').scrollIntoView();
-      cy.getBySel('dashboard-title-input').clear({ force: true });
-      cy.getBySel('dashboard-title-input').type('Edited title', {
-        force: true,
-      });
-      applyChanges();
-      cy.getBySel('editable-title-input').should('have.value', 'Edited title');
-    });
-  });
+  // NOTE: Edit properties modal functionality is now covered by comprehensive Jest tests
+  // in src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx
+  // This removes flaky Cypress modal interaction tests in favor of reliable unit tests
 
   describe('Edit mode', () => {
     before(() => {
