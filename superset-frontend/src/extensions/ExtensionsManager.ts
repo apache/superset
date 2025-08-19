@@ -77,31 +77,26 @@ class ExtensionsManager {
   }
 
   /**
-   * Initializes an extension by its id.
-   * @param id The id of the extension to initialize.
-   */
-  public async initializeExtensionById(id: number): Promise<void> {
-    const response = await SupersetClient.get({
-      endpoint: `/api/v1/extensions/${id}`,
-    });
-    const extension: core.Extension = response.json.result;
-    this.initializeExtension(extension);
-  }
-
-  /**
    * Initializes an extension by its instance.
    * If the extension has a remote entry, it will load the module.
    * @param extension The extension to initialize.
    */
   public async initializeExtension(extension: core.Extension) {
-    let loadedExtension = extension;
-    if (extension.remoteEntry) {
-      loadedExtension = await this.loadModule(extension);
-      if (loadedExtension.enabled) {
-        await this.enableExtension(loadedExtension);
+    try {
+      let loadedExtension = extension;
+      if (extension.remoteEntry) {
+        loadedExtension = await this.loadModule(extension);
+        if (loadedExtension.enabled) {
+          await this.enableExtension(loadedExtension);
+        }
       }
+      this.extensionIndex.set(loadedExtension.id, loadedExtension);
+    } catch (error) {
+      logging.error(
+        `Failed to initialize extension ${extension.name}\n`,
+        error,
+      );
     }
-    this.extensionIndex.set(loadedExtension.id, loadedExtension);
   }
 
   /**
@@ -149,8 +144,27 @@ class ExtensionsManager {
       element.type = 'text/javascript';
       element.async = true;
       element.onload = () => resolve();
-      element.onerror = () =>
-        reject(new Error(`Failed to load remote entry: ${remoteEntry}`));
+      element.onerror = (
+        event: Event | string,
+        source?: string,
+        lineno?: number,
+        colno?: number,
+        error?: Error,
+      ) => {
+        const errorDetails = [];
+        if (source) errorDetails.push(`source: ${source}`);
+        if (lineno !== undefined) errorDetails.push(`line: ${lineno}`);
+        if (colno !== undefined) errorDetails.push(`column: ${colno}`);
+        if (error?.message) errorDetails.push(`error: ${error.message}`);
+        if (typeof event === 'string') errorDetails.push(`event: ${event}`);
+
+        const detailsStr =
+          errorDetails.length > 0 ? `\n${errorDetails.join(', ')}` : '';
+        const errorMessage = `Failed to load remote entry: ${remoteEntry}${detailsStr}`;
+
+        return reject(new Error(errorMessage));
+      };
+
       document.head.appendChild(element);
     });
 
