@@ -19,9 +19,7 @@
 import { FC, useState } from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { Tabs } from 'antd';
-import {
-  ColorSchemeControl,
-} from '@superset-ui/chart-controls';
+import { ColorSchemeControl } from '@superset-ui/chart-controls';
 
 // Direct component imports
 import { DndColumnSelect } from '../../../../src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
@@ -101,7 +99,8 @@ export const SankeyControlPanel: FC<SankeyControlPanelProps> = ({
             value={formValues.source ? [formValues.source] : []}
             onChange={(val: any) => {
               // Source is single select, so take first value
-              const sourceValue = Array.isArray(val) && val.length > 0 ? val[0] : null;
+              const sourceValue =
+                Array.isArray(val) && val.length > 0 ? val[0] : null;
               handleChange('source')(sourceValue);
             }}
             options={safeColumns}
@@ -132,7 +131,8 @@ export const SankeyControlPanel: FC<SankeyControlPanelProps> = ({
             value={formValues.target ? [formValues.target] : []}
             onChange={(val: any) => {
               // Target is single select, so take first value
-              const targetValue = Array.isArray(val) && val.length > 0 ? val[0] : null;
+              const targetValue =
+                Array.isArray(val) && val.length > 0 ? val[0] : null;
               handleChange('target')(targetValue);
             }}
             options={safeColumns}

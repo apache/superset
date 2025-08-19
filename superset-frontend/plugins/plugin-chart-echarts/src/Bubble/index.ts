@@ -20,7 +20,7 @@ import { ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from './BubbleControlPanelSimple';
 import example1 from './images/example1.png';
 import example2 from './images/example2.png';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';

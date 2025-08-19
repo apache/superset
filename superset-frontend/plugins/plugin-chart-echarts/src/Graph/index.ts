@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Behavior, t } from '@superset-ui/core';
-import controlPanel from './controlPanel';
+import controlPanel from './GraphControlPanelSimple';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.jpg';

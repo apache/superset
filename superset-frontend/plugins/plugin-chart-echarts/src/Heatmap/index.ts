@@ -23,7 +23,7 @@ import example1 from './images/example1.png';
 import example2 from './images/example2.png';
 import example3 from './images/example3.png';
 import thumbnail from './images/thumbnail.png';
-import controlPanel from './controlPanel';
+import controlPanel from './HeatmapControlPanelSimple';
 
 const metadata = new ChartMetadata({
   category: t('Correlation'),

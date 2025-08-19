@@ -19,7 +19,7 @@
 import { Behavior, t } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
-import controlPanel from './controlPanel';
+import controlPanel from './SunburstControlPanelSimple';
 import buildQuery from './buildQuery';
 import example1 from './images/Sunburst1.png';
 import example2 from './images/Sunburst2.png';

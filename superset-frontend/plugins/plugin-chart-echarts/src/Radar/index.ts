@@ -19,7 +19,7 @@
  */
 import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from './RadarControlPanelSimple';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/example1.jpg';

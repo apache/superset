@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, Behavior } from '@superset-ui/core';
-import controlPanel from './controlPanel';
+import controlPanel from './BigNumberWithTrendlineControlPanelSimple';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
 import example from './images/Big_Number_Trendline.jpg';

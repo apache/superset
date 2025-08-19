@@ -19,7 +19,7 @@
 import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from '../..';
 import buildQuery from '../buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from './StepControlPanelSimple';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Step1.png';

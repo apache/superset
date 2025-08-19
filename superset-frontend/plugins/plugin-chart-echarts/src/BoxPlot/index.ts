@@ -18,7 +18,7 @@
  */
 import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from './BoxPlotControlPanelSimple';
 import transformProps from './transformProps';
 import example from './images/BoxPlot.jpg';
 import thumbnail from './images/thumbnail.png';

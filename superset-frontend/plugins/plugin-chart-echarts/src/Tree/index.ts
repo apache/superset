@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import controlPanel from './controlPanel';
+import controlPanel from './TreeControlPanelSimple';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example from './images/tree.png';

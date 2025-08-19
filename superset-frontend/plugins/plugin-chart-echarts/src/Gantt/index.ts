@@ -18,7 +18,7 @@
  */
 import { Behavior, t } from '@superset-ui/core';
 import transformProps from './transformProps';
-import controlPanel from './controlPanel';
+import controlPanel from './GanttControlPanelSimple';
 import buildQuery from './buildQuery';
 import { EchartsChartPlugin } from '../types';
 import thumbnail from './images/thumbnail.png';

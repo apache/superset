@@ -18,7 +18,7 @@
  */
 import { t, AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from './AreaControlPanelSimple';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import {
