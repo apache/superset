@@ -40,6 +40,7 @@ const AdvancedSection = ({
 }: AdvancedSectionProps) => (
   <ModalFormField
     label={t('JSON Metadata')}
+    testId="dashboard-metadata-field"
     helperText={t(
       'This JSON object is generated dynamically when clicking the save ' +
         'or overwrite button in the dashboard view. It is exposed here for ' +
@@ -53,6 +54,7 @@ const AdvancedSection = ({
     bottomSpacing={false}
   >
     <StyledJsonEditor
+      data-test="dashboard-metadata-editor"
       showLoadingForImport
       name="json_metadata"
       value={jsonMetadata}

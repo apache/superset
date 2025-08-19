@@ -59,11 +59,13 @@ const StylingSection = ({
     {themes.length > 0 && (
       <ModalFormField
         label={t('Theme')}
+        testId="dashboard-theme-field"
         helperText={t(
           'Clear the selection to revert to the system default theme',
         )}
       >
         <Select
+          data-test="dashboard-theme-select"
           value={selectedThemeId}
           onChange={onThemeChange}
           options={themes.map(theme => ({
@@ -77,11 +79,13 @@ const StylingSection = ({
     )}
     <ModalFormField
       label={t('Color scheme')}
+      testId="dashboard-colorscheme-field"
       helperText={t(
         "Any color palette selected here will override the colors applied to this dashboard's individual charts",
       )}
     >
       <ColorSchemeSelect
+        data-test="dashboard-colorscheme-select"
         value={colorScheme}
         onChange={onColorSchemeChange}
         hasCustomLabelsColor={hasCustomLabelsColor}
@@ -90,12 +94,14 @@ const StylingSection = ({
     </ModalFormField>
     <ModalFormField
       label={t('Custom CSS')}
+      testId="dashboard-css-field"
       helperText={t(
         'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
       )}
       bottomSpacing={false}
     >
       <StyledCssEditor
+        data-test="dashboard-css-editor"
         onChange={onCustomCssChange}
         value={customCss}
         width="100%"

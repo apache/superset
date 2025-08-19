@@ -88,11 +88,13 @@ const AccessSection = ({
     <>
       <ModalFormField
         label={t('Owners')}
+        testId="dashboard-owners-field"
         helperText={t(
           'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
         )}
       >
         <AsyncSelect
+          data-test="dashboard-owners-select"
           allowClear
           ariaLabel={t('Owners')}
           disabled={isLoading}
@@ -109,12 +111,14 @@ const AccessSection = ({
       {isFeatureEnabled(FeatureFlag.DashboardRbac) && (
         <ModalFormField
           label={t('Roles')}
+          testId="dashboard-roles-field"
           helperText={t(
             'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
           )}
           bottomSpacing={!isFeatureEnabled(FeatureFlag.TaggingSystem)}
         >
           <AsyncSelect
+            data-test="dashboard-roles-select"
             allowClear
             ariaLabel={t('Roles')}
             disabled={isLoading}
@@ -132,12 +136,14 @@ const AccessSection = ({
       {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
         <ModalFormField
           label={t('Tags')}
+          testId="dashboard-tags-field"
           helperText={t(
             'A list of tags that have been applied to this dashboard.',
           )}
           bottomSpacing={false}
         >
           <AsyncSelect
+            data-test="dashboard-tags-select"
             ariaLabel="Tags"
             mode="multiple"
             value={tagsAsSelectValues}

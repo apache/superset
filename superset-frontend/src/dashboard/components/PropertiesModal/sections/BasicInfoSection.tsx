@@ -37,6 +37,7 @@ const BasicInfoSection = ({
       label={t('Name')}
       required
       helperText={t('A readable URL for your dashboard')}
+      testId="dashboard-name-field"
       error={
         validationStatus.basic?.hasErrors &&
         (!form.getFieldValue('title') ||
@@ -56,10 +57,15 @@ const BasicInfoSection = ({
     <ModalFormField
       label={t('URL Slug')}
       helperText={t('A readable URL for your dashboard')}
+      testId="dashboard-slug-field"
       bottomSpacing={false}
     >
       <FormItem name="slug" noStyle>
-        <Input type="text" disabled={isLoading} />
+        <Input
+          data-test="dashboard-slug-input"
+          type="text"
+          disabled={isLoading}
+        />
       </FormItem>
     </ModalFormField>
   </>
