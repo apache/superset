@@ -29,7 +29,7 @@ import { FilterPluginStyle } from '../common';
 const TimeFilterStyles = styled(FilterPluginStyle)`
   display: flex;
   align-items: center;
-  overflow-x: auto;
+  overflow-x: visible;
 
   & .ant-tag {
     margin-right: 0;
@@ -61,6 +61,12 @@ const ControlContainer = styled.div<{
   }
   & > div {
     width: 100%;
+  }
+
+  &:focus > div {
+    border-color: ${({ theme }) => theme.colorPrimary};
+    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.controlOutline}`};
+    outline: 0;
   }
 `;
 
@@ -115,6 +121,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onBlur={unsetFocusedFilter}
         onMouseEnter={setHoveredFilter}
         onMouseLeave={unsetHoveredFilter}
+        tabIndex={-1}
       >
         <DateFilterComponent
           value={filterState.value || NO_TIME_RANGE}
