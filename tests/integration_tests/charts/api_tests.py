@@ -1076,6 +1076,51 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 404
 
+    def test_slice_get_by_id(self):
+        """
+        Chart API: Test Slice.get() method with numeric ID
+        """
+        admin = self.get_user("admin")
+        chart = self.insert_chart("test_slice_get_by_id", [admin.id], 1)
+
+        result = Slice.get(str(chart.id))
+        assert result is not None
+        assert result.id == chart.id
+        assert result.slice_name == "test_slice_get_by_id"
+
+        db.session.delete(chart)
+        db.session.commit()
+
+    def test_slice_get_by_uuid(self):
+        """
+        Chart API: Test Slice.get() method with UUID
+        """
+        admin = self.get_user("admin")
+        chart = self.insert_chart("test_slice_get_by_uuid", [admin.id], 1)
+
+        if chart.uuid:
+            result = Slice.get(chart.uuid)
+            assert result is not None
+            assert result.id == chart.id
+            assert result.uuid == chart.uuid
+
+        db.session.delete(chart)
+        db.session.commit()
+
+    def test_slice_get_nonexistent_id(self):
+        """
+        Chart API: Test Slice.get() with non-existent ID returns None
+        """
+        result = Slice.get("999999")
+        assert result is None
+
+    def test_slice_get_nonexistent_uuid(self):
+        """
+        Chart API: Test Slice.get() with non-existent UUID returns None
+        """
+        result = Slice.get("non-existent-uuid-123")
+        assert result is None
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_chart_no_data_access(self):
         """
