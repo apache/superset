@@ -27,7 +27,7 @@ import textwrap
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, TYPE_CHECKING
@@ -56,7 +56,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -195,6 +195,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "llm_available",
+        "llm_connection",
+        "llm_context_options",
     ]
     extra_import_fields = [
         "password",
@@ -285,6 +288,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             "allow_multi_catalog": self.allow_multi_catalog,
             "parameters_schema": self.parameters_schema,
             "engine_information": self.engine_information,
+            "llm_connection": self.llm_connection,
         }
 
     @property
@@ -379,6 +383,17 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         except Exception:  # pylint: disable=broad-except
             engine_information = {}
         return engine_information
+
+    @property
+    def llm_available(self) -> bool:
+        c = self.llm_connection
+        return (
+            bool(c.provider) and bool(c.model) and bool(c.api_key) and bool(c.enabled)
+        )
+
+    @property
+    def llm_connection(self) -> LlmConnection:
+        return self.get_extra().get("llm_connection", {})
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -1256,3 +1271,43 @@ class FavStar(UUIDMixin, Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=datetime.utcnow)
+
+
+class ContextBuilderTask(Model):
+    __tablename__ = "context_builder_task"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(String(255), unique=True)
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    started_time = Column(DateTime, default=datetime.now(timezone.utc))
+    ended_time = Column(DateTime, nullable=True)
+    status = Column(String(255), nullable=True)
+    duration = Column(Integer, nullable=True)
+    params = Column(utils.MediumText())
+
+
+class LlmConnection(Model, AuditMixinNullable):
+    __tablename__ = "llm_connection"
+    id = Column(Integer, primary_key=True)
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    enabled = Column(Boolean, default=False)
+    provider = Column(String(255), nullable=False)
+    model = Column(String(255), nullable=False)
+    api_key = Column(Text, nullable=True)
+    database = relationship(
+        "Database", backref=backref("llm_connection", uselist=False), uselist=False
+    )
+
+
+class LlmContextOptions(Model, AuditMixinNullable):
+    __tablename__ = "llm_context_options"
+    id = Column(Integer, primary_key=True)
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    refresh_interval = Column(Integer, default=12)
+    schemas = Column(utils.MediumText(), nullable=True)
+    include_indexes = Column(Boolean, default=True)
+    top_k = Column(Integer, default=10)
+    top_k_limit = Column(Integer, default=10000)
+    instructions = Column(utils.MediumText(), nullable=True)
+    database = relationship(
+        "Database", backref=backref("llm_context_options", uselist=False)
+    )

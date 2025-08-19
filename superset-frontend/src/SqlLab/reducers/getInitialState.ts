@@ -27,6 +27,7 @@ import {
   LatestQueryEditorVersion,
   QueryEditorVersion,
 } from 'src/SqlLab/types';
+// import { query } from '../fixtures';
 
 export function dedupeTabHistory(tabHistory: string[]) {
   return tabHistory.reduce<string[]>(
@@ -267,6 +268,10 @@ export default function getInitialState({
       unsavedQueryEditor,
       lastUpdatedActiveTab,
       destroyedQueryEditors,
+      queryGenerator: {
+        isGeneratingQuery: false,
+        prompt: '',
+      },
     },
     localStorageUsageInKilobytes: 0,
     common,

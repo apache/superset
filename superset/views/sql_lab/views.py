@@ -154,6 +154,8 @@ class TabStateView(BaseSupersetView):
 
         try:
             fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
+            if "schema" in fields:
+                fields["schema"] = json.dumps(fields["schema"])
             db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
             db.session.commit()
             return json_success(json.dumps(tab_state_id))

@@ -284,3 +284,20 @@ may use the docker cache if assets already exist. Running `docker compose build`
 `docker compose up` or the equivalent shortcut `docker compose up --build` ensures that your
 docker images matche the definition in the repository. This should only apply to the main
 docker-compose.yml file (default) and not to the alternative methods defined above.
+
+## 5. Building a Custom Extended Docker Image
+
+This section explains how to deploy Superset using Docker Compose with a custom image based on an official release. This approach is useful if you need to:
+
+1. Customize configuration files for a Docker Compose deployment.
+2. Build a custom Docker image that extends an official Superset image using your own local repository and specific commit tag.
+
+This [directory](./custom_docker_compose_installation_files/) contains example files to help you build and deploy a custom Superset Docker image:
+
+- [superset_config_docker.py](./custom_docker_compose_installation_files/superset_config_docker.py): Configuration file that overrides the default [superset_config.py](../../../docker/pythonpath_dev/superset_config.py).
+- [.env-local](./custom_docker_compose_installation_files/.env-local): Environment variables that override the default ones specified in [.env](../../../docker/.env).
+- [requirements-local.txt](./custom_docker_compose_installation_files/requirements-local.txt): Additional Python dependencies.
+- [Dockerfile-local.dockerfile](./custom_docker_compose_installation_files/Dockerfile-local.dockerfile): Dockerfile that extends the default [Dockerfile](../../../Dockerfile).
+- [docker_compose_overrides.yml](./custom_docker_compose_installation_files/docker_compose_overrides.yml): Docker Compose configuration which extends the [default configuration](../../../docker-compose-image-tag.yml).
+- [superset_install.sh](./custom_docker_compose_installation_files/superset_install.sh): Shell script that installs Apache Superset from a specific GitHub repository and tag. It clones the specified Superset repository, copies the custom installation files, builds the stock and custom Docker images, and starts the Superset components using Docker Compose.
+- [env_variables.sh](./custom_docker_compose_installation_files/env_variables.sh): Environment variables which specify the URL of the Superset Github repository and the commit tag to build and deploy.

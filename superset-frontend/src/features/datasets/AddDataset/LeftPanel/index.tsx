@@ -18,7 +18,10 @@
  */
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
-import TableSelector, { TableOption } from 'src/components/TableSelector';
+import TableSelector, {
+  TableOption,
+  TableValue,
+} from 'src/components/TableSelector';
 import { EmptyState } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -138,7 +141,7 @@ export default function LeftPanel({
       });
     }
   };
-  const setSchema = (schema: string) => {
+  const setSchema = (schema: string | string[]) => {
     if (schema) {
       setDataset({
         type: DatasetActionType.SelectSchema,
@@ -146,10 +149,14 @@ export default function LeftPanel({
       });
     }
   };
-  const setTable = (tableName: string) => {
+  const setTable = (tableValue: TableValue) => {
+    setDataset({
+      type: DatasetActionType.SelectSchema,
+      payload: { name: 'schema', value: tableValue.schema },
+    });
     setDataset({
       type: DatasetActionType.SelectTable,
-      payload: { name: 'table_name', value: tableName },
+      payload: { name: 'table_name', value: tableValue.value },
     });
   };
   useEffect(() => {

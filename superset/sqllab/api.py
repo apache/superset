@@ -34,6 +34,7 @@ from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
+from superset.llms import dispatcher
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.sql_lab import get_sql_results
@@ -48,7 +49,10 @@ from superset.sqllab.schemas import (
     EstimateQueryCostSchema,
     ExecutePayloadSchema,
     FormatQueryPayloadSchema,
+    GenerateDbContextSchema,
+    GenerateSqlSchema,
     QueryExecutionResponseSchema,
+    sql_lab_get_assistant_status_schema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
 )
@@ -419,6 +423,142 @@ class SqlLabRestApi(BaseSupersetApi):
                 403 if isinstance(ex, QueryIsForbiddenToAccessException) else ex.status
             )
             return self.response(response_status, **payload)
+
+    @expose("/generate_sql/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate_sql",
+        log_to_statsd=False,
+    )
+    def generate_sql_with_ai(self) -> FlaskResponse:
+        """Generate a SQL query with AI.
+        ---
+        post:
+          summary: Generate a SQL query with AI
+          requestBody:
+            description: User prompt and prior SQL query context
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/GenerateSqlSchema'
+          responses:
+            200:
+              description: A generated SQL query
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/GenerateSqlResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        params = GenerateSqlSchema().load(request.json)
+        logging.info(f"Generating SQL with AI for database {params['database_id']}")
+        logging.info(f"User prompt: {params['user_prompt']}")
+        logging.info(f"Prior context: {params.get('prior_context')}")
+        logging.info(f"Schemas: {params.get('schemas')}")
+        generated = dispatcher.generate_sql(
+            params["database_id"],
+            params["user_prompt"],
+            params.get("prior_context"),
+            params.get("schemas"),
+        )
+        return json_success(json.dumps({"sql": generated}), 200)
+
+    @expose("/generate_db_context/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".generate_db_context",
+        log_to_statsd=False,
+    )
+    def generate_db_context(self) -> FlaskResponse:
+        """Generate database context information for generating queries with an LLM.
+        ---
+        post:
+          summary: Generate database context information for generating queries with an LLM
+          requestBody:
+            description: Database ID
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/GenerateDbContextSchema'
+          responses:
+            202:
+              description: Query execution result, query still running
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/GenerateDbContextResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        params = GenerateDbContextSchema().load(request.json)
+        result = dispatcher.generate_context_for_db(params["database_id"])
+        return json_success(json.dumps(result), 200)
+
+    @expose("/db_context_status/")
+    @protect()
+    @statsd_metrics
+    @rison(sql_lab_get_assistant_status_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".db_context_status",
+        log_to_statsd=False,
+    )
+    def db_context_status(self, **kwargs: Any) -> FlaskResponse:
+        """Get the status of the AI assistant.
+        ---
+        get:
+          summary: Get the status of the AI assistant.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/sql_lab_get_assistant_status_schema'
+          responses:
+            200:
+              description: Current state of the AI assistant
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/AiAssistantStatusResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            410:
+              $ref: '#/components/responses/410'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        params = kwargs["rison"]
+        pk = params.get("pk")
+        result = dispatcher.get_state(pk)
+        return json_success(json.dumps(result), 200)
 
     @staticmethod
     def _create_sql_json_command(

@@ -161,7 +161,7 @@ const AceEditorWrapper = ({
   const { data: annotations } = useAnnotations({
     dbId: queryEditor.dbId,
     catalog: queryEditor.catalog,
-    schema: queryEditor.schema,
+    // schema: queryEditor.schema,
     sql: currentSql,
     templateParams: queryEditor.templateParams,
   });

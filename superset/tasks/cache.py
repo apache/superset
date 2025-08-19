@@ -257,7 +257,7 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
             url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
         )
         response = request.urlopen(  # pylint: disable=consider-using-with  # noqa: S310
-            req, timeout=600
+            req, timeout=30
         )
         logger.info(
             "Fetched %s with payload %s, status code: %s", url, data, response.code

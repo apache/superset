@@ -47,12 +47,14 @@ const fakeTableApiResult = {
       value: 'fake api result1',
       label: 'fake api label1',
       type: 'table',
+      schema: 'main',
     },
     {
       id: 2,
       value: 'fake api result2',
       label: 'fake api label2',
       type: 'table',
+      schema: 'main',
     },
   ],
 };

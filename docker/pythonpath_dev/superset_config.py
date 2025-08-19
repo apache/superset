@@ -81,6 +81,7 @@ class CeleryConfig:
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+        "superset.tasks.llm_context",
     )
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     worker_prefetch_multiplier = 1
@@ -93,6 +94,10 @@ class CeleryConfig:
         "reports.prune_log": {
             "task": "reports.prune_log",
             "schedule": crontab(minute=10, hour=0),
+        },
+        "check_for_expired_llm_context": {
+            "task": "check_for_expired_llm_context",
+            "schedule": crontab(minute="*/5"),
         },
     }
 
