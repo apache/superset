@@ -63,50 +63,40 @@ class CSVReader(BaseDataReader):
     @staticmethod
     def _read_csv(file: FileStorage, kwargs: dict[str, Any]) -> pd.DataFrame:
         try:
+            types = kwargs.pop("dtype", None)
             if "chunksize" in kwargs:
-                return pd.concat(
+                df = pd.concat(
                     pd.read_csv(
                         filepath_or_buffer=file.stream,
                         **kwargs,
                     )
                 )
-            return pd.read_csv(
-                filepath_or_buffer=file.stream,
-                **kwargs,
-            )
-        except ValueError as ex:
-            error_str = str(ex)   
-            if "invalid literal for int() with base 10:" in error_str:
-                invalid_value = error_str.split(":")[-1].strip().strip("'")
-
-                int_columns = []
-                problematic_column = None
-
-                if kwargs.get("dtype"):
-                    int_columns = [
-                        col for col, dtype in kwargs["dtype"].items() 
-                        if dtype == "int" or dtype == "integer"
-                    ]
-                    kwargs.pop("dtype", None)
-                    file.stream.seek(0)
-                    df = pd.concat(
-                        pd.read_csv(
-                            filepath_or_buffer=file.stream,
-                            **kwargs
+            else:
+                df = pd.read_csv(
+                    filepath_or_buffer=file.stream,
+                    **kwargs,
+                )
+            if types:
+                for column, dtype in types.items():
+                    try:
+                        df[column] = df[column].astype(dtype)
+                    except ValueError as ex:
+                        error_msg = f"Non {dtype} value found in column '{column}'."
+                        ex_msg = str(ex)
+                        invalid_value = ex_msg.split(":")[-1].strip().strip("'")
+                        error_msg += (
+                            f" Value: '{invalid_value}'" if invalid_value else ""
                         )
-                    )
-
-                    for col in int_columns:
-                        mask = df[col] == invalid_value
-                        if mask.any():
-                            problematic_column = col
-                            line_number = mask.idxmax() + kwargs.get('header', 0) + 1
-                            break
-
-                    error_msg =  f"Non-numeric value '{invalid_value}' found on column '{problematic_column}' line {line_number}"
-
-                raise DatabaseUploadFailed(message=error_msg) from ex
-           
+                        mask = df[column] == invalid_value
+                        if mask.any() and invalid_value:
+                            line_number = mask.idxmax() + kwargs.get("header", 0) + 1
+                            error_msg += f", line: {line_number}."
+                        raise DatabaseUploadFailed(message=error_msg) from ex
+            return df
+        except DatabaseUploadFailed:
+            raise
+        except ValueError as ex:
+            error_str = str(ex)
             raise DatabaseUploadFailed(
                 message=_("Parsing error: %(error)s", error=error_str)
             ) from ex
@@ -114,7 +104,7 @@ class CSVReader(BaseDataReader):
         except (
             pd.errors.ParserError,
             pd.errors.EmptyDataError,
-            UnicodeDecodeError
+            UnicodeDecodeError,
         ) as ex:
             raise DatabaseUploadFailed(
                 message=_("Parsing error: %(error)s", error=str(ex))
@@ -138,21 +128,27 @@ class CSVReader(BaseDataReader):
             "dayfirst": self._options.get("day_first", False),
             "iterator": True,
             "keep_default_na": not self._options.get("null_values"),
-            "usecols": self._options.get("columns_read")
-            if self._options.get("columns_read")  # None if an empty list
-            else None,
-            "na_values": self._options.get("null_values")
-            if self._options.get("null_values")  # None if an empty list
-            else None,
+            "usecols": (
+                self._options.get("columns_read")
+                if self._options.get("columns_read")  # None if an empty list
+                else None
+            ),
+            "na_values": (
+                self._options.get("null_values")
+                if self._options.get("null_values")  # None if an empty list
+                else None
+            ),
             "nrows": self._options.get("rows_to_read"),
             "parse_dates": self._options.get("column_dates"),
             "sep": self._options.get("delimiter", ","),
             "skip_blank_lines": self._options.get("skip_blank_lines", False),
             "skipinitialspace": self._options.get("skip_initial_space", False),
             "skiprows": self._options.get("skip_rows", 0),
-            "dtype": self._options.get("column_data_types")
-            if self._options.get("column_data_types")
-            else None,
+            "dtype": (
+                self._options.get("column_data_types")
+                if self._options.get("column_data_types")
+                else None
+            ),
         }
         return self._read_csv(file, kwargs)
 
