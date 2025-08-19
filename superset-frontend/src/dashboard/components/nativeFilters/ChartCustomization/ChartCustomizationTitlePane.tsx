@@ -106,7 +106,7 @@ const ChartCustomizationTitlePane: FC<Props> = ({
           aria-label={t('Add dynamic group by')}
           icon={
             <Icons.GroupOutlined
-              iconColor={theme.colors.primary.dark1}
+              iconColor={theme.colorPrimaryActive}
               iconSize="m"
             />
           }
