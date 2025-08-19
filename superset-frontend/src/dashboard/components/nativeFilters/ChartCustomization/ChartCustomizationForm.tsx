@@ -1247,7 +1247,7 @@ const ChartCustomizationForm: FC<Props> = ({
                     return (
                       <StyledMarginTop>
                         {error ? (
-                          <div style={{ color: theme.colors.error.base }}>
+                          <div style={{ color: theme.colorErrorText }}>
                             {t('Cannot load filter: ')}{' '}
                             {error.message || error.error || 'Unknown error'}
                           </div>
