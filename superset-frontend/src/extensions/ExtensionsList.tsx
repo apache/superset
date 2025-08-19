@@ -79,7 +79,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         }: any) => (
           <div
             css={css`
-              color: ${theme.colors.primary.dark1};
+              color: ${theme.colorLink};
               text-decoration: underline;
             `}
           >

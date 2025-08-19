@@ -830,7 +830,7 @@ const SqlEditor: FC<Props> = ({
           <Button
             onClick={() => commands.executeCommand(command.command)}
             tooltip={command?.description}
-            icon={<Icon iconSize="m" iconColor={theme.colors.primary.base} />}
+            icon={<Icon iconSize="m" iconColor={theme.colorPrimary} />}
             buttonSize="small"
           >
             {command?.title}
