@@ -414,7 +414,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             css={css`
               width: 1px;
               height: 22px;
-              background: ${theme.colors.grayscale.light2};
+              background: ${theme.colorBorder};
               margin-left: ${theme.sizeUnit * 4}px;
               margin-right: ${theme.sizeUnit}px;
               flex-shrink: 0;

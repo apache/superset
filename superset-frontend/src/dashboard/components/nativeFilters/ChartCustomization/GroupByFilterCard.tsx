@@ -65,14 +65,14 @@ const Row = styled.div`
 `;
 
 const RowLabel = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorTextSecondary};
   padding-right: ${({ theme }) => theme.sizeUnit * 4}px;
   margin-right: auto;
   white-space: nowrap;
 `;
 
 const RowValue = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colorText};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -94,7 +94,7 @@ const FilterValueContainer = styled.div`
 
 const FilterTitle = styled(Typography.Text)`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colorText};
   font-weight: 600;
   margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   display: flex;
@@ -105,7 +105,7 @@ const FilterTitle = styled(Typography.Text)`
   white-space: nowrap;
 
   &:hover {
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
   }
 `;
 
