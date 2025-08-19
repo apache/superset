@@ -81,7 +81,7 @@ const LayerContainer = styled.div`
 
   input::placeholder,
   textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextPlaceholder};
   }
 `;
 

@@ -191,6 +191,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "id",
+        "uuid",
         "published",
         "status",
         "slug",
@@ -251,6 +252,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "dashboard_title",
         "id",
+        "uuid",
         "owners",
         "published",
         "roles",

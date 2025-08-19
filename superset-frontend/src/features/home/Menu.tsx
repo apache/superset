@@ -83,8 +83,8 @@ const StyledHeader = styled.header`
         }
       }
       .navbar-brand-text {
-        border-left: 1px solid ${theme.colors.grayscale.light2};
-        border-right: 1px solid ${theme.colors.grayscale.light2};
+        border-left: 1px solid ${theme.colorBorderSecondary};
+        border-right: 1px solid ${theme.colorBorderSecondary};
         height: 100%;
         color: ${theme.colorText};
         padding-left: ${theme.sizeUnit * 4}px;
@@ -130,7 +130,7 @@ const { SubMenu } = MainNav;
 const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     [data-icon="caret-down"] {
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorIcon};
       font-size: ${theme.fontSizeXS}px;
       margin-left: ${theme.sizeUnit}px;
     }
