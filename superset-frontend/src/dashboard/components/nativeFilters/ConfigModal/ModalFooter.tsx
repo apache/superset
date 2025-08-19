@@ -173,7 +173,7 @@ export const ModalFooter: FC<ModalFooterProps> = ({
             return (
               <ToggleIcon
                 iconSize="l"
-                iconColor={theme.colors.grayscale.dark2}
+                iconColor={theme.colorTextSecondary}
                 onClick={onToggleExpand}
               />
             );
