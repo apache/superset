@@ -22,10 +22,7 @@ Create Date: 2025-08-13 19:09:41.796801
 
 """
 
-# revision identifiers, used by Alembic.
-revision = "da125679ebb8"
-down_revision = "c233f5365c9e"
-
+import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
@@ -33,6 +30,13 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils import json
+
+logger = logging.getLogger("alembic.env")
+
+# revision identifiers, used by Alembic.
+revision = "da125679ebb8"
+down_revision = "c233f5365c9e"
+
 
 Base = declarative_base()
 
@@ -49,22 +53,32 @@ def upgrade():
     session = db.Session(bind=bind)
 
     for slc in session.query(Slice).filter(Slice.viz_type == "table"):
-        params = json.loads(slc.params)
-        conditional_formatting = params.get("conditional_formatting", [])
-        if conditional_formatting:
-            new_conditional_formatting = []
-            for formatter in conditional_formatting:
-                color_scheme = formatter.get("colorScheme")
+        try:
+            params = json.loads(slc.params)
+            conditional_formatting = params.get("conditional_formatting", [])
 
-                if color_scheme not in ["Green", "Red"]:
-                    new_conditional_formatting.append(
-                        {**formatter, "toAllRow": False, "toTextColor": False}
-                    )
-                else:
-                    new_conditional_formatting.append(formatter)
-            params["conditional_formatting"] = new_conditional_formatting
-            slc.params = json.dumps(params)
-            session.commit()
+            if conditional_formatting:
+                new_conditional_formatting = []
+
+                for formatter in conditional_formatting:
+                    color_scheme = formatter.get("colorScheme")
+
+                    if color_scheme not in ["Green", "Red"]:
+                        new_formatter = formatter.copy()
+                        new_formatter["toAllRow"] = False
+                        new_formatter["toTextColor"] = False
+                        new_conditional_formatting.append(new_formatter)
+                    else:
+                        new_conditional_formatting.append(formatter)
+
+                params["conditional_formatting"] = new_conditional_formatting
+                slc.params = json.dumps(params)
+
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Invalid JSON in slice {slc.id} params: {e}")
+            continue
+
+    session.commit()
     session.close()
 
 
@@ -88,6 +102,6 @@ def downgrade():
 
             params["conditional_formatting"] = new_conditional_formatting
             slc.params = json.dumps(params)
-            session.commit()
 
+    session.commit()
     session.close()
