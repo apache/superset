@@ -17,7 +17,8 @@
  * under the License.
  */
 import { environment as environmentType } from '@apache-superset/core';
-const LogLevel = environmentType.LogLevel;
+
+const { LogLevel } = environmentType;
 
 const clipboard: typeof environmentType.clipboard = {
   readText: async () => {
