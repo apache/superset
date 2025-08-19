@@ -168,6 +168,8 @@ export interface Extension {
   contributions: Contributions;
   /** Function called when the extension is deactivated */
   deactivate: Function;
+  /** List of other extensions that this extension depends on */
+  dependencies: string[];
   /** Human-readable description of the extension */
   description: string;
   /** List of modules exposed by this extension for use by other extensions */
@@ -178,6 +180,8 @@ export interface Extension {
   name: string;
   /** URL or path to the extension's remote entry point */
   remoteEntry: string;
+  /** Version of the extension */
+  version: string;
 }
 
 /**

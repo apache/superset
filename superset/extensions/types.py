@@ -32,8 +32,7 @@ class LoadedExtension:
     manifest: Manifest
     frontend: dict[str, bytes]
     backend: dict[str, bytes]
-    enabled: bool
-    id: int | None = None
+    version: str
 
     @property
     def checksum(self) -> str:

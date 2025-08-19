@@ -150,22 +150,24 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
             raise Exception(f"Unexpected file in bundle: {filename}")
 
     name = manifest["name"]
+    version = manifest["version"]
     return LoadedExtension(
         name=name,
         manifest=manifest,
         frontend=frontend,
         backend=backend,
-        enabled=True,
+        version=version,
     )
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest: Manifest = extension.manifest
     extension_data: dict[str, Any] = {
-        "id": extension.id,
         "name": extension.name,
+        "version": extension.version,
+        "description": manifest.get("description", ""),
         "dependencies": manifest.get("dependencies", []),
-        "enabled": extension.enabled,
+        "extensionDependencies": manifest.get("extensionDependencies", []),
     }
     if frontend := manifest.get("frontend"):
         module_federation = frontend.get("moduleFederation", {})
@@ -184,10 +186,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
     from superset.daos.extension import ExtensionDAO
 
     extensions: dict[str, LoadedExtension] = {}
-    for i, path in enumerate(current_app.config["LOCAL_EXTENSIONS"]):
+    for path in current_app.config["LOCAL_EXTENSIONS"]:
         files = get_bundle_files_from_path(path)
         extension = get_loaded_extension(files)
-        extension.id = i
         extensions[extension.name] = extension
         logger.info(f"Loading extension {extension.name} from local filesystem")
 
@@ -203,13 +204,14 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
 
 def build_loaded_extension(db_extension: Extension) -> LoadedExtension:
+    manifest = db_extension.manifest_dict
+    version = manifest.get("version", "1.0.0")  # Default version if not specified
     extension = LoadedExtension(
-        id=db_extension.id,
         name=db_extension.name,
-        manifest=db_extension.manifest_dict,
+        manifest=manifest,
         backend=db_extension.backend_dict or {},
         frontend=db_extension.frontend_dict or {},
-        enabled=db_extension.enabled,
+        version=version,
     )
     return extension
 

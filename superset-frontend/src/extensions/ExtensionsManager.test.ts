@@ -24,6 +24,8 @@ import ExtensionsManager from './ExtensionsManager';
 interface MockExtensionOptions {
   name?: string;
   description?: string;
+  version?: string;
+  dependencies?: string[];
   remoteEntry?: string;
   exposedModules?: string[];
   extensionDependencies?: string[];
@@ -42,6 +44,8 @@ function createMockExtension(
   const {
     name = 'Test Extension',
     description = 'A test extension',
+    version = '1.0.0',
+    dependencies = [],
     remoteEntry = '',
     exposedModules = [],
     extensionDependencies = [],
@@ -54,6 +58,8 @@ function createMockExtension(
   const extension: core.Extension = {
     name,
     description,
+    version,
+    dependencies,
     remoteEntry,
     exposedModules,
     extensionDependencies,

@@ -18,36 +18,54 @@ import mimetypes
 from io import BytesIO
 from typing import Any
 
-from flask import request, send_file
+from flask import send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, protect, rison, safe
-from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import ValidationError
+from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.commands.extension.delete import DeleteExtensionCommand
-from superset.daos.extension import ExtensionDAO
-from superset.extensions import event_logger
-from superset.extensions.models import Extension
-from superset.extensions.schemas import delete_schema, ExtensionPutSchema
 from superset.extensions.utils import (
     build_extension_data,
-    build_loaded_extension,
     get_extensions,
 )
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_json,
-    statsd_metrics,
-)
 
 
-# TODO: Refactor to use commands
-class ExtensionsRestApi(BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(Extension)
+class ExtensionsRestApi(BaseApi):
     allow_browser_login = True
     resource_name = "extensions"
 
-    edit_model_schema = ExtensionPutSchema()
+    def response(self, status_code: int, **kwargs: Any) -> Response:
+        """Helper method to create JSON responses."""
+        from flask import jsonify
+
+        return jsonify(kwargs), status_code
+
+    def response_404(self) -> Response:
+        """Helper method to create 404 responses."""
+        from flask import jsonify
+
+        return jsonify({"message": "Not found"}), 404
+
+    @expose("/_info", methods=("GET",))
+    @protect()
+    @safe
+    def info(self, **kwargs: Any) -> Response:
+        """Get API info including permissions.
+        ---
+        get:
+          summary: Get API info
+          responses:
+            200:
+              description: API info
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+        """
+        return self.response(200, permissions=["can_read"])
 
     # TODO: Support the q parameter
     @protect()
@@ -99,17 +117,17 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
 
     @protect()
     @safe
-    @expose("/<int:pk>", methods=("GET",))
-    def get(self, pk: int, **kwargs: Any) -> Response:
-        """Get an extension by its primary key.
+    @expose("/<name>", methods=("GET",))
+    def get(self, name: str, **kwargs: Any) -> Response:
+        """Get an extension by its name.
         ---
         get:
-          summary: Get an extension by its primary key.
+          summary: Get an extension by its name.
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+            name: name
           responses:
             200:
               description: Extension details
@@ -136,11 +154,11 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        extension = ExtensionDAO.find_by_id(pk)
+        extensions = get_extensions()
+        extension = extensions.get(name)
         if not extension:
             return self.response_404()
-        loaded_extension = build_loaded_extension(extension)
-        extension_data = build_extension_data(loaded_extension)
+        extension_data = build_extension_data(extension)
         return self.response(200, result=extension_data)
 
     @protect()
@@ -195,108 +213,3 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             mimetype = "application/octet-stream"
 
         return send_file(BytesIO(chunk), mimetype=mimetype)
-
-    @expose("/<int:pk>", methods=("PUT",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
-    )
-    @requires_json
-    def put(self, pk: int) -> Response:
-        """Update an extension.
-        ---
-        put:
-          summary: Change an extension
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            description: Extension schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-          responses:
-            200:
-              description: Extension changed
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: boolean
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            # TODO: Just supporting enabled field for now. We need to check if we'll
-            # need more and also handle specific exceptions.
-            item = self.edit_model_schema.load(request.json)
-            model = ExtensionDAO.find_by_id(pk)
-            if not model:
-                return self.response_404()
-            ExtensionDAO.update(item=model, attributes={"enabled": item["enabled"]})
-            return self.response(200, result=True)
-
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-
-    @expose("/", methods=("DELETE",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
-    )
-    @rison(delete_schema)
-    def delete(self, **kwargs: Any) -> Response:
-        """Delete extensions.
-        ---
-        delete:
-          summary: Delete extensions
-          parameters:
-            - in: query
-              name: q
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/delete_schema'
-          responses:
-            200:
-              description: Extensions deleted
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: boolean
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        ids = kwargs["rison"]
-        if not ids or not isinstance(ids, list):
-            return self.response_400(message="Invalid or missing ids")
-
-        DeleteExtensionCommand(ids).run()
-        return self.response(200, result=True)
