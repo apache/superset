@@ -18,7 +18,7 @@
  */
 
 import cls from 'classnames';
-import { styled } from '../../theme';
+import { styled, useTheme } from '../../theme';
 import { Loading as Loader } from '../assets';
 import type { LoadingProps } from './types';
 
@@ -51,11 +51,23 @@ export function Loading({
   image,
   className,
 }: LoadingProps) {
+  const theme = useTheme();
+
+  // Precedence: explicit image prop > brandSpinnerSvg > brandSpinnerUrl > default
+  const getSpinnerSource = () => {
+    if (image) return image; // Explicit prop takes highest precedence
+    if (theme.brandSpinnerSvg) {
+      return `data:image/svg+xml;base64,${btoa(theme.brandSpinnerSvg)}`;
+    }
+    if (theme.brandSpinnerUrl) return theme.brandSpinnerUrl;
+    return Loader; // Default loading.gif
+  };
+
   return (
     <LoaderImg
       className={cls('loading', position, className)}
       alt="Loading..."
-      src={image || Loader}
+      src={getSpinnerSource()}
       role="status"
       aria-live="polite"
       aria-label="Loading"
