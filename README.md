@@ -221,3 +221,14 @@ Understanding the Superset Points of View
 
 <!-- telemetry/analytics pixel: -->
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />
+
+## Quick Start for Beginners(Windows Friendly)
+
+Many new contributors face issues while setting up Superset on Windows.  
+Here’s a step-by-step guide:
+
+### 1. Install Git
+- [Download Git](https://git-scm.com/downloads)  
+- Verify installation:
+  ```bash
+  git --version
