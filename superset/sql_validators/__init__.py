@@ -16,7 +16,7 @@
 # under the License.
 from typing import Optional
 
-from . import base, postgres, presto_db
+from . import base, postgres, presto_db, bigquery
 from .base import SQLValidationAnnotation  # noqa: F401
 
 
@@ -24,4 +24,5 @@ def get_validator_by_name(name: str) -> Optional[type[base.BaseSQLValidator]]:
     return {
         "PrestoDBSQLValidator": presto_db.PrestoDBSQLValidator,
         "PostgreSQLValidator": postgres.PostgreSQLValidator,
+        "BigQueryValidator": bigquery.BigQueryValidator,
     }.get(name)
