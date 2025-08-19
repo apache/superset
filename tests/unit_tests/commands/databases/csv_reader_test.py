@@ -372,6 +372,136 @@ def test_csv_reader_file_metadata_invalid_file():
         " Expected 3 fields in line 3, saw 7\n"
     )
 
+
+def test_csv_reader_integer_in_float_column():
+    csv_data = [
+        ["Name", "Score", "City"],
+        ["name1", 25.5, "city1"],
+        ["name2", 25, "city2"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"Score": "float"})
+    )
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (2, 3)
+    assert df["Score"].dtype == "float64"
+
+
+def test_csv_reader_object_type_auto_inferring():
+    # this case below won't raise a error
+    csv_data = [
+        ["Name", "id", "City"],
+        ["name1", 25.5, "city1"],
+        ["name2", 15, "city2"],
+        ["name3", 123456789086, "city3"],
+        ["name4", "abc", "city4"],
+        ["name5", 4.75, "city5"],
+    ]
+
+    csv_reader = CSVReader()
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (5, 3)
+    # pandas automatically infers the type if column_data_types is not informed
+    # iff there's only one string in the column it converts the whole column to object
+    assert df["id"].dtype == "object"
+
+
+def test_csv_reader_float_type_auto_inferring():
+    csv_data = [
+        ["Name", "id", "City"],
+        ["name1", "25", "city1"],
+        ["name2", "15", "city2"],
+        ["name3", "123456789086", "city3"],
+        ["name5", "4.75", "city5"],
+    ]
+
+    csv_reader = CSVReader()
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (4, 3)
+    # The type here is automatically inferred to float due to 4.75 value
+    assert df["id"].dtype == "float64"
+
+
+def test_csv_reader_int_type_auto_inferring():
+    csv_data = [
+        ["Name", "id", "City"],
+        ["name1", "0", "city1"],
+        ["name2", "15", "city2"],
+        ["name3", "123456789086", "city3"],
+        ["name5", "45", "city5"],
+    ]
+
+    csv_reader = CSVReader()
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (4, 3)
+    assert df["id"].dtype == "int64"
+
+
+def test_csv_reader_bigint_type_auto_inferring():
+    csv_data = [
+        ["Name", "id", "City"],
+        ["name1", "9223372036854775807", "city1"],
+        ["name2", "9223372036854775806", "city2"],
+        ["name3", "1234567890123456789", "city3"],
+        ["name4", "0", "city4"],
+        ["name5", "-9223372036854775808", "city5"],
+    ]
+
+    csv_reader = CSVReader()
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (5, 3)
+    assert df["id"].dtype == "int64"
+    assert df.iloc[0]["id"] == 9223372036854775807
+    assert df.iloc[4]["id"] == -9223372036854775808
+
+
+def test_csv_reader_int_typing():
+    csv_data = [
+        ["Name", "id", "City"],
+        ["name1", "0", "city1"],
+        ["name2", "15", "city2"],
+        ["name3", "123456789086", "city3"],
+        ["name5", "45", "city5"],
+    ]
+
+    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"id": "int"}))
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (4, 3)
+    assert df["id"].dtype == "int64"
+
+
+def test_csv_reader_float_typing():
+    csv_data = [
+        ["Name", "score", "City"],
+        ["name1", "0", "city1"],
+        ["name2", "15.3", "city2"],
+        ["name3", "45", "city3"],
+        ["name5", "23.1342", "city5"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"score": "float"})
+    )
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (4, 3)
+    assert df["score"].dtype == "float64"
+
+
 def test_csv_reader_non_numeric_in_integer_column():
     csv_data = [
         ["Name", "Age", "City"],
@@ -379,33 +509,34 @@ def test_csv_reader_non_numeric_in_integer_column():
         ["name2", "25", "city2"],
     ]
 
-    csv_reader = CSVReader(
-        options=CSVReaderOptions(
-            column_data_types={"Age": "int"} 
-        )
-    )
+    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"Age": "int"}))
 
     with pytest.raises(DatabaseUploadFailed) as ex:
         csv_reader.file_to_dataframe(create_csv_file(csv_data))
 
-    assert str(ex.value) == "Non-numeric value 'abc' found on column 'Age' line 1"
+    assert (
+        str(ex.value) == "Non int value found in column 'Age'. Value: 'abc', line: 1."
+    )
 
 
 def test_csv_reader_non_numeric_in_float_column():
     csv_data = [
         ["Name", "Score", "City"],
-        ["name1", "abc", "city1"],  # invalid float
+        ["name1", "5.3", "city1"],
         ["name2", "25.5", "city2"],
+        ["name3", "24.5", "city3"],
+        ["name4", "1.0", "city4"],
+        ["name5", "one point five", "city5"],
     ]
 
     csv_reader = CSVReader(
-        options=CSVReaderOptions(
-            column_data_types={"Score": "float"}
-        )
+        options=CSVReaderOptions(column_data_types={"Score": "float"})
     )
-    csv = create_csv_file(csv_data)
-    csv_reader.file_to_dataframe(csv)
-    with pytest.raises(DatabaseUploadFailed) as ex:
-        csv_reader.file_to_dataframe(csv)
 
-    assert str(ex.value) == "Non-numeric value 'abc' found on column 'Score' line 1"
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert (
+        str(ex.value)
+        == "Non float value found in column 'Score'. Value: 'one point five', line: 5."
+    )
