@@ -57,11 +57,12 @@ const getCurrentTab: typeof sqlLabType.getCurrentTab = () => {
   return undefined;
 };
 
-const predicate =
-  (actionType: string): AnyListenerPredicate<RootState> =>
-  action =>
-    action.type === actionType &&
-    action.query?.sqlEditorId === activeEditorId();
+const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
+  // Uses closure to capture the active editor ID at the time the listener is created
+  const id = activeEditorId();
+  return action =>
+    action.type === actionType && action.query?.sqlEditorId === id;
+};
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
   listener: (editor: sqlLabType.Editor) => void,
