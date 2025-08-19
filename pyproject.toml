@@ -403,6 +403,7 @@ authorized_licenses = [
     "apache software, bsd",
     "bsd",
     "bsd-3-clause",
+    "cnri-python",
     "isc license (iscl)",
     "isc license",
     "mit",

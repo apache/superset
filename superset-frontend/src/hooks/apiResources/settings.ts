@@ -17,9 +17,33 @@
  * under the License.
  */
 
+import { t } from '@superset-ui/core';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useEffect } from 'react';
 import { useApiV1Resource } from './apiResources';
 
-export const useDatabaseTables = (id: string | number) =>
-  useApiV1Resource<{ [schema: string]: string[] }>(
+export const useDatabaseTables = (id?: string | number) => {
+  const { addDangerToast } = useToasts();
+  console.log('Aiciiii', id);
+
+  useEffect(() => {
+    if (!id) {
+      addDangerToast?.(
+        t('No database selected. Please connect or select a database first.'),
+      );
+    }
+  }, [id, addDangerToast]);
+
+  if (!id) {
+    return {
+      result: {},
+      status: 'idle' as const,
+      error: 'No database id provided',
+      refetch: () => Promise.resolve(),
+    };
+  }
+
+  return useApiV1Resource<{ [schema: string]: string[] }>(
     `/api/v1/database/${id}/schema_tables/`,
   );
+};

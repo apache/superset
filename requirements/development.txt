@@ -600,6 +600,7 @@ pgsanity==0.2.9
     #   apache-superset
 pillow==11.3.0
     # via
+    #   -c requirements/base.txt
     #   apache-superset
     #   matplotlib
 pip==25.1.1

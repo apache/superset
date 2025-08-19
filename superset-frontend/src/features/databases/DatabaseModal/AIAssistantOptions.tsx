@@ -67,14 +67,15 @@ const AIAssistantOptions = ({
   const [selectedModelTokenLimit, setSelectedModelTokenLimit] = useState<
     number | null
   >(null);
-  const tables = useDatabaseTables(db?.id || 1);
+
+  const tables = useDatabaseTables(db?.id);
   const contextSettings = db?.llm_context_options;
   const [activeKey, setActiveKey] = useState<string | string[] | undefined>(
     undefined,
   );
 
   const contextStatus = useLlmContextStatus({
-    dbId: db?.id || 1,
+    dbId: db?.id,
     onSuccess: result => {
       setRegenerating(result.status === 'building');
       if (result.context) {
@@ -85,7 +86,7 @@ const AIAssistantOptions = ({
   });
 
   useLlmDefaults({
-    dbId: db?.id || 1,
+    dbId: db?.id,
     onSuccess: result => {
       if (result) {
         setLlmDefaults(result);
@@ -443,7 +444,7 @@ const AIAssistantOptions = ({
                     setRegenerating(true);
                     return SupersetClient.post({
                       endpoint: '/api/v1/sqllab/generate_db_context',
-                      body: JSON.stringify({ database_id: db?.id || 0 }),
+                      body: JSON.stringify({ database_id: db?.id }),
                       headers: { 'Content-Type': 'application/json' },
                     }).finally(() => {
                       setTimeout(() => {

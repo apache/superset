@@ -312,7 +312,7 @@ parsedatetime==2.6
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
 pillow==11.3.0
-    # via apache_superset (pyproject.toml)
+    # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
 ply==3.11

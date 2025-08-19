@@ -157,10 +157,7 @@ const AiAssistantEditor = ({
             tooltip={t('Generate SQL with AI') as string}
             disabled={isDisabled}
           >
-            <Icons.BulbOutlined
-              iconColor={theme.colors.primary.base}
-              iconSize="xl"
-            />
+            <Icons.BulbOutlined iconSize="xl" />
             {isGeneratingSql ? t('Generating...') : t('Generate SQL')}
           </Button>
         </StyledButton>

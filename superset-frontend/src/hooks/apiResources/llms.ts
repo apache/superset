@@ -85,6 +85,7 @@ export const {
 
 export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
   const { dbId, onSuccess, onError } = options || {};
+  console.log('useLlmContextStatus dbId:', dbId);
 
   const pollingInterval = useRef<number>(30000);
   const [, forceUpdate] = useReducer(x => x + 1, 0);
