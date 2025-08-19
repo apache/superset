@@ -19,22 +19,22 @@
 
 import { render, waitFor, configure } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import StatefulChart from '../../../src/chart/components/StatefulChart';
-import getChartControlPanelRegistry from '../../../src/chart/registries/ChartControlPanelRegistrySingleton';
-import getChartMetadataRegistry from '../../../src/chart/registries/ChartMetadataRegistrySingleton';
-import getChartBuildQueryRegistry from '../../../src/chart/registries/ChartBuildQueryRegistrySingleton';
+import StatefulChart from './StatefulChart';
+import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
+import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
+import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 
 // Configure testing library to use data-test attribute
 configure({ testIdAttribute: 'data-test' });
 
 // Mock the registries
-jest.mock('../../../src/chart/registries/ChartControlPanelRegistrySingleton');
-jest.mock('../../../src/chart/registries/ChartMetadataRegistrySingleton');
-jest.mock('../../../src/chart/registries/ChartBuildQueryRegistrySingleton');
-jest.mock('../../../src/chart/clients/ChartClient');
+jest.mock('../registries/ChartControlPanelRegistrySingleton');
+jest.mock('../registries/ChartMetadataRegistrySingleton');
+jest.mock('../registries/ChartBuildQueryRegistrySingleton');
+jest.mock('../clients/ChartClient');
 
 // Mock SuperChart component
-jest.mock('../../../src/chart/components/SuperChart', () => ({
+jest.mock('./SuperChart', () => ({
   __esModule: true,
   // eslint-disable-next-line react/display-name
   default: ({ formData }: any) => (
@@ -43,7 +43,7 @@ jest.mock('../../../src/chart/components/SuperChart', () => ({
 }));
 
 // Mock Loading component
-jest.mock('../../../src/components/Loading', () => ({
+jest.mock('../../components/Loading', () => ({
   // eslint-disable-next-line react/display-name
   Loading: () => <div data-test="loading">Loading...</div>,
 }));
@@ -83,7 +83,7 @@ beforeEach(() => {
 
   // Mock ChartClient constructor
   // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-  const ChartClient = require('../../../src/chart/clients/ChartClient').default; // eslint-disable-line
+  const ChartClient = require('../clients/ChartClient').default; // eslint-disable-line
   ChartClient.mockImplementation(() => mockChartClient);
 });
 

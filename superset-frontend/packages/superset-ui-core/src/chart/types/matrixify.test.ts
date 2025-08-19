@@ -22,8 +22,8 @@ import {
   getMatrixifyConfig,
   getMatrixifyValidationErrors,
   MatrixifyFormData,
-} from '../../../src/chart/types/matrixify';
-import { AdhocMetric } from '../../../src/query/types/Metric';
+} from './matrixify';
+import { AdhocMetric } from '../../query/types/Metric';
 
 const createMetric = (label: string): AdhocMetric => ({
   expressionType: 'SIMPLE',
