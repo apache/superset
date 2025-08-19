@@ -104,7 +104,6 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
-  height: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
@@ -176,7 +175,6 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
-  height,
   queryId,
   search = true,
   showSql = false,
