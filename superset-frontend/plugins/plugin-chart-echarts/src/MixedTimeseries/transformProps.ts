@@ -243,6 +243,10 @@ export default function transformProps(
   const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
   const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
 
+  const dataTypes = getColtypesMapping(queriesData[0]);
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
@@ -250,6 +254,7 @@ export default function transformProps(
     sortSeriesAscending,
     stack,
     totalStackedValues,
+    xAxisType,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
   const {
@@ -267,11 +272,8 @@ export default function transformProps(
     sortSeriesAscending: sortSeriesAscendingB,
     stack: Boolean(stackB),
     totalStackedValues: totalStackedValuesB,
+    xAxisType,
   });
-
-  const dataTypes = getColtypesMapping(queriesData[0]);
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
