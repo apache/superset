@@ -22,10 +22,8 @@ import ExtensionsManager from './ExtensionsManager';
 
 // Type-safe mock data generators
 interface MockExtensionOptions {
-  id?: number;
   name?: string;
   description?: string;
-  enabled?: boolean;
   remoteEntry?: string;
   exposedModules?: string[];
   extensionDependencies?: string[];
@@ -42,10 +40,8 @@ function createMockExtension(
   options: MockExtensionOptions = {},
 ): core.Extension {
   const {
-    id = 1,
     name = 'Test Extension',
     description = 'A test extension',
-    enabled = false,
     remoteEntry = '',
     exposedModules = [],
     extensionDependencies = [],
@@ -56,10 +52,8 @@ function createMockExtension(
   } = options;
 
   const extension: core.Extension = {
-    id,
     name,
     description,
-    enabled,
     remoteEntry,
     exposedModules,
     extensionDependencies,
@@ -161,7 +155,6 @@ async function createActivatedExtension(
   contextOverrides: Partial<{ disposables: { dispose: () => void }[] }> = {},
 ): Promise<core.Extension> {
   const mockExtension = createMockExtension({
-    enabled: true,
     ...extensionOptions,
   });
 
@@ -285,12 +278,10 @@ test('handles multiple extensions', async () => {
   const manager = ExtensionsManager.getInstance();
 
   const extension1 = createMockExtension({
-    id: 1,
     name: 'Extension 1',
   });
 
   const extension2 = createMockExtension({
-    id: 2,
     name: 'Extension 2',
   });
 
@@ -313,7 +304,6 @@ test('initializeExtension properly stores extension in manager', async () => {
   const mockExtension = createMockExtension({
     name: 'Test Extension',
     description: 'A test extension for initialization',
-    enabled: true,
   });
 
   expect(manager.getExtension('Test Extension')).toBeUndefined();
@@ -335,7 +325,6 @@ test('initializeExtension handles extension without remoteEntry', async () => {
   const mockExtension = createMockExtension({
     name: 'Simple Extension',
     description: 'Extension without remote entry',
-    enabled: false,
     remoteEntry: '',
     commands: [createMockCommand('simple.command')],
   });
@@ -350,7 +339,7 @@ test('initializeExtension handles extension without remoteEntry', async () => {
     'Simple Extension',
   );
 
-  // Since extension is not enabled, activate should not be called
+  // Since extension has no remoteEntry, activate should not be called
   expect(mockExtension.activate).not.toHaveBeenCalled();
 });
 
@@ -443,7 +432,7 @@ test('deactivateExtension returns false for non-existent extension', () => {
 test('deactivateExtension returns false for extension without context', async () => {
   const manager = ExtensionsManager.getInstance();
   const mockExtension = createMockExtension({
-    enabled: false, // Not enabled, so no context created
+    // Extension without context created
   });
 
   await manager.initializeExtension(mockExtension);
@@ -545,12 +534,10 @@ test('merges contributions from multiple extensions', async () => {
 
   await createMultipleActivatedExtensions(manager, [
     {
-      id: 1,
       name: 'Extension 1',
       commands: [createMockCommand('ext1.command')],
     },
     {
-      id: 2,
       name: 'Extension 2',
       commands: [createMockCommand('ext2.command')],
     },

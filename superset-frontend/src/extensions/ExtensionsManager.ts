@@ -86,9 +86,7 @@ class ExtensionsManager {
       let loadedExtension = extension;
       if (extension.remoteEntry) {
         loadedExtension = await this.loadModule(extension);
-        if (loadedExtension.enabled) {
-          await this.enableExtension(loadedExtension);
-        }
+        this.enableExtension(loadedExtension);
       }
       this.extensionIndex.set(loadedExtension.name, loadedExtension);
     } catch (error) {
@@ -103,7 +101,7 @@ class ExtensionsManager {
    * Enables an extension by its instance.
    * @param extension The extension to enable.
    */
-  private async enableExtension(extension: core.Extension): Promise<void> {
+  private enableExtension(extension: core.Extension): void {
     const { name } = extension;
     if (extension && typeof extension.activate === 'function') {
       // If already enabled, do nothing
@@ -115,17 +113,6 @@ class ExtensionsManager {
       // TODO: Activate based on activation events
       this.activateExtension(extension, context);
       this.indexContributions(extension);
-
-      if (!extension.enabled) {
-        const updatedExtension = { ...extension, enabled: true };
-        this.extensionIndex.set(updatedExtension.name, updatedExtension);
-        await SupersetClient.put({
-          endpoint: `/api/v1/extensions/${extension.name}`,
-          jsonPayload: {
-            enabled: true,
-          },
-        });
-      }
     }
   }
 

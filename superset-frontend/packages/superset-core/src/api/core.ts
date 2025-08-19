@@ -170,14 +170,10 @@ export interface Extension {
   deactivate: Function;
   /** Human-readable description of the extension */
   description: string;
-  /** Whether the extension is currently enabled */
-  enabled: boolean;
   /** List of modules exposed by this extension for use by other extensions */
   exposedModules: string[];
   /** List of other extensions that this extension depends on */
   extensionDependencies: string[];
-  /** Unique numeric identifier for the extension */
-  id: number;
   /** Name of the extension */
   name: string;
   /** URL or path to the extension's remote entry point */
