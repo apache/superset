@@ -683,10 +683,13 @@ const RightMenu = ({
           flex-direction: row;
           align-items: center;
 
-          .submenu-with-caret > .ant-menu-submenu-title {
-            display: flex;
-            gap: ${theme.sizeUnit * 2}px;
-            flex-direction: row-reverse;
+          .submenu-with-caret {
+            padding: 0 ${theme.paddingSM}px;
+            .ant-menu-submenu-title {
+              display: flex;
+              gap: ${theme.sizeUnit * 2}px;
+              flex-direction: row-reverse;
+            }
           }
         `}
         selectable={false}
