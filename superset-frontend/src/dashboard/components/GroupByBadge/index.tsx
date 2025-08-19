@@ -183,7 +183,6 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       'big_number',
       'big_number_total',
       'gantt',
-      'pivot_table_v2',
       'table',
       'deck_arc',
       'deck_geojson',
@@ -249,6 +248,19 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     }
     if (chartFormData.target) {
       existingColumns.add(chartFormData.target);
+    }
+
+    if (chartType === 'pivot_table_v2') {
+      const pivotColumns = chartFormData.groupbyColumns || [];
+      if (Array.isArray(pivotColumns)) {
+        pivotColumns.forEach((col: any) => {
+          if (typeof col === 'string') {
+            existingColumns.add(col);
+          } else if (col && typeof col === 'object' && 'column_name' in col) {
+            existingColumns.add(col.column_name);
+          }
+        });
+      }
     }
 
     if (chartType === 'box_plot') {
