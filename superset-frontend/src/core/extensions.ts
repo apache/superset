@@ -17,9 +17,16 @@
  * under the License.
  */
 import type { extensions as extensionsType } from '@apache-superset/core';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 
-const getExtension: typeof extensionsType.getExtension = id => undefined;
+const getExtension: typeof extensionsType.getExtension = id => {
+  throw new Error('Not implemented yet');
+};
 
-export const extensions = {
+const getAllExtensions: typeof extensionsType.getAllExtensions = () =>
+  ExtensionsManager.getInstance().getExtensions();
+
+export const extensions: typeof extensionsType = {
   getExtension,
+  getAllExtensions,
 };

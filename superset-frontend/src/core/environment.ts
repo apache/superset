@@ -16,4 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const environment = {};
+import { environment as environmentType } from '@apache-superset/core';
+const LogLevel = environmentType.LogLevel;
+
+const clipboard: typeof environmentType.clipboard = {
+  readText: async () => {
+    throw new Error('Not implemented yet');
+  },
+  writeText: async () => {
+    throw new Error('Not implemented yet');
+  },
+};
+
+const language: typeof environmentType.language = navigator.language || 'en-US';
+
+const logLevel: typeof environmentType.logLevel = LogLevel.Info;
+
+const onDidChangeLogLevel: typeof environmentType.onDidChangeLogLevel = () => {
+  throw new Error('Not implemented yet');
+};
+
+const openExternal: typeof environmentType.openExternal = async () => {
+  throw new Error('Not implemented yet');
+};
+
+const getEnvironmentVariable: typeof environmentType.getEnvironmentVariable =
+  () => {
+    throw new Error('Not implemented yet');
+  };
+
+export const environment: typeof environmentType = {
+  clipboard,
+  language,
+  logLevel,
+  onDidChangeLogLevel,
+  openExternal,
+  getEnvironmentVariable,
+  LogLevel,
+};

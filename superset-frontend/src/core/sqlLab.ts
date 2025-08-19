@@ -105,21 +105,97 @@ export const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatab
       thisArgs,
     );
 
-// TODO: Make it typeof sqlLabType
-export const sqlLab = {
-  databases: [
-    {
-      name: 'database1',
-    },
-    {
-      name: 'database2',
-    },
-    {
-      name: 'database3',
-    },
-  ],
+const onDidChangeEditorContent: typeof sqlLabType.onDidChangeEditorContent =
+  () => {
+    throw new Error('Not implemented yet');
+  };
+
+const onDidChangeEditorCatalog: typeof sqlLabType.onDidChangeEditorCatalog =
+  () => {
+    throw new Error('Not implemented yet');
+  };
+
+const onDidChangeEditorSchema: typeof sqlLabType.onDidChangeEditorSchema =
+  () => {
+    throw new Error('Not implemented yet');
+  };
+
+const onDidChangeEditorTable: typeof sqlLabType.onDidChangeEditorTable = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidClosePanel: typeof sqlLabType.onDidClosePanel = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidChangeActivePanel: typeof sqlLabType.onDidChangeActivePanel = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidChangeTabTitle: typeof sqlLabType.onDidChangeTabTitle = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidQueryStop: typeof sqlLabType.onDidQueryStop = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = () => {
+  throw new Error('Not implemented yet');
+};
+
+const getDatabases: typeof sqlLabType.getDatabases = () => {
+  throw new Error('Not implemented yet');
+};
+
+const getTabs: typeof sqlLabType.getTabs = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidCloseTab: typeof sqlLabType.onDidCloseTab = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidChangeActiveTab: typeof sqlLabType.onDidChangeActiveTab = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidRefreshDatabases: typeof sqlLabType.onDidRefreshDatabases = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidRefreshCatalogs: typeof sqlLabType.onDidRefreshCatalogs = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidRefreshSchemas: typeof sqlLabType.onDidRefreshSchemas = () => {
+  throw new Error('Not implemented yet');
+};
+
+const onDidRefreshTables: typeof sqlLabType.onDidRefreshTables = () => {
+  throw new Error('Not implemented yet');
+};
+
+export const sqlLab: typeof sqlLabType = {
   getCurrentTab,
-  onDidQueryRun,
-  onDidQueryFail,
+  onDidChangeEditorContent,
   onDidChangeEditorDatabase,
+  onDidChangeEditorCatalog,
+  onDidChangeEditorSchema,
+  onDidChangeEditorTable,
+  onDidClosePanel,
+  onDidChangeActivePanel,
+  onDidChangeTabTitle,
+  onDidQueryRun,
+  onDidQueryStop,
+  onDidQueryFail,
+  onDidQuerySuccess,
+  getDatabases,
+  getTabs,
+  onDidCloseTab,
+  onDidChangeActiveTab,
+  onDidRefreshDatabases,
+  onDidRefreshCatalogs,
+  onDidRefreshSchemas,
+  onDidRefreshTables,
 };
