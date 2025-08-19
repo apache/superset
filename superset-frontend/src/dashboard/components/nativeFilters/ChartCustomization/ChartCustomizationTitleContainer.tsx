@@ -44,22 +44,21 @@ const FilterTitle = styled.div<{ selected: boolean; errored: boolean }>`
   padding: ${({ theme }) => theme.sizeUnit * 2}px
     ${({ theme }) => theme.sizeUnit * 3}px;
   background-color: ${({ theme, selected }) =>
-    selected ? theme.colors.primary.light5 : theme.colors.grayscale.light4};
+    selected ? theme.colorPrimaryBg : theme.colorBgTextHover};
   border: 1px solid
-    ${({ theme, selected }) =>
-      selected ? theme.colors.primary.base : 'transparent'};
+    ${({ theme, selected }) => (selected ? theme.colorPrimary : 'transparent')};
   border-radius: ${({ theme }) => theme.sizeUnit}px;
   cursor: pointer;
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.grayscale.light3};
+    background-color: ${({ theme }) => theme.colorBgTextHover};
   }
 
   ${({ theme, errored }) =>
     errored &&
     `
     &.errored div, &.errored .warning {
-      color: ${theme.colors.error.base};
+      color: ${theme.colorErrorText};
     }
   `}
 `;
@@ -79,7 +78,7 @@ const TitleText = styled.div`
 
 const UndoButton = styled.span`
   margin-left: auto;
-  color: ${({ theme }) => theme.colors.primary.base};
+  color: ${({ theme }) => theme.colorPrimary};
   cursor: pointer;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 
@@ -91,16 +90,16 @@ const UndoButton = styled.span`
 const TrashIcon = styled(Icons.DeleteOutlined)`
   cursor: pointer;
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colorTextSecondary};
 
   &:hover {
-    color: ${({ theme }) => theme.colors.error.base};
+    color: ${({ theme }) => theme.colorErrorText};
   }
 `;
 
 const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-  color: ${({ theme }) => theme.colors.error.base};
+  color: ${({ theme }) => theme.colorErrorText};
 `;
 
 const ChartCustomizationTitleContainer: FC<Props> = forwardRef(

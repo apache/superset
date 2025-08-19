@@ -18,8 +18,9 @@
  */
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
+import { ClassNames } from '@emotion/react';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
@@ -43,15 +44,15 @@ const StyledTag = styled(Tag)`
 
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextSecondary};
       margin-right: ${theme.sizeUnit}px;
       &:hover {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorText};
       }
     }
 
     &:hover {
-      background: ${theme.colors.grayscale.light3};
+      background: ${theme.colorBgTextHover};
     }
 
     &:focus-visible {
@@ -81,7 +82,7 @@ const TooltipContent = styled.div`
     min-width: 200px;
     max-width: 300px;
     overflow-x: hidden;
-    color: ${theme.colors.grayscale.light5};
+    color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
   `}
 `;
@@ -129,6 +130,7 @@ const GroupByValue = styled.span`
 export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
 
   const chartCustomizationItems = useSelector<
     RootState,
@@ -323,26 +325,42 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   );
 
   return (
-    <Tooltip
-      title={tooltipContent}
-      visible={tooltipVisible}
-      onVisibleChange={setTooltipVisible}
-      placement="bottom"
-    >
-      <StyledTag
-        ref={triggerRef}
-        aria-label={t('Group by settings (%s)', groupByCount)}
-        role="button"
-        tabIndex={0}
-      >
-        <Icons.GroupOutlined iconSize="m" />
-        <StyledBadge
-          data-test="applied-groupby-count"
-          count={groupByCount}
-          showZero={false}
-        />
-      </StyledTag>
-    </Tooltip>
+    <ClassNames>
+      {({ css }) => (
+        <Tooltip
+          title={tooltipContent}
+          visible={tooltipVisible}
+          onVisibleChange={setTooltipVisible}
+          placement="bottom"
+          overlayClassName={css`
+            .ant-tooltip-inner {
+              color: ${theme.colorText} !important;
+              background-color: ${theme.colorBgContainer} !important;
+              border: 1px solid ${theme.colorBorder} !important;
+              box-shadow: ${theme.boxShadow} !important;
+            }
+            .ant-tooltip-arrow::before {
+              background-color: ${theme.colorBgContainer} !important;
+              border-color: ${theme.colorBorder} !important;
+            }
+          `}
+        >
+          <StyledTag
+            ref={triggerRef}
+            aria-label={t('Group by settings (%s)', groupByCount)}
+            role="button"
+            tabIndex={0}
+          >
+            <Icons.GroupOutlined iconSize="m" />
+            <StyledBadge
+              data-test="applied-groupby-count"
+              count={groupByCount}
+              showZero={false}
+            />
+          </StyledTag>
+        </Tooltip>
+      )}
+    </ClassNames>
   );
 };
 
