@@ -254,7 +254,7 @@ const config: Config = {
         sidebarPath: require.resolve('./sidebarTutorials.js'),
         editUrl:
           'https://github.com/apache/superset/edit/master/docs/developer_portal',
-        remarkPlugins: [require('remark-import-partial')],
+        remarkPlugins: [remarkImportPartial],
         // Enable MDX v2
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,

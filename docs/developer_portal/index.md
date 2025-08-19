@@ -34,7 +34,7 @@ flowchart LR
 
     classDef hostStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
     classDef extensionStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    
+
     class H1,H2,H3,H4,H5,H6,H7 hostStyle
     class E1,E2,E3,E4,E5,E6,E7,E8 extensionStyle
-```    
+```  
