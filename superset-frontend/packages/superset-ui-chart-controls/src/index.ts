@@ -34,6 +34,17 @@ export * from './components/Menu';
 export * from './components/MetricOption';
 export * from './components/ControlHeader';
 export * from './components';
+// Export individual control components for easier access
+export {
+  DndColumnSelect,
+  DndMetricSelect,
+  DndFilterSelect,
+  TextControl,
+  CheckboxControl,
+  SelectControl,
+  SliderControl,
+  Control,
+} from './components';
 
 export * from './shared-controls';
 export {

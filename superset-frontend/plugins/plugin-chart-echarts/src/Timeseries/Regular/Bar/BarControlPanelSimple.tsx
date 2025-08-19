@@ -28,19 +28,18 @@ import {
   YAxisFormatControl,
   CurrencyFormatControl,
   ZoomableControl,
+  // Import all control components from chart-controls package
+  DndColumnSelect,
+  DndMetricSelect,
+  DndFilterSelect,
+  TextControl,
+  CheckboxControl,
+  SliderControl,
+  SelectControl,
+  RadioButtonControl,
+  ControlHeader,
+  Control,
 } from '@superset-ui/chart-controls';
-
-// Direct component imports
-import { DndColumnSelect } from '../../../../../src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
-import { DndMetricSelect } from '../../../../../src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
-import { DndFilterSelect } from '../../../../../src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
-import TextControl from '../../../../../src/explore/components/controls/TextControl';
-import CheckboxControl from '../../../../../src/explore/components/controls/CheckboxControl';
-import SliderControl from '../../../../../src/explore/components/controls/SliderControl';
-import SelectControl from '../../../../../src/explore/components/controls/SelectControl';
-import RadioButtonControl from '../../../../../src/explore/components/controls/RadioButtonControl';
-import ControlHeader from '../../../../../src/explore/components/ControlHeader';
-import Control from '../../../../../src/explore/components/Control';
 
 import { OrientationType } from '../../types';
 import { TIME_SERIES_DESCRIPTION_TEXT } from '../../constants';
@@ -72,8 +71,12 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
   }
 
   // Ensure safe data structures
-  const safeColumns = Array.isArray(datasource?.columns) ? datasource.columns : [];
-  const safeMetrics = Array.isArray(datasource?.metrics) ? datasource.metrics : [];
+  const safeColumns = Array.isArray(datasource?.columns)
+    ? datasource.columns
+    : [];
+  const safeMetrics = Array.isArray(datasource?.metrics)
+    ? datasource.metrics
+    : [];
 
   // Helper for control changes
   const handleChange = (field: string) => (val: any) => {
@@ -105,7 +108,9 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
           />
           <DndColumnSelect
             value={formValues.x_axis ? [formValues.x_axis] : []}
-            onChange={(val: any) => handleChange('x_axis')(Array.isArray(val) ? val[0] : val)}
+            onChange={(val: any) =>
+              handleChange('x_axis')(Array.isArray(val) ? val[0] : val)
+            }
             options={safeColumns}
             name="x_axis"
             label=""
@@ -287,7 +292,8 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
           />
           {(() => {
             const timeShiftColorControl = TimeShiftColorControl();
-            const { hidden, ...cleanConfig } = timeShiftColorControl.config || {};
+            const { hidden, ...cleanConfig } =
+              timeShiftColorControl.config || {};
             return (
               <Control
                 {...cleanConfig}
@@ -320,10 +326,19 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
           <div style={{ marginBottom: 16 }}>
             <SelectControl
               label={t('Split stack by')}
-              description={t('Stack in groups, where each group corresponds to a dimension')}
+              description={t(
+                'Stack in groups, where each group corresponds to a dimension',
+              )}
               value={formValues.stackDimension}
               onChange={handleChange('stackDimension')}
-              choices={formValues.groupby ? formValues.groupby.map((val: any) => [val.toString(), val.toString()]) : []}
+              choices={
+                formValues.groupby
+                  ? formValues.groupby.map((val: any) => [
+                      val.toString(),
+                      val.toString(),
+                    ])
+                  : []
+              }
               clearable
               renderTrigger
               hovered
@@ -558,7 +573,8 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
             />
             {(() => {
               const yAxisFormatControl = YAxisFormatControl();
-              const { hidden, ...cleanConfig } = yAxisFormatControl.config || {};
+              const { hidden, ...cleanConfig } =
+                yAxisFormatControl.config || {};
               return (
                 <Control
                   {...cleanConfig}
@@ -585,7 +601,8 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
           />
           {(() => {
             const currencyFormatControl = CurrencyFormatControl();
-            const { hidden, ...cleanConfig } = currencyFormatControl.config || {};
+            const { hidden, ...cleanConfig } =
+              currencyFormatControl.config || {};
             return (
               <Control
                 {...cleanConfig}
@@ -634,7 +651,9 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Truncate X Axis')}
-            description={t('Truncate X Axis. Can be overridden by specifying a min or max bound.')}
+            description={t(
+              'Truncate X Axis. Can be overridden by specifying a min or max bound.',
+            )}
             value={formValues.truncateXAxis ?? true}
             onChange={handleChange('truncateXAxis')}
             renderTrigger
@@ -646,7 +665,9 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
           <div style={{ marginBottom: 16 }}>
             <ControlHeader
               label={t('X Axis Bounds')}
-              description={t('Bounds for the X-axis. When left empty, the bounds are dynamically defined based on the min/max of the data.')}
+              description={t(
+                'Bounds for the X-axis. When left empty, the bounds are dynamically defined based on the min/max of the data.',
+              )}
               hovered
             />
             <div style={{ display: 'flex', gap: 8 }}>
@@ -680,7 +701,9 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Rich tooltip')}
-            description={t('Shows a list of all series available at that point in time')}
+            description={t(
+              'Shows a list of all series available at that point in time',
+            )}
             value={formValues.rich_tooltip ?? true}
             onChange={handleChange('rich_tooltip')}
             renderTrigger
@@ -824,7 +847,8 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
             />
             {(() => {
               const yAxisFormatControl = YAxisFormatControl();
-              const { hidden, ...cleanConfig } = yAxisFormatControl.config || {};
+              const { hidden, ...cleanConfig } =
+                yAxisFormatControl.config || {};
               return (
                 <Control
                   {...cleanConfig}
@@ -913,7 +937,9 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Truncate Axis')}
-            description={t("It's not recommended to truncate axis in Bar chart.")}
+            description={t(
+              "It's not recommended to truncate axis in Bar chart.",
+            )}
             value={formValues.truncateYAxis ?? false}
             onChange={handleChange('truncateYAxis')}
             renderTrigger
@@ -925,7 +951,9 @@ export const BarControlPanel: FC<BarControlPanelProps> = ({
           <div style={{ marginBottom: 16 }}>
             <ControlHeader
               label={t('Axis Bounds')}
-              description={t('Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data.')}
+              description={t(
+                'Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data.',
+              )}
               hovered
             />
             <div style={{ display: 'flex', gap: 8 }}>

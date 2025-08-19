@@ -28,18 +28,17 @@ import {
   YAxisFormatControl,
   CurrencyFormatControl,
   ZoomableControl,
+  // Import all control components from chart-controls package
+  DndColumnSelect,
+  DndMetricSelect,
+  DndFilterSelect,
+  TextControl,
+  CheckboxControl,
+  SliderControl,
+  SelectControl,
+  ControlHeader,
+  Control,
 } from '@superset-ui/chart-controls';
-
-// Direct component imports
-import { DndColumnSelect } from '../../../../../src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
-import { DndMetricSelect } from '../../../../../src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
-import { DndFilterSelect } from '../../../../../src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
-import TextControl from '../../../../../src/explore/components/controls/TextControl';
-import CheckboxControl from '../../../../../src/explore/components/controls/CheckboxControl';
-import SliderControl from '../../../../../src/explore/components/controls/SliderControl';
-import SelectControl from '../../../../../src/explore/components/controls/SelectControl';
-import ControlHeader from '../../../../../src/explore/components/ControlHeader';
-import Control from '../../../../../src/explore/components/Control';
 
 import { TIME_SERIES_DESCRIPTION_TEXT } from '../../constants';
 
@@ -69,8 +68,12 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
   }
 
   // Ensure safe data structures
-  const safeColumns = Array.isArray(datasource?.columns) ? datasource.columns : [];
-  const safeMetrics = Array.isArray(datasource?.metrics) ? datasource.metrics : [];
+  const safeColumns = Array.isArray(datasource?.columns)
+    ? datasource.columns
+    : [];
+  const safeMetrics = Array.isArray(datasource?.metrics)
+    ? datasource.metrics
+    : [];
 
   // Helper for control changes
   const handleChange = (field: string) => (val: any) => {
@@ -98,7 +101,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
           />
           <DndColumnSelect
             value={formValues.x_axis ? [formValues.x_axis] : []}
-            onChange={(val: any) => handleChange('x_axis')(Array.isArray(val) ? val[0] : val)}
+            onChange={(val: any) =>
+              handleChange('x_axis')(Array.isArray(val) ? val[0] : val)
+            }
             options={safeColumns}
             name="x_axis"
             label=""
@@ -260,7 +265,8 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
           />
           {(() => {
             const timeShiftColorControl = TimeShiftColorControl();
-            const { hidden, ...cleanConfig } = timeShiftColorControl.config || {};
+            const { hidden, ...cleanConfig } =
+              timeShiftColorControl.config || {};
             return (
               <Control
                 {...cleanConfig}
@@ -292,7 +298,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Marker')}
-            description={t('Draw a marker on data points. Only applicable for line types.')}
+            description={t(
+              'Draw a marker on data points. Only applicable for line types.',
+            )}
             value={formValues.markerEnabled ?? false}
             onChange={handleChange('markerEnabled')}
             renderTrigger
@@ -304,7 +312,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
           <div style={{ marginBottom: 16 }}>
             <SliderControl
               label={t('Marker Size')}
-              description={t('Size of marker. Also applies to forecast observations.')}
+              description={t(
+                'Size of marker. Also applies to forecast observations.',
+              )}
               value={formValues.markerSize ?? 6}
               onChange={handleChange('markerSize')}
               {...{ min: 0, max: 20, step: 1 }}
@@ -442,7 +452,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Truncate X Axis')}
-            description={t('Truncate X Axis. Can be overridden by specifying a min or max bound.')}
+            description={t(
+              'Truncate X Axis. Can be overridden by specifying a min or max bound.',
+            )}
             value={formValues.truncateXAxis ?? true}
             onChange={handleChange('truncateXAxis')}
             renderTrigger
@@ -454,7 +466,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
           <div style={{ marginBottom: 16 }}>
             <ControlHeader
               label={t('X Axis Bounds')}
-              description={t('Bounds for the X-axis. When left empty, the bounds are dynamically defined based on the min/max of the data.')}
+              description={t(
+                'Bounds for the X-axis. When left empty, the bounds are dynamically defined based on the min/max of the data.',
+              )}
               hovered
             />
             <div style={{ display: 'flex', gap: 8 }}>
@@ -488,7 +502,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Rich tooltip')}
-            description={t('Shows a list of all series available at that point in time')}
+            description={t(
+              'Shows a list of all series available at that point in time',
+            )}
             value={formValues.rich_tooltip ?? true}
             onChange={handleChange('rich_tooltip')}
             renderTrigger
@@ -570,7 +586,8 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
           />
           {(() => {
             const currencyFormatControl = CurrencyFormatControl();
-            const { hidden, ...cleanConfig } = currencyFormatControl.config || {};
+            const { hidden, ...cleanConfig } =
+              currencyFormatControl.config || {};
             return (
               <Control
                 {...cleanConfig}
@@ -613,7 +630,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
         <div style={{ marginBottom: 16 }}>
           <CheckboxControl
             label={t('Truncate Y Axis')}
-            description={t('Truncate Y Axis. Can be overridden by specifying a min or max bound.')}
+            description={t(
+              'Truncate Y Axis. Can be overridden by specifying a min or max bound.',
+            )}
             value={formValues.truncateYAxis ?? false}
             onChange={handleChange('truncateYAxis')}
             renderTrigger
@@ -625,7 +644,9 @@ export const SmoothLineControlPanel: FC<SmoothLineControlPanelProps> = ({
           <div style={{ marginBottom: 16 }}>
             <ControlHeader
               label={t('Y Axis Bounds')}
-              description={t('Bounds for the Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data.')}
+              description={t(
+                'Bounds for the Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data.',
+              )}
               hovered
             />
             <div style={{ display: 'flex', gap: 8 }}>

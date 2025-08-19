@@ -29,5 +29,11 @@ export { SelectControl as SimpleSelectControl } from './controls/SimpleSelectCon
 // Wrapper controls for new simplified API
 export { DndColumnSelect } from './controls/DndColumnSelectWrapper';
 export { DndMetricSelect } from './controls/DndMetricSelectWrapper';
+export { DndFilterSelect } from './controls/DndFilterSelectWrapper';
 export { AdhocFilterControl } from './controls/AdhocFilterControlWrapper';
 export { ColorSchemeControl as SimpleColorSchemeControl } from './controls/ColorSchemeControlWrapper';
+export { TextControl } from './controls/TextControlWrapper';
+export { CheckboxControl } from './controls/CheckboxControlWrapper';
+export { SelectControl } from './controls/SelectControlWrapper';
+export { SliderControl } from './controls/SliderControlWrapper';
+export { Control } from './controls/ControlWrapper';
