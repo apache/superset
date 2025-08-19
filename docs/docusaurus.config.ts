@@ -20,6 +20,7 @@
 import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
 import { themes } from 'prism-react-renderer';
+import remarkImportPartial from 'remark-import-partial';
 
 const { github: lightCodeTheme, vsDark: darkCodeTheme } = themes;
 
@@ -39,6 +40,7 @@ const config: Config = {
   projectName: 'superset',
   themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
   plugins: [
+    require.resolve('./src/webpack.extend.ts'),
     [
       'docusaurus-plugin-less',
       {
@@ -205,6 +207,9 @@ const config: Config = {
         sidebarPath: require.resolve('./sidebarComponents.js'),
         editUrl:
           'https://github.com/apache/superset/edit/master/docs/components',
+        remarkPlugins: [remarkImportPartial],
+        // Enable MDX v2
+        docItemComponent: '@theme/DocItem',
       },
     ],
   ],

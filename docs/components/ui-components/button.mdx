@@ -1,0 +1,74 @@
+---
+title: Button Component
+sidebar_position: 1
+---
+
+import { Meta, Story, Canvas, Controls } from '@storybook/blocks';
+import Button from '../../../superset-frontend/src/components/Button';
+import * as ButtonStories from '../../../superset-frontend/src/components/Button/Button.stories';
+
+# Button Component
+
+The Button component is a fundamental UI element used throughout Superset for user interactions.
+
+<Meta of={ButtonStories} />
+
+## Basic Usage
+
+The default button with primary styling:
+
+<Canvas>
+  <Story of={ButtonStories.ButtonGallery} />
+</Canvas>
+
+## Interactive Example
+
+<Canvas>
+  <Story of={ButtonStories.InteractiveButton} />
+</Canvas>
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `buttonStyle` | `'primary' \| 'secondary' \| 'tertiary' \| 'success' \| 'warning' \| 'danger' \| 'default' \| 'link' \| 'dashed'` | `'default'` | Button style |
+| `buttonSize` | `'default' \| 'small' \| 'xsmall'` | `'default'` | Button size |
+| `disabled` | `boolean` | `false` | Whether the button is disabled |
+| `cta` | `boolean` | `false` | Whether the button is a call-to-action button |
+| `tooltip` | `ReactNode` | - | Tooltip content |
+| `placement` | `TooltipProps['placement']` | - | Tooltip placement |
+| `onClick` | `function` | - | Callback when button is clicked |
+| `href` | `string` | - | Turns button into an anchor link |
+| `target` | `string` | - | Target attribute for anchor links |
+
+## Examples
+
+### Button Styles
+
+Superset provides a variety of button styles for different purposes:
+
+- **Primary**: Used for primary actions
+- **Secondary**: Used for secondary actions
+- **Tertiary**: Used for less important actions
+- **Success**: Used for successful or confirming actions
+- **Warning**: Used for actions that require caution
+- **Danger**: Used for destructive actions
+- **Link**: Used for navigation
+- **Dashed**: Used for adding new items or features
+
+### Button Sizes
+
+Buttons come in three sizes:
+
+- **Default**: Standard size for most use cases
+- **Small**: Compact size for tight spaces
+- **XSmall**: Extra small size for very limited spaces
+
+## Best Practices
+
+- Use primary buttons for the main action in a form or page
+- Use secondary buttons for alternative actions
+- Use danger buttons for destructive actions
+- Limit the number of primary buttons on a page to avoid confusion
+- Use consistent button styles throughout your application
+- Add tooltips to buttons when their purpose might not be immediately clear
