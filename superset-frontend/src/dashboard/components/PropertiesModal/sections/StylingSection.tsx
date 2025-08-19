@@ -23,7 +23,7 @@ import { ModalFormField } from 'src/components/Modal';
 
 const StyledCssEditor = styled(CssEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
 `;
 
 interface Theme {
