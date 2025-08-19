@@ -19,7 +19,6 @@
 import {
   GenericDataType,
   NumberFormats,
-  QueryFormColumn,
   getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
@@ -100,13 +99,13 @@ export default function transformProps(
     yAxisFormat,
     xAxisTimeFormat,
     currencyFormat,
-    sort_x_axis: sortXAxis,
-    sort_y_axis: sortYAxis,
+    sortXAxis,
+    sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
   const xAxisLabel = getColumnLabel(xAxis);
   // groupby is overridden to be a single value
-  const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
+  const yAxisLabel = getColumnLabel(groupby?.[0] || '');
   const { data, colnames, coltypes } = queriesData[0];
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
@@ -160,7 +159,7 @@ export default function transformProps(
     }
 
     const isMetricSort = sortConfig.includes('value');
-    const isAscending = sortConfig.includes('asc');
+    const isAscending = sortConfig.endsWith('asc');
 
     if (isMetricSort) {
       // Create a map of axis value to metric sum for sorting by metric
@@ -236,10 +235,12 @@ export default function transformProps(
         },
       },
       itemStyle: {
-        borderColor: addAlpha(
-          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
-          borderColor.a,
-        ),
+        borderColor: borderColor
+          ? addAlpha(
+              rgbToHex(borderColor.r, borderColor.g, borderColor.b),
+              borderColor.a,
+            )
+          : 'transparent',
         borderWidth,
       },
       emphasis: {
