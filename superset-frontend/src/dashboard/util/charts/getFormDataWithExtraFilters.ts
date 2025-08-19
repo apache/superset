@@ -123,6 +123,7 @@ function processGroupByCustomizations(
   entity?: string;
   source?: string;
   target?: string;
+  groupbyColumns?: string[];
 } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
     return {};
@@ -156,7 +157,6 @@ function processGroupByCustomizations(
     'big_number',
     'big_number_total',
     'gantt',
-    'pivot_table_v2',
     'table',
     'deck_arc',
     'deck_geojson',
@@ -185,6 +185,7 @@ function processGroupByCustomizations(
     entity?: string;
     source?: string;
     target?: string;
+    groupbyColumns?: string[];
   } = {};
 
   const groupByColumns: string[] = [];
@@ -243,6 +244,19 @@ function processGroupByCustomizations(
     const boxPlotColumns = chart.form_data?.columns || [];
     if (Array.isArray(boxPlotColumns)) {
       boxPlotColumns.forEach((col: any) => {
+        if (typeof col === 'string') {
+          existingColumns.add(col);
+        } else if (col && typeof col === 'object' && 'column_name' in col) {
+          existingColumns.add(col.column_name);
+        }
+      });
+    }
+  }
+
+  if (chartType === 'pivot_table_v2') {
+    const pivotColumns = chart.form_data?.groupbyColumns || [];
+    if (Array.isArray(pivotColumns)) {
+      pivotColumns.forEach((col: any) => {
         if (typeof col === 'string') {
           existingColumns.add(col);
         } else if (col && typeof col === 'object' && 'column_name' in col) {
@@ -451,6 +465,10 @@ function processGroupByCustomizations(
           groupByFormData.entity = groupByColumns[1];
         }
         groupByFormData.groupby = [];
+      }
+    } else if (chartType === 'pivot_table_v2') {
+      if (groupByColumns.length > 0) {
+        groupByFormData.groupbyColumns = groupByColumns;
       }
     } else if (chartType === 'treemap_v2') {
       groupByFormData.groupby = groupByColumns;
