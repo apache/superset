@@ -125,7 +125,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       [QueryState.TimedOut]: theme.colorError,
     };
 
-    return statusColors[state] || theme.colors.grayscale.light2;
+    return statusColors[state] || theme.colorIcon;
   };
   return (
     <TabTitleWrapper>

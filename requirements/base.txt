@@ -266,6 +266,8 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
+pillow==11.3.0
+    # via apache_superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
 ply==3.11
@@ -276,7 +278,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
     # via click-repl
-pyarrow==18.1.0
+pyarrow==16.1.0
     # via apache-superset (pyproject.toml)
 pyasn1==0.6.1
     # via

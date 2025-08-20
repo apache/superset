@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState, useRef } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from 'react';
 import { useSelector } from 'react-redux';
 import {
   styled,
@@ -32,6 +38,7 @@ import {
   Icons,
   Alert,
   Button,
+  Checkbox,
   Modal,
   AsyncEsmComponent,
 } from '@superset-ui/core/components';
@@ -92,6 +99,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 }) => {
   const theme = useTheme();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
+  const syncColumnsRef = useRef(false);
+  const [confirmModal, setConfirmModal] = useState<any>(null);
   const currencies = useSelector<
     {
       common: {
@@ -183,10 +192,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
     setIsSaving(true);
-    const overrideColumns = datasource.sql !== currentDatasource.sql;
     try {
       await SupersetClient.put({
-        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${overrideColumns}`,
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumnsRef.current}`,
         jsonPayload: buildPayload(currentDatasource),
       });
 
@@ -238,34 +246,89 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
-  const renderSaveDialog = () => (
-    <div>
-      <Alert
-        css={theme => ({
-          marginTop: theme.sizeUnit * 4,
-          marginBottom: theme.sizeUnit * 4,
-        })}
-        type="warning"
-        showIcon
-        message={t(`The dataset configuration exposed here
+  const getSaveDialog = useCallback(
+    () => (
+      <div>
+        <Alert
+          css={theme => ({
+            marginTop: theme.marginMD,
+            marginBottom: theme.marginSM,
+          })}
+          type="warning"
+          showIcon={false}
+          message={t(`The dataset configuration exposed here
                 affects all the charts using this dataset.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
-      />
-      {t('Are you sure you want to save and apply changes?')}
-    </div>
+        />
+        {datasource.sql !== currentDatasource.sql && (
+          <div
+            css={theme => ({
+              marginBottom: theme.marginMD,
+            })}
+          >
+            <Alert
+              css={theme => ({
+                marginBottom: theme.marginSM,
+              })}
+              type="info"
+              showIcon={false}
+              message={t(`The dataset columns will be automatically synced
+              based on the changes in your SQL query. If your changes don't
+              impact the column definitions, you might want to skip this step.`)}
+            />
+            <Checkbox
+              checked={syncColumnsRef.current}
+              onChange={() => {
+                syncColumnsRef.current = !syncColumnsRef.current;
+                if (confirmModal) {
+                  confirmModal.update({
+                    content: getSaveDialog(),
+                  });
+                }
+              }}
+            />
+            <span
+              css={theme => ({
+                marginLeft: theme.marginXS,
+              })}
+            >
+              {t('Automatically sync columns')}
+            </span>
+          </div>
+        )}
+        {t('Are you sure you want to save and apply changes?')}
+      </div>
+    ),
+    [currentDatasource.sql, datasource.sql, confirmModal],
   );
 
+  useEffect(() => {
+    if (confirmModal) {
+      confirmModal.update({
+        content: getSaveDialog(),
+      });
+    }
+  }, [confirmModal, getSaveDialog]);
+
+  useEffect(() => {
+    if (datasource.sql !== currentDatasource.sql) {
+      syncColumnsRef.current = true;
+    }
+  }, [datasource.sql, currentDatasource.sql]);
+
   const onClickSave = () => {
-    dialog.current = modal.confirm({
+    const modalInstance = modal.confirm({
       title: t('Confirm save'),
-      content: renderSaveDialog(),
+      content: getSaveDialog(),
       onOk: onConfirmSave,
       icon: null,
       okText: t('OK'),
       cancelText: t('Cancel'),
     });
+    setConfirmModal(modalInstance);
+    dialog.current = modalInstance;
   };
 
   return (

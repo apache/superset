@@ -55,7 +55,7 @@ const getLinkProps = (dashboard: ChartLinkedDashboard) => ({
 });
 
 const tooltipItemCSS = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light5};
+  color: ${theme.colorTextPlaceholder};
   text-decoration: underline;
   &:hover {
     color: inherit;
@@ -124,7 +124,7 @@ const columns: ColumnsType<Chart> = [
 
 const emptyStateTableCSS = (theme: SupersetTheme) => css`
   && th.ant-table-cell {
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
   }
 
   .ant-table-placeholder {

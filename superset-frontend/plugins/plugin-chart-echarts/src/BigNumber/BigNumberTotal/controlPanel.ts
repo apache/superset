@@ -110,6 +110,8 @@ export default {
                             (Array.isArray(verboseMap)
                               ? verboseMap[colname as number]
                               : verboseMap[colname as string]) ?? colname,
+                          dataType:
+                            colnames && coltypes[colnames?.indexOf(colname)],
                         }))
                     : [];
                 return {

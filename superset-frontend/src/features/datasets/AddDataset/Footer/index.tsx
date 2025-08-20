@@ -129,11 +129,15 @@ function Footer({
     datasets?.includes(datasetObject?.table_name);
 
   const dropdownMenu = (
-    <Menu>
-      <Menu.Item key="create-only" onClick={onSaveOnly}>
-        {CREATE_DATASET_ONLY_TEXT}
-      </Menu.Item>
-    </Menu>
+    <Menu
+      items={[
+        {
+          key: 'create-only',
+          onClick: onSaveOnly,
+          label: CREATE_DATASET_ONLY_TEXT,
+        },
+      ]}
+    />
   );
 
   return (
@@ -150,7 +154,7 @@ function Footer({
         icon={
           <Icons.DownOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.light5}
+            iconColor={theme.colorTextLightSolid}
           />
         }
         trigger={['click']}

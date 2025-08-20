@@ -104,6 +104,9 @@ const getEntityLastActionOn = (entity: ActivityObject) => {
   }
 
   let time: number | string | undefined | null;
+  if (entity.changed_on_delta_humanized != null) {
+    return t('Modified %s', entity.changed_on_delta_humanized);
+  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
   return t(
