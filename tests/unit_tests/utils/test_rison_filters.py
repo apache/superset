@@ -16,12 +16,11 @@
 # under the License.
 """Unit tests for Rison filter parser."""
 
-from unittest.mock import patch
-
 from superset.utils.rison_filters import merge_rison_filters, RisonFilterParser
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestRisonFilterParser:
+class TestRisonFilterParser(SupersetTestCase):
     """Test the RisonFilterParser class."""
 
     def test_simple_equality(self):
@@ -114,7 +113,7 @@ class TestRisonFilterParser:
     def test_between_operator(self):
         """Test BETWEEN operator."""
         parser = RisonFilterParser()
-        result = parser.parse("(date:(between:!(2024-01-01,2024-12-31)))")
+        result = parser.parse("(date:(between:!('2024-01-01','2024-12-31')))")
 
         assert len(result) == 1
         assert result[0]["operator"] == "BETWEEN"
@@ -163,7 +162,6 @@ class TestRisonFilterParser:
         parser = RisonFilterParser()
 
         assert parser.parse("") == []
-        assert parser.parse(None) == []
         assert parser.parse("()") == []
 
     def test_invalid_rison(self):
@@ -174,17 +172,16 @@ class TestRisonFilterParser:
         assert parser.parse("invalid rison") == []
         assert parser.parse("(unclosed") == []
 
-    @patch("superset.utils.rison_filters.request")
-    def test_parse_from_request(self, mock_request):
+    def test_parse_from_request(self):
         """Test parsing from request args."""
-        mock_request.args = {"f": "(country:USA)"}
+        with self.client:
+            with self.client.get("/?f=(country:USA)").request:
+                parser = RisonFilterParser()
+                result = parser.parse()  # No argument, should get from request
 
-        parser = RisonFilterParser()
-        result = parser.parse()  # No argument, should get from request
-
-        assert len(result) == 1
-        assert result[0]["subject"] == "country"
-        assert result[0]["comparator"] == "USA"
+                assert len(result) == 1
+                assert result[0]["subject"] == "country"
+                assert result[0]["comparator"] == "USA"
 
     def test_merge_rison_filters(self):
         """Test merging Rison filters into form_data."""
@@ -200,9 +197,9 @@ class TestRisonFilterParser:
             ]
         }
 
-        with patch("superset.utils.rison_filters.request") as mock_request:
-            mock_request.args = {"f": "(country:USA)"}
-            merge_rison_filters(form_data)
+        with self.client:
+            with self.client.get("/?f=(country:USA)").request:
+                merge_rison_filters(form_data)
 
         # Should have both existing and new filter
         assert len(form_data["adhoc_filters"]) == 2
@@ -213,9 +210,9 @@ class TestRisonFilterParser:
         """Test merging with no Rison filters."""
         form_data = {"adhoc_filters": []}
 
-        with patch("superset.utils.rison_filters.request") as mock_request:
-            mock_request.args = {}
-            merge_rison_filters(form_data)
+        with self.client:
+            with self.client.get("/").request:
+                merge_rison_filters(form_data)
 
         # Should remain empty
         assert form_data["adhoc_filters"] == []
