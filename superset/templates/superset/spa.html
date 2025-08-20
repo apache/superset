@@ -71,16 +71,17 @@
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
         {% set spinner_style = "width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
+        {% set tokens = theme_tokens | default({}) %}
 
-        {% if theme_tokens.get('brandSpinnerSvg') %}
+        {% if tokens.get('brandSpinnerSvg') %}
           <!-- SVG Priority: Inline SVG to preserve animations -->
           <div style="{{ spinner_style }}">
-            {{ theme_tokens.brandSpinnerSvg | safe }}
+            {{ tokens.brandSpinnerSvg | safe }}
           </div>
         {% else %}
           <!-- URL Priority or Fallback: Use img tag for static images -->
-          {% if theme_tokens.get('brandSpinnerUrl') %}
-            {% set spinner_src = theme_tokens.brandSpinnerUrl %}
+          {% if tokens.get('brandSpinnerUrl') %}
+            {% set spinner_src = tokens.brandSpinnerUrl %}
           {% else %}
             {% set spinner_src = assets_prefix + "/static/assets/images/loading.gif" %}
           {% endif %}

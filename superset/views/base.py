@@ -216,24 +216,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(
         self, extra_bootstrap_data: dict[str, Any] | None = None
     ) -> FlaskResponse:
-        payload = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-            **(extra_bootstrap_data or {}),
-        }
-
-        # Extract theme data for template access
-        theme_data = get_theme_bootstrap_data().get("theme", {})
-        default_theme = theme_data.get("default", {})
-
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
-            theme_tokens=default_theme.get("token", {}),
-        )
+        return render_spa_template(extra_data=extra_bootstrap_data)
 
 
 def get_environment_tag() -> dict[str, Any]:
@@ -470,6 +453,57 @@ def common_bootstrap_payload() -> dict[str, Any]:
     }
 
 
+def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Generate standardized payload for spa.html template rendering.
+
+    Centralizes the common payload structure used across all spa.html renders.
+
+    Args:
+        extra_data: Additional data to include in payload
+
+    Returns:
+        dict[str, Any]: Complete payload for spa.html template
+    """
+    payload = {
+        "user": bootstrap_user_data(g.user, include_perms=True),
+        "common": common_bootstrap_payload(),
+        **(extra_data or {}),
+    }
+    return payload
+
+
+def render_spa_template(
+    entry: str = "spa", extra_data: dict[str, Any] | None = None, **template_kwargs: Any
+) -> FlaskResponse:
+    """Render spa.html template with consistent payload and theme tokens.
+
+    Standardizes spa.html rendering across all views to eliminate duplication.
+
+    Args:
+        entry: Entry point name (spa, explore, embedded)
+        extra_data: Additional bootstrap data
+        **template_kwargs: Additional template variables
+
+    Returns:
+        FlaskResponse: Rendered spa.html template
+    """
+    from flask import render_template
+
+    payload = get_spa_payload(extra_data)
+
+    # Extract theme data for template access
+    theme_data = get_theme_bootstrap_data().get("theme", {})
+    default_theme = theme_data.get("default", {})
+
+    return render_template(
+        "superset/spa.html",
+        entry=entry,
+        bootstrap_data=json.dumps(payload, default=json.pessimistic_json_iso_dttm_ser),
+        theme_tokens=default_theme.get("token", {}),
+        **template_kwargs,
+    )
+
+
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
@@ -479,23 +513,7 @@ class SupersetModelView(ModelView):
     list_widget = SupersetListWidget
 
     def render_app_template(self) -> FlaskResponse:
-        payload = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-        }
-
-        # Extract theme data for template access
-        theme_data = get_theme_bootstrap_data().get("theme", {})
-        default_theme = theme_data.get("default", {})
-
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
-            theme_tokens=default_theme.get("token", {}),
-        )
+        return render_spa_template()
 
 
 class DeleteMixin:  # pylint: disable=too-few-public-methods
