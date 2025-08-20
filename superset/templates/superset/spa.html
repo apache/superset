@@ -70,38 +70,20 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
+        {% set spinner_style = "width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
         {% if theme_tokens.get('brandSpinnerSvg') %}
-          <!-- SVG Priority: Inline SVG content -->
-          <div style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-            {{ theme_tokens.brandSpinnerSvg | safe }}
-          </div>
+          {% set spinner_src = "data:image/svg+xml;base64," + theme_tokens.brandSpinnerSvg | b64encode %}
         {% elif theme_tokens.get('brandSpinnerUrl') %}
-          <!-- URL Priority: Brand spinner URL -->
-          <img
-            src="{{ theme_tokens.brandSpinnerUrl }}"
-            alt="Loading..."
-            style="
-              width: 50px;
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-            "
-          />
+          {% set spinner_src = theme_tokens.brandSpinnerUrl %}
         {% else %}
-          <!-- Fallback: Default loading.gif -->
-          <img
-            src="{{ assets_prefix }}/static/assets/images/loading.gif"
-            alt="Loading..."
-            style="
-              width: 50px;
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-            "
-          />
+          {% set spinner_src = assets_prefix + "/static/assets/images/loading.gif" %}
         {% endif %}
+
+        <img
+          src="{{ spinner_src }}"
+          alt="Loading..."
+          style="{{ spinner_style }}"
+        />
       </div>
     {% endblock %}
 
