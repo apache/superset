@@ -617,7 +617,9 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={undoLength < 1}
-                      onClick={undoLength && boundActionCreators.onUndo}
+                      onClick={
+                        undoLength > 0 ? boundActionCreators.onUndo : undefined
+                      }
                     >
                       <Icons.Undo
                         css={[
@@ -637,7 +639,9 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={redoLength < 1}
-                      onClick={redoLength && boundActionCreators.onRedo}
+                      onClick={
+                        redoLength > 0 ? boundActionCreators.onRedo : undefined
+                      }
                     >
                       <Icons.Redo
                         css={[
