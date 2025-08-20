@@ -642,7 +642,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
             from superset.utils import json
-            from superset.views.base import common_bootstrap_payload
+            from superset.views.base import (
+                common_bootstrap_payload,
+                get_theme_bootstrap_data,
+            )
 
             def serialize_bootstrap_data() -> str:
                 return json.dumps(
@@ -650,7 +653,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            # Get theme data for direct template access
+            theme_data = get_theme_bootstrap_data()
+
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "theme_data": theme_data.get("theme", {}),
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
