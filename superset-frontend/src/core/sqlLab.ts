@@ -61,7 +61,8 @@ const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
   // Uses closure to capture the active editor ID at the time the listener is created
   const id = activeEditorId();
   return action =>
-    action.type === actionType && action.query?.sqlEditorId === id;
+    // Compares the original id with the current active editor ID
+    action.type === actionType && activeEditorId() === id;
 };
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
