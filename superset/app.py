@@ -21,6 +21,10 @@ import os
 import sys
 from typing import cast, Iterable, Optional
 
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+
 if sys.version_info >= (3, 11):
     from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 else:
@@ -95,6 +99,90 @@ class SupersetApp(Flask):
                 )
                 return Response("", status=204)  # No Content
         return super().send_static_file(filename)
+
+    def _is_database_up_to_date(self) -> bool:
+        """
+        Check if database migrations are up to date.
+        Returns False if there are pending migrations or unable to determine.
+        """
+        try:
+            # Import here to avoid circular import issues
+            from superset.extensions import db
+
+            # Get current revision from database
+            with db.engine.connect() as connection:
+                context = MigrationContext.configure(connection)
+                current_rev = context.get_current_revision()
+
+            # Get head revision from migration files
+            alembic_cfg = Config()
+            alembic_cfg.set_main_option("script_location", "superset:migrations")
+            script = ScriptDirectory.from_config(alembic_cfg)
+            head_rev = script.get_current_head()
+
+            # Database is up-to-date if current revision matches head
+            is_current = current_rev == head_rev
+            if not is_current:
+                logger.debug(
+                    "Pending migrations. Current: %s, Head: %s",
+                    current_rev,
+                    head_rev,
+                )
+            return is_current
+        except Exception as e:
+            logger.debug("Could not check migration status: %s", e)
+            return False
+
+    def sync_config_to_db(self) -> None:
+        """
+        Synchronize configuration to database.
+        This method handles database-dependent features that need to be synced
+        after the app is initialized and database connection is available.
+
+        This is separated from app initialization to support multi-tenant
+        environments where database connection might not be available during
+        app startup.
+        """
+        try:
+            # Import here to avoid circular import issues
+            from superset.extensions import feature_flag_manager
+
+            # Check if database URI is a fallback value before trying to connect
+            db_uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
+            if not db_uri or any(
+                fallback in db_uri.lower()
+                for fallback in ["nouser", "nopassword", "nohost", "nodb"]
+            ):
+                logger.warning(
+                    "Database URI appears to be a fallback value. "
+                    "Skipping database-dependent sync."
+                )
+                return
+
+            # Check if database is up-to-date with migrations
+            if not self._is_database_up_to_date():
+                logger.info("Pending database migrations: run 'superset db upgrade'")
+                return
+
+            logger.info("Syncing configuration to database...")
+
+            # Register SQLA event listeners for tagging system
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                from superset.tags.core import register_sqla_event_listeners
+
+                register_sqla_event_listeners()
+
+            # Seed system themes from configuration
+            from superset.commands.theme.seed import SeedSystemThemesCommand
+
+            SeedSystemThemesCommand().run()
+
+            logger.info("Configuration sync to database completed successfully")
+
+        except Exception as e:
+            logger.error("Failed to sync configuration to database: %s", e)
+            # Don't raise the exception to avoid breaking app startup
+            # in multi-tenant environments
 
 
 class AppRootMiddleware:

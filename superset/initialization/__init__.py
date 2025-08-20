@@ -23,9 +23,6 @@ import sys
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
-from alembic.config import Config
-from alembic.runtime.migration import MigrationContext
-from alembic.script import ScriptDirectory
 from colorama import Fore, Style
 from deprecation import deprecated
 from flask import abort, Flask, redirect, request, session, url_for
@@ -65,7 +62,6 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
-from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
@@ -504,68 +500,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
-    def _is_database_up_to_date(self) -> bool:
-        """
-        Check if database migrations are up to date.
-        Returns False if there are pending migrations or unable to determine.
-        """
-        try:
-            # Get current revision from database
-            with db.engine.connect() as connection:
-                context = MigrationContext.configure(connection)
-                current_rev = context.get_current_revision()
-
-            # Get head revision from migration files
-            alembic_cfg = Config()
-            alembic_cfg.set_main_option("script_location", "superset:migrations")
-            script = ScriptDirectory.from_config(alembic_cfg)
-            head_rev = script.get_current_head()
-
-            # Database is up-to-date if current revision matches head
-            is_current = current_rev == head_rev
-            if not is_current:
-                logger.debug(
-                    "Pending migrations. Current: %s, Head: %s",
-                    current_rev,
-                    head_rev,
-                )
-            return is_current
-        except Exception as e:
-            logger.debug("Could not check migration status: %s", e)
-            return False
-
-    def _init_database_dependent_features(self) -> None:
-        """
-        Initialize features that require database tables to exist.
-        Only runs when database migrations are up-to-date.
-        """
-        # Check if database URI is a fallback value before trying to connect
-        db_uri = self.database_uri
-        if not db_uri or any(
-            fallback in db_uri.lower()
-            for fallback in ["nouser", "nopassword", "nohost", "nodb"]
-        ):
-            logger.warning(
-                "Database URI appears to be a fallback value. "
-                "Skipping database-dependent initialization."
-            )
-            return
-
-        # Check if database is up-to-date with migrations
-        if not self._is_database_up_to_date():
-            logger.info("Pending database migrations: run 'superset db upgrade'")
-            return
-
-        # Initialize all database-dependent features
-        # Register SQLA event listeners for tagging system
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
-
-        # Seed system themes from configuration
-        from superset.commands.theme.seed import SeedSystemThemesCommand
-
-        SeedSystemThemesCommand().run()
-
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -583,8 +517,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
-        # Initialize database-dependent features only if database is ready
-        self._init_database_dependent_features()
+        # Sync configuration to database (themes, etc.)
+        # This can be called separately in multi-tenant environments
+        self.superset_app.sync_config_to_db()
 
         self.init_views()
 
