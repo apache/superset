@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import uuid
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
@@ -1075,6 +1076,43 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart_id}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 404
+
+    @parameterized.expand(
+        [
+            ("by_id", lambda chart: str(chart.id), "id"),
+            (
+                "by_uuid",
+                lambda chart: str(chart.uuid) if chart.uuid else pytest.skip("No UUID"),
+                "uuid",
+            ),
+        ]
+    )
+    def test_slice_get_existing(self, test_name, get_identifier, field_type):
+        """Test Slice.get() successfully retrieves existing charts."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(f"test_slice_get_{field_type}", [admin.id], 1)
+
+        identifier = get_identifier(chart)
+        result = Slice.get(identifier)
+
+        assert result is not None
+        assert result.id == chart.id
+        if field_type == "uuid" and chart.uuid:
+            assert result.uuid == chart.uuid
+
+        db.session.delete(chart)
+        db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("nonexistent_id", "999999"),
+            ("nonexistent_uuid", str(uuid.uuid4())),
+        ]
+    )
+    def test_slice_get_not_found(self, test_name, identifier):
+        """Test Slice.get() returns None for non-existent identifiers."""
+        result = Slice.get(identifier)
+        assert result is None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_chart_no_data_access(self):
