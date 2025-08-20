@@ -195,7 +195,7 @@ class CSVReader(BaseDataReader):
                     filepath_or_buffer=file.stream,
                     **kwargs,
                 )
-            
+
             if types:
                 for column, dtype in types.items():
                     try:

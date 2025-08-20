@@ -588,6 +588,8 @@ def test_csv_reader_non_numeric_in_float_column():
         str(ex.value)
         == "Non float value found in column 'Score'. Value: 'one point five', line: 5."
     )
+
+
 def test_csv_reader_chunking_large_file():
     """Test that chunking is used for large files."""
     # Create a large CSV with more than 100k rows
