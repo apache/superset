@@ -203,6 +203,25 @@ EXTRA_FORM_DATA_OVERRIDE_KEYS = (
     | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
 )
 
+LOCALES_LANGUAGE_MAP = {
+    "en": "en_US",
+    "es": "es_ES",
+    "it": "it_IT",
+    "fr": "fr_FR",
+    "zh": "zh_CN",
+    "zh_TW": "zh_TW",
+    "ja": "ja_JP",
+    "de": "de_DE",
+    "pt": "pt_PT",
+    "pt_BR": "pt_BR",
+    "ru": "ru_RU",
+    "ko": "ko_KR",
+    "sk": "sk_SK",
+    "sl": "sl_SI",
+    "nl": "nl_NL",
+    "uk": "uk_UA",
+}
+
 
 class TimeGrain(StrEnum):
     SECOND = "PT1S"
