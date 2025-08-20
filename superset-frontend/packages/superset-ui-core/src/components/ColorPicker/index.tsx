@@ -20,10 +20,33 @@ import {
   ColorPicker as AntdColorPicker,
   type ColorPickerProps as AntdColorPickerProps,
 } from 'antd';
+import { css, Global } from '@emotion/react';
 
 // Re-export the AntD ColorPicker as-is for themeable usage
 export type ColorPickerProps = AntdColorPickerProps;
-export const ColorPicker = AntdColorPicker;
+export const ColorPicker: React.FC<ColorPickerProps> = props => (
+  <>
+    <Global
+      styles={css`
+        .ant-slider.ant-color-picker-slider.ant-slider-horizontal {
+          margin: 11px 5px;
+        }
+        .ant-color-picker
+          .ant-color-picker-input-container
+          .ant-color-picker-slider-alpha,
+        .ant-color-picker
+          .ant-color-picker-input-container
+          .ant-color-picker-alpha-input,
+        .ant-color-picker
+          .ant-color-picker-input-container
+          .ant-color-picker-format-select {
+          display: inline-flex;
+        }
+      `}
+    />
+    <AntdColorPicker {...props} />
+  </>
+);
 
 // Export RGB color type for backward compatibility
 export type RGBColor = {
