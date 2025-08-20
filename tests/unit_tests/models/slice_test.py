@@ -19,6 +19,7 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
+from parameterized import parameterized
 
 from superset.models.slice import id_or_uuid_filter, Slice
 
@@ -26,95 +27,60 @@ from superset.models.slice import id_or_uuid_filter, Slice
 class TestSlice:
     """Test cases for Slice model functionality."""
 
-    def test_slice_get_by_id_calls_filter_correctly(self):
-        """
-        Test that Slice.get() with numeric ID calls the correct SQLAlchemy
-        filter method.
-        """
+    @parameterized.expand(
+        [
+            ("numeric_id", "123"),
+            ("uuid_string", "550e8400-e29b-41d4-a716-446655440000"),
+        ]
+    )
+    def test_slice_get_calls_filter_correctly(self, test_name, id_or_uuid):
+        """Test Slice.get() calls filter() correctly for ID and UUID."""
         with patch("superset.models.slice.db") as mock_db:
-            # Set up the mock chain properly
+            # Setup mock chain
             mock_query = MagicMock()
             mock_filtered_query = MagicMock()
             mock_db.session.query.return_value = mock_query
             mock_query.filter.return_value = mock_filtered_query
             mock_filtered_query.one_or_none.return_value = None
 
-            # This should not raise TypeError if filter() is used correctly
-            result = Slice.get("123")
+            # Call the method
+            result = Slice.get(id_or_uuid)
 
-            # Verify that query() was called with Slice
+            # Verify correct methods called
             mock_db.session.query.assert_called_once_with(Slice)
-
-            # Verify that filter() was called (not filter_by)
-            mock_query.filter.assert_called_once()
+            mock_query.filter.assert_called_once()  # Not filter_by!
             mock_filtered_query.one_or_none.assert_called_once()
-
-            # Result should be None (mocked return value)
             assert result is None
 
-    def test_slice_get_by_uuid_calls_filter_correctly(self):
-        """
-        Test that Slice.get() with UUID calls the correct SQLAlchemy
-        filter method.
-        """
-        test_uuid = str(uuid.uuid4())
+    @parameterized.expand(
+        [
+            ("numeric_id", "123"),
+            ("large_id", "999999"),
+            ("uuid_string", str(uuid.uuid4())),
+        ]
+    )
+    def test_slice_get_no_type_error(self, test_name, input_value):
+        """Verify Slice.get() doesn't raise TypeError for various inputs."""
+        try:
+            result = Slice.get(input_value)
+            # Success - no TypeError, result can be None or a Slice
+            assert result is None or hasattr(result, "id")
+        except TypeError as e:
+            if "filter_by() takes 1 positional argument" in str(e):
+                pytest.fail(
+                    f"filter_by() bug exists: Slice.get('{input_value}') failed with {e}"  # noqa: E501
+                )
+            else:
+                raise
 
-        with patch("superset.models.slice.db") as mock_db:
-            # Set up the mock chain properly
-            mock_query = MagicMock()
-            mock_filtered_query = MagicMock()
-            mock_db.session.query.return_value = mock_query
-            mock_query.filter.return_value = mock_filtered_query
-            mock_filtered_query.one_or_none.return_value = None
-
-            # This should not raise TypeError if filter() is used correctly
-            result = Slice.get(test_uuid)
-
-            # Verify that query() was called with Slice
-            mock_db.session.query.assert_called_once_with(Slice)
-
-            # Verify that filter() was called (not filter_by)
-            mock_query.filter.assert_called_once()
-            mock_filtered_query.one_or_none.assert_called_once()
-
-            # Result should be None (mocked return value)
-            assert result is None
-
-    def test_slice_get_no_type_error(self):
-        """
-        Integration test - verify Slice.get() doesn't raise TypeError
-        for ID or UUID.
-        """
-        test_cases = ["1", "999", str(uuid.uuid4())]
-
-        for test_input in test_cases:
-            try:
-                result = Slice.get(test_input)
-                # Success - no TypeError occurred, result can be None or a Slice.  # noqa: E501
-                assert result is None or hasattr(result, "id")
-            except TypeError as e:
-                if "filter_by() takes 1 positional argument but 2 were given" in str(e):
-                    pytest.fail(
-                        f"filter_by() bug exists: Slice.get('{test_input}') failed with {e}"  # noqa: E501
-                    )
-                else:
-                    # Some other TypeError - re-raise for investigation
-                    raise
-
-    def test_id_or_uuid_filter_with_numeric_id(self):
-        """Test that id_or_uuid_filter works with numeric ID strings."""
-        # Simple test - just verify it doesn't crash and returns something
-        result = id_or_uuid_filter("123")
-        # Should return a BinaryExpression that can be used with filter()
+    @parameterized.expand(
+        [
+            ("numeric_id", "123"),
+            ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
+            ("invalid_string", "not-a-number"),
+        ]
+    )
+    def test_id_or_uuid_filter(self, test_name, input_value):
+        """Test id_or_uuid_filter returns correct BinaryExpression."""
+        result = id_or_uuid_filter(input_value)
         assert result is not None
-        # The important thing is it doesn't crash and returns a filter expression.  # noqa: E501
-
-    def test_id_or_uuid_filter_with_uuid(self):
-        """Test that id_or_uuid_filter works with UUID strings."""
-        test_uuid = "abc-def-123-456"
-
-        # Simple test - just verify it doesn't crash and returns something
-        result = id_or_uuid_filter(test_uuid)
-        # Should return a BinaryExpression that can be used with filter()
-        assert result is not None
-        # The important thing is it doesn't crash and returns a filter expression.  # noqa: E501
