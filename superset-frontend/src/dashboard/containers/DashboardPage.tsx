@@ -66,6 +66,7 @@ import {
   getRisonFilterParam,
   prettifyRisonFilterUrl,
   injectRisonFiltersIntelligently,
+  updateUrlWithUnmatchedFilters,
 } from '../util/risonFilters';
 
 export const DashboardPageIdContext = createContext('');
@@ -227,10 +228,24 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             // Merge with existing dataMask
             dataMask = { ...dataMask, ...risonDataMask };
           }
-        }
 
-        // Prettify URL after parsing
-        setTimeout(() => prettifyRisonFilterUrl(), 100);
+          // Clean up URL: remove matched filters, keep only unmatched ones
+          // This prevents duplication between native filter bar and URL filters section
+          const matchedCount =
+            risonFilters.length - injectionResult.unmatchedFilters.length;
+          if (matchedCount > 0) {
+            setTimeout(
+              () =>
+                updateUrlWithUnmatchedFilters(injectionResult.unmatchedFilters),
+              100,
+            );
+          }
+
+          // Only prettify URL if we have unmatched filters (brute-force case)
+          if (injectionResult.unmatchedFilters.length > 0) {
+            setTimeout(() => prettifyRisonFilterUrl(), 150);
+          }
+        }
       }
 
       if (readyToRender) {

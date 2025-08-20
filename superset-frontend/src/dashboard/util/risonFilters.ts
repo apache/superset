@@ -232,6 +232,80 @@ export function getRisonFilterParam(): string | null {
 }
 
 /**
+ * Convert an array of RisonFilter back to Rison string format
+ */
+export function risonFiltersToString(filters: RisonFilter[]): string {
+  if (filters.length === 0) {
+    return '';
+  }
+
+  const risonObject: Record<string, any> = {};
+
+  filters.forEach(filter => {
+    if (filter.operator === 'IN' && Array.isArray(filter.comparator)) {
+      // Array values: !(value1,value2)
+      risonObject[filter.subject] = filter.comparator;
+    } else if (filter.operator === '==') {
+      // Simple equality
+      risonObject[filter.subject] = filter.comparator;
+    } else {
+      // Other operators: {gt:100}, {between:!(1,10)}
+      const operatorMap: Record<string, string> = {
+        '>': 'gt',
+        '>=': 'gte',
+        '<': 'lt',
+        '<=': 'lte',
+        BETWEEN: 'between',
+        LIKE: 'like',
+      };
+
+      const risonOp = operatorMap[filter.operator] || filter.operator;
+      risonObject[filter.subject] = { [risonOp]: filter.comparator };
+    }
+  });
+
+  try {
+    return rison.encode(risonObject);
+  } catch (error) {
+    console.warn('Failed to encode Rison filters:', error);
+    return '';
+  }
+}
+
+/**
+ * Update the URL to remove successfully matched filters, keeping only unmatched ones
+ */
+export function updateUrlWithUnmatchedFilters(
+  unmatchedFilters: RisonFilter[],
+): void {
+  try {
+    const currentUrl = new URL(window.location.href);
+
+    if (unmatchedFilters.length === 0) {
+      // No unmatched filters - remove the f parameter entirely
+      currentUrl.searchParams.delete('f');
+    } else {
+      // Convert unmatched filters back to Rison and update URL
+      const newRisonString = risonFiltersToString(unmatchedFilters);
+      if (newRisonString) {
+        currentUrl.searchParams.set('f', newRisonString);
+      } else {
+        currentUrl.searchParams.delete('f');
+      }
+    }
+
+    // Update URL without page reload
+    window.history.replaceState(
+      window.history.state,
+      '',
+      currentUrl.toString(),
+    );
+  } catch (error) {
+    console.warn('Failed to update URL with unmatched filters:', error);
+  }
+}
+
+/**
  * Set up automatic URL prettification
  * Watches for URL changes and prettifies Rison parameters
  */
@@ -341,17 +415,26 @@ export function injectRisonFiltersIntelligently(
       nativeFilters,
     );
 
-    if (matchingFilterId && nativeFilters[matchingFilterId]) {
+    if (
+      matchingFilterId &&
+      (Array.isArray(nativeFilters)
+        ? nativeFilters[parseInt(matchingFilterId, 10)]
+        : nativeFilters[matchingFilterId])
+    ) {
       // Found a matching native filter - inject the value
+      const matchedFilter = Array.isArray(nativeFilters)
+        ? nativeFilters[parseInt(matchingFilterId, 10)]
+        : nativeFilters[matchingFilterId];
       const convertedValue = convertRisonToNativeValue(
         risonFilter,
-        nativeFilters[matchingFilterId],
+        matchedFilter,
       );
 
-      // Update the data mask for this native filter
-      updatedDataMask[matchingFilterId] = {
-        ...updatedDataMask[matchingFilterId],
-        id: matchingFilterId,
+      // Update the data mask for this native filter - use the actual filter ID, not the array index
+      const actualFilterId = matchedFilter.id;
+      updatedDataMask[actualFilterId] = {
+        ...updatedDataMask[actualFilterId],
+        id: actualFilterId,
         filterState: {
           value: convertedValue,
         },
