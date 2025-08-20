@@ -70,7 +70,7 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
-        {% set spinner_style = "width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
+        {% set spinner_style = "width: 50px; height: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
         {% set tokens = theme_tokens | default({}) %}
 
         {% if tokens.get('brandSpinnerSvg') %}
