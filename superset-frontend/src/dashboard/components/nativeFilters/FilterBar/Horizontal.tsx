@@ -76,7 +76,7 @@ const RisonFiltersContainer = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     padding: 0 ${theme.sizeUnit * 2}px;
     margin-right: ${theme.sizeUnit * 2}px;
-    border-right: 1px solid ${theme.colors.grayscale.light2};
+    border-right: 1px solid ${theme.colorBorder};
   `}
 `;
 
@@ -85,7 +85,6 @@ const RisonFilterTitle = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.sizeUnit}px;
-    color: ${theme.colors.primary.base};
     font-weight: ${theme.fontWeightStrong};
     font-size: ${theme.fontSizeSM}px;
   `}
@@ -97,17 +96,9 @@ const RisonFilterItem = styled.div`
     align-items: center;
     gap: ${theme.sizeUnit}px;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
+    background: ${theme.colorBgContainer};
     border-radius: ${theme.borderRadius}px;
     font-size: ${theme.fontSizeSM}px;
-
-    strong {
-      color: ${theme.colors.grayscale.dark1};
-    }
-
-    span {
-      color: ${theme.colors.grayscale.base};
-    }
   `}
 `;
 

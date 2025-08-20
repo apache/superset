@@ -119,7 +119,7 @@ const RisonFiltersContainer = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
     border-bottom: 1px solid ${theme.colorSplit};
-    background-color: ${theme.colors.primary.light4};
+    background-color: ${theme.colorPrimaryBg};
   `}
 `;
 
@@ -130,17 +130,17 @@ const RisonFilterItem = styled.div`
     gap: ${theme.sizeUnit}px;
     padding: ${theme.sizeUnit}px;
     margin: ${theme.sizeUnit / 2}px 0;
-    background-color: ${theme.colors.primary.light5};
+    background-color: ${theme.colorPrimaryBg};
     border-radius: ${theme.sizeUnit}px;
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.primary.dark1};
+    color: ${theme.colorPrimaryText};
   `}
 `;
 
 const RisonFilterTitle = styled.div`
   ${({ theme }) => `
     font-weight: bold;
-    color: ${theme.colors.primary.dark2};
+    color: ${theme.colorPrimaryText};
     margin-bottom: ${theme.sizeUnit}px;
     display: flex;
     align-items: center;
