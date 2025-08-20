@@ -30,11 +30,9 @@ const LoaderImg = styled.img<{ $spinnerWidth: string }>`
   margin: 10px;
   &.inline {
     margin: 0px;
-    width: 30px; /* Override for inline - stays fixed at 30px */
   }
   &.inline-centered {
     margin: 0 auto;
-    width: 30px; /* Override for inline - stays fixed at 30px */
     display: block;
   }
   &.floating {
