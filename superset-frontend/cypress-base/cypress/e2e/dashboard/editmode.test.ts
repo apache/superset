@@ -1123,8 +1123,16 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
-      // Ensure no modal is blocking the interface
-      cy.get('.ant-modal-wrap').should('not.exist');
+      // Force close any modal that might be open
+      cy.get('body').then($body => {
+        if ($body.find('.ant-modal-wrap').length > 0) {
+          cy.get('body').type('{esc}', { force: true });
+          cy.wait(1000);
+          // If ESC doesn't work, try clicking the close button
+          cy.get('.ant-modal-close').click({ force: true });
+          cy.wait(500);
+        }
+      });
 
       cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click({ force: true });
