@@ -211,7 +211,7 @@ service:
 
 ingress:
   enabled: false
-  ingressClassName: ~
+  ingressClassName: nginx
   annotations: {}
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
@@ -798,7 +798,7 @@ postgresql:
   ##
   ## Use the PostgreSQL chart dependency.
   ## Set to false if bringing your own PostgreSQL.
-  enabled: true
+  enabled: false
 
   ## Authentication parameters
   auth:
@@ -846,7 +846,7 @@ redis:
   ## If you are bringing your own redis, you can set the host in supersetNode.connections.redis_host
   ##
   ## Set to false if bringing your own redis.
-  enabled: true
+  enabled: false
   ##
   ## Set architecture to standalone/replication
   architecture: standalone
