@@ -907,62 +907,60 @@ const SqlEditor: FC<Props> = ({
     />
   );
 
-  const queryPane = () => {
-    return (
-      <Splitter
-        layout="vertical"
-        onResizeStart={onResizeStart}
-        onResizeEnd={onResizeEnd}
+  const queryPane = () => (
+    <Splitter
+      layout="vertical"
+      onResizeStart={onResizeStart}
+      onResizeEnd={onResizeEnd}
+    >
+      <Splitter.Panel
+        min={queryEditor.isDataset ? 400 : 200}
+        defaultSize={`${northPercent}%`}
+        className="queryPane"
       >
-        <Splitter.Panel
-          min={queryEditor.isDataset ? 400 : 200}
-          defaultSize={`${northPercent}%`}
-          className="queryPane"
-        >
-          <div className="north-pane">
-            {SqlFormExtension && (
-              <SqlFormExtension
-                queryEditorId={queryEditor.id}
-                setQueryEditorAndSaveSqlWithDebounce={
-                  setQueryEditorAndSaveSqlWithDebounce
-                }
-                startQuery={startQuery}
-              />
-            )}
-            {queryEditor.isDataset && renderDatasetWarning()}
-            <div className="sql-container">
-              <AutoSizer disableWidth>
-                {({ height }) =>
-                  isActive && (
-                    <AceEditorWrapper
-                      autocomplete={
-                        autocompleteEnabled && !isTempId(queryEditor.id)
-                      }
-                      onBlur={onSqlChanged}
-                      onChange={onSqlChanged}
-                      queryEditorId={queryEditor.id}
-                      onCursorPositionChange={handleCursorPositionChange}
-                      height={`${height}px`}
-                      hotkeys={hotkeys}
-                    />
-                  )
-                }
-              </AutoSizer>
-            </div>
-            {renderEditorBottomBar(showEmptyState)}
+        <div className="north-pane">
+          {SqlFormExtension && (
+            <SqlFormExtension
+              queryEditorId={queryEditor.id}
+              setQueryEditorAndSaveSqlWithDebounce={
+                setQueryEditorAndSaveSqlWithDebounce
+              }
+              startQuery={startQuery}
+            />
+          )}
+          {queryEditor.isDataset && renderDatasetWarning()}
+          <div className="sql-container">
+            <AutoSizer disableWidth>
+              {({ height }) =>
+                isActive && (
+                  <AceEditorWrapper
+                    autocomplete={
+                      autocompleteEnabled && !isTempId(queryEditor.id)
+                    }
+                    onBlur={onSqlChanged}
+                    onChange={onSqlChanged}
+                    queryEditorId={queryEditor.id}
+                    onCursorPositionChange={handleCursorPositionChange}
+                    height={`${height}px`}
+                    hotkeys={hotkeys}
+                  />
+                )
+              }
+            </AutoSizer>
           </div>
-        </Splitter.Panel>
-        <Splitter.Panel className="queryPane">
-          <SouthPane
-            queryEditorId={queryEditor.id}
-            latestQueryId={latestQuery?.id}
-            displayLimit={displayLimit}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        </Splitter.Panel>
-      </Splitter>
-    );
-  };
+          {renderEditorBottomBar(showEmptyState)}
+        </div>
+      </Splitter.Panel>
+      <Splitter.Panel className="queryPane">
+        <SouthPane
+          queryEditorId={queryEditor.id}
+          latestQueryId={latestQuery?.id}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      </Splitter.Panel>
+    </Splitter>
+  );
 
   const createViewModalTitle =
     createAs === CtasEnum.View ? 'CREATE VIEW AS' : 'CREATE TABLE AS';
