@@ -16,10 +16,14 @@
 # under the License.
 
 import json  # noqa: TID251
+import sys
 from pathlib import Path
 from typing import Any
 
-import tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 def read_toml(path: Path) -> dict[str, Any] | None:
@@ -27,7 +31,7 @@ def read_toml(path: Path) -> dict[str, Any] | None:
         return None
 
     with path.open("rb") as f:
-        return tomli.load(f)
+        return tomllib.load(f)
 
 
 def read_json(path: Path) -> dict[str, Any] | None:
