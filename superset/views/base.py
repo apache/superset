@@ -483,12 +483,18 @@ class SupersetModelView(ModelView):
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
+
+        # Extract theme data for template access
+        theme_data = get_theme_bootstrap_data().get("theme", {})
+        default_theme = theme_data.get("default", {})
+
         return self.render_template(
             "superset/spa.html",
             entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=json.pessimistic_json_iso_dttm_ser
             ),
+            theme_tokens=default_theme.get("token", {}),
         )
 
 
