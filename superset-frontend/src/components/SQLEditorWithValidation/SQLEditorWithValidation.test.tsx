@@ -49,9 +49,9 @@ describe('SQLEditorWithValidation', () => {
   it('renders SQLEditor with validation bar when showValidation is true', () => {
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    expect(screen.getByText('Status: Unverified')).toBeInTheDocument();
+    expect(screen.getByText('Unverified')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Validate' }),
+      screen.getByRole('button', { name: 'Validate your expression' }),
     ).toBeInTheDocument();
   });
 
@@ -60,16 +60,18 @@ describe('SQLEditorWithValidation', () => {
       <SQLEditorWithValidation {...defaultProps} showValidation={false} />,
     );
 
-    expect(screen.queryByText('Status: Unverified')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unverified')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Validate' }),
+      screen.queryByRole('button', { name: 'Validate your expression' }),
     ).not.toBeInTheDocument();
   });
 
   it('shows primary button style when unverified', () => {
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     expect(validateButton).toBeInTheDocument();
     // Button should have primary styling (this would need to check actual class or style)
   });
@@ -83,7 +85,9 @@ describe('SQLEditorWithValidation', () => {
       />,
     );
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     expect(validateButton).toBeDisabled();
   });
 
@@ -102,11 +106,13 @@ describe('SQLEditorWithValidation', () => {
 
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Status: Validating...')).toBeInTheDocument();
+      expect(screen.getByText('Validating...')).toBeInTheDocument();
       expect(validateButton).toBeDisabled();
     });
   });
@@ -119,13 +125,13 @@ describe('SQLEditorWithValidation', () => {
 
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Status: Valid SQL expression'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Valid SQL expression')).toBeInTheDocument();
     });
 
     // Button should become secondary style after validation
@@ -151,7 +157,9 @@ describe('SQLEditorWithValidation', () => {
 
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -169,14 +177,14 @@ describe('SQLEditorWithValidation', () => {
 
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          'Status: Failed to validate expression. Please try again.',
-        ),
+        screen.getByText('Failed to validate expression. Please try again.'),
       ).toBeInTheDocument();
     });
   });
@@ -195,7 +203,9 @@ describe('SQLEditorWithValidation', () => {
       />,
     );
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -225,7 +235,9 @@ describe('SQLEditorWithValidation', () => {
       />,
     );
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -254,7 +266,9 @@ describe('SQLEditorWithValidation', () => {
       />,
     );
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -273,7 +287,9 @@ describe('SQLEditorWithValidation', () => {
     const { rerender } = render(<SQLEditorWithValidation {...defaultProps} />);
 
     // Simulate having a validation result
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     // Change the value
@@ -285,7 +301,7 @@ describe('SQLEditorWithValidation', () => {
     );
 
     // Should reset to unverified state
-    expect(screen.getByText('Status: Unverified')).toBeInTheDocument();
+    expect(screen.getByText('Unverified')).toBeInTheDocument();
   });
 
   it('calls onChange when editor value changes', () => {
@@ -311,7 +327,9 @@ describe('SQLEditorWithValidation', () => {
       />,
     );
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -341,7 +359,9 @@ describe('SQLEditorWithValidation', () => {
       />,
     );
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -373,7 +393,9 @@ describe('SQLEditorWithValidation', () => {
 
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
@@ -396,13 +418,13 @@ describe('SQLEditorWithValidation', () => {
 
     render(<SQLEditorWithValidation {...defaultProps} />);
 
-    const validateButton = screen.getByRole('button', { name: 'Validate' });
+    const validateButton = screen.getByRole('button', {
+      name: 'Validate your expression',
+    });
     fireEvent.click(validateButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Status: Valid SQL expression'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Valid SQL expression')).toBeInTheDocument();
     });
   });
 });

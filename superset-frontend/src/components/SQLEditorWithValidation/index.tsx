@@ -184,20 +184,31 @@ export default function SQLEditorWithValidation({
       <SQLEditor value={value} onChange={handleChange} {...sqlEditorProps} />
 
       {showValidation && (
-        <Flex justify="space-between" align="center" style={{ minHeight: 32 }}>
+        <Flex align="center" gap="small" style={{ minHeight: 32 }}>
+          <Tooltip title={t('Validate your expression')}>
+            <Button
+              buttonSize="small"
+              buttonStyle={validationResult ? 'secondary' : 'primary'}
+              loading={isValidating}
+              onClick={handleValidate}
+              disabled={!value || !datasourceId || isValidating}
+              icon={<Icons.CaretRightFilled />}
+              aria-label={t('Validate your expression')}
+            />
+          </Tooltip>
           <StyledValidationMessage
             isError={validationResult ? !validationResult.isValid : false}
             isUnverified={!validationResult && !isValidating}
             isValidating={isValidating}
           >
             {isValidating ? (
-              <span>{t('Status: Validating...')}</span>
+              <span>{t('Validating...')}</span>
             ) : validationResult ? (
               <>
                 {validationResult.isValid ? (
                   <>
                     <Icons.CheckCircleOutlined />
-                    <span>{t('Status: Valid SQL expression')}</span>
+                    <span>{t('Valid SQL expression')}</span>
                   </>
                 ) : (
                   <>
@@ -211,7 +222,6 @@ export default function SQLEditorWithValidation({
                       placement="top"
                     >
                       <span>
-                        {t('Status: ')}
                         {validationResult.errors &&
                         validationResult.errors.length > 0
                           ? validationResult.errors[0].message
@@ -222,18 +232,12 @@ export default function SQLEditorWithValidation({
                 )}
               </>
             ) : (
-              <span>{t('Status: Unverified')}</span>
+              <>
+                <Icons.WarningOutlined />
+                <span>{t('Unverified')}</span>
+              </>
             )}
           </StyledValidationMessage>
-          <Button
-            buttonSize="small"
-            buttonStyle={validationResult ? 'secondary' : 'primary'}
-            loading={isValidating}
-            onClick={handleValidate}
-            disabled={!value || !datasourceId || isValidating}
-          >
-            {t('Validate')}
-          </Button>
         </Flex>
       )}
     </Flex>
