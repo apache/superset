@@ -369,7 +369,11 @@ function processGroupByCustomizations(
         return;
       }
 
-      if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
+      if (
+        chartType === 'heatmap' ||
+        chartType === 'heatmap_v2' ||
+        chartType === 'waterfall'
+      ) {
         if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
           const firstColumn = nonConflictingColumns[0];
           if (!groupByColumns.includes(firstColumn)) {
@@ -378,8 +382,10 @@ function processGroupByCustomizations(
           }
         }
         if (nonConflictingColumns.length > 1) {
+          const chartTypeName =
+            chartType === 'waterfall' ? 'Waterfall' : 'Heatmap';
           console.warn(
-            `Heatmap charts only support one column dimension. Using "${nonConflictingColumns[0]}" only. Additional columns (${nonConflictingColumns.slice(1).join(', ')}) will be ignored.`,
+            `${chartTypeName} charts only support one column dimension. Using "${nonConflictingColumns[0]}" only. Additional columns (${nonConflictingColumns.slice(1).join(', ')}) will be ignored.`,
           );
         }
       } else {
@@ -446,6 +452,20 @@ function processGroupByCustomizations(
       groupByFormData.groupby = [];
     } else if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
       if (groupByColumns.length > 0) {
+        groupByFormData.groupby = [groupByColumns[0]];
+      } else {
+        const groupbyWithoutXAxis = existingGroupBy.filter(
+          col => col !== xAxisColumn,
+        );
+        groupByFormData.groupby = groupbyWithoutXAxis;
+      }
+    } else if (chartType === 'waterfall') {
+      if (groupByColumns.length > 0) {
+        if (groupByColumns.length > 1) {
+          console.warn(
+            `Waterfall charts only support one dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
+          );
+        }
         groupByFormData.groupby = [groupByColumns[0]];
       } else {
         const groupbyWithoutXAxis = existingGroupBy.filter(
