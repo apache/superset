@@ -533,9 +533,13 @@ const Header = () => {
         tags: updates.tags,
       });
       boundActionCreators.setUnsavedChanges(true);
-      boundActionCreators.dashboardTitleChanged(updates.title);
+
+      if (updates.title && dashboardTitle !== updates.title) {
+        boundActionCreators.updateDashboardTitle(updates.title);
+        boundActionCreators.onChange();
+      }
     },
-    [boundActionCreators],
+    [boundActionCreators, dashboardTitle],
   );
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
