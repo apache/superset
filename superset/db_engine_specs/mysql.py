@@ -74,6 +74,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     encryption_parameters = {"ssl": "1"}
 
     supports_dynamic_schema = True
+    supports_multivalues_insert = True
 
     column_type_mappings = (
         (

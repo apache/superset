@@ -196,6 +196,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     default_driver = "duckdb_engine"
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
+    supports_multivalues_insert = True
 
     # DuckDB-specific column type mappings to ensure float/double types are recognized
     column_type_mappings = (
