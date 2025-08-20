@@ -372,6 +372,7 @@ export default class AdhocFilterEditPopover extends Component {
                     options={this.props.options}
                     height={this.state.height}
                     activeKey={this.state.activeKey}
+                    datasource={datasource}
                   />
                 </ErrorBoundary>
               ),
