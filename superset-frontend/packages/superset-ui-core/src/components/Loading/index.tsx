@@ -22,19 +22,19 @@ import { styled, useTheme } from '../../theme';
 import { Loading as Loader } from '../assets';
 import type { LoadingProps } from './types';
 
-const LoaderImg = styled.img`
+const LoaderImg = styled.img<{ $spinnerWidth: string }>`
   z-index: 99;
-  width: 50px;
+  width: ${({ $spinnerWidth }) => $spinnerWidth};
   height: unset;
   position: relative;
   margin: 10px;
   &.inline {
     margin: 0px;
-    width: 30px;
+    width: 30px; /* Override for inline - stays fixed at 30px */
   }
   &.inline-centered {
     margin: 0 auto;
-    width: 30px;
+    width: 30px; /* Override for inline - stays fixed at 30px */
     display: block;
   }
   &.floating {
@@ -65,6 +65,7 @@ export function Loading({
 
   return (
     <LoaderImg
+      $spinnerWidth={theme.brandSpinnerWidth}
       className={cls('loading', position, className)}
       alt="Loading..."
       src={getSpinnerSource()}

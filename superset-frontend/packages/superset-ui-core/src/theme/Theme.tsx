@@ -72,6 +72,7 @@ export class Theme {
     // Spinner
     brandSpinnerUrl: undefined,
     brandSpinnerSvg: undefined,
+    brandSpinnerWidth: '50px',
 
     // Default colors
     colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
