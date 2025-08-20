@@ -32,6 +32,7 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
+import './hooks/useLocale';
 
 configure();
 
