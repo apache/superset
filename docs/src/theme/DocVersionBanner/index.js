@@ -37,8 +37,9 @@ export default function DocVersionBannerWrapper(props) {
   const pluginId = activePlugin?.pluginId;
   const [versionedPath, setVersionedPath] = useState('');
 
-  // Only show version selector for docs, components, and tutorials
-  const isVersioned = pluginId && ['default', 'components', 'tutorials'].includes(pluginId);
+  // Only show version selector for components and tutorials
+  // Main docs uses the DocVersionBadge component instead
+  const isVersioned = pluginId && ['components', 'tutorials'].includes(pluginId);
 
   const { preferredVersion } = useDocsPreferredVersion(pluginId);
   const versions = useVersions(pluginId);

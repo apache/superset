@@ -359,10 +359,20 @@ const config: Config = {
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'CustomSidebar',
-          position: 'left',
           label: 'Documentation',
+          position: 'left',
+          items: [
+            {
+              type: 'doc',
+              docId: 'intro',
+              label: 'Getting Started',
+            },
+            {
+              type: 'doc',
+              docId: 'faq',
+              label: 'FAQ',
+            },
+          ],
         },
         {
           label: 'Community Resources',
@@ -416,15 +426,19 @@ const config: Config = {
         // },
         {
           label: 'Developer Portal',
-          to: '/developer_portal',
+          position: 'left',
           items: [
             {
+              type: 'doc',
+              docsPluginId: 'developer_portal',
+              docId: 'index',
               label: 'Introduction',
-              to: '/developer_portal',
             },
             {
+              type: 'doc',
+              docsPluginId: 'developer_portal',
+              docId: 'getting-started/index',
               label: 'Getting Started',
-              to: '/developer_portal/getting-started',
             },
           ],
         },
