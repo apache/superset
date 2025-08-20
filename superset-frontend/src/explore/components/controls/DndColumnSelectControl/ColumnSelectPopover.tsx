@@ -463,9 +463,7 @@ const ColumnSelectPopover = ({
                     selectedCalculatedColumn?.expression ||
                     ''
                   }
-                  onRef={(ref: any) => {
-                    sqlEditorRef.current = ref;
-                  }}
+                  ref={sqlEditorRef}
                   showLoadingForImport
                   onChange={onSqlExpressionChange}
                   width="100%"

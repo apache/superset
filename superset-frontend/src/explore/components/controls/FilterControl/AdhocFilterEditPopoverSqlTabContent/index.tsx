@@ -124,9 +124,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
         `}
       >
         <SQLEditorWithValidation
-          onRef={(ref: any) => {
-            aceEditorRef.current = ref;
-          }}
+          ref={aceEditorRef}
           keywords={keywords.map((k: any) =>
             typeof k === 'string' ? k : k.value || k.name || k,
           )}

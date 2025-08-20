@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, forwardRef } from 'react';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import {
   SQLEditor,
@@ -69,177 +69,191 @@ const StyledValidationMessage = styled.div<{
   }
 `;
 
-export default function SQLEditorWithValidation({
-  // Required props
-  value,
-  onChange,
-  // Validation props
-  showValidation = false,
-  expressionType = 'column',
-  datasourceId,
-  datasourceType,
-  clause,
-  onValidationComplete,
-  // All other props will be passed through to SQLEditor
-  ...sqlEditorProps
-}: SQLEditorWithValidationProps) {
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<{
-    isValid: boolean;
-    errors?: ValidationError[];
-  } | null>(null);
+const SQLEditorWithValidation = forwardRef<any, SQLEditorWithValidationProps>(
+  (
+    {
+      // Required props
+      value,
+      onChange,
+      // Validation props
+      showValidation = false,
+      expressionType = 'column',
+      datasourceId,
+      datasourceType,
+      clause,
+      onValidationComplete,
+      // All other props will be passed through to SQLEditor
+      ...sqlEditorProps
+    },
+    ref,
+  ) => {
+    const [isValidating, setIsValidating] = useState(false);
+    const [validationResult, setValidationResult] = useState<{
+      isValid: boolean;
+      errors?: ValidationError[];
+    } | null>(null);
 
-  // Reset validation state when value prop changes
-  useEffect(() => {
-    if (validationResult !== null || isValidating) {
-      setValidationResult(null);
-      setIsValidating(false);
-    }
-  }, [value]);
+    // Reset validation state when value prop changes
+    useEffect(() => {
+      if (validationResult !== null || isValidating) {
+        setValidationResult(null);
+        setIsValidating(false);
+      }
+    }, [value]);
 
-  const handleValidate = useCallback(async () => {
-    if (!value || !datasourceId || !datasourceType) {
-      const error = {
-        message: !value
-          ? t('Expression cannot be empty')
-          : t('Datasource is required for validation'),
-      };
-      setValidationResult({
-        isValid: false,
-        errors: [error],
-      });
-      onValidationComplete?.(false, [error]);
-      return;
-    }
-
-    setIsValidating(true);
-    setValidationResult(null);
-
-    try {
-      const endpoint = `/api/v1/datasource/${datasourceType}/${datasourceId}/validate_expression/`;
-      const payload = {
-        expression: value,
-        expression_type: expressionType,
-        clause,
-      };
-
-      const response = await SupersetClient.post({
-        endpoint,
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const data = response.json as ValidationResponse;
-
-      if (data.result && data.result.length > 0) {
-        // Has validation errors
+    const handleValidate = useCallback(async () => {
+      if (!value || !datasourceId || !datasourceType) {
+        const error = {
+          message: !value
+            ? t('Expression cannot be empty')
+            : t('Datasource is required for validation'),
+        };
         setValidationResult({
           isValid: false,
-          errors: data.result,
+          errors: [error],
         });
-        onValidationComplete?.(false, data.result);
-      } else {
-        // No errors, validation successful
+        onValidationComplete?.(false, [error]);
+        return;
+      }
+
+      setIsValidating(true);
+      setValidationResult(null);
+
+      try {
+        const endpoint = `/api/v1/datasource/${datasourceType}/${datasourceId}/validate_expression/`;
+        const payload = {
+          expression: value,
+          expression_type: expressionType,
+          clause,
+        };
+
+        const response = await SupersetClient.post({
+          endpoint,
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const data = response.json as ValidationResponse;
+
+        if (data.result && data.result.length > 0) {
+          // Has validation errors
+          setValidationResult({
+            isValid: false,
+            errors: data.result,
+          });
+          onValidationComplete?.(false, data.result);
+        } else {
+          // No errors, validation successful
+          setValidationResult({
+            isValid: true,
+          });
+          onValidationComplete?.(true);
+        }
+      } catch (error) {
+        console.error('Error validating expression:', error);
+        const validationError = {
+          message: t('Failed to validate expression. Please try again.'),
+        };
         setValidationResult({
-          isValid: true,
+          isValid: false,
+          errors: [validationError],
         });
-        onValidationComplete?.(true);
+        onValidationComplete?.(false, [validationError]);
+      } finally {
+        setIsValidating(false);
       }
-    } catch (error) {
-      console.error('Error validating expression:', error);
-      const validationError = {
-        message: t('Failed to validate expression. Please try again.'),
-      };
-      setValidationResult({
-        isValid: false,
-        errors: [validationError],
-      });
-      onValidationComplete?.(false, [validationError]);
-    } finally {
-      setIsValidating(false);
-    }
-  }, [
-    value,
-    expressionType,
-    datasourceId,
-    datasourceType,
-    clause,
-    onValidationComplete,
-  ]);
+    }, [
+      value,
+      expressionType,
+      datasourceId,
+      datasourceType,
+      clause,
+      onValidationComplete,
+    ]);
 
-  // Reset validation when value changes
-  const handleChange = useCallback(
-    (newValue: string) => {
-      onChange(newValue);
-      // Clear validation result when expression changes
-      if (validationResult !== null) {
-        setValidationResult(null);
-      }
-    },
-    [onChange, validationResult],
-  );
+    // Reset validation when value changes
+    const handleChange = useCallback(
+      (newValue: string) => {
+        onChange(newValue);
+        // Clear validation result when expression changes
+        if (validationResult !== null) {
+          setValidationResult(null);
+        }
+      },
+      [onChange, validationResult],
+    );
 
-  return (
-    <Flex vertical gap="middle">
-      <SQLEditor value={value} onChange={handleChange} {...sqlEditorProps} />
+    return (
+      <Flex vertical gap="middle">
+        <SQLEditor
+          ref={ref}
+          value={value}
+          onChange={handleChange}
+          {...sqlEditorProps}
+        />
 
-      {showValidation && (
-        <Flex align="center" gap="small" style={{ minHeight: 32 }}>
-          <Tooltip title={t('Validate your expression')}>
-            <Button
-              buttonSize="small"
-              buttonStyle={validationResult ? 'secondary' : 'primary'}
-              loading={isValidating}
-              onClick={handleValidate}
-              disabled={!value || !datasourceId || isValidating}
-              icon={<Icons.CaretRightFilled />}
-              aria-label={t('Validate your expression')}
-            />
-          </Tooltip>
-          <StyledValidationMessage
-            isError={validationResult ? !validationResult.isValid : false}
-            isUnverified={!validationResult && !isValidating}
-            isValidating={isValidating}
-          >
-            {isValidating ? (
-              <span>{t('Validating...')}</span>
-            ) : validationResult ? (
-              <>
-                {validationResult.isValid ? (
-                  <>
-                    <Icons.CheckCircleOutlined />
-                    <span>{t('Valid SQL expression')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Icons.WarningOutlined />
-                    <Tooltip
-                      title={
-                        validationResult.errors
-                          ?.map(e => e.message)
-                          .join('\n') || t('Invalid expression')
-                      }
-                      placement="top"
-                    >
-                      <span>
-                        {validationResult.errors &&
-                        validationResult.errors.length > 0
-                          ? validationResult.errors[0].message
-                          : t('Invalid expression')}
-                      </span>
-                    </Tooltip>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                <Icons.WarningOutlined />
-                <span>{t('Unverified')}</span>
-              </>
-            )}
-          </StyledValidationMessage>
-        </Flex>
-      )}
-    </Flex>
-  );
-}
+        {showValidation && (
+          <Flex align="center" gap="small" style={{ minHeight: 32 }}>
+            <Tooltip title={t('Validate your expression')}>
+              <Button
+                buttonSize="small"
+                buttonStyle={validationResult ? 'secondary' : 'primary'}
+                loading={isValidating}
+                onClick={handleValidate}
+                disabled={!value || !datasourceId || isValidating}
+                icon={<Icons.CaretRightFilled />}
+                aria-label={t('Validate your expression')}
+              />
+            </Tooltip>
+            <StyledValidationMessage
+              isError={validationResult ? !validationResult.isValid : false}
+              isUnverified={!validationResult && !isValidating}
+              isValidating={isValidating}
+            >
+              {isValidating ? (
+                <span>{t('Validating...')}</span>
+              ) : validationResult ? (
+                <>
+                  {validationResult.isValid ? (
+                    <>
+                      <Icons.CheckCircleOutlined />
+                      <span>{t('Valid SQL expression')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icons.WarningOutlined />
+                      <Tooltip
+                        title={
+                          validationResult.errors
+                            ?.map(e => e.message)
+                            .join('\n') || t('Invalid expression')
+                        }
+                        placement="top"
+                      >
+                        <span>
+                          {validationResult.errors &&
+                          validationResult.errors.length > 0
+                            ? validationResult.errors[0].message
+                            : t('Invalid expression')}
+                        </span>
+                      </Tooltip>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Icons.WarningOutlined />
+                  <span>{t('Unverified')}</span>
+                </>
+              )}
+            </StyledValidationMessage>
+          </Flex>
+        )}
+      </Flex>
+    );
+  },
+);
+
+SQLEditorWithValidation.displayName = 'SQLEditorWithValidation';
+
+export default SQLEditorWithValidation;
