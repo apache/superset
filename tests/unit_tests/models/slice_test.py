@@ -117,4 +117,4 @@ class TestSlice:
         result = id_or_uuid_filter(test_uuid)
         # Should return a BinaryExpression that can be used with filter()
         assert result is not None
-        # The important thing is it doesn't crash and returns a filter expression. # noqa: E501
+        # The important thing is it doesn't crash and returns a filter expression.  # noqa: E501
