@@ -85,11 +85,6 @@ class UpdateFailedError(CommandException):
     message = "Command update failed"
 
 
-class UpsertFailedError(CommandException):
-    status = 500
-    message = "Command upsert failed"
-
-
 class CreateFailedError(CommandException):
     status = 500
     message = "Command create failed"

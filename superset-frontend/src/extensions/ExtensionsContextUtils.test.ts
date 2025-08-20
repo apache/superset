@@ -23,7 +23,7 @@ import {
 import { ExtensionsContextType } from './ExtensionsContext';
 
 const mockExtensionsContext: ExtensionsContextType = {
-  viewProviders: {},
+  getView: jest.fn(),
   registerViewProvider: jest.fn(),
   unregisterViewProvider: jest.fn(),
 };
@@ -33,7 +33,7 @@ test('sets and gets extensions context value', () => {
   const retrievedContext = getExtensionsContextValue();
 
   expect(retrievedContext).toBe(mockExtensionsContext);
-  expect(retrievedContext.viewProviders).toEqual({});
+  expect(retrievedContext.getView).toBe(mockExtensionsContext.getView);
   expect(retrievedContext.registerViewProvider).toBe(
     mockExtensionsContext.registerViewProvider,
   );
@@ -54,13 +54,13 @@ test('throws error when getting context value before setting it', () => {
 
 test('overwrites previous context value when setting new one', () => {
   const firstContext: ExtensionsContextType = {
-    viewProviders: { first: jest.fn() },
+    getView: jest.fn().mockReturnValue('first-view'),
     registerViewProvider: jest.fn(),
     unregisterViewProvider: jest.fn(),
   };
 
   const secondContext: ExtensionsContextType = {
-    viewProviders: { second: jest.fn() },
+    getView: jest.fn().mockReturnValue('second-view'),
     registerViewProvider: jest.fn(),
     unregisterViewProvider: jest.fn(),
   };
@@ -70,7 +70,5 @@ test('overwrites previous context value when setting new one', () => {
 
   setExtensionsContextValue(secondContext);
   expect(getExtensionsContextValue()).toBe(secondContext);
-  expect(getExtensionsContextValue().viewProviders).toEqual({
-    second: expect.any(Function),
-  });
+  expect(getExtensionsContextValue().getView).toBe(secondContext.getView);
 });
