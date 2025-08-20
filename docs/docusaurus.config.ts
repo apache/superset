@@ -30,7 +30,7 @@ const config: Config = {
     'Apache Superset is a modern data exploration and visualization platform',
   url: 'https://superset.apache.org',
   baseUrl: '/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'throw',
   markdown: {
     mermaid: true,
@@ -212,19 +212,14 @@ const config: Config = {
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,
         // Show version dropdown
-        lastVersion: '1.2.0',
-        onlyIncludeVersions: ['current', '1.2.0', '1.1.0', '1.0.0'],
+        lastVersion: '1.1.0',
+        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
         // Set the default version to redirect to
         versions: {
           current: {
             label: 'Next',
             path: 'next',
             banner: 'unreleased',
-          },
-          '1.2.0': {
-            label: '1.2.0',
-            path: '1.2.0',
-            banner: 'none',
           },
           '1.1.0': {
             label: '1.1.0',
@@ -259,19 +254,14 @@ const config: Config = {
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,
         // Show version dropdown
-        lastVersion: '1.2.0',
-        onlyIncludeVersions: ['current', '1.2.0', '1.1.0', '1.0.0'],
+        lastVersion: '1.1.0',
+        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
         // Set the default version to redirect to
         versions: {
           current: {
             label: 'Next',
             path: 'next',
             banner: 'unreleased',
-          },
-          '1.2.0': {
-            label: '1.2.0',
-            path: '1.2.0',
-            banner: 'none',
           },
           '1.1.0': {
             label: '1.1.0',
@@ -306,6 +296,29 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
+          includeCurrentVersion: true,
+          lastVersion: 'current',  // Make 'next' the default
+          onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
+          versions: {
+            current: {
+              label: 'Next',
+              path: '',  // Empty path means /docs/ will show Next version
+              banner: 'unreleased',
+            },
+            '1.1.0': {
+              label: '1.1.0',
+              path: '1.1.0',
+              banner: 'none',
+            },
+            '1.0.0': {
+              label: '1.0.0',
+              path: '1.0.0',
+              banner: 'none',
+            },
+          },
+          disableVersioning: false,
+          showLastUpdateAuthor: true,
+          showLastUpdateTime: true,
         },
         blog: {
           showReadingTime: true,

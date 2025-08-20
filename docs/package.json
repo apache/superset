@@ -6,7 +6,8 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "_init": "cat src/intro_header.txt ../README.md > docs/intro.md",
-    "start": "yarn run _init && docusaurus start",
+    "start": "yarn run _init && NODE_ENV=development docusaurus start",
+    "stop": "pkill -f 'docusaurus start' || echo 'No docusaurus server running'",
     "build": "yarn run _init && DEBUG=docusaurus:* docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
@@ -39,7 +40,6 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "@superset-ui/style": "^0.14.23",
     "antd": "^5.26.7",
     "caniuse-lite": "^1.0.30001707",
     "docusaurus-plugin-less": "^2.0.2",

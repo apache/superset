@@ -23,8 +23,19 @@ import type { Plugin } from '@docusaurus/types';
 export default function webpackExtendPlugin(): Plugin<void> {
   return {
     name: 'custom-webpack-plugin',
-    configureWebpack(config) {
+    configureWebpack(config, isServer, utils) {
+      const { isDev } = utils;
       return {
+        devtool: isDev ? 'eval-source-map' : config.devtool,
+        ...(isDev && {
+          optimization: {
+            ...config.optimization,
+            minimize: false,
+            removeAvailableModules: false,
+            removeEmptyChunks: false,
+            splitChunks: false,
+          },
+        }),
         resolve: {
           alias: {
             ...config.resolve.alias,

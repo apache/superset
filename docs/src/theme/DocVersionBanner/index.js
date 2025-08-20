@@ -38,11 +38,16 @@ export default function DocVersionBannerWrapper(props) {
   const [versionedPath, setVersionedPath] = useState('');
 
   // Only show version selector for docs, components, and tutorials
-  const isVersioned = ['default', 'components', 'tutorials'].includes(pluginId);
+  const isVersioned = pluginId && ['default', 'components', 'tutorials'].includes(pluginId);
 
   const { preferredVersion } = useDocsPreferredVersion(pluginId);
   const versions = useVersions(pluginId);
   const version = useDocsVersion();
+
+  // Early return if required data is not available
+  if (!isVersioned || !versions || !version) {
+    return <DocVersionBanner {...props} />;
+  }
 
   // Extract the current page path relative to the version
   useEffect(() => {
