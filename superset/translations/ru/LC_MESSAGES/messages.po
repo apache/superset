@@ -17,8 +17,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-11 10:03+0300\n"
-"PO-Revision-Date: 2025-08-11 10:05+0300\n"
+"POT-Creation-Date: 2025-08-19 15:37+0300\n"
+"PO-Revision-Date: 2025-08-19 15:41+0300\n"
 "Last-Translator: Polina Fam\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -186,6 +186,14 @@ msgstr " для визуализации ваших данных."
 
 msgid "!= (Is not equal)"
 msgstr "!= (не равно)"
+
+#, python-format
+msgid "\"%s\" is now the system dark theme"
+msgstr ""
+
+#, python-format
+msgid "\"%s\" is now the system default theme"
+msgstr ""
 
 # Poedit выдает ошибку из-за ведущего символа %. Но перевод работает в
 # Superset нормально.
@@ -1821,8 +1829,30 @@ msgstr "Вы уверены, что хотите перезаписать это
 msgid "Are you sure you want to proceed?"
 msgstr "Вы уверены, что хотите продолжить?"
 
+msgid ""
+"Are you sure you want to remove the system dark theme? The application will fall "
+"back to the configuration file dark theme."
+msgstr ""
+
+msgid ""
+"Are you sure you want to remove the system default theme? The application will "
+"fall back to the configuration file default."
+msgstr ""
+
 msgid "Are you sure you want to save and apply changes?"
 msgstr "Вы уверены, что хотите сохранить и применить изменения?"
+
+#, python-format
+msgid ""
+"Are you sure you want to set \"%s\" as the system dark theme? This will apply to "
+"all users who haven't set a personal preference."
+msgstr ""
+
+#, python-format
+msgid ""
+"Are you sure you want to set \"%s\" as the system default theme? This will apply "
+"to all users who haven't set a personal preference."
+msgstr ""
 
 msgid "Area"
 msgstr "Площадь"
@@ -1878,9 +1908,6 @@ msgstr "Фильтры автозаполнения"
 
 msgid "Autocomplete query predicate"
 msgstr "Предикат запроса автозаполнения"
-
-msgid "Automatic color"
-msgstr "Автоматический цвет"
 
 #, fuzzy
 msgid "Autosize All Columns"
@@ -2347,6 +2374,12 @@ msgstr "Невозможно удалить базу данных, для кот
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "Нет доступа к запросу"
+
+msgid "Cannot delete theme that is set as system default or dark theme"
+msgstr ""
+
+msgid "Cannot delete theme that is set as system default or dark theme."
+msgstr ""
 
 #, python-format
 msgid "Cannot find the table (%s) metadata."
@@ -4008,6 +4041,10 @@ msgstr "Deck.gl - Экранная сетка"
 
 msgid "Decrease"
 msgstr "Падение"
+
+#, fuzzy
+msgid "Default"
+msgstr "по умолчанию"
 
 msgid "Default Catalog"
 msgstr "Каталог по умолчанию"
@@ -6592,6 +6629,10 @@ msgstr "Метки для маркеров"
 msgid "Labels for the ranges"
 msgstr "Метки для диапазонов"
 
+#, fuzzy
+msgid "Languages"
+msgstr "Диапазоны"
+
 msgid "Large"
 msgstr "Большой"
 
@@ -9049,6 +9090,20 @@ msgstr "Обновить"
 msgid "Remove"
 msgstr "Удалить"
 
+msgid "Remove System Dark Theme"
+msgstr ""
+
+#, fuzzy
+msgid "Remove System Default Theme"
+msgstr "Обновить значения по умолчанию"
+
+msgid "Remove as system dark theme"
+msgstr ""
+
+#, fuzzy
+msgid "Remove as system default theme"
+msgstr "Обновить значения по умолчанию"
+
 msgid "Remove cross-filter"
 msgstr "Удалить кросс-фильтр"
 
@@ -10155,6 +10210,21 @@ msgstr "Версия сервиса"
 msgid "Set %s as default datetime column"
 msgstr "Дата/время по умолчанию"
 
+#, fuzzy
+msgid "Set System Dark Theme"
+msgstr "Выберите схему"
+
+#, fuzzy, python-format
+msgid "Set System Default Theme"
+msgstr "Дата/время по умолчанию"
+
+msgid "Set as system dark theme"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Set as system default theme"
+msgstr "Дата/время по умолчанию"
+
 msgid "Set auto-refresh interval"
 msgstr "Задать интервал обновления"
 
@@ -10981,6 +11051,12 @@ msgid "System"
 msgstr "поток"
 
 msgid "System Theme - Read Only"
+msgstr ""
+
+msgid "System dark theme removed"
+msgstr ""
+
+msgid "System default theme removed"
 msgstr ""
 
 msgid "TABLES"
@@ -12456,6 +12532,13 @@ msgstr ""
 "не принадлежит к роли фильтра RLS, можно создать базовый фильтр с предложением `1 "
 "= 0` (всегда false)."
 
+#, fuzzy
+msgid "This is the system dark theme"
+msgstr "Нет доступа к запросу"
+
+msgid "This is the system default theme"
+msgstr ""
+
 msgid ""
 "This json object describes the positioning of the widgets in the dashboard. It is "
 "dynamically generated when adjusting the widgets size and positions by using drag "
@@ -12933,6 +13016,9 @@ msgstr "Тип сравнения, разница значений или дол
 msgid "UI Configuration"
 msgstr "Настройки UI"
 
+msgid "UI theme administration is not enabled."
+msgstr ""
+
 msgid "URL"
 msgstr "Ссылка (URL)"
 
@@ -13240,6 +13326,10 @@ msgid ""
 msgstr ""
 "Используйте другую диаграмму в качестве источника слоя аннотаций.\n"
 "          Диаграмма должна быть одного из этих типов: [%s]"
+
+#, fuzzy
+msgid "Use automatic color"
+msgstr "Автоматический цвет"
 
 msgid "Use current extent"
 msgstr "Использовать текущий масштаб"
@@ -13996,9 +14086,6 @@ msgstr "Элементы, которые нужно подсвечивать п�
 msgid "Whisker/outlier options"
 msgstr "Настройки усов/выбросов"
 
-msgid "White"
-msgstr "Белый"
-
 msgid "Width"
 msgstr "Ширина"
 
@@ -14549,6 +14636,10 @@ msgstr "фон"
 msgid "basis"
 msgstr "базовый"
 
+#, fuzzy
+msgid "begins with"
+msgstr "Толщина ребра"
+
 msgid "below (example:"
 msgstr "ниже (пример:"
 
@@ -14587,6 +14678,9 @@ msgstr "изменение"
 msgid "chart"
 msgstr "диаграмма"
 
+msgid "charts"
+msgstr "диаграмм(ы)"
+
 msgid "choose WHERE or HAVING..."
 msgstr "выберите WHERE или HAVING..."
 
@@ -14621,6 +14715,10 @@ msgstr "столбец"
 msgid "connecting to %(dbModelName)s"
 msgstr "подключении к %(dbModelName)s"
 
+#, fuzzy
+msgid "containing"
+msgstr "Непрерывный"
+
 msgid "content type"
 msgstr "тип содержимого"
 
@@ -14651,6 +14749,9 @@ msgstr "кумулятивная сумма"
 
 msgid "dashboard"
 msgstr "дашборд"
+
+msgid "dashboards"
+msgstr "дашборды(ов)"
 
 msgid "database"
 msgstr "база данных"
@@ -14775,6 +14876,10 @@ msgstr "режиме редактирования"
 
 msgid "email subject"
 msgstr "тема письма"
+
+#, fuzzy
+msgid "ends with"
+msgstr "Толщина ребра"
 
 msgid "entries"
 msgstr "записи(ей)"
@@ -14970,6 +15075,10 @@ msgstr "не настроен ни один валидатор SQL"
 #, python-format
 msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr "не настроен ни один валидатор SQL для %(engine_spec)s"
+
+#, fuzzy
+msgid "not containing"
+msgstr "Содержимое отчета"
 
 msgid "numeric type icon"
 msgstr "иконка для типа `numeric`"
