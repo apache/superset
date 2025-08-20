@@ -66,8 +66,8 @@ const extensionsRegistry = getExtensionsRegistry();
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
     ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
-  color: ${theme.colors.grayscale.base};
-  font-size: ${theme.fontSizeXS}px;
+  color: ${theme.colorText};
+  font-size: ${theme.fontSizeSM}px;
   white-space: nowrap;
 `;
 
@@ -100,7 +100,7 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
     }
     ${disabled &&
     css`
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
     `}
   `}
 `;
@@ -458,7 +458,14 @@ const RightMenu = ({
               label: isFrontendRoute(child.url) ? (
                 <Link to={child.url || ''}>{menuItemDisplay}</Link>
               ) : (
-                <Typography.Link href={child.url || ''}>
+                <Typography.Link
+                  href={child.url || ''}
+                  css={css`
+                    display: flex;
+                    align-items: center;
+                    line-height: ${theme.sizeUnit * 10}px;
+                  `}
+                >
                   {menuItemDisplay}
                 </Typography.Link>
               ),
@@ -570,6 +577,7 @@ const RightMenu = ({
             data-test="new-dropdown-icon"
           />
         ),
+        className: 'submenu-with-caret',
         icon: <Icons.CaretDownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
         ...{ 'data-test': 'new-dropdown' },
@@ -589,6 +597,7 @@ const RightMenu = ({
       label: t('Settings'),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
+      className: 'submenu-with-caret',
     });
 
     return items;
@@ -673,6 +682,15 @@ const RightMenu = ({
           display: flex;
           flex-direction: row;
           align-items: center;
+
+          .submenu-with-caret {
+            padding: 0 ${theme.paddingSM}px;
+            .ant-menu-submenu-title {
+              display: flex;
+              gap: ${theme.sizeUnit * 2}px;
+              flex-direction: row-reverse;
+            }
+          }
         `}
         selectable={false}
         mode="horizontal"

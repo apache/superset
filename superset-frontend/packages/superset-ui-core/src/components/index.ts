@@ -67,6 +67,12 @@ export {
   type CheckboxChangeEvent,
 } from './Checkbox';
 export {
+  ColorPicker,
+  type ColorPickerProps,
+  type RGBColor,
+  type ColorValue,
+} from './ColorPicker';
+export {
   Collapse,
   type CollapseProps,
   CollapseLabelInModal,
@@ -169,3 +175,8 @@ export * from './TelemetryPixel';
 export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';
+export {
+  ThemedAgGridReact,
+  type ThemedAgGridReactProps,
+  setupAGGridModules,
+} from './ThemedAgGridReact';
