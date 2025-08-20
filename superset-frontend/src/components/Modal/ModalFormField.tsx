@@ -29,6 +29,8 @@ interface ModalFormFieldProps {
   bottomSpacing?: boolean;
   children: ReactNode;
   testId?: string;
+  validateStatus?: 'success' | 'warning' | 'error' | 'validating';
+  hasFeedback?: boolean;
 }
 
 const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
@@ -46,6 +48,10 @@ const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
 
     .required {
       margin-left: ${theme.sizeUnit / 2}px;
+      color: ${theme.colorText};
+    }
+
+    .required.error {
       color: ${theme.colorError};
     }
 
@@ -123,13 +129,19 @@ export function ModalFormField({
   bottomSpacing = true,
   children,
   testId,
+  validateStatus,
+  hasFeedback = false,
 }: ModalFormFieldProps) {
+  // Determine validation state
+  const hasError = error || validateStatus === 'error';
   return (
     <StyledFieldContainer bottomSpacing={bottomSpacing} data-test={testId}>
       <div className="control-label">
         {label}
         {tooltip && <InfoTooltip tooltip={tooltip} />}
-        {required && <span className="required">*</span>}
+        {required && (
+          <span className={`required ${hasError ? 'error' : ''}`}>*</span>
+        )}
       </div>
       <div className="input-container">{children}</div>
       {helperText && <div className="helper">{helperText}</div>}

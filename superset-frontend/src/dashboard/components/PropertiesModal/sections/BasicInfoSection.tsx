@@ -36,7 +36,7 @@ const BasicInfoSection = ({
     <ModalFormField
       label={t('Name')}
       required
-      helperText={t('A readable URL for your dashboard')}
+      helperText={t('The display name of your dashboard')}
       testId="dashboard-name-field"
       error={
         validationStatus.basic?.hasErrors &&
@@ -46,7 +46,17 @@ const BasicInfoSection = ({
           : undefined
       }
     >
-      <FormItem name="title" noStyle>
+      <FormItem
+        name="title"
+        noStyle
+        rules={[
+          {
+            required: true,
+            message: t('Dashboard name is required'),
+            whitespace: true,
+          },
+        ]}
+      >
         <Input
           data-test="dashboard-title-input"
           type="text"

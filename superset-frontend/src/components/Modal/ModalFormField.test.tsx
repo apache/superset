@@ -39,7 +39,21 @@ test('shows required asterisk when required is true', () => {
   );
 
   expect(screen.getByText('Required Field')).toBeInTheDocument();
-  expect(screen.getByText('*')).toBeInTheDocument();
+  const asterisk = screen.getByText('*');
+  expect(asterisk).toBeInTheDocument();
+  expect(asterisk).not.toHaveClass('error'); // Should be default color when no error
+});
+
+test('shows red asterisk when required field has error', () => {
+  render(
+    <ModalFormField label="Required Field" required error="Field is required">
+      <Input />
+    </ModalFormField>,
+  );
+
+  const asterisk = screen.getByText('*');
+  expect(asterisk).toBeInTheDocument();
+  expect(asterisk).toHaveClass('error'); // Should be red when there's an error
 });
 
 test('renders helper text when provided', () => {

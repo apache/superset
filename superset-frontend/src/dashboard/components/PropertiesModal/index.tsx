@@ -111,6 +111,7 @@ const PropertiesModal = ({
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+
   const [isLoading, setIsLoading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
@@ -523,9 +524,18 @@ const PropertiesModal = ({
         validator: () => {
           const errors = [];
           const values = form.getFieldsValue();
+
+          // Check our custom validation
           if (!values.title || values.title.trim().length === 0) {
             errors.push(t('Dashboard name is required'));
           }
+
+          // Also check AntD Form field errors
+          const titleErrors = form.getFieldError('title');
+          if (titleErrors && titleErrors.length > 0) {
+            errors.push(...titleErrors);
+          }
+
           return errors;
         },
       },
@@ -634,6 +644,10 @@ const PropertiesModal = ({
       <Form
         form={form}
         onFinish={onFinish}
+        onFieldsChange={() => {
+          // Re-validate sections when form fields change
+          setTimeout(() => validateSection('basic'), 100);
+        }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
         initialValues={dashboardInfo}
