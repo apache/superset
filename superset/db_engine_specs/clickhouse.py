@@ -54,6 +54,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
