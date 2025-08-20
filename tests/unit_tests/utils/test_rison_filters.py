@@ -80,7 +80,7 @@ class TestRisonFilterParser:
     def test_or_operator(self):
         """Test OR operator creates SQL expression."""
         parser = RisonFilterParser()
-        result = parser.parse("(OR:!(status:active,priority:high))")
+        result = parser.parse("(OR:!((status:active),(priority:high)))")
 
         assert len(result) == 1
         assert result[0]["expressionType"] == "SQL"
