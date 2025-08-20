@@ -70,9 +70,6 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
-        {% set default_theme = theme_data.get('default', {}) %}
-        {% set theme_tokens = default_theme.get('token', {}) %}
-
         {% if theme_tokens.get('brandSpinnerSvg') %}
           <!-- SVG Priority: Inline SVG content -->
           <div style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">

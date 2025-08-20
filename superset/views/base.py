@@ -221,12 +221,18 @@ class BaseSupersetView(BaseView):
             "common": common_bootstrap_payload(),
             **(extra_bootstrap_data or {}),
         }
+
+        # Extract theme data for template access
+        theme_data = get_theme_bootstrap_data().get("theme", {})
+        default_theme = theme_data.get("default", {})
+
         return self.render_template(
             "superset/spa.html",
             entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=json.pessimistic_json_iso_dttm_ser
             ),
+            theme_tokens=default_theme.get("token", {}),
         )
 
 
