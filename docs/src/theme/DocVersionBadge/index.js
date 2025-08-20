@@ -36,9 +36,9 @@ export default function DocVersionBadge() {
   const pluginId = activePlugin?.pluginId;
   const [versionedPath, setVersionedPath] = React.useState('');
 
-  // Only show version selector for docs, components, tutorials, and developer_portal
+  // Only show version selector for components, tutorials, and developer_portal
+  // Main docs (default) uses Docusaurus's built-in version dropdown
   const isVersioned = [
-    'default',
     'components',
     'tutorials',
     'developer_portal',

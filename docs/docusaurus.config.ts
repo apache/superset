@@ -359,18 +359,16 @@ const config: Config = {
       },
       items: [
         {
+          type: 'docSidebar',
+          sidebarId: 'CustomSidebar',
+          position: 'left',
           label: 'Documentation',
-          to: '/docs/intro',
-          items: [
-            {
-              label: 'Getting Started',
-              to: '/docs/intro',
-            },
-            {
-              label: 'FAQ',
-              to: '/docs/faq',
-            },
-          ],
+        },
+        {
+          type: 'docsVersionDropdown',
+          position: 'left',
+          dropdownItemsAfter: [],
+          dropdownActiveClassDisabled: false,
         },
         {
           label: 'Community Resources',
