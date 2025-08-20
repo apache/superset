@@ -222,6 +222,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
+  const [databases, setDatabases] = useState<any[]>([]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
@@ -329,6 +330,18 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     form.resetFields();
   };
 
+  const validateTableName = (currentDatabaseId: number, databases: any[]) =>
+    (_: any, value: string) => {
+
+      const currentDatabase = databases.find(db => db.id === currentDatabaseId);
+      const isPrestoTrino = currentDatabase?.database_name?.toLowerCase().includes('trino');
+
+      if (isPrestoTrino && value.includes(' ')) {
+        return Promise.reject('Trino table names must not contain spaces');
+      }
+      return Promise.resolve();
+    };
+
   const loadDatabaseOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
@@ -346,6 +359,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         return SupersetClient.get({
           endpoint: `/api/v1/database/?q=${query}`,
         }).then(response => {
+          const dbList = response.json.result;
+          setDatabases(dbList);
           const list = response.json.result.map(
             (item: { id: number; database_name: string }) => ({
               value: item.id,
@@ -642,7 +657,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                           onChange={onChangeFile}
                           onRemove={onRemoveFile}
                           // upload is handled by hook
-                          customRequest={() => {}}
+                          customRequest={() => { }}
                         >
                           <Button
                             aria-label={t('Select')}
@@ -717,6 +732,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         required
                         rules={[
                           { required: true, message: 'Table name is required' },
+                          { validator: validateTableName(currentDatabaseId, databases) }
                         ]}
                       >
                         <Input
@@ -789,7 +805,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         <Select
                           ariaLabel={t('Choose already exists')}
                           options={tableAlreadyExistsOptions}
-                          onChange={() => {}}
+                          onChange={() => { }}
                         />
                       </StyledFormItemWithTip>
                     </Col>
@@ -989,70 +1005,70 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               ),
             },
             ...(isFieldATypeSpecificField('header_row', type) &&
-            isFieldATypeSpecificField('rows_to_read', type) &&
-            isFieldATypeSpecificField('skip_rows', type)
+              isFieldATypeSpecificField('rows_to_read', type) &&
+              isFieldATypeSpecificField('skip_rows', type)
               ? [
-                  {
-                    key: 'rows',
-                    label: (
-                      <Typography.Text strong>{t('Rows')}</Typography.Text>
-                    ),
-                    children: (
-                      <Row>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Header row')}
-                            tip={t(
-                              'Row containing the headers to use as column names (0 is first line of data).',
-                            )}
-                            name="header_row"
-                            rules={[
-                              {
-                                required: true,
-                                message: 'Header row is required',
-                              },
-                            ]}
-                          >
-                            <InputNumber
-                              aria-label={t('Header row')}
-                              type="text"
-                              min={0}
-                            />
-                          </StyledFormItemWithTip>
-                        </Col>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Rows to read')}
-                            tip={t(
-                              'Number of rows of file to read. Leave empty (default) to read all rows',
-                            )}
-                            name="rows_to_read"
-                          >
-                            <InputNumber
-                              aria-label={t('Rows to read')}
-                              min={1}
-                            />
-                          </StyledFormItemWithTip>
-                        </Col>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Skip rows')}
-                            tip={t('Number of rows to skip at start of file.')}
-                            name="skip_rows"
-                            rules={[
-                              {
-                                required: true,
-                                message: 'Skip rows is required',
-                              },
-                            ]}
-                          >
-                            <InputNumber aria-label={t('Skip rows')} min={0} />
-                          </StyledFormItemWithTip>
-                        </Col>
-                      </Row>
-                    ),
-                  },
-                ]
+                {
+                  key: 'rows',
+                  label: (
+                    <Typography.Text strong>{t('Rows')}</Typography.Text>
+                  ),
+                  children: (
+                    <Row>
+                      <Col span={8}>
+                        <StyledFormItemWithTip
+                          label={t('Header row')}
+                          tip={t(
+                            'Row containing the headers to use as column names (0 is first line of data).',
+                          )}
+                          name="header_row"
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Header row is required',
+                            },
+                          ]}
+                        >
+                          <InputNumber
+                            aria-label={t('Header row')}
+                            type="text"
+                            min={0}
+                          />
+                        </StyledFormItemWithTip>
+                      </Col>
+                      <Col span={8}>
+                        <StyledFormItemWithTip
+                          label={t('Rows to read')}
+                          tip={t(
+                            'Number of rows of file to read. Leave empty (default) to read all rows',
+                          )}
+                          name="rows_to_read"
+                        >
+                          <InputNumber
+                            aria-label={t('Rows to read')}
+                            min={1}
+                          />
+                        </StyledFormItemWithTip>
+                      </Col>
+                      <Col span={8}>
+                        <StyledFormItemWithTip
+                          label={t('Skip rows')}
+                          tip={t('Number of rows to skip at start of file.')}
+                          name="skip_rows"
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Skip rows is required',
+                            },
+                          ]}
+                        >
+                          <InputNumber aria-label={t('Skip rows')} min={0} />
+                        </StyledFormItemWithTip>
+                      </Col>
+                    </Row>
+                  ),
+                },
+              ]
               : []),
           ]}
         />
