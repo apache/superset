@@ -216,7 +216,8 @@ class BaseSupersetView(BaseView):
     def render_app_template(
         self, extra_bootstrap_data: dict[str, Any] | None = None
     ) -> FlaskResponse:
-        return render_spa_template(extra_data=extra_bootstrap_data)
+        context = get_spa_template_context(extra_data=extra_bootstrap_data)
+        return self.render_template("superset/spa.html", **context)
 
 
 def get_environment_tag() -> dict[str, Any]:
@@ -472,12 +473,13 @@ def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
     return payload
 
 
-def render_spa_template(
+def get_spa_template_context(
     entry: str = "spa", extra_data: dict[str, Any] | None = None, **template_kwargs: Any
-) -> FlaskResponse:
-    """Render spa.html template with consistent payload and theme tokens.
+) -> dict[str, Any]:
+    """Generate standardized template context for spa.html rendering.
 
-    Standardizes spa.html rendering across all views to eliminate duplication.
+    Centralizes spa.html template context to eliminate duplication while
+    preserving Flask-AppBuilder context requirements.
 
     Args:
         entry: Entry point name (spa, explore, embedded)
@@ -485,23 +487,22 @@ def render_spa_template(
         **template_kwargs: Additional template variables
 
     Returns:
-        FlaskResponse: Rendered spa.html template
+        dict[str, Any]: Template context for spa.html
     """
-    from flask import render_template
-
     payload = get_spa_payload(extra_data)
 
     # Extract theme data for template access
     theme_data = get_theme_bootstrap_data().get("theme", {})
     default_theme = theme_data.get("default", {})
 
-    return render_template(
-        "superset/spa.html",
-        entry=entry,
-        bootstrap_data=json.dumps(payload, default=json.pessimistic_json_iso_dttm_ser),
-        theme_tokens=default_theme.get("token", {}),
+    return {
+        "entry": entry,
+        "bootstrap_data": json.dumps(
+            payload, default=json.pessimistic_json_iso_dttm_ser
+        ),
+        "theme_tokens": default_theme.get("token", {}),
         **template_kwargs,
-    )
+    }
 
 
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
@@ -513,7 +514,8 @@ class SupersetModelView(ModelView):
     list_widget = SupersetListWidget
 
     def render_app_template(self) -> FlaskResponse:
-        return render_spa_template()
+        context = get_spa_template_context()
+        return self.render_template("superset/spa.html", **context)
 
 
 class DeleteMixin:  # pylint: disable=too-few-public-methods
