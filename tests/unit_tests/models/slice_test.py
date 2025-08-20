@@ -90,7 +90,7 @@ class TestSlice:
         for test_input in test_cases:
             try:
                 result = Slice.get(test_input)
-                # Success - no TypeError occurred, result can be None or a Slice  # noqa: E501
+                # Success - no TypeError occurred, result can be None or a Slice.  # noqa: E501
                 assert result is None or hasattr(result, "id")
             except TypeError as e:
                 if "filter_by() takes 1 positional argument but 2 were given" in str(e):
