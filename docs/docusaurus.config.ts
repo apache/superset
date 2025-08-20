@@ -365,12 +365,6 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          type: 'docsVersionDropdown',
-          position: 'left',
-          dropdownItemsAfter: [],
-          dropdownActiveClassDisabled: false,
-        },
-        {
           label: 'Community Resources',
           to: '/community',
           items: [

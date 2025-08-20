@@ -36,9 +36,9 @@ export default function DocVersionBadge() {
   const pluginId = activePlugin?.pluginId;
   const [versionedPath, setVersionedPath] = React.useState('');
 
-  // Only show version selector for components, tutorials, and developer_portal
-  // Main docs (default) uses Docusaurus's built-in version dropdown
+  // Show version selector for all versioned sections
   const isVersioned = [
+    'default',  // main docs
     'components',
     'tutorials',
     'developer_portal',
@@ -53,19 +53,25 @@ export default function DocVersionBadge() {
     if (!pathname || !version || !pluginId) return;
 
     let relativePath = '';
+    const basePath = pluginId === 'default' ? '/docs' : `/${pluginId}`;
 
     // Handle different version path patterns
-    if (pathname.includes(`/${pluginId}/`)) {
-      // Extract the part after the version
-      // Example: /components/1.1.0/ui-components/button -> /ui-components/button
-      const parts = pathname.split(`/${pluginId}/`);
+    if (pathname.includes(basePath)) {
+      // Extract the part after the base path
+      const parts = pathname.split(basePath);
       if (parts.length > 1) {
-        const afterPluginId = parts[1];
-        // Find where the version part ends
-        const versionParts = afterPluginId.split('/');
-        if (versionParts.length > 1) {
-          // Remove the version part and join the rest
-          relativePath = '/' + versionParts.slice(1).join('/');
+        const afterBase = parts[1];
+        // For versioned paths, remove the version segment
+        if (afterBase.startsWith('/')) {
+          const segments = afterBase.substring(1).split('/');
+          // Check if first segment is a version (e.g., "1.1.0", "next")
+          if (segments[0] && (segments[0].match(/^\d+\.\d+\.\d+$/) || segments[0] === 'next')) {
+            // Skip the version segment
+            relativePath = segments.length > 1 ? '/' + segments.slice(1).join('/') : '';
+          } else {
+            // No version in path (e.g., /docs/intro for current version with empty path)
+            relativePath = afterBase;
+          }
         }
       }
     }
@@ -76,11 +82,11 @@ export default function DocVersionBadge() {
   // Create dropdown items for version selection
   const items = versions.map(v => {
     // Construct the URL for this version, preserving the current page
-    // v.path is the version-specific path like "1.0.0" or "next"
+    // v.path contains the full path including base, e.g., "/docs/1.1.0" or "/docs"
     let versionUrl = v.path;
 
     if (versionedPath) {
-      // Construct the full URL with the version and the current page path
+      // Append the current page path to the version base
       versionUrl = v.path + versionedPath;
     }
 
