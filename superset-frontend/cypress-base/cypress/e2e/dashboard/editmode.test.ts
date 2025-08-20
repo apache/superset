@@ -92,7 +92,9 @@ function dragComponent(
   withFiltering = true,
 ) {
   if (withFiltering) {
-    cy.getBySel('dashboard-charts-filter-search-input').type(component);
+    cy.getBySel('dashboard-charts-filter-search-input').type(component, {
+      force: true,
+    });
     cy.wait('@filtering');
   }
   cy.wait(500);
@@ -1121,6 +1123,9 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
+      // Ensure no modal is blocking the interface
+      cy.get('.ant-modal-wrap').should('not.exist');
+
       cy.get('input[type="checkbox"]').scrollIntoView();
       cy.get('input[type="checkbox"]').click({ force: true });
       dragComponent();
