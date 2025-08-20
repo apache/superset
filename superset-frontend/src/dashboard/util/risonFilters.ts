@@ -17,13 +17,22 @@
  * under the License.
  */
 
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  QueryObjectFilterClause,
+  PartialFilters,
+  DataMaskStateWithId,
+} from '@superset-ui/core';
 import rison from 'rison';
 
 export interface RisonFilter {
   subject: string;
   operator: string;
   comparator: any;
+}
+
+export interface IntelligentRisonInjectionResult {
+  updatedDataMask: DataMaskStateWithId;
+  unmatchedFilters: RisonFilter[];
 }
 
 /**
@@ -245,4 +254,117 @@ export function setupRisonUrlPrettification(): void {
   window.addEventListener('beforeunload', () => {
     clearInterval(checkInterval);
   });
+}
+
+/**
+ * Find a native filter that matches a Rison filter by column name
+ */
+function findMatchingNativeFilter(
+  risonFilter: RisonFilter,
+  nativeFilters: PartialFilters,
+): string | null {
+  for (const [filterId, nativeFilter] of Object.entries(nativeFilters)) {
+    if (!nativeFilter?.targets) continue;
+
+    // Check if any target matches the Rison filter's subject (column)
+    const hasMatchingTarget = nativeFilter.targets.some(target => {
+      if (typeof target === 'object' && target && 'column' in target) {
+        return target.column?.name === risonFilter.subject;
+      }
+      return false;
+    });
+
+    if (hasMatchingTarget) {
+      return filterId;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Convert a Rison filter value to the format expected by a native filter
+ */
+function convertRisonToNativeValue(
+  risonFilter: RisonFilter,
+  nativeFilter: any,
+): any {
+  const { comparator, operator } = risonFilter;
+  const filterType = nativeFilter?.filterType;
+
+  switch (filterType) {
+    case 'filter_select':
+      // Select filters expect arrays
+      if (operator === 'IN' || Array.isArray(comparator)) {
+        return Array.isArray(comparator) ? comparator : [comparator];
+      }
+      return [comparator];
+
+    case 'filter_range':
+      // Range filters expect min/max object or array
+      if (
+        operator === 'BETWEEN' &&
+        Array.isArray(comparator) &&
+        comparator.length === 2
+      ) {
+        return { min: comparator[0], max: comparator[1] };
+      }
+      return comparator;
+
+    case 'filter_time_range':
+    case 'filter_timecolumn':
+      // Time filters - pass through as-is for now
+      // More sophisticated time parsing could be added here
+      return comparator;
+
+    default:
+      // For other filter types, use the comparator as-is
+      return Array.isArray(comparator) ? comparator : [comparator];
+  }
+}
+
+/**
+ * Intelligently inject Rison filters into native filters where possible,
+ * falling back to brute-force injection for unmatched filters
+ */
+export function injectRisonFiltersIntelligently(
+  risonFilters: RisonFilter[],
+  nativeFilters: PartialFilters,
+  currentDataMask: DataMaskStateWithId,
+): IntelligentRisonInjectionResult {
+  const updatedDataMask = { ...currentDataMask };
+  const unmatchedFilters: RisonFilter[] = [];
+
+  risonFilters.forEach(risonFilter => {
+    const matchingFilterId = findMatchingNativeFilter(
+      risonFilter,
+      nativeFilters,
+    );
+
+    if (matchingFilterId && nativeFilters[matchingFilterId]) {
+      // Found a matching native filter - inject the value
+      const convertedValue = convertRisonToNativeValue(
+        risonFilter,
+        nativeFilters[matchingFilterId],
+      );
+
+      // Update the data mask for this native filter
+      updatedDataMask[matchingFilterId] = {
+        ...updatedDataMask[matchingFilterId],
+        id: matchingFilterId,
+        filterState: {
+          value: convertedValue,
+        },
+        ownState: {},
+      };
+    } else {
+      // No matching native filter found - add to unmatched list for brute-force fallback
+      unmatchedFilters.push(risonFilter);
+    }
+  });
+
+  return {
+    updatedDataMask,
+    unmatchedFilters,
+  };
 }

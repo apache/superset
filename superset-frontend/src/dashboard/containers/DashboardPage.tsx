@@ -65,6 +65,7 @@ import {
   risonToAdhocFilters,
   getRisonFilterParam,
   prettifyRisonFilterUrl,
+  injectRisonFiltersIntelligently,
 } from '../util/risonFilters';
 
 export const DashboardPageIdContext = createContext('');
@@ -192,24 +193,40 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = isOldRison;
       }
 
-      // Parse Rison URL filters
+      // Parse Rison URL filters with intelligent native filter injection
       const risonFilterParam = getRisonFilterParam();
       if (risonFilterParam) {
         const risonFilters = parseRisonFilters(risonFilterParam);
         if (risonFilters.length > 0) {
-          const risonAdhocFilters = risonToAdhocFilters(risonFilters);
+          // Try to intelligently inject into native filters first
+          const nativeFilters =
+            dashboard?.metadata?.native_filter_configuration || {};
+          const injectionResult = injectRisonFiltersIntelligently(
+            risonFilters,
+            nativeFilters,
+            dataMask,
+          );
 
-          // Store Rison filters in a virtual filter state
-          // This allows them to be applied to charts without conflicting with native filters
-          const risonDataMask = {
-            __rison_filters__: {
-              filterState: { value: risonAdhocFilters },
-              ownState: {},
-            },
-          };
+          // Use the updated dataMask with native filter injections
+          dataMask = injectionResult.updatedDataMask;
 
-          // Merge with existing dataMask
-          dataMask = { ...dataMask, ...risonDataMask };
+          // For any unmatched filters, fall back to the old brute-force approach
+          if (injectionResult.unmatchedFilters.length > 0) {
+            const unmatchedAdhocFilters = risonToAdhocFilters(
+              injectionResult.unmatchedFilters,
+            );
+
+            // Store unmatched Rison filters in a virtual filter state
+            const risonDataMask = {
+              __rison_filters__: {
+                filterState: { value: unmatchedAdhocFilters },
+                ownState: {},
+              },
+            };
+
+            // Merge with existing dataMask
+            dataMask = { ...dataMask, ...risonDataMask };
+          }
         }
 
         // Prettify URL after parsing
