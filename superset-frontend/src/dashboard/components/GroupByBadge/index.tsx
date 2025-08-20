@@ -182,6 +182,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     const excludedChartTypes = [
       'big_number',
       'big_number_total',
+      'cal_heatmap',
       'gantt',
       'table',
       'deck_arc',
