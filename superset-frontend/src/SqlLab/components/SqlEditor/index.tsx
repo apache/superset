@@ -980,6 +980,11 @@ const SqlEditor: FC<Props> = ({
       const [updatedWidth] = sizes;
       if (hideLeftBar || updatedWidth === 0) {
         dispatch(toggleLeftBar({ id: queryEditor.id, hideLeftBar }));
+        if (hideLeftBar) {
+          // Due to a bug in the splitter, the width must be changed
+          // in order to properly restore the previous size
+          setWidth(width + 0.01);
+        }
       } else {
         setWidth(updatedWidth);
       }
@@ -992,7 +997,7 @@ const SqlEditor: FC<Props> = ({
       <Splitter lazy onResizeEnd={onSidebarChange} onResize={noop}>
         <Splitter.Panel
           collapsible
-          size={hideLeftBar ? 0 : Math.floor(width)}
+          size={hideLeftBar ? 0 : width}
           min={SQL_EDITOR_LEFTBAR_WIDTH}
         >
           <StyledSidebar>
