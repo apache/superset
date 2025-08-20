@@ -24,10 +24,12 @@ import {
   useEffect,
   useMemo,
 } from 'react';
+import { ErrorBoundary } from 'src/components';
 import { setExtensionsContextValue } from './ExtensionsContextUtils';
+import ExtensionPlaceholder from './ExtensionPlaceholder';
 
 export interface ExtensionsContextType {
-  viewProviders: { [id: string]: () => ReactElement };
+  getView: (id: string) => ReactElement;
   registerViewProvider: (id: string, viewProvider: () => ReactElement) => void;
   unregisterViewProvider: (id: string) => void;
 }
@@ -55,8 +57,16 @@ export const ExtensionsProvider: React.FC = ({ children }) => {
     });
   };
 
+  const getView = (id: string) => {
+    const viewProvider = viewProviders[id];
+    if (viewProvider) {
+      return <ErrorBoundary>{viewProvider()}</ErrorBoundary>;
+    }
+    return <ExtensionPlaceholder id={id} />;
+  };
+
   const contextValue = useMemo(
-    () => ({ viewProviders, registerViewProvider, unregisterViewProvider }),
+    () => ({ getView, registerViewProvider, unregisterViewProvider }),
     [viewProviders],
   );
 

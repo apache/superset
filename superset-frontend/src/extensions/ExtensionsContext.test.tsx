@@ -28,7 +28,18 @@ test('provides extensions context with initial empty state', () => {
 
   const { result } = renderHook(() => useExtensionsContext(), { wrapper });
 
-  expect(result.current.viewProviders).toEqual({});
+  const view = result.current.getView('non-existent');
+  expect(view).not.toBeNull();
+  // Should return a placeholder when no provider is registered
+  const { getByText } = render(view);
+  expect(
+    getByText('The extension non-existent could not be loaded.'),
+  ).toBeInTheDocument();
+  expect(
+    getByText(/This may be due to the extension not being activated/),
+  ).toBeInTheDocument();
+
+  expect(typeof result.current.getView).toBe('function');
   expect(typeof result.current.registerViewProvider).toBe('function');
   expect(typeof result.current.unregisterViewProvider).toBe('function');
 });
@@ -44,7 +55,8 @@ test('registers a view provider', () => {
 
   result.current.registerViewProvider('test-view', mockViewProvider);
 
-  expect(result.current.viewProviders['test-view']).toBe(mockViewProvider);
+  const view = result.current.getView('test-view');
+  expect(view).not.toBeNull();
 });
 
 test('unregisters a view provider', () => {
@@ -54,15 +66,26 @@ test('unregisters a view provider', () => {
 
   const { result } = renderHook(() => useExtensionsContext(), { wrapper });
 
-  const mockViewProvider = (): ReactElement => <div>Mock View</div>;
+  const mockViewProvider = (): ReactElement => (
+    <div data-test="registered-view">Mock View</div>
+  );
 
   // First register a view provider
   result.current.registerViewProvider('test-view', mockViewProvider);
-  expect(result.current.viewProviders['test-view']).toBe(mockViewProvider);
+  const registeredView = result.current.getView('test-view');
+  const { getByTestId: getByTestIdRegistered } = render(registeredView);
+  expect(getByTestIdRegistered('registered-view')).toBeInTheDocument();
 
-  // Then unregister it
+  // Then unregister it - should return placeholder instead
   result.current.unregisterViewProvider('test-view');
-  expect(result.current.viewProviders['test-view']).toBeUndefined();
+  const unregisteredView = result.current.getView('test-view');
+  const { getByText } = render(unregisteredView);
+  expect(
+    getByText('The extension test-view could not be loaded.'),
+  ).toBeInTheDocument();
+  expect(
+    getByText(/This may be due to the extension not being activated/),
+  ).toBeInTheDocument();
 });
 
 test('throws error when useExtensionsContext is used outside provider', () => {
@@ -71,6 +94,47 @@ test('throws error when useExtensionsContext is used outside provider', () => {
   expect(result.error).toEqual(
     Error('useExtensionsContext must be used within a ExtensionsProvider'),
   );
+});
+
+test('getView returns the correct rendered component', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ExtensionsProvider>{children}</ExtensionsProvider>
+  );
+
+  const { result } = renderHook(() => useExtensionsContext(), { wrapper });
+
+  const MockComponent = (): ReactElement => (
+    <div data-test="mock-component">Mock View Content</div>
+  );
+
+  result.current.registerViewProvider('test-view', MockComponent);
+
+  const view = result.current.getView('test-view');
+  expect(view).not.toBeNull();
+
+  // Render the returned view to verify it's wrapped in ErrorBoundary and contains the component
+  const { getByTestId } = render(view!);
+  expect(getByTestId('mock-component')).toBeInTheDocument();
+  expect(getByTestId('mock-component')).toHaveTextContent('Mock View Content');
+});
+
+test('getView returns placeholder when no provider is registered', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ExtensionsProvider>{children}</ExtensionsProvider>
+  );
+
+  const { result } = renderHook(() => useExtensionsContext(), { wrapper });
+
+  const view = result.current.getView('non-existent-view');
+  expect(view).not.toBeNull();
+
+  const { getByText } = render(view);
+  expect(
+    getByText('The extension non-existent-view could not be loaded.'),
+  ).toBeInTheDocument();
+  expect(
+    getByText(/This may be due to the extension not being activated/),
+  ).toBeInTheDocument();
 });
 
 test('renders children correctly', () => {

@@ -28,7 +28,6 @@ import { Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import QueryHistory from '../QueryHistory';
@@ -106,7 +105,7 @@ const SouthPane = ({
   const dispatch = useDispatch();
   const contributions =
     ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
-  const { viewProviders } = useExtensionsContext();
+  const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -211,7 +210,7 @@ const SouthPane = ({
     ...contributions.map(contribution => ({
       key: contribution.id,
       label: contribution.name,
-      children: viewProviders[contribution.id]?.() || <ExtensionPlaceholder />,
+      children: getView(contribution.id),
       forceRender: true,
       closable: false,
     })),

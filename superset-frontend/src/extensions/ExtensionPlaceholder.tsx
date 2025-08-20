@@ -19,12 +19,11 @@
 import { EmptyState } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 
-const ExtensionPlaceholder = () => (
+const ExtensionPlaceholder = ({ id }: { id: string }) => (
   <EmptyState
-    title={t('No content to display')}
+    title={t('The extension %(id)s could not be loaded.', { id })}
     description={t(
-      `This may be due to the extension not being activated
-  or the content not being available.`,
+      `This may be due to the extension not being activated or the content not being available.`,
     )}
     image="empty.svg"
   />
