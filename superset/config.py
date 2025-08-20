@@ -221,6 +221,11 @@ SQLALCHEMY_DATABASE_URI = (
 # `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
 # Also note that we recommend READ COMMITTED for regular operation.
 # Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
+# For info, to set a NullPool:
+# from sqlalchemy.pool import NullPool
+# SQLALCHEMY_ENGINE_OPTIONS = {
+#    "poolclass": NullPool
+# }
 SQLALCHEMY_ENGINE_OPTIONS = {}
 
 # In order to hook up a custom password store for all SQLALCHEMY connections
@@ -626,6 +631,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
     # Enable Matrixify feature for matrix-style chart layouts
     "MATRIXIFY": False,
+    # Temporarily disconnects metadata db connections during analytics queries
+    # to prevent connection pool exhaustion. Works with all pool types.
+    "DISABLE_METADATA_DB_DURING_ANALYTICS": False,
 }
 
 # ------------------------------
