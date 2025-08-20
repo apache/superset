@@ -1099,7 +1099,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart = self.insert_chart("test_slice_get_by_uuid", [admin.id], 1)
 
         if chart.uuid:
-            result = Slice.get(chart.uuid)
+            result = Slice.get(str(chart.uuid))
             assert result is not None
             assert result.id == chart.id
             assert result.uuid == chart.uuid
@@ -1118,7 +1118,11 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         Chart API: Test Slice.get() with non-existent UUID returns None
         """
-        result = Slice.get("non-existent-uuid-123")
+        import uuid
+
+        # Use a valid UUID format that doesn't exist in database
+        nonexistent_uuid = str(uuid.uuid4())
+        result = Slice.get(nonexistent_uuid)
         assert result is None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
