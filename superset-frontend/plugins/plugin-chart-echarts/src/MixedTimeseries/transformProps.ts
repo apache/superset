@@ -45,6 +45,7 @@ import {
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
+import type { LineStyleOption } from 'echarts/types/src/util/types';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesChartTransformedProps,
@@ -90,7 +91,7 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
-import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
+import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS, OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   getTooltipTimeFormatter,
@@ -98,6 +99,8 @@ import {
   getYAxisFormatter,
 } from '../utils/formatters';
 import { getMetricDisplayName } from '../utils/metricDisplayName';
+import { isDerivedSeries } from '@superset-ui/chart-controls';
+
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -390,8 +393,17 @@ export default function transformProps(
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
+  let patternIncrement = 0;
 
   rawSeriesA.forEach(entry => {
+    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries) {
+      patternIncrement += 1;
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
@@ -450,12 +462,22 @@ export default function transformProps(
         showValueIndexes: showValueIndexesA,
         thresholdValues,
         timeShiftColor,
+        lineStyle,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
   });
 
   rawSeriesB.forEach(entry => {
+    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
+      const lineStyle: LineStyleOption = {};
+      if (derivedSeries) {
+        patternIncrement += 1;
+        // use a combination of dash and dot for the line style
+        lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
+        lineStyle.opacity = OpacityEnum.DerivedSeries;
+      }
+    
     const entryName = String(entry.name || '');
     const seriesEntry = inverted[entryName] || entryName;
     const seriesName = `${seriesEntry} (1)`;
@@ -516,6 +538,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesB,
         thresholdValues: thresholdValuesB,
         timeShiftColor,
+        lineStyle,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
