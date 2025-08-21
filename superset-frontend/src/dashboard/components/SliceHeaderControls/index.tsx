@@ -271,7 +271,11 @@ const SliceHeaderControls = (
         break;
       }
       case MenuKeys.ExportPivotXlsx: {
-        props.exportPivotExcel?.('.pvtTable', props.slice.slice_name);
+        const sliceSelector = `#chart-id-${props.slice.slice_id}`;
+        props.exportPivotExcel?.(
+          `${sliceSelector} .pvtTable`,
+          props.slice.slice_name,
+        );
         break;
       }
       case MenuKeys.CrossFilterScoping: {
