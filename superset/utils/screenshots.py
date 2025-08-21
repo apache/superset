@@ -23,7 +23,7 @@ from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
 
-from flask import current_app as app
+from flask import abort, current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
 from superset.extensions import event_logger
@@ -121,10 +121,10 @@ class ScreenshotCachePayload:
         self.update_timestamp()
         self.status = StatusValues.ERROR
 
-    def get_image(self) -> BytesIO | None:
-        if not self._image:
-            return None
-        return BytesIO(self._image)
+    def get_image(self) -> BytesIO:
+        if self._image is None:
+            abort(404)
+        return BytesIO(cast(bytes, self._image))
 
     def get_timestamp(self) -> str:
         return self._timestamp

@@ -1200,8 +1200,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
             image = cache_payload.get_image()
-            if not image:
-                return self.response_404()
             if download_format == "pdf":
                 pdf_img = image.getvalue()
                 # Convert the screenshot to PDF
