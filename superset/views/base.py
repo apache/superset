@@ -355,6 +355,36 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     }
 
 
+@cache_manager.cache.memoize()  # Cache forever - static asset
+def get_default_spinner_svg() -> str | None:
+    """
+    Load and cache the default spinner SVG content from frontend assets.
+
+    Returns:
+        str | None: SVG content as string, or None if file not found
+    """
+    try:
+        # Path to frontend SVG file
+        svg_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "superset-frontend",
+            "packages",
+            "superset-ui-core",
+            "src",
+            "components",
+            "assets",
+            "images",
+            "loading.svg",
+        )
+
+        with open(svg_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+        logger.warning(f"Could not load default spinner SVG: {e}")
+        return None
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: Locale | None
@@ -494,13 +524,24 @@ def get_spa_template_context(
     # Extract theme data for template access
     theme_data = get_theme_bootstrap_data().get("theme", {})
     default_theme = theme_data.get("default", {})
+    theme_tokens = default_theme.get("token", {})
+
+    # Determine spinner content with precedence: theme SVG > theme URL > default SVG
+    spinner_svg = None
+    if theme_tokens.get("brandSpinnerSvg"):
+        # Use custom SVG from theme
+        spinner_svg = theme_tokens["brandSpinnerSvg"]
+    elif not theme_tokens.get("brandSpinnerUrl"):
+        # No custom URL either, use default SVG
+        spinner_svg = get_default_spinner_svg()
 
     return {
         "entry": entry,
         "bootstrap_data": json.dumps(
             payload, default=json.pessimistic_json_iso_dttm_ser
         ),
-        "theme_tokens": default_theme.get("token", {}),
+        "theme_tokens": theme_tokens,
+        "spinner_svg": spinner_svg,
         **template_kwargs,
     }
 

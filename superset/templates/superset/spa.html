@@ -73,24 +73,23 @@
         {% set tokens = theme_tokens | default({}) %}
         {% set spinner_style = "width: 70px; height: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
 
-        {% if tokens.get('brandSpinnerSvg') %}
-          <!-- SVG Priority: Inline SVG to preserve animations -->
+        {% if spinner_svg %}
+          <!-- Inline SVG: Either custom theme SVG or default spinner -->
           <div style="{{ spinner_style }}">
-            {{ tokens.brandSpinnerSvg | safe }}
+            {{ spinner_svg | safe }}
           </div>
-        {% else %}
-          <!-- URL Priority or Fallback: Use img tag for static images -->
-          {% if tokens.get('brandSpinnerUrl') %}
-            {% set spinner_src = tokens.brandSpinnerUrl %}
-          {% else %}
-            {% set spinner_src = assets_prefix + "/static/assets/images/loading.svg" %}
-          {% endif %}
-
+        {% elif tokens.get('brandSpinnerUrl') %}
+          <!-- Custom URL from theme -->
           <img
-            src="{{ spinner_src }}"
+            src="{{ tokens.brandSpinnerUrl }}"
             alt="Loading..."
             style="{{ spinner_style }}"
           />
+        {% else %}
+          <!-- Fallback: This should rarely happen with new logic -->
+          <div style="{{ spinner_style }}">
+            Loading...
+          </div>
         {% endif %}
       </div>
     {% endblock %}
