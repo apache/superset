@@ -10,6 +10,7 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 - **NO `any` types** - Use proper TypeScript types
 - **NO JavaScript files** - Convert to TypeScript (.ts/.tsx)
 - **Use @superset-ui/core** - Don't import Ant Design directly
+- **Use antd theming tokens** - Prefer antd tokens over legacy theming tokens
 
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
