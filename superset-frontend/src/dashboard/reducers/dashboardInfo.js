@@ -22,19 +22,33 @@ import {
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
-  SET_DASHBOARD_THEME,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
   switch (action.type) {
-    case DASHBOARD_INFO_UPDATED:
-      return {
+    case DASHBOARD_INFO_UPDATED: {
+      const { theme_id: themeId, ...otherInfo } = action.newInfo;
+      const updatedState = {
         ...state,
-        ...action.newInfo,
+        ...otherInfo,
         // server-side compare last_modified_time in second level
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
+
+      // Handle theme_id conversion to theme object
+      if (themeId !== undefined) {
+        if (themeId === null) {
+          updatedState.theme = null;
+        } else {
+          // Convert theme_id to theme object
+          // If we have theme name from themes cache, use it, otherwise create placeholder
+          updatedState.theme = { id: themeId, name: `Theme ${themeId}` };
+        }
+      }
+
+      return updatedState;
+    }
     case DASHBOARD_INFO_FILTERS_CHANGED: {
       return {
         ...state,
@@ -60,12 +74,6 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         crossFiltersEnabled: action.crossFiltersEnabled,
-      };
-    case SET_DASHBOARD_THEME:
-      return {
-        ...state,
-        theme: action.theme,
-        last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     default:
       return state;

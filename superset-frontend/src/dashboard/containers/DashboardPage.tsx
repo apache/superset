@@ -135,9 +135,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
 
-  // Get CSS from Redux state (updated by updateCss action) instead of API
+  // Get CSS from dashboardInfo (unified properties location)
   const css =
-    useSelector((state: RootState) => state.dashboardState.css) ||
+    useSelector((state: RootState) => state.dashboardInfo.css) ||
     dashboard?.css;
 
   useEffect(() => {
