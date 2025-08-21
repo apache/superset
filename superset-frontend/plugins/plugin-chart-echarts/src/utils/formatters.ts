@@ -29,6 +29,7 @@ import {
   SMART_DATE_ID,
   SMART_DATE_VERBOSE_ID,
   TimeFormatter,
+  TimeGranularity,
   ValueFormatter,
 } from '@superset-ui/core';
 
@@ -37,8 +38,8 @@ export const getSmartDateDetailedFormatter = () =>
 
 export const getSmartDateFormatter = () => getTimeFormatter(SMART_DATE_ID);
 
-export const getSmartDateVerboseFormatter = () =>
-  getTimeFormatter(SMART_DATE_VERBOSE_ID);
+export const getSmartDateVerboseFormatter = (timeGrain?: TimeGranularity) =>
+  getTimeFormatter(SMART_DATE_VERBOSE_ID, timeGrain);
 
 export const getPercentFormatter = (format?: string) =>
   getNumberFormatter(
@@ -76,24 +77,40 @@ export const getYAxisFormatter = (
 
 export function getTooltipTimeFormatter(
   format?: string,
+  timeGrain?: TimeGranularity,
 ): TimeFormatter | StringConstructor {
+  if (
+    timeGrain === TimeGranularity.QUARTER ||
+    timeGrain === TimeGranularity.MONTH ||
+    timeGrain === TimeGranularity.YEAR
+  ) {
+    return getTimeFormatter(undefined, timeGrain);
+  }
   if (format === SMART_DATE_ID) {
-    return getSmartDateVerboseFormatter();
+    return getSmartDateVerboseFormatter(timeGrain);
   }
   if (format) {
-    return getTimeFormatter(format);
+    return getTimeFormatter(format, timeGrain);
   }
   return String;
 }
 
 export function getXAxisFormatter(
   format?: string,
+  timeGrain?: TimeGranularity,
 ): TimeFormatter | StringConstructor | undefined {
+  if (
+    timeGrain === TimeGranularity.QUARTER ||
+    timeGrain === TimeGranularity.MONTH ||
+    timeGrain === TimeGranularity.YEAR
+  ) {
+    return getTimeFormatter(undefined, timeGrain);
+  }
   if (format === SMART_DATE_ID || !format) {
     return undefined;
   }
   if (format) {
-    return getTimeFormatter(format);
+    return getTimeFormatter(format, timeGrain);
   }
   return String;
 }
