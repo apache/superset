@@ -53,14 +53,10 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
               aria-label="check-circle"
             />
           ) : (
-            <span
-              css={css`
-                color: ${theme.colorErrorText};
-                font-size: ${theme.fontSizeLG}px;
-              `}
-            >
-              *
-            </span>
+            <Icons.ExclamationCircleOutlined
+              iconColor={theme.colorError}
+              aria-label="error-circle"
+            />
           ))}
       </Typography.Title>
       <Typography.Paragraph
