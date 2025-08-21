@@ -19,7 +19,6 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import DatasetPanel, {
   REFRESHING,
-  ALT_LOADING,
   tableColumnDefinition,
   COLUMN_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
@@ -101,7 +100,7 @@ describe('DatasetPanel', () => {
       },
     );
 
-    const blankDatasetImg = screen.getByAltText(ALT_LOADING);
+    const blankDatasetImg = screen.getByAltText('Loading...');
     expect(blankDatasetImg).toBeVisible();
     const blankDatasetTitle = screen.getByText(REFRESHING);
     expect(blankDatasetTitle).toBeVisible();
