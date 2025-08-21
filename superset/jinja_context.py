@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -27,7 +28,8 @@ from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined, Environment
+from jinja2 import DebugUndefined, Environment, TemplateSyntaxError
+from jinja2.exceptions import SecurityError, UndefinedError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -37,7 +39,11 @@ from superset import security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
-from superset.exceptions import SupersetTemplateException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.extensions import feature_flag_manager
 from superset.sql.parse import Table
 from superset.utils import json
@@ -55,6 +61,8 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+
+logger = logging.getLogger(__name__)
 
 NONE_TYPE = type(None).__name__
 ALLOWED_TYPES = (
@@ -688,10 +696,79 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = self.env.from_string(sql)
-        kwargs.update(self._context)
+        try:
+            template = self.env.from_string(sql)
+        except (
+            TemplateSyntaxError,
+            SecurityError,
+            UndefinedError,
+            UnicodeError,
+            UnicodeDecodeError,
+            UnicodeEncodeError,
+        ) as ex:
+            error_msg = str(ex)
+            exception_type = type(ex).__name__
 
+            message = (
+                f"Jinja2 template error ({exception_type}). "
+                "Please check your template syntax and variable references. "
+                f"Original error: {error_msg}"
+            )
+
+            line_number = getattr(ex, "lineno", None)
+
+            logger.warning(
+                "Jinja2 template client error",
+                extra={
+                    "error_message": error_msg,
+                    "template_snippet": sql[:200] if sql else None,
+                    "template_length": len(sql) if sql else 0,
+                    "line_number": line_number,
+                    "error_type": "CLIENT_TEMPLATE_ERROR",
+                    "exception_type": exception_type,
+                },
+                exc_info=False,
+            )
+
+            error = SupersetError(
+                message=message,
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "template": sql[:500],
+                    "line": line_number,
+                    "exception_type": exception_type,
+                },
+            )
+
+            raise SupersetSyntaxErrorException([error]) from ex
+        except Exception as ex:
+            error_msg = str(ex)
+            exception_type = type(ex).__name__
+
+            message = (
+                "Internal error processing Jinja2 template. "
+                "Please contact your administrator. "
+                f"Error: {error_msg}"
+            )
+
+            logger.error(
+                "Jinja2 template server error",
+                extra={
+                    "error_message": error_msg,
+                    "template_snippet": sql[:200] if sql else None,
+                    "template_length": len(sql) if sql else 0,
+                    "error_type": "SERVER_TEMPLATE_ERROR",
+                    "exception_type": exception_type,
+                },
+                exc_info=True,
+            )
+
+            raise SupersetTemplateException(message) from ex
+
+        kwargs.update(self._context)
         context = validate_template_context(self.engine, kwargs)
+
         try:
             return template.render(context)
         except RecursionError as ex:
