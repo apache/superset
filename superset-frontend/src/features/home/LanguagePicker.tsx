@@ -89,6 +89,7 @@ export const useLanguageMenuItems = ({
       ),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,
       children: items,
+      className: 'submenu-with-caret',
       popupClassName: 'language-picker-popup',
     };
   }, [languages, locale]);

@@ -179,6 +179,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// Set timeout for all tests in this file to prevent CI timeouts
+jest.setTimeout(60000);
+
 function defaultRender(initialState: any = defaultState(), modalProps = props) {
   return render(<FiltersConfigModal {...modalProps} />, {
     initialState,

@@ -508,6 +508,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # geospatial ones) by inputting javascript in controls. This exposes
     # an XSS security vulnerability
     "ENABLE_JAVASCRIPT_CONTROLS": False,  # deprecated
+    # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
+    "CSV_UPLOAD_PYARROW_ENGINE": False,
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
     # and doesn't work with all nested types.
@@ -619,6 +621,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable Matrixify feature for matrix-style chart layouts
+    "MATRIXIFY": False,
 }
 
 # ------------------------------
@@ -1320,6 +1324,10 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# Chunk size for reading CSV files during uploads
+# Smaller values use less memory but may be slower for large files
+READ_CSV_CHUNK_SIZE = 1000
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
@@ -1842,6 +1850,7 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
+            "https://a.basemaps.cartocdn.com",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1876,6 +1885,7 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
+            "https://a.basemaps.cartocdn.com",
         ],
         "object-src": "'none'",
         "style-src": [

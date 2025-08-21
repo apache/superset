@@ -98,7 +98,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -194,7 +194,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
@@ -206,7 +206,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (

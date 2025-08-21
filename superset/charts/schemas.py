@@ -27,6 +27,7 @@ from marshmallow.validate import Length, Range
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -241,6 +242,7 @@ class ChartPostSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ChartPutSchema(Schema):
@@ -297,6 +299,7 @@ class ChartPutSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
+    uuid = fields.UUID(allow_none=True)
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -1617,6 +1620,49 @@ class ChartCacheWarmUpResponseSchema(Schema):
     )
 
 
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.Enum(TagType, by_value=True)
+
+
+class UserSchema(Schema):
+    id = fields.Int()
+    first_name = fields.String()
+    last_name = fields.String()
+
+
+class DashboardSchema(Schema):
+    id = fields.Int()
+    dashboard_title = fields.String()
+    json_metadata = fields.String()
+
+
+class ChartGetResponseSchema(Schema):
+    id = fields.Int(description=id_description)
+    url = fields.String()
+    cache_timeout = fields.String()
+    certified_by = fields.String()
+    certification_details = fields.String()
+    changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
+    description = fields.String()
+    params = fields.String()
+    slice_name = fields.String()
+    thumbnail_url = fields.String()
+    viz_type = fields.String()
+    query_context = fields.String()
+    is_managed_externally = fields.Boolean()
+    tags = fields.Nested(TagSchema, many=True)
+    owners = fields.List(fields.Nested(UserSchema))
+    dashboards = fields.List(fields.Nested(DashboardSchema))
+    uuid = fields.UUID()
+    datasource_id = fields.Int()
+    datasource_name_text = fields.Function(lambda obj: obj.datasource_name_text())
+    datasource_type = fields.String()
+    datasource_url = fields.Function(lambda obj: obj.datasource_url())
+    datasource_uuid = fields.UUID(attribute="table.uuid")
+
+
 CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
@@ -1640,6 +1686,7 @@ CHART_SCHEMAS = (
     ChartDataGeodeticParseOptionsSchema,
     ChartEntityResponseSchema,
     ChartGetDatasourceResponseSchema,
+    ChartGetResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,
 )
