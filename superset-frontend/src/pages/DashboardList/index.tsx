@@ -361,6 +361,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'published',
         size: 'sm',
         id: 'published',
+        className: 'no-ellipsis',
       },
       {
         Cell: ({

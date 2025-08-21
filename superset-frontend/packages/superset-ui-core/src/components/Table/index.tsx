@@ -180,6 +180,10 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
       text-overflow: ellipsis;
     }
 
+    td.ant-table-cell.no-ellipsis {
+      text-overflow: unset;
+    }
+
     .ant-table-tbody > tr > td {
       white-space: nowrap;
       overflow: hidden;
