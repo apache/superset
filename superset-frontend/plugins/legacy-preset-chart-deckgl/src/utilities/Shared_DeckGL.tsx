@@ -53,6 +53,10 @@ let deckglTiles: string[][];
 export const DEFAULT_DECKGL_TILES = [
   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
   ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
+  [
+    'tile://https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    'Dark (OSM)',
+  ],
   ['mapbox://styles/mapbox/streets-v9', 'Streets (Mapbox)'],
   ['mapbox://styles/mapbox/dark-v9', 'Dark (Mapbox)'],
   ['mapbox://styles/mapbox/light-v9', 'Light (Mapbox)'],
