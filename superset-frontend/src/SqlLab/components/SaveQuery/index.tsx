@@ -147,14 +147,14 @@ const SaveQuery = ({
 
   const close = () => setShowSave(false);
 
-  const onSaveWrapper = () => {
+  const onSaveWrapper = async () => {
     logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
-    onSave(queryPayload(), query.id);
+    await onSave(queryPayload(), query.id);
     close();
   };
 
-  const onUpdateWrapper = () => {
-    onUpdate(queryPayload(), query.id);
+  const onUpdateWrapper = async () => {
+    await onUpdate(queryPayload(), query.id);
     close();
   };
 
@@ -220,9 +220,7 @@ const SaveQuery = ({
       />
       <Modal
         className="save-query-modal"
-        onHandledPrimaryAction={onSaveWrapper}
         onHide={close}
-        primaryButtonName={isSaved ? t('Save') : t('Save as')}
         width="620px"
         show={showSave}
         name={t('Save query')}

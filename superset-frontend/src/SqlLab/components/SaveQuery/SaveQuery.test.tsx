@@ -245,4 +245,104 @@ describe('SavedQuery', () => {
     expect(overwriteCombobox).toBeInTheDocument();
     expect(overwritePlaceholderText).toBeInTheDocument();
   });
+
+  it('modal stays open while save is in progress and closes after completion', async () => {
+    let resolveSave: () => void;
+    const savePromise = new Promise<void>(resolve => {
+      resolveSave = resolve;
+    });
+
+    const mockOnSave = jest.fn().mockImplementation(() => savePromise);
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    // Open the modal
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    // Verify modal is open
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+
+    // Click save button in the modal
+    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+    userEvent.click(modalSaveBtn);
+
+    // Modal should still be open while save is in progress
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+
+    // Resolve the save promise
+    resolveSave!();
+
+    // Wait for modal to close after save completes
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: /save query/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(mockOnSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles save with a new tab that has no changes', async () => {
+    const mockOnSave = jest.fn().mockResolvedValue(undefined);
+
+    // Mock state for a new tab with default SQL
+    const newTabState = {
+      ...mockState,
+      sqlLab: {
+        ...mockState.sqlLab,
+        queryEditors: [
+          {
+            id: mockedProps.queryEditorId,
+            dbId: 1,
+            catalog: null,
+            schema: 'main',
+            sql: 'SELECT ...', // Default SQL for new tabs
+            name: undefined,
+            description: undefined,
+          },
+        ],
+      },
+    };
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(newTabState),
+    });
+
+    // Open the modal
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    // Modal should open
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+
+    // The name field should have "Undefined" as default
+    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+    expect(nameInput).toHaveValue('Undefined');
+
+    // Click save button
+    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+    userEvent.click(modalSaveBtn);
+
+    // Wait for save to complete and modal to close
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: /save query/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });
