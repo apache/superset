@@ -92,18 +92,47 @@ jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
     fileName,
     role,
     'aria-label': ariaLabel,
+    customIcons,
+    iconSize,
+    iconColor,
+    viewBox,
+    onClick,
     ...rest
   }: {
     fileName: string;
-    role: string;
-    'aria-label': AriaAttributes['aria-label'];
-  }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={ariaLabel || fileName.replace('_', '-')}
-      {...rest}
-    />
-  ),
+    role?: string;
+    'aria-label'?: AriaAttributes['aria-label'];
+    customIcons?: boolean;
+    iconSize?: string;
+    iconColor?: string;
+    viewBox?: string;
+    onClick?: () => void;
+  }) => {
+    // Generate aria-label like the real BaseIcon component
+    const genAriaLabel = (fileName: string) => {
+      const name = fileName.replace(/_/g, '-');
+      const words = name.split(/(?=[A-Z])/);
+      if (words.length === 2) {
+        return words[0].toLowerCase();
+      }
+      if (words.length >= 3) {
+        return `${words[0].toLowerCase()}-${words[1].toLowerCase()}`;
+      }
+      return name.toLowerCase();
+    };
+
+    const computedAriaLabel = ariaLabel || genAriaLabel(fileName || '');
+    const computedRole = role || (onClick ? 'button' : 'img');
+
+    return (
+      <span
+        role={computedRole}
+        aria-label={computedAriaLabel}
+        data-test={computedAriaLabel}
+        {...rest}
+      />
+    );
+  },
   StyledIcon: ({
     component: Component,
     role,
