@@ -21,8 +21,14 @@ import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const { github: lightCodeTheme, vsDark: darkCodeTheme } = themes;
+
+// Load version configuration from external file
+const versionsConfigPath = path.join(__dirname, 'versions-config.json');
+const versionsConfig = JSON.parse(fs.readFileSync(versionsConfigPath, 'utf8'));
 
 const config: Config = {
   title: 'Superset',
@@ -210,28 +216,12 @@ const config: Config = {
         remarkPlugins: [remarkImportPartial],
         // Enable MDX v2
         docItemComponent: '@theme/DocItem',
-        includeCurrentVersion: true,
+        includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
         // Show version dropdown
-        lastVersion: '1.1.0',
-        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
+        lastVersion: versionsConfig.components.lastVersion,
+        onlyIncludeVersions: versionsConfig.components.onlyIncludeVersions,
         // Set the default version to redirect to
-        versions: {
-          current: {
-            label: 'Next',
-            path: 'next',
-            banner: 'unreleased',
-          },
-          '1.1.0': {
-            label: '1.1.0',
-            path: '1.1.0',
-            banner: 'none',
-          },
-          '1.0.0': {
-            label: '1.0.0',
-            path: '1.0.0',
-            banner: 'none',
-          },
-        },
+        versions: versionsConfig.components.versions,
         // This sets which version is shown when accessing /components/
         // without a specific version
         disableVersioning: false,
@@ -252,28 +242,12 @@ const config: Config = {
         remarkPlugins: [remarkImportPartial],
         // Enable MDX v2
         docItemComponent: '@theme/DocItem',
-        includeCurrentVersion: true,
+        includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
         // Show version dropdown
-        lastVersion: '1.1.0',
-        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
+        lastVersion: versionsConfig.developer_portal.lastVersion,
+        onlyIncludeVersions: versionsConfig.developer_portal.onlyIncludeVersions,
         // Set the default version to redirect to
-        versions: {
-          current: {
-            label: 'Next',
-            path: 'next',
-            banner: 'unreleased',
-          },
-          '1.1.0': {
-            label: '1.1.0',
-            path: '1.1.0',
-            banner: 'none',
-          },
-          '1.0.0': {
-            label: '1.0.0',
-            path: '1.0.0',
-            banner: 'none',
-          },
-        },
+        versions: versionsConfig.developer_portal.versions,
         // This sets which version is shown when accessing /developer_portal/
         // without a specific version
         disableVersioning: false,
@@ -296,26 +270,10 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
-          includeCurrentVersion: true,
-          lastVersion: 'current',  // Make 'next' the default
-          onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
-          versions: {
-            current: {
-              label: 'Next',
-              path: '',  // Empty path means /docs/ will show Next version
-              banner: 'unreleased',
-            },
-            '1.1.0': {
-              label: '1.1.0',
-              path: '1.1.0',
-              banner: 'none',
-            },
-            '1.0.0': {
-              label: '1.0.0',
-              path: '1.0.0',
-              banner: 'none',
-            },
-          },
+          includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
+          lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
+          onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
+          versions: versionsConfig.docs.versions,
           disableVersioning: false,
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,

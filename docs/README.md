@@ -34,76 +34,96 @@ Each section maintains its own version history and can be versioned independentl
 
 ### Creating a New Version
 
-To create a new version for any section, use the Docusaurus version command with the appropriate plugin ID:
+To create a new version for any section, use the Docusaurus version command with the appropriate plugin ID or use our automated scripts:
 
-#### Main Documentation
+#### Using Automated Scripts (Recommended)
 ```bash
-# Create a new version from the current docs
+# Main Documentation
+yarn version:add:docs 1.2.0
+
+# Developer Portal
+yarn version:add:developer_portal 1.2.0
+
+# Component Playground (when enabled)
+yarn version:add:components 1.2.0
+```
+
+#### Manual Commands
+```bash
+# Main Documentation
 yarn docusaurus docs:version 1.2.0
-```
 
-#### Developer Portal
-```bash
-# Create a new version from the current developer_portal docs
+# Developer Portal
 yarn docusaurus docs:version:developer_portal 1.2.0
-```
 
-#### Component Playground (when enabled)
-```bash
-# Create a new version from the current components docs
+# Component Playground (when enabled)
 yarn docusaurus docs:version:components 1.2.0
 ```
 
 ### Managing Versions
 
-After creating a new version, update the configuration in `docusaurus.config.ts`:
+#### With Automated Scripts
+The automated scripts handle all configuration updates automatically. No manual editing required!
 
-1. **Update the `onlyIncludeVersions` array** to include your new version:
-   ```typescript
-   onlyIncludeVersions: ['current', '1.2.0', '1.1.0', '1.0.0'],
+#### Manual Configuration
+If creating versions manually, you'll need to:
+
+1. **Update `versions-config.json`** (or `docusaurus.config.ts` if not using dynamic config):
+   - Add version to `onlyIncludeVersions` array
+   - Add version metadata to `versions` object
+   - Update `lastVersion` if needed
+
+2. **Files Created by Versioning**:
+   When a new version is created, Docusaurus generates:
+   - **Versioned docs folder**: `[section]_versioned_docs/version-X.X.X/`
+   - **Versioned sidebars**: `[section]_versioned_sidebars/version-X.X.X-sidebars.json`
+   - **Versions list**: `[section]_versions.json`
+
+   Note: For main docs, the prefix is omitted (e.g., `versioned_docs/` instead of `docs_versioned_docs/`)
+
+3. **Important**: After adding a version, restart the development server to see changes:
+   ```bash
+   yarn stop
+   yarn start
    ```
-
-2. **Add version metadata** in the `versions` object:
-   ```typescript
-   versions: {
-     current: {
-       label: 'Next',
-       path: '',  // For main docs to show at /docs/
-       banner: 'unreleased',
-     },
-     '1.2.0': {
-       label: '1.2.0',
-       path: '1.2.0',
-       banner: 'none',
-     },
-     // ... other versions
-   }
-   ```
-
-3. **Set the default version** (optional):
-   - For main docs: Set `lastVersion: 'current'` to make Next the default
-   - For other sections: Set `lastVersion: '1.2.0'` to make a specific version the default
 
 ### Removing a Version
 
-To remove a version from any section:
+#### Using Automated Scripts (Recommended)
+```bash
+# Main Documentation
+yarn version:remove:docs 1.0.0
+
+# Developer Portal
+yarn version:remove:developer_portal 1.0.0
+
+# Component Playground
+yarn version:remove:components 1.0.0
+```
+
+#### Manual Removal
+To manually remove a version:
 
 1. **Delete the version folder** from the appropriate location:
-   - Main docs: `docs_versioned_docs/version-X.X.X/`
+   - Main docs: `versioned_docs/version-X.X.X/` (no prefix for main)
    - Developer Portal: `developer_portal_versioned_docs/version-X.X.X/`
    - Components: `components_versioned_docs/version-X.X.X/`
 
 2. **Delete the version metadata file**:
-   - Main docs: `docs_versioned_sidebars/version-X.X.X-sidebars.json`
+   - Main docs: `versioned_sidebars/version-X.X.X-sidebars.json` (no prefix)
    - Developer Portal: `developer_portal_versioned_sidebars/version-X.X.X-sidebars.json`
    - Components: `components_versioned_sidebars/version-X.X.X-sidebars.json`
 
-3. **Update `versions.json`** in the root directory for the appropriate section
+3. **Update the versions list file**:
+   - Main docs: `versions.json`
+   - Developer Portal: `developer_portal_versions.json`
+   - Components: `components_versions.json`
 
-4. **Update `docusaurus.config.ts`**:
-   - Remove the version from the `onlyIncludeVersions` array
-   - Remove the version configuration from the `versions` object
-   - Update `lastVersion` if needed
+4. **Update configuration**:
+   - If using dynamic config: Update `versions-config.json`
+   - If using static config: Update `docusaurus.config.ts`
+
+5. **Restart the server** to see changes
 
 ### Version Configuration Examples
 
@@ -159,3 +179,21 @@ docs: {
 3. **Limit displayed versions**: Use `onlyIncludeVersions` to show only relevant versions
 4. **Test locally**: Always test version changes locally before deploying
 5. **Independent versioning**: Each section can have different version numbers and release cycles
+
+### Troubleshooting
+
+#### Version Not Showing After Creation
+- **Restart the server**: Changes to version configuration require a server restart
+- **Check config file**: Ensure `versions-config.json` includes the new version
+- **Verify files exist**: Check that versioned docs folder was created
+
+#### Broken Links in Versioned Documentation
+When creating a new version, links in the documentation are preserved as-is. Common issues:
+- **Cross-section links**: Links between sections (e.g., from developer_portal to docs) need to be version-aware
+- **Absolute vs relative paths**: Use relative paths within the same section
+- **Version-specific URLs**: Update hardcoded URLs to use version variables
+
+To fix broken links:
+1. Use `type: 'doc'` with `docId` for version-aware navigation in navbar
+2. Use relative paths within the same documentation section
+3. Test all versions after creation to identify broken links

@@ -16,7 +16,15 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "eslint": "eslint ."
+    "eslint": "eslint .",
+    "version:add": "node scripts/manage-versions.mjs add",
+    "version:remove": "node scripts/manage-versions.mjs remove",
+    "version:add:docs": "node scripts/manage-versions.mjs add docs",
+    "version:add:developer_portal": "node scripts/manage-versions.mjs add developer_portal",
+    "version:add:components": "node scripts/manage-versions.mjs add components",
+    "version:remove:docs": "node scripts/manage-versions.mjs remove docs",
+    "version:remove:developer_portal": "node scripts/manage-versions.mjs remove developer_portal",
+    "version:remove:components": "node scripts/manage-versions.mjs remove components"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",

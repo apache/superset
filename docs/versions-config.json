@@ -1,0 +1,80 @@
+{
+  "docs": {
+    "lastVersion": "current",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current",
+      "1.1.0",
+      "1.0.0"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "",
+        "banner": "unreleased"
+      },
+      "1.1.0": {
+        "label": "1.1.0",
+        "path": "1.1.0",
+        "banner": "none"
+      },
+      "1.0.0": {
+        "label": "1.0.0",
+        "path": "1.0.0",
+        "banner": "none"
+      }
+    }
+  },
+  "developer_portal": {
+    "lastVersion": "1.1.0",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current",
+      "1.1.0",
+      "1.0.0"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "next",
+        "banner": "unreleased"
+      },
+      "1.1.0": {
+        "label": "1.1.0",
+        "path": "1.1.0",
+        "banner": "none"
+      },
+      "1.0.0": {
+        "label": "1.0.0",
+        "path": "1.0.0",
+        "banner": "none"
+      }
+    }
+  },
+  "components": {
+    "lastVersion": "1.1.0",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current",
+      "1.1.0",
+      "1.0.0"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "next",
+        "banner": "unreleased"
+      },
+      "1.1.0": {
+        "label": "1.1.0",
+        "path": "1.1.0",
+        "banner": "none"
+      },
+      "1.0.0": {
+        "label": "1.0.0",
+        "path": "1.0.0",
+        "banner": "none"
+      }
+    }
+  }
+}
