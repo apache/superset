@@ -116,7 +116,7 @@ export const FiltersDetailsContainer = styled.div`
     max-width: 300px;
     overflow-x: hidden;
 
-    color: ${theme.colorBgBase};
+    color: ${theme.colorText};
   `}
 `;
 
