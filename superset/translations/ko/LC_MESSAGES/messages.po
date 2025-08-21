@@ -4492,7 +4492,7 @@ msgid "Edit"
 msgstr ""
 
 #, fuzzy
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "테이블 수정"
 
 msgid "Edit CSS"

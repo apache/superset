@@ -157,6 +157,7 @@ export type DashboardInfo = {
     name: string;
   } | null;
   theme_id?: number | null;
+  css?: string;
 };
 
 export type ChartsState = { [key: string]: Chart };

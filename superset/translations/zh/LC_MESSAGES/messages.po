@@ -4548,7 +4548,7 @@ msgstr "边缘宽度"
 msgid "Edit"
 msgstr "编辑"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "编辑警报"
 
 msgid "Edit CSS"

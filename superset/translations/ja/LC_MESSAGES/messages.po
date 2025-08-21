@@ -4301,7 +4301,7 @@ msgstr "線の幅"
 msgid "Edit"
 msgstr "編集"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "アラートの編集"
 
 msgid "Edit CSS"

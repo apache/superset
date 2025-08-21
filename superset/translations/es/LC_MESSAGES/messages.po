@@ -4226,7 +4226,7 @@ msgstr "Anchura del borde"
 msgid "Edit"
 msgstr "Editar"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Editar alerta"
 
 msgid "Edit CSS"

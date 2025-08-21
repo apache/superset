@@ -4709,7 +4709,7 @@ msgstr "Kantenbreite"
 msgid "Edit"
 msgstr "Bearbeiten"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Alarm bearbeiten"
 
 msgid "Edit CSS"

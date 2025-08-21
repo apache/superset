@@ -4603,7 +4603,7 @@ msgstr "Debelina povezave"
 msgid "Edit"
 msgstr "Urejanje"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Uredi opozorilo"
 
 msgid "Edit CSS"

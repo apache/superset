@@ -4603,7 +4603,7 @@ msgid "Edit"
 msgstr "Editar"
 
 #, fuzzy
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Editar Tabela"
 
 msgid "Edit CSS"

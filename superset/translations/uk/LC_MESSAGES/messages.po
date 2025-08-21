@@ -4645,7 +4645,7 @@ msgstr "Ширина краю"
 msgid "Edit"
 msgstr "Редагувати"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Редагувати попередження"
 
 msgid "Edit CSS"

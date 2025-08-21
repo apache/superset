@@ -4553,7 +4553,7 @@ msgstr "邊缘寬度"
 msgid "Edit"
 msgstr "編輯"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "編輯警報"
 
 msgid "Edit CSS"

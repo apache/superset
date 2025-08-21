@@ -50,14 +50,10 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
           (validateCheckStatus ? (
             <Icons.CheckCircleOutlined iconColor={theme.colorSuccess} />
           ) : (
-            <span
-              css={css`
-                color: ${theme.colorErrorText};
-                font-size: ${theme.fontSizeLG}px;
-              `}
-            >
-              *
-            </span>
+            <Icons.ExclamationCircleOutlined
+              iconColor={theme.colorError}
+              aria-label="error-circle"
+            />
           ))}
       </Typography.Title>
       <Typography.Paragraph

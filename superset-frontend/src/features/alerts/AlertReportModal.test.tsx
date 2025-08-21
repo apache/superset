@@ -219,8 +219,8 @@ const comboboxSelect = async (
 test('properly renders add alert text', () => {
   const addAlertProps = generateMockedProps();
   render(<AlertReportModal {...addAlertProps} />, { useRedux: true });
-  const addAlertHeading = screen.getByRole('heading', { name: /add alert/i });
-  expect(addAlertHeading).toBeInTheDocument();
+  // The title is now in the modal header, not as a heading role
+  expect(screen.getByText('Add alert')).toBeInTheDocument();
   const addButton = screen.getByRole('button', { name: /add/i });
   expect(addButton).toBeInTheDocument();
 });
@@ -229,10 +229,8 @@ test('properly renders edit alert text', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true)} />, {
     useRedux: true,
   });
-  const editAlertHeading = screen.getByRole('heading', {
-    name: /edit alert/i,
-  });
-  expect(editAlertHeading).toBeInTheDocument();
+  // The title is now in the modal header, not as a heading role
+  expect(screen.getByText('Edit alert')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
   expect(saveButton).toBeInTheDocument();
 });
@@ -241,10 +239,8 @@ test('properly renders add report text', () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
-  const addReportHeading = screen.getByRole('heading', {
-    name: /add report/i,
-  });
-  expect(addReportHeading).toBeInTheDocument();
+  // The title is now in the modal header, not as a heading role
+  expect(screen.getByText('Add report')).toBeInTheDocument();
   const addButton = screen.getByRole('button', { name: /add/i });
   expect(addButton).toBeInTheDocument();
 });
@@ -254,10 +250,8 @@ test('properly renders edit report text', async () => {
     useRedux: true,
   });
 
-  const editReportHeading = screen.getByRole('heading', {
-    name: /edit report/i,
-  });
-  expect(editReportHeading).toBeInTheDocument();
+  // The title is now in the modal header, not as a heading role
+  expect(screen.getByText('Edit report')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
   expect(saveButton).toBeInTheDocument();
 });
@@ -286,7 +280,7 @@ test('renders 5 checkmarks for a valid alert', async () => {
   });
 
   // Wait for validation to complete by waiting for the modal to fully render
-  await screen.findByText('Edit Alert');
+  await screen.findByText('Edit alert');
 
   const checkmarks = await screen.findAllByRole('img', {
     name: /check-circle/i,

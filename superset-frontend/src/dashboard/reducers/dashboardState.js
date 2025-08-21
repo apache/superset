@@ -30,7 +30,6 @@ import {
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
   TOGGLE_PUBLISHED,
-  UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   ON_REFRESH,
   ON_REFRESH_SUCCESS,
@@ -68,9 +67,6 @@ export default function dashboardStateReducer(state = {}, action) {
         });
       }
       return hydratedState;
-    },
-    [UPDATE_CSS]() {
-      return { ...state, css: action.css };
     },
     [ADD_SLICE]() {
       const updatedSliceIds = new Set(state.sliceIds);

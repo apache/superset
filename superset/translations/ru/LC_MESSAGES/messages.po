@@ -5018,6 +5018,9 @@ msgstr "Толщина ребра"
 msgid "Edit"
 msgstr "Редактировать"
 
+msgid "Edit alert"
+msgstr "Редактировать оповещение"
+
 msgid "Edit CSS template properties"
 msgstr "Редактировать свойства шаблона CSS"
 

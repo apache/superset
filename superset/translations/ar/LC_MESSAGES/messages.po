@@ -4618,7 +4618,7 @@ msgstr "عرض الحافة"
 msgid "Edit"
 msgstr "تحرير"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "تحرير التنبيه"
 
 msgid "Edit CSS"

@@ -4227,7 +4227,7 @@ msgstr ""
 msgid "Edit"
 msgstr ""
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr ""
 
 msgid "Edit CSS"

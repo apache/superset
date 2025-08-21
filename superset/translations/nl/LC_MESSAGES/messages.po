@@ -4654,7 +4654,7 @@ msgstr "Rand dikte"
 msgid "Edit"
 msgstr "Bewerk"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Waarschuwing bewerken"
 
 msgid "Edit CSS"

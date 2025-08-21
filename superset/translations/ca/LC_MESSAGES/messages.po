@@ -4513,7 +4513,7 @@ msgstr "Amplada de vora"
 msgid "Edit"
 msgstr "Editar"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Editar Alerta"
 
 msgid "Edit CSS"

@@ -4830,7 +4830,7 @@ msgid "Edit"
 msgstr "Edytuj"
 
 #, fuzzy
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "Edytuj alert"
 
 msgid "Edit CSS"

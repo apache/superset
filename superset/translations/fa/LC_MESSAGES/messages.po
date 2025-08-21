@@ -4567,7 +4567,7 @@ msgstr "عرض لبه"
 msgid "Edit"
 msgstr "ویرایش"
 
-msgid "Edit Alert"
+msgid "Edit alert"
 msgstr "ویرایش هشدار"
 
 msgid "Edit CSS"
