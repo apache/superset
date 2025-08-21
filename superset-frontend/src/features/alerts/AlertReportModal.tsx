@@ -1368,16 +1368,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     switch (true) {
       case isEditMode && isReport:
-        titleText = t('Edit Report');
+        titleText = t('Edit report');
         break;
       case isEditMode:
-        titleText = t('Edit Alert');
+        titleText = t('Edit alert');
         break;
       case isReport:
-        titleText = t('Add Report');
+        titleText = t('Add report');
         break;
       default:
-        titleText = t('Add Alert');
+        titleText = t('Add alert');
         break;
     }
 

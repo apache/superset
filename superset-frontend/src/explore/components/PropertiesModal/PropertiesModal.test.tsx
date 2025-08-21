@@ -141,7 +141,7 @@ test('Should render null when show:false', async () => {
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('dialog', { name: 'Edit Chart Properties' }),
+      screen.queryByRole('dialog', { name: 'Chart properties' }),
     ).not.toBeInTheDocument();
   });
 });
@@ -160,7 +160,7 @@ test('Should render when show:true', async () => {
     () => {
       const modal = screen.getByRole('dialog');
       expect(modal).toBeInTheDocument();
-      expect(modal).toHaveTextContent('Edit Chart Properties');
+      expect(modal).toHaveTextContent('Chart properties');
       expect(modal).not.toHaveClass('ant-zoom-appear');
     },
     { timeout: 3000 },
@@ -172,7 +172,7 @@ test('Should have modal header', async () => {
   renderModal(props);
 
   await waitFor(() => {
-    expect(screen.getByText('Edit Chart Properties')).toBeVisible();
+    expect(screen.getByText('Chart properties')).toBeVisible();
     expect(screen.getByTestId('close-modal-btn')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Close' })).toBeVisible();
   });
@@ -204,11 +204,11 @@ test('Should render all elements inside modal', async () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       // Check for collapse sections instead of expecting all textboxes to be visible
-      expect(screen.getByText('General Settings')).toBeInTheDocument();
+      expect(screen.getByText('General settings')).toBeInTheDocument();
       expect(screen.getByText('Configuration')).toBeInTheDocument();
       expect(screen.getByText('Advanced')).toBeInTheDocument();
 
-      // Only General Settings is expanded by default
+      // Only General settings is expanded by default
       // Check for visible labels and fields in the expanded section
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();

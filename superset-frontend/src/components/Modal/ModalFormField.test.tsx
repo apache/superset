@@ -41,7 +41,7 @@ test('shows required asterisk when required is true', () => {
   expect(screen.getByText('Required Field')).toBeInTheDocument();
   const asterisk = screen.getByText('*');
   expect(asterisk).toBeInTheDocument();
-  expect(asterisk).not.toHaveClass('error'); // Should be default color when no error
+  expect(asterisk).toHaveClass('required'); // Should have required class
 });
 
 test('shows red asterisk when required field has error', () => {
@@ -53,7 +53,7 @@ test('shows red asterisk when required field has error', () => {
 
   const asterisk = screen.getByText('*');
   expect(asterisk).toBeInTheDocument();
-  expect(asterisk).toHaveClass('error'); // Should be red when there's an error
+  expect(asterisk).toHaveClass('required'); // Should have required class (always red now)
 });
 
 test('renders helper text when provided', () => {

@@ -86,7 +86,7 @@ function PropertiesModal({
     () => [
       {
         key: 'general',
-        name: t('General Settings'),
+        name: t('General settings'),
         validator: () => {
           const errors = [];
           if (!name || name.trim().length === 0) {
@@ -295,7 +295,7 @@ function PropertiesModal({
       show={show}
       onHide={onHide}
       onSave={onSubmit}
-      title={t('Edit Chart Properties')}
+      title={t('Chart properties')}
       isEditMode
       saveDisabled={
         submitting || !name || slice.is_managed_externally || hasErrors
@@ -319,7 +319,7 @@ function PropertiesModal({
             key: 'general',
             label: (
               <CollapseLabelInModal
-                title={t('General Settings')}
+                title={t('General settings')}
                 subtitle={t('Basic information about the chart')}
                 validateCheckStatus={!validationStatus.general?.hasErrors}
                 testId="general-section"

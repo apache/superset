@@ -520,20 +520,14 @@ const PropertiesModal = ({
     () => [
       {
         key: 'basic',
-        name: t('General Information'),
+        name: t('General information'),
         validator: () => {
           const errors = [];
           const values = form.getFieldsValue();
 
-          // Check our custom validation
+          // Check validation - only add if title is empty
           if (!values.title || values.title.trim().length === 0) {
             errors.push(t('Dashboard name is required'));
-          }
-
-          // Also check AntD Form field errors
-          const titleErrors = form.getFieldError('title');
-          if (titleErrors && titleErrors.length > 0) {
-            errors.push(...titleErrors);
           }
 
           return errors;
@@ -541,7 +535,7 @@ const PropertiesModal = ({
       },
       {
         key: 'access',
-        name: t('Access & Ownership'),
+        name: t('Access & ownership'),
         validator: () => [],
       },
       {
@@ -551,7 +545,7 @@ const PropertiesModal = ({
       },
       {
         key: 'refresh',
-        name: t('Refresh Settings'),
+        name: t('Refresh settings'),
         validator: () => {
           const errors = [];
           const refreshLimit =
@@ -579,7 +573,7 @@ const PropertiesModal = ({
       },
       {
         key: 'advanced',
-        name: t('Advanced Settings'),
+        name: t('Advanced settings'),
         validator: () => {
           if (jsonAnnotations.length > 0) {
             return [t('Invalid JSON metadata')];
@@ -625,7 +619,7 @@ const PropertiesModal = ({
           form.submit();
         }
       }}
-      title={t('Dashboard Properties')}
+      title={t('Dashboard properties')}
       isEditMode
       saveDisabled={
         isLoading || dashboardInfo?.isManagedExternally || hasErrors
@@ -662,7 +656,7 @@ const PropertiesModal = ({
               key: 'basic',
               label: (
                 <CollapseLabelInModal
-                  title={t('General Information')}
+                  title={t('General information')}
                   subtitle={t('Dashboard name and URL configuration')}
                   validateCheckStatus={!validationStatus.basic?.hasErrors}
                   testId="basic-section"
@@ -680,7 +674,7 @@ const PropertiesModal = ({
               key: 'access',
               label: (
                 <CollapseLabelInModal
-                  title={t('Access & Ownership')}
+                  title={t('Access & ownership')}
                   subtitle={t('Manage dashboard owners and access permissions')}
                   validateCheckStatus={!validationStatus.access?.hasErrors}
                   testId="access-section"
@@ -728,7 +722,7 @@ const PropertiesModal = ({
               key: 'refresh',
               label: (
                 <CollapseLabelInModal
-                  title={t('Refresh Settings')}
+                  title={t('Refresh settings')}
                   subtitle={t('Configure automatic dashboard refresh')}
                   validateCheckStatus={!validationStatus.refresh?.hasErrors}
                   testId="refresh-section"
@@ -759,7 +753,7 @@ const PropertiesModal = ({
               key: 'advanced',
               label: (
                 <CollapseLabelInModal
-                  title={t('Advanced Settings')}
+                  title={t('Advanced settings')}
                   subtitle={t('JSON metadata and advanced configuration')}
                   validateCheckStatus={!validationStatus.advanced?.hasErrors}
                   testId="advanced-section"

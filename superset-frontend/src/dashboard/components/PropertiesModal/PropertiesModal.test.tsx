@@ -196,18 +196,18 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Check for collapse section texts (not headings anymore)
-    expect(screen.getByText('General Information')).toBeInTheDocument();
-    expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
+    expect(screen.getByText('General information')).toBeInTheDocument();
+    expect(screen.getByText('Access & ownership')).toBeInTheDocument();
     expect(screen.getByText('Styling')).toBeInTheDocument();
-    expect(screen.getByText('Refresh Settings')).toBeInTheDocument();
-    expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
+    expect(screen.getByText('Refresh settings')).toBeInTheDocument();
+    expect(screen.getByText('Advanced settings')).toBeInTheDocument();
     expect(screen.getByText('Certification')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
-    // Only General Information section is expanded by default
+    // Only General information section is expanded by default
     expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug
 
     // Expand Styling section to see the ColorSchemeControlWrapper
@@ -242,22 +242,22 @@ describe('PropertiesModal', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard Properties')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard properties')).toBeInTheDocument();
 
     // Check for collapse section texts instead of headings
-    expect(screen.getByText('General Information')).toBeInTheDocument();
-    expect(screen.getByText('Access & Ownership')).toBeInTheDocument();
+    expect(screen.getByText('General information')).toBeInTheDocument();
+    expect(screen.getByText('Access & ownership')).toBeInTheDocument();
     expect(screen.getByText('Styling')).toBeInTheDocument();
-    expect(screen.getByText('Refresh Settings')).toBeInTheDocument();
-    expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
+    expect(screen.getByText('Refresh settings')).toBeInTheDocument();
+    expect(screen.getByText('Advanced settings')).toBeInTheDocument();
     expect(screen.getByText('Certification')).toBeInTheDocument();
 
-    // General Information section is expanded by default
+    // General information section is expanded by default
     expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug are visible
 
-    // Expand Access & Ownership to see Tags
+    // Expand Access & ownership to see Tags
     const accessPanel = screen
-      .getByText('Access & Ownership')
+      .getByText('Access & ownership')
       .closest('[role="button"]');
     if (accessPanel) {
       await userEvent.click(accessPanel);
@@ -300,8 +300,8 @@ describe('PropertiesModal', () => {
 
     expect(screen.getAllByRole('textbox')).toHaveLength(2); // Only Name and Slug visible initially
 
-    // Click on the Advanced Settings collapse panel to expand it
-    const advancedHeaderText = screen.getByText('Advanced Settings');
+    // Click on the Advanced settings collapse panel to expand it
+    const advancedHeaderText = screen.getByText('Advanced settings');
     const advancedHeader = advancedHeaderText.closest('.ant-collapse-header');
     expect(advancedHeader).toBeTruthy();
     await userEvent.click(advancedHeader!);
@@ -309,10 +309,10 @@ describe('PropertiesModal', () => {
     // Wait for animation to complete
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    // After expanding Advanced Settings, we should see more elements
+    // After expanding Advanced settings, we should see more elements
     // Note: JSON editor may not render as a standard textbox in tests
     await waitFor(() => {
-      // Check that the Advanced Settings section is expanded by looking for its content
+      // Check that the Advanced settings section is expanded by looking for its content
       expect(screen.getByText('JSON Metadata')).toBeInTheDocument();
     });
   });
@@ -452,8 +452,8 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
-    // Expand the Access & Ownership section first to access roles
-    const accessHeaderText = screen.getByText('Access & Ownership');
+    // Expand the Access & ownership section first to access roles
+    const accessHeaderText = screen.getByText('Access & ownership');
     const accessHeader = accessHeaderText.closest('.ant-collapse-header');
     if (accessHeader) {
       await userEvent.click(accessHeader);
@@ -514,8 +514,8 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
-    // Expand the Access & Ownership section first to access owners
-    const accessHeaderText = screen.getByText('Access & Ownership');
+    // Expand the Access & ownership section first to access owners
+    const accessHeaderText = screen.getByText('Access & ownership');
     const accessHeader = accessHeaderText.closest('.ant-collapse-header');
     if (accessHeader) {
       await userEvent.click(accessHeader);
@@ -570,8 +570,8 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
-    // Expand the Access & Ownership section first to access owners
-    const accessHeaderText = screen.getByText('Access & Ownership');
+    // Expand the Access & ownership section first to access owners
+    const accessHeaderText = screen.getByText('Access & ownership');
     const accessHeader = accessHeaderText.closest('.ant-collapse-header');
     if (accessHeader) {
       await userEvent.click(accessHeader);
