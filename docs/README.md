@@ -36,7 +36,10 @@ Each section maintains its own version history and can be versioned independentl
 
 To create a new version for any section, use the Docusaurus version command with the appropriate plugin ID or use our automated scripts:
 
-#### Using Automated Scripts (Recommended)
+#### Using Automated Scripts (Required)
+
+**⚠️ Important:** Always use these custom commands instead of the native Docusaurus commands. These scripts ensure that both the Docusaurus versioning system AND the `versions-config.json` file are updated correctly.
+
 ```bash
 # Main Documentation
 yarn version:add:docs 1.2.0
@@ -48,17 +51,10 @@ yarn version:add:developer_portal 1.2.0
 yarn version:add:components 1.2.0
 ```
 
-#### Manual Commands
-```bash
-# Main Documentation
-yarn docusaurus docs:version 1.2.0
-
-# Developer Portal
-yarn docusaurus docs:version:developer_portal 1.2.0
-
-# Component Playground (when enabled)
-yarn docusaurus docs:version:components 1.2.0
-```
+**Do NOT use** the native Docusaurus commands directly (`yarn docusaurus docs:version`), as they will:
+- ❌ Create version files but NOT update `versions-config.json`
+- ❌ Cause versions to not appear in dropdown menus
+- ❌ Require manual fixes to synchronize the configuration
 
 ### Managing Versions
 
@@ -183,6 +179,14 @@ docs: {
 ### Troubleshooting
 
 #### Version Not Showing After Creation
+
+If you accidentally used `yarn docusaurus docs:version` instead of `yarn version:add`:
+1. **Problem**: The version files were created but `versions-config.json` wasn't updated
+2. **Solution**: Either:
+   - Revert the changes: `git restore versions.json && rm -rf versioned_docs/ versioned_sidebars/`
+   - Then use the correct command: `yarn version:add:docs <version>`
+
+For other issues:
 - **Restart the server**: Changes to version configuration require a server restart
 - **Check config file**: Ensure `versions-config.json` includes the new version
 - **Verify files exist**: Check that versioned docs folder was created
