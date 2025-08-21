@@ -1148,6 +1148,16 @@ class SqlaTable(
     always_filter_main_dttm = Column(Boolean, default=False)
     folders = Column(JSON, nullable=True)
 
+    # Drill-through configuration
+    drill_through_chart_id = Column(
+        Integer, ForeignKey("slices.id", ondelete="SET NULL"), nullable=True
+    )
+    drill_through_chart: Mapped[Optional[Slice]] = relationship(
+        "Slice",
+        foreign_keys=[drill_through_chart_id],
+        backref=backref("drill_through_datasets", passive_deletes=True),
+    )
+
     baselink = "tablemodelview"
 
     export_fields = [
@@ -1169,6 +1179,7 @@ class SqlaTable(
         "normalize_columns",
         "always_filter_main_dttm",
         "folders",
+        "drill_through_chart_id",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"

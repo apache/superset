@@ -236,6 +236,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "time_grain_sqla",
         "order_by_choices",
         "verbose_map",
+        "drill_through_chart_id",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -261,6 +262,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns",
         "metrics",
         "extra",
+        "drill_through_chart_id",
     ]
     openapi_spec_tag = "Datasets"
 

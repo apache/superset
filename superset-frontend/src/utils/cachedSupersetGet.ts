@@ -27,3 +27,20 @@ export const cachedSupersetGet = cacheWrapper(
   supersetGetCache,
   ({ endpoint }) => endpoint || '',
 );
+
+/**
+ * Invalidates cached dataset drill info for all dashboards containing this dataset
+ */
+export const invalidateDatasetDrillCache = (datasetId: string | number) => {
+  const numericDatasetId =
+    typeof datasetId === 'string'
+      ? Number(datasetId.split('__')[0])
+      : Number(datasetId);
+
+  // Find and delete all cache entries for this dataset's drill info
+  const keysToDelete = Array.from(supersetGetCache.keys()).filter(key =>
+    key.includes(`/api/v1/dataset/${numericDatasetId}/drill_info/`),
+  );
+
+  keysToDelete.forEach(key => supersetGetCache.delete(key));
+};
