@@ -328,6 +328,7 @@ export function saveDashboardRequest(data, id, saveType) {
           ? getColorSchemeDomain(colorScheme)
           : [],
         expanded_slices: data.metadata?.expanded_slices || {},
+        expand_all_slices: data.metadata?.expand_all_slices || false,
         label_colors: customLabelsColor,
         shared_label_colors: getFreshSharedLabels(sharedLabelsColor),
         map_label_colors: getFreshLabelsColorMapEntries(customLabelsColor),

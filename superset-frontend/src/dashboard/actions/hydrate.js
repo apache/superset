@@ -291,6 +291,7 @@ export const hydrateDashboard =
           directPathLastUpdated: Date.now(),
           focusedFilterField: null,
           expandedSlices: metadata?.expanded_slices || {},
+          expandAllSlices: metadata?.expand_all_slices || false,
           refreshFrequency: metadata?.refresh_frequency || 0,
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend

@@ -132,11 +132,7 @@ export default function dashboardStateReducer(state = {}, action) {
     [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
       const { sliceId } = action;
-      if (updatedExpandedSlices[sliceId]) {
-        delete updatedExpandedSlices[sliceId];
-      } else {
-        updatedExpandedSlices[sliceId] = true;
-      }
+      updatedExpandedSlices[sliceId] = !updatedExpandedSlices[sliceId];
       return { ...state, expandedSlices: updatedExpandedSlices };
     },
     [ON_CHANGE]() {

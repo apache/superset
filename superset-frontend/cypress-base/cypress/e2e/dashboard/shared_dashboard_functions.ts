@@ -89,6 +89,7 @@ export function prepareDashboardFilters(
         native_filter_configuration: allFilters,
         timed_refresh_immune_slices: [],
         expanded_slices: {},
+        expand_all_slices: false,
         refresh_frequency: 0,
         color_scheme: '',
         label_colors: {},

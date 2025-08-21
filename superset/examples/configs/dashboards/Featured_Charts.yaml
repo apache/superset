@@ -509,6 +509,7 @@ metadata:
   color_scheme: supersetAndPresetColors
   refresh_frequency: 0
   expanded_slices: {}
+  expand_all_slices: false
   label_colors: {}
   timed_refresh_immune_slices: []
   cross_filters_enabled: true
