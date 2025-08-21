@@ -147,18 +147,6 @@ class SupersetApp(Flask):
             # Import here to avoid circular import issues
             from superset.extensions import feature_flag_manager
 
-            # Check if database URI is a fallback value before trying to connect
-            db_uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
-            if not db_uri or any(
-                fallback in db_uri.lower()
-                for fallback in ["nouser", "nopassword", "nohost", "nodb"]
-            ):
-                logger.warning(
-                    "Database URI appears to be a fallback value. "
-                    "Skipping database-dependent sync."
-                )
-                return
-
             # Check if database is up-to-date with migrations
             if not self._is_database_up_to_date():
                 logger.info("Pending database migrations: run 'superset db upgrade'")
