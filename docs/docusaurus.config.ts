@@ -161,8 +161,6 @@ const config: Config = {
     [
       '@docusaurus/plugin-client-redirects',
       {
-        fromExtensions: ['html', 'htm'],
-        toExtensions: ['exe', 'zip'],
         redirects: [
           {
             to: '/docs/installation/docker-compose',
