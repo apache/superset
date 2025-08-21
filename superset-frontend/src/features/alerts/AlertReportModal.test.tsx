@@ -200,7 +200,7 @@ test('properly renders add alert text', () => {
   const addAlertProps = generateMockedProps();
   render(<AlertReportModal {...addAlertProps} />, { useRedux: true });
   // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Add Alert')).toBeInTheDocument();
+  expect(screen.getByText('Add alert')).toBeInTheDocument();
   const addButton = screen.getByRole('button', { name: /add/i });
   expect(addButton).toBeInTheDocument();
 });
@@ -210,7 +210,7 @@ test('properly renders edit alert text', async () => {
     useRedux: true,
   });
   // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Edit Alert')).toBeInTheDocument();
+  expect(screen.getByText('Edit alert')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
   expect(saveButton).toBeInTheDocument();
 });
@@ -220,7 +220,7 @@ test('properly renders add report text', () => {
     useRedux: true,
   });
   // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Add Report')).toBeInTheDocument();
+  expect(screen.getByText('Add report')).toBeInTheDocument();
   const addButton = screen.getByRole('button', { name: /add/i });
   expect(addButton).toBeInTheDocument();
 });
@@ -231,7 +231,7 @@ test('properly renders edit report text', async () => {
   });
 
   // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Edit Report')).toBeInTheDocument();
+  expect(screen.getByText('Edit report')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
   expect(saveButton).toBeInTheDocument();
 });
