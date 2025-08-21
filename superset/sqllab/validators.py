@@ -17,9 +17,7 @@
 # pylint: disable=too-few-public-methods
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
-
-from pyparsing import Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from superset import security_manager
 from superset.commands.sql_lab.execute import CanAccessQueryValidator
