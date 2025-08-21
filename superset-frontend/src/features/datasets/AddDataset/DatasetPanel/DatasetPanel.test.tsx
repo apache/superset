@@ -100,8 +100,8 @@ describe('DatasetPanel', () => {
       },
     );
 
-    const blankDatasetImg = screen.getByAltText('Loading...');
-    expect(blankDatasetImg).toBeVisible();
+    const loadingIndicator = screen.getByTestId('loading-indicator');
+    expect(loadingIndicator).toBeVisible();
     const blankDatasetTitle = screen.getByText(REFRESHING);
     expect(blankDatasetTitle).toBeVisible();
   });
