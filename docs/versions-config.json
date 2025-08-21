@@ -24,7 +24,7 @@
     "versions": {
       "current": {
         "label": "Next",
-        "path": "next",
+        "path": "",
         "banner": "unreleased"
       }
     }
@@ -39,7 +39,7 @@
     "versions": {
       "current": {
         "label": "Next",
-        "path": "next",
+        "path": "",
         "banner": "unreleased"
       }
     }
