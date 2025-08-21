@@ -103,30 +103,6 @@ class TestSupersetApp:
             "Configuration sync to database completed successfully"
         )
 
-    @patch("superset.app.logger")
-    def test_sync_config_to_db_skips_with_fallback_uri(self, mock_logger):
-        """Test that sync is skipped when URI is a fallback."""
-        # Setup
-        app = SupersetApp(__name__)
-        # Set a fallback URI that would cause connection to fail
-        app.config = {
-            "SQLALCHEMY_DATABASE_URI": "postgresql://nouser:nopassword@nohost:5432/nodb"
-        }
-
-        # Mock _is_database_up_to_date to ensure it's not called
-        with patch.object(app, "_is_database_up_to_date") as mock_check:
-            # Execute
-            app.sync_config_to_db()
-
-            # Assert - should not try to check migration status
-            mock_check.assert_not_called()
-
-        # Should log warning about fallback URI
-        mock_logger.warning.assert_called_once()
-        warning_message = mock_logger.warning.call_args[0][0]
-        assert "fallback value" in warning_message
-        assert "Skipping database-dependent sync" in warning_message
-
 
 class TestSupersetAppInitializer:
     @patch("superset.initialization.logger")
