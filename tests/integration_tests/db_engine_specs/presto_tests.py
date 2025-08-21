@@ -19,8 +19,10 @@ from textwrap import dedent
 from unittest import mock, skipUnless
 
 import pandas as pd
+import pytest
 from flask.ctx import AppContext
 from sqlalchemy import types  # noqa: F401
+from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -569,6 +571,27 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         )
         assert result["partitions"]["cols"] == ["ds", "hour"]
         assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
+
+    def test_get_extra_table_metadata_no_table_found(self):
+        """
+        Test get_extra_table_metadata when a NoSuchTableError (simulating NoTableFound)
+        is raised by the database.get_df method.
+        """
+        # Setup a fake database
+        database = mock.MagicMock()
+        database.get_indexes.return_value = [
+            {"column_names": ["ds"]}
+        ]  # Return indexes so get_df is called
+        database.get_extra.return_value = {}
+        # Simulate that the table is not found
+        database.get_df.side_effect = NoSuchTableError("Table not found")
+
+        from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+
+        with pytest.raises(SupersetDBAPIProgrammingError):
+            PrestoEngineSpec.get_extra_table_metadata(
+                database, Table("test_table", "test_schema")
+            )
 
     def test_presto_where_latest_partition(self):
         db = mock.Mock()
