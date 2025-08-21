@@ -86,7 +86,6 @@ const MENUS = [
   },
 ];
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_TOP_ACTION_HEIGHT = 30;
 const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
@@ -382,9 +381,6 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                         visualize={false}
                         csv={false}
                         cache
-                        height={
-                          height - TAB_HEADER_HEIGHT - PREVIEW_TOP_ACTION_HEIGHT
-                        }
                         displayLimit={PREVIEW_QUERY_LIMIT}
                         defaultQueryLimit={PREVIEW_QUERY_LIMIT}
                       />
