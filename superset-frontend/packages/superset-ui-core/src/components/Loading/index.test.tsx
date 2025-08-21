@@ -21,9 +21,9 @@ import { render, screen } from '@superset-ui/core/spec';
 import * as themeModule from '../../theme';
 import { Loading } from '.';
 
-// Mock the loading.gif import since it's a file stub in tests
+// Mock the loading SVG import since it's a file stub in tests
 jest.mock('../assets', () => ({
-  Loading: 'mocked-loading.gif',
+  Loading: () => <svg data-test="default-loading-svg" />,
 }));
 
 const mockUseTheme = jest.fn();
@@ -43,7 +43,10 @@ test('uses default spinner when no theme spinner configured', () => {
   render(<Loading />);
   const loading = screen.getByRole('status');
   expect(loading).toBeInTheDocument();
-  expect(loading).toHaveAttribute('src', 'mocked-loading.gif');
+  // Now renders SVG component instead of img with src
+  expect(
+    loading.querySelector('[data-test="default-loading-svg"]'),
+  ).toBeInTheDocument();
 });
 
 test('uses brandSpinnerUrl from theme when configured', () => {
@@ -54,7 +57,8 @@ test('uses brandSpinnerUrl from theme when configured', () => {
   render(<Loading />);
   const loading = screen.getByRole('status');
   expect(loading).toBeInTheDocument();
-  expect(loading).toHaveAttribute('src', '/custom/spinner.png');
+  const img = loading.querySelector('img');
+  expect(img).toHaveAttribute('src', '/custom/spinner.png');
 });
 
 test('uses brandSpinnerSvg from theme when configured', () => {
@@ -66,7 +70,8 @@ test('uses brandSpinnerSvg from theme when configured', () => {
   render(<Loading />);
   const loading = screen.getByRole('status');
   expect(loading).toBeInTheDocument();
-  const src = loading.getAttribute('src');
+  const img = loading.querySelector('img');
+  const src = img?.getAttribute('src');
   expect(src).toContain('data:image/svg+xml;base64,');
   expect(atob(src!.split(',')[1])).toBe(svgContent);
 });
@@ -81,7 +86,8 @@ test('brandSpinnerSvg takes precedence over brandSpinnerUrl', () => {
   render(<Loading />);
   const loading = screen.getByRole('status');
   expect(loading).toBeInTheDocument();
-  const src = loading.getAttribute('src');
+  const img = loading.querySelector('img');
+  const src = img?.getAttribute('src');
   expect(src).toContain('data:image/svg+xml;base64,');
   expect(src).not.toBe('/custom/spinner.png');
 });
@@ -96,5 +102,6 @@ test('explicit image prop takes precedence over theme spinners', () => {
   render(<Loading image="/explicit/spinner.gif" />);
   const loading = screen.getByRole('status');
   expect(loading).toBeInTheDocument();
-  expect(loading).toHaveAttribute('src', '/explicit/spinner.gif');
+  const img = loading.querySelector('img');
+  expect(img).toHaveAttribute('src', '/explicit/spinner.gif');
 });

@@ -127,7 +127,6 @@ export interface SupersetSpecificTokens {
   // Spinner-related
   brandSpinnerUrl?: string;
   brandSpinnerSvg?: string;
-  brandSpinnerWidth: string;
 }
 
 /**
