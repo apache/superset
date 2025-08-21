@@ -679,7 +679,7 @@ test('Trino table name validation for table name with spaces', async () => {
         },
       ],
     },
-    { overwriteRoutes: true }
+    { overwriteRoutes: true },
   );
 
   render(<UploadDataModal {...csvProps} />, {
@@ -700,8 +700,8 @@ test('Trino table name validation for table name with spaces', async () => {
   screen.getByText('Presto/Trino').click();
   userEvent.type(inputTableName, 'table with spaces');
   userEvent.click(uploadButton);
-  await waitFor(() => 
-    screen.getByText('Trino table names must not contain spaces')
+  await waitFor(() =>
+    screen.getByText('Trino table names must not contain spaces'),
   );
 });
 
@@ -722,7 +722,7 @@ test('Trino table name passes for table name with no spaces', async () => {
         },
       ],
     },
-    { overwriteRoutes: true }
+    { overwriteRoutes: true },
   );
 
   render(<UploadDataModal {...csvProps} />, {
@@ -745,7 +745,7 @@ test('Trino table name passes for table name with no spaces', async () => {
   userEvent.click(uploadButton);
   await waitFor(() => {
     expect(
-      screen.queryByText('Trino databases must not contain spaces')
+      screen.queryByText('Trino databases must not contain spaces'),
     ).not.toBeInTheDocument();
   });
 });
