@@ -368,6 +368,7 @@ def get_default_spinner_svg() -> str | None:
         svg_path = os.path.join(
             os.path.dirname(__file__),
             "..",
+            "..",
             "superset-frontend",
             "packages",
             "superset-ui-core",
