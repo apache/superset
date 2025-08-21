@@ -23,9 +23,10 @@ from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
 
-from flask import abort, current_app as app
+from flask import current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -123,7 +124,7 @@ class ScreenshotCachePayload:
 
     def get_image(self) -> BytesIO:
         if self._image is None:
-            abort(404)
+            raise ScreenshotImageNotAvailableException()
         return BytesIO(cast(bytes, self._image))
 
     def get_timestamp(self) -> str:
