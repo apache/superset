@@ -19,25 +19,39 @@
 
 import cls from 'classnames';
 import { styled, useTheme } from '../../theme';
-import { Loading as Loader } from '../assets';
-import type { LoadingProps } from './types';
+import { Loading as LoaderSvg } from '../assets';
+import type { LoadingProps, SizeOption } from './types';
 
-const LoaderImg = styled.img<{ $spinnerWidth: string }>`
+const SIZE_MAP: Record<SizeOption, string> = {
+  s: '40px',
+  m: '70px',
+  l: '100px',
+};
+
+const LoaderWrapper = styled.div<{
+  $spinnerWidth: string;
+  $spinnerHeight: string;
+  $opacity: number;
+}>`
   z-index: 99;
   width: ${({ $spinnerWidth }) => $spinnerWidth};
-  height: unset;
+  height: ${({ $spinnerHeight }) => $spinnerHeight};
+  opacity: ${({ $opacity }) => $opacity};
   position: relative;
-  margin: 10px;
-  &.inline {
-    margin: 0px;
+  margin: 0;
+  padding: 0;
+
+  & > svg,
+  & > img {
+    width: 100%;
+    height: 100%;
   }
+
   &.inline-centered {
     margin: 0 auto;
     display: block;
   }
   &.floating {
-    padding: 0;
-    margin: 0;
     position: absolute;
     left: 50%;
     top: 50%;
@@ -48,30 +62,47 @@ export function Loading({
   position = 'floating',
   image,
   className,
+  size = 'm',
+  muted = false,
 }: LoadingProps) {
   const theme = useTheme();
 
-  // Precedence: explicit image prop > brandSpinnerSvg > brandSpinnerUrl > default
-  const getSpinnerSource = () => {
-    if (image) return image; // Explicit prop takes highest precedence
-    if (theme.brandSpinnerSvg) {
-      return `data:image/svg+xml;base64,${btoa(theme.brandSpinnerSvg)}`;
+  // Determine size from size prop
+  const spinnerSize = SIZE_MAP[size];
+
+  // Opacity - muted reduces to 0.25, otherwise full opacity
+  const opacity = muted ? 0.25 : 1.0;
+
+  // Render spinner content
+  const renderSpinner = () => {
+    // Precedence: explicit image prop > brandSpinnerSvg > brandSpinnerUrl > default SVG
+    if (image) {
+      return <img src={image} alt="Loading..." />;
     }
-    if (theme.brandSpinnerUrl) return theme.brandSpinnerUrl;
-    return Loader; // Default loading.gif
+    if (theme.brandSpinnerSvg) {
+      const svgDataUri = `data:image/svg+xml;base64,${btoa(theme.brandSpinnerSvg)}`;
+      return <img src={svgDataUri} alt="Loading..." />;
+    }
+    if (theme.brandSpinnerUrl) {
+      return <img src={theme.brandSpinnerUrl} alt="Loading..." />;
+    }
+    // Default: use the imported SVG component
+    return <LoaderSvg />;
   };
 
   return (
-    <LoaderImg
-      $spinnerWidth={theme.brandSpinnerWidth}
+    <LoaderWrapper
+      $spinnerWidth={spinnerSize}
+      $spinnerHeight="auto"
+      $opacity={opacity}
       className={cls('loading', position, className)}
-      alt="Loading..."
-      src={getSpinnerSource()}
       role="status"
       aria-live="polite"
       aria-label="Loading"
       data-test="loading-indicator"
-    />
+    >
+      {renderSpinner()}
+    </LoaderWrapper>
   );
 }
 
