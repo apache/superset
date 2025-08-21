@@ -30,7 +30,7 @@
     }
   },
   "components": {
-    "disabled": true,
+    "disabled": false,
     "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
