@@ -240,7 +240,7 @@ describe('sqlLabReducer', () => {
       );
     });
     it('should migrate query editor by new query editor id', () => {
-      const length = newState.queryEditors.length;
+      const { length } = newState.queryEditors;
       const index = newState.queryEditors.findIndex(({ id }) => id === qe.id);
       const newQueryEditor = {
         ...qe,
