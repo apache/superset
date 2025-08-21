@@ -105,8 +105,8 @@ export const legendSortControl: ControlSetItem = {
     default: null,
     renderTrigger: true,
     choices: [
-      ['asc', t('Asc')],
-      ['desc', t('Desc')],
+      ['asc', t('Label ascending')],
+      ['desc', t('Label descending')],
       [null, t('Sort by data')],
     ],
     description: t('Changes the sort value of the items in the legend only'),
