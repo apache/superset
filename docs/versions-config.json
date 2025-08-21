@@ -1,5 +1,6 @@
 {
   "docs": {
+    "disabled": false,
     "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
@@ -26,6 +27,7 @@
     }
   },
   "developer_portal": {
+    "disabled": true,
     "lastVersion": "1.1.0",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
@@ -52,6 +54,7 @@
     }
   },
   "components": {
+    "disabled": true,
     "lastVersion": "1.1.0",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [

@@ -30,6 +30,108 @@ const { github: lightCodeTheme, vsDark: darkCodeTheme } = themes;
 const versionsConfigPath = path.join(__dirname, 'versions-config.json');
 const versionsConfig = JSON.parse(fs.readFileSync(versionsConfigPath, 'utf8'));
 
+// Build plugins array dynamically based on disabled flags
+const dynamicPlugins = [];
+
+// Add components plugin if not disabled
+if (!versionsConfig.components.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'components',
+      path: 'components',
+      routeBasePath: 'components',
+      sidebarPath: require.resolve('./sidebarComponents.js'),
+      editUrl:
+        'https://github.com/apache/superset/edit/master/docs/components',
+      remarkPlugins: [remarkImportPartial],
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
+      lastVersion: versionsConfig.components.lastVersion,
+      onlyIncludeVersions: versionsConfig.components.onlyIncludeVersions,
+      versions: versionsConfig.components.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
+// Add developer_portal plugin if not disabled
+if (!versionsConfig.developer_portal.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'developer_portal',
+      path: 'developer_portal',
+      routeBasePath: 'developer_portal',
+      sidebarPath: require.resolve('./sidebarTutorials.js'),
+      editUrl:
+        'https://github.com/apache/superset/edit/master/docs/developer_portal',
+      remarkPlugins: [remarkImportPartial],
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
+      lastVersion: versionsConfig.developer_portal.lastVersion,
+      onlyIncludeVersions: versionsConfig.developer_portal.onlyIncludeVersions,
+      versions: versionsConfig.developer_portal.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
+// Build navbar items dynamically based on disabled flags
+const dynamicNavbarItems = [];
+
+// Add Component Playground navbar item if not disabled
+if (!versionsConfig.components.disabled) {
+  dynamicNavbarItems.push({
+    label: 'Component Playground',
+    to: '/components',
+    items: [
+      {
+        label: 'Introduction',
+        to: '/components',
+      },
+      {
+        label: 'UI Components',
+        to: '/components/ui-components/button',
+      },
+      {
+        label: 'Chart Components',
+        to: '/components/chart-components/bar-chart',
+      },
+      {
+        label: 'Layout Components',
+        to: '/components/layout-components/grid',
+      },
+    ],
+  });
+}
+
+// Add Developer Portal navbar item if not disabled
+if (!versionsConfig.developer_portal.disabled) {
+  dynamicNavbarItems.push({
+    label: 'Developer Portal',
+    position: 'left',
+    items: [
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'index',
+        label: 'Introduction',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'getting-started/index',
+        label: 'Getting Started',
+      },
+    ],
+  });
+}
+
 const config: Config = {
   title: 'Superset',
   tagline:
@@ -55,6 +157,7 @@ const config: Config = {
         },
       },
     ],
+    ...dynamicPlugins,
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -204,58 +307,6 @@ const config: Config = {
         ],
       },
     ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'components',
-        path: 'components',
-        routeBasePath: 'components',
-        sidebarPath: require.resolve('./sidebarComponents.js'),
-        editUrl:
-          'https://github.com/apache/superset/edit/master/docs/components',
-        remarkPlugins: [remarkImportPartial],
-        // Enable MDX v2
-        docItemComponent: '@theme/DocItem',
-        includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
-        // Show version dropdown
-        lastVersion: versionsConfig.components.lastVersion,
-        onlyIncludeVersions: versionsConfig.components.onlyIncludeVersions,
-        // Set the default version to redirect to
-        versions: versionsConfig.components.versions,
-        // This sets which version is shown when accessing /components/
-        // without a specific version
-        disableVersioning: false,
-        // Show version dropdown in navbar
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'developer_portal',
-        path: 'developer_portal',
-        routeBasePath: 'developer_portal',
-        sidebarPath: require.resolve('./sidebarTutorials.js'),
-        editUrl:
-          'https://github.com/apache/superset/edit/master/docs/developer_portal',
-        remarkPlugins: [remarkImportPartial],
-        // Enable MDX v2
-        docItemComponent: '@theme/DocItem',
-        includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
-        // Show version dropdown
-        lastVersion: versionsConfig.developer_portal.lastVersion,
-        onlyIncludeVersions: versionsConfig.developer_portal.onlyIncludeVersions,
-        // Set the default version to redirect to
-        versions: versionsConfig.developer_portal.versions,
-        // This sets which version is shown when accessing /developer_portal/
-        // without a specific version
-        disableVersioning: false,
-        // Show version dropdown in navbar
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
-      },
-    ],
   ],
 
   presets: [
@@ -358,48 +409,7 @@ const config: Config = {
             },
           ],
         },
-        // Temporarily disabled Component Playground section
-        // Uncomment to re-enable
-        // {
-        //   label: 'Component Playground',
-        //   to: '/components',
-        //   items: [
-        //     {
-        //       label: 'Introduction',
-        //       to: '/components',
-        //     },
-        //     {
-        //       label: 'UI Components',
-        //       to: '/components/ui-components/button',
-        //     },
-        //     {
-        //       label: 'Chart Components',
-        //       to: '/components/chart-components/bar-chart',
-        //     },
-        //     {
-        //       label: 'Layout Components',
-        //       to: '/components/layout-components/grid',
-        //     },
-        //   ],
-        // },
-        {
-          label: 'Developer Portal',
-          position: 'left',
-          items: [
-            {
-              type: 'doc',
-              docsPluginId: 'developer_portal',
-              docId: 'index',
-              label: 'Introduction',
-            },
-            {
-              type: 'doc',
-              docsPluginId: 'developer_portal',
-              docId: 'getting-started/index',
-              label: 'Getting Started',
-            },
-          ],
-        },
+        ...dynamicNavbarItems,
         {
           href: '/docs/intro',
           position: 'right',
