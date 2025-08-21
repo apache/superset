@@ -414,7 +414,8 @@ const FiltersConfigForm = (
 
   const hasDataset =
     // @ts-ignore
-    !!nativeFilterItems[formFilter?.filterType]?.value?.datasourceCount;
+    !!nativeFilterItems[formFilter?.filterType]?.value?.datasourceCount ||
+    formFilter?.filterType === 'filter_time';
 
   const datasetId =
     formFilter?.dataset?.value ??
@@ -897,9 +898,7 @@ const FiltersConfigForm = (
         </StyledContainer>
         {formFilter?.filterType === 'filter_time' && (
           <FilterTypeInfo expanded={expanded}>
-            {t(`Dashboard time range filters apply to temporal columns defined in
-          the filter section of each chart. Add temporal columns to the chart
-          filters to have this dashboard filter impact those charts.`)}
+            {t(`Dashboard time range filters need to apply to temporal columns of a dataset`)}
           </FilterTypeInfo>
         )}
         {hasDataset && (

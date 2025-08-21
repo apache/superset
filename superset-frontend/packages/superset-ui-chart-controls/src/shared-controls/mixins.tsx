@@ -78,11 +78,16 @@ export const datePickerInAdhocFilterMixin: Pick<
     // skip initialValue if
     // 1) the time_range control is present (this is the case for legacy charts)
     // 2) there was a time filter in adhoc filters
+    // 3) there are time filters in filters format
     if (
       state?.controls?.time_range?.value ||
       ensureIsArray(control.value).findIndex(
         (flt: any) => flt?.operator === 'TEMPORAL_RANGE',
-      ) > -1
+      ) > -1 ||
+      (state?.form_data?.filters && 
+       state.form_data.filters.findIndex(
+         (flt: any) => flt?.op === 'TEMPORAL_RANGE',
+       ) > -1)
     ) {
       return undefined;
     }

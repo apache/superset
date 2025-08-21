@@ -29,7 +29,7 @@ export default class TimeFilterPlugin extends ChartPlugin {
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
       thumbnail,
       tags: [t('Experimental')],
-      datasourceCount: 0,
+      datasourceCount: 1,
     });
 
     super({

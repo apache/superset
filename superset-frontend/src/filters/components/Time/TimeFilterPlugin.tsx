@@ -16,81 +16,107 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, NO_TIME_RANGE } from '@superset-ui/core';
-import { useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { NO_TIME_RANGE, styled } from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
-import { FilterPluginStyle } from '../common';
+import { FilterPluginStyle, StyledFormItem } from '../common';
 
-const TimeFilterStyles = styled(FilterPluginStyle)`
-  display: flex;
-  align-items: center;
-  overflow-x: auto;
-
-  & .ant-tag {
-    margin-right: 0;
-  }
-`;
-
-const ControlContainer = styled.div<{
-  validateStatus?: 'error' | 'warning' | 'info';
-}>`
-  display: flex;
-  height: 100%;
-  max-width: 100%;
-  width: 100%;
-  & > div,
-  & > div:hover {
-    ${({ validateStatus, theme }) =>
-      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
+// Custom StyledFormItem for time filter to override width restrictions
+const TimeFilterFormItem = styled(StyledFormItem)`
+  &.ant-row.ant-form-item {
+    margin: 0;
+    
+    .ant-form-item-control {
+      width: 100% !important; // Override any fixed width restrictions
+    }
   }
 `;
 
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
     setDataMask,
-    setHoveredFilter,
     unsetHoveredFilter,
-    setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
     width,
     height,
     filterState,
-    inputRef,
     isOverflowingFilterBar = false,
   } = props;
 
-  const handleTimeRangeChange = useCallback(
-    (timeRange?: string): void => {
-      const isSet = timeRange && timeRange !== NO_TIME_RANGE;
-      setDataMask({
-        extraFormData: isSet
-          ? {
-              time_range: timeRange,
-            }
-          : {},
-        filterState: {
-          value: isSet ? timeRange : undefined,
-        },
-      });
-    },
-    [setDataMask],
-  );
+  const handleTimeRangeChange = (timeRange?: string): void => {
+    const isSet = timeRange && timeRange !== NO_TIME_RANGE;
+    const extraFormData: any = {};
+    let columnName: string | undefined;
 
+    // Always try to get column name, even if time range is not set
+    // Method 1: Get from granularity_sqla or granularitySqla
+    if (props.formData?.granularity_sqla || props.formData?.granularitySqla) {
+      columnName = props.formData?.granularity_sqla || props.formData?.granularitySqla;
+    }
+
+    // Method 2: Get from first groupby column
+    if (!columnName && props.formData?.groupby && props.formData.groupby.length > 0) {
+      const firstGroupBy = props.formData.groupby[0];
+      if (typeof firstGroupBy === 'string') {
+        columnName = firstGroupBy;
+      } else if (typeof firstGroupBy === 'object' && 'column_name' in firstGroupBy) {
+        columnName = (firstGroupBy as any).column_name;
+      }
+    }
+
+    // Method 3: Get from data
+    if (!columnName && props.data && props.data.length > 0) {
+      const timeColumns = props.data.filter(
+        (row: any) => row.dtype === GenericDataType.Temporal,
+      );
+      if (timeColumns.length > 0) {
+        const firstTimeColumn = timeColumns[0];
+        if (
+          firstTimeColumn.column_name &&
+          typeof firstTimeColumn.column_name === 'string'
+        ) {
+          columnName = firstTimeColumn.column_name;
+        }
+      }
+    }
+
+    // Method 4: Use default column name
+    if (!columnName) {
+      columnName = 'dst'; // Common default time column name
+    }
+
+    // Only create filter when time range is set
+    if (isSet && columnName) {
+      // Use filters format instead of adhoc_filters to avoid being reset
+      extraFormData.filters = [
+        {
+          col: columnName,
+          op: 'TEMPORAL_RANGE',
+          val: timeRange,
+        },
+      ];
+    }
+    setDataMask({
+      extraFormData,
+      filterState: {
+        value: isSet ? timeRange : undefined,
+      },
+    });
+  };
+
+  const filterStateValueString = JSON.stringify(filterState.value);
   useEffect(() => {
     handleTimeRangeChange(filterState.value);
-  }, [filterState.value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterStateValueString]);
 
   return props.formData?.inView ? (
-    <TimeFilterStyles width={width} height={height}>
-      <ControlContainer
-        ref={inputRef}
+    <FilterPluginStyle height={height} width={width}>
+      <TimeFilterFormItem
         validateStatus={filterState.validateStatus}
-        onFocus={setFocusedFilter}
-        onBlur={unsetFocusedFilter}
-        onMouseEnter={setHoveredFilter}
-        onMouseLeave={unsetHoveredFilter}
       >
         <DateFilterControl
           value={filterState.value || NO_TIME_RANGE}
@@ -104,7 +130,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           }}
           isOverflowingFilterBar={isOverflowingFilterBar}
         />
-      </ControlContainer>
-    </TimeFilterStyles>
+      </TimeFilterFormItem>
+    </FilterPluginStyle>
   ) : null;
 }
