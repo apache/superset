@@ -35,8 +35,6 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
-from sqlalchemy import inspect
-from sqlalchemy.exc import OperationalError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -64,7 +62,6 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
-from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
@@ -503,54 +500,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
-    def _init_database_dependent_features(self) -> None:
-        """
-        Initialize features that require database tables to exist.
-        This is called during app initialization but checks table existence
-        to handle cases where the app starts before database migration.
-        """
-        # Check if database URI is a fallback value before trying to connect
-        db_uri = self.database_uri
-        if not db_uri or any(
-            fallback in db_uri.lower()
-            for fallback in ["nouser", "nopassword", "nohost", "nodb"]
-        ):
-            logger.warning(
-                "Database URI appears to be a fallback value. "
-                "Skipping database-dependent initialization. "
-                "This may indicate the workspace context is not ready yet."
-            )
-            return
-
-        try:
-            inspector = inspect(db.engine)
-
-            # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
-            if not inspector.has_table("dashboards"):
-                logger.debug(
-                    "Superset tables not yet created. Skipping database-dependent "
-                    "initialization. These features will be initialized after "
-                    "migration."
-                )
-                return
-        except OperationalError as e:
-            logger.debug(
-                "Error inspecting database tables. Skipping database-dependent "
-                "initialization: %s",
-                e,
-            )
-            return
-
-        # Register SQLA event listeners for tagging system
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
-
-        # Seed system themes from configuration
-        from superset.commands.theme.seed import SeedSystemThemesCommand
-
-        if inspector.has_table("themes"):
-            SeedSystemThemesCommand().run()
-
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -568,8 +517,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
-        # Initialize database-dependent features only if database is ready
-        self._init_database_dependent_features()
+        # Sync configuration to database (themes, etc.)
+        # This can be called separately in multi-tenant environments
+        self.superset_app.sync_config_to_db()
 
         self.init_views()
 
