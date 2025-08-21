@@ -261,8 +261,8 @@ describe('sqlLabReducer', () => {
         type: actions.REMOVE_QUERY_EDITOR,
         queryEditor: newQueryEditor,
       };
-      expect(newState.queryEditors).toHaveLength(length - 1);
       newState = sqlLabReducer(newState, removeAction);
+      expect(newState.queryEditors).toHaveLength(length - 1);
       expect(Object.keys(newState.destroyedQueryEditors)).toContain(
         newQueryEditor.tabViewId,
       );
