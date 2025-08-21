@@ -58,6 +58,11 @@ class MainPreset extends Preset {
 const defaultState = () => ({
   datasources: { ...mockDatasource },
   charts: chartQueries,
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
 });
 
 const noTemporalColumnsState = () => {

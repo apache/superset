@@ -59,6 +59,13 @@ function setup(overridesProps?: any) {
   return render(<FiltersConfigModal {...mockedProps} {...overridesProps} />, {
     useDnd: true,
     useRedux: true,
+    initialState: {
+      dashboardLayout: {
+        present: {},
+        past: [],
+        future: [],
+      },
+    },
   });
 }
 

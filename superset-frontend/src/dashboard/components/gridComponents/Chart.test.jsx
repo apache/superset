@@ -80,6 +80,11 @@ const defaultState = {
     superset_can_csv: false,
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
 };
 
 function setup(overrideProps, overrideState) {

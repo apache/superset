@@ -533,9 +533,13 @@ const Header = () => {
         tags: updates.tags,
       });
       boundActionCreators.setUnsavedChanges(true);
-      boundActionCreators.dashboardTitleChanged(updates.title);
+
+      if (updates.title && dashboardTitle !== updates.title) {
+        boundActionCreators.updateDashboardTitle(updates.title);
+        boundActionCreators.onChange();
+      }
     },
-    [boundActionCreators],
+    [boundActionCreators, dashboardTitle],
   );
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
@@ -617,7 +621,9 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={undoLength < 1}
-                      onClick={undoLength && boundActionCreators.onUndo}
+                      onClick={
+                        undoLength > 0 ? boundActionCreators.onUndo : undefined
+                      }
                     >
                       <Icons.Undo
                         css={[
@@ -637,7 +643,9 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={redoLength < 1}
-                      onClick={redoLength && boundActionCreators.onRedo}
+                      onClick={
+                        redoLength > 0 ? boundActionCreators.onRedo : undefined
+                      }
                     >
                       <Icons.Redo
                         css={[
