@@ -81,4 +81,5 @@ export type DatasetObject = {
   column_formats: Record<string, string>;
   datasource_name: string | null;
   verbose_map: Record<string, string>;
+  drill_through_chart_id?: number | null;
 };

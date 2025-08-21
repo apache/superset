@@ -41,6 +41,8 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   ) => SelectOptionsType;
   multi?: boolean;
   onChange: (val: SelectValue) => void;
+  // Optional query parameters to append to the endpoint
+  queryParams?: Record<string, any>;
   // ControlHeader related props
   description?: string;
   hovered?: boolean;
@@ -60,6 +62,7 @@ const SelectAsyncControl = ({
   mutator,
   onChange,
   placeholder,
+  queryParams,
   value,
   ...props
 }: SelectAsyncControlProps) => {
@@ -95,9 +98,22 @@ const SelectAsyncControl = ({
         const { error } = e;
         addDangerToast(t('Error while fetching data: %s', error));
       });
-    const loadOptions = () =>
-      SupersetClient.get({
-        endpoint: dataEndpoint,
+    const loadOptions = () => {
+      // Build endpoint with query parameters if provided
+      let endpoint = dataEndpoint;
+      if (queryParams && Object.keys(queryParams).length > 0) {
+        const urlParams = new URLSearchParams();
+        Object.entries(queryParams).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            urlParams.append(key, String(value));
+          }
+        });
+        const separator = dataEndpoint.includes('?') ? '&' : '?';
+        endpoint = `${dataEndpoint}${separator}${urlParams.toString()}`;
+      }
+
+      return SupersetClient.get({
+        endpoint,
       })
         .then(response => {
           const data = mutator
@@ -109,11 +125,12 @@ const SelectAsyncControl = ({
         .finally(() => {
           setLoaded(true);
         });
+    };
 
     if (!loaded) {
       loadOptions();
     }
-  }, [addDangerToast, dataEndpoint, mutator, value, loaded]);
+  }, [addDangerToast, dataEndpoint, mutator, value, loaded, queryParams]);
 
   return (
     <Select

@@ -182,6 +182,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "template_params": None,
             "uuid": str(example_dataset.uuid),
             "version": "1.0.0",
+            "drill_through_chart_id": None,
         }
 
     @patch("superset.security.manager.g")
@@ -237,6 +238,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "normalize_columns",
             "always_filter_main_dttm",
             "folders",
+            "drill_through_chart_id",
             "uuid",
             "metrics",
             "columns",
