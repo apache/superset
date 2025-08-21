@@ -26,7 +26,9 @@ import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.utils import json
@@ -52,56 +54,156 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for slc in session.query(Slice).filter(Slice.viz_type == "table"):
-        try:
-            params = json.loads(slc.params)
-            conditional_formatting = params.get("conditional_formatting", [])
+    try:
+        total_count = session.query(Slice).filter(Slice.viz_type == "table").count()
+        logger.info(f"Found {total_count} table slices to process")
 
-            if conditional_formatting:
-                new_conditional_formatting = []
+        batch_size = 1000
+        processed = 0
 
-                for formatter in conditional_formatting:
-                    color_scheme = formatter.get("colorScheme")
+        while processed < total_count:
+            try:
+                slices_batch = (
+                    session.query(Slice)
+                    .filter(Slice.viz_type == "table")
+                    .offset(processed)
+                    .limit(batch_size)
+                    .all()
+                )
 
-                    if color_scheme not in ["Green", "Red"]:
-                        new_formatter = formatter.copy()
-                        new_formatter["toAllRow"] = False
-                        new_formatter["toTextColor"] = False
-                        new_conditional_formatting.append(new_formatter)
-                    else:
-                        new_conditional_formatting.append(formatter)
+                if not slices_batch:
+                    break
 
-                params["conditional_formatting"] = new_conditional_formatting
-                slc.params = json.dumps(params)
+                for slc in slices_batch:
+                    try:
+                        params = json.loads(slc.params)
+                        conditional_formatting = params.get(
+                            "conditional_formatting", []
+                        )
 
-        except (json.JSONDecodeError, TypeError) as e:
-            logger.error(f"Invalid JSON in slice {slc.id} params: {e}")
-            continue
+                        if conditional_formatting:
+                            new_conditional_formatting = []
+                            for formatter in conditional_formatting:
+                                color_scheme = formatter.get("colorScheme")
 
-    session.commit()
-    session.close()
+                                if color_scheme not in ["Green", "Red"]:
+                                    new_conditional_formatting.append(
+                                        {
+                                            **formatter,
+                                            "toAllRow": False,
+                                            "toTextColor": False,
+                                        }
+                                    )
+                                else:
+                                    new_conditional_formatting.append(formatter)
+
+                            params["conditional_formatting"] = (
+                                new_conditional_formatting
+                            )
+                            slc.params = json.dumps(params)
+
+                    except Exception as e:
+                        logger.error(f"Error processing slice {slc.id}: {str(e)}")
+
+                        continue
+
+                session.commit()
+                processed += len(slices_batch)
+                logger.info(f"Processed {processed}/{total_count} slices")
+
+            except SQLAlchemyError as e:
+                session.rollback()
+                logger.error(
+                    f"Error processing batch {processed}-{processed + batch_size}: "
+                    f"{str(e)}"
+                )
+                processed += batch_size
+
+        logger.info("Migration completed successfully")
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Unexpected error in migration: {str(e)}")
+        raise
+
+    finally:
+        session.close()
 
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = Session(bind=bind)
 
-    for slc in session.query(Slice).filter(Slice.viz_type == "table"):
-        params = json.loads(slc.params)
-        conditional_formatting = params.get("conditional_formatting", [])
-        if conditional_formatting:
-            new_conditional_formatting = []
-            for formatter in conditional_formatting:
-                if "toAllRow" in formatter or "toTextColor" in formatter:
-                    new_formatter = formatter.copy()
-                    new_formatter.pop("toAllRow", None)
-                    new_formatter.pop("toTextColor", None)
-                    new_conditional_formatting.append(new_formatter)
-                else:
-                    new_conditional_formatting.append(formatter)
+    try:
+        total_count = session.query(Slice).filter(Slice.viz_type == "table").count()
+        logger.info(f"Found {total_count} table slices to process for downgrade")
 
-            params["conditional_formatting"] = new_conditional_formatting
-            slc.params = json.dumps(params)
+        batch_size = 1000
+        processed = 0
 
-    session.commit()
-    session.close()
+        while processed < total_count:
+            try:
+                slices_batch = (
+                    session.query(Slice)
+                    .filter(Slice.viz_type == "table")
+                    .offset(processed)
+                    .limit(batch_size)
+                    .all()
+                )
+
+                if not slices_batch:
+                    break
+
+                for slc in slices_batch:
+                    try:
+                        params = json.loads(slc.params)
+                        conditional_formatting = params.get(
+                            "conditional_formatting", []
+                        )
+
+                        if conditional_formatting:
+                            new_conditional_formatting = []
+                            for formatter in conditional_formatting:
+                                if (
+                                    "toAllRow" in formatter
+                                    or "toTextColor" in formatter
+                                ):
+                                    new_formatter = formatter.copy()
+                                    new_formatter.pop("toAllRow", None)
+                                    new_formatter.pop("toTextColor", None)
+                                    new_conditional_formatting.append(new_formatter)
+                                else:
+                                    new_conditional_formatting.append(formatter)
+
+                            params["conditional_formatting"] = (
+                                new_conditional_formatting
+                            )
+                            slc.params = json.dumps(params)
+
+                    except Exception as e:
+                        logger.error(
+                            f"Error processing slice {slc.id} while downgrade: {str(e)}"
+                        )
+                        continue
+
+                session.commit()
+                processed += len(slices_batch)
+                logger.info(f"Processed {processed}/{total_count} slices for downgrade")
+
+            except SQLAlchemyError as e:
+                session.rollback()
+                logger.error(
+                    f"Error processing batch {processed}-{processed + batch_size} "
+                    f"while downgrade: {str(e)}"
+                )
+                processed += batch_size
+
+        logger.info("Downgrade completed successfully")
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Unexpected error in downgrade: {str(e)}")
+        raise
+
+    finally:
+        session.close()
