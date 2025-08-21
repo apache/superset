@@ -17,6 +17,7 @@
  * under the License.
  */
 import { FilterXSS, getDefaultWhiteList } from 'xss';
+import { DataRecordValue } from '../types';
 
 const xssFilter = new FilterXSS({
   whiteList: {
@@ -203,4 +204,11 @@ export function getParagraphContents(
   });
 
   return paragraphContents;
+}
+
+export function extractTextFromHTML(value: DataRecordValue): DataRecordValue {
+  if (typeof value === 'string' && isProbablyHTML(value)) {
+    return removeHTMLTags(value);
+  }
+  return value;
 }
