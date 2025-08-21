@@ -23,6 +23,39 @@ class DAOException(SupersetException):
     """
 
 
+class DAOFindFailedError(DAOException):
+    """
+    DAO Find failed
+    """
+
+    status = 400
+    message = "Find failed"
+
+
+class DAOCreateFailedError(DAOException):
+    """
+    DAO Create failed
+    """
+
+    message = "Create failed"
+
+
+class DAOUpdateFailedError(DAOException):
+    """
+    DAO Update failed
+    """
+
+    message = "Update failed"
+
+
+class DAODeleteFailedError(DAOException):
+    """
+    DAO Delete failed
+    """
+
+    message = "Delete failed"
+
+
 class DatasourceTypeNotSupportedError(DAOException):
     """
     DAO datasource query source type is not supported
