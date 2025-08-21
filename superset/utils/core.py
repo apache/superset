@@ -550,9 +550,19 @@ def sanitize_svg_content(svg_content: str) -> str:
         r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
     )
     content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
+
+    # Remove event handlers (simple catch-all approach)
+    content = re.sub(r"\bon\w+\s*=", "", content, flags=re.IGNORECASE)
+
+    # Remove other suspicious patterns
     content = re.sub(
-        r"on\w+\s*=", "", content, flags=re.IGNORECASE
-    )  # Remove event handlers
+        r"<iframe[^>]*>.*?</iframe>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(
+        r"<object[^>]*>.*?</object>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"<embed[^>]*>", "", content, flags=re.IGNORECASE)
 
     return content
 
