@@ -187,6 +187,26 @@ pre-commit run eslint            # Frontend linting
 - **[GPT.md](GPT.md)** - For OpenAI/ChatGPT tools
 - **[.cursor/rules/dev-standard.mdc](.cursor/rules/dev-standard.mdc)** - For Cursor editor
 
+## Local Configuration
+
+### Feature Flags & Settings
+Always use git-ignored config files instead of modifying core files:
+
+**For Docker deployments** (check with `docker ps` or `docker-compose ps`):
+- **Config file**: `docker/pythonpath_dev/superset_config_docker.py` (auto-imported)
+- **Pattern**: Copy `superset_config_local.example` to `superset_config_docker.py`
+- **Git status**: Ignored by `docker/*local*` pattern
+- **Restart**: `docker-compose down && docker-compose up` (or your Docker management tool)
+
+**For Flask/local deployments**:
+- **Config file**: `superset_config.py` (in project root, auto-imported)  
+- **Git status**: Ignored by `/superset_config.py` pattern
+- **Restart**: Restart Flask development server
+
+**Both methods**:
+- **Add feature flags**: `FEATURE_FLAGS = {"ENABLE_THEME_EDITOR": True}`
+- **Check deployment**: Use `docker ps` to see if containers are running
+
 ---
 
 **LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
