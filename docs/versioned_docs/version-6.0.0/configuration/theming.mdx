@@ -1,0 +1,192 @@
+---
+title: Theming
+hide_title: true
+sidebar_position: 12
+version: 1
+---
+# Theming Superset
+
+:::note
+apache-superset>=6.0
+:::
+
+Superset now rides on **Ant Design v5's token-based theming**.
+Every Antd token works, plus a handful of Superset-specific ones for charts and dashboard chrome.
+
+## Managing Themes via UI
+
+Superset includes a built-in **Theme Management** interface accessible from the admin menu under **Settings > Themes**.
+
+### Creating a New Theme
+
+1. Navigate to **Settings > Themes** in the Superset interface
+2. Click **+ Theme** to create a new theme
+3. Use the [Ant Design Theme Editor](https://ant.design/theme-editor) to design your theme:
+   - Design your palette, typography, and component overrides
+   - Open the `CONFIG` modal and copy the JSON configuration
+4. Paste the JSON into the theme definition field in Superset
+5. Give your theme a descriptive name and save
+
+You can also extend with Superset-specific tokens (documented in the default theme object) before you import.
+
+### System Theme Administration
+
+When `ENABLE_UI_THEME_ADMINISTRATION = True` is configured, administrators can manage system-wide themes directly from the UI:
+
+#### Setting System Themes
+- **System Default Theme**: Click the sun icon on any theme to set it as the system-wide default
+- **System Dark Theme**: Click the moon icon on any theme to set it as the system dark mode theme
+- **Automatic OS Detection**: When both default and dark themes are set, Superset automatically detects and applies the appropriate theme based on OS preferences
+
+#### Managing System Themes
+- System themes are indicated with special badges in the theme list
+- Only administrators with write permissions can modify system theme settings
+- Removing a system theme designation reverts to configuration file defaults
+
+### Applying Themes to Dashboards
+
+Once created, themes can be applied to individual dashboards:
+- Edit any dashboard and select your custom theme from the theme dropdown
+- Each dashboard can have its own theme, allowing for branded or context-specific styling
+
+## Configuration Options
+
+### Python Configuration
+
+Configure theme behavior via `superset_config.py`:
+
+```python
+# Enable UI-based theme administration for admins
+ENABLE_UI_THEME_ADMINISTRATION = True
+
+# Optional: Set initial default themes via configuration
+# These can be overridden via the UI when ENABLE_UI_THEME_ADMINISTRATION = True
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        "colorSuccess": "#5ac189",
+        # ... your theme JSON configuration
+    }
+}
+
+# Optional: Dark theme configuration
+THEME_DARK = {
+    "algorithm": "dark",
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... your dark theme overrides
+    }
+}
+
+# To force a single theme on all users, set THEME_DARK = None
+# When both themes are defined (via UI or config):
+# - Users can manually switch between themes
+# - OS preference detection is automatically enabled
+```
+
+### Migration from Configuration to UI
+
+When `ENABLE_UI_THEME_ADMINISTRATION = True`:
+
+1. System themes set via the UI take precedence over configuration file settings
+2. The UI shows which themes are currently set as system defaults
+3. Administrators can change system themes without restarting Superset
+4. Configuration file themes serve as fallbacks when no UI themes are set
+
+### Copying Themes Between Systems
+
+To export a theme for use in configuration files or another instance:
+
+1. Navigate to **Settings > Themes** and click the export icon on your desired theme
+2. Extract the JSON configuration from the exported YAML file
+3. Use this JSON in your `superset_config.py` or import it into another Superset instance
+
+## Theme Development Workflow
+
+1. **Design**: Use the [Ant Design Theme Editor](https://ant.design/theme-editor) to iterate on your design
+2. **Test**: Create themes in Superset's CRUD interface for testing
+3. **Apply**: Assign themes to specific dashboards or configure instance-wide
+4. **Iterate**: Modify theme JSON directly in the CRUD interface or re-import from the theme editor
+
+## Custom Fonts
+
+Superset supports custom fonts through runtime configuration, allowing you to use branded or custom typefaces without rebuilding the application.
+
+### Configuring Custom Fonts
+
+Add font URLs to your `superset_config.py`:
+
+```python
+# Load fonts from Google Fonts, Adobe Fonts, or self-hosted sources
+CUSTOM_FONT_URLS = [
+    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap",
+]
+
+# Update CSP to allow font sources
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        "font-src": ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+    }
+}
+```
+
+### Using Custom Fonts in Themes
+
+Once configured, reference the fonts in your theme configuration:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontFamilyCode": "JetBrains Mono, Monaco, monospace",
+        # ... other theme tokens
+    }
+}
+```
+
+Or in the CRUD interface theme JSON:
+
+```json
+{
+  "token": {
+    "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+    "fontFamilyCode": "JetBrains Mono, Monaco, monospace"
+  }
+}
+```
+
+### Font Sources
+
+- **Google Fonts**: Free, CDN-hosted fonts with wide variety
+- **Adobe Fonts**: Premium fonts (requires subscription and kit ID)
+- **Self-hosted**: Place font files in `/static/assets/fonts/` and reference via CSS
+
+This feature works with the stock Docker image - no custom build required!
+
+## Advanced Features
+
+- **System Themes**: Manage system-wide default and dark themes via UI or configuration
+- **Per-Dashboard Theming**: Each dashboard can have its own visual identity
+- **JSON Editor**: Edit theme configurations directly within Superset's interface
+- **Custom Fonts**: Load external fonts via configuration without rebuilding
+- **OS Dark Mode Detection**: Automatically switches themes based on system preferences
+- **Theme Import/Export**: Share themes between instances via YAML files
+
+## API Access
+
+For programmatic theme management, Superset provides REST endpoints:
+
+- `GET /api/v1/theme/` - List all themes
+- `POST /api/v1/theme/` - Create a new theme
+- `PUT /api/v1/theme/{id}` - Update a theme
+- `DELETE /api/v1/theme/{id}` - Delete a theme
+- `PUT /api/v1/theme/{id}/set_system_default` - Set as system default theme (admin only)
+- `PUT /api/v1/theme/{id}/set_system_dark` - Set as system dark theme (admin only)
+- `DELETE /api/v1/theme/unset_system_default` - Remove system default designation
+- `DELETE /api/v1/theme/unset_system_dark` - Remove system dark designation
+- `GET /api/v1/theme/export/` - Export themes as YAML
+- `POST /api/v1/theme/import/` - Import themes from YAML
+
+These endpoints require appropriate permissions and are subject to RBAC controls.
