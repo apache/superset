@@ -6664,7 +6664,7 @@ msgid "No %s yet"
 msgstr ""
 
 msgid "No Data"
-msgstr ""
+msgstr "0"
 
 msgid "No Results"
 msgstr ""
@@ -6717,7 +6717,7 @@ msgstr ""
 msgid "No data"
 msgstr ""
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 
 msgid "No data in file"
@@ -6771,7 +6771,7 @@ msgstr ""
 msgid "No results match your filter criteria"
 msgstr ""
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr ""
 
 msgid ""
@@ -11915,7 +11915,7 @@ msgstr ""
 msgid "Waiting on %s"
 msgstr ""
 
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr ""
 
 msgid "Want to add a new database?"

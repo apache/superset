@@ -7709,7 +7709,7 @@ msgid "No %s yet"
 msgstr "Pas encore de %s"
 
 msgid "No Data"
-msgstr "Aucune donnée"
+msgstr "0"
 
 #, fuzzy
 msgid "No Results"
@@ -7774,7 +7774,7 @@ msgstr "Pas encore de tableau de bord"
 msgid "No data"
 msgstr "Aucune donnée"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 "Pas de données après le filtrage ou données NULLES pour le dernier "
 "enregistrement temporel"
@@ -7839,7 +7839,7 @@ msgstr "Aucun résultat trouvé"
 msgid "No results match your filter criteria"
 msgstr "Aucun résultat ne correspond à vos critères de filtrage"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Aucun résultat n'a été obtenu pour cette requête"
 
 msgid ""
@@ -14079,7 +14079,7 @@ msgid "Waiting on %s"
 msgstr "Affichage de %s sur %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Gérer vos bases de données"
 
 msgid "Want to add a new database?"

@@ -22,6 +22,7 @@ import logger from './logging';
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   // PLEASE KEEP THE LIST SORTED ALPHABETICALLY
+  AiSummaryOnChart = 'AI_SUMMARY_ON_CHART',
   AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
   AlertReports = 'ALERT_REPORTS',
   AlertReportTabs = 'ALERT_REPORT_TABS',
@@ -96,7 +97,8 @@ export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
 
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
-    return !!window.featureFlags[feature];
+    const flags = window.featureFlags as Record<string, unknown>;
+    return !!flags[feature];
   } catch (error) {
     logger.error(`Failed to query feature flag ${feature}`);
   }

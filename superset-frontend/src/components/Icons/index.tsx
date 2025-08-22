@@ -105,6 +105,7 @@ const IconFileNames = [
   'keyboard',
   'layers',
   'lightbulb',
+  'ai',
   'line-chart-tile',
   'link',
   'list',

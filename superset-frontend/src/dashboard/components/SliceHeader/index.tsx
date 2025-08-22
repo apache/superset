@@ -17,11 +17,18 @@
  * under the License.
  */
 import { FC, ReactNode, useContext, useEffect, useRef, useState } from 'react';
-import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
+import {
+  css,
+  getExtensionsRegistry,
+  styled,
+  t,
+  keyframes,
+} from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
+import { Skeleton } from 'src/components';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
 } from 'src/dashboard/components/SliceHeaderControls';
@@ -57,6 +64,22 @@ const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   `}
 `;
 
+const shimmer = keyframes`
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+`;
+
+const HeaderBar = styled.div`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  height: 16px;
+  width: 32%;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  background: ${({ theme }) =>
+    `linear-gradient(90deg, ${theme.colors.grayscale.light3}, ${theme.colors.grayscale.light2}, ${theme.colors.grayscale.light3})`};
+  background-size: 200% 200%;
+  animation: ${shimmer} 1.5s ease-in-out infinite;
+`;
+
 const ChartHeaderStyles = styled.div`
   ${({ theme }) => css`
     font-size: ${theme.typography.sizes.l}px;
@@ -75,6 +98,8 @@ const ChartHeaderStyles = styled.div`
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+      display: flex;
+      align-items: center;
 
       & > span.ant-tooltip-open {
         display: inline;
@@ -189,6 +214,25 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
+  if (chartStatus === 'loading') {
+    return (
+      <>
+        <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
+          <div className="header-title" ref={headerRef}>
+            <div
+              css={theme => css`
+                width: 60%;
+                min-width: 160px;
+              `}
+            >
+              {/* <Skeleton.Input active size="small" /> */}
+              <HeaderBar />
+            </div>
+          </div>
+        </ChartHeaderStyles>
+      </>
+    );
+  }
   return (
     <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
@@ -206,6 +250,45 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             url={canExplore ? exploreUrl : undefined}
           />
         </Tooltip>
+        <div
+          css={theme => css`
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: ${theme.gridUnit * 1.5}px;
+            margin-top: ${theme.gridUnit / 2}px;
+            margin-left: ${theme.gridUnit * 1.5}px;
+            transform: scale(0.95);
+          `}
+        >
+          <h3
+            css={theme => css`
+              margin: 0;
+              font-size: ${theme.typography.sizes.m}px;
+              display: flex;
+              align-items: center;
+              gap: ${theme.gridUnit}px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              line-height: 0;
+            `}
+          >
+            {slice.description?.trim() && (
+              <Tooltip title={slice.description}>
+                <Icons.InfoCircleOutlined
+                  style={{
+                    fontSize: '14px',
+                    color: '#999',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    lineHeight: '0 !important',
+                  }}
+                />
+              </Tooltip>
+            )}
+          </h3>
+        </div>
         {!!Object.values(annotationQuery).length && (
           <Tooltip
             id="annotations-loading-tooltip"

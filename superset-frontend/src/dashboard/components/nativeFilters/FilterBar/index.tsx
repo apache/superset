@@ -30,6 +30,7 @@ import {
 
 import { useDispatch, useSelector } from 'react-redux';
 import {
+  DataMaskState,
   DataMaskStateWithId,
   DataMaskWithId,
   Filter,
@@ -51,7 +52,7 @@ import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { checkIsApplyDisabled } from './utils';
+
 import { FiltersBarProps } from './types';
 import {
   useNativeFiltersDataMask,
@@ -189,7 +190,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
-      const updates = {};
+      const updates: DataMaskState = {};
       Object.values(filters).forEach(currentFilter => {
         const previousFilter = previousFilters?.[currentFilter.id];
         if (!previousFilter) {
@@ -248,43 +249,55 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAll = useCallback(() => {
     const clearDataMaskIds: string[] = [];
-    let dispatchAllowed = false;
+
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       const { id } = filter;
-      if (dataMaskSelected[id]) {
-        if (filter.controlValues?.enableEmptyFilter) {
-          dispatchAllowed = false;
-        }
+      if (dataMaskSelected[id] || dataMaskApplied[id]) {
         clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
-          if (draft[id].filterState?.value !== undefined) {
-            draft[id].filterState!.value = undefined;
-          }
+          // Clear the filter from selected state
+          delete draft[id];
         });
       }
     });
-    if (dispatchAllowed) {
-      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
-    }
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
 
-  useFilterUpdates(dataMaskSelected, setDataMaskSelected);
-  const isApplyDisabled = checkIsApplyDisabled(
+    // Clear applied filters immediately
+    clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
+  }, [
     dataMaskSelected,
     dataMaskApplied,
-    filtersInScope.filter(isNativeFilter),
-  );
+    dispatch,
+    filtersInScope,
+    setDataMaskSelected,
+  ]);
+
+  useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isInitialized = useInitialization();
+
+  // Auto-apply filters when dataMaskSelected changes
+  const previousDataMaskSelected = usePrevious(dataMaskSelected);
+  useEffect(() => {
+    // Only auto-apply if:
+    // 1. Component is initialized
+    // 2. dataMaskSelected has actually changed
+    // 3. There are filters selected
+    if (
+      isInitialized &&
+      previousDataMaskSelected &&
+      !isEqual(previousDataMaskSelected, dataMaskSelected) &&
+      Object.keys(dataMaskSelected).length > 0
+    ) {
+      handleApply();
+    }
+  }, [dataMaskSelected, isInitialized, previousDataMaskSelected, handleApply]);
 
   const actions = (
     <ActionButtons
       filterBarOrientation={orientation}
       width={verticalConfig?.width}
-      onApply={handleApply}
       onClearAll={handleClearAll}
       dataMaskSelected={dataMaskSelected}
       dataMaskApplied={dataMaskApplied}
-      isApplyDisabled={isApplyDisabled}
     />
   );
 

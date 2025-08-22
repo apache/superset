@@ -7173,7 +7173,7 @@ msgstr "Нет дашбордов"
 msgid "No data"
 msgstr "Нет данных"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 "Нет данных после фильтрации или данные отсутствуют за последний отрезок "
 "времени"
@@ -7231,7 +7231,7 @@ msgstr "Записи не найдены"
 msgid "No results match your filter criteria"
 msgstr "Не найдено результатов по вашим критериям"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Не было получено данных по этому запросу"
 
 msgid ""
@@ -12888,7 +12888,7 @@ msgstr "СР"
 msgid "Waiting on %s"
 msgstr "Ждем %s"
 
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Ожидание ответа от базы данных…"
 
 msgid "Want to add a new database?"

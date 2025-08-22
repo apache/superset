@@ -7070,7 +7070,7 @@ msgstr ""
 
 #, fuzzy
 msgid "No Data"
-msgstr "Metadati JSON"
+msgstr "0"
 
 #, fuzzy
 msgid "No Results"
@@ -7132,7 +7132,7 @@ msgstr "Elenco Dashboard"
 msgid "No data"
 msgstr "Metadati JSON"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 
 msgid "No data in file"
@@ -7193,7 +7193,7 @@ msgstr "Nessun record trovato"
 msgid "No results match your filter criteria"
 msgstr ""
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr ""
 
 msgid ""
@@ -12681,7 +12681,7 @@ msgid "Waiting on %s"
 msgstr ""
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Database"
 
 msgid "Want to add a new database?"

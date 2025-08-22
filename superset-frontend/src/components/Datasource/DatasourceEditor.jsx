@@ -1419,6 +1419,13 @@ class DatasourceEditor extends PureComponent {
             </>
           }
         />
+        <Alert
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          type="info"
+          message={t(
+            'Upon updating the dataset query, navigate to the columns tab and click `SYNC COLUMNS FROM SOURCE` to get the updated columns.',
+          )}
+        />
         <StyledTableTabs
           fullWidth={false}
           id="table-tabs"

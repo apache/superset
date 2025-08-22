@@ -98,9 +98,7 @@ describe('ResultsPaneOnDashboard', () => {
     const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
       useRedux: true,
     });
-    expect(
-      await findByText('No results were returned for this query'),
-    ).toBeVisible();
+    expect(await findByText('No data')).toBeVisible();
   });
 
   test('render errorMessage', async () => {

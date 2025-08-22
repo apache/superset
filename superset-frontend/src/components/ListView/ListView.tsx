@@ -457,7 +457,7 @@ function ListView<T extends object = any>({
               ) : (
                 <EmptyStateBig
                   {...emptyState}
-                  title={emptyState?.title || t('No Data')}
+                  title={emptyState?.title || '0'}
                   image={emptyState?.image || 'filter-results.svg'}
                 />
               )}

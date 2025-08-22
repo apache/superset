@@ -352,6 +352,14 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
+const enable_ai_insights: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable AI insights'),
+  default: false,
+  description: t('Include AI-generated insights for this chart'),
+  renderTrigger: true,
+};
+
 const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
   initialValue: (control: ControlState, state: ControlPanelState | null) =>
@@ -409,4 +417,5 @@ export default {
   temporal_columns_lookup,
   currency_format,
   sort_by_metric,
+  enable_ai_insights,
 };

@@ -7228,7 +7228,7 @@ msgstr "Nog geen dashboards"
 msgid "No data"
 msgstr "Geen data"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr "Geen gegevens na filteren of gegevens is NULL voor het laatste tijdrecord"
 
 msgid "No data in file"
@@ -7282,7 +7282,7 @@ msgstr "Geen resultaten gevonden"
 msgid "No results match your filter criteria"
 msgstr "Geen resultaten gevonden met uw filtercriteria"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Er zijn geen resultaten gevonden voor deze zoekopdracht"
 
 msgid ""
@@ -13051,7 +13051,7 @@ msgid "Waiting on %s"
 msgstr "Weergave %s van %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Beheer je databases"
 
 msgid "Want to add a new database?"

@@ -281,7 +281,7 @@ export default function DrillDetailPane({
       </pre>
     );
   } else if (bootstrapping) {
-    // Render loading if first page hasn't loaded
+    // Render shimmer if first page hasn't loaded
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page

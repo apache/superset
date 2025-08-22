@@ -6996,7 +6996,7 @@ msgid "No %s yet"
 msgstr ""
 
 msgid "No Data"
-msgstr ""
+msgstr "0"
 
 #, fuzzy
 msgid "No Results"
@@ -7058,7 +7058,7 @@ msgstr "대시보드"
 msgid "No data"
 msgstr ""
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 
 msgid "No data in file"
@@ -7115,7 +7115,7 @@ msgstr ""
 msgid "No results match your filter criteria"
 msgstr ""
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr ""
 
 msgid ""
@@ -12539,7 +12539,7 @@ msgid "Waiting on %s"
 msgstr ""
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "데이터베이스 선택"
 
 msgid "Want to add a new database?"

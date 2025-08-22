@@ -7160,7 +7160,7 @@ msgstr "Ni še nadzornih plošč"
 msgid "No data"
 msgstr "Ni podatkov"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 "Ni podatkov po filtriranju ali pa imajo vrednost NULL za zadnji časovni "
 "zapis"
@@ -7216,7 +7216,7 @@ msgstr "Rezultati niso najdeni"
 msgid "No results match your filter criteria"
 msgstr "Noben rezultat ne ustreza vašim kriterijem"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Poizvedba ni vrnila rezultatov"
 
 msgid ""
@@ -12862,7 +12862,7 @@ msgid "Waiting on %s"
 msgstr "Prikazanih %s od %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Upravljajte podatkovne baze"
 
 msgid "Want to add a new database?"

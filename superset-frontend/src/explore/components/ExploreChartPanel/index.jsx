@@ -270,6 +270,8 @@ const ExploreChartPanel = ({
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
+            description={slice?.description}
+            title={slice?.slice_name}
           />
         )}
       </div>
@@ -294,6 +296,8 @@ const ExploreChartPanel = ({
       formData,
       onQuery,
       ownState,
+      slice?.description,
+      slice?.slice_name,
       timeout,
       triggerRender,
       vizType,

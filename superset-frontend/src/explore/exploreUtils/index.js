@@ -37,6 +37,7 @@ import {
   UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { convertFormDataForAPI } from 'src/components/Chart/timezoneChartActions';
 
 export function getChartKey(explore) {
   const { slice, form_data } = explore;
@@ -210,17 +211,21 @@ export const buildV1ChartDataPayload = ({
   setDataMask,
   ownState,
 }) => {
+  // Convert timezone-aware dates to UTC BEFORE building queries
+  const convertedFormData = convertFormDataForAPI(formData);
+
   const buildQuery =
-    getChartBuildQueryRegistry().get(formData.viz_type) ??
+    getChartBuildQueryRegistry().get(convertedFormData.viz_type) ??
     (buildQueryformData =>
       buildQueryContext(buildQueryformData, baseQueryObject => [
         {
           ...baseQueryObject,
         },
       ]));
-  return buildQuery(
+
+  const payload = buildQuery(
     {
-      ...formData,
+      ...convertedFormData,
       force,
       result_format: resultFormat,
       result_type: resultType,
@@ -232,6 +237,8 @@ export const buildV1ChartDataPayload = ({
       },
     },
   );
+
+  return payload;
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>

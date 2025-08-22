@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
+import ChartShimmer from 'src/components/Chart/ChartShimmer';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
@@ -82,6 +83,8 @@ const propTypes = {
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
+  description: PropTypes.string,
+  title: PropTypes.string,
 };
 
 const BLANK = {};
@@ -132,16 +135,8 @@ const LoadingDiv = styled.div`
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 80%;
+  width: 100%;
   transform: translate(-50%, -50%);
-`;
-
-const MessageSpan = styled.span`
-  display: block;
-  text-align: center;
-  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
-  width: fit-content;
-  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 const MonospaceDiv = styled.div`
@@ -229,7 +224,7 @@ class Chart extends PureComponent {
           data-test="chart-container"
           height={height}
         >
-          <Loading />
+          <ChartShimmer height={height} />
         </Styles>
       );
     }
@@ -248,15 +243,10 @@ class Chart extends PureComponent {
     );
   }
 
-  renderSpinner(databaseName) {
-    const message = databaseName
-      ? t('Waiting on %s', databaseName)
-      : t('Waiting on database...');
-
+  renderSpinner() {
     return (
       <LoadingDiv>
-        <Loading position="inline-centered" />
-        <MessageSpan>{message}</MessageSpan>
+        <ChartShimmer height={this.props.height} />
       </LoadingDiv>
     );
   }
@@ -273,7 +263,7 @@ class Chart extends PureComponent {
             data-test={this.props.vizType}
           />
         ) : (
-          <Loading />
+          <ChartShimmer height={this.props.height} />
         )}
       </div>
     );
@@ -284,13 +274,13 @@ class Chart extends PureComponent {
       height,
       chartAlert,
       chartStatus,
-      datasource,
+      // datasource,
       errorMessage,
       chartIsStale,
       queriesResponse = [],
       width,
     } = this.props;
-    const databaseName = datasource?.database?.name;
+    // const databaseName = datasource?.database?.name;
 
     const isLoading = chartStatus === 'loading';
     this.renderContainerStartTime = Logger.getTimestamp();
@@ -346,9 +336,7 @@ class Chart extends PureComponent {
           height={height}
           width={width}
         >
-          {isLoading
-            ? this.renderSpinner(databaseName)
-            : this.renderChartContainer()}
+          {isLoading ? this.renderSpinner() : this.renderChartContainer()}
         </Styles>
       </ErrorBoundary>
     );

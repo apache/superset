@@ -528,6 +528,8 @@ class Chart extends Component {
             datasetsStatus={datasetsStatus}
             isInView={isInView}
             emitCrossFilters={emitCrossFilters}
+            description={slice.description}
+            title={slice.slice_name}
           />
         </ChartWrapper>
       </SliceContainer>

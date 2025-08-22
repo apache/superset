@@ -7337,7 +7337,7 @@ msgstr "Aún no hay %s"
 
 #, fuzzy
 msgid "No Data"
-msgstr "No hay datos"
+msgstr "0"
 
 #, fuzzy
 msgid "No Results"
@@ -7403,7 +7403,7 @@ msgstr "No hay dashboards"
 msgid "No data"
 msgstr "No hay datos"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 
 msgid "No data in file"
@@ -7465,7 +7465,7 @@ msgstr "No se han encontrado resultados"
 msgid "No results match your filter criteria"
 msgstr ""
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr ""
 
 msgid ""
@@ -13220,7 +13220,7 @@ msgid "Waiting on %s"
 msgstr "Mostrando %s de %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Nombre de tu fuente de datos"
 
 msgid "Want to add a new database?"

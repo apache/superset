@@ -19,6 +19,8 @@
 import { useSelector } from 'react-redux';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { Moment } from 'moment';
+import moment from 'moment-timezone';
+import { useTimezone } from 'src/components/TimezoneContext';
 import { isInteger } from 'lodash';
 // @ts-ignore
 import { locales } from 'antd/dist/antd-with-locales';
@@ -46,6 +48,7 @@ import {
 import { ExplorePageState } from 'src/explore/types';
 
 export function CustomFrame(props: FrameComponentProps) {
+  const { timezone } = useTimezone();
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
@@ -118,6 +121,17 @@ export function CustomFrame(props: FrameComponentProps) {
   const datePickerLocale =
     locales[LOCALE_MAPPING[localFromFlaskBabel]]?.DatePicker;
 
+  // Helper functions for timezone-aware date handling
+  const convertToTimezone = (datetime: string): Moment => {
+    const converted = moment.tz(datetime, timezone);
+    return converted;
+  };
+
+  const convertFromTimezone = (momentDate: Moment): string => {
+    const result = momentDate.clone().tz(timezone).format(MOMENT_FORMAT);
+    return result;
+  };
+
   return (
     <div data-test="custom-frame">
       <div className="section-title">{t('Configure custom time range')}</div>
@@ -140,9 +154,9 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row>
               <DatePicker
                 showTime
-                defaultValue={dttmToMoment(sinceDatetime)}
+                defaultValue={convertToTimezone(sinceDatetime)}
                 onChange={(datetime: Moment) =>
-                  onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
+                  onChange('sinceDatetime', convertFromTimezone(datetime))
                 }
                 allowClear={false}
                 locale={datePickerLocale}
@@ -193,9 +207,9 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row>
               <DatePicker
                 showTime
-                defaultValue={dttmToMoment(untilDatetime)}
+                defaultValue={convertToTimezone(untilDatetime)}
                 onChange={(datetime: Moment) =>
-                  onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
+                  onChange('untilDatetime', convertFromTimezone(datetime))
                 }
                 allowClear={false}
                 locale={datePickerLocale}
@@ -250,9 +264,9 @@ export function CustomFrame(props: FrameComponentProps) {
               <Col>
                 <DatePicker
                   showTime
-                  defaultValue={dttmToMoment(anchorValue)}
+                  defaultValue={convertToTimezone(anchorValue)}
                   onChange={(datetime: Moment) =>
-                    onChange('anchorValue', datetime.format(MOMENT_FORMAT))
+                    onChange('anchorValue', convertFromTimezone(datetime))
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"

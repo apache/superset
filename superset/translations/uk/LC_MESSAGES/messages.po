@@ -7218,7 +7218,7 @@ msgstr "Ще немає інформаційних панелей"
 msgid "No data"
 msgstr "Немає даних"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 "Ніякі дані після фільтрації або даних є нульовими для останнього запису "
 "часу"
@@ -7274,7 +7274,7 @@ msgstr "Нічого не знайдено"
 msgid "No results match your filter criteria"
 msgstr "Ніякі результати не відповідають вашим критеріям фільтра"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Для цього запиту не було повернуто жодних результатів"
 
 msgid ""
@@ -13021,7 +13021,7 @@ msgid "Waiting on %s"
 msgstr "Показуючи %s %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Керуйте своїми базами даних"
 
 msgid "Want to add a new database?"

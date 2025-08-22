@@ -26,6 +26,7 @@ import {
   BRAND_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
+  getCurrencySymbol,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -132,7 +133,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
     // @ts-ignore
-    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+    const text = bigNumber === null ? '0' : headerFormatter(bigNumber);
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -189,9 +190,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const { bigNumber, subheader, width, bigNumberFallback } = this.props;
     let fontSize = 0;
 
-    const NO_DATA_OR_HASNT_LANDED = t(
-      'No data after filtering or data is NULL for the latest time record',
-    );
+    const NO_DATA_OR_HASNT_LANDED = t('NO_DATA_OR_HASNT_LANDED');
     const NO_DATA = t(
       'Try applying different filters or ensuring your datasource has data',
     );
@@ -211,7 +210,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       });
       container.remove();
 
-      return (
+      return text === 'NO_DATA_OR_HASNT_LANDED' ? null : (
         <div
           className="subheader-line"
           style={{

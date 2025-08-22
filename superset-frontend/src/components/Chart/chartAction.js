@@ -43,6 +43,7 @@ import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesCo
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { safeStringify } from 'src/utils/safeStringify';
+import { convertFormDataForAPI, convertAnnotationFormDataForAPI } from './timezoneChartActions';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -264,6 +265,10 @@ export function runAnnotationQuery({
       ...(formData || charts[sliceKey].latestQueryFormData),
     };
 
+    // Convert annotation and form data for timezone-aware API calls
+    const { annotation: convertedAnnotation, formData: convertedFd } =
+      convertAnnotationFormDataForAPI(annotation, fd);
+
     if (!annotation.sourceType) {
       return Promise.resolve();
     }
@@ -271,42 +276,42 @@ export function runAnnotationQuery({
     // In the original formData the `granularity` attribute represents the time grain (eg
     // `P1D`), but in the request payload it corresponds to the name of the column where
     // the time grain should be applied (eg, `Date`), so we need to move things around.
-    fd.time_grain_sqla = fd.time_grain_sqla || fd.granularity;
-    fd.granularity = fd.granularity_sqla;
+    convertedFd.time_grain_sqla = convertedFd.time_grain_sqla || convertedFd.granularity;
+    convertedFd.granularity = convertedFd.granularity_sqla;
 
-    const overridesKeys = Object.keys(annotation.overrides);
+    const overridesKeys = Object.keys(convertedAnnotation.overrides || {});
     if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
-      annotation.overrides = {
-        ...annotation.overrides,
+      convertedAnnotation.overrides = {
+        ...convertedAnnotation.overrides,
         time_range: null,
       };
     }
-    const sliceFormData = Object.keys(annotation.overrides).reduce(
+    const sliceFormData = Object.keys(convertedAnnotation.overrides || {}).reduce(
       (d, k) => ({
         ...d,
-        [k]: annotation.overrides[k] || fd[k],
+        [k]: convertedAnnotation.overrides[k] || convertedFd[k],
       }),
       {},
     );
 
-    if (!isDashboardRequest && fd) {
-      const hasExtraFilters = fd.extra_filters && fd.extra_filters.length > 0;
+    if (!isDashboardRequest && convertedFd) {
+      const hasExtraFilters = convertedFd.extra_filters && convertedFd.extra_filters.length > 0;
       sliceFormData.extra_filters = hasExtraFilters
-        ? fd.extra_filters
+        ? convertedFd.extra_filters
         : undefined;
     }
 
-    const url = getAnnotationJsonUrl(annotation.value, force);
+    const url = getAnnotationJsonUrl(convertedAnnotation.value, force);
     const controller = new AbortController();
     const { signal } = controller;
 
-    dispatch(annotationQueryStarted(annotation, controller, sliceKey));
+    dispatch(annotationQueryStarted(convertedAnnotation, controller, sliceKey));
 
-    const annotationIndex = fd?.annotation_layers?.findIndex(
-      it => it.name === annotation.name,
+    const annotationIndex = convertedFd?.annotation_layers?.findIndex(
+      it => it.name === convertedAnnotation.name,
     );
     if (annotationIndex >= 0) {
-      fd.annotation_layers[annotationIndex].overrides = sliceFormData;
+      convertedFd.annotation_layers[annotationIndex].overrides = sliceFormData;
     }
 
     return SupersetClient.post({
@@ -315,7 +320,7 @@ export function runAnnotationQuery({
       timeout: queryTimeout * 1000,
       headers: { 'Content-Type': 'application/json' },
       jsonPayload: buildV1ChartDataPayload({
-        formData: fd,
+        formData: convertedFd,
         force,
         resultFormat: 'json',
         resultType: 'full',

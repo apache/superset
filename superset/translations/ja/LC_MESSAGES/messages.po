@@ -6788,7 +6788,7 @@ msgid "No %s yet"
 msgstr "%s はまだありません"
 
 msgid "No Data"
-msgstr "データなし"
+msgstr "0"
 
 msgid "No Results"
 msgstr "結果がありません"
@@ -6842,7 +6842,7 @@ msgstr "ダッシュボードはまだありません"
 msgid "No data"
 msgstr "データなし"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr "フィルタリング後にデータがないか、最新の時間レコードのデータが NULL です"
 
 msgid "No data in file"
@@ -6896,7 +6896,7 @@ msgstr "結果が見つかりませんでした"
 msgid "No results match your filter criteria"
 msgstr "フィルタ条件に一致する結果はありません"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "このクエリでは結果が返されませんでした"
 
 msgid ""
@@ -12243,7 +12243,7 @@ msgid "Waiting on %s"
 msgstr "Showing %s of %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "データベースを管理する"
 
 msgid "Want to add a new database?"

@@ -190,10 +190,7 @@ describe('FilterBar', () => {
     expect(screen.getByText('Clear all')).toBeInTheDocument();
   });
 
-  it('should render the "Apply filters" option', () => {
-    renderWrapper();
-    expect(screen.getByText('Apply filters')).toBeInTheDocument();
-  });
+
 
   it('should render the collapse icon', () => {
     renderWrapper();
@@ -247,7 +244,6 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
   it('renders dividers', async () => {
@@ -285,15 +281,11 @@ describe('FilterBar', () => {
     expect(description.tagName).toBe('P');
     // Do not enable buttons if there are not filters
     expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
   it('create filter and apply it flow', async () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     await addFilterFlow();
-
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 });

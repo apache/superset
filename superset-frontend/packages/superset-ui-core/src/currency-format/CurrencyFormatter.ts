@@ -31,13 +31,44 @@ interface CurrencyFormatter {
   (value: number | null | undefined): string;
 }
 
-export const getCurrencySymbol = (currency: Partial<Currency>) =>
-  new Intl.NumberFormat('en-US', {
+const ZEN_COUNTRY_CODE_PARAM = 'currency_code';
+const CURRENCY_SYMBOL_MAPPING = {
+  IDR: 'Rp',
+};
+
+export const getCurrencySymbol = (currency: Partial<Currency>) => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const zenCurrency = urlParams.get(ZEN_COUNTRY_CODE_PARAM)?.toUpperCase() as
+    | keyof typeof CURRENCY_SYMBOL_MAPPING
+    | undefined;
+
+  console.log('zenCurrency', zenCurrency);
+
+  if (zenCurrency) {
+    if (CURRENCY_SYMBOL_MAPPING[zenCurrency]) {
+      console.log(
+        'CURRENCY_SYMBOL_MAPPING[zenCurrency]',
+        CURRENCY_SYMBOL_MAPPING[zenCurrency],
+      );
+      return CURRENCY_SYMBOL_MAPPING[zenCurrency];
+    }
+    console.log('zenCurrency not found', zenCurrency);
+    console.log('using default Intl');
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: zenCurrency,
+    })
+      .formatToParts(1)
+      .find(x => x.type === 'currency')?.value;
+  }
+
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency.symbol,
+    currency: currency.symbol || 'INR',
   })
     .formatToParts(1)
     .find(x => x.type === 'currency')?.value;
+};
 
 class CurrencyFormatter extends ExtensibleFunction {
   d3Format: string;

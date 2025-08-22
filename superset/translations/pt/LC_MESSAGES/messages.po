@@ -7241,7 +7241,7 @@ msgstr "Sem dashboards"
 msgid "No data"
 msgstr "Metadados"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 
 msgid "No data in file"
@@ -7302,7 +7302,7 @@ msgstr "Nenhum registo encontrado"
 msgid "No results match your filter criteria"
 msgstr ""
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr ""
 
 msgid ""
@@ -12881,7 +12881,7 @@ msgid "Waiting on %s"
 msgstr ""
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Editar Base de Dados"
 
 msgid "Want to add a new database?"

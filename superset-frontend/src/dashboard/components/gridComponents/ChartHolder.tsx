@@ -106,6 +106,22 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
 
+  // Control HTML root overflow when in fullscreen mode
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    if (isFullSize) {
+      // Store original overflow value
+      const originalOverflow = htmlElement.style.overflow;
+      htmlElement.style.overflow = 'hidden';
+
+      // Cleanup function to restore original overflow
+      return () => {
+        htmlElement.style.overflow = originalOverflow;
+      };
+    }
+    return undefined;
+  }, [isFullSize]);
+
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId);
   const dashboardState = useSelector(
     (state: RootState) => state.dashboardState,

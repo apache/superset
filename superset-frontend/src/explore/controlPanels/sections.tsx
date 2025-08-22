@@ -26,6 +26,7 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
+    ['enable_ai_insights'],
     [
       {
         name: 'slice_id',

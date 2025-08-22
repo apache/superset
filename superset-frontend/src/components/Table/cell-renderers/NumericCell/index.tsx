@@ -254,7 +254,7 @@ export enum CurrencyCode {
   HRK = 'HRK',
   HTG = 'HTG',
   HUF = 'HUF',
-  IDR = 'IDR',
+  IDR = 'Rp',
   ILS = 'ILS',
   INR = 'INR',
   IQD = 'IQD',

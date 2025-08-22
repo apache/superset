@@ -288,38 +288,39 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     return null;
   }
 
-  return (
-    <DetailsPanelPopover
-      appliedCrossFilterIndicators={appliedCrossFilterIndicators}
-      appliedIndicators={appliedIndicators}
-      onHighlightFilterSource={onHighlightFilterSource}
-      setPopoverVisible={setPopoverVisible}
-      popoverVisible={popoverVisible}
-      popoverContentRef={popoverContentRef}
-      popoverTriggerRef={popoverTriggerRef}
-    >
-      <StyledFilterCount
-        aria-label={t('Applied filters (%s)', filterCount)}
-        aria-haspopup="true"
-        role="button"
-        ref={popoverTriggerRef}
-        className={cx(
-          'filter-counts',
-          !!appliedCrossFilterIndicators.length && 'has-cross-filters',
-        )}
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-      >
-        <Icons.Filter iconSize="m" />
-        <StyledBadge
-          data-test="applied-filter-count"
-          className="applied-count"
-          count={filterCount}
-          showZero
-        />
-      </StyledFilterCount>
-    </DetailsPanelPopover>
-  );
+  // return (
+  //   <DetailsPanelPopover
+  //     appliedCrossFilterIndicators={appliedCrossFilterIndicators}
+  //     appliedIndicators={appliedIndicators}
+  //     onHighlightFilterSource={onHighlightFilterSource}
+  //     setPopoverVisible={setPopoverVisible}
+  //     popoverVisible={popoverVisible}
+  //     popoverContentRef={popoverContentRef}
+  //     popoverTriggerRef={popoverTriggerRef}
+  //   >
+  //     <StyledFilterCount
+  //       aria-label={t('Applied filters (%s)', filterCount)}
+  //       aria-haspopup="true"
+  //       role="button"
+  //       ref={popoverTriggerRef}
+  //       className={cx(
+  //         'filter-counts',
+  //         !!appliedCrossFilterIndicators.length && 'has-cross-filters',
+  //       )}
+  //       tabIndex={0}
+  //       onKeyDown={handleKeyDown}
+  //     >
+  //       <Icons.Filter iconSize="m" />
+  //       <StyledBadge
+  //         data-test="applied-filter-count"
+  //         className="applied-count"
+  //         count={filterCount}
+  //         showZero
+  //       />
+  //     </StyledFilterCount>
+  //   </DetailsPanelPopover>
+  // );
+  return null;
 };
 
 export default memo(FiltersBadge);

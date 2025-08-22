@@ -109,9 +109,7 @@ describe('ChartHolder', () => {
   it('should render empty state', async () => {
     renderWrapper();
 
-    expect(
-      screen.getByText('No results were returned for this query'),
-    ).toBeVisible();
+    expect(screen.getByText('No data')).toBeVisible();
     expect(
       screen.queryByText(
         'Make sure that the controls are configured properly and the datasource contains data for the selected time range',

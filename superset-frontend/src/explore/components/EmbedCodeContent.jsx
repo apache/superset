@@ -22,6 +22,7 @@ import { Input, TextArea } from 'src/components/Input';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
+import { useTimezone } from 'src/components/TimezoneContext';
 import { CopyButton } from './DataTableControl';
 
 const CopyButtonEmbedCode = styled(CopyButton)`
@@ -31,6 +32,7 @@ const CopyButtonEmbedCode = styled(CopyButton)`
 `;
 
 const EmbedCodeContent = ({ formData, addDangerToast }) => {
+  const { timezone } = useTimezone();
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
   const [url, setUrl] = useState('');
@@ -65,7 +67,8 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
 
   const html = useMemo(() => {
     if (!url) return '';
-    const srcLink = `${url}?${URL_PARAMS.standalone.name}=1&height=${height}`;
+    const timezoneParam = timezone !== 'UTC' ? `&${URL_PARAMS.timezone.name}=${encodeURIComponent(timezone)}` : '';
+    const srcLink = `${url}?${URL_PARAMS.standalone.name}=1&height=${height}${timezoneParam}`;
     return (
       '<iframe\n' +
       `  width="${width}"\n` +
@@ -77,7 +80,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
       '>\n' +
       '</iframe>'
     );
-  }, [height, url, width]);
+  }, [height, url, width, timezone]);
 
   const text = errorMessage || html || t('Generating link, please wait..');
   return (

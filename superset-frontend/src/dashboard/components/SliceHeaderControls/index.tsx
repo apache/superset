@@ -1,3 +1,5 @@
+/* eslint-disable import/no-unresolved */
+/* eslint-disable theme-colors/no-literal-colors */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -757,13 +759,13 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
 
       <Menu.Divider />
 
-      {slice.description && (
+      {/* {slice.description && (
         <Menu.Item key={MenuKeys.ToggleChartDescription}>
           {props.isDescriptionExpanded
             ? t('Hide chart description')
             : t('Show chart description')}
         </Menu.Item>
-      )}
+      )} */}
 
       {canExplore && (
         <Menu.Item key={MenuKeys.ExploreChart}>
@@ -927,6 +929,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           }}
         />
       )}
+
       <NoAnimationDropdown
         overlay={menu}
         overlayStyle={dropdownOverlayStyle}

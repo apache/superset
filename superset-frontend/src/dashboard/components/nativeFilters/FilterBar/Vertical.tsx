@@ -31,6 +31,7 @@ import {
 } from 'react';
 import cx from 'classnames';
 import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+// import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
@@ -135,6 +136,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
+  const isIframe = window.self !== window.top;
+
   const openFiltersBar = useCallback(
     () => toggleFiltersBar(true),
     [toggleFiltersBar],
@@ -166,7 +169,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
 
   const filterControls = useMemo(
     () =>
-      filterValues.length === 0 ? (
+      filterValues.length === 0 && isIframe ? null : filterValues.length ===
+        0 ? (
         <FilterBarEmptyStateContainer>
           <EmptyStateSmall
             title={t('No global filters are currently added')}

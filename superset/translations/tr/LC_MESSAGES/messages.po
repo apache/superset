@@ -6696,7 +6696,7 @@ msgstr "Henüz dashboard yok"
 msgid "No data"
 msgstr "Veri bulunamadı"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr "Filtrelemeden sonra veri bulunamadı veya en son kayıt için veriler NULL"
 
 msgid "No data in file"
@@ -6750,7 +6750,7 @@ msgstr "Sonuç bulunamadı"
 msgid "No results match your filter criteria"
 msgstr "Filtrenizle eşleşen sonuç yok"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Bu sorgu için bir değer dönmedi"
 
 msgid ""
@@ -11918,7 +11918,7 @@ msgid "Waiting on %s"
 msgstr ""
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Veritabanını düzenle"
 
 msgid "Want to add a new database?"

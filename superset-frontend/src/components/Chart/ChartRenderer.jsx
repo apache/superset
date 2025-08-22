@@ -32,6 +32,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
+import AISummaryBox from './AISummaryBox';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -63,6 +64,8 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  description: PropTypes.string,
+  title: PropTypes.string,
 };
 
 const BLANK = {};
@@ -105,6 +108,8 @@ class ChartRenderer extends Component {
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
     this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
     this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
+
+    this.aiHeightUpdateId = null;
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
@@ -293,7 +298,7 @@ class ChartRenderer extends Component {
         : '';
 
     let noResultsComponent;
-    const noResultTitle = t('No results were returned for this query');
+    const noResultTitle = t('No data');
     const noResultDescription =
       this.props.source === ChartSource.Explore
         ? t(
@@ -323,6 +328,19 @@ class ChartRenderer extends Component {
       ? { inContextMenu: this.state.inContextMenu }
       : {};
 
+    // Reserve vertical room for the AI summary to avoid clipping
+    const showAISummary =
+      isFeatureEnabled(FeatureFlag.AiSummaryOnChart) &&
+      vizType !== 'big_number_total' &&
+      vizType !== 'big_number' &&
+      Boolean(currentFormData && currentFormData.enable_ai_insights);
+    const defaultReserved = 64;
+    const bufferPx = 8;
+    const reserved = showAISummary
+      ? (this.state.aiBoxHeight || defaultReserved) + bufferPx
+      : 0;
+    const innerChartHeight = Math.max(50, (height || 0) - reserved);
+
     return (
       <>
         {this.state.showContextMenu && (
@@ -346,7 +364,7 @@ class ChartRenderer extends Component {
             className={chartClassName}
             chartType={vizType}
             width={width}
-            height={height}
+            height={innerChartHeight}
             annotationData={annotationData}
             datasource={datasource}
             initialValues={initialValues}
@@ -364,6 +382,31 @@ class ChartRenderer extends Component {
             legendState={this.state.legendState}
             {...drillToDetailProps}
           />
+          {showAISummary && (
+            <div style={{ marginTop: 8, marginBottom: 12 }}>
+                          <AISummaryBox
+              chartDomId={`chart-id-${chartId}`}
+              vizType={vizType}
+              title={this.props.title}
+              description={this.props.description}
+              queriesData={this.mutableQueriesResponse}
+              timeRange={formData?.time_range}
+              filters={formData?.adhoc_filters}
+              onHeightChange={h => {
+                const prev = this.state.aiBoxHeight || 0;
+                const threshold = 4; // ignore tiny changes to avoid jitter
+                if (Math.abs((h || 0) - prev) > threshold) {
+                  if (this.aiHeightUpdateId)
+                    window.cancelAnimationFrame(this.aiHeightUpdateId);
+                  this.aiHeightUpdateId = window.requestAnimationFrame(() => {
+                    if (this.state.aiBoxHeight !== h)
+                      this.setState({ aiBoxHeight: h });
+                  });
+                }
+              }}
+            />
+            </div>
+          )}
         </div>
       </>
     );

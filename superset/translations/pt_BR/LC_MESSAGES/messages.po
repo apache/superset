@@ -7304,7 +7304,7 @@ msgstr "Ainda não há painéis"
 msgid "No data"
 msgstr "Sem dados"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr ""
 "Não há dados após a filtragem ou os dados são NULL para o último registo "
 "de tempo"
@@ -7360,7 +7360,7 @@ msgstr "Não foram encontrados resultados"
 msgid "No results match your filter criteria"
 msgstr "Nenhum resultado corresponde aos seus critérios de filtragem"
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "Não foram apresentados resultados para esta consulta"
 
 msgid ""
@@ -13160,7 +13160,7 @@ msgid "Waiting on %s"
 msgstr "Mostrando %s de %s"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "Gerenciar seus bancos de dados"
 
 msgid "Want to add a new database?"

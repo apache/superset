@@ -26,11 +26,38 @@ export default function transformProps(chartProps) {
     sliceId,
   } = formData;
 
+  // Minimal URL override: allow ?country_code=IN|US|UK|GB to override selected country
+  let countryFromForm = selectCountry
+    ? String(selectCountry).toLowerCase()
+    : null;
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlCountryCode = params.get('country_code');
+    if (urlCountryCode) {
+      const cc = String(urlCountryCode).toUpperCase();
+      const alpha2ToPluginKey = {
+        US: 'usa',
+        IN: 'india',
+        ID: 'indonesia',
+        AE: 'united_arab_emirates',
+        UK: 'uk',
+      };
+      if (alpha2ToPluginKey[cc]) {
+        countryFromForm = alpha2ToPluginKey[cc];
+      }
+    }
+  } catch (e) {
+    // no-op if URL parsing fails or window is unavailable
+  }
+
+  // countryFromForm contains final selection, optionally overridden via URL
+
   return {
     width,
     height,
     data: queriesData[0].data,
-    country: selectCountry ? String(selectCountry).toLowerCase() : null,
+    country: countryFromForm,
     linearColorScheme,
     numberFormat,
     colorScheme,

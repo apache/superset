@@ -7143,7 +7143,7 @@ msgstr "还没有看板"
 msgid "No data"
 msgstr "没有数据"
 
-msgid "No data after filtering or data is NULL for the latest time record"
+msgid ""
 msgstr "过滤后没有数据，或者最新时间记录的数据为NULL"
 
 msgid "No data in file"
@@ -7202,7 +7202,7 @@ msgstr "未找到结果"
 msgid "No results match your filter criteria"
 msgstr ""
 
-msgid "No results were returned for this query"
+msgid "No data"
 msgstr "此查询没有数据返回"
 
 msgid ""
@@ -12688,7 +12688,7 @@ msgid "Waiting on %s"
 msgstr "显示 %s个 总计 %s个"
 
 #, fuzzy
-msgid "Waiting on database..."
+msgid "Loading..."
 msgstr "管理你的数据库"
 
 msgid "Want to add a new database?"

@@ -105,6 +105,14 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   isInitialized,
   onSelectionChange,
 }) => {
+
+  const overallState = useSelector<RootState>(state => state) as any;
+  const isIframe = window.self !== window.top;
+  const dashboardInfo = useSelector<RootState, any>(
+    state => state.dashboardInfo,
+  );
+
+
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -129,10 +137,14 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     : [];
   const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
 
+  if (isIframe && !hasFilters) {
+    return null;
+  }
+
   return (
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
-        {!isInitialized ? (
+        {/* {!isInitialized ? (
           <Loading position="inline-centered" />
         ) : (
           <>
@@ -160,7 +172,34 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
             )}
             {actions}
           </>
-        )}
+        )} */}
+
+          <>
+            <FilterBarSettings />
+            {canEdit && (
+              <FiltersLinkContainer hasFilters={hasFilters}>
+                <FilterConfigurationLink
+                  dashboardId={dashboardId}
+                  createNewOnOpen={filterValues.length === 0}
+                >
+                  <Icons.PlusSmall /> {t('Add/Edit Filters')}
+                </FilterConfigurationLink>
+              </FiltersLinkContainer>
+            )}
+            {!hasFilters && (
+              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
+                {t('No filters are currently added to this dashboard.')}
+              </FilterBarEmptyStateContainer>
+            )}
+            {hasFilters && (
+              <FilterControls
+                dataMaskSelected={dataMaskSelected}
+                onFilterSelectionChange={onSelectionChange}
+              />
+            )}
+            {actions}
+          </>
+
       </HorizontalBarContent>
     </HorizontalBar>
   );

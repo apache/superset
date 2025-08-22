@@ -370,9 +370,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show summary'),
               default: false,
-              description: t(
-                'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
-              ),
+              description: 'Shows total aggregation',
               visibility: isAggMode,
               resetOnHide: false,
             },

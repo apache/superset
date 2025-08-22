@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { DateTime } from 'luxon';
 import {
   css,
   styled,
@@ -151,6 +152,101 @@ const getTooltipTitle = (
     range || null
   );
 
+/**
+ * --- Timezone helpers (Luxon-based) ---
+ * If ?timezone=XYZ is present, use that; otherwise default to 'Asia/Kolkata'.
+ * We convert backend-evaluated UTC ranges into this timezone for display.
+ */
+
+// Read timezone from URL (?timezone=Asia/Kolkata). Defaults to Asia/Kolkata.
+function getTimezoneFromUrl(): string {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tz = urlParams.get('timezone');
+    const fallback = 'Asia/Kolkata';
+    return tz?.trim() || fallback;
+  } catch {
+    return 'Asia/Kolkata';
+  }
+}
+
+function convertRangeTZ(s: string, toTZ = 'Asia/Kolkata') {
+  const isoRe =
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
+
+  const matches = [...s.matchAll(isoRe)].map(m => m[0]);
+  if (matches.length < 2) return s;
+
+  const convert = (iso: string) => {
+    // If no offset, assume UTC
+    const src = /Z|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
+    const dt = new Date(src);
+
+    // Format as ISO-like string in target zone
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: toTZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+        .formatToParts(dt)
+        .filter(p =>
+          ['year', 'month', 'day', 'hour', 'minute', 'second'].includes(p.type),
+        )
+        .map(p => [p.type, p.value]),
+    );
+
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+  };
+
+  const a = convert(matches[0]);
+  const b = convert(matches[1]);
+
+  return s.replace(matches[0], a).replace(matches[1], b);
+}
+
+export const getDateFromTimezone = (timezone: string) =>
+  DateTime.now().setZone(timezone);
+export const getEzTimezoneDate = (
+  timezone: string,
+  fn: 'startOf' | 'endOf',
+  unit: 'day' | 'month' | 'year',
+): string => {
+  const date = getDateFromTimezone(timezone);
+  // Convert boundary in TZ to UTC ISO string
+  return date[fn](unit).toUTC().toISO() as string;
+};
+
+// Try to parse a naive "YYYY-MM-DD HH:mm:ss" or ISO-like string as UTC using Luxon
+function parseNaiveUTC(input: string): DateTime | null {
+  if (!input) return null;
+  let iso = input.trim().replace(' ', 'T');
+  const hasTZ = /[zZ]|[+-]\d{2}:?\d{2}$/.test(iso);
+  if (!hasTZ) iso += 'Z';
+  const dt = DateTime.fromISO(iso, { zone: 'utc' });
+  return dt.isValid ? dt : null;
+}
+
+// Convert a range string "start to end" (or "start : end") from UTC -> tz using Luxon
+function convertRangeUTCToTZ(range: string, tz: string): string {
+  if (!range) return range;
+  const parts = range.split(/\s+(?:to|:)\s+/i);
+  if (parts.length !== 2) return range;
+
+  const startUTC = parseNaiveUTC(parts[0]);
+  const endUTC = parseNaiveUTC(parts[1]);
+  if (!startUTC || !endUTC) return range;
+
+  const startStr = startUTC.setZone(tz).toFormat('yyyy-MM-dd HH:mm:ss ZZ');
+  const endStr = endUTC.setZone(tz).toFormat('yyyy-MM-dd HH:mm:ss ZZ');
+  return `${startStr} to ${endStr}`;
+}
+
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     onChange,
@@ -175,6 +271,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
+  // Backend evaluates to UTC; we convert to the URL tz or default 'Asia/Kolkata' for display.
+  const urlTZ = getTimezoneFromUrl();
+
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
       setActualTimeRange(NO_TIME_RANGE);
@@ -188,6 +287,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         setValidTimeRange(false);
         setTooltipTitle(value || null);
       } else {
+        const convertedADR = actualRange
+          ? convertRangeUTCToTZ(actualRange, urlTZ)
+          : actualRange;
+
         /*
           HRT == human readable text
           ADR == actual datetime range
@@ -205,22 +308,27 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           guessedFrame === 'Current' ||
           guessedFrame === 'No filter'
         ) {
+          // Pill shows HRT (value); tooltip shows ADR (converted)
           setActualTimeRange(value);
           setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, value, actualRange),
+            getTooltipTitle(labelIsTruncated, value, convertedADR),
           );
         } else {
-          setActualTimeRange(actualRange || '');
+          // Pill shows ADR (converted); tooltip shows HRT (value)
+          setActualTimeRange(convertedADR || '');
           setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, actualRange, value),
+            getTooltipTitle(labelIsTruncated, convertedADR, value),
           );
         }
         setValidTimeRange(true);
       }
       setLastFetchedTimeRange(value);
-      setEvalResponse(actualRange || value);
+      const previewADR = actualRange
+        ? convertRangeUTCToTZ(actualRange, urlTZ)
+        : actualRange;
+      setEvalResponse(previewADR || value);
     });
-  }, [guessedFrame, labelIsTruncated, labelRef, value]);
+  }, [guessedFrame, labelIsTruncated, labelRef, value, urlTZ]);
 
   useDebouncedEffect(
     () => {
@@ -236,7 +344,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             setEvalResponse(error || '');
             setValidTimeRange(false);
           } else {
-            setEvalResponse(actualRange || '');
+            const previewADR = actualRange
+              ? convertRangeUTCToTZ(actualRange, urlTZ)
+              : actualRange;
+            setEvalResponse(previewADR || '');
             setValidTimeRange(true);
           }
           setLastFetchedTimeRange(timeRangeValue);
@@ -244,7 +355,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       }
     },
     SLOW_DEBOUNCE,
-    [timeRangeValue],
+    [timeRangeValue, lastFetchedTimeRange, urlTZ],
   );
 
   function onSave() {
@@ -314,11 +425,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && (
-          <div>
-            {evalResponse === 'No filter' ? t('No filter') : evalResponse}
-          </div>
-        )}
+        {validTimeRange && <div>{convertRangeTZ(evalResponse, urlTZ)}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
