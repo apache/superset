@@ -121,7 +121,6 @@ class Dashboard(BaseSupersetView):
             "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 
-        # Use the centralized spa template renderer method
-        return self.render_spa_template(
+        return self.render_app_template(
             extra_bootstrap_data=bootstrap_data, entry="embedded"
         )

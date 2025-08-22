@@ -579,8 +579,7 @@ class Superset(BaseSupersetView):
         else:
             title = _("Explore")
 
-        # Use the centralized spa template renderer method
-        return self.render_spa_template(
+        return self.render_app_template(
             extra_bootstrap_data=bootstrap_data,
             entry="explore",
             title=title,
@@ -822,12 +821,11 @@ class Superset(BaseSupersetView):
             ),
         )
 
-        # Use the centralized spa template renderer method
         bootstrap_payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
-        return self.render_spa_template(
+        return self.render_app_template(
             extra_bootstrap_data=bootstrap_payload,
             title=dashboard.dashboard_title,  # dashboard title is always visible
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
@@ -932,13 +930,12 @@ class Superset(BaseSupersetView):
             "common": common_bootstrap_payload(),
         }
 
-        # Use the centralized spa template renderer method
-        return self.render_spa_template(extra_bootstrap_data=payload)
+        return self.render_app_template(extra_bootstrap_data=payload)
 
     @expose("/spinner_test/")
     def spinner_test(self) -> FlaskResponse:
         """Test page to view backend spinner without JavaScript loading"""
-        return self.render_spa_template(extra_bootstrap_data={}, entry=None)
+        return self.render_app_template(extra_bootstrap_data={}, entry=None)
 
     @has_access
     @event_logger.log_this

@@ -95,7 +95,9 @@
     {% endblock %}
 
     {% block tail_js %}
-      {{ js_bundle(assets_prefix, entry) }}
+      {% if entry %}
+        {{ js_bundle(assets_prefix, entry) }}
+      {% endif %}
     {% endblock %}
 
     <script nonce="{{ macros.get_nonce() }}">
