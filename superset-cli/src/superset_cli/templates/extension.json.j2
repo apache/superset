@@ -1,4 +1,5 @@
 {
+  "id": "{{ id }}",
   "name": "{{ name }}",
   "version": "{{ version }}",
   "license": "{{ license }}",
@@ -16,8 +17,8 @@
   {% endif -%}
   {% if include_backend -%}
   "backend": {
-    "entryPoints": ["{{ name }}.entrypoint"],
-    "files": ["backend/src/{{ name }}/**/*.py"]
+    "entryPoints": ["{{ id }}.entrypoint"],
+    "files": ["backend/src/{{ id }}/**/*.py"]
   },
   {% endif -%}
   "permissions": []

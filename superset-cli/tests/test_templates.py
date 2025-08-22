@@ -42,7 +42,8 @@ class TestTemplateRendering:
     def template_context(self):
         """Default template context for testing."""
         return {
-            "name": "test_extension",
+            "id": "test_extension",
+            "name": "Test Extension",
             "version": "0.1.0",
             "license": "Apache-2.0",
             "include_frontend": True,
@@ -60,7 +61,8 @@ class TestTemplateRendering:
         parsed = json.loads(rendered)
 
         # Verify basic fields
-        assert parsed["name"] == "test_extension"
+        assert parsed["id"] == "test_extension"
+        assert parsed["name"] == "Test Extension"
         assert parsed["version"] == "0.1.0"
         assert parsed["license"] == "Apache-2.0"
         assert parsed["permissions"] == []
@@ -126,7 +128,8 @@ class TestTemplateRendering:
         parsed = json.loads(rendered)
 
         # Should have basic fields only
-        assert parsed["name"] == "test_extension"
+        assert parsed["id"] == "test_extension"
+        assert parsed["name"] == "Test Extension"
         assert parsed["version"] == "0.1.0"
         assert parsed["license"] == "Apache-2.0"
         assert parsed["permissions"] == []
@@ -178,22 +181,23 @@ class TestTemplateRendering:
         rendered = template.render(template_context)
 
         # Basic content verification (without full TOML parsing)
-        assert "test_extension" in rendered
+        assert "test_ext" in rendered
         assert "0.1.0" in rendered
         assert "Apache-2.0" in rendered
 
-    def test_template_rendering_with_different_names(self, jinja_env):
-        """Test templates render correctly with various extension names."""
+    def test_template_rendering_with_different_ids(self, jinja_env):
+        """Test templates render correctly with various extension ids/names."""
         test_cases = [
-            "simple_extension",
-            "MyExtension123",
-            "complex_extension_name_123",
-            "ext",
+            ("simple_extension", "Simple Extension"),
+            ("MyExtension123", "My Extension 123"),
+            ("complex_extension_name_123", "Complex Extension Name 123"),
+            ("ext", "Ext"),
         ]
 
-        for name in test_cases:
+        for id_, name in test_cases:
             context = {
-                "name": name,
+                "id": id_,
+                "name": f"{name}",
                 "version": "1.0.0",
                 "license": "MIT",
                 "include_frontend": True,
@@ -205,16 +209,23 @@ class TestTemplateRendering:
             rendered = template.render(context)
             parsed = json.loads(rendered)
 
+            assert parsed["id"] == id_
             assert parsed["name"] == name
-            assert parsed["backend"]["entryPoints"] == [f"{name}.entrypoint"]
-            assert parsed["backend"]["files"] == [f"backend/src/{name}/**/*.py"]
+            assert parsed["backend"]["entryPoints"] == [f"{id_}.entrypoint"]
+            assert parsed["backend"]["files"] == [f"backend/src/{id_}/**/*.py"]
 
             # Test package.json template
             template = jinja_env.get_template("frontend/package.json.j2")
             rendered = template.render(context)
             parsed = json.loads(rendered)
 
-            assert parsed["name"] == name
+            assert parsed["name"] == id_
+
+            # Test pyproject.toml template
+            template = jinja_env.get_template("backend/pyproject.toml.j2")
+            rendered = template.render(context)
+
+            assert id_ in rendered
 
     def test_template_rendering_with_different_versions(self, jinja_env):
         """Test templates render correctly with various version formats."""
@@ -222,7 +233,8 @@ class TestTemplateRendering:
 
         for version in test_versions:
             context = {
-                "name": "test_ext",
+                "id": "test_ext",
+                "name": "Test Extension",
                 "version": version,
                 "license": "Apache-2.0",
                 "include_frontend": True,

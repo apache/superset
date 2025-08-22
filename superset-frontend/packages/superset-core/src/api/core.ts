@@ -176,7 +176,9 @@ export interface Extension {
   exposedModules: string[];
   /** List of other extensions that this extension depends on */
   extensionDependencies: string[];
-  /** Name of the extension */
+  /** Unique identifier for the extension */
+  id: string;
+  /** Human-readable name of the extension */
   name: string;
   /** URL or path to the extension's remote entry point */
   remoteEntry: string;

@@ -117,17 +117,17 @@ class ExtensionsRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/<name>", methods=("GET",))
-    def get(self, name: str, **kwargs: Any) -> Response:
-        """Get an extension by its name.
+    @expose("/<id>", methods=("GET",))
+    def get(self, id: str, **kwargs: Any) -> Response:
+        """Get an extension by its id.
         ---
         get:
-          summary: Get an extension by its name.
+          summary: Get an extension by its id.
           parameters:
           - in: path
             schema:
               type: string
-            name: name
+            name: id
           responses:
             200:
               description: Extension details
@@ -155,7 +155,7 @@ class ExtensionsRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         extensions = get_extensions()
-        extension = extensions.get(name)
+        extension = extensions.get(id)
         if not extension:
             return self.response_404()
         extension_data = build_extension_data(extension)
@@ -163,8 +163,8 @@ class ExtensionsRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/<name>/<file>", methods=("GET",))
-    def content(self, name: str, file: str) -> Response:
+    @expose("/<id>/<file>", methods=("GET",))
+    def content(self, id: str, file: str) -> Response:
         """Get a frontend chunk of an extension.
         ---
         get:
@@ -173,8 +173,8 @@ class ExtensionsRestApi(BaseApi):
           - in: path
             schema:
               type: string
-            name: name
-            description: name of the extension
+            name: id
+            description: id of the extension
           - in: path
             schema:
               type: string
@@ -200,7 +200,7 @@ class ExtensionsRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         extensions = get_extensions()
-        extension = extensions.get(name)
+        extension = extensions.get(id)
         if not extension:
             return self.response_404()
 

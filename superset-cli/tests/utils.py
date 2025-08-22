@@ -173,7 +173,7 @@ def assert_file_content_matches(path: Path, expected_content: str) -> None:
 
 def create_test_extension_structure(
     base_path: Path,
-    name: str,
+    id_: str,
     include_frontend: bool = True,
     include_backend: bool = True,
 ) -> dict[str, Any]:
@@ -182,6 +182,7 @@ def create_test_extension_structure(
 
     Args:
         base_path: Base path where extension should be created
+        id_: Unique identifier for extension
         name: Extension name
         include_frontend: Whether frontend should be included
         include_backend: Whether backend should be included
@@ -189,7 +190,7 @@ def create_test_extension_structure(
     Returns:
         Dictionary with expected paths and metadata
     """
-    extension_path = base_path / name
+    extension_path = base_path / id_
     expected_files = ["extension.json"]
     expected_dirs: list[str] = []
 

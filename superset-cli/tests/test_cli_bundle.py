@@ -39,7 +39,12 @@ class TestBundleCommand:
         dist_dir.mkdir(parents=True)
 
         # Create manifest.json
-        manifest = {"name": "test_extension", "version": "1.0.0", "permissions": []}
+        manifest = {
+            "id": "test_extension",
+            "name": "Test Extension",
+            "version": "1.0.0",
+            "permissions": [],
+        }
         (dist_dir / "manifest.json").write_text(json.dumps(manifest))
 
         # Create some frontend files
@@ -172,7 +177,12 @@ class TestBundleCommand:
         dist_dir.mkdir(parents=True)
 
         # Manifest
-        manifest = {"name": "complex_extension", "version": "2.1.0", "permissions": []}
+        manifest = {
+            "id": "complex_extension",
+            "name": "Complex Extension",
+            "version": "2.1.0",
+            "permissions": [],
+        }
         (dist_dir / "manifest.json").write_text(json.dumps(manifest))
 
         # Frontend files with nested structure

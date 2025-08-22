@@ -28,6 +28,7 @@ class BundleFile:
 
 @dataclass
 class LoadedExtension:
+    id: str
     name: str
     manifest: Manifest
     frontend: dict[str, bytes]
@@ -41,5 +42,5 @@ class LoadedExtension:
         from superset.extensions.utils import calculate_extension_checksum
 
         return calculate_extension_checksum(
-            self.name, self.manifest, self.frontend, self.backend
+            self.id, self.name, self.manifest, self.frontend, self.backend
         )

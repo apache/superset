@@ -88,7 +88,7 @@ class ExtensionsManager {
         loadedExtension = await this.loadModule(extension);
         this.enableExtension(loadedExtension);
       }
-      this.extensionIndex.set(loadedExtension.name, loadedExtension);
+      this.extensionIndex.set(loadedExtension.id, loadedExtension);
     } catch (error) {
       logging.error(
         `Failed to initialize extension ${extension.name}\n`,
@@ -102,14 +102,14 @@ class ExtensionsManager {
    * @param extension The extension to enable.
    */
   private enableExtension(extension: core.Extension): void {
-    const { name } = extension;
+    const { id } = extension;
     if (extension && typeof extension.activate === 'function') {
       // If already enabled, do nothing
-      if (this.contextIndex.has(name)) {
+      if (this.contextIndex.has(id)) {
         return;
       }
       const context = new ExtensionContext();
-      this.contextIndex.set(name, context);
+      this.contextIndex.set(id, context);
       // TODO: Activate based on activation events
       this.activateExtension(extension, context);
       this.indexContributions(extension);
@@ -122,7 +122,7 @@ class ExtensionsManager {
    * @returns The loaded extension with activate and deactivate methods.
    */
   private async loadModule(extension: core.Extension): Promise<core.Extension> {
-    const { remoteEntry, name, exposedModules } = extension;
+    const { remoteEntry, id, exposedModules } = extension;
 
     // Load the remote entry script
     await new Promise<void>((resolve, reject) => {
@@ -158,7 +158,7 @@ class ExtensionsManager {
     // Initialize Webpack module federation
     // @ts-ignore
     await __webpack_init_sharing__('default');
-    const container = (window as any)[name];
+    const container = (window as any)[id];
 
     // @ts-ignore
     await container.init(__webpack_share_scopes__.default);
@@ -192,14 +192,12 @@ class ExtensionsManager {
 
   /**
    * Deactivates an extension.
-   * @param name The name of the extension to deactivate.
+   * @param id The id of the extension to deactivate.
    * @returns True if deactivated, false otherwise.
    */
-  public deactivateExtension(name: string): boolean {
-    const extension = this.extensionIndex.get(name);
-    const context = extension
-      ? this.contextIndex.get(extension.name)
-      : undefined;
+  public deactivateExtension(id: string): boolean {
+    const extension = this.extensionIndex.get(id);
+    const context = extension ? this.contextIndex.get(extension.id) : undefined;
     if (extension && context) {
       try {
         // Dispose of all disposables in the context
@@ -223,8 +221,8 @@ class ExtensionsManager {
    * @param extension The extension to index.
    */
   private indexContributions(extension: core.Extension): void {
-    const { contributions, name } = extension;
-    this.extensionContributions.set(name, {
+    const { contributions, id } = extension;
+    this.extensionContributions.set(id, {
       menus: contributions.menus,
       views: contributions.views,
       commands: contributions.commands,
@@ -319,12 +317,12 @@ class ExtensionsManager {
   }
 
   /**
-   * Retrieves a specific extension by its name.
-   * @param name The name of the extension.
-   * @returns The extension matching the name, or undefined if not found.
+   * Retrieves a specific extension by its id.
+   * @param id The id of the extension.
+   * @returns The extension matching the id, or undefined if not found.
    */
-  public getExtension(name: string): core.Extension | undefined {
-    return this.extensionIndex.get(name);
+  public getExtension(id: string): core.Extension | undefined {
+    return this.extensionIndex.get(id);
   }
 }
 

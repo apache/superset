@@ -68,7 +68,8 @@ class TestBuildCommand:
 
         # Create extension.json
         extension_json = {
-            "name": "test_extension",
+            "id": "test_extension",
+            "name": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
             "frontend": {
@@ -105,15 +106,24 @@ class TestBuildCommand:
         # Setup mocks
         mock_rebuild_frontend.return_value = None  # Indicates failure
 
-        # Create required directories
+        # Create required directories and extension.json
         (isolated_filesystem / "frontend").mkdir()
         (isolated_filesystem / "backend").mkdir()
 
+        # Create extension.json
+        extension_json = {
+            "id": "test_extension",
+            "name": "Test Extension",
+            "version": "1.0.0",
+            "permissions": [],
+        }
+        (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
+
         result = cli_runner.invoke(app, ["build"])
 
-        # Command should complete but not create manifest
+        # Command should complete and create manifest even with frontend failure
         assert result.exit_code == 0
-        assert "✅ Full build completed in dist/" not in result.output
+        assert "✅ Full build completed in dist/" in result.output
 
 
 @pytest.mark.unit
@@ -198,7 +208,8 @@ class TestBuildUtilities:
         """Test build_manifest creates correct manifest from extension.json."""
         # Create extension.json
         extension_data = {
-            "name": "test_extension",
+            "id": "test_extension",
+            "name": "Test Extension",
             "version": "1.0.0",
             "permissions": ["read_data"],
             "dependencies": ["some_dep"],
@@ -215,7 +226,8 @@ class TestBuildUtilities:
 
         # Verify manifest structure
         manifest_dict = dict(manifest)
-        assert manifest_dict["name"] == "test_extension"
+        assert manifest_dict["id"] == "test_extension"
+        assert manifest_dict["name"] == "Test Extension"
         assert manifest_dict["version"] == "1.0.0"
         assert manifest_dict["permissions"] == ["read_data"]
         assert manifest_dict["dependencies"] == ["some_dep"]
@@ -234,7 +246,8 @@ class TestBuildUtilities:
     def test_build_manifest_handles_minimal_extension(self, isolated_filesystem):
         """Test build_manifest with minimal extension.json (no frontend/backend)."""
         extension_data = {
-            "name": "minimal_extension",
+            "id": "minimal_extension",
+            "name": "Minimal Extension",
             "version": "0.1.0",
             "permissions": [],
         }
@@ -244,7 +257,8 @@ class TestBuildUtilities:
         manifest = build_manifest(isolated_filesystem, None)
 
         manifest_dict = dict(manifest)
-        assert manifest_dict["name"] == "minimal_extension"
+        assert manifest_dict["id"] == "minimal_extension"
+        assert manifest_dict["name"] == "Minimal Extension"
         assert manifest_dict["version"] == "0.1.0"
         assert manifest_dict["permissions"] == []
         assert manifest_dict["dependencies"] == []  # Default empty list
@@ -354,7 +368,12 @@ class TestBuildUtilities:
         from superset_cli.cli import rebuild_backend
 
         # Create extension.json
-        extension_json = {"name": "test", "version": "1.0.0", "permissions": []}
+        extension_json = {
+            "id": "test",
+            "name": "Test Extension",
+            "version": "1.0.0",
+            "permissions": [],
+        }
         (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
 
         with patch("superset_cli.cli.copy_backend_files") as mock_copy:
@@ -375,7 +394,8 @@ class TestBuildUtilities:
 
         # Create extension.json with backend file patterns
         extension_data = {
-            "name": "test_ext",
+            "id": "test_ext",
+            "name": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
             "backend": {
@@ -451,7 +471,8 @@ class TestBuildUtilities:
 
         # Create extension.json with backend file patterns
         extension_data = {
-            "name": "test_ext",
+            "id": "test_ext",
+            "name": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
             "backend": {"files": ["backend/src/test_ext/**/*.py"]},
@@ -471,7 +492,8 @@ class TestBuildUtilities:
     def test_copy_backend_files_handles_no_backend_config(self, isolated_filesystem):
         """Test copy_backend_files handles extension.json without backend config."""
         extension_data = {
-            "name": "frontend_only",
+            "id": "frontend_only",
+            "name": "Frontend Only Extension",
             "version": "1.0.0",
             "permissions": [],
         }

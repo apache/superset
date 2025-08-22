@@ -134,6 +134,8 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
         if filename == "manifest.json":
             try:
                 manifest = json.loads(content)
+                if "id" not in manifest:
+                    raise Exception("Missing 'id' in manifest")
                 if "name" not in manifest:
                     raise Exception("Missing 'name' in manifest")
             except Exception as e:
@@ -148,9 +150,11 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
         else:
             raise Exception(f"Unexpected file in bundle: {filename}")
 
+    id_ = manifest["id"]
     name = manifest["name"]
     version = manifest["version"]
     return LoadedExtension(
+        id=id_,
         name=name,
         manifest=manifest,
         frontend=frontend,
@@ -162,6 +166,7 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest: Manifest = extension.manifest
     extension_data: dict[str, Any] = {
+        "id": manifest["id"],
         "name": extension.name,
         "version": extension.version,
         "description": manifest.get("description", ""),
@@ -173,7 +178,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         remote_entry = frontend["remoteEntry"]
         extension_data.update(
             {
-                "remoteEntry": f"/api/v1/extensions/{extension.name}/{remote_entry}",  # noqa: E501
+                "remoteEntry": f"/api/v1/extensions/{manifest['id']}/{remote_entry}",  # noqa: E501
                 "exposedModules": module_federation.get("exposes", []),
                 "contributions": frontend.get("contributions", {}),
             }
@@ -190,8 +195,12 @@ def get_extensions() -> dict[str, LoadedExtension]:
     for path in current_app.config["LOCAL_EXTENSIONS"]:
         files = get_bundle_files_from_path(path)
         extension = get_loaded_extension(files)
-        extensions[extension.name] = extension
-        logger.info(f"Loading extension {extension.name} from local filesystem")
+        extension_id = extension.manifest["id"]
+        extensions[extension_id] = extension
+        logger.info(
+            f"Loading extension {extension.name} (ID: {extension_id}) "
+            "from local filesystem"
+        )
 
     # Load extensions from discovery path (.supx files)
     if extensions_path_env_var := current_app.config.get("EXTENSIONS_PATH_ENV_VAR"):
@@ -200,21 +209,24 @@ def get_extensions() -> dict[str, LoadedExtension]:
             from superset.extensions.discovery import discover_and_load_extensions
 
             for extension in discover_and_load_extensions(extensions_path):
-                if extension.name not in extensions:  # Don't override LOCAL_EXTENSIONS
-                    extensions[extension.name] = extension
+                extension_id = extension.manifest["id"]
+                if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
+                    extensions[extension_id] = extension
                     logger.info(
-                        f"Loading extension {extension.name} from discovery path"
+                        f"Loading extension {extension.name} (ID: {extension_id}) "
+                        "from discovery path"
                     )
                 else:
                     logger.info(
-                        f"Extension {extension.name} already loaded from "
-                        "LOCAL_EXTENSIONS, skipping discovery version"
+                        f"Extension {extension.name} (ID: {extension_id}) already "
+                        "loaded from LOCAL_EXTENSIONS, skipping discovery version"
                     )
 
     return extensions
 
 
 def calculate_extension_checksum(
+    id_: str,
     name: str,
     manifest: Manifest,
     frontend: dict[str, bytes] | None,
@@ -229,6 +241,7 @@ def calculate_extension_checksum(
         return {k: b64encode(v).decode("utf-8") for k, v in assets.items()}
 
     extension_data = {
+        "id": id_,
         "name": name,
         "manifest": manifest,
         "frontend": encode_assets(frontend),

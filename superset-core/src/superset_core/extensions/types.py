@@ -42,6 +42,7 @@ class BackendManifest(TypedDict):
 
 
 class SharedBase(TypedDict, total=False):
+    id: str
     name: str
     dependencies: list[str]
     description: str

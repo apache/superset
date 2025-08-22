@@ -44,7 +44,10 @@ class TestInitCommand:
         result = cli_runner.invoke(app, ["init"], input=cli_input_both)
 
         assert result.exit_code == 0, f"Command failed with output: {result.output}"
-        assert "🎉 Extension test_extension initialized" in result.output
+        assert (
+            "🎉 Extension Test Extension (ID: test_extension) initialized"
+            in result.output
+        )
 
         # Verify directory structure
         extension_path = isolated_filesystem / "test_extension"
@@ -146,28 +149,28 @@ class TestInitCommand:
         assert expected_error in result.output
 
     def test_init_accepts_numeric_extension_name(self, cli_runner, isolated_filesystem):
-        """Test that init accepts numeric extension names like '123'."""
-        cli_input = "123\n0.1.0\nApache-2.0\ny\ny\n"
+        """Test that init accepts numeric extension ids like '123'."""
+        cli_input = "123\n123\n0.1.0\nApache-2.0\ny\ny\n"
         result = cli_runner.invoke(app, ["init"], input=cli_input)
 
         assert result.exit_code == 0, (
-            f"Numeric name '123' should be valid: {result.output}"
+            f"Numeric id '123' should be valid: {result.output}"
         )
         assert Path("123").exists(), "Directory for '123' should be created"
 
     def test_init_with_valid_alphanumeric_names(self, cli_runner, isolated_filesystem):
         """Test that init accepts various valid alphanumeric names."""
-        valid_names = ["test123", "TestExtension", "test_extension_123", "MyExt_1"]
+        valid_ids = ["test123", "TestExtension", "test_extension_123", "MyExt_1"]
 
-        for name in valid_names:
+        for id_ in valid_ids:
             with cli_runner.isolated_filesystem():
-                cli_input = f"{name}\n0.1.0\nApache-2.0\ny\ny\n"
+                cli_input = f"{id_}\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
                 result = cli_runner.invoke(app, ["init"], input=cli_input)
 
                 assert result.exit_code == 0, (
-                    f"Valid name '{name}' was rejected: {result.output}"
+                    f"Valid name '{id_}' was rejected: {result.output}"
                 )
-                assert Path(name).exists(), f"Directory for '{name}' was not created"
+                assert Path(id_).exists(), f"Directory for '{id_}' was not created"
 
     def test_init_fails_when_directory_already_exists(
         self, cli_runner, isolated_filesystem, cli_input_both
@@ -198,7 +201,8 @@ class TestInitCommand:
         assert_json_content(
             extension_json_path,
             {
-                "name": "test_extension",
+                "id": "test_extension",
+                "name": "Test Extension",
                 "version": "0.1.0",
                 "license": "Apache-2.0",
                 "permissions": [],
@@ -282,13 +286,13 @@ class TestInitCommand:
         assert "✅ Created extension.json" in output
         assert "✅ Created frontend folder structure" in output
         assert "✅ Created backend folder structure" in output
-        assert "🎉 Extension test_extension initialized" in output
+        assert "🎉 Extension Test Extension (ID: test_extension) initialized" in output
 
     def test_init_with_custom_version_and_license(
         self, cli_runner, isolated_filesystem
     ):
         """Test init with custom version and license parameters."""
-        cli_input = "my_extension\n2.1.0\nMIT\ny\nn\n"
+        cli_input = "my_extension\nMy Extension\n2.1.0\nMIT\ny\nn\n"
         result = cli_runner.invoke(app, ["init"], input=cli_input)
 
         assert result.exit_code == 0
@@ -298,14 +302,19 @@ class TestInitCommand:
 
         assert_json_content(
             extension_json_path,
-            {"name": "my_extension", "version": "2.1.0", "license": "MIT"},
+            {
+                "id": "my_extension",
+                "name": "My Extension",
+                "version": "2.1.0",
+                "license": "MIT",
+            },
         )
 
     @pytest.mark.integration
     def test_full_init_workflow_integration(self, cli_runner, isolated_filesystem):
         """Integration test for the complete init workflow."""
         # Test the complete flow with realistic user input
-        cli_input = "awesome_charts\n1.0.0\nApache-2.0\ny\ny\n"
+        cli_input = "awesome_charts\nAwesome Charts\n1.0.0\nApache-2.0\ny\ny\n"
         result = cli_runner.invoke(app, ["init"], input=cli_input)
 
         # Verify success
@@ -326,7 +335,8 @@ class TestInitCommand:
 
         # Verify all generated files have correct content
         extension_json = load_json_file(extension_path / "extension.json")
-        assert extension_json["name"] == "awesome_charts"
+        assert extension_json["id"] == "awesome_charts"
+        assert extension_json["name"] == "Awesome Charts"
         assert extension_json["version"] == "1.0.0"
         assert extension_json["license"] == "Apache-2.0"
 

@@ -121,6 +121,7 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         sys.exit(1)
 
     manifest: Manifest = {
+        "id": extension["id"],
         "name": extension["name"],
         "version": extension["version"],
         "permissions": extension["permissions"],
@@ -249,17 +250,25 @@ def build(ctx: click.Context) -> None:
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
-    init_frontend_deps(frontend_dir)
     clean_dist(cwd)
-    if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
+
+    # Build frontend if it exists
+    remote_entry = None
+    if frontend_dir.exists():
+        init_frontend_deps(frontend_dir)
+        remote_entry = rebuild_frontend(cwd, frontend_dir)
+
+    # Build backend independently if it exists
+    if backend_dir.exists():
         pyproject = read_toml(backend_dir / "pyproject.toml")
         if pyproject:
             rebuild_backend(cwd)
 
-        manifest = build_manifest(cwd, remote_entry)
-        write_manifest(cwd, manifest)
+    # Build manifest and write it
+    manifest = build_manifest(cwd, remote_entry)
+    write_manifest(cwd, manifest)
 
-        click.secho("✅ Full build completed in dist/", fg="green")
+    click.secho("✅ Full build completed in dist/", fg="green")
 
 
 @app.command()
@@ -284,9 +293,9 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
         sys.exit(1)
 
     manifest = json.loads(manifest_path.read_text())
-    name = manifest["name"]
+    id_ = manifest["id"]
     version = manifest["version"]
-    default_filename = f"{name}-{version}.supx"
+    default_filename = f"{id_}-{version}.supx"
 
     if output is None:
         zip_path = Path(default_filename)
@@ -315,64 +324,91 @@ def dev(ctx: click.Context) -> None:
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
-    init_frontend_deps(frontend_dir)
     clean_dist(cwd)
-    remote_entry = rebuild_frontend(cwd, frontend_dir)
-    rebuild_backend(cwd)
+
+    # Build frontend if it exists
+    remote_entry = None
+    if frontend_dir.exists():
+        init_frontend_deps(frontend_dir)
+        remote_entry = rebuild_frontend(cwd, frontend_dir)
+
+    # Build backend if it exists
+    if backend_dir.exists():
+        rebuild_backend(cwd)
+
     manifest = build_manifest(cwd, remote_entry)
     write_manifest(cwd, manifest)
 
     def frontend_watcher() -> None:
-        if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
-            manifest = build_manifest(cwd, remote_entry)
-            write_manifest(cwd, manifest)
+        if frontend_dir.exists():
+            if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
+                manifest = build_manifest(cwd, remote_entry)
+                write_manifest(cwd, manifest)
 
     def backend_watcher() -> None:
-        rebuild_backend(cwd)
-        dist_dir = cwd / "dist"
-        manifest_path = dist_dir / "manifest.json"
-        if manifest_path.exists():
-            manifest = json.loads(manifest_path.read_text())
-            write_manifest(cwd, manifest)
+        if backend_dir.exists():
+            rebuild_backend(cwd)
+            dist_dir = cwd / "dist"
+            manifest_path = dist_dir / "manifest.json"
+            if manifest_path.exists():
+                manifest = json.loads(manifest_path.read_text())
+                write_manifest(cwd, manifest)
 
-    click.secho(
-        f"👀 Watching for changes in: {frontend_dir}, {backend_dir}", fg="green"
-    )
+    # Build watch message based on existing directories
+    watch_dirs = []
+    if frontend_dir.exists():
+        watch_dirs.append(str(frontend_dir))
+    if backend_dir.exists():
+        watch_dirs.append(str(backend_dir))
 
-    frontend_handler = FrontendChangeHandler(trigger_build=frontend_watcher)
-    backend_handler = FileSystemEventHandler()
-    backend_handler.on_any_event = lambda event: backend_watcher()
+    if watch_dirs:
+        click.secho(f"👀 Watching for changes in: {', '.join(watch_dirs)}", fg="green")
+    else:
+        click.secho("⚠️  No frontend or backend directories found to watch", fg="yellow")
 
     observer = Observer()
-    observer.schedule(frontend_handler, str(frontend_dir), recursive=True)
-    observer.schedule(backend_handler, str(backend_dir), recursive=True)
-    observer.start()
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        click.secho("\n🛑 Stopping watch mode", fg="blue")
-        observer.stop()
+    # Only set up watchers for directories that exist
+    if frontend_dir.exists():
+        frontend_handler = FrontendChangeHandler(trigger_build=frontend_watcher)
+        observer.schedule(frontend_handler, str(frontend_dir), recursive=True)
 
-    observer.join()
+    if backend_dir.exists():
+        backend_handler = FileSystemEventHandler()
+        backend_handler.on_any_event = lambda event: backend_watcher()
+        observer.schedule(backend_handler, str(backend_dir), recursive=True)
+
+    if watch_dirs:
+        observer.start()
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            click.secho("\n🛑 Stopping watch mode", fg="blue")
+            observer.stop()
+
+        observer.join()
+    else:
+        click.secho("❌ No directories to watch. Exiting.", fg="red")
 
 
 @app.command()
 def init() -> None:
-    name = click.prompt("Extension name (alphanumeric only)", type=str)
-    if not re.match(r"^[a-zA-Z0-9_]+$", name):
+    id_ = click.prompt("Extension ID (unique identifier, alphanumeric only)", type=str)
+    if not re.match(r"^[a-zA-Z0-9_]+$", id_):
         click.secho(
-            "❌ Name must be alphanumeric (letters, digits, underscore).", fg="red"
+            "❌ ID must be alphanumeric (letters, digits, underscore).", fg="red"
         )
         sys.exit(1)
 
+    name = click.prompt("Extension name (human-readable display name)", type=str)
     version = click.prompt("Initial version", default="0.1.0")
     license = click.prompt("License", default="Apache-2.0")
     include_frontend = click.confirm("Include frontend?", default=True)
     include_backend = click.confirm("Include backend?", default=True)
 
-    target_dir = Path.cwd() / name
+    target_dir = Path.cwd() / id_
     if target_dir.exists():
         click.secho(f"❌ Directory {target_dir} already exists.", fg="red")
         sys.exit(1)
@@ -381,6 +417,7 @@ def init() -> None:
     templates_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(templates_dir))  # noqa: S701
     ctx = {
+        "id": id_,
         "name": name,
         "include_frontend": include_frontend,
         "include_backend": include_backend,
@@ -415,7 +452,9 @@ def init() -> None:
 
         click.secho("✅ Created backend folder structure", fg="green")
 
-    click.secho(f"🎉 Extension {name} initialized at {target_dir}", fg="cyan")
+    click.secho(
+        f"🎉 Extension {name} (ID: {id_}) initialized at {target_dir}", fg="cyan"
+    )
 
 
 if __name__ == "__main__":

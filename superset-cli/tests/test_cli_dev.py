@@ -35,7 +35,8 @@ class TestDevCommand:
         """Set up extension structure for dev testing."""
         # Create extension.json
         extension_json = {
-            "name": "test_extension",
+            "id": "test_extension",
+            "name": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
@@ -200,7 +201,8 @@ class TestDevUtilityFunctions:
 
         # Create extension.json
         extension_json = {
-            "name": "test_extension",
+            "id": "test_extension",
+            "name": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
