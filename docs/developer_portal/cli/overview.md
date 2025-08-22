@@ -19,6 +19,7 @@
 ---
 title: CLI Documentation
 sidebar_position: 1
+hide_title: true
 ---
 
 # Superset Extensions CLI
