@@ -103,10 +103,12 @@ jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
     // Simple mock that provides the essential attributes for testing
     const label = ariaLabel || fileName?.replace(/_/g, '-').toLowerCase() || '';
     return (
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
       <span
         role={role || (onClick ? 'button' : 'img')}
         aria-label={label}
         data-test={label}
+        onClick={onClick}
         {...rest}
       />
     );

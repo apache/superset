@@ -18,7 +18,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { SupersetTheme, ThemeProvider } from '@superset-ui/core';
 
 // CRITICAL: Don't import from the mocked path - import directly to avoid global mocks
@@ -99,6 +99,10 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
     expect(spanElement).toHaveAttribute('role', 'button');
     expect(spanElement).toHaveAttribute('aria-label', 'slack');
     expect(spanElement).toHaveAttribute('data-test', 'slack');
+
+    // Verify onClick handler actually works
+    fireEvent.click(spanElement!);
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('should handle complex fileName patterns like BaseIcon', () => {
