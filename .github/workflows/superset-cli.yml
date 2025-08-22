@@ -36,7 +36,7 @@ jobs:
         if: steps.check.outputs.superset-cli
         uses: ./.github/actions/setup-backend/
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
           requirements-type: dev
 
       - name: Run pytest with coverage
