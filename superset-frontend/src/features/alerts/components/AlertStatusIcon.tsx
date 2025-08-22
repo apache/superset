@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme, useTheme } from '@superset-ui/core';
+import { t, SupersetTheme, useTheme, css } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { AlertState } from '../types';
@@ -32,7 +32,7 @@ function getStatusColor(
     case AlertState.Error:
       return theme.colorErrorText;
     case AlertState.Success:
-      return isReportEnabled ? theme.colorSuccessText : theme.colorErrorText;
+      return theme.colorSuccessText;
     case AlertState.Noop:
       return theme.colorSuccessText;
     case AlertState.Grace:
@@ -57,9 +57,7 @@ export default function AlertStatusIcon({
   };
   switch (state) {
     case AlertState.Success:
-      lastStateConfig.icon = isReportEnabled
-        ? Icons.CheckOutlined
-        : Icons.WarningOutlined;
+      lastStateConfig.icon = Icons.CheckOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
         : t('Alert triggered, notification sent');
@@ -95,16 +93,31 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
+  const isRunningIcon = state === AlertState.Working;
+
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
-      <Icon
-        iconSize="m"
-        iconColor={getStatusColor(
-          lastStateConfig.status,
-          isReportEnabled,
-          theme,
-        )}
-      />
+      <span
+        css={
+          isRunningIcon
+            ? css`
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                transform: scale(1.8);
+              `
+            : undefined
+        }
+      >
+        <Icon
+          iconSize="m"
+          iconColor={getStatusColor(
+            lastStateConfig.status,
+            isReportEnabled,
+            theme,
+          )}
+        />
+      </span>
     </Tooltip>
   );
 }
