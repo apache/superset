@@ -511,7 +511,7 @@ export const tooltipTemplate = {
       minHeight: '100px',
       height: '100px',
     },
-    debounceDelay: 5000,
+    debounceDelay: 30,
     offerEditInModal: false,
     default: '',
     description: t(
