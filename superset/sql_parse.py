@@ -22,7 +22,8 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Iterator
-from typing import Any, cast, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import gettext as __
@@ -919,9 +920,23 @@ def extract_table_references(  # noqa: C901
     }
 
 
-def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
+@dataclass
+class JinjaSQLResult:
     """
-    Extract all table references in the Jinjafied SQL statement.
+    Result of processing Jinja SQL.
+
+    Contains the processed SQL script and extracted table references.
+    """
+
+    script: SQLScript
+    tables: set[Table]
+
+
+def process_jinja_sql(
+    sql: str, database: Database, template_params: Optional[dict[str, Any]] = None
+) -> JinjaSQLResult:
+    """
+    Process Jinja-templated SQL and extract table references.
 
     Due to Jinja templating, a multiphase approach is necessary as the Jinjafied SQL
     statement may represent invalid SQL which is non-parsable by SQLGlot.
@@ -933,7 +948,8 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
 
     :param sql: The Jinjafied SQL statement
     :param database: The database associated with the SQL statement
-    :returns: The set of tables referenced in the SQL statement
+    :param template_params: Optional template parameters for Jinja templating
+    :returns: JinjaSQLResult containing the processed script and table references
     :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
     :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
     """
@@ -974,12 +990,13 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     # re-render template back into a string
     code = processor.env.compile(ast)
     template = Template.from_code(processor.env, code, globals=processor.env.globals)
-    rendered_sql = template.render(processor.get_context())
+    rendered_sql = template.render(processor.get_context(), **(template_params or {}))
 
-    return (
-        tables
-        | ParsedQuery(
-            sql_statement=processor.process_template(rendered_sql),
-            engine=database.db_engine_spec.engine,
-        ).tables
+    parsed_script = SQLScript(
+        processor.process_template(rendered_sql),
+        engine=database.db_engine_spec.engine,
     )
+    for parsed_statement in parsed_script.statements:
+        tables |= parsed_statement.tables
+
+    return JinjaSQLResult(script=parsed_script, tables=tables)

@@ -30,7 +30,7 @@ from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -613,7 +613,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
-    def get_default_schema_for_query(self, query: Query) -> str | None:
+    def get_default_schema_for_query(
+        self, query: Query, template_params: Optional[dict[str, Any]] = None
+    ) -> str | None:
         """
         Return the default schema for a given query.
 
@@ -627,7 +629,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         default schema is defined in the SQLAlchemy URI; and in others the default schema
         might be determined by the database itself (like `public` for Postgres).
         """  # noqa: E501
-        return self.db_engine_spec.get_default_schema_for_query(self, query)
+        return self.db_engine_spec.get_default_schema_for_query(
+            self, query, template_params
+        )
 
     @staticmethod
     def post_process_df(df: pd.DataFrame) -> pd.DataFrame:

@@ -56,7 +56,7 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
+from superset.sql_parse import CtasMethod, process_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import json
 from superset.utils.core import (
@@ -80,10 +80,10 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
     def sql_tables(self) -> list[Table]:
         try:
             return list(
-                extract_tables_from_jinja_sql(
+                process_jinja_sql(
                     self.sql,  # type: ignore
                     self.database,  # type: ignore
-                )
+                ).tables
             )
         except (SupersetSecurityException, SupersetParseError, TemplateError):
             return []

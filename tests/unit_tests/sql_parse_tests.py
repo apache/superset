@@ -35,12 +35,12 @@ from superset.sql_parse import (
     add_table_name,
     check_sql_functions_exist,
     extract_table_references,
-    extract_tables_from_jinja_sql,
     get_rls_for_table,
     has_table_query,
     insert_rls_as_subquery,
     insert_rls_in_predicate,
     ParsedQuery,
+    process_jinja_sql,
     sanitize_clause,
     strip_comments_from_sql,
 )
@@ -1925,10 +1925,10 @@ def test_extract_tables_from_jinja_sql(
     expected: set[Table],
 ) -> None:
     assert (
-        extract_tables_from_jinja_sql(
+        process_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=mocker.Mock(),
-        )
+        ).tables
         == expected
     )
 
@@ -1945,7 +1945,7 @@ def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     database = mocker.Mock()
     database.db_engine_spec.engine = "mssql"
 
-    assert extract_tables_from_jinja_sql(
+    assert process_jinja_sql(
         sql="SELECT 1 FROM t",
         database=database,
-    ) == {Table("t")}
+    ).tables == {Table("t")}

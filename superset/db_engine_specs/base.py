@@ -29,6 +29,7 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Optional,
     TYPE_CHECKING,
     TypedDict,
     Union,
@@ -698,6 +699,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
