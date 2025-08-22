@@ -143,11 +143,12 @@ def get_columns_description(
     try:
         with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
-            query = database.apply_limit_to_sql(query, limit=1)
+            limit = database.get_column_description_limit_size()
+            query = database.apply_limit_to_sql(query, limit=limit)
             mutated_query = database.mutate_sql_based_on_config(query)
             cursor.execute(mutated_query)
             db_engine_spec.execute(cursor, mutated_query, database)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
+            result = db_engine_spec.fetch_data(cursor, limit=limit)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
             return result_set.columns
     except Exception as ex:

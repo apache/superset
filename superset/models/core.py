@@ -786,6 +786,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
         return self.db_engine_spec.apply_top_to_sql(sql, limit)
 
+    def get_column_description_limit_size(self) -> int:
+        return self.db_engine_spec.get_column_description_limit_size()
+
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
