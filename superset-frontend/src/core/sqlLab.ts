@@ -31,8 +31,8 @@ import { createActionListener } from './utils';
 
 const activeEditorId = () => {
   const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
-  const { unsavedQueryEditor, lastUpdatedActiveTab } = sqlLab;
-  return unsavedQueryEditor.id || lastUpdatedActiveTab;
+  const { tabHistory } = sqlLab;
+  return tabHistory[tabHistory.length - 1];
 };
 
 const getCurrentTab: typeof sqlLabType.getCurrentTab = () => {
