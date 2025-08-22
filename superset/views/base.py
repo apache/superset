@@ -219,6 +219,31 @@ class BaseSupersetView(BaseView):
         context = get_spa_template_context(extra_data=extra_bootstrap_data)
         return self.render_template("superset/spa.html", **context)
 
+    def render_spa_template(
+        self,
+        extra_bootstrap_data: dict[str, Any] | None = None,
+        entry: str | None = "spa",
+        **template_kwargs: Any,
+    ) -> FlaskResponse:
+        """
+        Render spa.html template with standardized context including spinner logic.
+
+        This centralizes all spa.html rendering to ensure consistent spinner behavior
+        and reduce code duplication across view methods.
+
+        Args:
+            extra_bootstrap_data: Additional data for frontend bootstrap payload
+            entry: Entry point name (spa, explore, embedded)
+            **template_kwargs: Additional template variables
+
+        Returns:
+            Flask response from render_template
+        """
+        context = get_spa_template_context(
+            entry, extra_bootstrap_data, **template_kwargs
+        )
+        return self.render_template("superset/spa.html", **context)
+
 
 def get_environment_tag() -> dict[str, Any]:
     # Whether flask is in debug mode (--debug)
@@ -505,7 +530,9 @@ def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 def get_spa_template_context(
-    entry: str = "spa", extra_data: dict[str, Any] | None = None, **template_kwargs: Any
+    entry: str | None = "spa",
+    extra_bootstrap_data: dict[str, Any] | None = None,
+    **template_kwargs: Any,
 ) -> dict[str, Any]:
     """Generate standardized template context for spa.html rendering.
 
@@ -514,13 +541,13 @@ def get_spa_template_context(
 
     Args:
         entry: Entry point name (spa, explore, embedded)
-        extra_data: Additional bootstrap data
+        extra_bootstrap_data: Additional data for frontend bootstrap payload
         **template_kwargs: Additional template variables
 
     Returns:
         dict[str, Any]: Template context for spa.html
     """
-    payload = get_spa_payload(extra_data)
+    payload = get_spa_payload(extra_bootstrap_data)
 
     # Extract theme data for template access
     theme_data = get_theme_bootstrap_data().get("theme", {})
