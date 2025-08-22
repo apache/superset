@@ -1349,8 +1349,6 @@ ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 
-EXTENSIONS_PATH_ENV_VAR = "SUPERSET_EXTENSIONS_PATH"
-
 # Extension startup update configuration
 EXTENSION_STARTUP_LOCK_TIMEOUT = 30  # Timeout in seconds for extension update locks
 
@@ -2164,6 +2162,7 @@ SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
 
 LOCAL_EXTENSIONS: list[str] = []
+EXTENSIONS_PATH: str | None = None
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
