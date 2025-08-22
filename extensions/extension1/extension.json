@@ -1,5 +1,6 @@
 {
-  "name": "extension1",
+  "id": "extension1",
+  "name": "Extension 1",
   "version": "1.0.0",
   "frontend": {
     "contributions": {

@@ -1,5 +1,6 @@
 {
-  "name": "dataset_references",
+  "id": "dataset_references",
+  "name": "Dataset References",
   "version": "1.0.0",
   "frontend": {
     "contributions": {
