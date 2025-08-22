@@ -67,6 +67,7 @@ from superset.themes.utils import (
 )
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
+from superset.utils.version import get_version_metadata
 from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
@@ -272,6 +273,9 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text := app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
+    # Get centralized version metadata
+    version_metadata = get_version_metadata()
+
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
@@ -291,9 +295,9 @@ def menu_data(user: User) -> dict[str, Any]:
             "documentation_url": app.config["DOCUMENTATION_URL"],
             "documentation_icon": app.config["DOCUMENTATION_ICON"],
             "documentation_text": app.config["DOCUMENTATION_TEXT"],
-            "version_string": app.config["VERSION_STRING"],
-            "version_sha": app.config["VERSION_SHA"],
-            "build_number": app.config["BUILD_NUMBER"],
+            "version_string": version_metadata.get("version_string"),
+            "version_sha": version_metadata.get("version_sha"),
+            "build_number": version_metadata.get("build_number"),
             "languages": languages,
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
