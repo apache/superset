@@ -187,8 +187,6 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
 
 
 def get_extensions() -> dict[str, LoadedExtension]:
-    import os
-
     extensions: dict[str, LoadedExtension] = {}
 
     # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
@@ -203,24 +201,22 @@ def get_extensions() -> dict[str, LoadedExtension]:
         )
 
     # Load extensions from discovery path (.supx files)
-    if extensions_path_env_var := current_app.config.get("EXTENSIONS_PATH_ENV_VAR"):
-        extensions_path = os.environ.get(extensions_path_env_var)
-        if extensions_path:
-            from superset.extensions.discovery import discover_and_load_extensions
+    if extensions_path := current_app.config.get("EXTENSIONS_PATH"):
+        from superset.extensions.discovery import discover_and_load_extensions
 
-            for extension in discover_and_load_extensions(extensions_path):
-                extension_id = extension.manifest["id"]
-                if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
-                    extensions[extension_id] = extension
-                    logger.info(
-                        f"Loading extension {extension.name} (ID: {extension_id}) "
-                        "from discovery path"
-                    )
-                else:
-                    logger.info(
-                        f"Extension {extension.name} (ID: {extension_id}) already "
-                        "loaded from LOCAL_EXTENSIONS, skipping discovery version"
-                    )
+        for extension in discover_and_load_extensions(extensions_path):
+            extension_id = extension.manifest["id"]
+            if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
+                extensions[extension_id] = extension
+                logger.info(
+                    f"Loading extension {extension.name} (ID: {extension_id}) "
+                    "from discovery path"
+                )
+            else:
+                logger.info(
+                    f"Extension {extension.name} (ID: {extension_id}) already "
+                    "loaded from LOCAL_EXTENSIONS, skipping discovery version"
+                )
 
     return extensions
 
