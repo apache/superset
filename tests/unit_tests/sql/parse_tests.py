@@ -25,11 +25,12 @@ from superset.exceptions import QueryClauseValidationException, SupersetParseErr
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     CTASMethod,
-    extract_tables_from_jinja_sql,
     extract_tables_from_statement,
+    JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
     LimitMethod,
+    process_jinja_sql,
     remove_quotes,
     RLSMethod,
     sanitize_clause,
@@ -2661,10 +2662,10 @@ def test_extract_tables_from_jinja_sql(
     expected: set[Table],
 ) -> None:
     assert (
-        extract_tables_from_jinja_sql(
+        process_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=mocker.MagicMock(backend=engine),
-        )
+        ).tables
         == expected
     )
 
@@ -2677,10 +2678,10 @@ def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     database = mocker.MagicMock()
     database.db_engine_spec.engine = "mssql"
 
-    assert extract_tables_from_jinja_sql(
+    assert process_jinja_sql(
         sql="SELECT 1 FROM t",
         database=database,
-    ) == {Table("t")}
+    ).tables == {Table("t")}
 
 
 def test_extract_tables_from_jinja_sql_invalid_function(mocker: MockerFixture) -> None:
@@ -2696,10 +2697,66 @@ def test_extract_tables_from_jinja_sql_invalid_function(mocker: MockerFixture) -
         return_value=processor,
     )
 
-    assert extract_tables_from_jinja_sql(
+    assert process_jinja_sql(
         sql="SELECT * FROM {{ my_table() }}",
         database=database,
-    ) == {Table("t")}
+    ).tables == {Table("t")}
+
+
+def test_process_jinja_sql_result_object_structure(mocker: MockerFixture) -> None:
+    """
+    Test that process_jinja_sql returns a proper JinjaSQLResult object
+    with correct script and tables properties.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+
+    result = process_jinja_sql(
+        sql="SELECT id FROM users WHERE active = true",
+        database=database,
+    )
+
+    # Test that result is the correct type
+    assert isinstance(result, JinjaSQLResult)
+
+    # Test that script property returns a SQLScript
+    assert hasattr(result, "script")
+    assert isinstance(result.script, SQLScript)
+
+    # Test that tables property returns a set of Tables
+    assert hasattr(result, "tables")
+    assert isinstance(result.tables, set)
+    assert result.tables == {Table("users")}
+
+    # Test that the script contains the expected SQL
+    formatted_sql = result.script.format()
+    assert "users" in formatted_sql
+    assert "active = TRUE" in formatted_sql
+
+
+def test_process_jinja_sql_template_params_parameter(mocker: MockerFixture) -> None:
+    """
+    Test that the template_params parameter is properly handled.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+
+    processor = JinjaTemplateProcessor(database)
+    mocker.patch(
+        "superset.jinja_context.get_template_processor",
+        return_value=processor,
+    )
+
+    # Test that template_params parameter is accepted and passed through
+    result = process_jinja_sql(
+        sql="SELECT * FROM table_name",
+        database=database,
+        template_params={"param1": "value1"},
+    )
+
+    # Verify the function accepts the parameter without error
+    assert isinstance(result, JinjaSQLResult)
+    assert result.tables == {Table("table_name")}
 
 
 @pytest.mark.parametrize(
