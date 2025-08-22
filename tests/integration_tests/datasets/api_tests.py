@@ -2390,6 +2390,54 @@ class TestDatasetApi(SupersetTestCase):
         # gamma users by default do not have access to this dataset
         assert rv.status_code in (403, 404)
 
+    def test_export_dataset_bundle_with_id_in_filename(self):
+        """
+        Dataset API: Test that exported dataset filenames include the dataset ID
+        to prevent filename collisions when datasets have identical names.
+        """
+        example_db = get_example_database()
+        db1 = Database(
+            database_name="test_db_connection_1",
+            sqlalchemy_uri=example_db.sqlalchemy_uri,
+        )
+        db.session.add(db1)
+        db2 = Database(
+            database_name="test_db_connection_2",
+            sqlalchemy_uri=example_db.sqlalchemy_uri,
+        )
+        db.session.add(db2)
+        db.session.commit()
+        dataset1 = self.insert_dataset(
+            table_name="test_dataset",
+            owners=[],
+            database=db1,
+        )
+        dataset2 = self.insert_dataset(
+            table_name="test_dataset",
+            owners=[],
+            database=db2,
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [dataset1.id, dataset2.id]
+        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        rv = self.get_assert_metric(uri, "export")
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+        with ZipFile(buf, "r") as zip_file:
+            filenames = zip_file.namelist()
+
+            assert (
+                f"datasets/test_db_connection_1/test_dataset_{dataset1.id}.yaml"
+            ) in filenames
+            assert (
+                f"datasets/test_db_connection_2/test_dataset_{dataset2.id}.yaml"
+            ) in filenames
+
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
