@@ -16,6 +16,9 @@ concurrency:
 jobs:
   test-superset-cli-package:
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ["previous", "current", "next"]
     defaults:
       run:
         working-directory: superset-cli
