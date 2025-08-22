@@ -34,13 +34,3 @@ class LoadedExtension:
     frontend: dict[str, bytes]
     backend: dict[str, bytes]
     version: str
-
-    @property
-    def checksum(self) -> str:
-        """Calculate deterministic checksum for this extension."""
-        # Import here to avoid circular imports
-        from superset.extensions.utils import calculate_extension_checksum
-
-        return calculate_extension_checksum(
-            self.id, self.name, self.manifest, self.frontend, self.backend
-        )

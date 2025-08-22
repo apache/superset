@@ -21,7 +21,6 @@ import logging
 import os
 import re
 import sys
-from base64 import b64encode
 from pathlib import Path
 from typing import Any, Generator, Iterable, Tuple
 from zipfile import ZipFile
@@ -32,7 +31,6 @@ from superset_core.extensions.types import Manifest
 from superset.extensions.types import BundleFile, LoadedExtension
 from superset.utils import json
 from superset.utils.core import check_is_safe_zip
-from superset.utils.hashing import md5_sha_from_str
 
 logger = logging.getLogger(__name__)
 
@@ -219,33 +217,3 @@ def get_extensions() -> dict[str, LoadedExtension]:
                 )
 
     return extensions
-
-
-def calculate_extension_checksum(
-    id_: str,
-    name: str,
-    manifest: Manifest,
-    frontend: dict[str, bytes] | None,
-    backend: dict[str, bytes] | None,
-) -> str:
-    """Calculate deterministic checksum for extension data."""
-
-    def encode_assets(assets: dict[str, bytes] | None) -> dict[str, str]:
-        """Encode binary assets to base64 strings for JSON serialization."""
-        if not assets:
-            return {}
-        return {k: b64encode(v).decode("utf-8") for k, v in assets.items()}
-
-    extension_data = {
-        "id": id_,
-        "name": name,
-        "manifest": manifest,
-        "frontend": encode_assets(frontend),
-        "backend": encode_assets(backend),
-    }
-
-    # Use JSON with sorted keys for deterministic string representation
-    deterministic_json = json.dumps(extension_data, sort_keys=True)
-
-    # Use the existing md5_sha_from_str utility (has noqa for S324)
-    return md5_sha_from_str(deterministic_json)
