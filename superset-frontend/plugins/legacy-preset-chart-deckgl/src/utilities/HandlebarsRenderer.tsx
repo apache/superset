@@ -30,8 +30,8 @@ export interface HandlebarsRendererProps {
 
 const ErrorContainer = styled.pre`
   white-space: pre-wrap;
-  color: ${({ theme }) => theme.colors.error.base};
-  background-color: ${({ theme }) => theme.colors.error.light2};
+  color: ${({ theme }) => theme.colorError};
+  background-color: ${({ theme }) => theme.colorErrorBg};
   padding: ${({ theme }) => theme.sizeUnit * 2}px;
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
