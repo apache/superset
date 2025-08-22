@@ -20,243 +20,219 @@ from __future__ import annotations
 import json
 import threading
 import time
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 from superset_cli.cli import app, FrontendChangeHandler
 
 
+# Dev Command Tests
 @pytest.mark.cli
-class TestDevCommand:
-    """Test suite for the dev command."""
+@patch("superset_cli.cli.Observer")
+@patch("superset_cli.cli.init_frontend_deps")
+@patch("superset_cli.cli.rebuild_frontend")
+@patch("superset_cli.cli.rebuild_backend")
+@patch("superset_cli.cli.build_manifest")
+@patch("superset_cli.cli.write_manifest")
+def test_dev_command_starts_watchers(
+    mock_write_manifest,
+    mock_build_manifest,
+    mock_rebuild_backend,
+    mock_rebuild_frontend,
+    mock_init_frontend_deps,
+    mock_observer_class,
+    cli_runner,
+    isolated_filesystem,
+    extension_setup_for_dev,
+):
+    """Test dev command starts file watchers."""
+    # Setup mocks
+    mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
+    mock_build_manifest.return_value = {"name": "test", "version": "1.0.0"}
 
-    def setup_extension_for_dev(self, base_path: Path) -> None:
-        """Set up extension structure for dev testing."""
-        # Create extension.json
-        extension_json = {
-            "id": "test_extension",
-            "name": "Test Extension",
-            "version": "1.0.0",
-            "permissions": [],
-        }
-        (base_path / "extension.json").write_text(json.dumps(extension_json))
+    mock_observer = Mock()
+    mock_observer_class.return_value = mock_observer
 
-        # Create frontend and backend directories
-        (base_path / "frontend").mkdir()
-        (base_path / "backend").mkdir()
+    extension_setup_for_dev(isolated_filesystem)
 
-    @patch("superset_cli.cli.Observer")
-    @patch("superset_cli.cli.init_frontend_deps")
-    @patch("superset_cli.cli.rebuild_frontend")
-    @patch("superset_cli.cli.rebuild_backend")
-    @patch("superset_cli.cli.build_manifest")
-    @patch("superset_cli.cli.write_manifest")
-    def test_dev_command_starts_watchers(
-        self,
-        mock_write_manifest,
-        mock_build_manifest,
-        mock_rebuild_backend,
-        mock_rebuild_frontend,
-        mock_init_frontend_deps,
-        mock_observer_class,
-        cli_runner,
-        isolated_filesystem,
-    ):
-        """Test dev command starts file watchers."""
-        # Setup mocks
-        mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-        mock_build_manifest.return_value = {"name": "test", "version": "1.0.0"}
+    # Run dev command in a thread since it's blocking
+    def run_dev():
+        try:
+            cli_runner.invoke(app, ["dev"], catch_exceptions=False)
+        except KeyboardInterrupt:
+            pass
 
+    dev_thread = threading.Thread(target=run_dev)
+    dev_thread.daemon = True
+    dev_thread.start()
+
+    # Let it start up
+    time.sleep(0.1)
+
+    # Verify observer methods were called
+    mock_observer.schedule.assert_called()
+    mock_observer.start.assert_called_once()
+
+    # Initial setup calls
+    mock_init_frontend_deps.assert_called_once()
+    mock_rebuild_frontend.assert_called()
+    mock_rebuild_backend.assert_called()
+    mock_build_manifest.assert_called()
+    mock_write_manifest.assert_called()
+
+
+@pytest.mark.cli
+@patch("superset_cli.cli.init_frontend_deps")
+@patch("superset_cli.cli.rebuild_frontend")
+@patch("superset_cli.cli.rebuild_backend")
+@patch("superset_cli.cli.build_manifest")
+@patch("superset_cli.cli.write_manifest")
+def test_dev_command_initial_build(
+    mock_write_manifest,
+    mock_build_manifest,
+    mock_rebuild_backend,
+    mock_rebuild_frontend,
+    mock_init_frontend_deps,
+    cli_runner,
+    isolated_filesystem,
+    extension_setup_for_dev,
+):
+    """Test dev command performs initial build setup."""
+    # Setup mocks
+    mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
+    mock_build_manifest.return_value = {"name": "test", "version": "1.0.0"}
+
+    extension_setup_for_dev(isolated_filesystem)
+
+    with patch("superset_cli.cli.Observer") as mock_observer_class:
         mock_observer = Mock()
         mock_observer_class.return_value = mock_observer
 
-        self.setup_extension_for_dev(isolated_filesystem)
-
-        # Run dev command in a thread since it's blocking
-        def run_dev():
+        with patch("time.sleep", side_effect=KeyboardInterrupt):
             try:
                 cli_runner.invoke(app, ["dev"], catch_exceptions=False)
             except KeyboardInterrupt:
                 pass
 
-        dev_thread = threading.Thread(target=run_dev)
-        dev_thread.daemon = True
-        dev_thread.start()
+    # Verify initial build steps
+    frontend_dir = isolated_filesystem / "frontend"
+    mock_init_frontend_deps.assert_called_once_with(frontend_dir)
+    mock_rebuild_frontend.assert_called_once_with(isolated_filesystem, frontend_dir)
+    mock_rebuild_backend.assert_called_once_with(isolated_filesystem)
 
-        # Let it start up
-        time.sleep(0.1)
 
-        # Verify observer methods were called
-        mock_observer.schedule.assert_called()
-        mock_observer.start.assert_called_once()
+# FrontendChangeHandler Tests
+@pytest.mark.unit
+def test_frontend_change_handler_init():
+    """Test FrontendChangeHandler initialization."""
+    mock_trigger = Mock()
+    handler = FrontendChangeHandler(trigger_build=mock_trigger)
 
-        # Initial setup calls
-        mock_init_frontend_deps.assert_called_once()
-        mock_rebuild_frontend.assert_called()
-        mock_rebuild_backend.assert_called()
-        mock_build_manifest.assert_called()
-        mock_write_manifest.assert_called()
-
-    @patch("superset_cli.cli.init_frontend_deps")
-    @patch("superset_cli.cli.rebuild_frontend")
-    @patch("superset_cli.cli.rebuild_backend")
-    @patch("superset_cli.cli.build_manifest")
-    @patch("superset_cli.cli.write_manifest")
-    def test_dev_command_initial_build(
-        self,
-        mock_write_manifest,
-        mock_build_manifest,
-        mock_rebuild_backend,
-        mock_rebuild_frontend,
-        mock_init_frontend_deps,
-        cli_runner,
-        isolated_filesystem,
-    ):
-        """Test dev command performs initial build setup."""
-        # Setup mocks
-        mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-        mock_build_manifest.return_value = {"name": "test", "version": "1.0.0"}
-
-        self.setup_extension_for_dev(isolated_filesystem)
-
-        with patch("superset_cli.cli.Observer") as mock_observer_class:
-            mock_observer = Mock()
-            mock_observer_class.return_value = mock_observer
-
-            with patch("time.sleep", side_effect=KeyboardInterrupt):
-                try:
-                    cli_runner.invoke(app, ["dev"], catch_exceptions=False)
-                except KeyboardInterrupt:
-                    pass
-
-        # Verify initial build steps
-        frontend_dir = isolated_filesystem / "frontend"
-        mock_init_frontend_deps.assert_called_once_with(frontend_dir)
-        mock_rebuild_frontend.assert_called_once_with(isolated_filesystem, frontend_dir)
-        mock_rebuild_backend.assert_called_once_with(isolated_filesystem)
+    assert handler.trigger_build == mock_trigger
 
 
 @pytest.mark.unit
-class TestFrontendChangeHandler:
-    """Unit tests for FrontendChangeHandler class."""
+def test_frontend_change_handler_ignores_dist_changes():
+    """Test FrontendChangeHandler ignores changes in dist directory."""
+    mock_trigger = Mock()
+    handler = FrontendChangeHandler(trigger_build=mock_trigger)
 
-    def test_frontend_change_handler_init(self):
-        """Test FrontendChangeHandler initialization."""
-        mock_trigger = Mock()
-        handler = FrontendChangeHandler(trigger_build=mock_trigger)
+    # Create mock event with dist path
+    mock_event = Mock()
+    mock_event.src_path = "/path/to/frontend/dist/file.js"
 
-        assert handler.trigger_build == mock_trigger
+    handler.on_any_event(mock_event)
 
-    def test_frontend_change_handler_ignores_dist_changes(self):
-        """Test FrontendChangeHandler ignores changes in dist directory."""
-        mock_trigger = Mock()
-        handler = FrontendChangeHandler(trigger_build=mock_trigger)
-
-        # Create mock event with dist path
-        mock_event = Mock()
-        mock_event.src_path = "/path/to/frontend/dist/file.js"
-
-        handler.on_any_event(mock_event)
-
-        # Should not trigger build for dist changes
-        mock_trigger.assert_not_called()
-
-    def test_frontend_change_handler_triggers_on_source_changes(self):
-        """Test FrontendChangeHandler triggers build on source changes."""
-        mock_trigger = Mock()
-        handler = FrontendChangeHandler(trigger_build=mock_trigger)
-
-        # Create mock event with source path
-        mock_event = Mock()
-        mock_event.src_path = "/path/to/frontend/src/component.tsx"
-
-        handler.on_any_event(mock_event)
-
-        # Should trigger build for source changes
-        mock_trigger.assert_called_once()
-
-    def test_frontend_change_handler_triggers_on_config_changes(self):
-        """Test FrontendChangeHandler triggers build on config changes."""
-        mock_trigger = Mock()
-        handler = FrontendChangeHandler(trigger_build=mock_trigger)
-
-        # Create mock event with config path
-        mock_event = Mock()
-        mock_event.src_path = "/path/to/frontend/webpack.config.js"
-
-        handler.on_any_event(mock_event)
-
-        # Should trigger build for config changes
-        mock_trigger.assert_called_once()
+    # Should not trigger build for dist changes
+    mock_trigger.assert_not_called()
 
 
 @pytest.mark.unit
-class TestDevUtilityFunctions:
-    """Unit tests for dev-related utility functions."""
+@pytest.mark.parametrize(
+    "source_path",
+    [
+        "/path/to/frontend/src/component.tsx",
+        "/path/to/frontend/webpack.config.js",
+        "/path/to/frontend/package.json",
+    ],
+)
+def test_frontend_change_handler_triggers_on_source_changes(source_path):
+    """Test FrontendChangeHandler triggers build on source changes."""
+    mock_trigger = Mock()
+    handler = FrontendChangeHandler(trigger_build=mock_trigger)
 
-    def test_frontend_watcher_function_coverage(self, isolated_filesystem):
-        """Test frontend watcher function for coverage."""
-        # This test covers the frontend_watcher function inside dev command
+    # Create mock event with source path
+    mock_event = Mock()
+    mock_event.src_path = source_path
 
-        # Create extension.json
-        extension_json = {
-            "id": "test_extension",
-            "name": "Test Extension",
-            "version": "1.0.0",
-            "permissions": [],
-        }
-        (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
+    handler.on_any_event(mock_event)
 
-        # Create dist directory
-        dist_dir = isolated_filesystem / "dist"
-        dist_dir.mkdir()
+    # Should trigger build for source changes
+    mock_trigger.assert_called_once()
 
-        with patch("superset_cli.cli.rebuild_frontend") as mock_rebuild:
-            with patch("superset_cli.cli.build_manifest") as mock_build:
-                with patch("superset_cli.cli.write_manifest") as mock_write:
-                    mock_rebuild.return_value = "remoteEntry.abc123.js"
-                    mock_build.return_value = {"name": "test", "version": "1.0.0"}
 
-                    # Simulate frontend watcher function logic
-                    frontend_dir = isolated_filesystem / "frontend"
-                    frontend_dir.mkdir()
+# Dev Utility Functions Tests
+@pytest.mark.unit
+def test_frontend_watcher_function_coverage(isolated_filesystem):
+    """Test frontend watcher function for coverage."""
+    # Create extension.json
+    extension_json = {
+        "id": "test_extension",
+        "name": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
 
-                    # Actually call the functions to simulate the frontend_watcher
-                    if (
-                        remote_entry := mock_rebuild(isolated_filesystem, frontend_dir)
-                    ) is not None:
-                        manifest = mock_build(isolated_filesystem, remote_entry)
-                        mock_write(isolated_filesystem, manifest)
+    # Create dist directory
+    dist_dir = isolated_filesystem / "dist"
+    dist_dir.mkdir()
 
-                    mock_rebuild.assert_called_once_with(
-                        isolated_filesystem, frontend_dir
-                    )
-                    mock_build.assert_called_once_with(
-                        isolated_filesystem, "remoteEntry.abc123.js"
-                    )
-                    mock_write.assert_called_once_with(
-                        isolated_filesystem, {"name": "test", "version": "1.0.0"}
-                    )
-
-    def test_backend_watcher_function_coverage(self, isolated_filesystem):
-        """Test backend watcher function for coverage."""
-        # Create dist directory with manifest
-        dist_dir = isolated_filesystem / "dist"
-        dist_dir.mkdir()
-
-        manifest_data = {"name": "test", "version": "1.0.0"}
-        (dist_dir / "manifest.json").write_text(json.dumps(manifest_data))
-
-        with patch("superset_cli.cli.rebuild_backend") as mock_rebuild:
+    with patch("superset_cli.cli.rebuild_frontend") as mock_rebuild:
+        with patch("superset_cli.cli.build_manifest") as mock_build:
             with patch("superset_cli.cli.write_manifest") as mock_write:
-                # Simulate backend watcher function
-                mock_rebuild(isolated_filesystem)
+                mock_rebuild.return_value = "remoteEntry.abc123.js"
+                mock_build.return_value = {"name": "test", "version": "1.0.0"}
 
-                manifest_path = dist_dir / "manifest.json"
-                if manifest_path.exists():
-                    manifest = json.loads(manifest_path.read_text())
+                # Simulate frontend watcher function logic
+                frontend_dir = isolated_filesystem / "frontend"
+                frontend_dir.mkdir()
+
+                # Actually call the functions to simulate the frontend_watcher
+                if (
+                    remote_entry := mock_rebuild(isolated_filesystem, frontend_dir)
+                ) is not None:
+                    manifest = mock_build(isolated_filesystem, remote_entry)
                     mock_write(isolated_filesystem, manifest)
 
-                mock_rebuild.assert_called_once_with(isolated_filesystem)
-                mock_write.assert_called_once()
+                mock_rebuild.assert_called_once_with(isolated_filesystem, frontend_dir)
+                mock_build.assert_called_once_with(
+                    isolated_filesystem, "remoteEntry.abc123.js"
+                )
+                mock_write.assert_called_once_with(
+                    isolated_filesystem, {"name": "test", "version": "1.0.0"}
+                )
+
+
+@pytest.mark.unit
+def test_backend_watcher_function_coverage(isolated_filesystem):
+    """Test backend watcher function for coverage."""
+    # Create dist directory with manifest
+    dist_dir = isolated_filesystem / "dist"
+    dist_dir.mkdir()
+
+    manifest_data = {"name": "test", "version": "1.0.0"}
+    (dist_dir / "manifest.json").write_text(json.dumps(manifest_data))
+
+    with patch("superset_cli.cli.rebuild_backend") as mock_rebuild:
+        with patch("superset_cli.cli.write_manifest") as mock_write:
+            # Simulate backend watcher function
+            mock_rebuild(isolated_filesystem)
+
+            manifest_path = dist_dir / "manifest.json"
+            if manifest_path.exists():
+                manifest = json.loads(manifest_path.read_text())
+                mock_write(isolated_filesystem, manifest)
+
+            mock_rebuild.assert_called_once_with(isolated_filesystem)
+            mock_write.assert_called_once()

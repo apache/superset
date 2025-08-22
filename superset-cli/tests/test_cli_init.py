@@ -33,315 +33,330 @@ from tests.utils import (
 )
 
 
+# Init Command Tests
 @pytest.mark.cli
-class TestInitCommand:
-    """Test suite for the init command scaffolder functionality."""
+def test_init_creates_extension_with_both_frontend_and_backend(
+    cli_runner, isolated_filesystem, cli_input_both
+):
+    """Test that init creates a complete extension with both frontend and backend."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
 
-    def test_init_creates_extension_with_both_frontend_and_backend(
-        self, cli_runner, isolated_filesystem, cli_input_both
-    ):
-        """Test that init creates a complete extension with both frontend and backend."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_both)
-
-        assert result.exit_code == 0, f"Command failed with output: {result.output}"
-        assert (
-            "🎉 Extension Test Extension (ID: test_extension) initialized"
-            in result.output
-        )
-
-        # Verify directory structure
-        extension_path = isolated_filesystem / "test_extension"
-        assert_directory_exists(extension_path, "main extension directory")
-
-        expected_structure = create_test_extension_structure(
-            isolated_filesystem,
-            "test_extension",
-            include_frontend=True,
-            include_backend=True,
-        )
-
-        # Check directories
-        assert_directory_structure(extension_path, expected_structure["expected_dirs"])
-
-        # Check files
-        assert_file_structure(extension_path, expected_structure["expected_files"])
-
-    def test_init_creates_extension_with_frontend_only(
-        self, cli_runner, isolated_filesystem, cli_input_frontend_only
-    ):
-        """Test that init creates extension with only frontend components."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_frontend_only)
-
-        assert result.exit_code == 0, f"Command failed with output: {result.output}"
-
-        extension_path = isolated_filesystem / "test_extension"
-        assert_directory_exists(extension_path)
-
-        # Should have frontend directory and package.json
-        assert_directory_exists(extension_path / "frontend")
-        assert_file_exists(extension_path / "frontend" / "package.json")
-
-        # Should NOT have backend directory
-        backend_path = extension_path / "backend"
-        assert not backend_path.exists(), (
-            "Backend directory should not exist for frontend-only extension"
-        )
-
-    def test_init_creates_extension_with_backend_only(
-        self, cli_runner, isolated_filesystem, cli_input_backend_only
-    ):
-        """Test that init creates extension with only backend components."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_backend_only)
-
-        assert result.exit_code == 0, f"Command failed with output: {result.output}"
-
-        extension_path = isolated_filesystem / "test_extension"
-        assert_directory_exists(extension_path)
-
-        # Should have backend directory and pyproject.toml
-        assert_directory_exists(extension_path / "backend")
-        assert_file_exists(extension_path / "backend" / "pyproject.toml")
-
-        # Should NOT have frontend directory
-        frontend_path = extension_path / "frontend"
-        assert not frontend_path.exists(), (
-            "Frontend directory should not exist for backend-only extension"
-        )
-
-    def test_init_creates_extension_with_neither_frontend_nor_backend(
-        self, cli_runner, isolated_filesystem, cli_input_neither
-    ):
-        """Test that init creates minimal extension with neither frontend nor backend."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_neither)
-
-        assert result.exit_code == 0, f"Command failed with output: {result.output}"
-
-        extension_path = isolated_filesystem / "test_extension"
-        assert_directory_exists(extension_path)
-
-        # Should only have extension.json
-        assert_file_exists(extension_path / "extension.json")
-
-        # Should NOT have frontend or backend directories
-        assert not (extension_path / "frontend").exists()
-        assert not (extension_path / "backend").exists()
-
-    @pytest.mark.parametrize(
-        "invalid_name,expected_error",
-        [
-            ("test-extension", "must be alphanumeric"),
-            ("test extension", "must be alphanumeric"),
-            ("test.extension", "must be alphanumeric"),
-            ("test@extension", "must be alphanumeric"),
-            ("", "must be alphanumeric"),
-        ],
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+    assert (
+        "🎉 Extension Test Extension (ID: test_extension) initialized" in result.output
     )
-    def test_init_validates_extension_name(
-        self, cli_runner, isolated_filesystem, invalid_name, expected_error
-    ):
-        """Test that init validates extension names according to regex pattern."""
-        cli_input = f"{invalid_name}\n0.1.0\nApache-2.0\ny\ny\n"
-        result = cli_runner.invoke(app, ["init"], input=cli_input)
 
-        assert result.exit_code == 1, (
-            f"Expected command to fail for invalid name '{invalid_name}'"
-        )
-        assert expected_error in result.output
+    # Verify directory structure
+    extension_path = isolated_filesystem / "test_extension"
+    assert_directory_exists(extension_path, "main extension directory")
 
-    def test_init_accepts_numeric_extension_name(self, cli_runner, isolated_filesystem):
-        """Test that init accepts numeric extension ids like '123'."""
-        cli_input = "123\n123\n0.1.0\nApache-2.0\ny\ny\n"
+    expected_structure = create_test_extension_structure(
+        isolated_filesystem,
+        "test_extension",
+        include_frontend=True,
+        include_backend=True,
+    )
+
+    # Check directories
+    assert_directory_structure(extension_path, expected_structure["expected_dirs"])
+
+    # Check files
+    assert_file_structure(extension_path, expected_structure["expected_files"])
+
+
+@pytest.mark.cli
+def test_init_creates_extension_with_frontend_only(
+    cli_runner, isolated_filesystem, cli_input_frontend_only
+):
+    """Test that init creates extension with only frontend components."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_frontend_only)
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+
+    extension_path = isolated_filesystem / "test_extension"
+    assert_directory_exists(extension_path)
+
+    # Should have frontend directory and package.json
+    assert_directory_exists(extension_path / "frontend")
+    assert_file_exists(extension_path / "frontend" / "package.json")
+
+    # Should NOT have backend directory
+    backend_path = extension_path / "backend"
+    assert not backend_path.exists(), (
+        "Backend directory should not exist for frontend-only extension"
+    )
+
+
+@pytest.mark.cli
+def test_init_creates_extension_with_backend_only(
+    cli_runner, isolated_filesystem, cli_input_backend_only
+):
+    """Test that init creates extension with only backend components."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_backend_only)
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+
+    extension_path = isolated_filesystem / "test_extension"
+    assert_directory_exists(extension_path)
+
+    # Should have backend directory and pyproject.toml
+    assert_directory_exists(extension_path / "backend")
+    assert_file_exists(extension_path / "backend" / "pyproject.toml")
+
+    # Should NOT have frontend directory
+    frontend_path = extension_path / "frontend"
+    assert not frontend_path.exists(), (
+        "Frontend directory should not exist for backend-only extension"
+    )
+
+
+@pytest.mark.cli
+def test_init_creates_extension_with_neither_frontend_nor_backend(
+    cli_runner, isolated_filesystem, cli_input_neither
+):
+    """Test that init creates minimal extension with neither frontend nor backend."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_neither)
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+
+    extension_path = isolated_filesystem / "test_extension"
+    assert_directory_exists(extension_path)
+
+    # Should only have extension.json
+    assert_file_exists(extension_path / "extension.json")
+
+    # Should NOT have frontend or backend directories
+    assert not (extension_path / "frontend").exists()
+    assert not (extension_path / "backend").exists()
+
+
+@pytest.mark.cli
+@pytest.mark.parametrize(
+    "invalid_name,expected_error",
+    [
+        ("test-extension", "must be alphanumeric"),
+        ("test extension", "must be alphanumeric"),
+        ("test.extension", "must be alphanumeric"),
+        ("test@extension", "must be alphanumeric"),
+        ("", "must be alphanumeric"),
+    ],
+)
+def test_init_validates_extension_name(
+    cli_runner, isolated_filesystem, invalid_name, expected_error
+):
+    """Test that init validates extension names according to regex pattern."""
+    cli_input = f"{invalid_name}\n0.1.0\nApache-2.0\ny\ny\n"
+    result = cli_runner.invoke(app, ["init"], input=cli_input)
+
+    assert result.exit_code == 1, (
+        f"Expected command to fail for invalid name '{invalid_name}'"
+    )
+    assert expected_error in result.output
+
+
+@pytest.mark.cli
+def test_init_accepts_numeric_extension_name(cli_runner, isolated_filesystem):
+    """Test that init accepts numeric extension ids like '123'."""
+    cli_input = "123\n123\n0.1.0\nApache-2.0\ny\ny\n"
+    result = cli_runner.invoke(app, ["init"], input=cli_input)
+
+    assert result.exit_code == 0, f"Numeric id '123' should be valid: {result.output}"
+    assert Path("123").exists(), "Directory for '123' should be created"
+
+
+@pytest.mark.cli
+@pytest.mark.parametrize(
+    "valid_id", ["test123", "TestExtension", "test_extension_123", "MyExt_1"]
+)
+def test_init_with_valid_alphanumeric_names(cli_runner, valid_id):
+    """Test that init accepts various valid alphanumeric names."""
+    with cli_runner.isolated_filesystem():
+        cli_input = f"{valid_id}\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
         result = cli_runner.invoke(app, ["init"], input=cli_input)
 
         assert result.exit_code == 0, (
-            f"Numeric id '123' should be valid: {result.output}"
+            f"Valid name '{valid_id}' was rejected: {result.output}"
         )
-        assert Path("123").exists(), "Directory for '123' should be created"
+        assert Path(valid_id).exists(), f"Directory for '{valid_id}' was not created"
 
-    def test_init_with_valid_alphanumeric_names(self, cli_runner, isolated_filesystem):
-        """Test that init accepts various valid alphanumeric names."""
-        valid_ids = ["test123", "TestExtension", "test_extension_123", "MyExt_1"]
 
-        for id_ in valid_ids:
-            with cli_runner.isolated_filesystem():
-                cli_input = f"{id_}\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
-                result = cli_runner.invoke(app, ["init"], input=cli_input)
+@pytest.mark.cli
+def test_init_fails_when_directory_already_exists(
+    cli_runner, isolated_filesystem, cli_input_both
+):
+    """Test that init fails gracefully when target directory already exists."""
+    # Create the directory first
+    existing_dir = isolated_filesystem / "test_extension"
+    existing_dir.mkdir()
 
-                assert result.exit_code == 0, (
-                    f"Valid name '{id_}' was rejected: {result.output}"
-                )
-                assert Path(id_).exists(), f"Directory for '{id_}' was not created"
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
 
-    def test_init_fails_when_directory_already_exists(
-        self, cli_runner, isolated_filesystem, cli_input_both
-    ):
-        """Test that init fails gracefully when target directory already exists."""
-        # Create the directory first
-        existing_dir = isolated_filesystem / "test_extension"
-        existing_dir.mkdir()
+    assert result.exit_code == 1, "Command should fail when directory already exists"
+    assert "already exists" in result.output
 
-        result = cli_runner.invoke(app, ["init"], input=cli_input_both)
 
-        assert result.exit_code == 1, (
-            "Command should fail when directory already exists"
-        )
-        assert "already exists" in result.output
+@pytest.mark.cli
+def test_extension_json_content_is_correct(
+    cli_runner, isolated_filesystem, cli_input_both
+):
+    """Test that the generated extension.json has the correct content."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
+    assert result.exit_code == 0
 
-    def test_extension_json_content_is_correct(
-        self, cli_runner, isolated_filesystem, cli_input_both
-    ):
-        """Test that the generated extension.json has the correct content."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_both)
-        assert result.exit_code == 0
+    extension_path = isolated_filesystem / "test_extension"
+    extension_json_path = extension_path / "extension.json"
 
-        extension_path = isolated_filesystem / "test_extension"
-        extension_json_path = extension_path / "extension.json"
+    # Verify the JSON structure and values
+    assert_json_content(
+        extension_json_path,
+        {
+            "id": "test_extension",
+            "name": "Test Extension",
+            "version": "0.1.0",
+            "license": "Apache-2.0",
+            "permissions": [],
+        },
+    )
 
-        # Verify the JSON structure and values
-        assert_json_content(
-            extension_json_path,
-            {
-                "id": "test_extension",
-                "name": "Test Extension",
-                "version": "0.1.0",
-                "license": "Apache-2.0",
-                "permissions": [],
-            },
-        )
+    # Load and verify more complex nested structures
+    content = load_json_file(extension_json_path)
 
-        # Load and verify more complex nested structures
-        content = load_json_file(extension_json_path)
+    # Verify frontend section exists and has correct structure
+    assert "frontend" in content
+    frontend = content["frontend"]
+    assert "contributions" in frontend
+    assert "moduleFederation" in frontend
+    assert frontend["contributions"] == {"commands": [], "views": [], "menus": []}
+    assert frontend["moduleFederation"] == {"exposes": ["./index"]}
 
-        # Verify frontend section exists and has correct structure
-        assert "frontend" in content
-        frontend = content["frontend"]
-        assert "contributions" in frontend
-        assert "moduleFederation" in frontend
-        assert frontend["contributions"] == {"commands": [], "views": [], "menus": []}
-        assert frontend["moduleFederation"] == {"exposes": ["./index"]}
+    # Verify backend section exists and has correct structure
+    assert "backend" in content
+    backend = content["backend"]
+    assert "entryPoints" in backend
+    assert "files" in backend
+    assert backend["entryPoints"] == ["test_extension.entrypoint"]
+    assert backend["files"] == ["backend/src/test_extension/**/*.py"]
 
-        # Verify backend section exists and has correct structure
-        assert "backend" in content
-        backend = content["backend"]
-        assert "entryPoints" in backend
-        assert "files" in backend
-        assert backend["entryPoints"] == ["test_extension.entrypoint"]
-        assert backend["files"] == ["backend/src/test_extension/**/*.py"]
 
-    def test_frontend_package_json_content_is_correct(
-        self, cli_runner, isolated_filesystem, cli_input_both
-    ):
-        """Test that the generated frontend/package.json has the correct content."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_both)
-        assert result.exit_code == 0
+@pytest.mark.cli
+def test_frontend_package_json_content_is_correct(
+    cli_runner, isolated_filesystem, cli_input_both
+):
+    """Test that the generated frontend/package.json has the correct content."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
+    assert result.exit_code == 0
 
-        extension_path = isolated_filesystem / "test_extension"
-        package_json_path = extension_path / "frontend" / "package.json"
+    extension_path = isolated_filesystem / "test_extension"
+    package_json_path = extension_path / "frontend" / "package.json"
 
-        # Verify the package.json structure and values
-        assert_json_content(
-            package_json_path,
-            {
-                "name": "test_extension",
-                "version": "0.1.0",
-                "license": "Apache-2.0",
-            },
-        )
+    # Verify the package.json structure and values
+    assert_json_content(
+        package_json_path,
+        {
+            "name": "test_extension",
+            "version": "0.1.0",
+            "license": "Apache-2.0",
+        },
+    )
 
-        # Verify more complex structures
-        content = load_json_file(package_json_path)
-        assert "scripts" in content
-        assert "build" in content["scripts"]
-        assert "peerDependencies" in content
-        assert "@apache-superset/core" in content["peerDependencies"]
+    # Verify more complex structures
+    content = load_json_file(package_json_path)
+    assert "scripts" in content
+    assert "build" in content["scripts"]
+    assert "peerDependencies" in content
+    assert "@apache-superset/core" in content["peerDependencies"]
 
-    def test_backend_pyproject_toml_is_created(
-        self, cli_runner, isolated_filesystem, cli_input_both
-    ):
-        """Test that the generated backend/pyproject.toml file is created."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_both)
-        assert result.exit_code == 0
 
-        extension_path = isolated_filesystem / "test_extension"
-        pyproject_path = extension_path / "backend" / "pyproject.toml"
+@pytest.mark.cli
+def test_backend_pyproject_toml_is_created(
+    cli_runner, isolated_filesystem, cli_input_both
+):
+    """Test that the generated backend/pyproject.toml file is created."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
+    assert result.exit_code == 0
 
-        assert_file_exists(pyproject_path, "backend pyproject.toml")
+    extension_path = isolated_filesystem / "test_extension"
+    pyproject_path = extension_path / "backend" / "pyproject.toml"
 
-        # Basic content verification (without parsing TOML for now)
-        content = pyproject_path.read_text()
-        assert "test_extension" in content
-        assert "0.1.0" in content
-        assert "Apache-2.0" in content
+    assert_file_exists(pyproject_path, "backend pyproject.toml")
 
-    def test_init_command_output_messages(
-        self, cli_runner, isolated_filesystem, cli_input_both
-    ):
-        """Test that init command produces expected output messages."""
-        result = cli_runner.invoke(app, ["init"], input=cli_input_both)
+    # Basic content verification (without parsing TOML for now)
+    content = pyproject_path.read_text()
+    assert "test_extension" in content
+    assert "0.1.0" in content
+    assert "Apache-2.0" in content
 
-        assert result.exit_code == 0
-        output = result.output
 
-        # Check for expected success messages
-        assert "✅ Created extension.json" in output
-        assert "✅ Created frontend folder structure" in output
-        assert "✅ Created backend folder structure" in output
-        assert "🎉 Extension Test Extension (ID: test_extension) initialized" in output
+@pytest.mark.cli
+def test_init_command_output_messages(cli_runner, isolated_filesystem, cli_input_both):
+    """Test that init command produces expected output messages."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
 
-    def test_init_with_custom_version_and_license(
-        self, cli_runner, isolated_filesystem
-    ):
-        """Test init with custom version and license parameters."""
-        cli_input = "my_extension\nMy Extension\n2.1.0\nMIT\ny\nn\n"
-        result = cli_runner.invoke(app, ["init"], input=cli_input)
+    assert result.exit_code == 0
+    output = result.output
 
-        assert result.exit_code == 0
+    # Check for expected success messages
+    assert "✅ Created extension.json" in output
+    assert "✅ Created frontend folder structure" in output
+    assert "✅ Created backend folder structure" in output
+    assert "🎉 Extension Test Extension (ID: test_extension) initialized" in output
 
-        extension_path = isolated_filesystem / "my_extension"
-        extension_json_path = extension_path / "extension.json"
 
-        assert_json_content(
-            extension_json_path,
-            {
-                "id": "my_extension",
-                "name": "My Extension",
-                "version": "2.1.0",
-                "license": "MIT",
-            },
-        )
+@pytest.mark.cli
+def test_init_with_custom_version_and_license(cli_runner, isolated_filesystem):
+    """Test init with custom version and license parameters."""
+    cli_input = "my_extension\nMy Extension\n2.1.0\nMIT\ny\nn\n"
+    result = cli_runner.invoke(app, ["init"], input=cli_input)
 
-    @pytest.mark.integration
-    def test_full_init_workflow_integration(self, cli_runner, isolated_filesystem):
-        """Integration test for the complete init workflow."""
-        # Test the complete flow with realistic user input
-        cli_input = "awesome_charts\nAwesome Charts\n1.0.0\nApache-2.0\ny\ny\n"
-        result = cli_runner.invoke(app, ["init"], input=cli_input)
+    assert result.exit_code == 0
 
-        # Verify success
-        assert result.exit_code == 0
+    extension_path = isolated_filesystem / "my_extension"
+    extension_json_path = extension_path / "extension.json"
 
-        # Verify complete directory structure
-        extension_path = isolated_filesystem / "awesome_charts"
-        expected_structure = create_test_extension_structure(
-            isolated_filesystem,
-            "awesome_charts",
-            include_frontend=True,
-            include_backend=True,
-        )
+    assert_json_content(
+        extension_json_path,
+        {
+            "id": "my_extension",
+            "name": "My Extension",
+            "version": "2.1.0",
+            "license": "MIT",
+        },
+    )
 
-        # Comprehensive structure verification
-        assert_directory_structure(extension_path, expected_structure["expected_dirs"])
-        assert_file_structure(extension_path, expected_structure["expected_files"])
 
-        # Verify all generated files have correct content
-        extension_json = load_json_file(extension_path / "extension.json")
-        assert extension_json["id"] == "awesome_charts"
-        assert extension_json["name"] == "Awesome Charts"
-        assert extension_json["version"] == "1.0.0"
-        assert extension_json["license"] == "Apache-2.0"
+@pytest.mark.integration
+@pytest.mark.cli
+def test_full_init_workflow_integration(cli_runner, isolated_filesystem):
+    """Integration test for the complete init workflow."""
+    # Test the complete flow with realistic user input
+    cli_input = "awesome_charts\nAwesome Charts\n1.0.0\nApache-2.0\ny\ny\n"
+    result = cli_runner.invoke(app, ["init"], input=cli_input)
 
-        package_json = load_json_file(extension_path / "frontend" / "package.json")
-        assert package_json["name"] == "awesome_charts"
+    # Verify success
+    assert result.exit_code == 0
 
-        pyproject_content = (extension_path / "backend" / "pyproject.toml").read_text()
-        assert "awesome_charts" in pyproject_content
+    # Verify complete directory structure
+    extension_path = isolated_filesystem / "awesome_charts"
+    expected_structure = create_test_extension_structure(
+        isolated_filesystem,
+        "awesome_charts",
+        include_frontend=True,
+        include_backend=True,
+    )
+
+    # Comprehensive structure verification
+    assert_directory_structure(extension_path, expected_structure["expected_dirs"])
+    assert_file_structure(extension_path, expected_structure["expected_files"])
+
+    # Verify all generated files have correct content
+    extension_json = load_json_file(extension_path / "extension.json")
+    assert extension_json["id"] == "awesome_charts"
+    assert extension_json["name"] == "Awesome Charts"
+    assert extension_json["version"] == "1.0.0"
+    assert extension_json["license"] == "Apache-2.0"
+
+    package_json = load_json_file(extension_path / "frontend" / "package.json")
+    assert package_json["name"] == "awesome_charts"
+
+    pyproject_content = (extension_path / "backend" / "pyproject.toml").read_text()
+    assert "awesome_charts" in pyproject_content

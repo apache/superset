@@ -84,19 +84,29 @@ def validate_npm() -> None:
 
 def init_frontend_deps(frontend_dir: Path) -> None:
     """
-    If node_modules is missing under `frontend_dir`, run `npm ci`.
+    If node_modules is missing under `frontend_dir`, run `npm ci` if package-lock.json
+    exists, otherwise run `npm i`.
     """
     node_modules = frontend_dir / "node_modules"
     if not node_modules.exists():
-        click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
+        package_lock = frontend_dir / "package-lock.json"
+        if package_lock.exists():
+            click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
+            npm_command = ["npm", "ci"]
+            error_msg = "❌ `npm ci` failed. Aborting."
+        else:
+            click.secho("⚙️  node_modules not found, running `npm i`…", fg="cyan")
+            npm_command = ["npm", "i"]
+            error_msg = "❌ `npm i` failed. Aborting."
+
         validate_npm()
         res = subprocess.run(  # noqa: S603
-            ["npm", "ci"],  # noqa: S607
+            npm_command,  # noqa: S607
             cwd=frontend_dir,
             text=True,
         )
         if res.returncode != 0:
-            click.secho("❌ `npm ci` failed. Aborting.", err=True, fg="red")
+            click.secho(error_msg, err=True, fg="red")
             sys.exit(1)
         click.secho("✅ Dependencies installed", fg="green")
 

@@ -77,3 +77,60 @@ def cli_input_backend_only():
 def cli_input_neither():
     """CLI input for creating extension with neither frontend nor backend."""
     return "test_extension\nTest Extension\n0.1.0\nApache-2.0\nn\nn\n"
+
+
+@pytest.fixture
+def extension_setup_for_dev():
+    """Set up extension structure for dev testing."""
+
+    def _setup(base_path: Path) -> None:
+        import json
+
+        # Create extension.json
+        extension_json = {
+            "id": "test_extension",
+            "name": "Test Extension",
+            "version": "1.0.0",
+            "permissions": [],
+        }
+        (base_path / "extension.json").write_text(json.dumps(extension_json))
+
+        # Create frontend and backend directories
+        (base_path / "frontend").mkdir()
+        (base_path / "backend").mkdir()
+
+    return _setup
+
+
+@pytest.fixture
+def extension_setup_for_bundling():
+    """Set up a complete extension structure ready for bundling."""
+
+    def _setup(base_path: Path) -> None:
+        import json
+
+        # Create dist directory with manifest and files
+        dist_dir = base_path / "dist"
+        dist_dir.mkdir(parents=True)
+
+        # Create manifest.json
+        manifest = {
+            "id": "test_extension",
+            "name": "Test Extension",
+            "version": "1.0.0",
+            "permissions": [],
+        }
+        (dist_dir / "manifest.json").write_text(json.dumps(manifest))
+
+        # Create some frontend files
+        frontend_dir = dist_dir / "frontend" / "dist"
+        frontend_dir.mkdir(parents=True)
+        (frontend_dir / "remoteEntry.abc123.js").write_text("// remote entry")
+        (frontend_dir / "main.js").write_text("// main js")
+
+        # Create some backend files
+        backend_dir = dist_dir / "backend" / "src" / "test_extension"
+        backend_dir.mkdir(parents=True)
+        (backend_dir / "__init__.py").write_text("# init")
+
+    return _setup
