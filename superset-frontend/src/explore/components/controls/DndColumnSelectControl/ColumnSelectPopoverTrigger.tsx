@@ -138,6 +138,7 @@ const ColumnSelectPopoverTriggerInner = ({
           disabledTabs={disabledTabs}
           metrics={metrics}
           selectedMetrics={selectedMetrics}
+          datasource={datasource}
         />
       </ExplorePopoverContent>
     ),
@@ -153,6 +154,7 @@ const ColumnSelectPopoverTriggerInner = ({
       disabledTabs,
       metrics,
       selectedMetrics,
+      datasource,
     ],
   );
 

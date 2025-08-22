@@ -400,6 +400,7 @@ class TestDatasetApi(SupersetTestCase):
                 "backend": main_db.backend,
                 "database_name": "examples",
                 "id": 1,
+                "uuid": ANY,
             },
             "default_endpoint": None,
             "description": "Energy consumption",

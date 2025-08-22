@@ -135,21 +135,21 @@ class SupersetResultSet:
         if data and (not isinstance(data, list) or not isinstance(data[0], tuple)):
             data = [tuple(row) for row in data]
         array = np.array(data, dtype=numpy_dtype)
-        if array.size > 0:
-            for column in column_names:
-                try:
-                    pa_data.append(pa.array(array[column].tolist()))
-                except (
-                    pa.lib.ArrowInvalid,
-                    pa.lib.ArrowTypeError,
-                    pa.lib.ArrowNotImplementedError,
-                    ValueError,
-                    TypeError,  # this is super hackey,
-                    # https://issues.apache.org/jira/browse/ARROW-7855
-                ):
-                    # attempt serialization of values as strings
-                    stringified_arr = stringify_values(array[column])
-                    pa_data.append(pa.array(stringified_arr.tolist()))
+
+        for column in column_names:
+            try:
+                pa_data.append(pa.array(array[column].tolist()))
+            except (
+                pa.lib.ArrowInvalid,
+                pa.lib.ArrowTypeError,
+                pa.lib.ArrowNotImplementedError,
+                ValueError,
+                TypeError,  # this is super hackey,
+                # https://issues.apache.org/jira/browse/ARROW-7855
+            ):
+                # attempt serialization of values as strings
+                stringified_arr = stringify_values(array[column])
+                pa_data.append(pa.array(stringified_arr.tolist()))
 
         if pa_data:  # pylint: disable=too-many-nested-blocks
             for i, column in enumerate(column_names):

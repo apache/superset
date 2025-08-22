@@ -32,8 +32,8 @@ const Calendar = ({ className, ...otherProps }) => {
           .d3-tip {
             line-height: 1;
             padding: ${theme.sizeUnit * 3}px;
-            background: ${theme.colors.grayscale.dark2};
-            color: ${theme.colors.grayscale.light5};
+            background: ${theme.colorBgElevated};
+            color: ${theme.colorTextLightSolid};
             border-radius: 4px;
             pointer-events: none;
             z-index: 1000;
@@ -46,7 +46,7 @@ const Calendar = ({ className, ...otherProps }) => {
             font-size: ${theme.fontSizeXS};
             width: 100%;
             line-height: 1;
-            color: ${theme.colors.grayscale.dark2};
+            color: ${theme.colorBgElevated};
             position: absolute;
             pointer-events: none;
           }
@@ -112,8 +112,8 @@ export default styled(Calendar)`
     .superset-legacy-chart-calendar .d3-tip {
       line-height: 1;
       padding: ${theme.sizeUnit * 3}px;
-      background: ${theme.colors.grayscale.dark2};
-      color: ${theme.colors.grayscale.light5};
+      background: ${theme.colorBgElevated};
+      color: ${theme.colorTextLightSolid};
       border-radius: ${theme.borderRadius}px;
       pointer-events: none;
       z-index: 1000;
@@ -124,7 +124,7 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .graph-label {
-      fill: ${theme.colors.grayscale.base};
+      fill: ${theme.colorTextTertiary};
       font-size: ${theme.fontSizeXS}px;
     }
 
@@ -134,11 +134,11 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .graph-rect {
-      fill: ${theme.colors.grayscale.light2};
+      fill: ${theme.colorBorder};
     }
 
     .cal-heatmap-container .graph-subdomain-group rect:hover {
-      stroke: ${theme.colors.grayscale.dark2};
+      stroke: ${theme.colorBgElevated};
       stroke-width: 1px;
     }
 
@@ -152,23 +152,23 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .qi {
-      background-color: ${theme.colors.grayscale.base};
-      fill: ${theme.colors.grayscale.base};
+      background-color: ${theme.colorTextTertiary};
+      fill: ${theme.colorTextTertiary};
     }
 
     .cal-heatmap-container .q1 {
-      background-color: ${theme.colors.warning.light2};
-      fill: ${theme.colors.warning.light2};
+      background-color: ${theme.colorWarningBg};
+      fill: ${theme.colorWarningBg};
     }
 
     .cal-heatmap-container .q2 {
-      background-color: ${theme.colors.warning.light1};
-      fill: ${theme.colors.warning.light1};
+      background-color: ${theme.colorWarning};
+      fill: ${theme.colorWarning};
     }
 
     .cal-heatmap-container .q3 {
-      background-color: ${theme.colors.success.light1};
-      fill: ${theme.colors.success.light1};
+      background-color: ${theme.colorSuccess};
+      fill: ${theme.colorSuccess};
     }
 
     .cal-heatmap-container .q4 {
@@ -177,8 +177,8 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .q5 {
-      background-color: ${theme.colors.success.dark1};
-      fill: ${theme.colors.success.dark1};
+      background-color: ${theme.colorSuccessActive};
+      fill: ${theme.colorSuccessActive};
     }
 
     .cal-heatmap-container rect.highlight {
@@ -207,7 +207,7 @@ export default styled(Calendar)`
     .ch-tooltip {
       padding: ${theme.sizeUnit * 2}px;
       background: ${theme.colorText};
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextLightSolid};
       font-size: ${theme.fontSizeSM}px;
       line-height: 1.4;
       width: 140px;
@@ -215,7 +215,7 @@ export default styled(Calendar)`
       z-index: 99999;
       text-align: center;
       border-radius: ${theme.borderRadius}px;
-      box-shadow: 2px 2px 2px ${theme.colors.grayscale.dark2};
+      box-shadow: 2px 2px 2px ${theme.colorBorder};
       display: none;
       box-sizing: border-box;
     }

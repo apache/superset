@@ -333,7 +333,7 @@
     "webpack": "^5.99.9",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.1",
+    "webpack-dev-server": "^5.2.2",
     "webpack-manifest-plugin": "^5.0.1",
     "webpack-sources": "^3.3.3",
     "webpack-visualizer-plugin2": "^1.2.0"
@@ -341,6 +341,7 @@
   "peerDependencies": {
     "ace-builds": "^1.41.0",
     "core-js": "^3.38.1",
+    "handlebars": "^4.7.8",
     "react-ace": "^10.1.0",
     "regenerator-runtime": "^0.14.1"
   },

@@ -71,7 +71,6 @@ export const QUERY_EDITOR_SET_FUNCTION_NAMES =
 export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 export const QUERY_EDITOR_TOGGLE_LEFT_BAR = 'QUERY_EDITOR_TOGGLE_LEFT_BAR';
 export const MIGRATE_QUERY_EDITOR = 'MIGRATE_QUERY_EDITOR';
-export const MIGRATE_TAB_HISTORY = 'MIGRATE_TAB_HISTORY';
 export const MIGRATE_TABLE = 'MIGRATE_TABLE';
 export const MIGRATE_QUERY = 'MIGRATE_QUERY';
 
@@ -391,7 +390,7 @@ export function runQueryFromSqlEditor(
     const query = {
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
-      sqlEditorId: qe.id,
+      sqlEditorId: qe.tabViewId ?? qe.id,
       tab: qe.name,
       catalog: qe.catalog,
       schema: qe.schema,
@@ -499,26 +498,21 @@ export function syncQueryEditor(queryEditor) {
       .then(({ json }) => {
         const newQueryEditor = {
           ...queryEditor,
-          id: json.id.toString(),
           inLocalStorage: false,
           loaded: true,
+          tabViewId: json.id.toString(),
         };
         dispatch({
           type: MIGRATE_QUERY_EDITOR,
           oldQueryEditor: queryEditor,
           newQueryEditor,
         });
-        dispatch({
-          type: MIGRATE_TAB_HISTORY,
-          oldId: queryEditor.id,
-          newId: newQueryEditor.id,
-        });
         return Promise.all([
           ...localStorageTables.map(table =>
-            migrateTable(table, newQueryEditor.id, dispatch),
+            migrateTable(table, newQueryEditor.tabViewId, dispatch),
           ),
           ...localStorageQueries.map(query =>
-            migrateQuery(query.id, newQueryEditor.id, dispatch),
+            migrateQuery(query.id, newQueryEditor.tabViewId, dispatch),
           ),
         ]);
       })
@@ -685,8 +679,9 @@ export function setTables(tableSchemas) {
 
 export function fetchQueryEditor(queryEditor, displayLimit) {
   return function (dispatch) {
+    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     SupersetClient.get({
-      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
     })
       .then(({ json }) => {
         const loadedQueryEditor = {
@@ -756,10 +751,11 @@ export function removeAllOtherQueryEditors(queryEditor) {
 
 export function removeQuery(query) {
   return function (dispatch) {
+    const queryEditorId = query.sqlEditorId ?? query.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
           endpoint: encodeURI(
-            `/tabstateview/${query.sqlEditorId}/query/${query.id}`,
+            `/tabstateview/${queryEditorId}/query/${query.id}`,
           ),
         })
       : Promise.resolve();
@@ -839,9 +835,10 @@ export function saveQuery(query, clientId) {
 
 export const addSavedQueryToTabState =
   (queryEditor, savedQuery) => dispatch => {
+    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.put({
-          endpoint: `/tabstateview/${queryEditor.id}`,
+          endpoint: `/tabstateview/${queryEditorId}`,
           postPayload: { saved_query_id: savedQuery.remoteId },
         })
       : Promise.resolve();
@@ -889,9 +886,10 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
     const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
     // saved query and set tab state use this action
     dispatch(queryEditorSetSql(queryEditor, sql, queryId));
+    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
       return SupersetClient.put({
-        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+        endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
         postPayload: { sql, latest_query_id: queryId },
       }).catch(() =>
         dispatch(

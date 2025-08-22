@@ -227,7 +227,7 @@ const ScopeSelector = styled.div`
               border-radius: ${theme.borderRadius}px;
               margin-top: ${theme.sizeUnit * -2}px;
               box-shadow: inset 0 0 0 2px ${theme.colorBorder};
-              background: ${theme.colors.grayscale.light3};
+              background: ${theme.colorFill};
             }
           }
 
@@ -309,7 +309,7 @@ const ActionsContainer = styled.div`
   ${({ theme }) => `
     height: ${theme.sizeUnit * 16}px;
 
-    border-top: ${theme.sizeUnit / 4}px solid ${theme.colors.primary.light3};
+    border-top: ${theme.sizeUnit / 4}px solid ${theme.colorPrimaryBg};
     padding: ${theme.sizeUnit * 6}px;
     margin: 0 0 0 ${-theme.sizeUnit * 6}px;
     text-align: right;

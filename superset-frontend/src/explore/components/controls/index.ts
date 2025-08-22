@@ -58,6 +58,7 @@ import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
 import TimeRangeControl from './TimeRangeControl';
 import ColorBreakpointsControl from './ColorBreakpointsControl';
+import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -105,6 +106,7 @@ const controlMap = {
   ZoomConfigControl,
   NumberControl,
   TimeRangeControl,
+  MatrixifyDimensionControl,
   ...sharedControlComponents,
 };
 export default controlMap;

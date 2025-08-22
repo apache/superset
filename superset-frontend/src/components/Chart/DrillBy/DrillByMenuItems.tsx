@@ -200,6 +200,11 @@ export const DrillByMenuItems = ({
     );
   };
 
+  // Don't render drill by menu items when matrixify is enabled
+  if (formData.matrixify_enabled) {
+    return null;
+  }
+
   return (
     <>
       <Menu.SubMenu

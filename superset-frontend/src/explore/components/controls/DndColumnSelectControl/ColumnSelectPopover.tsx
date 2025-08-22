@@ -45,13 +45,13 @@ import {
   Form,
   FormItem,
   Select,
-  SQLEditor,
   EmptyState,
 } from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -105,6 +105,7 @@ export interface ColumnSelectPopoverProps {
   disabledTabs?: Set<string>;
   metrics?: Metric[];
   selectedMetrics?: QueryFormMetric[];
+  datasource?: any;
 }
 
 const getInitialColumnValues = (
@@ -136,6 +137,7 @@ const ColumnSelectPopover = ({
   disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
   metrics = [],
   selectedMetrics = [],
+  datasource,
 }: ColumnSelectPopoverProps) => {
   // const theme = useTheme(); // Unused variable
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
@@ -357,11 +359,6 @@ const ColumnSelectPopover = ({
     [getCurrentTab],
   );
 
-  const onSqlEditorFocus = useCallback(() => {
-    // @ts-ignore
-    sqlEditorRef.current?.editor.resize();
-  }, []);
-
   const setDatasetAndClose = () => {
     if (setDatasetModal) {
       setDatasetModal(true);
@@ -570,38 +567,40 @@ const ColumnSelectPopover = ({
               </>
             ),
           },
-          // Only show Custom SQL tab if not disabled
-          ...(disabledTabs.has('sqlExpression')
-            ? []
-            : [
-                {
-                  key: TABS_KEYS.SQL_EXPRESSION,
-                  label: t('Custom SQL'),
-                  children: (
-                    <>
-                      <SQLEditor
-                        value={
-                          adhocColumn?.sqlExpression ||
-                          selectedSimpleColumn?.column_name ||
-                          selectedCalculatedColumn?.expression
-                        }
-                        onFocus={onSqlEditorFocus}
-                        showLoadingForImport
-                        onChange={onSqlExpressionChange}
-                        width="100%"
-                        height={`${height - 80}px`}
-                        showGutter={false}
-                        editorProps={{ $blockScrolling: true }}
-                        enableLiveAutocompletion
-                        className="filter-sql-editor"
-                        wrapEnabled
-                        ref={sqlEditorRef}
-                        keywords={keywords}
-                      />
-                    </>
-                  ),
-                },
-              ]),
+          {
+            key: TABS_KEYS.SQL_EXPRESSION,
+            label: t('Custom SQL'),
+            disabled: disabledTabs.has('sqlExpression'),
+            children: (
+              <>
+                <SQLEditorWithValidation
+                  value={
+                    adhocColumn?.sqlExpression ||
+                    selectedSimpleColumn?.column_name ||
+                    selectedCalculatedColumn?.expression ||
+                    ''
+                  }
+                  ref={sqlEditorRef}
+                  showLoadingForImport
+                  onChange={onSqlExpressionChange}
+                  width="100%"
+                  height={`${height - 120}px`}
+                  showGutter={false}
+                  editorProps={{ $blockScrolling: true }}
+                  enableLiveAutocompletion
+                  className="filter-sql-editor"
+                  wrapEnabled
+                  keywords={keywords.map((k: any) =>
+                    typeof k === 'string' ? k : k.value || k.name || k,
+                  )}
+                  showValidation
+                  expressionType="column"
+                  datasourceId={datasource?.id}
+                  datasourceType={datasourceType}
+                />
+              </>
+            ),
+          },
         ]}
       />
 

@@ -70,6 +70,7 @@ export interface QueryEditor {
   updatedAt?: number;
   cursorPosition?: CursorPosition;
   isDataset?: boolean;
+  tabViewId?: string;
 }
 
 export type toastState = {

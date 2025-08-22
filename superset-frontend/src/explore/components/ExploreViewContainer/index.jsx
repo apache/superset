@@ -30,6 +30,7 @@ import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
+  isMatrixifyEnabled,
 } from '@superset-ui/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
@@ -345,10 +346,30 @@ function ExploreViewContainer(props) {
 
   const onQuery = useCallback(() => {
     props.actions.setForceQuery(false);
+
+    // Skip main query if Matrixify is enabled
+    if (isMatrixifyEnabled(props.form_data)) {
+      // Set chart to success state since Matrixify will handle its own queries
+      props.actions.chartUpdateSucceeded([], props.chart.id);
+      props.actions.chartRenderingSucceeded(props.chart.id);
+
+      // Update history and controls
+      addHistory();
+      setLastQueriedControls(props.controls);
+      return;
+    }
+
+    // Normal behavior for non-Matrixify
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
-  }, [props.controls, addHistory, props.actions, props.chart.id]);
+  }, [
+    props.controls,
+    addHistory,
+    props.actions,
+    props.chart.id,
+    props.form_data,
+  ]);
 
   // Simple debounced auto-query for non-renderTrigger controls
   const debouncedAutoQuery = useMemo(
