@@ -197,7 +197,6 @@ function SearchInput({
     <Space direction="horizontal" size={4} className="dt-global-filter">
       {t('Search')}
       <Input
-        size="small"
         aria-label={t('Search %s records', count)}
         placeholder={tn('search.num_records', count)}
         value={value}
