@@ -188,7 +188,7 @@ def test_init_frontend_deps_skips_when_node_modules_exists(
 @pytest.mark.unit
 @patch("subprocess.run")
 @patch("superset_cli.cli.validate_npm")
-def test_init_frontend_deps_runs_npm_ci_when_missing(
+def test_init_frontend_deps_runs_npm_i_when_missing(
     mock_validate_npm, mock_run, isolated_filesystem
 ):
     """Test init_frontend_deps runs npm ci when node_modules is missing."""
@@ -202,7 +202,7 @@ def test_init_frontend_deps_runs_npm_ci_when_missing(
 
     # Should validate npm and run npm ci
     mock_validate_npm.assert_called_once()
-    mock_run.assert_called_once_with(["npm", "ci"], cwd=frontend_dir, text=True)
+    mock_run.assert_called_once_with(["npm", "i"], cwd=frontend_dir, text=True)
 
 
 @pytest.mark.unit
