@@ -39,8 +39,6 @@ import {
 import Results from './Results';
 import TablePreview from '../TablePreview';
 
-const TAB_HEIGHT = 130;
-
 /*
     editorQueries are queries executed by users passed from SqlEditor component
     dataPreviewQueries are all queries executed for preview of table data (from SqlEditorLeft)
@@ -48,23 +46,18 @@ const TAB_HEIGHT = 130;
 export interface SouthPaneProps {
   queryEditorId: string;
   latestQueryId?: string;
-  height: number;
   displayLimit: number;
   defaultQueryLimit: number;
 }
-
-type StyledPaneProps = {
-  height: number;
-};
 
 const TABS_KEYS = {
   RESULTS: 'Results',
   HISTORY: 'History',
 };
 
-const StyledPane = styled.div<StyledPaneProps>`
+const StyledPane = styled.div`
   width: 100%;
-  height: ${props => props.height}px;
+  height: 100%;
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -95,7 +88,6 @@ const StyledPane = styled.div<StyledPaneProps>`
 const SouthPane = ({
   queryEditorId,
   latestQueryId,
-  height,
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
@@ -132,7 +124,6 @@ const SouthPane = ({
       ),
     [pinnedTables],
   );
-  const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
@@ -164,7 +155,6 @@ const SouthPane = ({
       label: t('Results'),
       children: (
         <Results
-          height={innerTabContentHeight}
           latestQueryId={latestQueryId}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
@@ -217,12 +207,7 @@ const SouthPane = ({
   ];
 
   return (
-    <StyledPane
-      data-test="south-pane"
-      className="SouthPane"
-      height={height}
-      ref={southPaneRef}
-    >
+    <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}

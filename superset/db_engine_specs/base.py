@@ -1978,6 +1978,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return []
 
+    @classmethod
+    def get_column_description_limit_size(cls) -> int:
+        """
+        Get a minimum limit size for the sample SELECT column query
+        to fetch the column metadata.
+
+        :return: A number of limit size
+        """
+        return 1
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """

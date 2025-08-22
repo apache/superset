@@ -22,8 +22,11 @@ from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_sqlalchemy import BaseQuery
-from sqlalchemy.exc import StatementError
+from sqlalchemy.exc import SQLAlchemyError, StatementError
 
+from superset.daos.exceptions import (
+    DAOFindFailedError,
+)
 from superset.extensions import db
 
 T = TypeVar("T", bound=Model)
@@ -82,7 +85,7 @@ class BaseDAO(Generic[T]):
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
         id_col = getattr(cls.model_cls, cls.id_column_name, None)
-        if id_col is None:
+        if id_col is None or not model_ids:
             return []
         query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
         if cls.base_filter and not skip_base_filter:
@@ -90,7 +93,16 @@ class BaseDAO(Generic[T]):
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
-        return query.all()
+
+        try:
+            results = query.all()
+        except SQLAlchemyError as ex:
+            model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
+            raise DAOFindFailedError(
+                f"Failed to find {model_name} with ids: {model_ids}"
+            ) from ex
+
+        return results
 
     @classmethod
     def find_all(cls) -> list[T]:
