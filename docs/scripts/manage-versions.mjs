@@ -43,6 +43,38 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + '\n');
 }
 
+function fixVersionedImports(version) {
+  const versionedDocsPath = path.join(__dirname, '..', 'versioned_docs', `version-${version}`);
+
+  // Files that need import path fixes
+  const filesToFix = [
+    'contributing/resources.mdx',
+    'configuration/country-map-tools.mdx'
+  ];
+
+  console.log(`  Fixing relative imports in versioned docs...`);
+
+  filesToFix.forEach(filePath => {
+    const fullPath = path.join(versionedDocsPath, filePath);
+    if (fs.existsSync(fullPath)) {
+      let content = fs.readFileSync(fullPath, 'utf8');
+
+      // Fix imports that go up two directories to go up three instead
+      content = content.replace(
+        /from ['"]\.\.\/\.\.\/src\//g,
+        "from '../../../src/"
+      );
+      content = content.replace(
+        /from ['"]\.\.\/\.\.\/data\//g,
+        "from '../../../data/"
+      );
+
+      fs.writeFileSync(fullPath, content);
+      console.log(`    Fixed imports in ${filePath}`);
+    }
+  });
+}
+
 function addVersion(section, version) {
   const config = loadConfig();
 
@@ -69,6 +101,11 @@ function addVersion(section, version) {
   } catch (error) {
     console.error(`Failed to create version: ${error.message}`);
     process.exit(1);
+  }
+
+  // Fix relative imports in versioned docs (for main docs section only)
+  if (section === 'docs') {
+    fixVersionedImports(version);
   }
 
   // Update config

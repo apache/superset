@@ -17,48 +17,230 @@
     under the License.
 -->
 ---
-title: Getting Started with Superset
-sidebar_position: 1
+title: Getting Started
+sidebar_position: 2
 ---
 
-# Getting Started with Superset
+# Getting Started with Extensions
 
-This guide will help you get up and running with Apache Superset.
+This guide will walk you through creating, developing, and deploying your first Superset extension.
 
 ## Prerequisites
 
 Before you begin, make sure you have:
 
-- Python 3.8 or later
-- pip or conda for package management
-- A database you want to connect to (MySQL, PostgreSQL, etc.)
+- **Node.js 16+** and npm/yarn installed
+- **Python 3.9+** and pip installed  
+- **Superset** running locally or access to a Superset instance
+- **Git** for version control
+- Basic knowledge of React and TypeScript
 
-## Installation
+## Quick Start
 
-There are several ways to install Superset:
+### 1. Install the CLI
 
-1. [Using Docker Compose](/developer_portal/getting-started/docker-compose)
-2. [Using pip](/developer_portal/getting-started/pip-installation)
-3. [Using Kubernetes](/developer_portal/getting-started/kubernetes)
+First, install the Superset Extensions CLI globally:
 
-For most users, the Docker Compose method is recommended for simplicity.
+```bash
+pip install apache-superset-extensions-cli
+```
 
-## First Steps
+### 2. Create Your First Extension
 
-Once you have Superset installed, you'll want to:
+Use the CLI to scaffold a new extension project:
 
-1. Connect to your database
-2. Create your first dataset
-3. Build your first chart
-4. Assemble your first dashboard
+```bash
+superset-extensions init my-first-extension
+cd my-first-extension
+```
 
-Follow our [First Steps Guide](/developer_portal/getting-started/first-steps) to learn how.
+This creates the following structure:
 
-## Next Steps
+```
+my-first-extension/
+├── extension.json          # Extension metadata
+├── frontend/              # Frontend code
+│   ├── src/
+│   │   └── index.tsx     # Main entry point
+│   ├── package.json
+│   └── webpack.config.js
+├── backend/              # Backend code (optional)
+│   ├── src/
+│   └── requirements.txt
+└── README.md
+```
 
-After you've mastered the basics, explore:
+### 3. Configure Your Extension
 
-- Advanced chart types
-- Dashboard features
-- SQL Lab
-- Security and access control
+Edit `extension.json` to define your extension's capabilities:
+
+```json
+{
+  "name": "my-first-extension",
+  "version": "1.0.0",
+  "description": "My first Superset extension",
+  "author": "Your Name",
+  "frontend": {
+    "contributions": {
+      "views": {
+        "sqllab.panels": [
+          {
+            "id": "my-extension.main",
+            "name": "My Panel",
+            "icon": "ToolOutlined"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### 4. Develop Your Extension
+
+Edit `frontend/src/index.tsx` to implement your extension:
+
+```typescript
+import React from 'react';
+import { ExtensionContext } from '@apache-superset/core';
+
+export function activate(context: ExtensionContext) {
+  // Register your panel component
+  const panel = context.core.registerView('my-extension.main', () => (
+    <div style={{ padding: 20 }}>
+      <h2>Hello from My Extension!</h2>
+      <p>This is my first Superset extension.</p>
+    </div>
+  ));
+
+  // Clean up on deactivation
+  context.subscriptions.push(panel);
+}
+
+export function deactivate() {
+  // Cleanup code if needed
+}
+```
+
+### 5. Test Locally
+
+Enable development mode in your Superset configuration:
+
+```python
+# superset_config.py
+ENABLE_EXTENSIONS = True
+LOCAL_EXTENSIONS = [
+    "/path/to/my-first-extension"
+]
+```
+
+Run the development server:
+
+```bash
+# In your extension directory
+superset-extensions dev
+
+# In a separate terminal, start Superset
+superset run -p 8088 --with-threads --reload
+```
+
+Your extension will now appear in SQL Lab!
+
+### 6. Build and Package
+
+When ready to distribute your extension:
+
+```bash
+superset-extensions build
+superset-extensions bundle
+```
+
+This creates a `my-first-extension-1.0.0.supx` file that can be uploaded to any Superset instance.
+
+### 7. Deploy
+
+Upload your extension via the Superset UI or API:
+
+```bash
+curl -X POST http://localhost:8088/api/v1/extensions/import/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@my-first-extension-1.0.0.supx"
+```
+
+## What's Next?
+
+Now that you have a basic extension working, explore:
+
+- [Extension Architecture](../architecture/overview) - Understand how extensions work
+- [API Reference](../api/frontend) - Learn about available APIs
+- [Examples](../examples) - See more complex extension examples
+- [Best Practices](./best-practices) - Learn extension development best practices
+
+## Common Patterns
+
+### Adding a SQL Lab Panel
+
+```typescript
+const panel = context.core.registerView('my-extension.panel', () => (
+  <MyPanelComponent />
+));
+```
+
+### Registering Commands
+
+```typescript
+const command = context.commands.registerCommand('my-extension.run', {
+  title: 'Run My Command',
+  execute: () => {
+    // Command logic
+  }
+});
+```
+
+### Listening to Events
+
+```typescript
+const listener = context.sqlLab.onDidQueryRun((query) => {
+  console.log('Query executed:', query);
+});
+```
+
+### Adding Menu Items
+
+```json
+{
+  "menus": {
+    "sqllab.editor": {
+      "primary": [{
+        "command": "my-extension.run",
+        "when": "editorHasSelection"
+      }]
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### Extension Not Loading
+
+- Ensure `ENABLE_EXTENSIONS = True` in your config
+- Check the browser console for errors
+- Verify the extension path in `LOCAL_EXTENSIONS`
+
+### Module Not Found Errors
+
+- Run `npm install` in the frontend directory
+- Check that `@apache-superset/core` is properly externalized
+
+### Build Failures
+
+- Ensure all dependencies are installed
+- Check webpack.config.js for proper Module Federation setup
+- Verify extension.json is valid JSON
+
+## Get Help
+
+- Join the [Superset Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-16jvzmoi8-sI1TY1Pm~y_RnSiUAN0jqQ)
+- Ask questions on [GitHub Discussions](https://github.com/apache/superset/discussions)
+- Report issues on [GitHub Issues](https://github.com/apache/superset/issues)

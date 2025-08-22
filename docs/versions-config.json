@@ -1,16 +1,22 @@
 {
   "docs": {
     "disabled": false,
-    "lastVersion": "current",
+    "lastVersion": "6.0.0",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
-      "current"
+      "current",
+      "6.0.0"
     ],
     "versions": {
       "current": {
         "label": "Next",
         "path": "",
         "banner": "unreleased"
+      },
+      "6.0.0": {
+        "label": "6.0.0",
+        "path": "6.0.0",
+        "banner": "none"
       }
     }
   },
