@@ -932,11 +932,6 @@ class Superset(BaseSupersetView):
 
         return self.render_app_template(extra_bootstrap_data=payload)
 
-    @expose("/spinner_test/")
-    def spinner_test(self) -> FlaskResponse:
-        """Test page to view backend spinner without JavaScript loading"""
-        return self.render_app_template(extra_bootstrap_data={}, entry=None)
-
     @has_access
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
