@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { t, SupersetClient, SupersetTheme } from '@superset-ui/core';
 import {
   InfoTooltip,
@@ -26,6 +26,7 @@ import {
   Select,
   Switch,
   CollapseLabelInModal,
+  Input,
 } from '@superset-ui/core/components';
 import {
   useDatabaseTables,
@@ -55,6 +56,13 @@ const AIAssistantOptions = ({
   onLlmConnectionChange: Function;
   onLlmContextOptionsChange: Function;
 }) => {
+  const dbIdRef = useRef<number | null>(null);
+
+  // Update ref only when db exists and has an id
+  if (db?.id) {
+    dbIdRef.current = db.id;
+  }
+
   const [selectedProvider, setSelectedProvider] = useState<string | null>(
     db?.llm_connection?.provider || null,
   );
@@ -67,31 +75,37 @@ const AIAssistantOptions = ({
   const [selectedModelTokenLimit, setSelectedModelTokenLimit] = useState<
     number | null
   >(null);
-
-  const tables = useDatabaseTables(db?.id);
   const contextSettings = db?.llm_context_options;
   const [activeKey, setActiveKey] = useState<string | string[] | undefined>(
     undefined,
   );
 
+  const tables = useDatabaseTables(dbIdRef.current || 0);
+
+  const contextStatusOnSuccess = useCallback((result: any) => {
+    if (!result) return;
+    setRegenerating(result.status === 'building');
+    if (result.context) {
+      setSavedContext(result.context);
+    }
+    setContextError(result.error ? result.error.build_time : null);
+  }, []);
+
   const contextStatus = useLlmContextStatus({
-    dbId: db?.id,
-    onSuccess: result => {
-      setRegenerating(result.status === 'building');
-      if (result.context) {
-        setSavedContext(result.context);
-      }
-      setContextError(result.error ? result.error.build_time : null);
-    },
+    dbId: dbIdRef.current,
+    onSuccess: contextStatusOnSuccess,
+    skip: !dbIdRef.current,
   });
 
+  const llmDefaultsOnSuccess = useCallback((result: LlmDefaults) => {
+    if (!result) return;
+    setLlmDefaults(result);
+  }, []);
+
   useLlmDefaults({
-    dbId: db?.id,
-    onSuccess: result => {
-      if (result) {
-        setLlmDefaults(result);
-      }
-    },
+    dbId: dbIdRef.current,
+    onSuccess: llmDefaultsOnSuccess,
+    skip: !dbIdRef.current,
   });
 
   useEffect(() => {
@@ -107,28 +121,69 @@ const AIAssistantOptions = ({
     }
   }, [llmDefaults, selectedProvider, db?.llm_connection?.model]);
 
-  const handleProviderChange = (value: string) => {
-    setSelectedProvider(value);
-    onLlmConnectionChange({
-      ...db?.llm_connection,
-      provider: value,
-      model: llmDefaults?.[value]?.models
-        ? Object.keys(llmDefaults[value].models)[0]
-        : '',
-    });
-  };
+  const handleProviderChange = useCallback(
+    (value: string) => {
+      setSelectedProvider(value);
+      onLlmConnectionChange({
+        ...db?.llm_connection,
+        provider: value,
+        model: llmDefaults?.[value]?.models
+          ? Object.keys(llmDefaults[value].models)[0]
+          : '',
+      });
+    },
+    [db?.llm_connection, llmDefaults, onLlmConnectionChange],
+  );
 
-  const handleLlmConnectionChange = (name: string, value: any) => {
-    onLlmConnectionChange({ ...db?.llm_connection, [name]: value });
-  };
+  const handleLlmConnectionChange = useCallback(
+    (name: string, value: any) => {
+      onLlmConnectionChange({ ...db?.llm_connection, [name]: value });
+    },
+    [db?.llm_connection, onLlmConnectionChange],
+  );
 
-  const handleContextOptionsChange = (name: string, value: any) => {
-    onLlmContextOptionsChange({ ...db?.llm_context_options, [name]: value });
-  };
+  const handleContextOptionsChange = useCallback(
+    (name: string, value: any) => {
+      onLlmContextOptionsChange({ ...db?.llm_context_options, [name]: value });
+    },
+    [db?.llm_context_options, onLlmContextOptionsChange],
+  );
 
-  const onSchemasChange = (value: string[]) => {
-    handleContextOptionsChange('schemas', JSON.stringify(value));
-  };
+  const onSchemasChange = useCallback(
+    (value: string[]) => {
+      handleContextOptionsChange('schemas', JSON.stringify(value));
+    },
+    [handleContextOptionsChange],
+  );
+
+  const providerOptions = useMemo(
+    () =>
+      llmDefaults
+        ? Object.keys(llmDefaults).map(provider => ({
+            value: provider,
+            label: provider,
+          }))
+        : [],
+    [llmDefaults],
+  );
+
+  const modelOptions = useMemo(
+    () =>
+      llmDefaults && selectedProvider && selectedProvider in llmDefaults
+        ? Object.entries(llmDefaults[selectedProvider].models).map(
+            ([model, data]) => ({
+              value: model,
+              label: data.name,
+            }),
+          )
+        : [],
+    [llmDefaults, selectedProvider],
+  );
+
+  // Early return after all hooks if no database
+  if (!db) {
+    return null;
+  }
 
   return (
     <>
@@ -143,6 +198,7 @@ const AIAssistantOptions = ({
             onChange={(checked: boolean) =>
               handleLlmConnectionChange('enabled', checked)
             }
+            disabled={!db}
           />
         </div>
       </StyledLlmSwitch>
@@ -172,16 +228,10 @@ const AIAssistantOptions = ({
                   </div>
                   <div className="input-container">
                     <Select
-                      options={
-                        llmDefaults
-                          ? Object.keys(llmDefaults).map(provider => ({
-                              value: provider,
-                              label: provider,
-                            }))
-                          : []
-                      }
+                      options={providerOptions}
                       value={db?.llm_connection?.provider}
                       onChange={handleProviderChange}
+                      disabled={!db}
                     />
                   </div>
                 </StyledInputContainer>
@@ -193,7 +243,7 @@ const AIAssistantOptions = ({
                         {t('Provider API key')}
                       </div>
                       <div className="input-container">
-                        <input
+                        <Input
                           type="text"
                           name="api_key"
                           value={db?.llm_connection?.api_key || ''}
@@ -201,6 +251,7 @@ const AIAssistantOptions = ({
                           onChange={e =>
                             handleLlmConnectionChange('api_key', e.target.value)
                           }
+                          disabled={!db}
                         />
                       </div>
                     </StyledInputContainer>
@@ -209,20 +260,12 @@ const AIAssistantOptions = ({
                       <div className="control-label">{t('Model')}</div>
                       <div className="input-container">
                         <Select
-                          options={
-                            llmDefaults && selectedProvider in llmDefaults
-                              ? Object.entries(
-                                  llmDefaults[selectedProvider].models,
-                                ).map(([model, data]) => ({
-                                  value: model,
-                                  label: data.name,
-                                }))
-                              : []
-                          }
+                          options={modelOptions}
                           value={db?.llm_connection?.model}
                           onChange={value =>
                             handleLlmConnectionChange('model', value)
                           }
+                          disabled={!db}
                         />
                       </div>
                     </StyledInputContainer>
@@ -280,7 +323,7 @@ const AIAssistantOptions = ({
                     {t('Context refresh interval (hours)')}
                   </div>
                   <div className="input-container">
-                    <input
+                    <Input
                       type="number"
                       name="refresh_interval"
                       value={
@@ -295,6 +338,7 @@ const AIAssistantOptions = ({
                           e.target.value,
                         )
                       }
+                      disabled={!db}
                     />
                   </div>
                   <div className="helper">
@@ -309,14 +353,20 @@ const AIAssistantOptions = ({
                     {t('Select tables to include in the context')}
                   </div>
                   <div className="input-container">
-                    <SchemaSelector
-                      value={JSON.parse(contextSettings?.schemas || '[]')}
-                      options={tables.result || {}}
-                      loading={tables.status === 'loading'}
-                      error={tables.error}
-                      onSchemasChange={onSchemasChange}
-                      maxContentHeight={500}
-                    />
+                    {db && (
+                      <SchemaSelector
+                        value={JSON.parse(contextSettings?.schemas || '[]')}
+                        options={tables.result || {}}
+                        loading={tables.status === 'loading'}
+                        error={
+                          typeof tables.error === 'string'
+                            ? new Error(tables.error)
+                            : tables.error
+                        }
+                        onSchemasChange={onSchemasChange}
+                        maxContentHeight={500}
+                      />
+                    )}
                   </div>
                   <div className="helper">
                     {t(
@@ -336,6 +386,7 @@ const AIAssistantOptions = ({
                           (e.target as HTMLInputElement).checked,
                         )
                       }
+                      disabled={!db}
                     >
                       {t('Include indexes in the database context')}
                     </Checkbox>
@@ -356,7 +407,7 @@ const AIAssistantOptions = ({
                   <StyledTopKForm>
                     <div className="input-container">
                       <div className="control-label">{t('Results (k)')}</div>
-                      <input
+                      <Input
                         type="text"
                         name="top_k"
                         value={contextSettings?.top_k || ''}
@@ -364,11 +415,12 @@ const AIAssistantOptions = ({
                         onChange={e =>
                           handleContextOptionsChange('top_k', e.target.value)
                         }
+                        disabled={!db}
                       />
                     </div>
                     <div className="input-container">
                       <div className="control-label">{t('Row limit (n)')}</div>
-                      <input
+                      <Input
                         type="text"
                         name="top_k_limit"
                         value={contextSettings?.top_k_limit || ''}
@@ -379,6 +431,7 @@ const AIAssistantOptions = ({
                             e.target.value,
                           )
                         }
+                        disabled={!db}
                       />
                     </div>
                     <div className="helper">
@@ -417,12 +470,13 @@ const AIAssistantOptions = ({
                           defaultInstructions,
                         );
                       }}
+                      disabled={!db}
                     >
                       {t('Reset')}
                     </Button>
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="instructions"
                       value={
                         contextSettings?.instructions ||
@@ -436,6 +490,7 @@ const AIAssistantOptions = ({
                         )
                       }
                       style={{ flex: 1 }}
+                      disabled={!db}
                     />
                   </div>
                 </StyledInputContainer>
@@ -444,7 +499,7 @@ const AIAssistantOptions = ({
                     setRegenerating(true);
                     return SupersetClient.post({
                       endpoint: '/api/v1/sqllab/generate_db_context',
-                      body: JSON.stringify({ database_id: db?.id }),
+                      body: JSON.stringify({ database_id: db.id }),
                       headers: { 'Content-Type': 'application/json' },
                     }).finally(() => {
                       setTimeout(() => {
@@ -457,6 +512,7 @@ const AIAssistantOptions = ({
                   cta
                   buttonStyle="link"
                   css={(theme: SupersetTheme) => wideButton(theme)}
+                  disabled={!db}
                 >
                   {regenerating
                     ? t('Regenerating...')

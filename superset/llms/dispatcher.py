@@ -70,8 +70,15 @@ def _get_or_create_llm_provider(pk: int, dialect: str, provider_type: str) -> Ba
         started_time_utc = context_builder_task.started_time.replace(
             tzinfo=datetime.timezone.utc
         )
-        if started_time_utc < llm_provider.created_at:
+        # Check if cached provider type matches current database settings
+        if (
+            started_time_utc < llm_provider.created_at
+            and llm_provider.llm_type == provider_type
+        ):
             return llm_provider
+        else:
+            # Provider type changed or context is newer, remove old cached provider
+            del llm_providers[pk]
 
     try:
         context = json.loads(context_builder_worker.result["result"])

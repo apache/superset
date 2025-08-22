@@ -18,7 +18,7 @@
  */
 import { t, useTheme, css, styled } from '@superset-ui/core';
 import { useEffect, useState } from 'react';
-import { Checkbox, Icons } from '@superset-ui/core/components';
+import { Checkbox, Icons, Input, Button } from '@superset-ui/core/components';
 
 const Container = styled.div`
   ${({ theme }) => css`
@@ -74,8 +74,8 @@ const CaretButton = styled.button`
 
 const EmptyCaret = styled.div`
   ${({ theme }) => css`
-    width: 14px;
-    height: 14px;
+    width: ${theme.sizeUnit * 3.5}px;
+    height: ${theme.sizeUnit * 3.5}px;
     margin-right: ${theme.sizeUnit * 2}px;
     padding: 0;
   `}
@@ -283,21 +283,25 @@ const SchemaSelector = ({
         <>
           <Header>
             <div>
-              <a onClick={handleSelectAll}>Select all</a>
+              <Button buttonStyle="link" onClick={handleSelectAll}>
+                Select all
+              </Button>
             </div>
             <div>
-              <a onClick={handleUnselectAll}>Select none</a>
+              <Button buttonStyle="link" onClick={handleUnselectAll}>
+                Select none
+              </Button>
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              <input
+              <Input
                 type="text"
                 placeholder={t('Filter tables')}
                 style={{
-                  padding: '2px 8px',
+                  padding: `${theme.sizeUnit * 0.5}px ${theme.sizeUnit * 2}px`,
                   border: 'none',
                   borderRadius: 0,
                   borderBottom: `1px solid ${theme.colors.grayscale.light2}`,
-                  minWidth: 180,
+                  minWidth: theme.sizeUnit * 45,
                 }}
                 value={filterText}
                 onChange={e => setFilterText(e.target.value)}
@@ -345,15 +349,20 @@ const SchemaSelector = ({
                       indeterminate={areSomeChildrenSelected(schema)}
                       onChange={() => handleSchemaCheckboxChange(schema)}
                     />
-                    <label
-                      htmlFor={`schema-${schema}`}
+                    <Button
+                      buttonStyle="link"
                       className={options[schema].length === 0 ? 'disabled' : ''}
                       onClick={() =>
                         options[schema].length > 0 && toggleExpanded(schema)
                       }
+                      disabled={options[schema].length === 0}
+                      style={{
+                        padding: 0,
+                        marginLeft: `${theme.sizeUnit * 2}px`,
+                      }}
                     >
                       {schema}
-                    </label>
+                    </Button>
                   </CheckboxContainer>
                 </SchemaHeader>
 
@@ -362,7 +371,7 @@ const SchemaSelector = ({
                     {filteredOptions[schema].map(table => (
                       <TableItem key={table}>
                         <Checkbox
-                          id="`${schema}-${table}`"
+                          id={`${schema}-${table}`}
                           indeterminate={false}
                           checked={selectedItems[`${schema}.${table}`] || false}
                           onChange={() =>

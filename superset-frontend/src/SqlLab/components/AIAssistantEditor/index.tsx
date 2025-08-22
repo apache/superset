@@ -21,7 +21,7 @@ import { ChangeEvent } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
 
-import { css, t, styled, useTheme } from '@superset-ui/core';
+import { css, t, styled } from '@superset-ui/core';
 
 import { Button, Icons, Input } from '@superset-ui/core/components';
 import { LOG_ACTIONS_AI_ASSISTANT_OPENED } from 'src/logger/LogUtils';
@@ -108,7 +108,6 @@ const AiAssistantEditor = ({
   schema = [],
   disabledMessage,
 }: AiAssistantEditorProps) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const logAction = useLogAction({ queryEditorId });
 

@@ -34,9 +34,10 @@ export interface LlmContextStatus {
 }
 
 export type FetchLlmContextStatusQueryParams = {
-  dbId?: string | number;
+  dbId?: string | number | null;
   onSuccess?: (data: LlmContextStatus, isRefetched: boolean) => void;
   onError?: (error: Response) => void;
+  skip?: boolean;
 };
 
 export interface LlmDefaults {
@@ -49,9 +50,10 @@ export interface LlmDefaults {
 }
 
 export type LlmDefaultsParams = {
-  dbId: number;
+  dbId: number | null;
   onSuccess?: (data: LlmDefaults, isRefetched: boolean) => void;
   onError?: (error: Response) => void;
+  skip?: boolean;
 };
 
 const llmContextApi = api.injectEndpoints({
@@ -84,17 +86,17 @@ export const {
 } = llmContextApi;
 
 export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
-  const { dbId, onSuccess, onError } = options || {};
-  console.log('useLlmContextStatus dbId:', dbId);
+  const { dbId, onSuccess, onError, skip } = options || {};
 
   const pollingInterval = useRef<number>(30000);
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   const result = useContextStatusQuery(
-    { dbId },
+    { dbId: dbId || undefined },
     {
       pollingInterval: pollingInterval.current,
       refetchOnMountOrArgChange: true,
+      skip: skip || !dbId,
     },
   );
 
@@ -137,9 +139,9 @@ export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
 }
 
 export function useLlmDefaults(options: LlmDefaultsParams) {
-  const { dbId, onSuccess, onError } = options || {};
-  const result = useLlmDefaultsQuery(dbId, {
-    skip: !dbId,
+  const { dbId, onSuccess, onError, skip } = options || {};
+  const result = useLlmDefaultsQuery(dbId || 0, {
+    skip: skip || !dbId,
     refetchOnMountOrArgChange: true,
   });
 

@@ -279,7 +279,7 @@ const SqlEditor: FC<Props> = ({
     useState<SavedContextStatus | null>(null);
   const [contextError, setContextError] = useState<string | null>(null);
   useLlmContextStatus({
-    dbId: storedQueryEditor.dbId || 1,
+    dbId: storedQueryEditor.dbId,
     onSuccess: result => {
       if (result.context) {
         setSavedLlmContext(result.context);
