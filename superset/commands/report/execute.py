@@ -506,9 +506,13 @@ class BaseReportState:
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
             elif self._report_schedule.report_format == ReportDataFormat.PDF:
-                pdf_data = self._get_pdf()
-                if not pdf_data:
-                    error_text = "Unexpected missing pdf"
+                # For dashboards, we generate a PDF from a screenshot.
+                # For charts, we will generate a tabular PDF in the notification
+                # from embedded_data.
+                if self._report_schedule.dashboard:
+                    pdf_data = self._get_pdf()
+                    if not pdf_data:
+                        error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
                 and self._report_schedule.report_format == ReportDataFormat.CSV
@@ -522,11 +526,12 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+                    report_format=self._report_schedule.report_format,
                 )
 
-        if (
-            self._report_schedule.chart
-            and self._report_schedule.report_format == ReportDataFormat.TEXT
+        if self._report_schedule.chart and self._report_schedule.report_format in (
+            ReportDataFormat.TEXT,
+            ReportDataFormat.PDF,
         ):
             embedded_data = self._get_embedded_data()
 
@@ -553,6 +558,7 @@ class BaseReportState:
             csv=csv_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            report_format=self._report_schedule.report_format,
         )
 
     def _send(
