@@ -938,7 +938,7 @@ CORS_OPTIONS: dict[Any, Any] = {
 # Disabling this option is not recommended for security reasons. If you wish to allow
 # valid safe elements that are not included in the default sanitization schema, use the
 # HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
-HTML_SANITIZATION = True
+HTML_SANITIZATION = False
 
 # Use this configuration to extend the HTML sanitization schema.
 # By default we use the GitHub schema defined in
