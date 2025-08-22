@@ -103,6 +103,7 @@ export const FilterItem = styled.button`
 
 export const FiltersContainer = styled.div`
   ${({ theme }) => css`
+    max-height: 60vh;
     margin-top: ${theme.sizeUnit}px;
     &:not(:last-child) {
       padding-bottom: ${theme.sizeUnit * 3}px;
