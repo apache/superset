@@ -793,6 +793,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         return script.format()
 
+    def get_column_description_limit_size(self) -> int:
+        return self.db_engine_spec.get_column_description_limit_size()
+
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
