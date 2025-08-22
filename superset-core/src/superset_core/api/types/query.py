@@ -22,6 +22,20 @@ from sqlglot import Dialects
 
 
 class CoreQueryApi(ABC):
+    """
+    Abstract interface for query-related operations.
+
+    This class defines the contract for database query operations,
+    including dialect handling and query processing.
+    """
+
     @staticmethod
     @abstractmethod
-    def get_sqlglot_dialect(database: Any) -> Dialects: ...
+    def get_sqlglot_dialect(database: Any) -> Dialects:
+        """
+        Get the SQLGlot dialect for the specified database.
+
+        :param database: The database instance to get the dialect for.
+        :returns: The SQLGlot dialect enum corresponding to the database.
+        """
+        ...

@@ -22,10 +22,24 @@ from flask_appbuilder.api import BaseApi
 
 
 class RestApi(BaseApi):
+    """
+    Base REST API class for Superset with browser login support.
+
+    This class extends Flask-AppBuilder's BaseApi and enables browser-based
+    authentication by default.
+    """
+
     allow_browser_login = True
 
 
 class CoreRestApi(ABC):
+    """
+    Abstract interface for managing REST APIs in Superset.
+
+    This class defines the contract for adding and managing REST APIs,
+    including both core APIs and extension APIs.
+    """
+
     @staticmethod
     @abstractmethod
     def add_api(api: Type[RestApi]) -> None:
@@ -33,6 +47,7 @@ class CoreRestApi(ABC):
         Add a REST API to the Superset API.
 
         :param api: A REST API instance.
+        :returns: None.
         """
         ...
 
@@ -42,6 +57,8 @@ class CoreRestApi(ABC):
         """
         Add an extension REST API to the Superset API.
 
-        :param api: An extension REST API instance.
+        :param api: An extension REST API instance. These are placed under
+            the /extensions resource.
+        :returns: None.
         """
         ...

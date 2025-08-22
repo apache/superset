@@ -23,15 +23,31 @@ from sqlalchemy.orm import scoped_session
 
 
 class CoreModelsApi(ABC):
+    """
+    Abstract interface for accessing Superset data models.
+
+    This class defines the contract for retrieving SQLAlchemy sessions
+    and model instances for datasets and databases within Superset.
+    """
+
     @staticmethod
     @abstractmethod
-    def get_session() -> scoped_session: ...
+    def get_session() -> scoped_session:
+        """
+        Retrieve the SQLAlchemy session to directly interface with the
+        Superset models.
+
+        :returns: The SQLAlchemy scoped session instance.
+        """
+        ...
 
     @staticmethod
     @abstractmethod
     def get_dataset_model() -> Type[Any]:
         """
         Retrieve the Dataset (SqlaTable) SQLAlchemy model.
+
+        :returns: The Dataset SQLAlchemy model class.
         """
         ...
 
@@ -40,12 +56,14 @@ class CoreModelsApi(ABC):
     def get_database_model() -> Type[Any]:
         """
         Retrieve the Database SQLAlchemy model.
+
+        :returns: The Database SQLAlchemy model class.
         """
         ...
 
     @staticmethod
     @abstractmethod
-    def get_datasets(query: BaseQuery | None = None, **hwargs: Any) -> list[Any]:
+    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
         """
         Retrieve Dataset (SqlaTable) entities.
 
