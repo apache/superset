@@ -93,6 +93,7 @@ jobs:
         if: steps.check.outputs.build_needed == 'true'
         uses: actions/checkout@v4
         with:
+          fetch-depth: 1
           persist-credentials: false
 
       - name: Setup Docker Environment
