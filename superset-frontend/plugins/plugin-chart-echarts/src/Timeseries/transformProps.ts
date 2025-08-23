@@ -488,6 +488,7 @@ export default function transformProps(
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
     },
+    splitNumber: data.length,
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && timeGrainSqla
