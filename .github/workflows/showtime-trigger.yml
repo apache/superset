@@ -2,6 +2,8 @@ name: 🎪 Superset Showtime
 
 # Ultra-simple: just sync on any PR state change
 on:
+  push:
+    branches: [showtime_gha]  # Temporary trigger to register workflow
   pull_request_target:
     types: [labeled, unlabeled, synchronize, closed]
 
@@ -46,6 +48,22 @@ jobs:
       - name: Check what actions are needed
         id: check
         run: |
+          # Handle push events - sync environments for this branch's PRs
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            BRANCH_NAME="${{ github.ref_name }}"
+            echo "🎪 Push event on branch: $BRANCH_NAME"
+
+            # Use showtime CLI to handle branch-based sync (it can find related PRs)
+            python -m showtime sync-branch "$BRANCH_NAME"
+
+            # Set outputs to skip the rest of the workflow
+            echo "action_needed=branch_sync_complete" >> $GITHUB_OUTPUT
+            echo "build_needed=false" >> $GITHUB_OUTPUT
+            echo "deploy_needed=false" >> $GITHUB_OUTPUT
+            echo "pr_number=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           # Bulletproof PR number extraction
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
             PR_NUM="${{ github.event.pull_request.number }}"
