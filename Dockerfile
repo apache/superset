@@ -106,7 +106,7 @@ FROM python:${PY_VER} AS python-base
 ARG SUPERSET_HOME="/app/superset_home"
 ENV SUPERSET_HOME=${SUPERSET_HOME}
 
-RUN mkdir -p $SUPERSET_HOME
+RUN mkdir -p ${SUPERSET_HOME}
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && chmod -R 1777 ${SUPERSET_HOME} \
     && chown -R superset:superset ${SUPERSET_HOME}
