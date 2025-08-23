@@ -18,7 +18,6 @@ on:
         description: 'Specific SHA to deploy (optional, defaults to latest)'
         required: false
         type: string
-        pattern: '^[a-f0-9]{40}$'
 
 # Common environment variables for all jobs
 env:
