@@ -378,7 +378,6 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     }
 
 
-@cache_manager.cache.memoize()  # Cache forever - static asset
 def get_default_spinner_svg() -> str | None:
     """
     Load and cache the default spinner SVG content from frontend assets.
