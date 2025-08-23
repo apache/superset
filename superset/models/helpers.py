@@ -26,7 +26,16 @@ import re
 import uuid
 from collections.abc import Hashable
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    NamedTuple,
+    Optional,
+    TYPE_CHECKING,
+    TypedDict,
+    Union,
+)
 
 import dateutil.parser
 import humanize
@@ -40,7 +49,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import lazy_gettext as _
+from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
@@ -87,9 +96,18 @@ from superset.utils.core import (
     is_adhoc_column,
     MediumText,
     remove_duplicates,
+    SqlExpressionType,
 )
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
+
+
+class ValidationResultDict(TypedDict):
+    """Type for validation result objects returned by validate_expression."""
+
+    valid: bool
+    errors: list[dict[str, Any]]
+
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -541,13 +559,28 @@ class AuditMixinNullable(AuditMixin):
         # Convert naive datetime to UTC
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
+    def _format_time_humanized(self, timestamp: datetime) -> str:
+        locale = str(get_locale())
+        time_diff = datetime.now() - timestamp
+        # Skip activation for 'en' locale as it's humanize's default locale
+        if locale == "en":
+            return humanize.naturaltime(time_diff)
+        try:
+            humanize.i18n.activate(locale)
+            result = humanize.naturaltime(time_diff)
+            humanize.i18n.deactivate()
+            return result
+        except Exception as e:
+            logger.warning(f"Locale '{locale}' is not supported in humanize: {e}")
+            return humanize.naturaltime(time_diff)
+
     @property
     def changed_on_humanized(self) -> str:
-        return humanize.naturaltime(datetime.now() - self.changed_on)
+        return self._format_time_humanized(self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
-        return humanize.naturaltime(datetime.now() - self.created_on)
+        return self._format_time_humanized(self.created_on)
 
     @renders("changed_on")
     def modified(self) -> Markup:
@@ -1421,22 +1454,131 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
         rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
-        qry = qry.where(and_(*rls_filters))
+        if rls_filters:
+            qry = qry.where(and_(*rls_filters))
 
         with self.database.get_sqla_engine() as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
-            sql = self.database.mutate_sql_based_on_config(sql)
 
             # pylint: disable=protected-access
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
+
+            sql = self.database.mutate_sql_based_on_config(sql)
 
             with engine.connect() as con:
                 df = pd.read_sql_query(sql=self.text(sql), con=con)
                 # replace NaN with None to ensure it can be serialized to JSON
                 df = df.replace({np.nan: None})
                 return df["column_values"].to_list()
+
+    def validate_expression(
+        self,
+        expression: str,
+        expression_type: SqlExpressionType = SqlExpressionType.WHERE,
+    ) -> ValidationResultDict:
+        """
+        Validate a SQL expression against this datasource.
+
+        :param expression: SQL expression to validate
+        :param expression_type: Type of expression (column, metric, where, having)
+        :return: Dict with validation result and any errors
+        """
+
+        from superset.sql_validators.base import SQLValidationAnnotation
+
+        try:
+            # Process template
+            tp = self.get_template_processor()
+            processed_expression = self._process_expression_template(expression, tp)
+
+            # Build validation query
+            tbl, cte = self.get_from_clause(tp)
+            validation_query = self._build_validation_query(
+                processed_expression, expression_type
+            )
+
+            # Execute validation
+            return self._execute_validation_query(
+                validation_query, tbl, cte or "", tp, processed_expression
+            )
+        except Exception as ex:
+            # Convert any exception to validation error format
+            error_msg = str(ex.orig) if hasattr(ex, "orig") else str(ex)
+            return ValidationResultDict(
+                valid=False,
+                errors=[
+                    SQLValidationAnnotation(
+                        message=error_msg,
+                        line_number=1,
+                        start_column=0,
+                        end_column=len(expression),
+                    ).to_dict()
+                ],
+            )
+
+    def _process_expression_template(
+        self, expression: str, tp: Optional[BaseTemplateProcessor]
+    ) -> str:
+        """Process expression through template processor. Raises on error."""
+        if not tp:
+            return expression
+
+        if hasattr(tp, "process_template"):
+            return tp.process_template(expression)
+        return expression
+
+    def _build_validation_query(
+        self, expression: str, expression_type: SqlExpressionType
+    ) -> Select:
+        """Build validation query based on expression type. Raises on error."""
+        if expression_type == SqlExpressionType.COLUMN:
+            return sa.select([sa.literal_column(expression).label("test_col")])
+        elif expression_type == SqlExpressionType.METRIC:
+            return sa.select([sa.literal_column(expression).label("test_metric")])
+        elif expression_type == SqlExpressionType.WHERE:
+            return sa.select([sa.literal(1)]).where(sa.text(expression))
+        elif expression_type == SqlExpressionType.HAVING:
+            dummy_col = sa.literal("A").label("dummy")
+            return (
+                sa.select([dummy_col])
+                .group_by(sa.text("dummy"))
+                .having(sa.text(expression))
+            )
+        else:
+            raise ValueError(f"Unsupported expression type: {expression_type}")
+
+    def _execute_validation_query(
+        self,
+        validation_query: Select,
+        tbl: TableClause | Alias,
+        cte: str,
+        tp: Optional[BaseTemplateProcessor],
+        expression: str,
+    ) -> ValidationResultDict:
+        """Execute validation query and return result."""
+        # Add FROM clause and prevent execution
+        validation_query = validation_query.select_from(tbl).where(sa.literal(False))
+
+        # Apply row-level security filters
+        rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
+        if rls_filters:
+            validation_query = validation_query.where(and_(*rls_filters))
+
+        with self.database.get_sqla_engine() as engine:
+            sql = str(
+                validation_query.compile(engine, compile_kwargs={"literal_binds": True})
+            )
+            sql = self._apply_cte(sql, cte)
+
+            sql = self.database.mutate_sql_based_on_config(sql)
+
+            # Execute to validate without fetching data
+            with engine.connect() as con:
+                con.execute(self.text(sql))
+
+            return ValidationResultDict(valid=True, errors=[])
 
     def get_timestamp_expression(
         self,

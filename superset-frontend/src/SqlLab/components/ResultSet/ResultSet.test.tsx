@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { type ReactChild } from 'react';
 import {
   render,
   screen,
@@ -44,6 +45,13 @@ import {
 jest.mock('src/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
 }));
+
+jest.mock(
+  'react-virtualized-auto-sizer',
+  () =>
+    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
+      children({ height: 500 }),
+);
 
 const mockedProps = {
   cache: true,

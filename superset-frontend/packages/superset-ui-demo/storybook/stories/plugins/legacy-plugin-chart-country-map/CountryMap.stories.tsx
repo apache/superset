@@ -84,7 +84,7 @@ export const BasicCountryMapStory = (
     return (
       <div
         style={{
-          color: theme.colors.grayscale.base,
+          color: theme.colorTextLabel,
           textAlign: 'center',
           padding: 20,
         }}

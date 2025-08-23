@@ -20,7 +20,7 @@ import { styled } from '../../../..';
 import { Constants } from '../../..';
 
 const GrayCell = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextSecondary};
 `;
 
 function NullCell() {

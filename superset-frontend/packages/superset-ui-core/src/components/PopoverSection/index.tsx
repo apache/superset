@@ -66,16 +66,14 @@ export default function PopoverSection({
             <Icons.InfoCircleOutlined
               role="img"
               iconSize="s"
-              iconColor={theme.colors.grayscale.light1}
+              iconColor={theme.colorIcon}
             />
           </Tooltip>
         )}
         <Icons.CheckOutlined
           iconSize="s"
           role="img"
-          iconColor={
-            isSelected ? theme.colorPrimary : theme.colors.grayscale.base
-          }
+          iconColor={isSelected ? theme.colorPrimary : theme.colorIcon}
         />
       </div>
       <div

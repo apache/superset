@@ -1,0 +1,53 @@
+{
+  "docs": {
+    "disabled": false,
+    "lastVersion": "6.0.0",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current",
+      "6.0.0"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "",
+        "banner": "unreleased"
+      },
+      "6.0.0": {
+        "label": "6.0.0",
+        "path": "6.0.0",
+        "banner": "none"
+      }
+    }
+  },
+  "developer_portal": {
+    "disabled": true,
+    "lastVersion": "current",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "",
+        "banner": "unreleased"
+      }
+    }
+  },
+  "components": {
+    "disabled": true,
+    "lastVersion": "current",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "",
+        "banner": "unreleased"
+      }
+    }
+  }
+}

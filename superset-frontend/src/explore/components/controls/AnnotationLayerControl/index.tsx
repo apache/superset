@@ -220,7 +220,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
         css={theme => ({
           '&:hover': {
             cursor: 'pointer',
-            backgroundColor: theme.colors.grayscale.light4,
+            backgroundColor: theme.colorFillContentHover,
           },
         })}
         content={this.renderPopover(

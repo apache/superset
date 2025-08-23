@@ -264,7 +264,7 @@ test('Should export to pivoted Excel if report is pivot table', async () => {
   userEvent.click(await screen.findByText('Export to Pivoted Excel'));
   expect(props.exportPivotExcel).toHaveBeenCalledTimes(1);
   expect(props.exportPivotExcel).toHaveBeenCalledWith(
-    '.pvtTable',
+    '#chart-id-371 .pvtTable',
     props.slice.slice_name,
   );
 });
