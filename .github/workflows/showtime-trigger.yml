@@ -89,6 +89,12 @@ jobs:
           echo "deploy_needed=$DEPLOY" >> $GITHUB_OUTPUT
           echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
 
+      - name: Checkout repository for local actions
+        if: steps.check.outputs.build_needed == 'true'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Setup Docker Environment
         if: steps.check.outputs.build_needed == 'true'
         uses: ./.github/actions/setup-docker
