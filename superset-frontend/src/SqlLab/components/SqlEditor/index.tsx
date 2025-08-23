@@ -113,6 +113,8 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { commands } from 'src/core';
 import { CopyToClipboard } from 'src/components';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -635,6 +637,23 @@ const SqlEditor: FC<Props> = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
 
+    const contributions =
+      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
+
+    const secondaryContributions = (contributions?.secondary || []).map(
+      contribution => {
+        const command = ExtensionsManager.getInstance().getCommandContribution(
+          contribution.command,
+        )!;
+        return {
+          key: command.command,
+          label: command.title,
+          title: command.description,
+          onClick: () => commands.executeCommand(command.command),
+        };
+      },
+    );
+
     const menuItems: MenuItemType[] = [
       {
         key: 'render-html',
@@ -706,6 +725,7 @@ const SqlEditor: FC<Props> = ({
           </KeyboardShortcutButton>
         ),
       },
+      ...secondaryContributions,
     ].filter(Boolean) as MenuItemType[];
 
     return <Menu css={{ width: theme.sizeUnit * 50 }} items={menuItems} />;
@@ -718,6 +738,30 @@ const SqlEditor: FC<Props> = ({
 
   const renderEditorBottomBar = (hideActions: boolean) => {
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
+
+    const contributions =
+      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
+
+    const primaryContributions = (contributions?.primary || []).map(
+      contribution => {
+        const command = ExtensionsManager.getInstance().getCommandContribution(
+          contribution.command,
+        )!;
+        // @ts-ignore
+        const Icon = Icons[command?.icon as IconNameType];
+
+        return (
+          <Button
+            onClick={() => commands.executeCommand(command.command)}
+            tooltip={command?.description}
+            icon={<Icon iconSize="m" iconColor={theme.colorPrimary} />}
+            buttonSize="small"
+          >
+            {command?.title}
+          </Button>
+        );
+      },
+    );
 
     const showMenu = allowCTAS || allowCVAS;
     const menuItems: MenuItemType[] = [
@@ -815,6 +859,7 @@ const SqlEditor: FC<Props> = ({
               <span>
                 <ShareSqlLabQuery queryEditorId={queryEditor.id} />
               </span>
+              <div>{primaryContributions}</div>
               <Dropdown
                 popupRender={() => renderDropdown()}
                 trigger={['click']}

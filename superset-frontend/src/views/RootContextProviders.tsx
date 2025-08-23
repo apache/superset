@@ -28,6 +28,7 @@ import { FlashProvider, DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
+import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 import { store } from './store';
 import '../preamble';
 
@@ -51,13 +52,15 @@ export const RootContextProviders: React.FC = ({ children }) => {
                   ReactRouterRoute={Route}
                   stringifyOptions={{ encode: false }}
                 >
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
+                  <ExtensionsProvider>
+                    {RootContextProviderExtension ? (
+                      <RootContextProviderExtension>
+                        {children}
+                      </RootContextProviderExtension>
+                    ) : (
+                      children
+                    )}
+                  </ExtensionsProvider>
                 </QueryParamProvider>
               </DynamicPluginProvider>
             </EmbeddedUiConfigProvider>
