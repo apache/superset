@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
-import logger from 'src/middleware/loggerMiddleware';
+import sinon from 'sinon';
 import { LOG_EVENT } from 'src/logger/actions';
-import { LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_LOAD_CHART,
+  LOG_ACTIONS_SPA_NAVIGATION,
+} from 'src/logger/LogUtils';
+import logger from 'src/middleware/loggerMiddleware';
 
 describe('logger middleware', () => {
+  const dashboardId = 123;
   const next = sinon.spy();
   const mockStore = {
     getState: () => ({
       dashboardInfo: {
-        id: 1,
+        id: dashboardId,
       },
       impressionId: 'impression_id',
     }),
@@ -43,6 +47,10 @@ describe('logger middleware', () => {
     },
   };
 
+  const timeSandbox = sinon.createSandbox({
+    useFakeTimers: true,
+  });
+
   let postStub;
   beforeEach(() => {
     postStub = sinon.stub(SupersetClient, 'post');
@@ -50,6 +58,7 @@ describe('logger middleware', () => {
   afterEach(() => {
     next.resetHistory();
     postStub.restore();
+    timeSandbox.clock.reset();
   });
 
   it('should listen to LOG_EVENT action type', () => {
@@ -64,11 +73,10 @@ describe('logger middleware', () => {
   });
 
   it('should POST an event to /superset/log/ when called', () => {
-    const clock = sinon.useFakeTimers();
     logger(mockStore)(next)(action);
     expect(next.callCount).toBe(0);
 
-    clock.tick(2000);
+    timeSandbox.clock.tick(2000);
     expect(SupersetClient.post.callCount).toBe(1);
     expect(SupersetClient.post.getCall(0).args[0].endpoint).toMatch(
       '/superset/log/',
@@ -76,12 +84,19 @@ describe('logger middleware', () => {
   });
 
   it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
-    const clock = sinon.useFakeTimers();
-    logger(mockStore)(next)(action);
-    clock.tick(2000);
-
-    expect(SupersetClient.post.callCount).toBe(1);
-    const { events } = SupersetClient.post.getCall(0).args[0].postPayload;
+    const fetchLog = logger(mockStore)(next);
+    fetchLog({
+      type: LOG_EVENT,
+      payload: {
+        eventName: LOG_ACTIONS_SPA_NAVIGATION,
+        eventData: { path: `/dashboard/${dashboardId}/` },
+      },
+    });
+    timeSandbox.clock.tick(2000);
+    fetchLog(action);
+    timeSandbox.clock.tick(2000);
+    expect(SupersetClient.post.callCount).toBe(2);
+    const { events } = SupersetClient.post.getCall(1).args[0].postPayload;
     const mockEventdata = action.payload.eventData;
     const mockEventname = action.payload.eventName;
     expect(events[0]).toMatchObject({
@@ -91,6 +106,7 @@ describe('logger middleware', () => {
       source: 'dashboard',
       source_id: mockStore.getState().dashboardInfo.id,
       event_type: 'timing',
+      dashboard_id: mockStore.getState().dashboardInfo.id,
     });
 
     expect(typeof events[0].ts).toBe('number');

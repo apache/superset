@@ -45,6 +45,7 @@ describe('Header', () => {
     parentComponent: newComponentFactory(DASHBOARD_GRID_TYPE),
     index: 0,
     editMode: false,
+    embeddedMode: false,
     filters: {},
     handleComponentDrop() {},
     deleteComponent() {},
@@ -117,5 +118,20 @@ describe('Header', () => {
     wrapper.find(DeleteComponentButton).simulate('click');
 
     expect(deleteComponent.callCount).toBe(1);
+  });
+
+  it('should render the AnchorLink in view mode', () => {
+    const wrapper = setup();
+    expect(wrapper.find('AnchorLink')).toExist();
+  });
+
+  it('should not render the AnchorLink in edit mode', () => {
+    const wrapper = setup({ editMode: true });
+    expect(wrapper.find('AnchorLink')).not.toExist();
+  });
+
+  it('should not render the AnchorLink in embedded mode', () => {
+    const wrapper = setup({ embeddedMode: true });
+    expect(wrapper.find('AnchorLink')).not.toExist();
   });
 });

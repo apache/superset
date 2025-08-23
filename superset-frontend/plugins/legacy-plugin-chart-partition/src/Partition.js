@@ -384,7 +384,7 @@ function Icicle(element, props) {
 
     // Apply color scheme
     g.selectAll('rect').style('fill', d => {
-      d.color = colorFn(d.name, sliceId, colorScheme);
+      d.color = colorFn(d.name, sliceId);
 
       return d.color;
     });

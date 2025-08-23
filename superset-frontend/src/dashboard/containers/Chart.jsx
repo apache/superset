@@ -38,6 +38,7 @@ import {
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
+import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 
 const EMPTY_OBJECT = {};
 
@@ -59,17 +60,26 @@ function mapStateToProps(
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
-  const { colorScheme, colorNamespace, datasetsStatus } = dashboardState;
+  const {
+    colorScheme: appliedColorScheme,
+    colorNamespace,
+    datasetsStatus,
+  } = dashboardState;
   const labelsColor = dashboardInfo?.metadata?.label_colors || {};
-  const labelsColorMap = dashboardInfo?.metadata?.shared_label_colors || {};
+  const labelsColorMap = dashboardInfo?.metadata?.map_label_colors || {};
+  const sharedLabelsColors = enforceSharedLabelsColorsArray(
+    dashboardInfo?.metadata?.shared_label_colors,
+  );
+  const ownColorScheme = chart.form_data?.color_scheme;
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     chart,
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     charts: chartQueries,
     filters: getAppliedFilterValues(id),
-    colorScheme,
     colorNamespace,
+    colorScheme: appliedColorScheme,
+    ownColorScheme,
     sliceId: id,
     nativeFilters: nativeFilters?.filters,
     allSliceIds: dashboardState.sliceIds,
@@ -77,6 +87,7 @@ function mapStateToProps(
     extraControls,
     labelsColor,
     labelsColorMap,
+    sharedLabelsColors,
   });
 
   formData.dashboardId = dashboardInfo.id;

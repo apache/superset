@@ -101,6 +101,10 @@ grpcio==1.62.1
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
+h11==0.16.0
+    # via
+    #   -c requirements/base.txt
+    #   wsproto
 identify==2.5.36
     # via pre-commit
 ijson==3.2.3
@@ -221,6 +225,10 @@ s3transfer==0.10.1
     # via boto3
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
+sqlglot==26.11.1
+    # via
+    #   -c requirements/base.txt
+    #   apache-superset
 sqloxide==0.1.43
     # via apache-superset
 statsd==4.0.1

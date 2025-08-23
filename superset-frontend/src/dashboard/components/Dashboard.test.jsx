@@ -157,9 +157,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh when native filters changed', () => {
-      getRelatedCharts.mockReturnValue({
-        [NATIVE_FILTER_ID]: [230],
-      });
+      getRelatedCharts.mockReturnValue([230]);
       wrapper.setProps({
         activeFilters: {
           ...OVERRIDE_FILTERS,
@@ -191,13 +189,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh if a filter is added', () => {
-      getRelatedCharts.mockReturnValue({
-        '1_region': [1],
-        '2_country_name': [1, 2],
-        '3_region': [1],
-        '3_country_name': [],
-        gender: [1],
-      });
+      getRelatedCharts.mockReturnValue([1]);
       const newFilter = {
         gender: { values: ['boy', 'girl'], scope: [1] },
       };
@@ -209,12 +201,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh if a filter is removed', () => {
-      getRelatedCharts.mockReturnValue({
-        '1_region': [1],
-        '2_country_name': [1, 2],
-        '3_region': [1],
-        '3_country_name': [],
-      });
+      getRelatedCharts.mockReturnValue([]);
       wrapper.setProps({
         activeFilters: {},
       });
@@ -223,6 +210,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh if a filter is changed', () => {
+      getRelatedCharts.mockReturnValue([1]);
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '1_region': { values: ['Canada'], scope: [1] },
@@ -236,6 +224,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh with multiple chart ids', () => {
+      getRelatedCharts.mockReturnValue([1, 2]);
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '2_country_name': { values: ['New Country'], scope: [1, 2] },
@@ -262,6 +251,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
+      getRelatedCharts.mockReturnValue([]);
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '3_country_name': { values: ['CHINA'], scope: [] },

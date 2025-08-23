@@ -139,7 +139,29 @@ class TestImportAssetsCommand(SupersetTestCase):
         dataset = chart.table
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        assert chart.query_context is None
+        assert json.loads(chart.query_context) == {
+            "datasource": {"id": dataset.id, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "annotation_layers": [],
+                    "applied_time_extras": {},
+                    "columns": [],
+                    "custom_form_data": {},
+                    "custom_params": {},
+                    "extras": {"having": "", "time_grain_sqla": None, "where": ""},
+                    "filters": [],
+                    "metrics": [],
+                    "order_desc": True,
+                    "row_limit": 5000,
+                    "time_range": " : ",
+                    "timeseries_limit": 0,
+                    "url_params": {},
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+        }
         assert json.loads(chart.params)["datasource"] == dataset.uid
 
         database = dataset.database

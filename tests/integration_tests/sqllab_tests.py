@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Sql Lab"""
 
-from datetime import datetime
 from textwrap import dedent
 
 import pytest
@@ -26,7 +25,6 @@ from parameterized import parameterized
 from unittest import mock
 import prison
 
-from freezegun import freeze_time
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
@@ -34,7 +32,7 @@ from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
-from superset.models.sql_lab import Query, SavedQuery
+from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sql_lab import (
@@ -155,34 +153,6 @@ class TestSqlLab(SupersetTestCase):
                 }
             ]
         }
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_sql_json_to_saved_query_info(self):
-        """
-        SQLLab: Test SQLLab query execution info propagation to saved queries
-        """
-        self.login(ADMIN_USERNAME)
-
-        sql_statement = "SELECT * FROM birth_names LIMIT 10"
-        examples_db_id = get_example_database().id
-        saved_query = SavedQuery(db_id=examples_db_id, sql=sql_statement)
-        db.session.add(saved_query)
-        db.session.commit()
-
-        with freeze_time(datetime.now().isoformat(timespec="seconds")):
-            self.run_sql(sql_statement, "1")
-            saved_query_ = (
-                db.session.query(SavedQuery)
-                .filter(
-                    SavedQuery.db_id == examples_db_id, SavedQuery.sql == sql_statement
-                )
-                .one_or_none()
-            )
-            assert saved_query_.rows is not None
-            assert saved_query_.last_run == datetime.now()
-        # Rollback changes
-        db.session.delete(saved_query_)
-        db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

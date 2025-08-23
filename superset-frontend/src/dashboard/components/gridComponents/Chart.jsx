@@ -197,11 +197,19 @@ class Chart extends Component {
         }
       }
     } else if (
-      // chart should re-render if color scheme or label color was changed
+      // chart should re-render if color scheme or label colors were changed
       nextProps.formData?.color_scheme !== this.props.formData?.color_scheme ||
       !areObjectsEqual(
-        nextProps.formData?.label_colors,
-        this.props.formData?.label_colors,
+        nextProps.formData?.label_colors || {},
+        this.props.formData?.label_colors || {},
+      ) ||
+      !areObjectsEqual(
+        nextProps.formData?.map_label_colors || {},
+        this.props.formData?.map_label_colors || {},
+      ) ||
+      !isEqual(
+        nextProps.formData?.shared_label_colors || [],
+        this.props.formData?.shared_label_colors || [],
       )
     ) {
       return true;

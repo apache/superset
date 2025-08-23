@@ -95,7 +95,6 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             data = self._get_sql_results_with_timeout(
                 execution_context, rendered_query, log_params
             )
-            self._query_dao.update_saved_query_exec_info(query_id)
             execution_context.set_execution_result(data)
         except SupersetTimeoutException:
             raise
@@ -200,5 +199,4 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             query.status = QueryStatus.FAILED
             query.error_message = message
             raise SupersetErrorException(error) from ex
-        self._query_dao.update_saved_query_exec_info(query_id)
         return SqlJsonExecutionStatus.QUERY_IS_RUNNING

@@ -394,8 +394,13 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
+            queries = result["queries"]
+            if security_manager.is_guest_user():
+                for query in queries:
+                    with contextlib.suppress(KeyError):
+                        del query["query"]
             response_data = json.dumps(
-                {"result": result["queries"]},
+                {"result": queries},
                 default=json.json_int_dttm_ser,
                 ignore_nan=True,
             )

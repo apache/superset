@@ -20,7 +20,7 @@ requires = ["setuptools>=40.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "apache-superset"
+name = "apache_superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
@@ -64,6 +64,8 @@ dependencies = [
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
     "markdown>=3.0",
+    # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
+    "marshmallow<4",
     "msgpack>=1.0.0, <1.1",
     "nh3>=0.2.11, <0.3",
     "numpy==1.23.5",
@@ -89,7 +91,7 @@ dependencies = [
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-utils>=0.38.3, <0.39",
-    "sqlglot>=25.24.0,<26",
+    "sqlglot>=25.24.0,<27",
     "sqlparse>=0.5.0",
     "tabulate>=0.8.9, <0.9",
     "typing-extensions>=4, <5",
@@ -133,7 +135,6 @@ gevent = ["gevent>=23.9.1"]
 gsheets = ["shillelagh[gsheetsapi]>=1.2.18, <2"]
 hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
 hive = [
-    "boto3",
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -156,7 +157,7 @@ pinot = ["pinotdb>=5.0.0, <6.0.0"]
 playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.6"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["boto3", "trino>=0.328.0"]
+trino = ["trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
