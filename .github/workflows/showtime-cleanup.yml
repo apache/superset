@@ -13,7 +13,6 @@ on:
         required: false
         default: '48'
         type: string
-        pattern: '^[0-9]+$'
 
 # Common environment variables
 env:
