@@ -114,6 +114,8 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { commands } from 'src/core';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -705,6 +707,8 @@ const SqlEditor: FC<Props> = ({
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
+    const contributions =
+      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
     return (
       <Menu css={{ width: theme.gridUnit * 50 }}>
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -756,6 +760,21 @@ const SqlEditor: FC<Props> = ({
             {t('Keyboard shortcuts')}
           </KeyboardShortcutButton>
         </Menu.Item>
+        {(contributions?.secondary || []).map(contribution => {
+          const command =
+            ExtensionsManager.getInstance().getCommandContribution(
+              contribution.command,
+            )!;
+          return (
+            <Menu.Item
+              key={command.command}
+              title={command.description}
+              onClick={() => commands.executeCommand(command.command)}
+            >
+              {command.title}
+            </Menu.Item>
+          );
+        })}
       </Menu>
     );
   };
@@ -767,6 +786,30 @@ const SqlEditor: FC<Props> = ({
 
   const renderEditorBottomBar = (hideActions: boolean) => {
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
+
+    const contributions =
+      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
+
+    const primaryContributions = (contributions?.primary || []).map(
+      contribution => {
+        const command = ExtensionsManager.getInstance().getCommandContribution(
+          contribution.command,
+        )!;
+        // @ts-ignore
+        const Icon = Icons[command?.icon as IconNameType];
+
+        return (
+          <Button
+            onClick={() => commands.executeCommand(command.command)}
+            tooltip={command?.description}
+            icon={<Icon iconSize="m" iconColor={theme.colors.primary.base} />}
+            buttonSize="small"
+          >
+            {command?.title}
+          </Button>
+        );
+      },
+    );
 
     const showMenu = allowCTAS || allowCVAS;
     const runMenuBtn = (
@@ -870,6 +913,7 @@ const SqlEditor: FC<Props> = ({
               <span>
                 <ShareSqlLabQuery queryEditorId={queryEditor.id} />
               </span>
+              <div>{primaryContributions}</div>
               <AntdDropdown overlay={renderDropdown()} trigger={['click']}>
                 <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
               </AntdDropdown>

@@ -27,6 +27,8 @@ import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 import Label from 'src/components/Label';
 import Icons from 'src/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -92,6 +94,9 @@ const SouthPane = ({
   defaultQueryLimit,
 }: SouthPaneProps) => {
   const dispatch = useDispatch();
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
+  const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -198,6 +203,16 @@ const SouthPane = ({
               schema={schema}
               tableName={name}
             />
+          </Tabs.TabPane>
+        ))}
+        {contributions.map(contribution => (
+          <Tabs.TabPane
+            tab={contribution.name}
+            key={contribution.id}
+            closable={false}
+            forceRender
+          >
+            {getView(contribution.id)}
           </Tabs.TabPane>
         ))}
       </Tabs>

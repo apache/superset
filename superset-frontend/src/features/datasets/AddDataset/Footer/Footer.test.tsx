@@ -27,6 +27,13 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
+jest.mock('src/views/CRUD/hooks', () => ({
+  getDatabaseDocumentationLinks: () => ({
+    support:
+      'https://superset.apache.org/docs/databases/installing-database-drivers',
+  }),
+}));
+
 const mockedProps = {
   url: 'realwebsite.com',
 };

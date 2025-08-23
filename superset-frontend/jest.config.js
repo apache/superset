@@ -31,6 +31,8 @@ module.exports = {
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping plugins of superset-ui to source code
     '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
+    // mapping @apache-superset/core to local package
+    '^@apache-superset/core$': '<rootDir>/packages/superset-core/src',
   },
   testEnvironment: 'jsdom',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],

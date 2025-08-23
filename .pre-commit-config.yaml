@@ -23,7 +23,9 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
+        name: mypy (main)
         args: [--check-untyped-defs]
+        exclude: ^superset-cli/
         additional_dependencies: [
             types-simplejson,
             types-python-dateutil,
@@ -38,6 +40,10 @@ repos:
             types-paramiko,
             types-Markdown,
           ]
+      - id: mypy
+        name: mypy (superset-cli)
+        args: [--check-untyped-defs]
+        files: ^superset-cli/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -83,5 +89,5 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [ --fix ]
+        args: [--fix]
       - id: ruff-format

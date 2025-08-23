@@ -561,6 +561,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "SLACK_ENABLE_AVATARS": False,
     # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
 }
 
 # ------------------------------
@@ -1215,6 +1218,9 @@ CUSTOM_TEMPLATE_PROCESSORS: dict[str, type[BaseTemplateProcessor]] = {}
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
+
+# Extension startup update configuration
+EXTENSION_STARTUP_LOCK_TIMEOUT = 30  # Timeout in seconds for extension update locks
 
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
@@ -1924,6 +1930,8 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+LOCAL_EXTENSIONS: list[str] = []
+EXTENSIONS_PATH: str | None = None
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

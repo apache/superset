@@ -24,7 +24,13 @@ ADDITIONAL_ARGS="$@"
 # Generate the requirements/base.txt file
 uv pip compile pyproject.toml requirements/base.in -o requirements/base.txt $ADDITIONAL_ARGS
 
-# Generate the requirements/development.txt file, making sure requirements/base.txt is a constraint to keep the versions in sync
-uv pip compile requirements/development.in -c requirements/base.txt -o requirements/development.txt $ADDITIONAL_ARGS
+# Hack to remove "Unnamed requirements are not allowed as constraints" error from base requirements
+grep --invert-match "./superset-core" requirements/base.txt > requirements/base-constraint.txt
+
+# Generate the requirements/development.txt file, making sure the base requirements are used as a constraint to keep the versions in sync. Note that `development.txt` is a Superset of `base.txt` where version for the shared libs should match their version.
+uv pip compile requirements/development.in -c requirements/base-constraint.txt -o requirements/development.txt $ADDITIONAL_ARGS
+
+# Remove temporary base requirement file
+rm requirements/base-constraint.txt
 
 uv pip compile requirements/translations.in -o requirements/translations.txt $ADDITIONAL_ARGS

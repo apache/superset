@@ -21,6 +21,9 @@ from typing import Optional
 
 from flask import Flask
 
+from superset.extensions.local_extensions_watcher import (
+    start_local_extensions_watcher_thread,
+)
 from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
@@ -38,6 +41,10 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
+
+        # Set up LOCAL_EXTENSIONS file watcher when in debug mode
+        if app.debug:
+            start_local_extensions_watcher_thread(app)
 
         return app
 

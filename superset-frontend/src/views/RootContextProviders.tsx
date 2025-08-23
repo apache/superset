@@ -24,6 +24,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 import { AntdThemeProvider } from '../components/AntdThemeProvider';
 import { store } from './store';
 import FlashProvider from '../components/FlashProvider';
@@ -52,13 +53,15 @@ export const RootContextProviders: React.FC = ({ children }) => {
                     ReactRouterRoute={Route}
                     stringifyOptions={{ encode: false }}
                   >
-                    {RootContextProviderExtension ? (
-                      <RootContextProviderExtension>
-                        {children}
-                      </RootContextProviderExtension>
-                    ) : (
-                      children
-                    )}
+                    <ExtensionsProvider>
+                      {RootContextProviderExtension ? (
+                        <RootContextProviderExtension>
+                          {children}
+                        </RootContextProviderExtension>
+                      ) : (
+                        children
+                      )}
+                    </ExtensionsProvider>
                   </QueryParamProvider>
                 </DynamicPluginProvider>
               </EmbeddedUiConfigProvider>

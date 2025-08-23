@@ -116,7 +116,7 @@ export default class SupersetClientClass {
     if (this.isAuthenticated() && !force) {
       return this.csrfPromise as CsrfPromise;
     }
-    return this.getCSRFToken();
+    return this.fetchCSRFToken();
   }
 
   async postForm(url: string, payload: Record<string, any>, target = '_blank') {
@@ -227,7 +227,7 @@ export default class SupersetClientClass {
     );
   }
 
-  async getCSRFToken() {
+  async fetchCSRFToken() {
     this.csrfToken = undefined;
     // If we can request this resource successfully, it means that the user has
     // authenticated. If not we throw an error prompting to authenticate.
@@ -255,6 +255,10 @@ export default class SupersetClientClass {
       return Promise.reject({ error: 'Failed to fetch CSRF token' });
     });
     return this.csrfPromise;
+  }
+
+  async getCSRFToken() {
+    return this.csrfToken || this.fetchCSRFToken();
   }
 
   getUrl({
