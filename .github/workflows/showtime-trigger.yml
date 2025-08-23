@@ -1,0 +1,135 @@
+name: 🎪 Superset Showtime
+
+# Ultra-simple: just sync on any PR state change
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, closed]
+
+  # Manual testing
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to sync'
+        required: true
+        type: number
+      sha:
+        description: 'Specific SHA to deploy (optional, defaults to latest)'
+        required: false
+        type: string
+        pattern: '^[a-f0-9]{40}$'
+
+# Common environment variables for all jobs
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: us-west-2
+  GITHUB_ORG: ${{ github.repository_owner }}
+  GITHUB_REPO: ${{ github.event.repository.name }}
+  GITHUB_ACTOR: ${{ github.actor }}
+  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+jobs:
+  sync:
+    name: 🎪 Sync PR to desired state
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Install Superset Showtime
+        run: pip install superset-showtime
+
+      - name: Check what actions are needed
+        id: check
+        run: |
+          # Bulletproof PR number extraction
+          if [[ -n "${{ github.event.pull_request.number }}" ]]; then
+            PR_NUM="${{ github.event.pull_request.number }}"
+          elif [[ -n "${{ github.event.inputs.pr_number }}" ]]; then
+            PR_NUM="${{ github.event.inputs.pr_number }}"
+          else
+            echo "❌ No PR number found in event or inputs"
+            exit 1
+          fi
+
+          echo "Using PR number: $PR_NUM"
+          OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
+          echo "$OUTPUT"
+
+          # Extract outputs for conditional steps
+          ACTION=$(echo "$OUTPUT" | grep "action_needed=" | cut -d'=' -f2)
+          BUILD=$(echo "$OUTPUT" | grep "build_needed=" | cut -d'=' -f2)
+          DEPLOY=$(echo "$OUTPUT" | grep "deploy_needed=" | cut -d'=' -f2)
+
+          echo "action_needed=$ACTION" >> $GITHUB_OUTPUT
+          echo "build_needed=$BUILD" >> $GITHUB_OUTPUT
+          echo "deploy_needed=$DEPLOY" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+
+      - name: Setup Docker Environment
+        if: steps.check.outputs.build_needed == 'true'
+        uses: ./.github/actions/setup-docker
+        with:
+          dockerhub-user: ${{ env.DOCKERHUB_USER }}
+          dockerhub-token: ${{ env.DOCKERHUB_TOKEN }}
+          build: "true"
+
+      - name: Setup supersetbot
+        if: steps.check.outputs.build_needed == 'true'
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Get PR SHA for build
+        id: sha
+        if: steps.check.outputs.build_needed == 'true'
+        run: |
+          # Simple SHA handling - use input or default to PR head
+          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
+            SHA="${{ github.event.inputs.sha }}"
+            echo "Using override SHA: $SHA"
+          elif [[ -n "${{ github.event.pull_request.head.sha }}" ]]; then
+            SHA="${{ github.event.pull_request.head.sha }}"
+            echo "Using PR head SHA: $SHA"
+          else
+            echo "❌ No SHA available from PR head or inputs"
+            exit 1
+          fi
+
+          # Validate SHA format (40-char hex)
+          if [[ ! "$SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "❌ Invalid SHA format: $SHA"
+            exit 1
+          fi
+
+          echo "build_sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout PR code
+        if: steps.check.outputs.build_needed == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.build_sha }}
+          persist-credentials: false
+
+      - name: Build Docker image
+        if: steps.check.outputs.build_needed == 'true'
+        run: |
+          supersetbot docker \
+            --push \
+            --load \
+            --preset ci \
+            --platform linux/amd64 \
+            --context-ref "${{ steps.sha.outputs.build_sha }}" \
+            --extra-flags "--build-arg INCLUDE_CHROMIUM=false --build-arg LOAD_EXAMPLES_DUCKDB=true"
+
+      - name: Execute sync deployment
+        if: steps.check.outputs.deploy_needed == 'true'
+        run: |
+          PR_NUM="${{ steps.check.outputs.pr_number }}"
+          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
+            python -m showtime sync $PR_NUM --deploy --sha "${{ github.event.inputs.sha }}"
+          else
+            python -m showtime sync $PR_NUM --deploy
+          fi

@@ -1,0 +1,51 @@
+name: 🎪 Showtime Cleanup
+
+# Scheduled cleanup of expired environments
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+  # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      max_age_hours:
+        description: 'Maximum age in hours before cleanup'
+        required: false
+        default: '48'
+        type: string
+        pattern: '^[0-9]+$'
+
+# Common environment variables
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
+  GITHUB_ORG: ${{ github.repository_owner }}
+  GITHUB_REPO: ${{ github.event.repository.name }}
+
+jobs:
+  cleanup-expired:
+    name: Clean up expired showtime environments
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Install Superset Showtime
+        run: pip install superset-showtime
+
+      - name: Cleanup expired environments
+        run: |
+          MAX_AGE="${{ github.event.inputs.max_age_hours || '48' }}"
+
+          # Validate max_age is numeric
+          if [[ ! "$MAX_AGE" =~ ^[0-9]+$ ]]; then
+            echo "❌ Invalid max_age_hours format: $MAX_AGE (must be numeric)"
+            exit 1
+          fi
+
+          echo "Cleaning up environments older than ${MAX_AGE}h"
+          python -m showtime cleanup --older-than "${MAX_AGE}h"
