@@ -57,7 +57,7 @@ fi
 if ${REQUIRES_BUILD_ESSENTIAL}; then
   echo "Removing build-essential to keep the image lean..."
   apt-get autoremove -yqq --purge build-essential \
-    && apt-get dist-clean \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 fi
 

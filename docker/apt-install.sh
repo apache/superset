@@ -45,7 +45,7 @@ echo -e "${GREEN}Autoremoving unnecessary packages...${RESET}"
 apt-get autoremove -yqq --purge
 
 echo -e "${GREEN}Cleaning up package cache and metadata...${RESET}"
-apt-get dist-clean
+apt-get clean
 rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
 echo -e "${GREEN}Installation and cleanup complete.${RESET}"
