@@ -145,6 +145,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
+COPY docker/ /app/docker/
 # Build arg to pre-populate examples DuckDB file
 ARG LOAD_EXAMPLES_DUCKDB="false"
 
