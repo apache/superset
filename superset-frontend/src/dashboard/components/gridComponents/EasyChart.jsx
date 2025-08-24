@@ -39,6 +39,7 @@ import {
 import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
 
 export const CHART_MARGIN = 32;
+export const DEFAULT_EASY_CHART_HEIGHT_UNITS = 60; // ~450px default height
 
 const ContainerDiv = styled.div`
   /* Container will be sized by ResizableContainer */
@@ -338,7 +339,8 @@ export default function EasyChart({
         CHART_MARGIN,
     );
     const height = Math.floor(
-      (component.meta.height || GRID_MIN_ROW_UNITS) * GRID_BASE_UNIT -
+      (component.meta.height || DEFAULT_EASY_CHART_HEIGHT_UNITS) *
+        GRID_BASE_UNIT -
         CHART_MARGIN,
     );
 
@@ -387,7 +389,7 @@ export default function EasyChart({
       widthStep={columnWidth}
       widthMultiple={widthMultiple}
       heightStep={GRID_BASE_UNIT}
-      heightMultiple={component.meta.height || GRID_MIN_ROW_UNITS}
+      heightMultiple={component.meta.height || DEFAULT_EASY_CHART_HEIGHT_UNITS}
       minWidthMultiple={GRID_MIN_COLUMN_COUNT}
       minHeightMultiple={GRID_MIN_ROW_UNITS}
       maxWidthMultiple={availableColumnCount + widthMultiple}
