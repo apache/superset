@@ -311,16 +311,61 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
 
       if (existingChart && existingFormData?.datasource) {
         const [datasourceId] = existingFormData.datasource.split('__');
-        const datasourceMeta = datasources?.[existingFormData.datasource];
+        const datasourceKey = existingFormData.datasource;
 
-        const datasourceOption = {
-          value: datasourceId,
-          label: datasourceMeta?.table_name || 'Dataset',
-          id: datasourceId,
-          customLabel: datasourceMeta?.name || 'Dataset',
-        };
+        // Fetch fresh datasource metadata from backend
+        SupersetClient.get({
+          endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+        })
+          .then(({ json: freshDatasourceMeta }) => {
+            const datasourceOption = {
+              value: datasourceId,
+              label: freshDatasourceMeta?.table_name || 'Dataset',
+              id: datasourceId,
+              customLabel:
+                `${freshDatasourceMeta?.database?.database_name}: ${freshDatasourceMeta?.table_name}` ||
+                'Dataset',
+            };
 
-        setSelectedDatasource(datasourceOption);
+            setSelectedDatasource(datasourceOption);
+
+            // Check if explore state is empty or doesn't match the editing chart
+            const currentExploreFormData = exploreState?.form_data;
+            const isExploreEmpty =
+              !currentExploreFormData ||
+              Object.keys(currentExploreFormData).length === 0;
+            const isExploreForDifferentChart =
+              currentExploreFormData?.slice_id !== editingChartId;
+
+            if (isExploreEmpty || isExploreForDifferentChart) {
+              // Rehydrate portable explore with existing chart data and fresh datasource
+              dispatch(
+                hydratePortableExplore({
+                  dataset: freshDatasourceMeta,
+                  vizType: existingFormData.viz_type || 'table',
+                  dashboardId: getDashboardId(),
+                  form_data: {
+                    ...existingFormData,
+                    slice_id: editingChartId, // Keep the original chart ID for editing
+                  },
+                }),
+              );
+            }
+          })
+          .catch(error => {
+            console.error('Failed to fetch datasource metadata:', error);
+            // Fallback to cached datasource if API fails
+            const cachedDatasourceMeta = datasources?.[datasourceKey];
+            if (cachedDatasourceMeta) {
+              const datasourceOption = {
+                value: datasourceId,
+                label: cachedDatasourceMeta?.table_name || 'Dataset',
+                id: datasourceId,
+                customLabel: cachedDatasourceMeta?.name || 'Dataset',
+              };
+              setSelectedDatasource(datasourceOption);
+            }
+          });
       }
     }
   }, [isOpen, editingChartId]);
