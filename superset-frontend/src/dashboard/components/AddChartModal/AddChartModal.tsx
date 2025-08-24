@@ -385,7 +385,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
           });
       }
     }
-  }, [isOpen, editingChartId, charts, exploreState, dispatch, getDashboardId]);
+  }, [isOpen, editingChartId]);
 
   // Monitor explore state hydration completion for editing mode
   useEffect(() => {
