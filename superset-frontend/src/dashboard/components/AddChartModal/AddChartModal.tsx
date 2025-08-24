@@ -24,6 +24,7 @@ import {
   EmptyState,
   Tooltip,
   Button,
+  Loading,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { fetchExploreData } from 'src/pages/Chart';
@@ -113,6 +114,18 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
 
   const [selectedDatasource, setSelectedDatasource] =
     useState<DatasourceOption | null>(null);
+  const [isLoadingEditChart, setIsLoadingEditChart] = useState(false);
+
+  // Initialize loading state immediately when modal opens for editing
+  useEffect(() => {
+    if (isOpen && editingChartId) {
+      setIsLoadingEditChart(true);
+      setSelectedDatasource(null); // Clear any previous selection
+    } else if (isOpen && !editingChartId) {
+      setIsLoadingEditChart(false);
+      setSelectedDatasource(null); // Clear for new chart creation
+    }
+  }, [isOpen, editingChartId]);
 
   // Get state from Redux for validation and save modal
   const charts = useSelector((state: any) => state.charts || {});
@@ -350,6 +363,9 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
                   },
                 }),
               );
+            } else {
+              // Explore state is already ready
+              setIsLoadingEditChart(false);
             }
           })
           .catch(error => {
@@ -365,13 +381,30 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
               };
               setSelectedDatasource(datasourceOption);
             }
+            setIsLoadingEditChart(false);
           });
       }
     }
-  }, [isOpen, editingChartId]);
+  }, [isOpen, editingChartId, charts, exploreState, dispatch, getDashboardId]);
+
+  // Monitor explore state hydration completion for editing mode
+  useEffect(() => {
+    if (isLoadingEditChart && editingChartId && exploreState?.form_data) {
+      // Check if explore state matches the editing chart
+      if (exploreState.form_data.slice_id === editingChartId) {
+        setIsLoadingEditChart(false);
+      }
+    }
+  }, [isLoadingEditChart, editingChartId, exploreState]);
 
   const renderChartPreview = () => {
-    if (!selectedDatasource) {
+    // Show loading state when editing existing chart and hydration is in progress
+    if (editingChartId && isLoadingEditChart) {
+      return <Loading />;
+    }
+
+    // Show dataset selection for new chart creation (not editing)
+    if (!editingChartId && !selectedDatasource) {
       return (
         <EmptyState
           size="large"
@@ -384,6 +417,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
       );
     }
 
+    // Show explore interface when datasource is selected or editing is ready
     return <PortableExplore />;
   };
 
