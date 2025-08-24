@@ -16,24 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { styled, css, t } from '@superset-ui/core';
+// ResizeCallback and ResizeStartCallback types used in props
 import { useDispatch } from 'react-redux';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import { updateEasyChartMeta } from 'src/dashboard/actions/dashboardLayout';
 import { fetchSlices } from 'src/dashboard/actions/sliceEntities';
 import { addSliceToDashboard } from 'src/dashboard/actions/dashboardState';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
+import {
+  GRID_BASE_UNIT,
+  GRID_GUTTER_SIZE,
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
+} from 'src/dashboard/util/constants';
+import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
+
+export const CHART_MARGIN = 32;
 
 const ContainerDiv = styled.div`
-  .dragdroppable {
-    width: 499px;
-    height: 508px;
-  }
+  /* Container will be sized by ResizableContainer */
 `;
 
 const EasyChartStyles = styled.div`
@@ -44,8 +52,7 @@ const EasyChartStyles = styled.div`
       display: flex;
       flex-direction: column;
       height: 100%;
-      min-height: 300px;
-      min-width: 400px;
+      width: 100%;
       border-radius: ${theme.borderRadius}px;
       background: ${theme.colorBgContainer};
       border: 1px solid ${theme.colorBorderSecondary};
@@ -55,7 +62,7 @@ const EasyChartStyles = styled.div`
         align-items: center;
         justify-content: space-between;
         padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-        background: ${theme.colorBgLayoutHeader};
+        background: ${theme.colorBgLayout};
         border-bottom: 1px solid ${theme.colorBorderSecondary};
         font-weight: ${theme.fontWeightStrong};
         font-size: ${theme.fontSizeLG}px;
@@ -144,37 +151,44 @@ export default function EasyChart({
   parentComponent,
   index,
   depth,
+  // Resizable props
+  availableColumnCount,
+  columnWidth,
+  onResizeStart,
+  onResize,
+  onResizeStop,
+  // DragDroppable props
+  handleComponentDrop,
 }) {
   const dispatch = useDispatch();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [chartDimensions, setChartDimensions] = useState({
-    width: 499,
-    height: 508,
-  });
   const containerRef = useRef(null);
 
-  // Update chart dimensions based on container size
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setChartDimensions({
-          width: rect.width || 499,
-          height: rect.height || 508,
-        });
-      }
+  // Calculate width multiple for resizable container
+  const widthMultiple = useMemo(
+    () => component.meta.width || GRID_MIN_COLUMN_COUNT,
+    [component.meta.width],
+  );
+
+  // Calculate chart dimensions based on grid system
+  const { chartWidth, chartHeight } = useMemo(() => {
+    const width = Math.floor(
+      widthMultiple * columnWidth +
+        (widthMultiple - 1) * GRID_GUTTER_SIZE -
+        CHART_MARGIN,
+    );
+    const height = Math.floor(
+      (component.meta.height || GRID_MIN_ROW_UNITS) * GRID_BASE_UNIT -
+        CHART_MARGIN,
+    );
+
+    return {
+      chartWidth: Math.max(width, 300), // Minimum width
+      chartHeight: Math.max(height, 200), // Minimum height
     };
+  }, [columnWidth, component.meta.height, widthMultiple]);
 
-    // Initial measurement
-    updateDimensions();
-
-    // TODO: Add resize observer to track dimension changes when needed
-    // const resizeObserver = new ResizeObserver(updateDimensions);
-    // if (containerRef.current) {
-    //   resizeObserver.observe(containerRef.current);
-    // }
-    // return () => resizeObserver.disconnect();
-  }, []);
+  // Component updates are handled by parent via onResizeStop callback
 
   const handleAddChart = () => {
     setIsModalOpen(true);
@@ -206,63 +220,76 @@ export default function EasyChart({
   };
 
   const renderContent = ({ dragSourceRef }) => (
-    <EasyChartStyles
-      className={cx('dashboard-EasyChart')}
-      id={id}
-      data-test="dashboard-EasyChart"
-      ref={dragSourceRef}
+    <ResizableContainer
+      id={component.id}
+      adjustableWidth={parentComponent.type === ROW_TYPE}
+      adjustableHeight
+      widthStep={columnWidth}
+      widthMultiple={widthMultiple}
+      heightStep={GRID_BASE_UNIT}
+      heightMultiple={component.meta.height || GRID_MIN_ROW_UNITS}
+      minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+      minHeightMultiple={GRID_MIN_ROW_UNITS}
+      maxWidthMultiple={availableColumnCount + widthMultiple}
+      onResizeStart={onResizeStart}
+      onResize={onResize}
+      onResizeStop={onResizeStop}
+      editMode={editMode}
     >
-      {component.meta.chartId ? (
-        <Chart
-          {...{
-            componentId: component.id,
-            id: component.meta.chartId,
-            width: chartDimensions.width,
-            height: chartDimensions.height,
-            isComponentVisible: true,
-            isFullSize: false,
-            extraControls: {},
-            isInView: true,
-            handleToggleFullSize: () => {},
-            updateSliceName: () => {},
-            setControlValue: () => {},
-          }}
-          sliceName="School Degree Chart"
-        />
-      ) : (
-        <>
-          <div className="header">
-            <span>{t('Empty Chart Container')}</span>
-            <button
-              className="close-button"
-              onClick={handleClose}
-              type="button"
-            >
-              ×
-            </button>
-          </div>
+      <EasyChartStyles
+        className={cx('dashboard-EasyChart')}
+        id={id}
+        data-test="dashboard-EasyChart"
+        ref={dragSourceRef}
+      >
+        {component.meta.chartId ? (
+          <Chart
+            componentId={component.id}
+            id={component.meta.chartId}
+            width={chartWidth}
+            height={chartHeight}
+            isComponentVisible
+            isFullSize={false}
+            extraControls={{}}
+            isInView
+            handleToggleFullSize={() => {}}
+            updateSliceName={() => {}}
+            setControlValue={() => {}}
+            sliceName="Easy Chart"
+          />
+        ) : (
+          <>
+            <div className="header">
+              <span>{t('Empty Chart Container')}</span>
+              <button
+                className="close-button"
+                onClick={handleClose}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
 
-          <div className="content">
-            <button
-              className="add-chart-button"
-              onClick={handleAddChart}
-              type="button"
-            >
-              <div className="plus-icon">+</div>
-              <div className="button-text">{t('Add Chart')}</div>
-            </button>
-          </div>
-        </>
-      )}
-    </EasyChartStyles>
+            <div className="content">
+              <button
+                className="add-chart-button"
+                onClick={handleAddChart}
+                type="button"
+              >
+                <div className="plus-icon">+</div>
+                <div className="button-text">{t('Add Chart')}</div>
+              </button>
+            </div>
+          </>
+        )}
+      </EasyChartStyles>
+    </ResizableContainer>
   );
 
   return (
     <ContainerDiv ref={containerRef}>
       <DragDroppable
-        onDrop={() => {
-          // Handle drop logic
-        }}
+        onDrop={handleComponentDrop}
         onHover={() => {
           // Handle hover logic
         }}
@@ -294,4 +321,22 @@ EasyChart.propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  // Resizable props
+  availableColumnCount: PropTypes.number,
+  columnWidth: PropTypes.number,
+  onResizeStart: PropTypes.func,
+  onResize: PropTypes.func,
+  onResizeStop: PropTypes.func,
+  // DragDroppable props
+  handleComponentDrop: PropTypes.func,
+};
+
+EasyChart.defaultProps = {
+  editMode: false,
+  availableColumnCount: 12,
+  columnWidth: 100,
+  onResizeStart: () => {},
+  onResize: () => {},
+  onResizeStop: () => {},
+  handleComponentDrop: () => {},
 };
