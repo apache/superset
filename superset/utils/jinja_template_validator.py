@@ -17,8 +17,7 @@ specific language governing permissions and limitations
 under the License.
 """
 
-import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 from jinja2 import TemplateSyntaxError
 from jinja2.sandbox import SandboxedEnvironment
@@ -27,85 +26,55 @@ from marshmallow import ValidationError
 from superset.utils import json
 
 
-def validate_jinja_template(template_str: str) -> Tuple[bool, Optional[str]]:
+class JinjaValidationError(Exception):
+    """Exception raised when Jinja2 template validation fails."""
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+def validate_jinja_template(template_str: str) -> None:
     """
     Validates Jinja2 template syntax.
 
-    Returns:
-        Tuple of (is_valid, error_message)
-        If valid: (True, None)
-        If invalid: (False, "Error description")
+    Args:
+        template_str: The template string to validate
+
+    Raises:
+        JinjaValidationError: If the template syntax is invalid
     """
     if not template_str:
-        return True, None
+        return
 
     try:
         env = SandboxedEnvironment()
         env.from_string(template_str)
-
-        return True, None
-
     except TemplateSyntaxError as e:
-        error_msg = str(e)
-
-        if "expected token 'end of print statement'" in error_msg:
-            if "such" in template_str.lower():
-                return False, (
-                    "Invalid Jinja2 syntax. Found text after variable name. "
-                    "Use {{ variable }} for simple variables or "
-                    "{{ variable | default('value') }} for defaults. "
-                    f"Error: {error_msg}"
-                )
-            return False, (
-                "Invalid Jinja2 syntax. "
-                "Check that all {{ }} blocks are properly closed. "
-                f"Error: {error_msg}"
-            )
-        elif "unexpected end of template" in error_msg:
-            return False, (
-                "Unclosed Jinja2 block. "
-                "Make sure all {{ and {% blocks have closing }} and %. "
-                f"Error: {error_msg}"
-            )
-        elif "expected token" in error_msg:
-            return False, (f"Invalid Jinja2 syntax. {error_msg}")
-        else:
-            return False, f"Template syntax error: {error_msg}"
-
+        raise JinjaValidationError(f"Invalid Jinja2 template syntax: {str(e)}") from e
     except Exception as e:
-        return False, f"Template validation error: {str(e)}"
-
-
-def sanitize_jinja_template(template_str: str) -> str:
-    """
-    Attempts to fix common Jinja2 template mistakes.
-
-    This is a best-effort function that tries to fix obvious errors.
-    """
-    if not template_str:
-        return template_str
-
-    pattern = r"\{\{\s*(\w+)\s+such\s+as\s+([^}]+?)\s*\}\}"
-    template_str = re.sub(pattern, r"{{ \1 | default(\2) }}", template_str)
-
-    return template_str
+        raise JinjaValidationError(f"Template validation error: {str(e)}") from e
 
 
 def _check_filter_sql_expression(sql_expression: str) -> None:
     """Check SQL expression for valid Jinja2."""
-    is_valid, error_msg = validate_jinja_template(sql_expression)
-    if not is_valid:
-        raise ValidationError(f"Invalid Jinja2 template in SQL filter: {error_msg}")
+    try:
+        validate_jinja_template(sql_expression)
+    except JinjaValidationError as e:
+        raise ValidationError(
+            f"Invalid Jinja2 template in SQL filter: {e.message}"
+        ) from e
 
 
 def _check_filter_clause(clause: str) -> None:
     """Check filter clause for valid Jinja2."""
     if "{{" in clause:
-        is_valid, error_msg = validate_jinja_template(clause)
-        if not is_valid:
+        try:
+            validate_jinja_template(clause)
+        except JinjaValidationError as e:
             raise ValidationError(
-                f"Invalid Jinja2 template in WHERE clause: {error_msg}"
-            )
+                f"Invalid Jinja2 template in WHERE clause: {e.message}"
+            ) from e
 
 
 def _check_filter_dict(filter_dict: Dict[str, Any]) -> None:

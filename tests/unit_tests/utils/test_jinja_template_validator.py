@@ -18,7 +18,7 @@
 import pytest
 
 from superset.utils.jinja_template_validator import (
-    sanitize_jinja_template,
+    JinjaValidationError,
     validate_jinja_template,
     validate_params_json_with_jinja,
 )
@@ -26,59 +26,39 @@ from superset.utils.jinja_template_validator import (
 
 def test_validate_jinja_template_valid():
     """Test valid Jinja2 templates."""
-    # Simple variable
-    is_valid, error = validate_jinja_template("{{ variable }}")
-    assert is_valid is True
-    assert error is None
+    # Simple variable - should not raise any exception
+    validate_jinja_template("{{ variable }}")
 
-    # With filter
-    is_valid, error = validate_jinja_template("{{ variable | default('value') }}")
-    assert is_valid is True
-    assert error is None
+    # With filter - should not raise any exception
+    validate_jinja_template("{{ variable | default('value') }}")
 
-    # SQL with Jinja2
-    is_valid, error = validate_jinja_template("WHERE date = {{ date }}")
-    assert is_valid is True
-    assert error is None
+    # SQL with Jinja2 - should not raise any exception
+    validate_jinja_template("WHERE date = {{ date }}")
 
-    # Empty string
-    is_valid, error = validate_jinja_template("")
-    assert is_valid is True
-    assert error is None
+    # Empty string - should not raise any exception
+    validate_jinja_template("")
 
 
 def test_validate_jinja_template_invalid():
     """Test invalid Jinja2 templates with common mistakes."""
     # The "such as" mistake
-    is_valid, error = validate_jinja_template("{{ variable such as 'value' }}")
-    assert is_valid is False
-    assert "Invalid Jinja2 syntax" in error
-    assert "Use {{ variable }}" in error or "default" in error
+    with pytest.raises(JinjaValidationError) as exc_info:
+        validate_jinja_template("{{ variable such as 'value' }}")
+    error = exc_info.value.message
+    assert "Invalid Jinja2 template syntax" in error
+    assert "expected token" in error
 
     # Unclosed block
-    is_valid, error = validate_jinja_template("{{ variable ")
-    assert is_valid is False
-    assert "syntax" in error.lower() or "unclosed" in error.lower()
+    with pytest.raises(JinjaValidationError) as exc_info:
+        validate_jinja_template("{{ variable ")
+    error = exc_info.value.message
+    assert "Invalid Jinja2 template syntax" in error
 
     # Text after closing brace
-    is_valid, error = validate_jinja_template("{{ variable }} extra text {{")
-    assert is_valid is False
-    assert "syntax" in error.lower() or "unexpected" in error.lower()
-
-
-def test_sanitize_jinja_template():
-    """Test template sanitization for common mistakes."""
-    # Fix "such as" pattern
-    result = sanitize_jinja_template("{{ variable such as 'value' }}")
-    assert result == "{{ variable | default('value') }}"
-
-    # Leave valid templates unchanged
-    result = sanitize_jinja_template("{{ variable | default('value') }}")
-    assert result == "{{ variable | default('value') }}"
-
-    # Handle empty string
-    result = sanitize_jinja_template("")
-    assert result == ""
+    with pytest.raises(JinjaValidationError) as exc_info:
+        validate_jinja_template("{{ variable }} extra text {{")
+    error = exc_info.value.message
+    assert "Invalid Jinja2 template syntax" in error
 
 
 def test_validate_params_json_with_jinja():
