@@ -100,10 +100,18 @@ jobs:
           elif [[ -n "${{ github.event.pull_request.head.sha }}" ]]; then
             SHA="${{ github.event.pull_request.head.sha }}"
             echo "Using PR head SHA: $SHA"
-          else
-            # Fallback to current commit SHA (works for push and workflow_dispatch)
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.pr_number }}" ]]; then
+            # For manual dispatch with PR number, fetch the latest PR SHA via API
+            PR_NUM="${{ github.event.inputs.pr_number }}"
+            echo "Fetching latest SHA for PR $PR_NUM via GitHub API..."
+            SHA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUM --jq '.head.sha')
+            echo "Using PR $PR_NUM latest SHA: $SHA"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
             SHA="${{ github.sha }}"
-            echo "Using current commit SHA: $SHA"
+            echo "Using push SHA: $SHA"
+          else
+            echo "❌ No SHA available from any source"
+            exit 1
           fi
 
           # Validate SHA format (40-char hex)
@@ -113,6 +121,10 @@ jobs:
           fi
 
           echo "build_sha=$SHA" >> $GITHUB_OUTPUT
+
+          # Extract short SHA (first 7 chars) for readable tagging
+          SHORT_SHA=${SHA:0:7}
+          echo "build_short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
 
       - name: Checkout PR code
         if: steps.check.outputs.build_needed == 'true'
@@ -136,21 +148,39 @@ jobs:
 
       - name: Build Docker image
         if: steps.check.outputs.build_needed == 'true'
+        id: build
         run: |
+          PR_NUM="${{ steps.check.outputs.pr_number }}"
+          SHA="${{ steps.sha.outputs.build_sha }}"
+          SHORT_SHA="${{ steps.sha.outputs.build_short_sha }}"
+
+          # Create custom tag: pr-{PR_NUMBER}-{SHORT_SHA}-ci
+          CUSTOM_TAG="apache/superset:pr-$PR_NUM-$SHORT_SHA-ci"
+          echo "Building with custom tag: $CUSTOM_TAG"
+
+          # Build with custom tag via extraFlags
           supersetbot docker \
             --push \
             --load \
             --preset ci \
             --platform linux/amd64 \
-            --context-ref "${{ steps.sha.outputs.build_sha }}" \
-            --extra-flags "--build-arg INCLUDE_CHROMIUM=false --build-arg LOAD_EXAMPLES_DUCKDB=true"
+            --context-ref "$SHA" \
+            --extra-flags "--build-arg INCLUDE_CHROMIUM=false --build-arg LOAD_EXAMPLES_DUCKDB=true -t $CUSTOM_TAG"
+
+          # Output the specific tag for showtime to use
+          echo "docker_tag=$CUSTOM_TAG" >> $GITHUB_OUTPUT
 
       - name: Execute sync deployment
         if: steps.check.outputs.deploy_needed == 'true'
         run: |
           PR_NUM="${{ steps.check.outputs.pr_number }}"
-          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
-            python -m showtime sync $PR_NUM --deploy --sha "${{ github.event.inputs.sha }}"
-          else
-            python -m showtime sync $PR_NUM --deploy
+
+          # Log the Docker tag that was built (for debugging)
+          if [[ "${{ steps.check.outputs.build_needed }}" == "true" ]]; then
+            DOCKER_TAG="${{ steps.build.outputs.docker_tag }}"
+            echo "Built Docker tag: $DOCKER_TAG"
+            echo "Showtime CLI will need to use this tag when --docker-image is implemented"
           fi
+
+          # For now, let showtime CLI determine which image to use
+          python -m showtime sync $PR_NUM --deploy
