@@ -371,6 +371,11 @@ export function updateChartId(newId, key = 0) {
   return { type: UPDATE_CHART_ID, newId, key };
 }
 
+export const UPDATE_PORTABLE_CHART_ID = 'UPDATE_PORTABLE_CHART_ID';
+export function updatePortableChartId(newId, oldId = 0) {
+  return { type: UPDATE_PORTABLE_CHART_ID, newId, oldId };
+}
+
 export const ADD_CHART = 'ADD_CHART';
 export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };

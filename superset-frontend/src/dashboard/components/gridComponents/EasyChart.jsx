@@ -28,6 +28,7 @@ import ResizableContainer from 'src/dashboard/components/resizable/ResizableCont
 import { updateEasyChartMeta } from 'src/dashboard/actions/dashboardLayout';
 import { fetchSlices } from 'src/dashboard/actions/sliceEntities';
 import { addSliceToDashboard } from 'src/dashboard/actions/dashboardState';
+import { updatePortableChartId } from 'src/components/Chart/chartAction';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
 import {
@@ -395,6 +396,10 @@ export default function EasyChart({
   // Get dashboard edit mode from Redux store
   const dashboardEditMode = useSelector(state => state.dashboardState.editMode);
 
+  // Get slice data from Redux store to access slice name
+  const sliceEntities = useSelector(state => state.sliceEntities?.slices || {});
+  const slice = sliceEntities[component.meta.chartId] || {};
+
   // Calculate width multiple for resizable container
   const widthMultiple = useMemo(
     () => component.meta.width || GRID_MIN_COLUMN_COUNT,
@@ -435,14 +440,14 @@ export default function EasyChart({
 
   const handleUpdateMeta = id => {
     // need action to rename the key from 0 to generated slice id
+    dispatch(updatePortableChartId(id, 0));
     dispatch(fetchSlices());
     setTimeout(() => {
       dispatch(addSliceToDashboard(id));
     }, 500);
-
     setTimeout(() => {
       dispatch(updateEasyChartMeta(component?.id, id));
-    }, 3000);
+    }, 500);
   };
 
   const handleSaveChart = id => {
@@ -490,7 +495,12 @@ export default function EasyChart({
             handleToggleFullSize={() => {}}
             updateSliceName={() => {}}
             setControlValue={() => {}}
-            sliceName="Easy Chart"
+            sliceName={
+              component.meta.sliceNameOverride ||
+              slice.slice_name ||
+              component.meta.sliceName ||
+              'Chart'
+            }
           />
         ) : (
           <>
