@@ -28,11 +28,14 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { fetchExploreData } from 'src/pages/Chart';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  createSlice,
-  setSaveChartModalVisibility,
-} from 'src/explore/actions/saveModalActions';
+import { bindActionCreators } from 'redux';
+import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { hydratePortableExplore } from 'src/explore/actions/hydrateExplore';
+import * as exploreActions from 'src/explore/actions/exploreActions';
+import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
+import * as chartActions from 'src/components/Chart/chartAction';
+import * as logActions from 'src/logger/actions';
 import SaveModal from 'src/explore/components/SaveModal';
 import PortableExplore from '../PortableExplore';
 
@@ -110,18 +113,33 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     useState<DatasourceOption | null>(null);
 
   // Get state from Redux for validation and save modal
-  const chart = useSelector((state: any) => state.charts?.[0] || {});
+  const charts = useSelector((state: any) => state.charts || {});
+  const chart = charts[0] || {}; // Chart for portable explore is always at key 0
   const sliceName = useSelector(
     (state: any) => state.explore?.form_data?.slice_name || 'New Chart',
   );
   const isSaveModalVisible = useSelector(
     (state: any) => state.saveModal?.isVisible || false,
   );
-  const user = useSelector((state: any) => state.user);
   const formData = useSelector((state: any) => state.explore?.form_data || {});
-  const datasource = useSelector((state: any) => state.explore?.datasource);
   const controls = useSelector((state: any) => state.explore?.controls || {});
   const exploreState = useSelector((state: any) => state.explore);
+
+  // Bind action creators like ExploreViewContainer does
+  const actions = useMemo(
+    () =>
+      bindActionCreators(
+        {
+          ...exploreActions,
+          ...datasourcesActions,
+          ...saveModalActions,
+          ...chartActions,
+          ...logActions,
+        } as any,
+        dispatch,
+      ),
+    [dispatch],
+  );
 
   // Calculate errorMessage exactly like ExploreViewContainer does
   const errorMessage = useMemo(() => {
@@ -167,7 +185,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   }, [controls, exploreState]);
 
   // Calculate save disabled state similar to ExploreViewContainer
-  const saveDisabled = errorMessage || chart.chartStatus === 'loading';
+  const saveDisabled = !!errorMessage || chart.chartStatus === 'loading';
 
   const getDashboardId = useCallback((): number | null => {
     if (window.location.pathname.includes('/dashboard/')) {
@@ -323,7 +341,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
                   data-test="save-chart-button"
                   icon={<Icons.SaveOutlined />}
                 >
-                  {t('Save Chart')}
+                  {t('Save chart')}
                 </Button>
               </div>
             </Tooltip>
@@ -358,8 +376,8 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
       {/* Render SaveModal when visible */}
       {isSaveModalVisible && (
         <SaveModal
-          addDangerToast={(_msg: string) => {}} // You might want to connect this to proper toast system
-          actions={{}} // This will need to be connected properly
+          addDangerToast={() => {}} // You might want to connect this to proper toast system
+          actions={actions}
           form_data={formData}
           sliceName={sliceName}
           dashboardId={getDashboardId()}

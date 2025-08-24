@@ -323,6 +323,16 @@ export const hydratePortableExplore =
     if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
+    // Create a minimal slice object for portable explore
+    const portableSlice = {
+      slice_id: 0,
+      slice_name: 'New Chart',
+      form_data: initialFormData,
+      edit_url: null,
+      slice_url: null,
+      owners: [],
+    };
+
     // Build explore state for portable explore
     const exploreState = {
       can_add: findPermission('can_write', 'Chart', user?.roles),
@@ -334,7 +344,7 @@ export const hydratePortableExplore =
       datasource: initialDatasource,
       controls: initialControls,
       form_data: initialFormData,
-      slice: undefined, // No existing slice for new chart
+      slice: portableSlice, // Provide a minimal slice object for new chart
       controlsTransferred: explore.controlsTransferred,
       standalone: false, // Within dashboard context
       force: false,
