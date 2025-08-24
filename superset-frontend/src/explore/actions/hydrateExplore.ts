@@ -231,12 +231,14 @@ export const hydratePortableExplore =
     vizType,
     dashboardId = null,
     metadata = null,
+    slice = {},
   }: {
     form_data?: any;
     dataset: any;
     vizType: string;
     dashboardId?: number | null;
     metadata?: any;
+    slice: any;
   }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, common, explore, sliceEntities } =
@@ -246,7 +248,8 @@ export const hydratePortableExplore =
     const sliceId = form_data?.slice_id;
     const fallbackSlice =
       sliceId && sliceId !== 0 ? sliceEntities?.slices?.[sliceId] : null;
-    const initialSlice = fallbackSlice;
+    const initialSlice = slice ?? fallbackSlice;
+
     const baseFormData = form_data ?? initialSlice?.form_data ?? {};
 
     // Create initial form data for portable explore

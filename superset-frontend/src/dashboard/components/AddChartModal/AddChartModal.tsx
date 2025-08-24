@@ -241,6 +241,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
                 viz_type: 'pie',
                 datasource: `${result.dataset.id}__table`,
               },
+              slice: {}, // Empty slice object for new chart
             }),
           );
         }
@@ -326,11 +327,13 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
         const [datasourceId] = existingFormData.datasource.split('__');
         const datasourceKey = existingFormData.datasource;
 
-        // Fetch fresh datasource metadata from backend
-        SupersetClient.get({
-          endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
-        })
-          .then(({ json: freshDatasourceMeta }) => {
+        // Use fetchExploreData to get complete chart information including ownership
+        const exploreUrlParams = new URLSearchParams({
+          slice_id: editingChartId.toString(),
+        });
+        fetchExploreData(exploreUrlParams)
+          .then(({ result }) => {
+            const { dataset: freshDatasourceMeta, metadata, slice } = result;
             const datasourceOption = {
               value: datasourceId,
               label: freshDatasourceMeta?.table_name || 'Dataset',
@@ -351,16 +354,18 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
               currentExploreFormData?.slice_id !== editingChartId;
 
             if (isExploreEmpty || isExploreForDifferentChart) {
-              // Rehydrate portable explore with existing chart data and fresh datasource
+              // Rehydrate portable explore with complete chart data from API
               dispatch(
                 hydratePortableExplore({
                   dataset: freshDatasourceMeta,
-                  vizType: existingFormData.viz_type || 'table',
+                  vizType: result.form_data.viz_type || 'table',
                   dashboardId: getDashboardId(),
                   form_data: {
-                    ...existingFormData,
+                    ...result.form_data,
                     slice_id: editingChartId, // Keep the original chart ID for editing
                   },
+                  metadata,
+                  slice,
                 }),
               );
             } else {
@@ -369,7 +374,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
             }
           })
           .catch(error => {
-            console.error('Failed to fetch datasource metadata:', error);
+            console.error('Failed to fetch chart data:', error);
             // Fallback to cached datasource if API fails
             const cachedDatasourceMeta = datasources?.[datasourceKey];
             if (cachedDatasourceMeta) {
