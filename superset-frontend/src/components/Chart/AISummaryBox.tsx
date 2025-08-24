@@ -1,13 +1,13 @@
 /**
  * AISummaryBox
  *
- * Renders a compact, three-line AI-generated summary under a chart.
+ * Renders a compact, two-line AI-generated summary under a chart.
  *
  * Behavior
  * - Prefers summarizing lightweight structured data extracted from queries.
  * - Falls back to a low-resolution PNG snapshot of the chart if data sample is unavailable.
  * - Calls generateSummary(), which prefers a backend endpoint and gracefully degrades to
- *   a generic 3-line placeholder when the endpoint is missing or returns an error.
+ *   a generic 2-line placeholder when the endpoint is missing or returns an error.
  *
  * Styling
  * - Shows an animated gradient border ("running color") around a lightly translucent container.
@@ -109,26 +109,31 @@ const HiddenMeasure = styled('div')`
   overflow: visible;
 `;
 
-const ActionButton = styled('button')`
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: ${({ theme }) => theme.colors.grayscale.light3};
-  color: inherit;
+const ToggleLink = styled('span')`
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.primary.base};
+  text-decoration: underline;
   cursor: pointer;
-  box-shadow: none;
-  &:hover {
-    background: ${({ theme }) => theme.colors.grayscale.light2};
-  }
 `;
+
+// Fallback-safe AI icon
+function AIGlyph(props: {
+  width?: number;
+  height?: number;
+  'aria-label'?: string;
+}) {
+  const anyIcons = Icons as any;
+  const Icon =
+    anyIcons?.Ai ||
+    anyIcons?.Bot ||
+    anyIcons?.Robot ||
+    anyIcons?.Bulb ||
+    anyIcons?.Lightbulb ||
+    anyIcons?.Thunderbolt ||
+    anyIcons?.QuestionCircleOutlined ||
+    Icons.InfoSolid;
+  return <Icon {...props} />;
+}
 
 export default function AISummaryBox({
   chartDomId,
@@ -150,6 +155,98 @@ export default function AISummaryBox({
   const borderRef = useRef<HTMLDivElement | null>(null);
   const textWrapperRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
+
+  // Detect when the chart container is actually rendered to avoid layout jump
+  const [isChartReady, setIsChartReady] = useState<boolean>(false);
+  useEffect(() => {
+    setIsChartReady(false);
+
+    const getChartElement = () =>
+      document.getElementById(chartDomId) as HTMLElement | null;
+
+    const isReady = () => {
+      const el = getChartElement();
+      if (!el) return false;
+
+      // Check for actual chart graphics/content
+      const hasGraphics = el.querySelector(
+        'canvas, svg, .nvd3, .chart-container, [data-test="chart-container"]',
+      );
+
+      // Get element dimensions
+      const rect = el.getBoundingClientRect();
+      const hasValidDimensions = rect.height > 0 && rect.width > 0;
+
+      // For more robust detection, require both graphics AND meaningful dimensions
+      // Also check if the chart has actual rendered content (not just loading states)
+      const hasContent = hasGraphics && hasValidDimensions;
+
+      // Additional check: ensure the chart isn't just showing loading/empty state
+      const isNotLoading = !el.querySelector(
+        '.loading, [data-test="loading"], .chart-shimmer, .empty-state',
+      );
+
+      return hasContent && isNotLoading;
+    };
+
+    const el = getChartElement();
+    if (isReady()) {
+      setIsChartReady(true);
+      return () => {};
+    }
+
+    let mutationObserver: MutationObserver | undefined;
+    let resizeObserver: ResizeObserver | undefined;
+
+    if (el) {
+      mutationObserver = new MutationObserver(() => {
+        if (isReady()) {
+          // Add a small delay to ensure chart is fully rendered
+          window.setTimeout(() => {
+            setIsChartReady(true);
+            mutationObserver?.disconnect();
+            if (resizeObserver) {
+              resizeObserver.disconnect();
+            }
+          }, 100);
+        }
+      });
+      mutationObserver.observe(el, { childList: true, subtree: true });
+
+      if ((window as any).ResizeObserver) {
+        resizeObserver = new (window as any).ResizeObserver(() => {
+          if (isReady()) {
+            // Add a small delay to ensure chart is fully rendered
+            window.setTimeout(() => {
+              setIsChartReady(true);
+              mutationObserver?.disconnect();
+              if (resizeObserver) {
+                resizeObserver.disconnect();
+              }
+            }, 100);
+          }
+        });
+        if (resizeObserver) {
+          resizeObserver.observe(el);
+        }
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (isReady()) {
+        // Add a small additional delay to ensure chart is fully rendered
+        window.setTimeout(() => setIsChartReady(true), 100);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      mutationObserver?.disconnect();
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [chartDomId]);
 
   // Extract a compact data sample for the model; avoids sending full results
   // Use raw sample rows for the custom API contract
@@ -195,9 +292,11 @@ export default function AISummaryBox({
   const filtersString = useMemo(() => JSON.stringify(filters), [filters]);
 
   useEffect(() => {
+    if (!isChartReady) return;
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    isChartReady,
     vizType,
     chartDomId,
     title,
@@ -206,6 +305,38 @@ export default function AISummaryBox({
     timeRange,
     filtersString,
   ]);
+
+  // Always collapse when the page/tab becomes hidden OR the component leaves viewport
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) setExpanded(false);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  useEffect(() => {
+    const node = borderRef.current;
+    if (!node || !(window as any).IntersectionObserver) return undefined;
+    const observer = new (window as any).IntersectionObserver(
+      (entries: IntersectionObserverEntry[]) => {
+        entries.forEach(entry => {
+          if (entry.intersectionRatio === 0) {
+            setExpanded(false);
+          }
+        });
+      },
+      { threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [borderRef]);
+
+  // Also collapse when switching charts/containers
+  useEffect(() => {
+    setExpanded(false);
+  }, [chartDomId]);
 
   const shouldShow =
     !loading && !error && Boolean(summary && summary.trim().length > 0);
@@ -226,7 +357,7 @@ export default function AISummaryBox({
     const lineHeight = parseFloat(
       window.getComputedStyle(node).lineHeight || '0',
     );
-    const maxHeight = Math.ceil(lineHeight * 3);
+    const maxHeight = Math.ceil(lineHeight * 2);
     const fullHeight = Math.ceil(node.getBoundingClientRect().height);
 
     if (fullHeight <= maxHeight) {
@@ -236,7 +367,8 @@ export default function AISummaryBox({
     }
 
     setNeedsMore(true);
-    const suffix = ' …';
+    const suffix =
+      ' … <span style="font-weight:600;text-decoration:underline;">view more</span>';
 
     // Binary search best cut index
     let low = 0;
@@ -264,7 +396,7 @@ export default function AISummaryBox({
       cut = Math.max(0, best - (lookback - spaceIdx));
     }
 
-    setCollapsedText(`${fullText.slice(0, cut).trimEnd()}${suffix}`);
+    setCollapsedText(fullText.slice(0, cut).trimEnd());
   }, [shouldShow, expanded, fullText]);
 
   // Recompute on resize when collapsed
@@ -293,17 +425,19 @@ export default function AISummaryBox({
     return () => window.clearTimeout(id);
   }, [onHeightChange, loading, shouldShow, expanded, fullText, collapsedText]);
 
+  // Do not render anything until the chart is ready to avoid centering/jumping
+  if (!isChartReady) return null;
+
   if (loading) {
     return (
       <Border ref={borderRef}>
         <Container hasActionButton={false}>
           <div style={{ gridColumn: 1, alignSelf: 'start' }}>
-            <Icons.Ai width={14} height={14} aria-label="AI" />
+            <AIGlyph width={14} height={14} aria-label="AI" />
           </div>
           <div style={{ gridColumn: 2 }}>
             <SkeletonLine />
             <SkeletonLine style={{ width: '92%' }} />
-            <SkeletonLine style={{ width: '80%' }} />
             <div style={{ height: 8 }} />
           </div>
         </Container>
@@ -313,37 +447,56 @@ export default function AISummaryBox({
 
   if (!shouldShow) return null;
 
-  const showActionButton = needsMore || expanded;
-  const buttonTitle = expanded ? 'view less' : 'view more';
-  const buttonIcon = expanded
-    ? 'https://cdn.pixelbin.io/v2/fynd-console/original/fds/icons/ic_chevron_up.svg'
-    : 'https://cdn.pixelbin.io/v2/fynd-console/original/fds/icons/ic_chevron_down.svg';
-
   return (
     <Border ref={borderRef}>
-      <Container hasActionButton={showActionButton}>
+      <Container hasActionButton={false}>
         <div style={{ gridColumn: 1, alignSelf: 'start' }}>
-          <Icons.Ai width={14} height={14} aria-label="AI" />
+          <AIGlyph width={14} height={14} aria-label="AI" />
         </div>
         <TextWrapper ref={textWrapperRef}>
           {expanded ? (
-            <FullText>{fullText}</FullText>
+            <FullText>
+              {fullText}{' '}
+              <ToggleLink
+                role="button"
+                tabIndex={0}
+                onClick={() => setExpanded(false)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') setExpanded(false);
+                }}
+                aria-label="view less"
+                title="view less"
+              >
+                view less
+              </ToggleLink>
+            </FullText>
           ) : (
             <>
-              <CollapsedLine>{collapsedText}</CollapsedLine>
+              <CollapsedLine>
+                {collapsedText}
+                {needsMore ? (
+                  <>
+                    {' '}
+                    …{' '}
+                    <ToggleLink
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setExpanded(true)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ')
+                          setExpanded(true);
+                      }}
+                      aria-label="view more"
+                      title="view more"
+                    >
+                      view more
+                    </ToggleLink>
+                  </>
+                ) : null}
+              </CollapsedLine>
               <HiddenMeasure ref={measureRef} />
             </>
           )}
-          {showActionButton ? (
-            <ActionButton
-              type="button"
-              onClick={() => setExpanded(v => !v)}
-              title={buttonTitle}
-              aria-label={buttonTitle}
-            >
-              <img src={buttonIcon} alt="" width={12} height={12} />
-            </ActionButton>
-          ) : null}
         </TextWrapper>
       </Container>
     </Border>
