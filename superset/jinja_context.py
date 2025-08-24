@@ -709,11 +709,7 @@ class BaseTemplateProcessor:
             error_msg = str(ex)
             exception_type = type(ex).__name__
 
-            message = (
-                f"Jinja2 template error ({exception_type}). "
-                "Please check your template syntax and variable references. "
-                f"Original error: {error_msg}"
-            )
+            message = f"Jinja2 template error ({exception_type}): {error_msg}"
 
             line_number = getattr(ex, "lineno", None)
 
@@ -746,11 +742,7 @@ class BaseTemplateProcessor:
             error_msg = str(ex)
             exception_type = type(ex).__name__
 
-            message = (
-                "Internal error processing Jinja2 template. "
-                "Please contact your administrator. "
-                f"Error: {error_msg}"
-            )
+            message = f"Internal Jinja2 template error ({exception_type}): {error_msg}"
 
             logger.error(
                 "Jinja2 template server error",
