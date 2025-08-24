@@ -342,14 +342,16 @@ export const ExploreChartHeader = ({
         />
       )}
 
-      <UnsavedChangesModal
-        title={t('Save changes to your chart?')}
-        body={t("If you don't save, changes will be lost.")}
-        showModal={showUnsavedChangesModal}
-        onHide={() => setShowUnsavedChangesModal(false)}
-        onConfirmNavigation={handleConfirmNavigation}
-        handleSave={handleSaveAndCloseModal}
-      />
+      {!isPortableExplore && (
+        <UnsavedChangesModal
+          title={t('Save changes to your chart?')}
+          body={t("If you don't save, changes will be lost.")}
+          showModal={showUnsavedChangesModal}
+          onHide={() => setShowUnsavedChangesModal(false)}
+          onConfirmNavigation={handleConfirmNavigation}
+          handleSave={handleSaveAndCloseModal}
+        />
+      )}
     </>
   );
 };
