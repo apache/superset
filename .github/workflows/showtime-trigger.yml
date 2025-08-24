@@ -141,6 +141,7 @@ jobs:
           dockerhub-user: ${{ env.DOCKERHUB_USER }}
           dockerhub-token: ${{ env.DOCKERHUB_TOKEN }}
           build: "true"
+          install-docker-compose: "false"
 
       - name: Setup supersetbot
         if: steps.check.outputs.build_needed == 'true'
