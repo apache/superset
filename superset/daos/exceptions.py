@@ -35,3 +35,8 @@ class DatasourceTypeNotSupportedError(DAOException):
 class DatasourceNotFound(DAOException):
     status = 404
     message = "Datasource does not exist"
+
+
+class DatasourceValueIsIncorrect(DAOException):
+    status = 422
+    message = "Datasource value is neither id or uuid"

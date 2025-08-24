@@ -313,6 +313,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -429,10 +430,15 @@ marshmallow==3.26.1
     #   apache-superset
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
+    #   marshmallow-union
 marshmallow-sqlalchemy==1.4.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
+marshmallow-union==0.1.15
+    # via
+    #   -c requirements/base.txt
+    #   apache-superset
 matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
@@ -469,6 +475,7 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
+    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
@@ -539,6 +546,7 @@ pgsanity==0.2.9
     #   apache-superset
 pillow==11.3.0
     # via
+    #   -c requirements/base.txt
     #   apache-superset
     #   matplotlib
 pip==25.1.1
