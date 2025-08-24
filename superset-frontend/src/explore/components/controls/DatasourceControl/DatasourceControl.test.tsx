@@ -98,20 +98,20 @@ async function openAndSaveChanges(datasource: any) {
 
 test('Should render', async () => {
   const props = createProps();
-  render(<DatasourceControl {...props} />, { useRouter: true });
+  render(<DatasourceControl {...props} />, { useRouter: true, useRedux: true });
   expect(await screen.findByTestId('datasource-control')).toBeVisible();
 });
 
 test('Should have elements', async () => {
   const props = createProps();
-  render(<DatasourceControl {...props} />, { useRouter: true });
+  render(<DatasourceControl {...props} />, { useRouter: true, useRedux: true });
   expect(await screen.findByText('channels')).toBeVisible();
   expect(screen.getByTestId('datasource-menu-trigger')).toBeVisible();
 });
 
 test('Should open a menu', async () => {
   const props = createProps();
-  render(<DatasourceControl {...props} />, { useRouter: true });
+  render(<DatasourceControl {...props} />, { useRouter: true, useRedux: true });
 
   expect(screen.queryByText('Edit dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('Swap dataset')).not.toBeInTheDocument();
@@ -138,7 +138,7 @@ test('Should not show SQL Lab for non sql_lab role', async () => {
       username: 'gamma',
     },
   });
-  render(<DatasourceControl {...props} />, { useRouter: true });
+  render(<DatasourceControl {...props} />, { useRouter: true, useRedux: true });
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
@@ -161,7 +161,7 @@ test('Should show SQL Lab for sql_lab role', async () => {
       username: 'sql',
     },
   });
-  render(<DatasourceControl {...props} />, { useRouter: true });
+  render(<DatasourceControl {...props} />, { useRouter: true, useRedux: true });
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
@@ -291,7 +291,10 @@ test('Should open a different menu when datasource=query', async () => {
       type: DatasourceType.Query,
     },
   };
-  render(<DatasourceControl {...queryProps} />, { useRouter: true });
+  render(<DatasourceControl {...queryProps} />, {
+    useRouter: true,
+    useRedux: true,
+  });
 
   expect(screen.queryByText('Query preview')).not.toBeInTheDocument();
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
