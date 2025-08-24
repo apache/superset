@@ -79,15 +79,15 @@ jobs:
           OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
           echo "$OUTPUT"
 
-          # Extract outputs for conditional steps
-          ACTION=$(echo "$OUTPUT" | grep "action_needed=" | cut -d'=' -f2)
+          # Extract outputs for conditional steps (match showtime CLI output)
           BUILD=$(echo "$OUTPUT" | grep "build_needed=" | cut -d'=' -f2)
-          DEPLOY=$(echo "$OUTPUT" | grep "deploy_needed=" | cut -d'=' -f2)
+          SYNC=$(echo "$OUTPUT" | grep "sync_needed=" | cut -d'=' -f2)
+          TARGET_SHA=$(echo "$OUTPUT" | grep "target_sha=" | cut -d'=' -f2)
 
-          echo "action_needed=$ACTION" >> $GITHUB_OUTPUT
           echo "build_needed=$BUILD" >> $GITHUB_OUTPUT
-          echo "deploy_needed=$DEPLOY" >> $GITHUB_OUTPUT
+          echo "sync_needed=$SYNC" >> $GITHUB_OUTPUT
           echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+          echo "target_sha=$TARGET_SHA" >> $GITHUB_OUTPUT
 
       - name: Get SHA for potential build
         id: sha
@@ -172,7 +172,7 @@ jobs:
           echo "docker_tag=$CUSTOM_TAG" >> $GITHUB_OUTPUT
 
       - name: Execute sync deployment
-        if: steps.check.outputs.deploy_needed == 'true'
+        if: steps.check.outputs.sync_needed == 'true'
         run: |
           PR_NUM="${{ steps.check.outputs.pr_number }}"
 
