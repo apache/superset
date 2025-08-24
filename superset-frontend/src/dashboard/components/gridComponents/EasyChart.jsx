@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { styled, css, t } from '@superset-ui/core';
 // ResizeCallback and ResizeStartCallback types used in props
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
@@ -248,6 +248,26 @@ const EasyChartStyles = styled.div`
           gap: ${theme.sizeUnit * 2}px;
           min-width: 160px;
 
+          &.disabled {
+            background: ${theme.colorBgContainerDisabled};
+            color: ${theme.colorTextDisabled};
+            cursor: not-allowed;
+            box-shadow: none;
+
+            .plus-icon {
+              background: ${theme.colorBgTextDisabled};
+            }
+
+            &:hover {
+              transform: none;
+              box-shadow: none;
+            }
+
+            &:before {
+              display: none;
+            }
+          }
+
           &:before {
             content: '';
             position: absolute;
@@ -296,6 +316,53 @@ const EasyChartStyles = styled.div`
             letter-spacing: 0.02em;
           }
         }
+
+        .edit-mode-message {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          z-index: 2;
+          position: relative;
+          max-width: 320px;
+          gap: ${theme.sizeUnit * 3}px;
+
+          .lock-icon {
+            width: 48px;
+            height: 48px;
+            background: ${theme.colorTextSecondary};
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: ${theme.colorBgContainer};
+            font-size: 20px;
+            opacity: 0.7;
+          }
+
+          .edit-message-title {
+            font-size: ${theme.fontSizeLG}px;
+            font-weight: ${theme.fontWeightMedium};
+            color: ${theme.colorTextHeading};
+            margin-bottom: ${theme.sizeUnit}px;
+          }
+
+          .edit-message-subtitle {
+            font-size: ${theme.fontSizeSM}px;
+            color: ${theme.colorTextSecondary};
+            line-height: 1.4;
+          }
+
+          .edit-instruction {
+            font-size: ${theme.fontSizeXS}px;
+            color: ${theme.colorTextTertiary};
+            padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
+            background: ${theme.colorBgLayoutHeader};
+            border-radius: ${theme.borderRadius}px;
+            border-left: 3px solid ${theme.colorWarning};
+            margin-top: ${theme.sizeUnit * 2}px;
+          }
+        }
       }
 
       .dashboard--editing & {
@@ -325,6 +392,9 @@ export default function EasyChart({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef(null);
 
+  // Get dashboard edit mode from Redux store
+  const dashboardEditMode = useSelector(state => state.dashboardState.editMode);
+
   // Calculate width multiple for resizable container
   const widthMultiple = useMemo(
     () => component.meta.width || GRID_MIN_COLUMN_COUNT,
@@ -353,7 +423,10 @@ export default function EasyChart({
   // Component updates are handled by parent via onResizeStop callback
 
   const handleAddChart = () => {
-    setIsModalOpen(true);
+    // Only allow adding charts in edit mode
+    if (dashboardEditMode) {
+      setIsModalOpen(true);
+    }
   };
 
   const handleCloseModal = () => {
@@ -437,23 +510,44 @@ export default function EasyChart({
             </div>
 
             <div className="content">
-              <div className="welcome-content">
-                <div className="welcome-icon">📈</div>
-                <div className="welcome-title">{t('Create Your Chart')}</div>
-                <div className="welcome-subtitle">
-                  {t(
-                    'Start building beautiful visualizations by adding a chart to this container',
-                  )}
+              {dashboardEditMode ? (
+                // Edit mode - show full welcome experience
+                <>
+                  <div className="welcome-content">
+                    <div className="welcome-icon">📈</div>
+                    <div className="welcome-title">
+                      {t('Create Your Chart')}
+                    </div>
+                    <div className="welcome-subtitle">
+                      {t(
+                        'Start building beautiful visualizations by adding a chart to this container',
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    className="add-chart-button"
+                    onClick={handleAddChart}
+                    type="button"
+                  >
+                    <div className="plus-icon">+</div>
+                    <span className="button-text">{t('Add Chart')}</span>
+                  </button>
+                </>
+              ) : (
+                // View mode - show instructions to enter edit mode
+                <div className="edit-mode-message">
+                  <div className="lock-icon">🔒</div>
+                  <div className="edit-message-title">
+                    {t('Chart Placeholder')}
+                  </div>
+                  <div className="edit-message-subtitle">
+                    {t('This space is reserved for a chart visualization')}
+                  </div>
+                  <div className="edit-instruction">
+                    {t('Enter edit mode to add or modify chart here')}
+                  </div>
                 </div>
-              </div>
-              <button
-                className="add-chart-button"
-                onClick={handleAddChart}
-                type="button"
-              >
-                <div className="plus-icon">+</div>
-                <span className="button-text">{t('Add Chart')}</span>
-              </button>
+              )}
             </div>
           </>
         )}
