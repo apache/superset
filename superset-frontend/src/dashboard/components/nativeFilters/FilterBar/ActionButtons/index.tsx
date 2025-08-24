@@ -74,7 +74,7 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
 
   background: linear-gradient(
     ${rgba(theme.colorBgLayout, 0)},
-    ${theme.colorBgElevated} 20%
+    ${theme.colorBgContainer} 20%
   );
 
   & > .filter-apply-button {

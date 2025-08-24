@@ -82,6 +82,7 @@ export const FilterItem = styled.button`
     background: none;
     outline: none;
     width: 100%;
+    color: inherit;
 
     &::-moz-focus-inner {
       border: 0;
@@ -102,6 +103,7 @@ export const FilterItem = styled.button`
 
 export const FiltersContainer = styled.div`
   ${({ theme }) => css`
+    max-height: 60vh;
     margin-top: ${theme.sizeUnit}px;
     &:not(:last-child) {
       padding-bottom: ${theme.sizeUnit * 3}px;
@@ -115,7 +117,7 @@ export const FiltersDetailsContainer = styled.div`
     max-width: 300px;
     overflow-x: hidden;
 
-    color: ${theme.colorBgBase};
+    color: ${theme.colorText};
   `}
 `;
 

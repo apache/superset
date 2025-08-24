@@ -1,0 +1,56 @@
+---
+title: Installation Methods
+hide_title: true
+sidebar_position: 2
+version: 1
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Installation Methods
+
+How should you install Superset? Here's a comparison of the different options. It will help if you've first read the [Architecture](/docs/installation/architecture.mdx) page to understand Superset's different components.
+
+The fundamental trade-off is between you needing to do more of the detail work yourself vs. using a more complex deployment route that handles those details.
+
+## [Docker Compose](/docs/installation/docker-compose.mdx)
+
+**Summary:** This takes advantage of containerization while remaining simpler than Kubernetes. This is the best way to try out Superset; it's also useful for developing & contributing back to Superset.
+
+If you're not just demoing the software, you'll need a moderate understanding of Docker to customize your deployment and avoid a few risks. Even when fully-optimized this is not as robust a method as Kubernetes when it comes to large-scale production deployments.
+
+You manage a superset-config.py file and a docker-compose.yml file. Docker Compose brings up all the needed services - the Superset application, a Postgres metadata DB, Redis cache, Celery worker and beat. They are automatically connected to each other.
+
+**Responsibilities**
+
+You will need to back up your metadata DB. That could mean backing up the service running as a Docker container and its volume; ideally you are running Postgres as a service outside of that container and backing up that service.
+
+You will also need to extend the Superset docker image. The default `lean` images do not contain drivers needed to access your metadata database (Postgres or MySQL), nor to access your data warehouse, nor the headless browser needed for Alerts & Reports. You could run a `-dev` image while demoing Superset, which has some of this, but you'll still need to install the driver for your data warehouse. The `-dev` images run as root, which is not recommended for production.
+
+Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs. See [Building your own production Docker image](/docs/installation/docker-builds/#building-your-own-production-docker-image).
+
+## [Kubernetes (K8s)](/docs/installation/kubernetes.mdx)
+
+**Summary:** This is the best-practice way to deploy a production instance of Superset, but has the steepest skill requirement - someone who knows Kubernetes.
+
+You will deploy Superset into a K8s cluster. The most common method is using the community-maintained Helm chart, though work is now underway to implement [SIP-149 - a Kubernetes Operator for Superset](https://github.com/apache/superset/issues/31408).
+
+A K8s deployment can scale up and down based on usage and deploy rolling updates with zero downtime - features that big deployments appreciate.
+
+**Responsibilities**
+
+You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to customize your Helm chart values and deploy and maintain your Kubernetes cluster.
+
+## [PyPI (Python)](/docs/installation/pypi.mdx)
+
+**Summary:** This is the only method that requires no knowledge of containers. It requires the most hands-on work to deploy, connect, and maintain each component.
+
+You install Superset as a Python package and run it that way, providing your own metadata database. Superset has documentation on how to install this way, but it is updated infrequently.
+
+If you want caching, you'll set up Redis or RabbitMQ. If you want Alerts & Reports, you'll set up Celery.
+
+**Responsibilities**
+
+You will need to get the component services running and communicating with each other. You'll need to arrange backups of your metadata database.
+
+When upgrading, you'll need to manage the system environment and packages and ensure all components have functional dependencies.

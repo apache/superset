@@ -52,7 +52,6 @@ const StyledEditableTitle = styled.span<{
 
     input[type='text'],
     textarea {
-      border: 1px solid ${({ theme }) => theme.colorSplit};
       color: ${({ theme }) => theme.colorTextTertiary};
       border-radius: ${({ theme }) => theme.sizeUnit}px;
       font-size: ${({ theme }) => theme.fontSizeLG}px;

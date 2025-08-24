@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { PureComponent } from 'react';
+import { PureComponent, createRef } from 'react';
 import PropTypes from 'prop-types';
 import {
   isDefined,
@@ -35,7 +35,6 @@ import {
   Icons,
   Select,
   Tooltip,
-  SQLEditor,
 } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
@@ -54,6 +53,7 @@ import {
   StyledColumnOption,
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -106,7 +106,7 @@ export default class AdhocMetricEditPopover extends PureComponent {
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onTabChange = this.onTabChange.bind(this);
-    this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
+    this.aceEditorRef = createRef();
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
     this.getDefaultTab = this.getDefaultTab.bind(this);
 
@@ -268,16 +268,10 @@ export default class AdhocMetricEditPopover extends PureComponent {
     this.props.getCurrentTab(tab);
   }
 
-  handleAceEditorRef(ref) {
-    if (ref) {
-      this.aceEditorRef = ref;
-    }
-  }
-
   refreshAceEditor() {
     setTimeout(() => {
-      if (this.aceEditorRef) {
-        this.aceEditorRef.editor?.resize?.();
+      if (this.aceEditorRef.current) {
+        this.aceEditorRef.current.editor?.resize?.();
       }
     }, 0);
   }
@@ -480,12 +474,12 @@ export default class AdhocMetricEditPopover extends PureComponent {
               ),
               disabled: extra.disallow_adhoc_metrics,
               children: (
-                <SQLEditor
+                <SQLEditorWithValidation
                   data-test="sql-editor"
                   showLoadingForImport
-                  ref={this.handleAceEditorRef}
+                  ref={this.aceEditorRef}
                   keywords={keywords}
-                  height={`${this.state.height - 80}px`}
+                  height={`${this.state.height - 120}px`}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
@@ -497,6 +491,10 @@ export default class AdhocMetricEditPopover extends PureComponent {
                   enableLiveAutocompletion
                   className="filter-sql-editor"
                   wrapEnabled
+                  showValidation
+                  expressionType="metric"
+                  datasourceId={datasource?.id}
+                  datasourceType={datasource?.type}
                 />
               ),
             },
