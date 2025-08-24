@@ -100,12 +100,10 @@ jobs:
           elif [[ -n "${{ github.event.pull_request.head.sha }}" ]]; then
             SHA="${{ github.event.pull_request.head.sha }}"
             echo "Using PR head SHA: $SHA"
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            SHA="${{ github.sha }}"
-            echo "Using push SHA: $SHA"
           else
-            echo "❌ No SHA available from any source"
-            exit 1
+            # Fallback to current commit SHA (works for push and workflow_dispatch)
+            SHA="${{ github.sha }}"
+            echo "Using current commit SHA: $SHA"
           fi
 
           # Validate SHA format (40-char hex)
