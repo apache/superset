@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Modal,
@@ -51,6 +51,7 @@ interface AddChartModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (chartId: number) => void;
+  editingChartId?: number;
 }
 
 const StyledModalContent = styled.div`
@@ -106,6 +107,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  editingChartId,
 }) => {
   const dispatch = useDispatch();
 
@@ -127,6 +129,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   const datasource = useSelector((state: any) => state.explore?.datasource);
   const slice = useSelector((state: any) => state.explore?.slice);
   const user = useSelector((state: any) => state.user);
+  const datasources = useSelector((state: any) => state.datasources);
 
   // Bind action creators like ExploreViewContainer does
   const actions = useMemo(
@@ -300,6 +303,28 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     [onSave, onClose],
   );
 
+  // Handle editing existing chart
+  useEffect(() => {
+    if (isOpen && editingChartId) {
+      const existingChart = charts[editingChartId];
+      const existingFormData = existingChart?.form_data;
+
+      if (existingChart && existingFormData?.datasource) {
+        const [datasourceId] = existingFormData.datasource.split('__');
+        const datasourceMeta = datasources?.[existingFormData.datasource];
+
+        const datasourceOption = {
+          value: datasourceId,
+          label: datasourceMeta?.table_name || 'Dataset',
+          id: datasourceId,
+          customLabel: datasourceMeta?.name || 'Dataset',
+        };
+
+        setSelectedDatasource(datasourceOption);
+      }
+    }
+  }, [isOpen, editingChartId]);
+
   const renderChartPreview = () => {
     if (!selectedDatasource) {
       return (
@@ -322,7 +347,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
       <Modal
         show={isOpen}
         onHide={onClose}
-        title={t('Add Chart')}
+        title={editingChartId ? t('Edit Chart') : t('Add Chart')}
         width="1600px"
         footer={
           <div

@@ -140,6 +140,9 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  isFromEasyChart?: boolean;
+  onEditEasyChart?: () => void;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -216,11 +219,18 @@ const SliceHeaderControls = (
       case MenuKeys.ExploreChart:
         // eslint-disable-next-line no-unused-expressions
         props.logExploreChart?.(props.slice.slice_id);
-        if (domEvent.metaKey || domEvent.ctrlKey) {
-          domEvent.preventDefault();
-          window.open(props.exploreUrl, '_blank');
+
+        // If this is from EasyChart, trigger the edit callback instead of navigating
+        if (props.isFromEasyChart && props.onEditEasyChart) {
+          props.onEditEasyChart();
         } else {
-          history.push(props.exploreUrl);
+          // Regular chart editing behavior
+          if (domEvent.metaKey || domEvent.ctrlKey) {
+            domEvent.preventDefault();
+            window.open(props.exploreUrl, '_blank');
+          } else {
+            history.push(props.exploreUrl);
+          }
         }
         break;
       case MenuKeys.ExportCsv:
@@ -390,7 +400,7 @@ const SliceHeaderControls = (
       key: MenuKeys.ExploreChart,
       label: (
         <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
-          {t('Edit chart')}
+          {props.isFromEasyChart ? t('Edit Easy Chart') : t('Edit chart')}
         </Tooltip>
       ),
       ...{ 'data-test-edit-chart-name': slice.slice_name },

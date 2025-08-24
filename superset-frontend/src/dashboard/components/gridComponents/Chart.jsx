@@ -74,6 +74,8 @@ const propTypes = {
   isFullSize: PropTypes.bool,
   extraControls: PropTypes.object,
   isInView: PropTypes.bool,
+  isFromEasyChart: PropTypes.bool,
+  onEditEasyChart: PropTypes.func,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -484,6 +486,8 @@ const Chart = props => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel}
+        isFromEasyChart={props.isFromEasyChart}
+        onEditEasyChart={props.onEditEasyChart}
       />
 
       {/*

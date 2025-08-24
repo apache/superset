@@ -501,6 +501,8 @@ export default function EasyChart({
               component.meta.sliceName ||
               'Chart'
             }
+            isFromEasyChart
+            onEditEasyChart={() => setIsModalOpen(true)}
           />
         ) : (
           <>
@@ -588,6 +590,7 @@ export default function EasyChart({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSave={handleSaveChart}
+        editingChartId={component.meta.chartId}
       />
     </ContainerDiv>
   );
