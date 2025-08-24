@@ -112,15 +112,18 @@ jobs:
         id: sha
         if: steps.check.outputs.build_needed == 'true'
         run: |
-          # Simple SHA handling - use input or default to PR head
+          # SHA handling for different event types
           if [[ -n "${{ github.event.inputs.sha }}" ]]; then
             SHA="${{ github.event.inputs.sha }}"
             echo "Using override SHA: $SHA"
           elif [[ -n "${{ github.event.pull_request.head.sha }}" ]]; then
             SHA="${{ github.event.pull_request.head.sha }}"
             echo "Using PR head SHA: $SHA"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            SHA="${{ github.sha }}"
+            echo "Using push SHA: $SHA"
           else
-            echo "❌ No SHA available from PR head or inputs"
+            echo "❌ No SHA available from any source"
             exit 1
           fi
 
