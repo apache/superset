@@ -44,6 +44,7 @@ import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
+import { isEmpty } from 'lodash';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -404,7 +405,7 @@ export const hydratePortableExplore =
       datasource: initialDatasource,
       controls: initialControls,
       form_data: initialFormData,
-      slice: portableSlice, // Provide a minimal slice object for new chart
+      slice: !isEmpty(slice) ? initialSlice : null, // Provide a minimal slice object for new chart
       controlsTransferred: explore.controlsTransferred,
       standalone: false, // Within dashboard context
       force: false,
