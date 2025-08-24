@@ -203,16 +203,47 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         });
       }
 
-      //  Get chart dashboards
+      const formData = this.props.form_data || {};
+      delete formData.url_params;
+
+      // For portable explore (AddChartModal), skip all dashboard operations
+      if (this.props.isPortableExplore) {
+        // Sets the form data without dashboard information
+        this.props.actions.setFormData({ ...formData });
+
+        //  Update or create slice without dashboard associations
+        let value: { id: number };
+        if (this.state.action === 'overwrite') {
+          value = await this.props.actions.updateSlice(
+            this.props.slice,
+            this.state.newSliceName,
+            [], // No dashboard associations for portable explore
+            null, // No dashboard info
+          );
+        } else {
+          value = await this.props.actions.createSlice(
+            this.state.newSliceName,
+            [], // No dashboard associations for portable explore
+            null, // No dashboard info
+          );
+        }
+
+        // Call the callback and close modal
+        if (this.props.onSaveComplete && value?.id) {
+          this.props.onSaveComplete(value.id);
+        }
+        this.setState({ isLoading: false });
+        this.onHide();
+        return;
+      }
+
+      //  Get chart dashboards (only for regular explore, not portable)
       let sliceDashboards: number[] = [];
       if (this.props.slice && this.state.action === 'overwrite') {
         sliceDashboards = await this.props.actions.getSliceDashboards(
           this.props.slice,
         );
       }
-
-      const formData = this.props.form_data || {};
-      delete formData.url_params;
 
       let dashboard: DashboardGetResponse | null = null;
       if (this.state.dashboard) {
@@ -277,18 +308,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         }
       } catch (error) {
         // continue regardless of error
-      }
-
-      // For portable explore, call callback instead of navigating
-      if (
-        this.props.isPortableExplore &&
-        this.props.onSaveComplete &&
-        value?.id
-      ) {
-        this.props.onSaveComplete(value.id);
-        this.setState({ isLoading: false });
-        this.onHide();
-        return;
       }
 
       // Go to new dashboard url
