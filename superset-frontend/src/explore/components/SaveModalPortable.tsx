@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import {
   Button,
   Form,
@@ -66,18 +67,31 @@ const SaveModalPortable: React.FC<SaveModalPortableProps> = ({
   user,
   onSaveComplete,
 }) => {
+  // Get the current slice name from Redux state (updated by chart header)
+  const currentSliceName = useSelector(
+    (state: any) => state.explore?.sliceName,
+  );
+  // Use the Redux slice name if available, otherwise fall back to prop
+  const effectiveSliceName = currentSliceName || sliceName || 'New Chart';
   const canOverwriteSlice = useCallback(
     (): boolean =>
       slice?.owners?.includes(user?.userId) && !slice?.is_managed_externally,
     [slice, user],
   );
 
-  const [newSliceName, setNewSliceName] = useState(sliceName || 'New Chart');
+  const [newSliceName, setNewSliceName] = useState(effectiveSliceName);
   const [datasetName, setDatasetName] = useState(datasource?.name || '');
   const [action, setAction] = useState<SaveActionType>(
     canOverwriteSlice() ? 'overwrite' : 'saveas',
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update slice name when it changes in Redux state
+  useEffect(() => {
+    if (currentSliceName && currentSliceName !== newSliceName) {
+      setNewSliceName(currentSliceName);
+    }
+  }, [currentSliceName, newSliceName]);
 
   const handleSliceNameChange = useCallback((event: any) => {
     setNewSliceName(event.target.value);

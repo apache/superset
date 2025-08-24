@@ -360,11 +360,41 @@ export const hydratePortableExplore =
           owners: [],
         };
 
+    // Helper function to determine if user can overwrite the chart
+    const canOverwriteChart = (
+      initialSlice: any,
+      formData: any,
+      portableSlice: any,
+      user: any,
+    ): boolean => {
+      // For new charts (slice_id = 0), user can always overwrite since they're creating it
+      if (!initialSlice || formData.slice_id === 0) {
+        return true;
+      }
+
+      // For existing charts, check if user is owner
+      const owners = ensureIsArray(portableSlice?.owners || []);
+      return owners.some((owner: any) => {
+        if (typeof owner === 'number') {
+          return owner === user?.userId;
+        }
+        if (typeof owner === 'object' && owner.value) {
+          return owner.value === user?.userId;
+        }
+        return false;
+      });
+    };
+
     // Build explore state for portable explore
     const exploreState = {
       can_add: findPermission('can_write', 'Chart', user?.roles),
       can_download: findPermission('can_csv', 'Superset', user?.roles),
-      can_overwrite: false, // New chart, not overwritable initially
+      can_overwrite: canOverwriteChart(
+        initialSlice,
+        initialFormData,
+        portableSlice,
+        user,
+      ),
       isDatasourceMetaLoading: false,
       isStarred: false,
       triggerRender: false,
