@@ -30,7 +30,6 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { fetchExploreData } from 'src/pages/Chart';
 import { useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { hydratePortableExplore } from 'src/explore/actions/hydrateExplore';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
@@ -115,6 +114,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   const [selectedDatasource, setSelectedDatasource] =
     useState<DatasourceOption | null>(null);
   const [isLoadingEditChart, setIsLoadingEditChart] = useState(false);
+  const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
 
   // Initialize loading state immediately when modal opens for editing
   useEffect(() => {
@@ -132,9 +132,6 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   const chart = charts[0] || {}; // Chart for portable explore is always at key 0
   const sliceName = useSelector(
     (state: any) => state.explore?.form_data?.slice_name || 'New Chart',
-  );
-  const isSaveModalVisible = useSelector(
-    (state: any) => state.saveModal?.isVisible || false,
   );
   const formData = useSelector((state: any) => state.explore?.form_data || {});
   const controls = useSelector((state: any) => state.explore?.controls || {});
@@ -305,8 +302,8 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     if (!selectedDatasource || saveDisabled) return;
 
     // Show the save modal instead of directly saving
-    dispatch(setSaveChartModalVisibility(true));
-  }, [selectedDatasource, saveDisabled, dispatch]);
+    setIsSaveModalVisible(true);
+  }, [selectedDatasource, saveDisabled]);
 
   const handleSaveComplete = useCallback(
     (chartId: number) => {
@@ -489,7 +486,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
       {isSaveModalVisible && (
         <SaveModalPortable
           isVisible={isSaveModalVisible}
-          onHide={() => dispatch(setSaveChartModalVisibility(false))}
+          onHide={() => setIsSaveModalVisible(false)}
           addDangerToast={(msg: string) => console.log('Toast:', msg)}
           actions={actions}
           form_data={formData}
