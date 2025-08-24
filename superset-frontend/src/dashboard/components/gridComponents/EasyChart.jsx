@@ -53,35 +53,84 @@ const EasyChartStyles = styled.div`
       flex-direction: column;
       height: 100%;
       width: 100%;
-      border-radius: ${theme.borderRadius}px;
+      border-radius: ${theme.borderRadiusLG}px;
       background: ${theme.colorBgContainer};
       border: 1px solid ${theme.colorBorderSecondary};
+      box-shadow: ${theme.boxShadowSecondary};
+      position: relative;
 
       .header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-        background: ${theme.colorBgLayout};
+        padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 5}px;
+        background: linear-gradient(
+          135deg,
+          ${theme.colorBgContainer} 0%,
+          ${theme.colorBgLayout} 100%
+        );
         border-bottom: 1px solid ${theme.colorBorderSecondary};
-        font-weight: ${theme.fontWeightStrong};
+        font-weight: ${theme.fontWeightMedium};
         font-size: ${theme.fontSizeLG}px;
+        position: relative;
+
+        &:before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 4px;
+          height: 100%;
+          background: linear-gradient(
+            180deg,
+            ${theme.colorPrimary} 0%,
+            ${theme.colorPrimaryActive} 100%
+          );
+          border-radius: 0 2px 2px 0;
+        }
+
+        .header-content {
+          display: flex;
+          align-items: center;
+          gap: ${theme.sizeUnit * 2}px;
+
+          .chart-icon {
+            width: 24px;
+            height: 24px;
+            background: ${theme.colorPrimaryBg};
+            border-radius: ${theme.borderRadius}px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: ${theme.colorPrimary};
+            font-size: 14px;
+          }
+
+          .title {
+            color: ${theme.colorTextHeading};
+            font-weight: ${theme.fontWeightStrong};
+          }
+        }
 
         .close-button {
-          background: none;
+          background: ${theme.colorBgTextHover};
           border: none;
           color: ${theme.colorTextSecondary};
           cursor: pointer;
-          font-size: ${theme.fontSizeXL}px;
-          padding: 0;
+          font-size: 16px;
+          padding: ${theme.sizeUnit}px;
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 28px;
-          height: 28px;
+          width: 32px;
+          height: 32px;
+          border-radius: ${theme.borderRadius}px;
+          transition: all 0.2s ease;
 
           &:hover {
             color: ${theme.colorTextHeading};
+            background: ${theme.colorError};
+            transform: scale(1.05);
           }
         }
       }
@@ -92,47 +141,158 @@ const EasyChartStyles = styled.div`
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: ${theme.sizeUnit * 8}px;
+        padding: ${theme.sizeUnit * 10}px ${theme.sizeUnit * 6}px;
+        background: linear-gradient(
+          145deg,
+          ${theme.colorBgContainer} 0%,
+          ${theme.colorBgContainerDisabled} 100%
+        );
+        position: relative;
 
-        .add-chart-button {
-          background: ${theme.colorPrimaryBg};
-          border: 2px dashed ${theme.colorPrimary};
-          border-radius: ${theme.borderRadius}px;
-          color: ${theme.colorPrimary};
-          cursor: pointer;
+        &:before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 200px;
+          height: 200px;
+          background: radial-gradient(
+            circle,
+            ${theme.colorPrimaryBg} 0%,
+            transparent 70%
+          );
+          border-radius: 50%;
+          z-index: 1;
+        }
+
+        .welcome-content {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
-          transition: all 0.2s ease;
-          min-height: 80px;
-          min-width: 120px;
+          text-align: center;
+          z-index: 2;
+          position: relative;
+          max-width: 280px;
 
-          &:hover {
-            background: ${theme.colorPrimaryBgHover};
-            border-color: ${theme.colorPrimaryHover};
-            color: ${theme.colorPrimaryHover};
-          }
-
-          .plus-icon {
-            width: 32px;
-            height: 32px;
+          .welcome-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(
+              135deg,
+              ${theme.colorPrimary} 0%,
+              ${theme.colorPrimaryActive} 100%
+            );
             border-radius: 50%;
-            background: ${theme.colorPrimary};
-            color: ${theme.colorTextInverse};
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
+            color: ${theme.colorTextInverse};
+            font-size: 24px;
+            margin-bottom: ${theme.sizeUnit * 4}px;
+            box-shadow: 0 4px 16px ${theme.colorPrimaryBgHover};
+            animation: pulse 2s infinite;
+
+            @keyframes pulse {
+              0% {
+                box-shadow: 0 4px 16px ${theme.colorPrimaryBgHover};
+              }
+              50% {
+                box-shadow: 0 4px 20px ${theme.colorPrimaryBg};
+              }
+              100% {
+                box-shadow: 0 4px 16px ${theme.colorPrimaryBgHover};
+              }
+            }
+          }
+
+          .welcome-title {
+            font-size: ${theme.fontSizeXL}px;
+            font-weight: ${theme.fontWeightStrong};
+            color: ${theme.colorTextHeading};
             margin-bottom: ${theme.sizeUnit * 2}px;
+            letter-spacing: -0.02em;
+          }
+
+          .welcome-subtitle {
+            font-size: ${theme.fontSizeSM}px;
+            color: ${theme.colorTextSecondary};
+            margin-bottom: ${theme.sizeUnit * 6}px;
+            line-height: 1.5;
+          }
+        }
+
+        .add-chart-button {
+          background: linear-gradient(
+            135deg,
+            ${theme.colorPrimary} 0%,
+            ${theme.colorPrimaryActive} 100%
+          );
+          border: none;
+          border-radius: ${theme.borderRadiusLG}px;
+          color: ${theme.colorTextInverse};
+          cursor: pointer;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          font-size: ${theme.fontSize}px;
+          font-weight: ${theme.fontWeightMedium};
+          box-shadow: 0 4px 12px ${theme.colorPrimaryBgHover};
+          position: relative;
+          overflow: hidden;
+          z-index: 2;
+          gap: ${theme.sizeUnit * 2}px;
+          min-width: 160px;
+
+          &:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              ${theme.colorBgTextHover},
+              transparent
+            );
+            transition: left 0.6s;
+          }
+
+          &:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 24px ${theme.colorPrimaryBg};
+
+            &:before {
+              left: 100%;
+            }
+          }
+
+          &:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 2px 8px ${theme.colorPrimaryBgHover};
+          }
+
+          .plus-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 50%;
+            background: ${theme.colorBgTextHover};
           }
 
           .button-text {
-            font-size: ${theme.fontSizeSM}px;
-            font-weight: ${theme.fontWeightNormal};
-            text-align: center;
+            font-size: ${theme.fontSize}px;
+            font-weight: ${theme.fontWeightMedium};
+            letter-spacing: 0.02em;
           }
         }
       }
@@ -260,24 +420,37 @@ export default function EasyChart({
         ) : (
           <>
             <div className="header">
-              <span>{t('Empty Chart Container')}</span>
+              <div className="header-content">
+                <div className="chart-icon">📊</div>
+                <span className="title">{t('Chart Placeholder')}</span>
+              </div>
               <button
                 className="close-button"
                 onClick={handleClose}
                 type="button"
+                title={t('Remove placeholder')}
               >
                 ×
               </button>
             </div>
 
             <div className="content">
+              <div className="welcome-content">
+                <div className="welcome-icon">📈</div>
+                <div className="welcome-title">{t('Create Your Chart')}</div>
+                <div className="welcome-subtitle">
+                  {t(
+                    'Start building beautiful visualizations by adding a chart to this container',
+                  )}
+                </div>
+              </div>
               <button
                 className="add-chart-button"
                 onClick={handleAddChart}
                 type="button"
               >
                 <div className="plus-icon">+</div>
-                <div className="button-text">{t('Add Chart')}</div>
+                <span className="button-text">{t('Add Chart')}</span>
               </button>
             </div>
           </>
