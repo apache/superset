@@ -2,10 +2,8 @@ name: 🎪 Superset Showtime
 
 # Ultra-simple: just sync on any PR state change
 on:
-  push:
-    branches: [showtime_gha]  # Temporary trigger to register workflow
   pull_request_target:
-    types: [labeled, unlabeled, synchronize, closed]
+    types: [labeled, synchronize, closed]
 
   # Manual testing
   workflow_dispatch:
@@ -18,6 +16,7 @@ on:
         description: 'Specific SHA to deploy (optional, defaults to latest)'
         required: false
         type: string
+        pattern: '^[a-f0-9]{40}$'
 
 # Common environment variables for all jobs
 env:
@@ -42,29 +41,11 @@ jobs:
 
     steps:
       - name: Install Superset Showtime
-        run: |
-          pip install superset-showtime
-          showtime version
+        run: pip install superset-showtime
 
       - name: Check what actions are needed
         id: check
         run: |
-          # Handle push events - sync environments for this branch's PRs
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            BRANCH_NAME="${{ github.ref_name }}"
-            echo "🎪 Push event on branch: $BRANCH_NAME"
-
-            # Use showtime CLI to handle branch-based sync (it can find related PRs)
-            python -m showtime sync-branch "$BRANCH_NAME"
-
-            # Set outputs to skip the rest of the workflow
-            echo "action_needed=branch_sync_complete" >> $GITHUB_OUTPUT
-            echo "build_needed=false" >> $GITHUB_OUTPUT
-            echo "deploy_needed=false" >> $GITHUB_OUTPUT
-            echo "pr_number=0" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
           # Bulletproof PR number extraction
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
             PR_NUM="${{ github.event.pull_request.number }}"
@@ -76,112 +57,48 @@ jobs:
           fi
 
           echo "Using PR number: $PR_NUM"
-          OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
+
+          # Run sync check-only with optional SHA override
+          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
+            OUTPUT=$(python -m showtime sync $PR_NUM --check-only --sha "${{ github.event.inputs.sha }}")
+          else
+            OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
+          fi
           echo "$OUTPUT"
 
-          # Extract outputs for conditional steps (match showtime CLI output)
+          # Extract the outputs we need for conditional steps
           BUILD=$(echo "$OUTPUT" | grep "build_needed=" | cut -d'=' -f2)
           SYNC=$(echo "$OUTPUT" | grep "sync_needed=" | cut -d'=' -f2)
+          PR_NUM_OUT=$(echo "$OUTPUT" | grep "pr_number=" | cut -d'=' -f2)
           TARGET_SHA=$(echo "$OUTPUT" | grep "target_sha=" | cut -d'=' -f2)
 
           echo "build_needed=$BUILD" >> $GITHUB_OUTPUT
           echo "sync_needed=$SYNC" >> $GITHUB_OUTPUT
-          echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUM_OUT" >> $GITHUB_OUTPUT
           echo "target_sha=$TARGET_SHA" >> $GITHUB_OUTPUT
 
-      - name: Get SHA for potential build
-        id: sha
-        if: steps.check.outputs.build_needed == 'true'
-        run: |
-          # SHA handling for different event types
-          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
-            SHA="${{ github.event.inputs.sha }}"
-            echo "Using override SHA: $SHA"
-          elif [[ -n "${{ github.event.pull_request.head.sha }}" ]]; then
-            SHA="${{ github.event.pull_request.head.sha }}"
-            echo "Using PR head SHA: $SHA"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.pr_number }}" ]]; then
-            # For manual dispatch with PR number, fetch the latest PR SHA via API
-            PR_NUM="${{ github.event.inputs.pr_number }}"
-            echo "Fetching latest SHA for PR $PR_NUM via GitHub API..."
-            SHA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUM --jq '.head.sha')
-            echo "Using PR $PR_NUM latest SHA: $SHA"
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            SHA="${{ github.sha }}"
-            echo "Using push SHA: $SHA"
-          else
-            echo "❌ No SHA available from any source"
-            exit 1
-          fi
-
-          # Validate SHA format (40-char hex)
-          if [[ ! "$SHA" =~ ^[a-f0-9]{40}$ ]]; then
-            echo "❌ Invalid SHA format: $SHA"
-            exit 1
-          fi
-
-          echo "build_sha=$SHA" >> $GITHUB_OUTPUT
-
-          # Extract short SHA (first 7 chars) for readable tagging
-          SHORT_SHA=${SHA:0:7}
-          echo "build_short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-
-      - name: Checkout PR code
-        if: steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.sha.outputs.build_sha }}
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Setup Docker Environment
+      - name: Setup Docker Environment (only if build needed)
         if: steps.check.outputs.build_needed == 'true'
         uses: ./.github/actions/setup-docker
         with:
           dockerhub-user: ${{ env.DOCKERHUB_USER }}
           dockerhub-token: ${{ env.DOCKERHUB_TOKEN }}
           build: "true"
-          install-docker-compose: "false"
 
-      - name: Setup supersetbot
+      - name: Checkout PR code (only if build needed)
         if: steps.check.outputs.build_needed == 'true'
-        uses: ./.github/actions/setup-supersetbot/
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.check.outputs.target_sha }}
+          persist-credentials: false
 
-      - name: Build Docker image
-        if: steps.check.outputs.build_needed == 'true'
-        id: build
-        run: |
-          PR_NUM="${{ steps.check.outputs.pr_number }}"
-          SHA="${{ steps.sha.outputs.build_sha }}"
-          SHORT_SHA="${{ steps.sha.outputs.build_short_sha }}"
-
-          # Create custom tag: pr-{PR_NUMBER}-{SHORT_SHA}-ci
-          CUSTOM_TAG="apache/superset:pr-$PR_NUM-$SHORT_SHA-ci"
-          echo "Building with custom tag: $CUSTOM_TAG"
-
-          # Build with custom tag via extraFlags
-          supersetbot docker \
-            --push \
-            --load \
-            --preset ci \
-            --platform linux/amd64 \
-            --context-ref "$SHA" \
-            --extra-flags "--build-arg INCLUDE_CHROMIUM=false --build-arg LOAD_EXAMPLES_DUCKDB=true -t $CUSTOM_TAG"
-
-          # Output the specific tag for showtime to use
-          echo "docker_tag=$CUSTOM_TAG" >> $GITHUB_OUTPUT
-
-      - name: Execute sync deployment
+      - name: Execute sync (handles everything)
         if: steps.check.outputs.sync_needed == 'true'
         run: |
           PR_NUM="${{ steps.check.outputs.pr_number }}"
-
-          # Log the Docker tag that was built (for debugging)
-          if [[ "${{ steps.check.outputs.build_needed }}" == "true" ]]; then
-            DOCKER_TAG="${{ steps.build.outputs.docker_tag }}"
-            echo "Built Docker tag: $DOCKER_TAG"
-            echo "Showtime CLI will need to use this tag when --docker-image is implemented"
+          TARGET_SHA="${{ steps.check.outputs.target_sha }}"
+          if [[ -n "$TARGET_SHA" ]]; then
+            python -m showtime sync $PR_NUM --sha "$TARGET_SHA"
+          else
+            python -m showtime sync $PR_NUM
           fi
-
-          # For now, let showtime CLI determine which image to use
-          python -m showtime sync $PR_NUM --deploy
