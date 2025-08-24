@@ -660,6 +660,17 @@ DEFAULT_FEATURE_FLAGS.update(
     }
 )
 
+# Environment variable assignments for common config overrides
+ENV_VAR_KEYS = {
+    "SUPERSET__SQLALCHEMY_DATABASE_URI",
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+}
+
+for env_var in ENV_VAR_KEYS:
+    if env_var in os.environ:
+        config_var = env_var.replace("SUPERSET__", "")
+        globals()[config_var] = os.environ[env_var]
+
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
 USER_AGENT_FUNC: Callable[[Database, QuerySource | None], str] | None = None
