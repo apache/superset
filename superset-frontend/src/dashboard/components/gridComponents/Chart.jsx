@@ -106,7 +106,6 @@ const SliceContainer = styled.div`
 const EMPTY_OBJECT = {};
 
 const Chart = props => {
-  console.log("Executeddddd")
   const dispatch = useDispatch();
   const descriptionRef = useRef(null);
   const headerRef = useRef(null);
