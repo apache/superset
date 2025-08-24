@@ -341,6 +341,7 @@ export const hydratePortableExplore =
       metadata,
       saveAction: null,
       common,
+      isPortableExplore: true, // Flag to indicate this is from portable explore
     };
 
     // Apply mapStateToProps for all controls
