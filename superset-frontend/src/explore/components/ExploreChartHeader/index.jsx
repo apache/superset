@@ -216,7 +216,7 @@ export const ExploreChartHeader = ({
     handleSaveAndCloseModal,
     triggerManualSave,
   } = useUnsavedChangesPrompt({
-    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
+    hasUnsavedChanges: !isPortableExplore && Object.keys(formDiffs).length > 0,
     onSave: () => dispatch(setSaveChartModalVisibility(true)),
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
