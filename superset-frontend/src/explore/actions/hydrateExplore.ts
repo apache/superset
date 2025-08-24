@@ -222,3 +222,174 @@ export type HydrateExplore = {
   type: typeof HYDRATE_EXPLORE;
   data: ExplorePageState;
 };
+
+export const HYDRATE_PORTABLE_EXPLORE = 'HYDRATE_PORTABLE_EXPLORE';
+export const hydratePortableExplore =
+  ({
+    form_data,
+    dataset,
+    vizType,
+    dashboardId = null,
+    metadata = null,
+  }: {
+    form_data?: any;
+    dataset: any;
+    vizType: string;
+    dashboardId?: number | null;
+    metadata?: any;
+  }) =>
+  (dispatch: Dispatch, getState: () => ExplorePageState) => {
+    const { user, datasources, charts, common, explore } = getState();
+
+    // Create initial form data for portable explore (new chart with slice_id: 0)
+    const initialFormData = {
+      ...form_data,
+      slice_id: 0, // Use 0 for new/unsaved chart
+      viz_type: vizType,
+      datasource: `${dataset.id}__table`,
+      time_range: common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+      ...(dashboardId && { dashboardId }),
+    };
+
+    // Ensure we have a time range
+    if (!initialFormData.time_range) {
+      initialFormData.time_range = NO_TIME_RANGE;
+    }
+
+    // Handle include_time and granularity_sqla logic
+    if (
+      initialFormData.include_time &&
+      initialFormData.granularity_sqla &&
+      !initialFormData.groupby?.some(
+        (col: QueryFormColumn) =>
+          getColumnLabel(col) ===
+          getColumnLabel(initialFormData.granularity_sqla!),
+      )
+    ) {
+      initialFormData.groupby = [
+        initialFormData.granularity_sqla,
+        ...ensureIsArray(initialFormData.groupby),
+      ];
+      initialFormData.granularity_sqla = undefined;
+    }
+
+    // Set up datasource with currency formats
+    const initialDatasource = { ...dataset };
+    initialDatasource.currency_formats = Object.fromEntries(
+      (initialDatasource.metrics ?? [])
+        .filter((metric: any) => !!metric.currency)
+        .map((metric: any): [string, Currency] => [
+          metric.metric_name,
+          metric.currency!,
+        ]),
+    );
+
+    // Create initial explore state for control generation
+    const initialExploreState = {
+      form_data: initialFormData,
+      slice: null, // No slice for new chart
+      datasource: initialDatasource,
+    };
+
+    // Generate controls state
+    const initialControls = getControlsState(
+      initialExploreState,
+      initialFormData,
+    ) as ControlStateMapping;
+
+    // Handle color schemes
+    const colorSchemeKey = initialControls.color_scheme && 'color_scheme';
+    const linearColorSchemeKey =
+      initialControls.linear_color_scheme && 'linear_color_scheme';
+
+    const verifyColorScheme = (type: ColorSchemeType) => {
+      const schemes =
+        type === 'CATEGORICAL'
+          ? getCategoricalSchemeRegistry()
+          : getSequentialSchemeRegistry();
+      const key =
+        type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
+      const registryDefaultScheme = schemes.defaultKey;
+      const defaultScheme =
+        type === 'CATEGORICAL' ? 'supersetColors' : 'superset_seq_1';
+      const currentScheme = initialFormData[key];
+      const colorSchemeExists = !!schemes.get(currentScheme, true);
+
+      if (currentScheme && !colorSchemeExists) {
+        initialControls[key].value = registryDefaultScheme || defaultScheme;
+      }
+    };
+
+    if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
+    if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
+
+    // Build explore state for portable explore
+    const exploreState = {
+      can_add: findPermission('can_write', 'Chart', user?.roles),
+      can_download: findPermission('can_csv', 'Superset', user?.roles),
+      can_overwrite: false, // New chart, not overwritable initially
+      isDatasourceMetaLoading: false,
+      isStarred: false,
+      triggerRender: false,
+      datasource: initialDatasource,
+      controls: initialControls,
+      form_data: initialFormData,
+      slice: undefined, // No existing slice for new chart
+      controlsTransferred: explore.controlsTransferred,
+      standalone: false, // Within dashboard context
+      force: false,
+      metadata,
+      saveAction: null,
+      common,
+    };
+
+    // Apply mapStateToProps for all controls
+    Object.entries(exploreState.controls).forEach(([key, controlState]) => {
+      exploreState.controls[key] = applyMapStateToPropsToControl(
+        controlState,
+        exploreState,
+      );
+    });
+
+    // Use chartKey 0 for new/unsaved portable chart
+    const chartKey = 0;
+    const chart: ChartState = {
+      id: chartKey,
+      chartAlert: null,
+      chartStatus: null,
+      chartStackTrace: null,
+      chartUpdateEndTime: null,
+      chartUpdateStartTime: 0,
+      latestQueryFormData: getFormDataFromControls(exploreState.controls),
+      sliceFormData: null, // No existing slice form data
+      queryController: null,
+      queriesResponse: null,
+      triggerQuery: false,
+      lastRendered: 0,
+    };
+
+    return dispatch({
+      type: HYDRATE_PORTABLE_EXPLORE,
+      data: {
+        charts: {
+          ...charts,
+          [chartKey]: chart,
+        },
+        datasources: {
+          ...datasources,
+          [getDatasourceUid(initialDatasource)]: initialDatasource,
+        },
+        saveModal: {
+          dashboards: [],
+          saveModalAlert: null,
+          isVisible: false,
+        },
+        explore: exploreState,
+      },
+    });
+  };
+
+export type HydratePortableExplore = {
+  type: typeof HYDRATE_PORTABLE_EXPLORE;
+  data: ExplorePageState;
+};

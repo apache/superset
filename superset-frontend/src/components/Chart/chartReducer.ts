@@ -23,7 +23,10 @@ import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { HYDRATE_EXPLORE } from 'src/explore/actions/hydrateExplore';
+import {
+  HYDRATE_EXPLORE,
+  HYDRATE_PORTABLE_EXPLORE,
+} from 'src/explore/actions/hydrateExplore';
 import { now } from '@superset-ui/core/utils/dates';
 import * as actions from './chartAction';
 
@@ -192,7 +195,11 @@ export default function chartReducer(
     delete charts[key];
     return charts;
   }
-  if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {
+  if (
+    action.type === HYDRATE_DASHBOARD ||
+    action.type === HYDRATE_EXPLORE ||
+    action.type === HYDRATE_PORTABLE_EXPLORE
+  ) {
     return { ...action.data.charts };
   }
   if (action.type === DatasourcesAction.SetDatasources) {

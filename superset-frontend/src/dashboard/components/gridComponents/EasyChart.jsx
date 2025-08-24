@@ -20,14 +20,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { styled, css, t } from '@superset-ui/core';
+import { useDispatch } from 'react-redux';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
-import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
-import { useDispatch } from 'react-redux';
 import { updateEasyChartMeta } from 'src/dashboard/actions/dashboardLayout';
-import Chart from 'src/dashboard/components/gridComponents/Chart';
 import { fetchSlices } from 'src/dashboard/actions/sliceEntities';
 import { addSliceToDashboard } from 'src/dashboard/actions/dashboardState';
+import Chart from 'src/dashboard/components/gridComponents/Chart';
+import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
 
 const ContainerDiv = styled.div`
   .dragdroppable {
@@ -40,7 +40,7 @@ const EasyChartStyles = styled.div`
   ${({ theme }) => css`
     &.dashboard-EasyChart {
       overflow: hidden;
-      color: ${theme.colorText};
+      color: ${theme.colorTextHeading};
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -55,7 +55,7 @@ const EasyChartStyles = styled.div`
         align-items: center;
         justify-content: space-between;
         padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-        background: ${theme.colors.grayscale.light4};
+        background: ${theme.colorBgLayoutHeader};
         border-bottom: 1px solid ${theme.colorBorderSecondary};
         font-weight: ${theme.fontWeightStrong};
         font-size: ${theme.fontSizeLG}px;
@@ -74,7 +74,7 @@ const EasyChartStyles = styled.div`
           height: 28px;
 
           &:hover {
-            color: ${theme.colorText};
+            color: ${theme.colorTextHeading};
           }
         }
       }
@@ -88,10 +88,10 @@ const EasyChartStyles = styled.div`
         padding: ${theme.sizeUnit * 8}px;
 
         .add-chart-button {
-          background: ${theme.colors.primary.light4};
-          border: 2px dashed ${theme.colors.primary.base};
+          background: ${theme.colorPrimaryBg};
+          border: 2px dashed ${theme.colorPrimary};
           border-radius: ${theme.borderRadius}px;
-          color: ${theme.colors.primary.base};
+          color: ${theme.colorPrimary};
           cursor: pointer;
           display: flex;
           flex-direction: column;
@@ -103,17 +103,17 @@ const EasyChartStyles = styled.div`
           min-width: 120px;
 
           &:hover {
-            background: ${theme.colors.primary.light5};
-            border-color: ${theme.colors.primary.dark1};
-            color: ${theme.colors.primary.dark1};
+            background: ${theme.colorPrimaryBgHover};
+            border-color: ${theme.colorPrimaryHover};
+            color: ${theme.colorPrimaryHover};
           }
 
           .plus-icon {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: ${theme.colors.primary.base};
-            color: ${theme.colorWhite};
+            background: ${theme.colorPrimary};
+            color: ${theme.colorTextInverse};
             display: flex;
             align-items: center;
             justify-content: center;
@@ -144,7 +144,6 @@ export default function EasyChart({
   parentComponent,
   index,
   depth,
-  // handleComponentDrop,
 }) {
   const dispatch = useDispatch();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -169,20 +168,16 @@ export default function EasyChart({
     // Initial measurement
     updateDimensions();
 
-    // Add resize observer to track dimension changes
+    // TODO: Add resize observer to track dimension changes when needed
     // const resizeObserver = new ResizeObserver(updateDimensions);
     // if (containerRef.current) {
     //   resizeObserver.observe(containerRef.current);
     // }
-
-    // return () => {
-    //   resizeObserver.disconnect();
-    // };
+    // return () => resizeObserver.disconnect();
   }, []);
 
   const handleAddChart = () => {
     setIsModalOpen(true);
-    console.log('Add Chart clicked - opening modal');
   };
 
   const handleCloseModal = () => {
@@ -202,17 +197,13 @@ export default function EasyChart({
   };
 
   const handleSaveChart = id => {
-    console.log('Saving chart with data:', id);
     handleUpdateMeta(id);
     setIsModalOpen(false);
-    // TODO: Implement chart creation logic
   };
 
   const handleClose = () => {
-    console.log('Close clicked');
+    // Handle close logic if needed
   };
-
-  console.log(component);
 
   const renderContent = ({ dragSourceRef }) => (
     <EasyChartStyles
@@ -269,11 +260,11 @@ export default function EasyChart({
   return (
     <ContainerDiv ref={containerRef}>
       <DragDroppable
-        onDrop={dropProps => {
-          console.log('drop props', dropProps);
+        onDrop={() => {
+          // Handle drop logic
         }}
-        onHover={hoverProps => {
-          console.log('hovered', hoverProps);
+        onHover={() => {
+          // Handle hover logic
         }}
         index={index}
         depth={depth}
@@ -303,5 +294,4 @@ EasyChart.propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
-  handleComponentDrop: PropTypes.func.isRequired,
 };

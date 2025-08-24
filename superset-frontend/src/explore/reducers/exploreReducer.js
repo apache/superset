@@ -28,7 +28,10 @@ import {
   StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
-import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
+import {
+  HYDRATE_EXPLORE,
+  HYDRATE_PORTABLE_EXPLORE,
+} from '../actions/hydrateExplore';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -363,6 +366,11 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [HYDRATE_EXPLORE]() {
+      return {
+        ...action.data.explore,
+      };
+    },
+    [HYDRATE_PORTABLE_EXPLORE]() {
       return {
         ...action.data.explore,
       };
