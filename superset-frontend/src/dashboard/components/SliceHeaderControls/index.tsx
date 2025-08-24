@@ -223,14 +223,13 @@ const SliceHeaderControls = (
         // If this is from EasyChart, trigger the edit callback instead of navigating
         if (props.isFromEasyChart && props.onEditEasyChart) {
           props.onEditEasyChart();
+        } else if (domEvent.metaKey || domEvent.ctrlKey) {
+          // Regular chart editing behavior - open in new tab
+          domEvent.preventDefault();
+          window.open(props.exploreUrl, '_blank');
         } else {
-          // Regular chart editing behavior
-          if (domEvent.metaKey || domEvent.ctrlKey) {
-            domEvent.preventDefault();
-            window.open(props.exploreUrl, '_blank');
-          } else {
-            history.push(props.exploreUrl);
-          }
+          // Regular chart editing behavior - navigate in same tab
+          history.push(props.exploreUrl);
         }
         break;
       case MenuKeys.ExportCsv:
