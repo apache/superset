@@ -27,7 +27,7 @@ export default function NewEasyChart() {
       id="NEW_EASY_CHART"
       type={EASY_CHART_TYPE}
       label={t('Easy Chart')}
-      IconComponent={Icons.SmileOutlined}
+      IconComponent={Icons.BarChartOutlined}
     />
   );
 }
