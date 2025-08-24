@@ -48,4 +48,23 @@ describe('RecipientIcon', () => {
     const icons = screen.queryByLabelText(/.*/);
     expect(icons).not.toBeInTheDocument();
   });
+
+  it('All recipient types should have consistent accessibility attributes', () => {
+    const types = [
+      NotificationMethodOption.Email,
+      NotificationMethodOption.Slack,
+      NotificationMethodOption.SlackV2,
+    ];
+
+    types.forEach(type => {
+      const { container } = render(<RecipientIcon type={type} />);
+      const iconElement = container.querySelector('[role="img"]');
+
+      // Every icon should exist and have these attributes for accessibility and testing
+      expect(iconElement).toBeInTheDocument();
+      expect(iconElement).toHaveAttribute('aria-label');
+      expect(iconElement).toHaveAttribute('data-test');
+      expect(iconElement).toHaveAttribute('role', 'img');
+    });
+  });
 });
