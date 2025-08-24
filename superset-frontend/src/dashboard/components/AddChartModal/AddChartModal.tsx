@@ -36,7 +36,7 @@ import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as chartActions from 'src/components/Chart/chartAction';
 import * as logActions from 'src/logger/actions';
-import SaveModal from 'src/explore/components/SaveModal';
+import SaveModalPortable from 'src/explore/components/SaveModalPortable';
 import PortableExplore from '../PortableExplore';
 
 interface DatasourceOption {
@@ -124,6 +124,9 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   const formData = useSelector((state: any) => state.explore?.form_data || {});
   const controls = useSelector((state: any) => state.explore?.controls || {});
   const exploreState = useSelector((state: any) => state.explore);
+  const datasource = useSelector((state: any) => state.explore?.datasource);
+  const slice = useSelector((state: any) => state.explore?.slice);
+  const user = useSelector((state: any) => state.user);
 
   // Bind action creators like ExploreViewContainer does
   const actions = useMemo(
@@ -373,14 +376,18 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
         </StyledModalContent>
       </Modal>
 
-      {/* Render SaveModal when visible */}
+      {/* Render SaveModalPortable when visible */}
       {isSaveModalVisible && (
-        <SaveModal
-          addDangerToast={() => {}} // You might want to connect this to proper toast system
+        <SaveModalPortable
+          isVisible={isSaveModalVisible}
+          onHide={() => dispatch(setSaveChartModalVisibility(false))}
+          addDangerToast={(msg: string) => console.log('Toast:', msg)}
           actions={actions}
           form_data={formData}
           sliceName={sliceName}
-          dashboardId={getDashboardId()}
+          datasource={datasource}
+          slice={slice}
+          user={user}
           onSaveComplete={handleSaveComplete}
         />
       )}
