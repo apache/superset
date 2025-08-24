@@ -239,24 +239,42 @@ export const hydratePortableExplore =
     metadata?: any;
   }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
-    const { user, datasources, charts, common, explore } = getState();
+    const { user, datasources, charts, common, explore, sliceEntities } =
+      getState();
 
-    // Create initial form data for portable explore (new chart with slice_id: 0)
+    // Handle existing slice data like hydrateExplore does
+    const sliceId = form_data?.slice_id;
+    const fallbackSlice =
+      sliceId && sliceId !== 0 ? sliceEntities?.slices?.[sliceId] : null;
+    const initialSlice = fallbackSlice;
+    const baseFormData = form_data ?? initialSlice?.form_data ?? {};
+
+    // Create initial form data for portable explore
     const initialFormData = {
-      ...form_data,
-      slice_id: 0, // Use 0 for new/unsaved chart
-      viz_type: vizType,
-      datasource: `${dataset.id}__table`,
-      time_range: common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+      ...baseFormData,
+      slice_id: sliceId || 0, // Use existing slice_id or 0 for new chart
+      viz_type: vizType || baseFormData.viz_type,
+      datasource: baseFormData.datasource || `${dataset.id}__table`,
+      time_range:
+        baseFormData.time_range ||
+        common?.conf?.DEFAULT_TIME_FILTER ||
+        NO_TIME_RANGE,
       ...(dashboardId && { dashboardId }),
     };
 
-    // Ensure we have a time range
-    if (!initialFormData.time_range) {
-      initialFormData.time_range = NO_TIME_RANGE;
+    // Apply default viz_type if not provided (like hydrateExplore)
+    if (!initialFormData.viz_type) {
+      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
+      initialFormData.viz_type = defaultVizType;
     }
 
-    // Handle include_time and granularity_sqla logic
+    // Ensure we have a time range
+    if (!initialFormData.time_range) {
+      initialFormData.time_range =
+        common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
+    }
+
+    // Handle include_time and granularity_sqla logic (like hydrateExplore)
     if (
       initialFormData.include_time &&
       initialFormData.granularity_sqla &&
@@ -271,6 +289,10 @@ export const hydratePortableExplore =
         ...ensureIsArray(initialFormData.groupby),
       ];
       initialFormData.granularity_sqla = undefined;
+    }
+
+    if (dashboardId) {
+      initialFormData.dashboardId = dashboardId;
     }
 
     // Set up datasource with currency formats
@@ -323,15 +345,20 @@ export const hydratePortableExplore =
     if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
-    // Create a minimal slice object for portable explore
-    const portableSlice = {
-      slice_id: 0,
-      slice_name: 'New Chart',
-      form_data: initialFormData,
-      edit_url: null,
-      slice_url: null,
-      owners: [],
-    };
+    // Create slice object - use existing slice if available, otherwise create minimal one
+    const portableSlice = initialSlice
+      ? {
+          ...initialSlice,
+          form_data: initialFormData,
+        }
+      : {
+          slice_id: 0,
+          slice_name: 'New Chart',
+          form_data: initialFormData,
+          edit_url: null,
+          slice_url: null,
+          owners: [],
+        };
 
     // Build explore state for portable explore
     const exploreState = {
@@ -362,8 +389,10 @@ export const hydratePortableExplore =
       );
     });
 
-    // Use chartKey 0 for new/unsaved portable chart
-    const chartKey = 0;
+    // Use chartKey 0 for new/unsaved portable chart, or existing ID for editing
+    const chartKey = initialFormData.slice_id || 0;
+    const isEditingExisting = chartKey !== 0;
+
     const chart: ChartState = {
       id: chartKey,
       chartAlert: null,
@@ -372,7 +401,9 @@ export const hydratePortableExplore =
       chartUpdateEndTime: null,
       chartUpdateStartTime: 0,
       latestQueryFormData: getFormDataFromControls(exploreState.controls),
-      sliceFormData: null, // No existing slice form data
+      sliceFormData: isEditingExisting
+        ? getFormDataFromControls(exploreState.controls)
+        : null,
       queryController: null,
       queriesResponse: null,
       triggerQuery: false,
@@ -382,10 +413,12 @@ export const hydratePortableExplore =
     return dispatch({
       type: HYDRATE_PORTABLE_EXPLORE,
       data: {
-        charts: {
-          ...charts,
-          [chartKey]: chart,
-        },
+        charts: isEditingExisting
+          ? charts // Don't overwrite existing chart, keep current state
+          : {
+              ...charts,
+              [chartKey]: chart,
+            },
         datasources: {
           ...datasources,
           [getDatasourceUid(initialDatasource)]: initialDatasource,
