@@ -660,28 +660,6 @@ DEFAULT_FEATURE_FLAGS.update(
     }
 )
 
-# Environment variable assignments for common config overrides
-ENV_VAR_KEYS = {
-    "SUPERSET__SQLALCHEMY_DATABASE_URI",
-    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
-}
-
-for env_var in ENV_VAR_KEYS:
-    if env_var in os.environ:
-        config_var = env_var.replace("SUPERSET__", "")
-        old_value = globals().get(config_var, "not previously set")
-        globals()[config_var] = os.environ[env_var]
-        # SUPERDEBUG: Log when we process environment variables
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            f"SUPERDEBUG [superset/config.py]: Processing {env_var} -> {config_var}"
-        )
-        logger.warning(f"SUPERDEBUG [superset/config.py]: Old value: {old_value}")
-        logger.warning(
-            f"SUPERDEBUG [superset/config.py]: New value: {os.environ[env_var]}"
-        )
 
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
@@ -1952,6 +1930,12 @@ SESSION_SERVER_SIDE = False
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 
+# URI to database storing the example data, points to
+# SQLALCHEMY_DATABASE_URI by default if set to `None`
+SQLALCHEMY_EXAMPLES_URI = (
+    "sqlite:///" + os.path.join(DATA_DIR, "examples.db") + "?check_same_thread=false"
+)
+
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
 STATIC_ASSETS_PREFIX = ""
@@ -2226,3 +2210,27 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+# Final environment variable processing - must be at the very end
+# to override any config file assignments
+ENV_VAR_KEYS = {
+    "SUPERSET__SQLALCHEMY_DATABASE_URI",
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+}
+
+for env_var in ENV_VAR_KEYS:
+    if env_var in os.environ:
+        config_var = env_var.replace("SUPERSET__", "")
+        old_value = globals().get(config_var, "not previously set")
+        globals()[config_var] = os.environ[env_var]
+        # SUPERDEBUG: Log when we process environment variables
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"SUPERDEBUG [superset/config.py]: Processing {env_var} -> {config_var}"
+        )
+        logger.warning(f"SUPERDEBUG [superset/config.py]: Old value: {old_value}")
+        logger.warning(
+            f"SUPERDEBUG [superset/config.py]: New value: {os.environ[env_var]}"
+        )
