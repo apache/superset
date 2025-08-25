@@ -100,8 +100,8 @@ class TablesDatabaseCommand(BaseCommand):
                 catalog=self._catalog_name,
                 schema=self._schema_name,
                 datasource_names=sorted(
-                    DatasourceName(*datasource_name)
-                    for datasource_name in (
+                    DatasourceName(table.table, table.schema, table.catalog)
+                    for table in (
                         self._model.get_all_materialized_view_names_in_schema(
                             catalog=self._catalog_name,
                             schema=self._schema_name,

@@ -938,7 +938,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         self,
         catalog: str | None,
         schema: str,
-    ) -> set[tuple[str, str, str | None]]:
+    ) -> set[Table]:
         """Get all materialized views in the specified schema.
 
         Parameters need to be passed as keyword arguments.
@@ -958,7 +958,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             try:
                 with self.get_inspector(catalog=catalog, schema=schema) as inspector:
                     return {
-                        (view, schema, catalog)
+                        Table(view, schema, catalog)
                         for view in self.db_engine_spec.get_materialized_view_names(
                             database=self,
                             inspector=inspector,
