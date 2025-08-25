@@ -333,7 +333,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         # Build the query
         query = select(
             func.max(partitions_table.c.partition_id).label("max_partition_id")
-        ).where(partitions_table.c.table_name == table.table)
+        ).where(partitions_table.c.table_name == table.table).limit(1)
 
         # Compile to BigQuery SQL
         compiled_query = query.compile(
@@ -342,15 +342,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
         # Run the query and handle result
-        with database.get_raw_connection(
+        results = cls.execute_metadata_query(
+            database,
+            str(compiled_query),
             catalog=table.catalog,
             schema=table.schema,
-        ) as conn:
-            cursor = conn.cursor()
-            cursor.execute(str(compiled_query))
-            if row := cursor.fetchone():
-                return row[0]
-        return None
+        )
+        return results[0][0] if results else None
 
     @classmethod
     def get_time_partition_column(

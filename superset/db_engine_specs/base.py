@@ -1855,6 +1855,39 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def execute_metadata_query(
+        cls,
+        database: Database,
+        query: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[tuple[Any, ...]]:
+        """
+        Standardized method for executing metadata queries.
+
+        This method provides a unified interface for all metadata query operations
+        across different database engines using SQLAlchemy connections.
+
+        For single-row results, add "LIMIT 1" to your query rather than using
+        separate fetch parameters.
+
+        :param database: Database instance
+        :param query: SQL query to execute for metadata
+        :param catalog: Optional catalog/database name
+        :param schema: Optional schema name
+        :return: Query results as list of tuples
+        """
+        with cls.get_engine(
+            database,
+            catalog=catalog,
+            schema=schema,
+            source=utils.QuerySource.METADATA,
+        ) as engine:
+            with engine.connect() as conn:
+                result = conn.execute(text(query))
+                return result.fetchall()
+
+    @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
         """
         Check if the exception is one that indicates OAuth2 is needed.
