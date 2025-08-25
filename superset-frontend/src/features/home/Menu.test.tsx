@@ -22,6 +22,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Menu } from './Menu';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 
 const dropdownItems = [
   {
@@ -237,7 +238,9 @@ const notanonProps = {
   },
 };
 
+
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const staticAssetsPrefixMock = jest.spyOn(getBootstrapData, 'staticAssetsPrefix')
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
@@ -247,6 +250,8 @@ fetchMock.get(
 beforeEach(() => {
   // setup a DOM element as a render target
   useSelectorMock.mockClear();
+  // By default use empty app root
+  staticAssetsPrefixMock.mockReturnValue('');
 });
 
 test('should render', async () => {
@@ -272,23 +277,27 @@ test('should render the navigation', async () => {
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
-test('should render the brand', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      brand: { alt, icon },
-    },
-  } = mockedProps;
-  render(<Menu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-    useTheme: true,
-  });
-  expect(await screen.findByAltText(alt)).toBeInTheDocument();
-  const image = screen.getByAltText(alt);
-  expect(image).toHaveAttribute('src', icon);
+describe('should render the brand', () => {
+  it.each(['', '/myapp'])("including app_root '%s'", async (app_root) => {
+    staticAssetsPrefixMock.mockReturnValue(app_root);
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    const {
+      data: {
+        brand: { alt, icon, path },
+      },
+    } = mockedProps;
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    expect(await screen.findByAltText(alt)).toBeInTheDocument();
+    const image = screen.getByAltText(alt);
+    expect(image).toHaveAttribute('src', `${app_root}${icon}`);
+  })
 });
+
 
 test('should render the environment tag', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });

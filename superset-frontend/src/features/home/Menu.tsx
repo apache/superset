@@ -19,6 +19,7 @@
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { assetUrl } from 'src/utils/assetUrl';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
@@ -285,7 +286,7 @@ export function Menu({
         >
           <Image
             preview={false}
-            src={theme.brandLogoUrl}
+            src={assetUrl(theme.brandLogoUrl)}
             alt={theme.brandLogoAlt || 'Apache Superset'}
           />
         </Typography.Link>
@@ -296,7 +297,7 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <Image preview={false} src={brand.icon} alt={brand.alt} />
+          <Image preview={false} src={assetUrl(brand.icon)} alt={brand.alt} />
         </GenericLink>
       );
     } else {
@@ -306,7 +307,7 @@ export function Menu({
           href={brand.path}
           tabIndex={-1}
         >
-          <Image preview={false} src={brand.icon} alt={brand.alt} />
+          <Image preview={false} src={assetUrl(brand.icon)} alt={brand.alt} />
         </Typography.Link>
       );
     }
