@@ -508,6 +508,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # geospatial ones) by inputting javascript in controls. This exposes
     # an XSS security vulnerability
     "ENABLE_JAVASCRIPT_CONTROLS": False,  # deprecated
+    # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
+    "CSV_UPLOAD_PYARROW_ENGINE": False,
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
     # and doesn't work with all nested types.
@@ -616,9 +618,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable Matrixify feature for matrix-style chart layouts
+    "MATRIXIFY": False,
 }
 
 # ------------------------------
@@ -755,17 +762,13 @@ THEME_DEFAULT: Theme = {"algorithm": "default"}
 THEME_DARK: Theme = {"algorithm": "dark"}
 
 # Theme behavior and user preference settings
-# Controls how themes are applied and what options users have
-# - enforced: Forces the default theme always, overriding all other settings
-# - allowSwitching: Allows users to manually switch between default and dark themes.
-# - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
+# To force a single theme on all users, set THEME_DARK = None
+# When both THEME_DEFAULT and THEME_DARK are defined:
+# - Users can manually switch between themes
+# - OS preference detection is automatically enabled
 #
-# Example:
-THEME_SETTINGS = {
-    "enforced": False,  # If True, forces the default theme and ignores user preferences  # noqa: E501
-    "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
-    "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
-}
+# Enable UI-based theme administration for admins
+ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
 # Custom font configuration
 # Load external fonts at runtime without rebuilding the application
@@ -1329,6 +1332,10 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# Chunk size for reading CSV files during uploads
+# Smaller values use less memory but may be slower for large files
+READ_CSV_CHUNK_SIZE = 1000
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
@@ -1352,6 +1359,9 @@ CUSTOM_TEMPLATE_PROCESSORS: dict[str, type[BaseTemplateProcessor]] = {}
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
+
+# Extension startup update configuration
+EXTENSION_STARTUP_LOCK_TIMEOUT = 30  # Timeout in seconds for extension update locks
 
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
@@ -1851,6 +1861,7 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
+            "https://a.basemaps.cartocdn.com",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1885,6 +1896,7 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
+            "https://a.basemaps.cartocdn.com",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2079,16 +2091,16 @@ ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
-# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
+# 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",
     "values": {
         "debug": {
-            "color": "error.base",
+            "color": "error",
             "text": "flask-debug",
         },
         "development": {
-            "color": "error.base",
+            "color": "error",
             "text": "Development",
         },
         "production": {
@@ -2161,6 +2173,9 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
+
+LOCAL_EXTENSIONS: list[str] = []
+EXTENSIONS_PATH: str | None = None
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

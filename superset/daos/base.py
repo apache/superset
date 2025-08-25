@@ -21,8 +21,12 @@ from typing import Any, Generic, get_args, TypeVar
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import StatementError
+from flask_sqlalchemy import BaseQuery
+from sqlalchemy.exc import SQLAlchemyError, StatementError
 
+from superset.daos.exceptions import (
+    DAOFindFailedError,
+)
 from superset.extensions import db
 
 T = TypeVar("T", bound=Model)
@@ -81,7 +85,7 @@ class BaseDAO(Generic[T]):
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
         id_col = getattr(cls.model_cls, cls.id_column_name, None)
-        if id_col is None:
+        if id_col is None or not model_ids:
             return []
         query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
         if cls.base_filter and not skip_base_filter:
@@ -89,7 +93,16 @@ class BaseDAO(Generic[T]):
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
-        return query.all()
+
+        try:
+            results = query.all()
+        except SQLAlchemyError as ex:
+            model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
+            raise DAOFindFailedError(
+                f"Failed to find {model_name} with ids: {model_ids}"
+            ) from ex
+
+        return results
 
     @classmethod
     def find_all(cls) -> list[T]:
@@ -184,3 +197,28 @@ class BaseDAO(Generic[T]):
 
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def query(cls, query: BaseQuery) -> list[T]:
+        """
+        Get all that fit the `base_filter` based on a BaseQuery object
+        """
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query.all()
+
+    @classmethod
+    def filter_by(cls, **filter_by: Any) -> list[T]:
+        """
+        Get all entries that fit the `base_filter`
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query.filter_by(**filter_by).all()

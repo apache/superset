@@ -68,7 +68,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql.parse import extract_tables_from_jinja_sql, Table
+from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -270,6 +270,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
         "Action Logs",
+        "Extensions",
         "Log",
         "List Users",
         "UsersListView",
@@ -307,7 +308,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Manage",
         "Queries",
         "ReportSchedule",
-        "TableSchemaView",
     }
 
     ALPHA_ONLY_PMVS = {
@@ -376,6 +376,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "Query Search"),
         ("can_read", "SqlLabPermalinkRestApi"),
         ("can_write", "SqlLabPermalinkRestApi"),
+        ("can_post", "TableSchemaView"),
+        ("can_expanded", "TableSchemaView"),
+        ("can_delete", "TableSchemaView"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -2285,6 +2288,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         sql: Optional[str] = None,
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -2298,6 +2302,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param sql: The SQL string (requires database)
         :param catalog: Optional catalog name
         :param schema: Optional schema name
+        :param template_params: Optional template parameters for Jinja templating
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -2337,14 +2342,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # If the DB engine spec doesn't implement the logic the schema is read
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
-                default_schema = database.get_default_schema_for_query(query)
+                default_schema = database.get_default_schema_for_query(
+                    query, template_params
+                )
                 tables = {
                     Table(
                         table_.table,
                         table_.schema or default_schema,
                         table_.catalog or query.catalog or default_catalog,
                     )
-                    for table_ in extract_tables_from_jinja_sql(query.sql, database)
+                    for table_ in process_jinja_sql(
+                        query.sql, database, template_params
+                    ).tables
                 }
             elif table:
                 # Make sure table has the default catalog, if not specified.

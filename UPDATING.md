@@ -23,6 +23,10 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+- [34536](https://github.com/apache/superset/pull/34536): The `ENVIRONMENT_TAG_CONFIG` color values have changed to support only Ant Design semantic colors. Update your `superset_config.py`:
+  - Change `"error.base"` to just `"error"` after this PR
+  - Change any hex color values to one of: `"success"`, `"processing"`, `"error"`, `"warning"`, `"default"`
+  - Custom colors are no longer supported to maintain consistency with Ant Design components
 - [34561](https://github.com/apache/superset/pull/34561) Added tiled screenshot functionality for Playwright-based reports to handle large dashboards more efficiently. When enabled (default: `SCREENSHOT_TILED_ENABLED = True`), dashboards with 20+ charts or height exceeding 5000px will be captured using multiple viewport-sized tiles and combined into a single image. This improves report generation performance and reliability for large dashboards.
 Note: Pillow is now a required dependency (previously optional) to support image processing for tiled screenshots.
 `thumbnails` optional dependency is now deprecated and will be removed in the next major release (7.0).

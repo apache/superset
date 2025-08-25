@@ -76,7 +76,7 @@ const LeftPanelStyle = styled.div`
         padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         :hover {
-          background-color: ${theme.colors.grayscale.light4}
+          background-color: ${theme.colorFillTertiary}
         }
       }
 
@@ -85,7 +85,7 @@ const LeftPanelStyle = styled.div`
         padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         background-color: ${theme.colorPrimaryText};
-        color: ${theme.colors.grayscale.light5};
+        color: ${theme.colorTextLightSolid};
       }
 
       .options, .options-highlighted {
@@ -114,7 +114,7 @@ const LeftPanelStyle = styled.div`
         margin-bottom: ${theme.sizeUnit * 2.5}px;
       }
       p {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextSecondary};
       }
     }
 `}

@@ -1,24 +1,27 @@
-name: 'Change Detector'
-description: 'Detects file changes for pull request and push events'
+name: Change Detector
+description: Detects file changes for pull request and push events
 inputs:
   token:
-    description: 'GitHub token for authentication'
+    description: GitHub token for authentication
     required: true
 outputs:
   python:
-    description: 'Whether Python-related files were changed'
+    description: Whether Python-related files were changed
     value: ${{ steps.change-detector.outputs.python }}
   frontend:
-    description: 'Whether frontend-related files were changed'
+    description: Whether frontend-related files were changed
     value: ${{ steps.change-detector.outputs.frontend }}
   docker:
-    description: 'Whether docker-related files were changed'
+    description: Whether docker-related files were changed
     value: ${{ steps.change-detector.outputs.docker }}
   docs:
-    description: 'Whether docs-related files were changed'
+    description: Whether docs-related files were changed
     value: ${{ steps.change-detector.outputs.docs }}
+  superset-cli:
+    description: Whether superset-cli package-related files were changed
+    value: ${{ steps.change-detector.outputs.superset-cli }}
 runs:
-  using: 'composite'
+  using: composite
   steps:
     - name: Detect file changes
       id: change-detector

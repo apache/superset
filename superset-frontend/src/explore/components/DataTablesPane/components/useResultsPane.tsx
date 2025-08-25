@@ -43,7 +43,7 @@ export const useResultsPane = ({
   queryForce,
   ownState,
   errorMessage,
-  actions,
+  setForceQuery,
   isVisible,
   dataSize = 50,
   canDownload,
@@ -64,8 +64,8 @@ export const useResultsPane = ({
     if (isRequest && cache.has(queryFormData)) {
       setResultResp(ensureIsArray(cache.get(queryFormData)));
       setResponseError('');
-      if (queryForce && actions) {
-        actions.setForceQuery(false);
+      if (queryForce) {
+        setForceQuery?.(false);
       }
       setIsLoading(false);
     }
@@ -82,8 +82,8 @@ export const useResultsPane = ({
           setResultResp(ensureIsArray(json.result));
           setResponseError('');
           cache.set(queryFormData, json.result);
-          if (queryForce && actions) {
-            actions.setForceQuery(false);
+          if (queryForce) {
+            setForceQuery?.(false);
           }
         })
         .catch(response => {

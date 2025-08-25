@@ -92,6 +92,7 @@ class SqlLabRestApi(BaseSupersetApi):
     openapi_spec_component_schemas = (
         EstimateQueryCostSchema,
         ExecutePayloadSchema,
+        FormatQueryPayloadSchema,
         QueryExecutionResponseSchema,
         SQLLabBootstrapSchema,
     )

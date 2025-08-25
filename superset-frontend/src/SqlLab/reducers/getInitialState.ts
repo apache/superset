@@ -171,8 +171,9 @@ export default function getInitialState({
         // add query editors and tables to state with a special flag so they can
         // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
         sqlLab.queryEditors.forEach(qe => {
-          const hasConflictFromBackend = Boolean(queryEditors[qe.id]);
-          const unsavedUpdatedAt = queryEditors[qe.id]?.updatedAt;
+          const sqlEditorId = qe.tabViewId ?? qe.id;
+          const hasConflictFromBackend = Boolean(queryEditors[sqlEditorId]);
+          const unsavedUpdatedAt = queryEditors[sqlEditorId]?.updatedAt;
           const hasUnsavedUpdateSinceLastSave =
             qe.updatedAt &&
             (!unsavedUpdatedAt || qe.updatedAt > unsavedUpdatedAt);
@@ -180,13 +181,13 @@ export default function getInitialState({
             !hasConflictFromBackend || hasUnsavedUpdateSinceLastSave ? qe : {};
           queryEditors = {
             ...queryEditors,
-            [qe.id]: {
-              ...queryEditors[qe.id],
+            [sqlEditorId]: {
+              ...queryEditors[sqlEditorId],
               ...cachedQueryEditor,
               name:
                 cachedQueryEditor.title ||
                 cachedQueryEditor.name ||
-                queryEditors[qe.id]?.name,
+                queryEditors[sqlEditorId]?.name,
               ...(cachedQueryEditor.id &&
                 unsavedQueryEditor.id === qe.id &&
                 unsavedQueryEditor),

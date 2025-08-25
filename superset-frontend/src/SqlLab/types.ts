@@ -71,6 +71,7 @@ export interface QueryEditor {
   cursorPosition?: CursorPosition;
   isDataset?: boolean;
   queryGenerator?: QueryGenerator;
+  tabViewId?: string;
 }
 
 export type toastState = {
