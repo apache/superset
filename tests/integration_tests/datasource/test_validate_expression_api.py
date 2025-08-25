@@ -37,8 +37,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         # Mock successful validation
         mock_validate.return_value = {"valid": True, "errors": []}
 
-        # Use a test datasource ID
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
@@ -61,7 +62,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         # Mock successful validation
         mock_validate.return_value = {"valid": True, "errors": []}
 
-        datasource_id = 1  # Assuming we have a datasource with ID 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
@@ -84,7 +87,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         # Mock successful validation
         mock_validate.return_value = {"valid": True, "errors": []}
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
@@ -107,7 +112,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         # Mock successful validation
         mock_validate.return_value = {"valid": True, "errors": []}
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
@@ -126,7 +133,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         """Test validation of invalid SQL expression"""
         self.login("admin")
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         with patch(
             "superset.connectors.sqla.models.SqlaTable.validate_expression"
@@ -154,7 +163,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         """Test that HAVING clause fails for non-aggregated columns"""
         self.login("admin")
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         with patch(
             "superset.connectors.sqla.models.SqlaTable.validate_expression"
@@ -189,7 +200,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         """Test validation of empty expression"""
         self.login("admin")
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",
@@ -205,7 +218,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         """Test validation with missing required parameters"""
         self.login("admin")
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         # Missing expression_type - defaults to "where"
         rv = self.client.post(
@@ -242,7 +257,9 @@ class TestDatasourceValidateExpressionApi(SupersetTestCase):
         # Create a user without admin privileges
         self.login("gamma")
 
-        datasource_id = 1
+        # Use the birth_names dataset for testing
+        datasource = self.get_birth_names_dataset()
+        datasource_id = datasource.id
 
         rv = self.client.post(
             f"/api/v1/datasource/table/{datasource_id}/validate_expression/",

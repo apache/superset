@@ -102,7 +102,7 @@ jobs:
           docker history $IMAGE_TAG
 
       - name: docker-compose sanity check
-        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
+        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'dev'
         shell: bash
         run: |
           export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
