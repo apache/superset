@@ -144,9 +144,3 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
-
-# FINAL OVERRIDE: Ensure SUPERSET__SQLALCHEMY_EXAMPLES_URI takes absolute precedence
-# This must be the last thing executed to override any other config files
-_final_examples_uri = os.getenv("SUPERSET__SQLALCHEMY_EXAMPLES_URI")
-if _final_examples_uri:
-    SQLALCHEMY_EXAMPLES_URI = _final_examples_uri
