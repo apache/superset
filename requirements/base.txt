@@ -114,7 +114,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.8.1rc1
+flask-appbuilder==4.8.1
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
