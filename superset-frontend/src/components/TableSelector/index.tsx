@@ -128,7 +128,7 @@ export const TableOption = ({ table }: { table: Table }) => {
       {type === 'view' ? (
         <Icons.FunctionOutlined iconSize="m" />
       ) : type === 'materialized_view' ? (
-        <Icons.DatabaseOutlined iconSize="m" />
+        <Icons.ProfileOutlined iconSize="m" />
       ) : (
         <Icons.TableOutlined iconSize="m" />
       )}
