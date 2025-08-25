@@ -699,7 +699,12 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: list of column objects
         """
         full_table_name = cls.quote_table(table, inspector.engine.dialect)
-        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table_name}").fetchall()
+        return cls.execute_metadata_query(
+            database,
+            f"SHOW COLUMNS FROM {full_table_name}",
+            catalog=table.catalog,
+            schema=table.schema,
+        )
 
     @classmethod
     def _create_column_info(
@@ -1032,13 +1037,12 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         if schema:
             sql = dedent(
-                """
+                f"""
                 SELECT table_name FROM information_schema.tables
-                WHERE table_schema = %(schema)s
+                WHERE table_schema = '{schema}'
                 AND table_type = 'VIEW'
                 """
             ).strip()
-            params = {"schema": schema}
         else:
             sql = dedent(
                 """
@@ -1046,13 +1050,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 WHERE table_type = 'VIEW'
                 """
             ).strip()
-            params = {}
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
-            return {row[0] for row in results}
+        results = cls.execute_metadata_query(database, sql, schema=schema)
+        return {row[0] for row in results}
 
     @classmethod
     def _is_column_name_quoted(cls, column_name: str) -> bool:
@@ -1300,16 +1300,12 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
-            sql = f"SHOW CREATE VIEW {schema}.{table}"
-            try:
-                cls.execute(cursor, sql, database)
-                rows = cls.fetch_data(cursor, 1)
-
-                return rows[0][0]
-            except DatabaseError:  # not a VIEW
-                return None
+        sql = f"SHOW CREATE VIEW {schema}.{table} LIMIT 1"
+        try:
+            results = cls.execute_metadata_query(database, sql, schema=schema)
+            return results[0][0] if results else None
+        except DatabaseError:  # not a VIEW
+            return None
 
     @classmethod
     def get_tracking_url(cls, cursor: Cursor) -> str | None:

@@ -209,12 +209,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         In Snowflake, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT DATABASE_NAME from information_schema.databases"
-            )
-        }
+        results = cls.execute_metadata_query(
+            database,
+            "SELECT DATABASE_NAME from information_schema.databases",
+        )
+        return {catalog for (catalog,) in results}
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

@@ -154,13 +154,13 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        with database.get_raw_connection(
+        results_list = cls.execute_metadata_query(
+            database,
+            f'SELECT GET_METADATA("{table.table}") LIMIT 1',
             catalog=table.catalog,
             schema=table.schema,
-        ) as conn:
-            cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
-            results = cursor.fetchone()[0]
+        )
+        results = results_list[0][0] if results_list else None
         try:
             metadata = json.loads(results)
         except Exception:  # pylint: disable=broad-except
