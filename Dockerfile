@@ -204,9 +204,11 @@ RUN if [ "$LOAD_EXAMPLES_DUCKDB" = "true" ]; then \
         mkdir -p /app/data && \
         echo "Downloading pre-built examples.duckdb..." && \
         curl -L -o /app/data/examples.duckdb \
-            "https://raw.githubusercontent.com/apache-superset/examples-data/master/examples.duckdb"; \
+            "https://raw.githubusercontent.com/apache-superset/examples-data/master/examples.duckdb" && \
+        chown -R superset:superset /app/data; \
     else \
-        mkdir -p /app/data; \
+        mkdir -p /app/data && \
+        chown -R superset:superset /app/data; \
     fi
 
 # Copy compiled things from previous stages
