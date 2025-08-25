@@ -192,3 +192,50 @@ class TestComputeAndCache:
             force=False, window_size=(1, 1), thumb_size=thumb_size
         )
         resize_image.assert_called_once()
+
+
+class TestScreenshotCachePayloadGetImage:
+    """Test the get_image method behavior including exception handling"""
+
+    def test_get_image_returns_bytesio_when_image_exists(self):
+        """Test that get_image returns BytesIO object when image data exists"""
+        image_data = b"test image data"
+        payload = ScreenshotCachePayload(image=image_data)
+
+        result = payload.get_image()
+
+        assert result is not None
+        assert result.read() == image_data
+
+    def test_get_image_raises_exception_when_no_image(self):
+        """Test get_image raises ScreenshotImageNotAvailableException when no image"""
+        from superset.exceptions import ScreenshotImageNotAvailableException
+
+        payload = ScreenshotCachePayload()  # No image data
+
+        with pytest.raises(ScreenshotImageNotAvailableException):
+            payload.get_image()
+
+    def test_get_image_raises_exception_when_image_is_none(self):
+        """Test that get_image raises exception when image is explicitly set to None"""
+        from superset.exceptions import ScreenshotImageNotAvailableException
+
+        payload = ScreenshotCachePayload(image=None)
+
+        with pytest.raises(ScreenshotImageNotAvailableException):
+            payload.get_image()
+
+    def test_get_image_multiple_reads(self):
+        """Test that get_image returns fresh BytesIO each time"""
+        image_data = b"test image data"
+        payload = ScreenshotCachePayload(image=image_data)
+
+        result1 = payload.get_image()
+        result2 = payload.get_image()
+
+        # Both should be valid BytesIO objects
+        assert result1.read() == image_data
+        assert result2.read() == image_data
+
+        # Should be different BytesIO instances
+        assert result1 is not result2

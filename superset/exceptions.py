@@ -486,3 +486,7 @@ class SupersetResultsBackendNotConfigureException(SupersetErrorException):
             level=ErrorLevel.ERROR,
         )
         super().__init__(error)
+
+
+class ScreenshotImageNotAvailableException(SupersetException):
+    status = 404

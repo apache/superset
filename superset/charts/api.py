@@ -80,6 +80,7 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -704,8 +705,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
             if cache_payload.status == StatusValues.UPDATED:
+                try:
+                    image = cache_payload.get_image()
+                except ScreenshotImageNotAvailableException:
+                    return self.response_404()
                 return Response(
-                    FileWrapper(cache_payload.get_image()),
+                    FileWrapper(image),
                     mimetype="image/png",
                     direct_passthrough=True,
                 )
@@ -791,8 +796,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)
+        try:
+            image = cache_payload.get_image()
+        except ScreenshotImageNotAvailableException:
+            return self.response_404()
         return Response(
-            FileWrapper(cache_payload.get_image()),
+            FileWrapper(image),
             mimetype="image/png",
             direct_passthrough=True,
         )
