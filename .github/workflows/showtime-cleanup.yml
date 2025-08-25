@@ -2,6 +2,11 @@ name: 🎪 Showtime Cleanup
 
 # Scheduled cleanup of expired environments
 on:
+  # One-time push trigger to register the workflow
+  push:
+    paths:
+      - '.github/workflows/showtime-cleanup.yml'
+
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours
 
@@ -13,7 +18,6 @@ on:
         required: false
         default: '48'
         type: string
-        pattern: '^[0-9]+$'
 
 # Common environment variables
 env:
