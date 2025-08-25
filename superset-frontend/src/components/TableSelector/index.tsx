@@ -126,11 +126,11 @@ export const TableOption = ({ table }: { table: Table }) => {
   return (
     <TableLabel title={value}>
       {type === 'view' ? (
-        <Icons.EyeOutlined iconSize="m" />
+        <Icons.FunctionOutlined iconSize="m" />
       ) : type === 'materialized_view' ? (
         <Icons.DatabaseOutlined iconSize="m" />
       ) : (
-        <Icons.InsertRowAboveOutlined iconSize="m" />
+        <Icons.TableOutlined iconSize="m" />
       )}
       {extra?.certification && (
         <CertifiedBadge
