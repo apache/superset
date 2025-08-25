@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Install Superset Showtime
         run: |
-          pip install superset-showtime
+          pip install --upgrade superset-showtime
           showtime version
 
       - name: Check what actions are needed
