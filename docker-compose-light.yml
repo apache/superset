@@ -118,6 +118,12 @@ services:
       POSTGRES_DB: superset_light
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      # DuckDB thread-safety configuration: DuckDB is not fully thread-safe in all contexts,
+      # so we use multiple sync workers (8) with single threading (1 thread per worker)
+      # instead of the default gthread worker class to avoid database locking issues
+      SERVER_WORKER_AMOUNT: 8
+      SERVER_THREADS_AMOUNT: 1
+      SERVER_WORKER_CLASS: sync
 
   superset-init-light:
     build:
