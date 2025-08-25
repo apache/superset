@@ -1248,6 +1248,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             DatabaseUserOAuth2Tokens.id == self.id
         ).delete()
 
+    # Relationships for new dataset models (SIP-68)
+    new_tables = relationship("Table", back_populates="database", cascade="all, delete-orphan")
+
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
 sqla.event.listen(Database, "after_update", security_manager.database_after_update)

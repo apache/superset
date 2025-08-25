@@ -1971,3 +1971,27 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         backref="row_level_security_filters",
     )
     clause = Column(utils.MediumText(), nullable=False)
+
+
+# Shadow writing hooks for SIP-68 dataset migration
+from sqlalchemy import event
+
+def sync_sqla_table_after_insert(mapper, connection, target):
+    """Sync SqlaTable to new models after insert."""
+    from superset.datasets.shadow_writer import shadow_writer
+    try:
+        shadow_writer.sync_sqla_table_to_new_models(target)
+    except Exception as e:
+        logger.warning("Error syncing SqlaTable %s to new models: %s", target.id, e)
+
+def sync_sqla_table_after_update(mapper, connection, target):
+    """Sync SqlaTable to new models after update."""
+    from superset.datasets.shadow_writer import shadow_writer
+    try:
+        shadow_writer.sync_sqla_table_to_new_models(target)
+    except Exception as e:
+        logger.warning("Error syncing SqlaTable %s to new models: %s", target.id, e)
+
+# Register shadow writing event hooks
+event.listen(SqlaTable, "after_insert", sync_sqla_table_after_insert)
+event.listen(SqlaTable, "after_update", sync_sqla_table_after_update)
