@@ -17,6 +17,8 @@
 #
 set -e
 
+echo "SUPERDEBUG [docker-init.sh]: Starting database initialization and migrations"
+
 #
 # Always install local overrides first
 #

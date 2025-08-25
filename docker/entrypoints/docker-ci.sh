@@ -15,7 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+echo "SUPERDEBUG [docker-ci.sh]: Starting docker-ci.sh entrypoint"
 /app/docker/docker-init.sh
+
+echo "SUPERDEBUG [docker-ci.sh]: docker-init.sh completed, starting web server"
 
 # TODO: copy config overrides from ENV vars
 
