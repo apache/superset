@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { styled, css, t } from '@superset-ui/core';
+import { styled, css, t, useTheme } from '@superset-ui/core';
 // ResizeCallback and ResizeStartCallback types used in props
 import { useDispatch, useSelector } from 'react-redux';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -27,7 +27,10 @@ import { componentShape } from 'src/dashboard/util/propShapes';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import { updateEasyChartMeta } from 'src/dashboard/actions/dashboardLayout';
 import { fetchSlices } from 'src/dashboard/actions/sliceEntities';
-import { addSliceToDashboard } from 'src/dashboard/actions/dashboardState';
+import {
+  addSliceToDashboard,
+  setFullSizeChartId,
+} from 'src/dashboard/actions/dashboardState';
 import { updatePortableChartId } from 'src/components/Chart/chartAction';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
@@ -60,6 +63,7 @@ const EasyChartStyles = styled.div`
       border: 1px solid ${theme.colorBorderSecondary};
       box-shadow: ${theme.boxShadowSecondary};
       position: relative;
+      padding: 10px;
 
       .header {
         display: flex;
@@ -389,12 +393,33 @@ export default function EasyChart({
   // DragDroppable props
   handleComponentDrop,
 }) {
+  const theme = useTheme();
+  const fullSizeStyle = css`
+    && {
+      position: fixed !important;
+      z-index: 3000;
+      left: 0;
+      top: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      padding: ${theme.sizeUnit * 2}px;
+      background: ${theme.colorBgContainer};
+      box-shadow: ${theme.boxShadowSecondary};
+    }
+  `;
+
   const dispatch = useDispatch();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef(null);
 
   // Get dashboard edit mode from Redux store
   const dashboardEditMode = useSelector(state => state.dashboardState.editMode);
+
+  // Get full size chart state from Redux store
+  const fullSizeChartId = useSelector(
+    state => state.dashboardState.fullSizeChartId,
+  );
+  const isFullSize = fullSizeChartId === component.meta.chartId;
 
   // Get slice data from Redux store to access slice name
   const sliceEntities = useSelector(state => state.sliceEntities?.slices || {});
@@ -406,26 +431,42 @@ export default function EasyChart({
     [component.meta.width],
   );
 
-  // Calculate chart dimensions based on grid system
+  // Calculate chart dimensions based on grid system or full-size mode
   const { chartWidth, chartHeight } = useMemo(() => {
-    const width = Math.floor(
-      widthMultiple * columnWidth +
-        (widthMultiple - 1) * GRID_GUTTER_SIZE -
-        CHART_MARGIN,
-    );
-    const height = Math.floor(
-      (component.meta.height || DEFAULT_EASY_CHART_HEIGHT_UNITS) *
-        GRID_BASE_UNIT -
-        CHART_MARGIN,
-    );
+    let width = 0;
+    let height = 0;
+
+    if (isFullSize) {
+      // Use window dimensions for full-size mode
+      width = window.innerWidth - CHART_MARGIN;
+      height = window.innerHeight - CHART_MARGIN;
+    } else {
+      // Use grid-based calculations for normal mode
+      width = Math.floor(
+        widthMultiple * columnWidth +
+          (widthMultiple - 1) * GRID_GUTTER_SIZE -
+          CHART_MARGIN -
+          20, // Account for 10px padding on left and right
+      );
+      height = Math.floor(
+        (component.meta.height || DEFAULT_EASY_CHART_HEIGHT_UNITS) *
+          GRID_BASE_UNIT -
+          CHART_MARGIN -
+          20, // Account for 10px padding on top and bottom
+      );
+    }
 
     return {
-      chartWidth: Math.max(width, 300), // Minimum width
-      chartHeight: Math.max(height, 200), // Minimum height
+      chartWidth: isFullSize ? width : Math.max(width, 280), // No minimum in full-size mode
+      chartHeight: isFullSize ? height : Math.max(height, 180), // No minimum in full-size mode
     };
-  }, [columnWidth, component.meta.height, widthMultiple]);
+  }, [columnWidth, component.meta.height, widthMultiple, isFullSize]);
 
   // Component updates are handled by parent via onResizeStop callback
+
+  const handleToggleFullSize = useCallback(() => {
+    dispatch(setFullSizeChartId(isFullSize ? null : component.meta.chartId));
+  }, [component.meta.chartId, isFullSize, dispatch]);
 
   const handleAddChart = () => {
     // Only allow adding charts in edit mode
@@ -481,6 +522,7 @@ export default function EasyChart({
         id={id}
         data-test="dashboard-EasyChart"
         ref={dragSourceRef}
+        css={isFullSize ? fullSizeStyle : undefined}
       >
         {component.meta.chartId ? (
           <Chart
@@ -489,10 +531,10 @@ export default function EasyChart({
             width={chartWidth}
             height={chartHeight}
             isComponentVisible
-            isFullSize={false}
+            isFullSize={isFullSize}
             extraControls={{}}
             isInView
-            handleToggleFullSize={() => {}}
+            handleToggleFullSize={handleToggleFullSize}
             updateSliceName={() => {}}
             setControlValue={() => {}}
             sliceName={
