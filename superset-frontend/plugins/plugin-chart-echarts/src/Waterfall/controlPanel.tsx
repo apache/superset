@@ -58,9 +58,15 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Series setting'),
+      expanded: true,
+      controlSetRows: [
         [
           <ControlSubSectionHeader>
-            {t('Series colors')}
+            {t('Series increase setting')}
           </ControlSubSectionHeader>,
         ],
         [
@@ -71,8 +77,25 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: { r: 90, g: 193, b: 137, a: 1 },
               renderTrigger: true,
+              description: t('Choose the color for series increase'),
             },
           },
+          {
+            name: 'increase_label',
+            config: {
+              label: t('Increase label'),
+              type: 'TextControl',
+              renderTrigger: true,
+              description: t('Change the increase label to text'),
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('Series decrease setting')}
+          </ControlSubSectionHeader>,
+        ],
+        [
           {
             name: 'decrease_color',
             config: {
@@ -80,8 +103,25 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: { r: 224, g: 67, b: 85, a: 1 },
               renderTrigger: true,
+              description: t('Choose the color for series decrease'),
             },
           },
+          {
+            name: 'decrease_label',
+            config: {
+              label: t('Decrease label'),
+              type: 'TextControl',
+              renderTrigger: true,
+              description: t('Change the decrease label to text'),
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('Series total setting')}
+          </ControlSubSectionHeader>,
+        ],
+        [
           {
             name: 'total_color',
             config: {
@@ -89,10 +129,26 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: { r: 102, g: 102, b: 102, a: 1 },
               renderTrigger: true,
+              description: t('Choose the color for series total'),
+            },
+          },
+
+          {
+            name: 'total_label',
+            config: {
+              label: t('Total label'),
+              type: 'TextControl',
+              renderTrigger: true,
+              description: t('Change the total label to text'),
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+      ],
+    },
+    {
+      label: t('X Axis'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'x_axis_label',
@@ -134,7 +190,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
+      ],
+    },
+    {
+      label: t('Y Axis'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'y_axis_label',
