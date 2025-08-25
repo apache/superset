@@ -125,37 +125,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         Called after any other init tasks
         """
-        # SUPERDEBUG: Log final app configuration after all initialization
-        logger.warning(
-            "SUPERDEBUG [superset/initialization/__init__.py]: "
-            "Post-initialization - final app configuration:"
-        )
-        db_uri = self.config.get("SQLALCHEMY_DATABASE_URI", "not set")
-        logger.warning(
-            f"SUPERDEBUG [superset/initialization/__init__.py]: "
-            f"app.config SQLALCHEMY_DATABASE_URI = {db_uri}"
-        )
-        examples_uri = self.config.get("SQLALCHEMY_EXAMPLES_URI", "not set")
-        logger.warning(
-            f"SUPERDEBUG [superset/initialization/__init__.py]: "
-            f"app.config SQLALCHEMY_EXAMPLES_URI = {examples_uri}"
-        )
-
-        # Also log environment variables for comparison
-        import os
-
-        env_examples_uri = os.environ.get(
-            "SUPERSET__SQLALCHEMY_EXAMPLES_URI", "not set"
-        )
-        logger.warning(
-            f"SUPERDEBUG [superset/initialization/__init__.py]: "
-            f"Environment SUPERSET__SQLALCHEMY_EXAMPLES_URI = {env_examples_uri}"
-        )
-        env_db_uri = os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", "not set")
-        logger.warning(
-            f"SUPERDEBUG [superset/initialization/__init__.py]: "
-            f"Environment SUPERSET__SQLALCHEMY_DATABASE_URI = {env_db_uri}"
-        )
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])

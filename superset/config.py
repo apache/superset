@@ -2221,16 +2221,4 @@ ENV_VAR_KEYS = {
 for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
-        old_value = globals().get(config_var, "not previously set")
         globals()[config_var] = os.environ[env_var]
-        # SUPERDEBUG: Log when we process environment variables
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            f"SUPERDEBUG [superset/config.py]: Processing {env_var} -> {config_var}"
-        )
-        logger.warning(f"SUPERDEBUG [superset/config.py]: Old value: {old_value}")
-        logger.warning(
-            f"SUPERDEBUG [superset/config.py]: New value: {os.environ[env_var]}"
-        )

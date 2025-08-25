@@ -70,14 +70,6 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
     echo_step "4" "Starting" "Loading examples"
 
-    # SUPERDEBUG: Log examples database configuration before loading
-    echo "SUPERDEBUG [docker-init.sh]: Environment variables for examples database:"
-    echo "SUPERDEBUG [docker-init.sh]: SUPERSET__SQLALCHEMY_EXAMPLES_URI=${SUPERSET__SQLALCHEMY_EXAMPLES_URI:-'not set'}"
-    echo "SUPERDEBUG [docker-init.sh]: SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-'not set'}"
-    echo "SUPERDEBUG [docker-init.sh]: DATABASE_DIALECT=${DATABASE_DIALECT:-'not set'}"
-    echo "SUPERDEBUG [docker-init.sh]: DATABASE_HOST=${DATABASE_HOST:-'not set'}"
-    echo "SUPERDEBUG [docker-init.sh]: EXAMPLES_HOST=${EXAMPLES_HOST:-'not set'}"
-    echo "SUPERDEBUG [docker-init.sh]: About to run superset load_examples..."
 
     # If Cypress run which consumes superset_test_config – load required data for tests
     if [ "$CYPRESS_CONFIG" == "true" ]; then

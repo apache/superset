@@ -280,6 +280,6 @@ USER superset
 ######################################################################
 FROM lean AS ci
 USER root
-RUN uv pip install .[postgres]
+RUN uv pip install .[postgres,duckdb]
 USER superset
 CMD ["/app/docker/entrypoints/docker-ci.sh"]
