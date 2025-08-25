@@ -77,6 +77,13 @@ jobs:
           echo "pr_number=$PR_NUM_OUT" >> $GITHUB_OUTPUT
           echo "target_sha=$TARGET_SHA" >> $GITHUB_OUTPUT
 
+      - name: Checkout PR code (only if build needed)
+        if: steps.check.outputs.build_needed == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.check.outputs.target_sha }}
+          persist-credentials: false
+
       - name: Setup Docker Environment (only if build needed)
         if: steps.check.outputs.build_needed == 'true'
         uses: ./.github/actions/setup-docker
@@ -84,13 +91,7 @@ jobs:
           dockerhub-user: ${{ env.DOCKERHUB_USER }}
           dockerhub-token: ${{ env.DOCKERHUB_TOKEN }}
           build: "true"
-
-      - name: Checkout PR code (only if build needed)
-        if: steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.check.outputs.target_sha }}
-          persist-credentials: false
+          install-docker-compose: "false"
 
       - name: Execute sync (handles everything)
         if: steps.check.outputs.sync_needed == 'true'
