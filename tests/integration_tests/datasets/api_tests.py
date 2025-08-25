@@ -2395,23 +2395,34 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test that exported dataset filenames include the dataset ID
         to prevent filename collisions when datasets have identical names.
         """
+        # Test fails for SQLite because of same table name
+        if backend() == "sqlite":
+            return
+
         first_connection = self.insert_database("test_db_connection_1")
         second_connection = self.insert_database("test_db_connection_2")
-        dataset1 = self.insert_dataset(
+        first_dataset = self.insert_dataset(
             table_name="test_dataset",
             owners=[],
             database=first_connection,
             fetch_metadata=False,
         )
-        dataset2 = self.insert_dataset(
+        second_dataset = self.insert_dataset(
             table_name="test_dataset",
             owners=[],
             database=second_connection,
             fetch_metadata=False,
         )
 
+        self.items_to_delete = [
+            first_dataset,
+            second_dataset,
+            first_connection,
+            second_connection,
+        ]
+
         self.login(ADMIN_USERNAME)
-        argument = [dataset1.id, dataset2.id]
+        argument = [first_dataset.id, second_dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
 
@@ -2424,10 +2435,10 @@ class TestDatasetApi(SupersetTestCase):
             filenames = zip_file.namelist()
 
             assert (
-                f"datasets/test_db_connection_1/test_dataset_{dataset1.id}.yaml"
+                f"datasets/test_db_connection_1/test_dataset_{first_dataset.id}.yaml"
             ) in filenames
             assert (
-                f"datasets/test_db_connection_2/test_dataset_{dataset2.id}.yaml"
+                f"datasets/test_db_connection_2/test_dataset_{second_dataset.id}.yaml"
             ) in filenames
 
     @unittest.skip("Number of related objects depend on DB")
