@@ -118,9 +118,14 @@ const TimeTable = ({
 }) => {
   const memoizedColumns = useMemo(
     () => [
-      { accessor: 'metric', Header: t('Metric') },
+      {
+        accessor: 'metric',
+        Header: t('Metric'),
+        id: 'metric', // REQUIRED: TableView needs both accessor and id to render rows
+      },
       ...columnConfigs.map((columnConfig, i) => ({
         accessor: columnConfig.key,
+        id: columnConfig.key, // REQUIRED: TableView needs both accessor and id to render rows
         cellProps: columnConfig.colType === 'spark' && {
           style: { width: '1%' },
         },

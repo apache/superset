@@ -215,11 +215,23 @@ const SparklineCell = ({
           renderTooltip={({ tooltipData }) => {
             const idx = tooltipData?.datumByKey[dataKey].index;
             return (
-              <div>
-                <strong>
+              <div
+                css={theme => ({
+                  color: theme.colorText,
+                })}
+              >
+                <strong
+                  css={theme => ({
+                    color: theme.colorText,
+                  })}
+                >
                   {idx !== undefined && formatNumber(numberFormat, data[idx])}
                 </strong>
-                <div>
+                <div
+                  css={theme => ({
+                    color: theme.colorTextSecondary,
+                  })}
+                >
                   {idx !== undefined &&
                     formatTime(
                       dateFormat,
