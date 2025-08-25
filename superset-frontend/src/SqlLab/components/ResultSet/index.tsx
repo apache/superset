@@ -196,6 +196,7 @@ const ResultSet = ({
         'dbId',
         'tab',
         'sql',
+        'executedSql',
         'sqlEditorId',
         'templateParams',
         'schema',
@@ -555,6 +556,7 @@ const ResultSet = ({
     sql = (
       <HighlightedSql
         sql={query.sql}
+        rawSql={query.executedSql}
         {...(showSqlInline && { maxLines: 1, maxWidth: 60 })}
       />
     );
