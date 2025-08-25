@@ -354,19 +354,17 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
     @classmethod
     def estimate_statement_cost(
-        cls, database: Database, statement: str, cursor: Any
+        cls, database: Database, statement: str
     ) -> dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
         :param database: A Database object
         :param statement: A single SQL statement
-        :param cursor: Cursor instance
-        :return: JSON response from Trino
+        :return: Cost estimate dictionary
         """
-        sql = f"EXPLAIN {statement}"
-        cursor.execute(sql)
-
-        result = cursor.fetchone()[0]
+        sql = f"EXPLAIN {statement} LIMIT 1"
+        results = cls.execute_metadata_query(database, sql)
+        result = results[0][0] if results else ""
         match = re.search(r"cost=([\d\.]+)\.\.([\d\.]+)", result)
         if match:
             return {

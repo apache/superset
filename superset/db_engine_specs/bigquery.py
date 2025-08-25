@@ -331,9 +331,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
         # Build the query
-        query = select(
-            func.max(partitions_table.c.partition_id).label("max_partition_id")
-        ).where(partitions_table.c.table_name == table.table).limit(1)
+        query = (
+            select(func.max(partitions_table.c.partition_id).label("max_partition_id"))
+            .where(partitions_table.c.table_name == table.table)
+            .limit(1)
+        )
 
         # Compile to BigQuery SQL
         compiled_query = query.compile(

@@ -374,17 +374,16 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     def estimate_statement_cost(
-        cls, database: Database, statement: str, cursor: Any
+        cls, database: Database, statement: str
     ) -> dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
         :param database: A Database object
         :param statement: A single SQL statement
-        :param cursor: Cursor instance
         :return: JSON response from Trino
         """
-        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
-        cursor.execute(sql)
+        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement} LIMIT 1"
+        results = cls.execute_metadata_query(database, sql)
 
         # the output from Trino is a single column and a single row containing
         # JSON:
@@ -399,7 +398,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         #       "networkCost" : 3.41425774958E11
         #     }
         #   }
-        result = json.loads(cursor.fetchone()[0])
+        result = json.loads(results[0][0]) if results else {}
         return result
 
     @classmethod
@@ -699,12 +698,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: list of column objects
         """
         full_table_name = cls.quote_table(table, inspector.engine.dialect)
-        return cls.execute_metadata_query(
-            database,
-            f"SHOW COLUMNS FROM {full_table_name}",
-            catalog=table.catalog,
-            schema=table.schema,
-        )
+        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table_name}").fetchall()
 
     @classmethod
     def _create_column_info(
@@ -1037,12 +1031,13 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         if schema:
             sql = dedent(
-                f"""
+                """
                 SELECT table_name FROM information_schema.tables
-                WHERE table_schema = '{schema}'
+                WHERE table_schema = %(schema)s
                 AND table_type = 'VIEW'
                 """
             ).strip()
+            results = inspector.bind.execute(sql, {"schema": schema}).fetchall()
         else:
             sql = dedent(
                 """
@@ -1050,8 +1045,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 WHERE table_type = 'VIEW'
                 """
             ).strip()
+            results = inspector.bind.execute(sql).fetchall()
 
-        results = cls.execute_metadata_query(database, sql, schema=schema)
         return {row[0] for row in results}
 
     @classmethod

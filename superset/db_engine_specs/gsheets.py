@@ -162,7 +162,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         )
         results = results_list[0][0] if results_list else None
         try:
-            metadata = json.loads(results)
+            metadata = json.loads(results) if results else {}
         except Exception:  # pylint: disable=broad-except
             metadata = {}
 

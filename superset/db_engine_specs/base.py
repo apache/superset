@@ -1670,14 +1670,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_statement_cost(
-        cls, database: Database, statement: str, cursor: Any
+        cls, database: Database, statement: str
     ) -> dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
         :param database: A Database object
         :param statement: A single SQL statement
-        :param cursor: Cursor instance
         :return: Dictionary with different costs
         """
         raise Exception(  # pylint: disable=broad-exception-raised
@@ -1738,20 +1737,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         parsed_script = SQLScript(sql, engine=cls.engine)
 
-        with database.get_raw_connection(
-            catalog=catalog,
-            schema=schema,
-            source=source,
-        ) as conn:
-            cursor = conn.cursor()
-            return [
-                cls.estimate_statement_cost(
-                    database,
-                    cls.process_statement(statement, database),
-                    cursor,
-                )
-                for statement in parsed_script.statements
-            ]
+        return [
+            cls.estimate_statement_cost(
+                database,
+                cls.process_statement(statement, database),
+            )
+            for statement in parsed_script.statements
+        ]
 
     @classmethod
     def impersonate_user(
