@@ -73,11 +73,6 @@ interface UploadDataModalProps {
   type: UploadType;
 }
 
-interface CurrentDatabase {
-  value: number;
-  label: string;
-}
-
 const CSVSpecificFields = [
   'delimiter',
   'skip_initial_space',
@@ -226,10 +221,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   type = 'csv',
 }) => {
   const [form] = Form.useForm();
-  const [currentDatabase, setCurrentDatabase] = useState<CurrentDatabase>({
-    label: '',
-    value: 0,
-  });
+  const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
@@ -309,8 +301,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setPreviewUploadedFile(value);
   };
 
-  const onChangeDatabase = (database: CurrentDatabase) => {
-    setCurrentDatabase(database);
+  const onChangeDatabase = (database: { value: number; label: string }) => {
+    setCurrentDatabaseId(database?.value);
     setCurrentSchema(undefined);
     form.setFieldsValue({ schema: undefined });
   };
@@ -327,7 +319,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setFileList([]);
     setColumns([]);
     setCurrentSchema('');
-    setCurrentDatabase({ label: '', value: 0 });
+    setCurrentDatabaseId(0);
     setSheetNames([]);
     setIsLoading(false);
     setDelimiter(',');
@@ -336,18 +328,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setSheetsColumnNames({});
     form.resetFields();
   };
-
-  const validateTableName =
-    (currentDatabase: CurrentDatabase) => (_: any, value: string) => {
-      const isPrestoTrino = currentDatabase?.label
-        ?.toLowerCase()
-        .includes('trino');
-
-      if (isPrestoTrino && value.includes(' ')) {
-        return Promise.reject(t('Trino table names must not contain spaces'));
-      }
-      return Promise.resolve();
-    };
 
   const loadDatabaseOptions = useMemo(
     () =>
@@ -381,11 +361,11 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const loadSchemaOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        if (!currentDatabase.value) {
+        if (!currentDatabaseId) {
           return Promise.resolve({ data: [], totalCount: 0 });
         }
         return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabase.value}/schemas/?q=(upload_allowed:!t)`,
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
         }).then(response => {
           const list = response.json.result.map((item: string) => ({
             value: item,
@@ -394,7 +374,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           return { data: list, totalCount: response.json.count };
         });
       },
-    [currentDatabase.value],
+    [currentDatabaseId],
   );
 
   const loadFileMetadata = (file: File) => {
@@ -489,7 +469,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
     appendFormData(formData, mergedValues);
     setIsLoading(true);
-    const endpoint = createTypeToEndpointMap(currentDatabase.value);
+    const endpoint = createTypeToEndpointMap(currentDatabaseId);
     formData.append('type', type);
     return SupersetClient.post({
       endpoint,
@@ -584,7 +564,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   const validateDatabase = (_: any, value: string) => {
-    if (!currentDatabase.value) {
+    if (!currentDatabaseId) {
       return Promise.reject(t('Selecting a database is required'));
     }
     return Promise.resolve();
@@ -737,7 +717,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         required
                         rules={[
                           { required: true, message: 'Table name is required' },
-                          { validator: validateTableName(currentDatabase) },
                         ]}
                       >
                         <Input
