@@ -74,7 +74,7 @@ class TestExportChartsCommand(SupersetTestCase):
         expected = [
             "metadata.yaml",
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_chart.table.id}.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())
