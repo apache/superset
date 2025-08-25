@@ -383,8 +383,13 @@ class ChartRenderer extends Component {
             {...drillToDetailProps}
           />
           {showAISummary && (
-            <div style={{ marginTop: 8, marginBottom: 12 }}>
-                          <AISummaryBox
+              <div
+                style={{
+                  marginTop: vizType === 'country_map' ? 0 : 8,
+                  marginBottom: vizType === 'country_map' ? 0 : 12,
+                }}
+            >
+            <AISummaryBox
               chartDomId={`chart-id-${chartId}`}
               vizType={vizType}
               title={this.props.title}
