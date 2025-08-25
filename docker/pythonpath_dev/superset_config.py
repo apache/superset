@@ -50,12 +50,17 @@ SQLALCHEMY_DATABASE_URI = (
 )
 
 # Use environment variable if set, otherwise construct from components
-SQLALCHEMY_EXAMPLES_URI = os.getenv(
-    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
-    f"{DATABASE_DIALECT}://"
-    f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
-    f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}",
-)
+# This MUST take precedence over any other configuration
+_examples_uri_env = os.getenv("SUPERSET__SQLALCHEMY_EXAMPLES_URI")
+if _examples_uri_env:
+    SQLALCHEMY_EXAMPLES_URI = _examples_uri_env
+else:
+    # Fallback to PostgreSQL construction only if env var not set
+    SQLALCHEMY_EXAMPLES_URI = (
+        f"{DATABASE_DIALECT}://"
+        f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
+        f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+    )
 
 # SUPERDEBUG: Log the Docker config override for examples URI
 logger = logging.getLogger(__name__)
@@ -163,3 +168,13 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+# FINAL OVERRIDE: Ensure SUPERSET__SQLALCHEMY_EXAMPLES_URI takes absolute precedence
+# This must be the last thing executed to override any other config files
+_final_examples_uri = os.getenv("SUPERSET__SQLALCHEMY_EXAMPLES_URI")
+if _final_examples_uri:
+    SQLALCHEMY_EXAMPLES_URI = _final_examples_uri
+    logger.info(
+        f"SUPERDEBUG [docker/pythonpath_dev/superset_config.py]: "
+        f"FINAL OVERRIDE - SQLALCHEMY_EXAMPLES_URI set to: {SQLALCHEMY_EXAMPLES_URI}"
+    )
