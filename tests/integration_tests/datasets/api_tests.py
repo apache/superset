@@ -2401,11 +2401,13 @@ class TestDatasetApi(SupersetTestCase):
             table_name="test_dataset",
             owners=[],
             database=first_connection,
+            fetch_metadata=False,
         )
         dataset2 = self.insert_dataset(
             table_name="test_dataset",
             owners=[],
             database=second_connection,
+            fetch_metadata=False,
         )
 
         self.login(ADMIN_USERNAME)
