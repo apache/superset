@@ -85,6 +85,7 @@ from superset.exceptions import (
     SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
+    SupersetSyntaxErrorException,
 )
 from superset.jinja_context import (
     BaseTemplateProcessor,
@@ -686,11 +687,12 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
             all_filters.extend(grouped_filters)
             return all_filters
-        except TemplateError as ex:
+        except (TemplateError, SupersetSyntaxErrorException) as ex:
+            msg = ex.message if hasattr(ex, "message") else str(ex)
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
+                    msg=msg,
                 )
             ) from ex
 
@@ -893,7 +895,16 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         type_ = column_spec.sqla_type if column_spec else None
         if expression := self.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
+                try:
+                    expression = template_processor.process_template(expression)
+                except SupersetSyntaxErrorException as ex:
+                    msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in column expression: %(msg)s",
+                            msg=msg,
+                        )
+                    ) from ex
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -931,7 +942,16 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
+                try:
+                    expression = template_processor.process_template(expression)
+                except SupersetSyntaxErrorException as ex:
+                    msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in datetime column: %(msg)s",
+                            msg=msg,
+                        )
+                    ) from ex
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -1012,7 +1032,16 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         label = label or self.metric_name
         expression = self.expression
         if template_processor:
-            expression = template_processor.process_template(expression)
+            try:
+                expression = template_processor.process_template(expression)
+            except SupersetSyntaxErrorException as ex:
+                msg = str(ex)
+                raise QueryObjectValidationError(
+                    _(
+                        "Error in jinja expression in metric expression: %(msg)s",
+                        msg=msg,
+                    )
+                ) from ex
 
         sqla_col: ColumnClause = literal_column(expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
@@ -1356,11 +1385,12 @@ class SqlaTable(
             )
         try:
             return self.text(fetch_values_predicate)
-        except TemplateError as ex:
+        except (TemplateError, SupersetSyntaxErrorException) as ex:
+            msg = ex.message if hasattr(ex, "message") else str(ex)
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in fetch values predicate: %(msg)s",
-                    msg=ex.message,
+                    msg=msg,
                 )
             ) from ex
 

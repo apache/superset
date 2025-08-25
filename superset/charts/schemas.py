@@ -37,7 +37,6 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
-from superset.utils.jinja_template_validator import validate_params_json_with_jinja
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -209,7 +208,7 @@ class ChartPostSchema(Schema):
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
-        validate=validate_params_json_with_jinja,
+        validate=utils.validate_json,
     )
     query_context = fields.String(
         metadata={"description": query_context_description},
@@ -272,7 +271,7 @@ class ChartPutSchema(Schema):
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
-        validate=validate_params_json_with_jinja,
+        validate=utils.validate_json,
     )
     query_context = fields.String(
         metadata={"description": query_context_description}, allow_none=True
