@@ -56,6 +56,7 @@ type EnhancedColumnInstance<T extends object = any> = RTColumnInstance<T> &
   Partial<UseResizeColumnsColumnProps<T>> & {
     hidden?: boolean;
     size?: keyof typeof COLUMN_SIZE_MAP;
+    className?: string;
   };
 
 type EnhancedHeaderGroup<T extends object = any> = RTHeaderGroup<T> & {
@@ -122,6 +123,7 @@ export function mapColumns<T extends object>(
         }
         return val;
       },
+      className: column.className,
     };
   });
 }
