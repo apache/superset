@@ -87,7 +87,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             chart_slug = secure_filename(chart.slice_name)
             expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
             dataset_slug = secure_filename(chart.table.table_name)
-            expected_paths.add(f"datasets/{dataset_slug}_{chart.table.id}.yaml")
+            expected_paths.add(
+                f"datasets/examples/{dataset_slug}_{chart.table.id}.yaml"
+            )
         assert expected_paths == set(contents.keys())
 
         metadata = yaml.safe_load(

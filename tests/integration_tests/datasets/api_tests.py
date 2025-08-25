@@ -2395,27 +2395,17 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test that exported dataset filenames include the dataset ID
         to prevent filename collisions when datasets have identical names.
         """
-        example_db = get_example_database()
-        db1 = Database(
-            database_name="test_db_connection_1",
-            sqlalchemy_uri=example_db.sqlalchemy_uri,
-        )
-        db.session.add(db1)
-        db2 = Database(
-            database_name="test_db_connection_2",
-            sqlalchemy_uri=example_db.sqlalchemy_uri,
-        )
-        db.session.add(db2)
-        db.session.commit()
+        first_connection = self.insert_database("test_db_connection_1")
+        second_connection = self.insert_database("test_db_connection_2")
         dataset1 = self.insert_dataset(
             table_name="test_dataset",
             owners=[],
-            database=db1,
+            database=first_connection,
         )
         dataset2 = self.insert_dataset(
             table_name="test_dataset",
             owners=[],
-            database=db2,
+            database=second_connection,
         )
 
         self.login(ADMIN_USERNAME)
