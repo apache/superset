@@ -419,7 +419,8 @@ export default function EasyChart({
   const fullSizeChartId = useSelector(
     state => state.dashboardState.fullSizeChartId,
   );
-  const isFullSize = fullSizeChartId === component.meta.chartId;
+  const isFullSize =
+    component?.meta?.chartId && fullSizeChartId === component.meta.chartId;
 
   // Get slice data from Redux store to access slice name
   const sliceEntities = useSelector(state => state.sliceEntities?.slices || {});

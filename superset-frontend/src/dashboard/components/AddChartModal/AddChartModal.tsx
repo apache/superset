@@ -428,6 +428,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
       <Modal
         show={isOpen}
         onHide={onClose}
+        destroyOnHidden
         title={editingChartId ? t('Edit Chart') : t('Add Chart')}
         width="1600px"
         footer={
