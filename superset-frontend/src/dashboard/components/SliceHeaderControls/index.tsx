@@ -184,6 +184,7 @@ const SliceHeaderControls = (
     props.slice.datasource,
     props.dashboardId,
     props.formData,
+    !canDrillToDetail,
   );
 
   const datasetWithVerboseMap =
