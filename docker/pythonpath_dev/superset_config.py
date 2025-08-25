@@ -51,16 +51,14 @@ SQLALCHEMY_DATABASE_URI = (
 
 # Use environment variable if set, otherwise construct from components
 # This MUST take precedence over any other configuration
-_examples_uri_env = os.getenv("SUPERSET__SQLALCHEMY_EXAMPLES_URI")
-if _examples_uri_env:
-    SQLALCHEMY_EXAMPLES_URI = _examples_uri_env
-else:
-    # Fallback to PostgreSQL construction only if env var not set
-    SQLALCHEMY_EXAMPLES_URI = (
+SQLALCHEMY_EXAMPLES_URI = os.getenv(
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+    (
         f"{DATABASE_DIALECT}://"
         f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
         f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
-    )
+    ),
+)
 
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
