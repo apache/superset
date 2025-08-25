@@ -57,6 +57,30 @@ SQLALCHEMY_EXAMPLES_URI = os.getenv(
     f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}",
 )
 
+# SUPERDEBUG: Log the Docker config override for examples URI
+logger = logging.getLogger(__name__)
+logger.warning(
+    "SUPERDEBUG [docker/pythonpath_dev/superset_config.py]: "
+    "Docker config override - examples database configuration:"
+)
+logger.warning(
+    f"SUPERDEBUG [docker/pythonpath_dev/superset_config.py]: "
+    f"Docker SQLALCHEMY_EXAMPLES_URI = {SQLALCHEMY_EXAMPLES_URI}"
+)
+examples_env_var = os.getenv("SUPERSET__SQLALCHEMY_EXAMPLES_URI", "not set")
+logger.warning(
+    f"SUPERDEBUG [docker/pythonpath_dev/superset_config.py]: "
+    f"Docker environment SUPERSET__SQLALCHEMY_EXAMPLES_URI = {examples_env_var}"
+)
+fallback_uri = (
+    f"{DATABASE_DIALECT}://{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
+    f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+)
+logger.warning(
+    f"SUPERDEBUG [docker/pythonpath_dev/superset_config.py]: "
+    f"Docker fallback would be: {fallback_uri}"
+)
+
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
