@@ -94,4 +94,38 @@ describe('Waterfall tranformProps', () => {
       ['-', '-', 13, '-', '-', 8],
     ]);
   });
+
+  it('renaming series names, checking legend and X axis labels', () => {
+    const chartProps = new ChartProps({
+      formData: {
+        ...formData,
+        increaseLabel: 'sale increase',
+        decreaseLabel: 'sale decrease',
+        totalLabel: 'sale total',
+        showLegend: true,
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data,
+        },
+      ],
+      theme: supersetTheme,
+    });
+    const transformedProps = transformProps(
+      chartProps as unknown as EchartsWaterfallChartProps,
+    );
+    expect(transformedProps.echartOptions.legend).toEqual({
+      data: ['sale increase', 'sale decrease', 'sale total'],
+      selected: undefined,
+      show: true,
+    });
+
+    expect((transformedProps.echartOptions.xAxis as any).data).toEqual([
+      '2019',
+      '2020',
+      'sale total',
+    ]);
+  });
 });
