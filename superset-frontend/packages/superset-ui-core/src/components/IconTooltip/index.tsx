@@ -43,13 +43,7 @@ export const IconTooltip = ({
   );
   if (tooltip) {
     return (
-      <Tooltip
-        id="tooltip"
-        title={tooltip}
-        placement={placement}
-        mouseEnterDelay={0.3}
-        mouseLeaveDelay={0.15}
-      >
+      <Tooltip id="tooltip" title={tooltip} placement={placement}>
         {iconTooltip}
       </Tooltip>
     );

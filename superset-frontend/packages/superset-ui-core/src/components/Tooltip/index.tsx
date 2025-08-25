@@ -23,7 +23,11 @@ import type { TooltipProps, TooltipPlacement } from './types';
 export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
   <AntdTooltip
     styles={{
-      body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+      body: {
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        textAlign: 'center',
+      },
       root: overlayStyle ?? {},
     }}
     {...props}
