@@ -60,23 +60,23 @@ export const useDatasetMetadataBar = ({
         ? `${changed_by.first_name} ${changed_by.last_name}`
         : notAvailable;
       const formattedOwners =
-        owners?.length > 0
+        owners && owners.length > 0
           ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
           : [notAvailable];
       items.push({
         type: MetadataType.Table,
-        title: table_name,
+        title: table_name || notAvailable,
       });
       items.push({
         type: MetadataType.LastModified,
-        value: changed_on_humanized,
+        value: changed_on_humanized || notAvailable,
         modifiedBy,
       });
       items.push({
         type: MetadataType.Owner,
         createdBy,
         owners: formattedOwners,
-        createdOn: created_on_humanized,
+        createdOn: created_on_humanized || notAvailable,
       });
       if (description) {
         items.push({
