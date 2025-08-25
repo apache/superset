@@ -450,6 +450,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesA,
         thresholdValues,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -516,6 +517,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesB,
         thresholdValues: thresholdValuesB,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) series.push(transformedSeries);

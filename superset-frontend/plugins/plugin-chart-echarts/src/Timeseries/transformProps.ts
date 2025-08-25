@@ -331,6 +331,7 @@ export default function transformProps(
         lineStyle,
         timeCompare: array,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) {
