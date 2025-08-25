@@ -145,6 +145,9 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
+# Build arg to pre-populate examples DuckDB file
+ARG LOAD_EXAMPLES_DUCKDB="false"
+
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
     SUPERSET_ENV="production" \
@@ -195,6 +198,18 @@ RUN /app/docker/apt-install.sh \
       libpq-dev \
       libecpg-dev \
       libldap2-dev
+
+# Pre-load examples DuckDB file if requested
+RUN if [ "$LOAD_EXAMPLES_DUCKDB" = "true" ]; then \
+        mkdir -p /app/data && \
+        echo "Downloading pre-built examples.duckdb..." && \
+        curl -L -o /app/data/examples.duckdb \
+            "https://raw.githubusercontent.com/apache-superset/examples-data/master/examples.duckdb" && \
+        chown -R superset:superset /app/data; \
+    else \
+        mkdir -p /app/data && \
+        chown -R superset:superset /app/data; \
+    fi
 
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
@@ -267,6 +282,15 @@ USER superset
 ######################################################################
 FROM lean AS ci
 USER root
-RUN uv pip install .[postgres]
+RUN uv pip install .[postgres,duckdb]
+USER superset
+CMD ["/app/docker/entrypoints/docker-ci.sh"]
+
+######################################################################
+# Showtime image - lean + DuckDB for examples database
+######################################################################
+FROM lean AS showtime
+USER root
+RUN uv pip install .[duckdb]
 USER superset
 CMD ["/app/docker/entrypoints/docker-ci.sh"]

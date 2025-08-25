@@ -49,11 +49,17 @@ SQLALCHEMY_DATABASE_URI = (
     f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
 )
 
-SQLALCHEMY_EXAMPLES_URI = (
-    f"{DATABASE_DIALECT}://"
-    f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
-    f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+# Use environment variable if set, otherwise construct from components
+# This MUST take precedence over any other configuration
+SQLALCHEMY_EXAMPLES_URI = os.getenv(
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+    (
+        f"{DATABASE_DIALECT}://"
+        f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
+        f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+    ),
 )
+
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
