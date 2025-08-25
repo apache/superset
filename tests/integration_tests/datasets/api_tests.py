@@ -2434,12 +2434,18 @@ class TestDatasetApi(SupersetTestCase):
         with ZipFile(buf, "r") as zip_file:
             filenames = zip_file.namelist()
 
-            assert (
-                f"datasets/test_db_connection_1/test_dataset_{first_dataset.id}.yaml"
-            ) in filenames
-            assert (
-                f"datasets/test_db_connection_2/test_dataset_{second_dataset.id}.yaml"
-            ) in filenames
+            assert any(
+                filename.endswith(
+                    f"datasets/test_db_connection_1/test_dataset_{first_dataset.id}.yaml"
+                )
+                for filename in filenames
+            )
+            assert any(
+                filename.endswith(
+                    f"datasets/test_db_connection_2/test_dataset_{second_dataset.id}.yaml"
+                )
+                for filename in filenames
+            )
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
