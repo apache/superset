@@ -38,17 +38,6 @@ const Container = styled.div`
   height: 100%;
 `;
 
-const HeaderBar = styled.div`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  height: 16px;
-  width: 32%;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  background: ${({ theme }) =>
-    `linear-gradient(90deg, ${theme.colors.grayscale.light3}, ${theme.colors.grayscale.light2}, ${theme.colors.grayscale.light3})`};
-  background-size: 200% 200%;
-  animation: ${shimmer} 1.5s ease-in-out infinite;
-`;
-
 const BodyBlock = styled.div`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   width: 100%;
@@ -56,6 +45,7 @@ const BodyBlock = styled.div`
     `linear-gradient(90deg, ${theme.colors.grayscale.light3}, ${theme.colors.grayscale.light2}, ${theme.colors.grayscale.light3})`};
   background-size: 200% 200%;
   animation: ${shimmer} 1.5s ease-in-out infinite;
+  border-radius: 6px;
 `;
 
 export default function ChartShimmer({
@@ -76,7 +66,6 @@ export default function ChartShimmer({
       style={{ ...style, minHeight: effectiveHeight, width: width || '100%' }}
       data-test="chart-shimmer"
     >
-      {/* <HeaderBar /> */}
       <BodyBlock style={{ height: bodyHeight }} />
     </Container>
   );

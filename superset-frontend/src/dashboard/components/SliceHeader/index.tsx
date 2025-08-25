@@ -78,6 +78,7 @@ const HeaderBar = styled.div`
     `linear-gradient(90deg, ${theme.colors.grayscale.light3}, ${theme.colors.grayscale.light2}, ${theme.colors.grayscale.light3})`};
   background-size: 200% 200%;
   animation: ${shimmer} 1.5s ease-in-out infinite;
+  border-radius: 6px;
 `;
 
 const ChartHeaderStyles = styled.div`
