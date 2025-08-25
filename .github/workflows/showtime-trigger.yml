@@ -41,7 +41,9 @@ jobs:
 
     steps:
       - name: Install Superset Showtime
-        run: pip install superset-showtime
+        run: |
+          pip install superset-showtime
+          showtime version
 
       - name: Check what actions are needed
         id: check
