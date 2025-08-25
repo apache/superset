@@ -88,7 +88,7 @@ const TabTitleContainer = styled.div`
 
     .anchor-link-container {
       position: absolute;
-      right: -${sizeUnit * 7}px;
+      left: 100%;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
     }

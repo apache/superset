@@ -75,6 +75,18 @@ const HeaderStyles = styled.div`
       font-size: ${theme.fontSizeXXL}px;
     }
 
+    .anchor-link-container {
+      display: inline;
+      line-height: 0;
+      vertical-align: bottom; /* trick to align the anchor with text */
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    &:hover .anchor-link-container {
+      opacity: 1;
+    }
+
     .dashboard--editing .dashboard-grid & {
       &:after {
         border: 1px dashed transparent;
