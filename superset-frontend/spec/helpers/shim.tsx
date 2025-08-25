@@ -92,18 +92,27 @@ jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
     fileName,
     role,
     'aria-label': ariaLabel,
+    onClick,
     ...rest
   }: {
     fileName: string;
-    role: string;
-    'aria-label': AriaAttributes['aria-label'];
-  }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={ariaLabel || fileName.replace('_', '-')}
-      {...rest}
-    />
-  ),
+    role?: string;
+    'aria-label'?: AriaAttributes['aria-label'];
+    onClick?: () => void;
+  }) => {
+    // Simple mock that provides the essential attributes for testing
+    const label = ariaLabel || fileName?.replace(/_/g, '-').toLowerCase() || '';
+    return (
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+      <span
+        role={role || (onClick ? 'button' : 'img')}
+        aria-label={label}
+        data-test={label}
+        onClick={onClick}
+        {...rest}
+      />
+    );
+  },
   StyledIcon: ({
     component: Component,
     role,

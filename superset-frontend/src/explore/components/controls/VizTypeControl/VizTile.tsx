@@ -111,7 +111,7 @@ export const VizTile = ({
           ${isActive &&
           css`
             width: 100%;
-            background-color: ${theme.colorBgContainer};
+            background-color: ${theme.colorBgLayout};
             transition:
               width ${TILE_TRANSITION_TIME} ease-out,
               background-color ${TILE_TRANSITION_TIME} ease-out;
