@@ -121,6 +121,10 @@ services:
       POSTGRES_DB: superset_light
       EXAMPLES_HOST: db-light
       EXAMPLES_DB: superset_light
+      # GitHub Actions environment variables for version/branch info
+      GITHUB_SHA: ${GITHUB_SHA:-}
+      GITHUB_REF_NAME: ${GITHUB_REF_NAME:-}
+      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
       EXAMPLES_USER: superset
       EXAMPLES_PASSWORD: superset
       # Use light-specific config that disables Redis

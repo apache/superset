@@ -530,6 +530,80 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     return safe
 
 
+def sanitize_svg_content(svg_content: str) -> str:
+    """Basic SVG protection - remove obvious XSS vectors, trust admin input otherwise.
+
+    Minimal protection approach that removes scripts and javascript: URLs while
+    preserving all legitimate SVG features. Assumes admin-provided content.
+
+    Args:
+        svg_content: Raw SVG content string
+
+    Returns:
+        str: SVG content with obvious XSS vectors removed
+    """
+    if not svg_content or not svg_content.strip():
+        return ""
+
+    # Minimal protection: remove obvious malicious content, preserve all SVG features
+    content = re.sub(
+        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
+
+    # Remove event handlers (simple catch-all approach)
+    content = re.sub(r"\bon\w+\s*=", "", content, flags=re.IGNORECASE)
+
+    # Remove other suspicious patterns
+    content = re.sub(
+        r"<iframe[^>]*>.*?</iframe>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(
+        r"<object[^>]*>.*?</object>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"<embed[^>]*>", "", content, flags=re.IGNORECASE)
+
+    return content
+
+
+def sanitize_url(url: str) -> str:
+    """Sanitize URL using urllib.parse to block dangerous schemes.
+
+    Simple validation using standard library. Allows relative URLs and
+    safe absolute URLs while blocking javascript: and other dangerous schemes.
+
+    Args:
+        url: Raw URL string
+
+    Returns:
+        str: Sanitized URL or empty string if dangerous
+    """
+    if not url or not url.strip():
+        return ""
+
+    url = url.strip()
+
+    # Relative URLs are safe
+    if url.startswith("/"):
+        return url
+
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+
+        # Allow safe schemes only
+        if parsed.scheme.lower() in {"http", "https", ""}:
+            return url
+
+        # Block everything else (javascript:, data:, etc.)
+        return ""
+
+    except Exception:
+        return ""
+
+
 def readfile(file_path: str) -> str | None:
     with open(file_path) as f:
         content = f.read()

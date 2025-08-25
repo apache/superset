@@ -17,6 +17,7 @@
 from typing import Any, Dict
 
 from superset.themes.types import ThemeMode
+from superset.utils.core import sanitize_svg_content, sanitize_url
 
 
 def _is_valid_theme_mode(mode: str) -> bool:
@@ -87,3 +88,35 @@ def is_valid_theme(theme: Dict[str, Any]) -> bool:
         return True
     except Exception:
         return False
+
+
+def sanitize_theme_tokens(theme_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Sanitize theme configuration, focusing on potentially dangerous content.
+
+    Sanitizes both brandSpinnerSvg content and brandSpinnerUrl values to prevent XSS.
+
+    Args:
+        theme_config: Theme configuration dictionary
+
+    Returns:
+        Dict[str, Any]: Sanitized theme configuration
+    """
+    if not isinstance(theme_config, dict):
+        return theme_config
+
+    # Create a copy to avoid modifying the original
+    sanitized_config = theme_config.copy()
+
+    # Sanitize SVG content and URLs in tokens
+    if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
+        tokens = sanitized_config["token"].copy()
+
+        if "brandSpinnerSvg" in tokens and tokens["brandSpinnerSvg"]:
+            tokens["brandSpinnerSvg"] = sanitize_svg_content(tokens["brandSpinnerSvg"])
+
+        if "brandSpinnerUrl" in tokens and tokens["brandSpinnerUrl"]:
+            tokens["brandSpinnerUrl"] = sanitize_url(tokens["brandSpinnerUrl"])
+
+        sanitized_config["token"] = tokens
+
+    return sanitized_config
