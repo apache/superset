@@ -471,12 +471,6 @@ export default function EasyChart({
     }
   };
 
-  const handleEditChart = () => {
-    if (component.meta.chartId) {
-      dispatch(toggleDashboardExploreModal(true, component.meta.chartId));
-    }
-  };
-
   const handleClose = () => {
     // Handle close logic if needed
   };
@@ -525,7 +519,6 @@ export default function EasyChart({
               'Chart'
             }
             isFromEasyChart
-            onEditEasyChart={handleEditChart}
           />
         ) : (
           <>
