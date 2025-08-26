@@ -174,7 +174,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         "json_metadata",
         "description",
         "css",
-        "theme_id",
         "slug",
         "certified_by",
         "certification_details",
