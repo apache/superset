@@ -80,7 +80,7 @@ const HeaderStyles = styled.div`
       line-height: 0;
       vertical-align: bottom; /* trick to align the anchor with text */
       opacity: 0;
-      transition: opacity 0.2s ease-in-out;
+      transition: opacity ${theme.motionDurationMid} ease-in-out;
     }
 
     &:hover .anchor-link-container {
