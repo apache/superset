@@ -16,4 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module '@data-ui/sparkline';
+
+export {
+  calculateTimeValue,
+  calculateContribution,
+  calculateAverage,
+  calculateCellValue,
+  type ValueCalculationResult,
+} from './valueCalculations';

@@ -158,7 +158,6 @@ test('should handle column type sparkline correctly', () => {
   expect(screen.getByText('Time series columns')).toBeInTheDocument();
 });
 
-// Regression test for the specific bug: Missing 'id' property in columns causing empty table rows
 test('should not render empty table due to missing column id property', () => {
   render(<TimeTable {...defaultProps} />);
 
