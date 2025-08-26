@@ -18,131 +18,59 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { StyledComponents } from './TooltipTemplateEditorStyles';
+import { styled, css, useThemeMode } from '@superset-ui/core';
+import { CodeEditor } from '@superset-ui/core/components';
+
+const EditorContainer = styled.div`
+  ${({ theme }) => css`
+    min-height: ${theme.sizeUnit * 50}px;
+    width: 100%;
+
+    .ace_editor {
+      font-family: ${theme.fontFamilyCode};
+    }
+  `}
+`;
 
 interface TooltipTemplateEditorProps {
   value: string;
   onChange: (value: string) => void;
-  availableFields: string[];
   name: string;
-  tooltipContents: any[];
 }
 
 export function TooltipTemplateEditor({
   value,
   onChange,
-  availableFields,
   name,
-  tooltipContents,
 }: TooltipTemplateEditorProps) {
   const [localValue, setLocalValue] = useState(value);
+  const isDarkMode = useThemeMode();
 
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newValue = e.target.value;
+    (newValue: string) => {
       setLocalValue(newValue);
       onChange(newValue);
     },
     [onChange],
   );
 
-  const insertField = useCallback(
-    (field: string) => {
-      const fieldTemplate = `{{${field}}}`;
-      const newValue = localValue + fieldTemplate;
-      setLocalValue(newValue);
-      onChange(newValue);
-    },
-    [localValue, onChange],
-  );
-
-  const extractAvailableFields = () => {
-    if (!tooltipContents || tooltipContents.length === 0) {
-      return [];
-    }
-
-    const fields = new Set<string>();
-    tooltipContents.forEach((item: any) => {
-      if (item.column_name) {
-        fields.add(item.column_name);
-      }
-      if (item.metric_name) {
-        fields.add(item.metric_name);
-      }
-      if (item.label) {
-        fields.add(item.label);
-      }
-    });
-
-    return Array.from(fields);
-  };
-
-  const fields = extractAvailableFields();
-
   return (
-    <StyledComponents>
-      <div className="template-header">
-        <h5>{t('Template Editor')}</h5>
-        <span className="template-info">
-          {t('Click on fields below to insert them into your template')}
-        </span>
-      </div>
-
-      {fields.length > 0 && (
-        <div className="available-fields">
-          {fields.map(field => (
-            <button
-              key={field}
-              type="button"
-              className="field-tag"
-              onClick={() => insertField(field)}
-              title={t('Click to insert {{%s}}', field)}
-            >
-              {field}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="template-editor">
-        <textarea
+    <div>
+      <EditorContainer>
+        <CodeEditor
+          mode="handlebars"
+          theme={isDarkMode ? 'dark' : 'light'}
           name={name}
+          height="200px"
+          width="100%"
           value={localValue}
           onChange={handleChange}
-          placeholder={t(
-            'Enter your Handlebars template here. Use {{field_name}} to insert values.',
-          )}
         />
-      </div>
-
-      <div className="template-help">
-        <div className="help-section">
-          <h6>{t('Template Help')}</h6>
-          <p>
-            {t(
-              'Use Handlebars syntax to create custom tooltips. Available variables will be populated based on your tooltip contents selection.',
-            )}
-          </p>
-          <ul>
-            <li>
-              <code>{'{{field_name}}'}</code> - {t('Insert a field value')}
-            </li>
-            <li>
-              <code>{'{{#if condition}}...{{/if}}'}</code> -{' '}
-              {t('Conditional blocks')}
-            </li>
-            <li>
-              <code>{'{{limit fields 10}}'}</code> -{' '}
-              {t('Limit multi-value fields')}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </StyledComponents>
+      </EditorContainer>
+    </div>
   );
 }

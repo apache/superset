@@ -40,6 +40,7 @@ import {
   ColorSchemeType,
   isColorSchemeTypeVisible,
 } from './utils';
+import { TooltipTemplateControl } from './TooltipTemplateControl';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -502,24 +503,15 @@ export const tooltipContents = {
 export const tooltipTemplate = {
   name: 'tooltip_template',
   config: {
-    type: 'TextAreaControl',
+    type: TooltipTemplateControl,
     label: t('Customize tooltips template'),
-    language: 'handlebars',
-    height: 100,
-    minLines: 6,
-    textAreaStyles: {
-      minHeight: '100px',
-      height: '100px',
-    },
     debounceDelay: 30,
-    offerEditInModal: false,
     default: '',
-    description: t(
-      'Handlebars template for custom tooltips with advanced formatting helpers. Available variables will be populated based on your tooltip contents selection above. For aggregated charts, use {{limit fields 10}} to show only the first 10 values (note: use the plural form "fields" for multi-value data).',
-    ),
-    placeholder: t(
-      'Template will be auto-generated based on tooltip contents above...',
-    ),
+    description: '',
+    placeholder: '',
+    mapStateToProps: (state: any, control: any) => ({
+      value: control.value,
+    }),
   },
 };
 

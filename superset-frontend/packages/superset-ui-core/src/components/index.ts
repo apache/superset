@@ -180,3 +180,9 @@ export {
   type ThemedAgGridReactProps,
   setupAGGridModules,
 } from './ThemedAgGridReact';
+export {
+  CodeEditor,
+  type CodeEditorProps,
+  type CodeEditorMode,
+  type CodeEditorTheme,
+} from './CodeEditor';
