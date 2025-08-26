@@ -44,14 +44,17 @@ class TestBaseEngineSpecMetadata(SupersetTestCase):
 
         expected_results = [("catalog1",), ("catalog2",)]
         mock_result.fetchall.return_value = expected_results
+        mock_result.__iter__ = lambda self: iter(expected_results)
         mock_connection.execute.return_value = mock_result
 
         # Execute the method
         query = "SHOW CATALOGS"
         results = BaseEngineSpec.execute_metadata_query(database, query)
 
-        # Verify results
-        assert results == expected_results
+        # Verify results - now we get the Result object itself
+        assert results == mock_result
+        # Test that we can iterate over it like the real usage
+        assert list(results) == expected_results
 
         # Verify call chain
         mock_get_engine.assert_called_once_with(
@@ -80,6 +83,7 @@ class TestBaseEngineSpecMetadata(SupersetTestCase):
 
         expected_results = [("table1",), ("table2",)]
         mock_result.fetchall.return_value = expected_results
+        mock_result.__iter__ = lambda self: iter(expected_results)
         mock_connection.execute.return_value = mock_result
 
         # Execute with catalog and schema
@@ -90,8 +94,10 @@ class TestBaseEngineSpecMetadata(SupersetTestCase):
             database, query, catalog=catalog, schema=schema
         )
 
-        # Verify results
-        assert results == expected_results
+        # Verify results - now we get the Result object itself
+        assert results == mock_result
+        # Test that we can iterate over it like the real usage
+        assert list(results) == expected_results
 
         # Verify catalog and schema were passed to get_engine
         mock_get_engine.assert_called_once_with(
@@ -115,7 +121,9 @@ class TestBaseEngineSpecMetadata(SupersetTestCase):
         )
         mock_engine.connect.return_value.__exit__ = mock.Mock(return_value=None)
 
-        mock_result.fetchall.return_value = []
+        empty_results = []
+        mock_result.fetchall.return_value = empty_results
+        mock_result.__iter__ = lambda self: iter(empty_results)
         mock_connection.execute.return_value = mock_result
 
         # Execute the method
@@ -167,14 +175,18 @@ class TestBaseEngineSpecMetadata(SupersetTestCase):
         mock_engine.connect.return_value.__exit__ = mock.Mock(return_value=None)
 
         # Empty results
-        mock_result.fetchall.return_value = []
+        empty_results = []
+        mock_result.fetchall.return_value = empty_results
+        mock_result.__iter__ = lambda self: iter(empty_results)
         mock_connection.execute.return_value = mock_result
 
         # Execute the method
         results = BaseEngineSpec.execute_metadata_query(database, "SELECT 1 WHERE 1=0")
 
-        # Verify empty results are handled correctly
-        assert results == []
+        # Verify empty results are handled correctly - now we get the Result object
+        assert results == mock_result
+        # Test that iterating over it gives empty results like the real usage
+        assert list(results) == []
 
     def test_execute_metadata_query_query_source_enum_value(self):
         """Test QuerySource.METADATA enum has correct value"""

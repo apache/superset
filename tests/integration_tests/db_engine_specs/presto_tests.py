@@ -938,7 +938,9 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         with mock.patch.object(
             PrestoEngineSpec, "execute_metadata_query"
         ) as mock_execute:
-            mock_execute.return_value = [('{"a": "b"}',)]
+            mock_result = mock.Mock()
+            mock_result.scalar.return_value = '{"a": "b"}'
+            mock_execute.return_value = mock_result
             result = PrestoEngineSpec.estimate_statement_cost(mock_database, sql)
 
         assert result == estimate_json

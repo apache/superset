@@ -158,9 +158,12 @@ class TestPostgresDbEngineSpec(SupersetTestCase):
         with mock.patch.object(
             PostgresEngineSpec, "execute_metadata_query"
         ) as mock_execute:
-            mock_execute.return_value = [
+            mock_result = mock.Mock()
+            expected_results = [
                 ("Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",)
             ]
+            mock_result.fetchall.return_value = expected_results
+            mock_execute.return_value = mock_result
             results = PostgresEngineSpec.estimate_statement_cost(database, sql)
 
         assert results == {"Start-up cost": 0.0, "Total cost": 1537.91}
