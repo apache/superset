@@ -168,6 +168,7 @@ export function transformSeries(
     queryIndex?: number;
     timeCompare?: string[];
     timeShiftColor?: boolean;
+    theme?: SupersetTheme;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -197,6 +198,7 @@ export function transformSeries(
     queryIndex = 0,
     timeCompare = [],
     timeShiftColor,
+    theme,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -323,6 +325,8 @@ export function transformSeries(
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
+      color: theme?.colorText,
+      textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
         if (

@@ -35,6 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "apache-superset-core>=0.0.1, <0.2",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
     "click>=8.0.3",
@@ -102,6 +103,7 @@ dependencies = [
     "tabulate>=0.9.0, <1.0",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
+    "watchdog>=6.0.0",
     "wtforms>=2.3.3, <4",
     "wtforms-json",
     "xlsxwriter>=3.0.7, <3.1",
@@ -129,7 +131,7 @@ denodo = ["denodo-sqlalchemy~=1.0.6"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.4, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb-engine>=0.12.1, <0.13"]
+duckdb = ["duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.9, <0.3.0"]
@@ -191,6 +193,7 @@ doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
 ydb = ["ydb-sqlalchemy>=0.1.2"]
 development = [
+    "apache-superset-cli>=0.0.1, <0.2",
     "docker",
     "flask-testing",
     "freezegun",
@@ -222,7 +225,7 @@ documentation = "https://superset.apache.org/docs/intro"
 combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
-known_first_party = "superset"
+known_first_party = "superset, apache-superset-core, apache-superset-cli"
 known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
@@ -425,3 +428,7 @@ python-geohash = "0"
 # TODO REMOVE THESE DEPS FROM CODEBASE
 paramiko = "3"  # GPL
 pyxlsb = "1"  # GPL
+
+[tool.uv.sources]
+apache-superset-core = { path = "./superset-core", editable = true }
+apache-superset-cli = { path = "./superset-cli", editable = true }

@@ -82,6 +82,7 @@
     "last 3 edge versions"
   ],
   "dependencies": {
+    "@apache-superset/core": "file:packages/superset-core",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -210,6 +211,7 @@
     "@babel/eslint-parser": "^7.25.9",
     "@babel/node": "^7.22.6",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
+    "@babel/plugin-transform-export-namespace-from": "^7.27.1",
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "@babel/plugin-transform-runtime": "^7.27.1",
     "@babel/preset-env": "^7.27.2",
@@ -333,7 +335,7 @@
     "webpack": "^5.99.9",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.1",
+    "webpack-dev-server": "^5.2.2",
     "webpack-manifest-plugin": "^5.0.1",
     "webpack-sources": "^3.3.3",
     "webpack-visualizer-plugin2": "^1.2.0"

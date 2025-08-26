@@ -618,6 +618,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
@@ -656,6 +659,7 @@ DEFAULT_FEATURE_FLAGS.update(
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }
 )
+
 
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
@@ -1352,6 +1356,9 @@ ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 
+# Extension startup update configuration
+EXTENSION_STARTUP_LOCK_TIMEOUT = 30  # Timeout in seconds for extension update locks
+
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
 # in whatever way.
@@ -1850,6 +1857,7 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
+            "https://a.basemaps.cartocdn.com",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1884,6 +1892,7 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
+            "https://a.basemaps.cartocdn.com",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2161,6 +2170,9 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
 
+LOCAL_EXTENSIONS: list[str] = []
+EXTENSIONS_PATH: str | None = None
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
@@ -2198,3 +2210,15 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+# Final environment variable processing - must be at the very end
+# to override any config file assignments
+ENV_VAR_KEYS = {
+    "SUPERSET__SQLALCHEMY_DATABASE_URI",
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+}
+
+for env_var in ENV_VAR_KEYS:
+    if env_var in os.environ:
+        config_var = env_var.replace("SUPERSET__", "")
+        globals()[config_var] = os.environ[env_var]
