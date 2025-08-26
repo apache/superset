@@ -115,22 +115,16 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
-            detailed_errors = []
+            # Enhanced logging for debugging while preserving error message format
             for ex in exceptions:
-                # Extract detailed error information
                 if hasattr(ex, "messages") and isinstance(ex.messages, dict):
                     for file_name, errors in ex.messages.items():
                         logger.error("Validation failed for %s: %s", file_name, errors)
-                        detailed_errors.append(f"{file_name}: {errors}")
                 else:
                     logger.error("Import validation error: %s", ex)
-                    detailed_errors.append(str(ex))
 
-            error_summary = "; ".join(detailed_errors)
-            raise CommandInvalidError(
-                f"Error importing {self.model_name}: {error_summary}",
-                exceptions,
-            )
+            # Preserve original error message format for backward compatibility
+            raise CommandInvalidError(f"Error importing {self.model_name}", exceptions)
 
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
         self, exceptions: list[ValidationError]
