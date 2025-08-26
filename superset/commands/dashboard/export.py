@@ -197,6 +197,12 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids
                 )
 
+            # Export related theme
+            if model.theme:
+                from superset.commands.theme.export import ExportThemesCommand
+
+                yield from ExportThemesCommand([model.theme.id]).run()
+
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
