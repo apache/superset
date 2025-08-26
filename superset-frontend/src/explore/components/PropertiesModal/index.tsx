@@ -192,13 +192,14 @@ function PropertiesModal({
     }
 
     try {
+      const chartEndpoint = `/api/v1/chart/${slice.slice_id}`;
       let res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
+        endpoint: chartEndpoint,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       res = await SupersetClient.get({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
+        endpoint: chartEndpoint,
       });
       onSave(res.json.result);
       addSuccessToast(t('Chart properties updated'));
