@@ -47,7 +47,7 @@ jobs:
           git show -s --format=raw HEAD
           docker buildx build \
             -t $TAG \
-            --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
+            --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-trixie \
             --target superset-node-ci \
             .
 
