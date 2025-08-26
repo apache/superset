@@ -87,6 +87,56 @@ const defaultProps = {
   valueKey: 'value',
 };
 
+const numberComparator = (a, b) => {
+  const aVal = typeof a.value === 'number' ? a.value : parseFloat(a.value);
+  const bVal = typeof b.value === 'number' ? b.value : parseFloat(b.value);
+  return aVal - bVal;
+};
+
+export const areAllChoiceValuesNumbers = (choices, valueKey = 'value') => {
+  if (!choices || choices.length === 0) {
+    return false;
+  }
+  return choices.every(c => {
+    if (Array.isArray(c)) {
+      const [value] = c;
+      return typeof value === 'number';
+    }
+    if (typeof c === 'object' && c !== null) {
+      return typeof c[valueKey] === 'number';
+    }
+    return typeof c === 'number';
+  });
+};
+
+export const areAllOptionValuesNumbers = (options, valueKey = 'value') => {
+  if (!options || options.length === 0) {
+    return false;
+  }
+  return options.every(o => typeof o[valueKey] === 'number');
+};
+
+export const getSortComparator = (
+  choices,
+  options,
+  valueKey,
+  explicitComparator,
+) => {
+  if (explicitComparator) {
+    return explicitComparator;
+  }
+
+  if (options && areAllOptionValuesNumbers(options, valueKey)) {
+    return numberComparator;
+  }
+
+  if (choices && areAllChoiceValuesNumbers(choices, valueKey)) {
+    return numberComparator;
+  }
+
+  return undefined;
+};
+
 export const innerGetOptions = props => {
   const { choices, optionRenderer, valueKey } = props;
   let options = [];
@@ -252,7 +302,12 @@ export default class SelectControl extends PureComponent {
       onDeselect,
       options: this.state.options,
       placeholder,
-      sortComparator: this.props.sortComparator,
+      sortComparator: getSortComparator(
+        this.props.choices,
+        this.props.options,
+        this.props.valueKey,
+        this.props.sortComparator,
+      ),
       value: getValue(),
       tokenSeparators,
       notFoundContent,
