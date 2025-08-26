@@ -1224,6 +1224,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             patch.object(
                 database, "get_all_view_names_in_schema", return_value=[]
             ) as mock_get_all_view_names,
+            patch.object(
+                database, "get_all_materialized_view_names_in_schema", return_value=[]
+            ) as mock_get_all_materialized_view_names,
         ):
             command = TablesDatabaseCommand(database.id, None, "schema_name", False)
             command.run()
@@ -1237,6 +1240,13 @@ class TestTablesDatabaseCommand(SupersetTestCase):
                 cache_timeout=database.table_cache_timeout,
             )
             mock_get_all_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_materialized_view_names.assert_called_once_with(
                 catalog="default_catalog",
                 schema="schema_name",
                 force=False,
