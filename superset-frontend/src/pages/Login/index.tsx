@@ -91,7 +91,7 @@ export default function Login() {
     SupersetClient.postForm(ensureAppRoot('/login/'), values, '').finally(
       () => {
         setLoading(false);
-      });
+    });
   };
 
   const getAuthIconElement = (
