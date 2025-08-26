@@ -1122,3 +1122,21 @@ def test_get_stacktrace():
     except Exception:
         stacktrace = get_stacktrace()
         assert stacktrace is None
+
+
+def test_query_source_metadata_enum():
+    """Test that QuerySource.METADATA enum value exists and has correct value"""
+    assert hasattr(QuerySource, "METADATA")
+    assert QuerySource.METADATA.value == 3
+    assert QuerySource.METADATA.name == "METADATA"
+
+    # Verify all expected QuerySource values
+    expected_sources = {
+        QuerySource.CHART: 0,
+        QuerySource.DASHBOARD: 1,
+        QuerySource.SQL_LAB: 2,
+        QuerySource.METADATA: 3,
+    }
+
+    for source, expected_value in expected_sources.items():
+        assert source.value == expected_value

@@ -152,13 +152,19 @@ class TestPostgresDbEngineSpec(SupersetTestCase):
         """
 
         database = mock.Mock()
-        cursor = mock.Mock()
-        cursor.fetchone.return_value = (
-            "Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",
-        )
         sql = "SELECT * FROM birth_names"
-        results = PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
+
+        # Mock the execute_metadata_query method to return expected results
+        with mock.patch.object(
+            PostgresEngineSpec, "execute_metadata_query"
+        ) as mock_execute:
+            mock_execute.return_value = [
+                ("Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",)
+            ]
+            results = PostgresEngineSpec.estimate_statement_cost(database, sql)
+
         assert results == {"Start-up cost": 0.0, "Total cost": 1537.91}
+        mock_execute.assert_called_once_with(database, f"EXPLAIN {sql} LIMIT 1")
 
     def test_estimate_statement_invalid_syntax(self):
         """
@@ -167,17 +173,21 @@ class TestPostgresDbEngineSpec(SupersetTestCase):
         from psycopg2 import errors
 
         database = mock.Mock()
-        cursor = mock.Mock()
-        cursor.execute.side_effect = errors.SyntaxError(
-            """
-            syntax error at or near "EXPLAIN"
-            LINE 1: EXPLAIN DROP TABLE birth_names
-                            ^
-            """
-        )
         sql = "DROP TABLE birth_names"
-        with self.assertRaises(errors.SyntaxError):  # noqa: PT027
-            PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
+
+        # Mock the execute_metadata_query method to raise the expected exception
+        with mock.patch.object(
+            PostgresEngineSpec, "execute_metadata_query"
+        ) as mock_execute:
+            mock_execute.side_effect = errors.SyntaxError(
+                """
+                syntax error at or near "EXPLAIN"
+                LINE 1: EXPLAIN DROP TABLE birth_names
+                                ^
+                """
+            )
+            with self.assertRaises(errors.SyntaxError):  # noqa: PT027
+                PostgresEngineSpec.estimate_statement_cost(database, sql)
 
     def test_query_cost_formatter_example_costs(self):
         """

@@ -78,8 +78,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> set[str]:
-        # Note: This method can't use execute_metadata_query since it doesn't receive database parameter
-        # TODO: Update when base class method signature is changed to include database parameter
         return {
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")

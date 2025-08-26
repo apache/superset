@@ -298,7 +298,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         We need to extract just the CatalogName column.
         """
         results = cls.execute_metadata_query(database, "SHOW CATALOGS")
-        return {row.CatalogName for row in results}
+        return {row[0] for row in results}
 
     @classmethod
     def get_schema_from_engine_params(

@@ -931,26 +931,32 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
 
     def test_estimate_statement_cost(self):
         mock_database = mock.MagicMock()
-        mock_cursor = mock.MagicMock()
         estimate_json = {"a": "b"}
-        mock_cursor.fetchone.return_value = [
-            '{"a": "b"}',
-        ]
-        result = PrestoEngineSpec.estimate_statement_cost(
-            mock_database,
-            "SELECT * FROM brth_names",
-            mock_cursor,
-        )
+        sql = "SELECT * FROM brth_names"
+
+        # Mock the execute_metadata_query method to return expected JSON results
+        with mock.patch.object(
+            PrestoEngineSpec, "execute_metadata_query"
+        ) as mock_execute:
+            mock_execute.return_value = [('{"a": "b"}',)]
+            result = PrestoEngineSpec.estimate_statement_cost(mock_database, sql)
+
         assert result == estimate_json
+        mock_execute.assert_called_once_with(
+            mock_database, f"EXPLAIN (TYPE IO, FORMAT JSON) {sql} LIMIT 1"
+        )
 
     def test_estimate_statement_cost_invalid_syntax(self):
         mock_database = mock.MagicMock()
-        mock_cursor = mock.MagicMock()
-        mock_cursor.execute.side_effect = Exception()
-        with self.assertRaises(Exception):  # noqa: B017, PT027
-            PrestoEngineSpec.estimate_statement_cost(
-                mock_database, "DROP TABLE brth_names", mock_cursor
-            )
+        sql = "DROP TABLE brth_names"
+
+        # Mock the execute_metadata_query method to raise an exception
+        with mock.patch.object(
+            PrestoEngineSpec, "execute_metadata_query"
+        ) as mock_execute:
+            mock_execute.side_effect = Exception("Invalid syntax")
+            with self.assertRaises(Exception):  # noqa: B017, PT027
+                PrestoEngineSpec.estimate_statement_cost(mock_database, sql)
 
     def test_get_create_view(self):
         mock_execute = mock.MagicMock()
