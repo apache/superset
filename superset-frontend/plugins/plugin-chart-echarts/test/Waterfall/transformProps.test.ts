@@ -31,6 +31,14 @@ const extractSeries = (props: WaterfallChartTransformedProps) => {
   return series.map(item => item.data).map(item => item.map(i => i.value));
 };
 
+const extractSeriesName = (props: WaterfallChartTransformedProps) => {
+  const { echartOptions } = props;
+  const { series } = echartOptions as unknown as {
+    series: [{ name: string }];
+  };
+  return series.map(item => item.name);
+};
+
 describe('Waterfall tranformProps', () => {
   const data = [
     { year: '2019', name: 'Sylvester', sum: 10 },
@@ -102,7 +110,6 @@ describe('Waterfall tranformProps', () => {
         increaseLabel: 'sale increase',
         decreaseLabel: 'sale decrease',
         totalLabel: 'sale total',
-        showLegend: true,
       },
       width: 800,
       height: 600,
@@ -116,15 +123,22 @@ describe('Waterfall tranformProps', () => {
     const transformedProps = transformProps(
       chartProps as unknown as EchartsWaterfallChartProps,
     );
-    expect(transformedProps.echartOptions.legend).toEqual({
-      data: ['sale increase', 'sale decrease', 'sale total'],
-      selected: undefined,
-      show: true,
-    });
+    expect((transformedProps.echartOptions.legend as any).data).toEqual([
+      'sale increase',
+      'sale decrease',
+      'sale total',
+    ]);
 
     expect((transformedProps.echartOptions.xAxis as any).data).toEqual([
       '2019',
       '2020',
+      'sale total',
+    ]);
+
+    expect(extractSeriesName(transformedProps)).toEqual([
+      'Assist',
+      'sale increase',
+      'sale decrease',
       'sale total',
     ]);
   });
