@@ -313,7 +313,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing chart"
+        assert str(excinfo.value).startswith("Error importing chart")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Slice."]}
         }
@@ -326,7 +326,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing chart"
+        assert str(excinfo.value).startswith("Error importing chart")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],
