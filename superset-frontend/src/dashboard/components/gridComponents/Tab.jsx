@@ -79,10 +79,23 @@ const defaultProps = {
 
 const TabTitleContainer = styled.div`
   ${({ isHighlighted, theme: { sizeUnit, colorPrimaryBg } }) => `
-    padding: ${sizeUnit}px ${sizeUnit * 8}px ${sizeUnit}px ${sizeUnit * 2}px;
-    margin: ${-sizeUnit}px ${sizeUnit * -2}px;
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+    margin: 0 ${sizeUnit * 2}px;
     transition: box-shadow 0.2s ease-in-out;
-    ${isHighlighted && `box-shadow: 0 0 ${sizeUnit}px ${colorPrimaryBg};`}
+    ${isHighlighted ? `box-shadow: 0 0 ${sizeUnit}px ${colorPrimaryBg};` : ''}
+
+    .anchor-link-container {
+      position: absolute;
+      left: 100%;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    &:hover .anchor-link-container {
+      opacity: 1;
+    }
   `}
 `;
 

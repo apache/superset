@@ -34,8 +34,10 @@ const StyledEditableTitle = styled.span<{
   canEdit: boolean;
 }>`
   &.editable-title {
-    display: inline-block;
-    width: 100%;
+    display: inline;
+    &.editable-title--editing {
+      width: 100%;
+    }
 
     input,
     textarea {
