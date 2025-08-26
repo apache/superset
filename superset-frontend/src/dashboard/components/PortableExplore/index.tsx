@@ -51,9 +51,7 @@ const PortableExplore = () => {
   // Check if explore state is ready - ExploreViewContainer will get props from Redux automatically
   const exploreState = useSelector((state: any) => state.explore);
   const charts = useSelector((state: any) => state?.charts || {});
-  const sliceId = useSelector(
-    (state: any) => state?.explore?.form_data?.slice_id,
-  );
+  const sliceId = 0;
 
   // Early return if explore state is not ready
   if (

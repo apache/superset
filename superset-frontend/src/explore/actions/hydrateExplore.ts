@@ -244,9 +244,9 @@ export const hydratePortableExplore =
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, common, explore, sliceEntities } =
       getState();
-
+    const editingExistingChart = slice?.slice_id && slice?.slice_id !== 0;
     // Handle existing slice data like hydrateExplore does
-    const sliceId = form_data?.slice_id;
+    const sliceId = 0;
     const fallbackSlice =
       sliceId && sliceId !== 0 ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
@@ -256,7 +256,7 @@ export const hydratePortableExplore =
     // Create initial form data for portable explore
     const initialFormData = {
       ...baseFormData,
-      slice_id: sliceId || 0, // Use existing slice_id or 0 for new chart
+      slice_id: 0, // Use existing slice_id or 0 for new chart
       viz_type: vizType || baseFormData.viz_type,
       datasource: baseFormData.datasource || `${dataset.id}__table`,
       time_range:
@@ -424,8 +424,7 @@ export const hydratePortableExplore =
     });
 
     // Use chartKey 0 for new/unsaved portable chart, or existing ID for editing
-    const chartKey = initialFormData.slice_id || 0;
-    const isEditingExisting = chartKey !== 0;
+    const chartKey = 0;
 
     const chart: ChartState = {
       id: chartKey,
@@ -435,35 +434,34 @@ export const hydratePortableExplore =
       chartUpdateEndTime: null,
       chartUpdateStartTime: 0,
       latestQueryFormData: getFormDataFromControls(exploreState.controls),
-      sliceFormData: isEditingExisting
+      sliceFormData: editingExistingChart
         ? getFormDataFromControls(exploreState.controls)
         : null,
       queryController: null,
       queriesResponse: null,
-      triggerQuery: false,
+      triggerQuery: editingExistingChart,
       lastRendered: 0,
+    };
+    const dataObj = {
+      charts: {
+        ...charts,
+        [chartKey]: chart,
+      },
+      datasources: {
+        ...datasources,
+        [getDatasourceUid(initialDatasource)]: initialDatasource,
+      },
+      saveModal: {
+        dashboards: [],
+        saveModalAlert: null,
+        isVisible: false,
+      },
+      explore: exploreState,
     };
 
     return dispatch({
       type: HYDRATE_PORTABLE_EXPLORE,
-      data: {
-        charts: isEditingExisting
-          ? charts // Don't overwrite existing chart, keep current state
-          : {
-              ...charts,
-              [chartKey]: chart,
-            },
-        datasources: {
-          ...datasources,
-          [getDatasourceUid(initialDatasource)]: initialDatasource,
-        },
-        saveModal: {
-          dashboards: [],
-          saveModalAlert: null,
-          isVisible: false,
-        },
-        explore: exploreState,
-      },
+      data: dataObj,
     });
   };
 

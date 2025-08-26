@@ -24,7 +24,6 @@ import {
   EmptyState,
   Tooltip,
   Button,
-  Loading,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { fetchExploreData } from 'src/pages/Chart';
@@ -53,6 +52,8 @@ interface DatasourceOption {
   customLabel?: string;
   explore_url?: string;
 }
+
+let existingChartId: null | number = null;
 
 const StyledModalContent = styled.div`
   ${({ theme }) => `
@@ -244,7 +245,7 @@ const DashboardExplore: React.FC = () => {
                 viz_type: 'pie',
                 datasource: `${result.dataset.id}__table`,
               },
-              slice: {}, // Empty slice object for new chart
+              slice: null, // Empty slice object for new chart
             }),
           );
         }
@@ -384,9 +385,10 @@ const DashboardExplore: React.FC = () => {
               !currentExploreFormData ||
               Object.keys(currentExploreFormData).length === 0;
             const isExploreForDifferentChart =
-              currentExploreFormData?.slice_id !== editingChartId;
+              existingChartId !== editingChartId;
 
             if (isExploreEmpty || isExploreForDifferentChart) {
+              existingChartId = editingChartId;
               // Rehydrate portable explore with complete chart data from API
               dispatch(
                 hydratePortableExplore({
@@ -423,7 +425,7 @@ const DashboardExplore: React.FC = () => {
           });
       }
     }
-  }, [isDashboardExploreOpen, editingChartId]);
+  }, [isDashboardExploreOpen, editingChartId, datasource]);
 
   // Monitor explore state hydration completion for editing mode
   useEffect(() => {
@@ -436,11 +438,6 @@ const DashboardExplore: React.FC = () => {
   }, [isLoadingEditChart, editingChartId, exploreState]);
 
   const renderChartPreview = () => {
-    // Show loading state when editing existing chart and hydration is in progress
-    if (editingChartId && isLoadingEditChart) {
-      return <Loading />;
-    }
-
     // Show dataset selection for new chart creation (not editing)
     if (!editingChartId && !selectedDatasource) {
       return (
