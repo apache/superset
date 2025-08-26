@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any
 
 from marshmallow import fields, Schema, validates, ValidationError
 
 from superset.themes.utils import is_valid_theme
 from superset.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 class ImportV1ThemeSchema(Schema):
@@ -44,6 +47,14 @@ class ImportV1ThemeSchema(Schema):
 
         # Strict validation for all contexts - ensures consistent data quality
         if not is_valid_theme(theme_config):
+            # Add detailed error info for debugging
+            logger.error("Theme validation failed. Theme config: %s", theme_config)
+            logger.error(
+                "Theme type: %s, Algorithm: %s, Has token: %s",
+                type(theme_config).__name__,
+                theme_config.get("algorithm"),
+                "token" in theme_config,
+            )
             raise ValidationError("Invalid theme configuration structure")
 
 
