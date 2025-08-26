@@ -44,10 +44,10 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = True
-    database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
+    database.get_all_catalog_names.return_value = {"catalog1", "catalog2"}
     database.get_all_schema_names.side_effect = [
-        ["schema1", "schema2"],
-        ["schema3", "schema4"],
+        {"schema1", "schema2"},
+        {"schema3", "schema4"},
     ]
     database.get_default_catalog.return_value = "catalog2"
 
@@ -63,7 +63,7 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = False
-    database.get_all_schema_names.return_value = ["schema1", "schema2"]
+    database.get_all_schema_names.return_value = {"schema1", "schema2"}
     database.is_oauth2_enabled.return_value = False
     database.db_engine_spec.needs_oauth2.return_value = False
 

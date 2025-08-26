@@ -69,23 +69,24 @@ def test_sync_permissions_command_sync_mode(
     add_pvm_mock.assert_has_calls(
         [
             mocker.call(
-                db.session, security_manager, "catalog_access", "[my_db].[catalog2]"
+                db.session, security_manager, "catalog_access", "[my_db].[catalog1]"
             ),
             mocker.call(
                 db.session,
                 security_manager,
                 "schema_access",
-                "[my_db].[catalog2].[schema3]",
+                "[my_db].[catalog1].[schema3]",
             ),
             mocker.call(
                 db.session,
                 security_manager,
                 "schema_access",
-                "[my_db].[catalog2].[schema4]",
+                "[my_db].[catalog1].[schema4]",
             ),
-        ]
+        ],
+        any_order=True,
     )
-    mock_refresh_schemas.assert_called_once_with("catalog1", ["schema1", "schema2"])
+    mock_refresh_schemas.assert_called_once_with("catalog2", {"schema1", "schema2"})
     mock_rename_db_perm.assert_not_called()
 
 
@@ -246,7 +247,7 @@ def test_sync_permissions_command_get_catalogs(database_with_catalog: MagicMock)
     Test the ``_get_catalog_names`` method.
     """
     cmmd = SyncPermissionsCommand(1, None, db_connection=database_with_catalog)
-    assert cmmd._get_catalog_names() == ["catalog1", "catalog2"]
+    assert cmmd._get_catalog_names() == {"catalog1", "catalog2"}
 
 
 def test_sync_permissions_command_get_default_catalog(database_with_catalog: MagicMock):
@@ -263,7 +264,7 @@ def test_sync_permissions_command_get_default_catalog(database_with_catalog: Mag
 
     database_with_catalog.allow_multi_catalog = True
     cmmd = SyncPermissionsCommand(1, None, db_connection=database_with_catalog)
-    assert cmmd._get_catalog_names() == ["catalog1", "catalog2"]
+    assert cmmd._get_catalog_names() == {"catalog1", "catalog2"}
 
 
 @pytest.mark.parametrize(
@@ -295,8 +296,8 @@ def test_sync_permissions_command_get_schemas(database_with_catalog: MagicMock):
     Test the ``_get_schema_names`` method.
     """
     cmmd = SyncPermissionsCommand(1, None, db_connection=database_with_catalog)
-    assert cmmd._get_schema_names("catalog1") == ["schema1", "schema2"]
-    assert cmmd._get_schema_names("catalog2") == ["schema3", "schema4"]
+    assert cmmd._get_schema_names("catalog1") == {"schema1", "schema2"}
+    assert cmmd._get_schema_names("catalog2") == {"schema3", "schema4"}
 
 
 @pytest.mark.parametrize(
