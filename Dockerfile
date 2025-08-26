@@ -18,7 +18,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.13-slim-bookworm
+ARG PY_VER=3.11.13-slim-trixie
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -29,7 +29,7 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-bookworm-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} node:20-trixie-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -64,7 +64,7 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
-    if [ "$DEV_MODE" = "false" ]; then \
+    if [ "${DEV_MODE}" = "false" ]; then \
         npm ci; \
     else \
         echo "Skipping 'npm ci' in dev mode"; \
@@ -80,7 +80,7 @@ FROM superset-node-ci AS superset-node
 
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/root/.npm \
-    if [ "$DEV_MODE" = "false" ]; then \
+    if [ "${DEV_MODE}" = "false" ]; then \
         echo "Running 'npm run ${BUILD_CMD}'"; \
         npm run ${BUILD_CMD}; \
     else \
@@ -91,11 +91,10 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY superset/translations /app/superset/translations
 
 # Build translations if enabled, then cleanup localization files
-RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
+RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
         npm run build-translation; \
     fi; \
-    rm -rf /app/superset/translations/*/*/*.po; \
-    rm -rf /app/superset/translations/*/*/*.mo;
+    rm -rf /app/superset/translations/*/*/*.[po,mo];
 
 
 ######################################################################
@@ -106,10 +105,10 @@ FROM python:${PY_VER} AS python-base
 ARG SUPERSET_HOME="/app/superset_home"
 ENV SUPERSET_HOME=${SUPERSET_HOME}
 
-RUN mkdir -p $SUPERSET_HOME
+RUN mkdir -p ${SUPERSET_HOME}
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && chmod -R 1777 $SUPERSET_HOME \
-    && chown -R superset:superset $SUPERSET_HOME
+    && chmod -R 1777 ${SUPERSET_HOME} \
+    && chown -R superset:superset ${SUPERSET_HOME}
 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
@@ -134,11 +133,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     . /app/.venv/bin/activate && /app/docker/pip-install.sh --requires-build-essential -r requirements/translations.txt
 
 COPY superset/translations/ /app/translations_mo/
-RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
+RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
         pybabel compile -d /app/translations_mo | true; \
     fi; \
-    rm -f /app/translations_mo/*/*/*.po; \
-    rm -f /app/translations_mo/*/*/*.json;
+    rm -f /app/translations_mo/*/*/*.[po,json]
 
 ######################################################################
 # Python APP common layer
@@ -173,11 +171,11 @@ RUN mkdir -p \
 ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
+    if [ "${INCLUDE_CHROMIUM}" = "true" ] || [ "${INCLUDE_FIREFOX}" = "true" ]; then \
         uv pip install playwright && \
         playwright install-deps && \
-        if [ "$INCLUDE_CHROMIUM" = "true" ]; then playwright install chromium; fi && \
-        if [ "$INCLUDE_FIREFOX" = "true" ]; then playwright install firefox; fi; \
+        if [ "${INCLUDE_CHROMIUM}" = "true" ]; then playwright install chromium; fi && \
+        if [ "${INCLUDE_FIREFOX}" = "true" ]; then playwright install firefox; fi; \
     else \
         echo "Skipping browser installation"; \
     fi
