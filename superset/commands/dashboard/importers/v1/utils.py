@@ -227,17 +227,7 @@ def import_dashboard(  # noqa: C901
     if "metadata" in config and "show_native_filters" in config["metadata"]:
         del config["metadata"]["show_native_filters"]
 
-    # Handle theme reference - look up by UUID if available, otherwise set to None
-    if "theme_uuid" in config and config["theme_uuid"] is not None:
-        from superset.models.core import Theme
-
-        theme = db.session.query(Theme).filter_by(uuid=config["theme_uuid"]).first()
-        config["theme_id"] = theme.id if theme else None
-        # Remove theme_uuid from config since it's not a database column
-        del config["theme_uuid"]
-    elif "theme_id" in config:
-        # Legacy import with theme_id - set to None since IDs don't match across systems
-        config["theme_id"] = None
+    # Note: theme_id handling moved to higher level import logic
 
     for key, new_name in JSON_KEYS.items():
         if config.get(key) is not None:

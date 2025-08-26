@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from marshmallow import Schema
@@ -47,6 +48,8 @@ from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.themes.schemas import ImportV1ThemeSchema
+
+logger = logging.getLogger(__name__)
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
@@ -100,9 +103,12 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 database_uuids.add(config["database_uuid"])
 
         # import related themes
+        theme_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("themes/") and config["uuid"] in theme_uuids:
-                import_theme(config, overwrite=False)
+                theme = import_theme(config, overwrite=False)
+                if theme:
+                    theme_ids[str(theme.uuid)] = theme.id
 
         # import related databases
         database_ids: dict[str, int] = {}
@@ -161,6 +167,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
+                # Handle theme UUID to ID mapping
+                if "theme_uuid" in config and config["theme_uuid"] in theme_ids:
+                    config["theme_id"] = theme_ids[config["theme_uuid"]]
+                    del config["theme_uuid"]
+                elif "theme_uuid" in config:
+                    # Theme not found, set to None for graceful fallback
+                    config["theme_id"] = None
+                    del config["theme_uuid"]
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
                 for uuid in find_chart_uuids(config["position"]):
