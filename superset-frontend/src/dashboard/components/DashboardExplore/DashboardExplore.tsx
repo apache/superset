@@ -461,7 +461,6 @@ const DashboardExplore: React.FC = () => {
       <Modal
         show={isDashboardExploreOpen}
         onHide={handleClose}
-        destroyOnHidden
         title={editingChartId ? t('Edit Chart') : t('Add Chart')}
         width="1600px"
         footer={
