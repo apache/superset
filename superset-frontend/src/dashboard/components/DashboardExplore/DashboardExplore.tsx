@@ -119,6 +119,7 @@ const DashboardExplore: React.FC = () => {
     useState<DatasourceOption | null>(null);
   const [isLoadingEditChart, setIsLoadingEditChart] = useState(false);
   const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
+  const [fetchedSlice, setFetchedSlice] = useState<any>(null);
 
   // Get the editing chart ID - when it's provided, we're editing an existing chart
   const editingChartId = dashboardExploreSliceId;
@@ -128,9 +129,11 @@ const DashboardExplore: React.FC = () => {
     if (isDashboardExploreOpen && editingChartId) {
       setIsLoadingEditChart(true);
       setSelectedDatasource(null); // Clear any previous selection
+      setFetchedSlice(null); // Clear fetched slice from previous sessions
     } else if (isDashboardExploreOpen && !editingChartId) {
       setIsLoadingEditChart(false);
       setSelectedDatasource(null); // Clear for new chart creation
+      setFetchedSlice(null); // Clear for new chart creation
     }
   }, [isDashboardExploreOpen, editingChartId]);
 
@@ -322,7 +325,11 @@ const DashboardExplore: React.FC = () => {
   );
 
   const handleSaveComplete = useCallback(
-    (chartId: number) => {
+    (chartId: number, overwrite: boolean) => {
+      if (overwrite) {
+        handleClose();
+        return;
+      }
       // Update the EasyChart with the new chart ID
       // Find the appropriate EasyChart component to update
       const easyChartComponents = Object.values(dashboardLayout).filter(
@@ -378,6 +385,8 @@ const DashboardExplore: React.FC = () => {
             };
 
             setSelectedDatasource(datasourceOption);
+            // Store the fetched slice for SaveModalPortable (contains correct ownership info)
+            setFetchedSlice(slice);
 
             // Check if explore state is empty or doesn't match the editing chart
             const currentExploreFormData = exploreState?.form_data;
@@ -525,7 +534,7 @@ const DashboardExplore: React.FC = () => {
           form_data={formData}
           sliceName={sliceName}
           datasource={datasource}
-          slice={slice}
+          slice={fetchedSlice || slice}
           user={user}
           onSaveComplete={handleSaveComplete}
         />

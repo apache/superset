@@ -41,7 +41,7 @@ interface SaveModalPortableProps {
   datasource?: Record<string, any>;
   slice?: Record<string, any>;
   user?: any;
-  onSaveComplete?: (chartId: number) => void;
+  onSaveComplete?: (chartId: number, overwrite: boolean) => void;
 }
 
 export const StyledModal = styled(Modal)`
@@ -70,6 +70,10 @@ const SaveModalPortable: React.FC<SaveModalPortableProps> = ({
   // Get the current slice name from Redux state (updated by chart header)
   const currentSliceName = useSelector(
     (state: any) => state.explore?.sliceName,
+  );
+  // Get the original chart ID for editing in portable explore
+  const dashboardExploreSliceId = useSelector(
+    (state: any) => state.dashboardState?.dashboardExploreSliceId,
   );
   // Use the Redux slice name if available, otherwise fall back to prop
   const effectiveSliceName = currentSliceName || sliceName || 'New Chart';
@@ -106,13 +110,6 @@ const SaveModalPortable: React.FC<SaveModalPortableProps> = ({
   }, []);
 
   const saveOrOverwrite = useCallback(async () => {
-    console.log('SaveModalPortable - saveOrOverwrite called with:', {
-      onSaveComplete,
-      onSaveCompleteType: typeof onSaveComplete,
-      actions: !!actions,
-      formData: !!form_data,
-    });
-
     setIsLoading(true);
 
     try {
@@ -132,41 +129,50 @@ const SaveModalPortable: React.FC<SaveModalPortableProps> = ({
       const formData = form_data || {};
       delete formData.url_params;
 
+      // Get existing chart dashboards when overwriting to preserve associations
+      let sliceDashboards: number[] = [];
+      if (slice && action === 'overwrite') {
+        try {
+          sliceDashboards = await actions.getSliceDashboards(slice);
+        } catch (error) {
+          sliceDashboards = [];
+        }
+      }
+
       // Set form data in Redux
       actions.setFormData({ ...formData });
 
-      // Create or update slice without any dashboard associations
+      // Create or update slice
       let result: { id: number };
       if (action === 'overwrite') {
         result = await actions.updateSlice(
           slice,
           newSliceName,
-          [], // No dashboard associations for portable explore
-          null, // No dashboard info
+          sliceDashboards, // Preserve existing dashboard associations
+          null, // No new dashboard being added in portable explore
+          dashboardExploreSliceId, // Pass original slice ID for portable explore editing
         );
       } else {
         result = await actions.createSlice(
           newSliceName,
-          [], // No dashboard associations for portable explore
-          null, // No dashboard info
+          [], // No dashboard associations for new charts in portable explore
+          null, // No dashboard being added in portable explore
         );
       }
 
-      console.log('SaveModalPortable - Save successful:', result);
+      // Call the completion callback with appropriate chart ID
+      const chartId =
+        action === 'overwrite' && dashboardExploreSliceId
+          ? dashboardExploreSliceId // For editing existing charts, use original ID
+          : result.id; // For new charts, use returned ID
 
-      // Call the completion callback
-      if (onSaveComplete && result?.id) {
-        console.log(
-          'SaveModalPortable - Calling onSaveComplete with ID:',
-          result.id,
-        );
-        onSaveComplete(result.id);
+      if (onSaveComplete && chartId) {
+        onSaveComplete(chartId, action === 'overwrite');
       }
 
       setIsLoading(false);
       onHide();
     } catch (error) {
-      console.error('SaveModalPortable - Save failed:', error);
       addDangerToast(
         t('An error occurred while saving the chart. Please try again.'),
       );
