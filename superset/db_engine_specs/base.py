@@ -1494,6 +1494,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return views
 
     @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all materialized views.
+        """
+        return set()
+
+    @classmethod
     def get_indexes(
         cls,
         database: Database,  # pylint: disable=unused-argument
