@@ -42,12 +42,12 @@ class ImportV1ThemeSchema(Schema):
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Validate theme structure
+        # Strict validation for all contexts - ensures consistent data quality
         if not is_valid_theme(theme_config):
             raise ValidationError("Invalid theme configuration structure")
 
 
-class ThemePostSchema(Schema):
+class ThemeBaseSchema(Schema):
     theme_name = fields.String(required=True, allow_none=False)
     json_data = fields.String(required=True, allow_none=False)
 
@@ -56,15 +56,25 @@ class ThemePostSchema(Schema):
         if not value or not value.strip():
             raise ValidationError("Theme name cannot be empty.")
 
+    @validates("json_data")
+    def validate_json_data(self, value: str) -> None:
+        # Parse JSON string
+        try:
+            theme_config = json.loads(value)
+        except (TypeError, json.JSONDecodeError) as ex:
+            raise ValidationError("Invalid JSON configuration") from ex
 
-class ThemePutSchema(Schema):
-    theme_name = fields.String(required=True, allow_none=False)
-    json_data = fields.String(required=True, allow_none=False)
+        # Strict validation for theme creation/updates
+        if not is_valid_theme(theme_config):
+            raise ValidationError("Invalid theme configuration structure")
 
-    @validates("theme_name")
-    def validate_theme_name(self, value: str) -> None:
-        if not value or not value.strip():
-            raise ValidationError("Theme name cannot be empty.")
+
+class ThemePostSchema(ThemeBaseSchema):
+    pass
+
+
+class ThemePutSchema(ThemeBaseSchema):
+    pass
 
 
 openapi_spec_methods_override = {

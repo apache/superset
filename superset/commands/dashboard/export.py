@@ -161,6 +161,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if orphan_charts:
             payload["position"] = append_charts(payload["position"], orphan_charts)
 
+        # Add theme UUID for proper cross-system imports
+        if model.theme:
+            payload["theme_uuid"] = str(model.theme.uuid)
+
         payload["version"] = EXPORT_VERSION
 
         # Check if the TAGGING_SYSTEM feature is enabled
