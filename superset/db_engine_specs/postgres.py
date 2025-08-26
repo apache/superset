@@ -364,7 +364,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         """
         sql = f"EXPLAIN {statement} LIMIT 1"
         results = cls.execute_metadata_query(database, sql)
-        result = results[0][0] if results else ""
+        rows = results.fetchall()
+        result = rows[0][0] if rows else ""
         match = re.search(r"cost=([\d\.]+)\.\.([\d\.]+)", result)
         if match:
             return {

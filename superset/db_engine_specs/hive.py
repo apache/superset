@@ -614,9 +614,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         if schema:
             sql += f" IN `{schema}`"
 
-        results = cls.execute_metadata_query(
+        result = cls.execute_metadata_query(
             database,
             sql,
             schema=schema,
         )
-        return {row[0] for row in results}
+        return {row[0] for row in result}

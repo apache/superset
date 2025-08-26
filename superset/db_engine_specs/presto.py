@@ -321,8 +321,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         Get all catalogs.
         """
-        results = cls.execute_metadata_query(database, "SHOW CATALOGS")
-        return {catalog for (catalog,) in results}
+        result = cls.execute_metadata_query(database, "SHOW CATALOGS")
+        return {catalog for (catalog,) in result}
 
     @classmethod
     def adjust_engine_params(

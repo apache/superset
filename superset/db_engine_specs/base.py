@@ -49,6 +49,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, select, types
+from sqlalchemy.engine import Result
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -1853,7 +1854,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         query: str,
         catalog: str | None = None,
         schema: str | None = None,
-    ) -> list[tuple[Any, ...]]:
+    ) -> Result:
         """
         Standardized method for executing metadata queries.
 
@@ -1867,7 +1868,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param query: SQL query to execute for metadata
         :param catalog: Optional catalog/database name
         :param schema: Optional schema name
-        :return: Query results as list of tuples
+        :return: SQLAlchemy Result object with methods like:
+                 - result.fetchall() -> list[Row]: Get all rows
+                 - result.fetchone() -> Row | None: Get single row
+                 - result.scalar() -> Any: Get single value
+                 - result.mappings() -> mappings for dict-like access
         """
         with cls.get_engine(
             database,
@@ -1876,8 +1881,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             source=utils.QuerySource.METADATA,
         ) as engine:
             with engine.connect() as conn:
-                result = conn.execute(text(query))
-                return result.fetchall()
+                return conn.execute(text(query))
 
     @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:

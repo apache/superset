@@ -154,12 +154,13 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        results_list = cls.execute_metadata_query(
+        result = cls.execute_metadata_query(
             database,
             f'SELECT GET_METADATA("{table.table}") LIMIT 1',
             catalog=table.catalog,
             schema=table.schema,
         )
+        results_list = result.fetchall()
         results = results_list[0][0] if results_list else None
         try:
             metadata = json.loads(results) if results else {}

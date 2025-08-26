@@ -503,12 +503,13 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         if default_catalog := connect_args.get("catalog"):
             return default_catalog
 
-        with database.get_sqla_engine() as engine:
-            catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
-            if len(catalogs) == 1:
-                return catalogs.pop()
+        result = cls.execute_metadata_query(database, "SHOW CATALOGS")
+        catalogs = {catalog for (catalog,) in result}
+        if len(catalogs) == 1:
+            return catalogs.pop()
 
-            return engine.execute("SELECT current_catalog()").scalar()
+        result = cls.execute_metadata_query(database, "SELECT current_catalog()")
+        return result.scalar()
 
     @classmethod
     def get_prequeries(

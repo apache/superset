@@ -344,13 +344,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
         # Run the query and handle result
-        results = cls.execute_metadata_query(
+        result = cls.execute_metadata_query(
             database,
             str(compiled_query),
             catalog=table.catalog,
             schema=table.schema,
         )
-        return results[0][0] if results else None
+        return result.scalar()
 
     @classmethod
     def get_time_partition_column(
