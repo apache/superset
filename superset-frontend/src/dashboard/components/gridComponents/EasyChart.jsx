@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { styled, css, t, useTheme } from '@superset-ui/core';
@@ -25,15 +25,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
-import { updateEasyChartMeta } from 'src/dashboard/actions/dashboardLayout';
-import { fetchSlices } from 'src/dashboard/actions/sliceEntities';
 import {
-  addSliceToDashboard,
   setFullSizeChartId,
+  toggleDashboardExploreModal,
 } from 'src/dashboard/actions/dashboardState';
-import { updatePortableChartId } from 'src/components/Chart/chartAction';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
-import AddChartModal from 'src/dashboard/components/AddChartModal/AddChartModal';
 import {
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
@@ -409,7 +405,6 @@ export default function EasyChart({
   `;
 
   const dispatch = useDispatch();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef(null);
 
   // Get dashboard edit mode from Redux store
@@ -472,29 +467,14 @@ export default function EasyChart({
   const handleAddChart = () => {
     // Only allow adding charts in edit mode
     if (dashboardEditMode) {
-      setIsModalOpen(true);
+      dispatch(toggleDashboardExploreModal(true, null));
     }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const handleUpdateMeta = id => {
-    // need action to rename the key from 0 to generated slice id
-    dispatch(updatePortableChartId(id, 0));
-    dispatch(fetchSlices());
-    setTimeout(() => {
-      dispatch(addSliceToDashboard(id));
-    }, 500);
-    setTimeout(() => {
-      dispatch(updateEasyChartMeta(component?.id, id));
-    }, 500);
-  };
-
-  const handleSaveChart = id => {
-    handleUpdateMeta(id);
-    setIsModalOpen(false);
+  const handleEditChart = () => {
+    if (component.meta.chartId) {
+      dispatch(toggleDashboardExploreModal(true, component.meta.chartId));
+    }
   };
 
   const handleClose = () => {
@@ -545,7 +525,7 @@ export default function EasyChart({
               'Chart'
             }
             isFromEasyChart
-            onEditEasyChart={() => setIsModalOpen(true)}
+            onEditEasyChart={handleEditChart}
           />
         ) : (
           <>
@@ -628,13 +608,6 @@ export default function EasyChart({
       >
         {({ dragSourceRef = null }) => renderContent({ dragSourceRef })}
       </DragDroppable>
-
-      <AddChartModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSaveChart}
-        editingChartId={component.meta.chartId}
-      />
     </ContainerDiv>
   );
 }

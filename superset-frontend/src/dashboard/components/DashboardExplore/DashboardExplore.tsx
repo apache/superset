@@ -38,6 +38,13 @@ import * as chartActions from 'src/components/Chart/chartAction';
 import * as logActions from 'src/logger/actions';
 import SaveModalPortable from 'src/explore/components/SaveModalPortable';
 import PortableExplore from '../PortableExplore';
+import {
+  toggleDashboardExploreModal,
+  addSliceToDashboard,
+} from '../../actions/dashboardState';
+import { updateEasyChartMeta } from '../../actions/dashboardLayout';
+import { fetchSlices } from '../../actions/sliceEntities';
+import { updatePortableChartId } from '../../../components/Chart/chartAction';
 
 interface DatasourceOption {
   value: string;
@@ -45,13 +52,6 @@ interface DatasourceOption {
   id: string;
   customLabel?: string;
   explore_url?: string;
-}
-
-interface AddChartModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (chartId: number) => void;
-  editingChartId?: number;
 }
 
 const StyledModalContent = styled.div`
@@ -103,29 +103,35 @@ const StyledModalContent = styled.div`
   `}
 `;
 
-const AddChartModal: React.FC<AddChartModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-  editingChartId,
-}) => {
+const DashboardExplore: React.FC = () => {
   const dispatch = useDispatch();
+
+  // Get Redux state for modal visibility and editing chart id
+  const isDashboardExploreOpen = useSelector(
+    (state: any) => state.dashboardState.isDashboardExploreOpen,
+  );
+  const dashboardExploreSliceId = useSelector(
+    (state: any) => state.dashboardState.dashboardExploreSliceId,
+  );
 
   const [selectedDatasource, setSelectedDatasource] =
     useState<DatasourceOption | null>(null);
   const [isLoadingEditChart, setIsLoadingEditChart] = useState(false);
   const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
 
+  // Get the editing chart ID - when it's provided, we're editing an existing chart
+  const editingChartId = dashboardExploreSliceId;
+
   // Initialize loading state immediately when modal opens for editing
   useEffect(() => {
-    if (isOpen && editingChartId) {
+    if (isDashboardExploreOpen && editingChartId) {
       setIsLoadingEditChart(true);
       setSelectedDatasource(null); // Clear any previous selection
-    } else if (isOpen && !editingChartId) {
+    } else if (isDashboardExploreOpen && !editingChartId) {
       setIsLoadingEditChart(false);
       setSelectedDatasource(null); // Clear for new chart creation
     }
-  }, [isOpen, editingChartId]);
+  }, [isDashboardExploreOpen, editingChartId]);
 
   // Get state from Redux for validation and save modal
   const charts = useSelector((state: any) => state.charts || {});
@@ -298,6 +304,10 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     [],
   );
 
+  const handleClose = useCallback(() => {
+    dispatch(toggleDashboardExploreModal(false, null));
+  }, [dispatch]);
+
   const handleShowSaveModal = useCallback(() => {
     if (!selectedDatasource || saveDisabled) return;
 
@@ -305,18 +315,44 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
     setIsSaveModalVisible(true);
   }, [selectedDatasource, saveDisabled]);
 
+  // Get dashboard layout outside of callback
+  const dashboardLayout = useSelector(
+    (state: any) => state.dashboardLayout.present,
+  );
+
   const handleSaveComplete = useCallback(
     (chartId: number) => {
-      // Call the onSave callback passed from parent and close modal
-      onSave(chartId);
-      onClose();
+      // Update the EasyChart with the new chart ID
+      // Find the appropriate EasyChart component to update
+      const easyChartComponents = Object.values(dashboardLayout).filter(
+        (component: any) => component.type === 'EASY_CHART',
+      );
+
+      // For now, find an empty EasyChart or create logic to identify which one triggered this
+      const targetComponent = easyChartComponents.find(
+        (component: any) => !component.meta?.chartId,
+      );
+
+      if (targetComponent) {
+        dispatch(updatePortableChartId(chartId, 0));
+        dispatch(fetchSlices());
+        setTimeout(() => {
+          dispatch(addSliceToDashboard(chartId));
+        }, 500);
+        setTimeout(() => {
+          dispatch(updateEasyChartMeta((targetComponent as any).id, chartId));
+        }, 500);
+      }
+
+      // Close the modal
+      handleClose();
     },
-    [onSave, onClose],
+    [dispatch, handleClose, dashboardLayout],
   );
 
   // Handle editing existing chart
   useEffect(() => {
-    if (isOpen && editingChartId) {
+    if (isDashboardExploreOpen && editingChartId) {
       const existingChart = charts[editingChartId];
       const existingFormData = existingChart?.form_data;
 
@@ -387,7 +423,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
           });
       }
     }
-  }, [isOpen, editingChartId]);
+  }, [isDashboardExploreOpen, editingChartId]);
 
   // Monitor explore state hydration completion for editing mode
   useEffect(() => {
@@ -426,8 +462,8 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   return (
     <>
       <Modal
-        show={isOpen}
-        onHide={onClose}
+        show={isDashboardExploreOpen}
+        onHide={handleClose}
         destroyOnHidden
         title={editingChartId ? t('Edit Chart') : t('Add Chart')}
         width="1600px"
@@ -435,7 +471,7 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
           <div
             style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}
           >
-            <Button onClick={onClose}>{t('Cancel')}</Button>
+            <Button onClick={handleClose}>{t('Cancel')}</Button>
             <Tooltip
               title={
                 saveDisabled || !selectedDatasource
@@ -502,4 +538,4 @@ const AddChartModal: React.FC<AddChartModalProps> = ({
   );
 };
 
-export default AddChartModal;
+export default DashboardExplore;
