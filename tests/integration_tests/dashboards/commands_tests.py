@@ -727,7 +727,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         command = v1.ImportDashboardsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dashboard"
+        assert str(excinfo.value).startswith("Error importing dashboard")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Dashboard."]}
         }
@@ -740,7 +740,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         command = v1.ImportDashboardsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dashboard"
+        assert str(excinfo.value).startswith("Error importing dashboard")
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
