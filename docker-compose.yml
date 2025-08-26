@@ -109,7 +109,7 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb?access_mode=read_only"
 
   superset-websocket:
     container_name: superset_websocket
@@ -162,7 +162,7 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb?access_mode=read_only"
     healthcheck:
       disable: true
 
