@@ -828,3 +828,97 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             # If for some reason we get an exception, for example, no new line
             # We will return the original exception
             return exception
+
+    @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all materialized views from BigQuery.
+
+        BigQuery materialized views are not returned by the standard
+        get_view_names() method, so we need to query INFORMATION_SCHEMA directly.
+        """
+        if not schema:
+            return set()
+
+        # Construct the query to get materialized views from INFORMATION_SCHEMA
+        if catalog := database.get_default_catalog():
+            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
+        else:
+            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
+
+        # Use string formatting for the table name since it's not user input
+        # The catalog and schema are from trusted sources (database configuration)
+        query = f"""
+        SELECT table_name
+        FROM {information_schema}
+        WHERE table_type = 'MATERIALIZED VIEW'
+        """  # noqa: S608
+
+        materialized_views = set()
+        try:
+            with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                materialized_views = {row[0] for row in cursor.fetchall()}
+        except Exception:
+            # If we can't fetch materialized views, return empty set
+            logger.warning(
+                "Unable to fetch materialized views for schema %s",
+                schema,
+                exc_info=True,
+            )
+
+        return materialized_views
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all views from BigQuery, excluding materialized views.
+
+        BigQuery's standard view discovery includes materialized views,
+        but we want to separate them for proper categorization.
+        """
+        if not schema:
+            return set()
+
+        # Construct the query to get regular views from INFORMATION_SCHEMA
+        catalog = database.get_default_catalog()
+        if catalog:
+            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
+        else:
+            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
+
+        # Use string formatting for the table name since it's not user input
+        # The catalog and schema are from trusted sources (database configuration)
+        query = f"""
+        SELECT table_name
+        FROM {information_schema}
+        WHERE table_type = 'VIEW'
+        """  # noqa: S608
+
+        views = set()
+        try:
+            with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                views = {row[0] for row in cursor.fetchall()}
+        except Exception:
+            # If we can't fetch views, fall back to the default implementation
+            logger.warning(
+                "Unable to fetch views for schema %s, falling back to default",
+                schema,
+                exc_info=True,
+            )
+            return super().get_view_names(database, inspector, schema)
+
+        return views
