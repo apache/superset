@@ -3,7 +3,7 @@ name: 🎪 Superset Showtime
 # Ultra-simple: just sync on any PR state change
 on:
   pull_request_target:
-    types: [labeled, synchronize, closed]
+    types: [labeled, unlabeled, synchronize, closed]
 
   # Manual testing
   workflow_dispatch:
@@ -16,6 +16,7 @@ on:
         description: 'Specific SHA to deploy (optional, defaults to latest)'
         required: false
         type: string
+        pattern: '^[a-f0-9]{40}$'
 
 # Common environment variables for all jobs
 env:
@@ -33,18 +34,83 @@ jobs:
   sync:
     name: 🎪 Sync PR to desired state
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     permissions:
       contents: read
       pull-requests: write
 
     steps:
+      - name: Security Check - Authorize Maintainers Only
+        id: auth
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = context.actor;
+            console.log(`🔍 Checking authorization for ${actor}`);
+
+            // Early exit for workflow_dispatch - assume authorized since it's manually triggered
+            if (context.eventName === 'workflow_dispatch') {
+              console.log(`✅ Workflow dispatch event - assuming authorized for ${actor}`);
+              core.setOutput('authorized', 'true');
+              return;
+            }
+
+            const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: actor
+            });
+
+            console.log(`📊 Permission level for ${actor}: ${permission.permission}`);
+            const authorized = ['write', 'admin'].includes(permission.permission);
+
+            if (!authorized) {
+              console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
+              core.setOutput('authorized', 'false');
+              return;
+            }
+
+            console.log(`✅ Authorized maintainer: ${actor}`);
+            core.setOutput('authorized', 'true');
+
+            // If this is a synchronize event, check if Showtime is active and set blocked label
+            if (context.eventName === 'pull_request_target' && context.payload.action === 'synchronize') {
+              console.log(`🔒 Synchronize event detected - checking if Showtime is active`);
+
+              // Check if PR has any circus tent labels (Showtime is in use)
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number
+              });
+
+              const hasCircusLabels = issue.labels.some(label => label.name.startsWith('🎪 '));
+
+              if (hasCircusLabels) {
+                console.log(`🎪 Circus labels found - setting blocked label to prevent auto-deployment`);
+
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  labels: ['🎪 🔒 showtime-blocked']
+                });
+
+                console.log(`✅ Blocked label set - Showtime will detect and skip operations`);
+              } else {
+                console.log(`ℹ️ No circus labels found - Showtime not in use, skipping block`);
+              }
+            }
+
       - name: Install Superset Showtime
+        if: steps.auth.outputs.authorized == 'true'
         run: |
           pip install --upgrade superset-showtime
           showtime version
 
       - name: Check what actions are needed
+        if: steps.auth.outputs.authorized == 'true'
         id: check
         run: |
           # Bulletproof PR number extraction
@@ -79,14 +145,14 @@ jobs:
           echo "target_sha=$TARGET_SHA" >> $GITHUB_OUTPUT
 
       - name: Checkout PR code (only if build needed)
-        if: steps.check.outputs.build_needed == 'true'
+        if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.check.outputs.target_sha }}
           persist-credentials: false
 
       - name: Setup Docker Environment (only if build needed)
-        if: steps.check.outputs.build_needed == 'true'
+        if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
         uses: ./.github/actions/setup-docker
         with:
           dockerhub-user: ${{ env.DOCKERHUB_USER }}
@@ -95,7 +161,7 @@ jobs:
           install-docker-compose: "false"
 
       - name: Execute sync (handles everything)
-        if: steps.check.outputs.sync_needed == 'true'
+        if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.sync_needed == 'true'
         run: |
           PR_NUM="${{ steps.check.outputs.pr_number }}"
           TARGET_SHA="${{ steps.check.outputs.target_sha }}"
