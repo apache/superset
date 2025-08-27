@@ -327,6 +327,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -868,10 +869,13 @@ typing-extensions==4.14.0
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
+    #   astroid
     #   cattrs
+    #   exceptiongroup
     #   limits
     #   pyopenssl
     #   referencing
+    #   rich
     #   selenium
     #   shillelagh
 tzdata==2025.2
