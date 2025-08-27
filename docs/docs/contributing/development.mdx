@@ -747,6 +747,24 @@ To run a single test file:
 npm run test -- path/to/file.js
 ```
 
+#### Known Issues and Workarounds
+
+**Jest Test Hanging (MessageChannel Issue)**
+
+If Jest tests hang with "Jest did not exit one second after the test run has completed", this is likely due to the MessageChannel issue from rc-overflow (Ant Design v5 components).
+
+**Root Cause**: `rc-overflow@1.4.1` creates MessageChannel handles for responsive overflow detection that remain open after test completion.
+
+**Current Workaround**: MessageChannel is mocked as undefined in `spec/helpers/jsDomWithFetchAPI.ts`, forcing rc-overflow to use requestAnimationFrame fallback.
+
+**To verify if still needed**: Remove the MessageChannel mocking lines and run `npm test -- --shard=4/8`. If tests hang, the workaround is still required.
+
+**Future removal conditions**: This workaround can be removed when:
+- rc-overflow updates to properly clean up MessagePorts in test environments
+- Jest updates to handle MessageChannel/MessagePort cleanup better
+- Ant Design switches away from rc-overflow
+- We switch away from Ant Design v5
+
 ### Debugging Server App
 
 #### Local
