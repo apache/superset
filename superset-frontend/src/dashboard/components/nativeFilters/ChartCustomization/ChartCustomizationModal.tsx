@@ -453,7 +453,7 @@ const ChartCustomizationModal = ({
           formFilters[item.id] = {
             ...item.customization,
             dataset: datasetId
-              ? typeof datasetId === 'object'
+              ? typeof datasetId === 'object' && !Array.isArray(datasetId)
                 ? datasetId
                 : savedDatasetInfo && savedDatasetInfo.table_name
                   ? {
@@ -619,7 +619,7 @@ const ChartCustomizationModal = ({
       css={{
         flex: 1,
         overflow: 'auto',
-        padding: `${theme.sizeUnit * 4}px`,
+        padding: `${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px 0`,
       }}
     >
       {items
