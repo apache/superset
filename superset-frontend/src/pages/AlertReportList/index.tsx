@@ -245,6 +245,21 @@ function AlertList({
     [alerts, setResourceCollection, updateResource],
   );
 
+  const runReportNow = async (report: AlertObject) => {
+    if (report.last_state === AlertState.Working) {
+      addDangerToast(t('Report is currently running, please wait.'));
+      return;
+    }
+    SupersetClient.post({
+      endpoint: `/api/v1/report/${report.id}/run_now`,
+    }).then(() => {
+      addSuccessToast(t('Report execution started.'));
+      refreshData();
+    }).catch((error: any) => {
+      addDangerToast(t('Failed to start report: %s', error?.error || error?.statusText || 'Unknown error'));
+    });
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -377,7 +392,21 @@ function AlertList({
             original.owners.map((o: Owner) => o.id).includes(user.userId) ||
             isUserAdmin(user);
 
+          const isRunning = original.lastState === AlertState.Working;
+          const runNowTooltip = isRunning
+            ? t('Currently running, please wait')
+            : t('Run now');
+          const runNowIcon = isRunning ? 'LoadingOutlined' : 'PlayCircleOutlined';
+
           const actions = [
+            {
+              label: 'run-now-action',
+              tooltip: runNowTooltip,
+              placement: 'bottom',
+              icon: runNowIcon,
+              onClick: () => runReportNow(original),
+              disabled: isRunning,
+            },
             canEdit
               ? {
                   label: 'execution-log-action',
@@ -423,7 +452,7 @@ function AlertList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, isReportEnabled, toggleActive],
+    [canDelete, canEdit, isReportEnabled, toggleActive, refreshData],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
