@@ -89,25 +89,55 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
    * and return previous value
    * unless one of
    * - preTransformProps
-   * - transformProps
-   * - postTransformProps
    * - chartProps
    * is changed.
    */
-  processChartProps = createSelector(
+  preSelector = createSelector(
     [
       (input: {
         chartProps: ChartProps;
         preTransformProps?: PreTransformProps;
-        transformProps?: TransformProps;
-        postTransformProps?: PostTransformProps;
       }) => input.chartProps,
       input => input.preTransformProps,
+    ],
+    (chartProps, pre = IDENTITY) => pre(chartProps),
+  );
+
+  /**
+   * memoized function so it will not recompute
+   * and return previous value
+   * unless one of
+   * - transformProps
+   * - preprocessed result
+   * is changed.
+   */
+  transformSelector = createSelector(
+    [
+      (input: { chartProps: ChartProps; transformProps?: TransformProps }) =>
+        input.chartProps,
       input => input.transformProps,
+    ],
+    (preprocessedChartProps, transform = IDENTITY) =>
+      transform(preprocessedChartProps),
+  );
+
+  /**
+   * memoized function so it will not recompute
+   * and return previous value
+   * unless one of
+   * - postTransformProps
+   * - transformed result
+   * is changed.
+   */
+  postSelector = createSelector(
+    [
+      (input: {
+        chartProps: ChartProps;
+        postTransformProps?: PostTransformProps;
+      }) => input.chartProps,
       input => input.postTransformProps,
     ],
-    (chartProps, pre = IDENTITY, transform = IDENTITY, post = IDENTITY) =>
-      post(transform(pre(chartProps))),
+    (transformedChartProps, post = IDENTITY) => post(transformedChartProps),
   );
 
   /**
@@ -156,10 +186,11 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
 
     return (
       <Chart
-        {...this.processChartProps({
-          chartProps,
-          preTransformProps,
-          transformProps,
+        {...this.postSelector({
+          chartProps: this.transformSelector({
+            chartProps: this.preSelector({ chartProps, preTransformProps }),
+            transformProps,
+          }),
           postTransformProps,
         })}
       />
