@@ -41,6 +41,7 @@ import {
   loadChartCustomizationData,
 } from 'src/dashboard/actions/dashboardInfo';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
+import { dispatchChartCustomizationHoverAction } from '../FilterBar/FilterControls/utils';
 import { mergeExtraFormData } from '../utils';
 import { ChartCustomizationItem } from './types';
 
@@ -322,6 +323,16 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     setIsHoverCardVisible(false);
   }, []);
 
+  const setHoveredChartCustomization = useCallback(
+    () => dispatchChartCustomizationHoverAction(dispatch, customizationItem.id),
+    [dispatch, customizationItem.id],
+  );
+
+  const unsetHoveredChartCustomization = useCallback(
+    () => dispatchChartCustomizationHoverAction(dispatch),
+    [dispatch],
+  );
+
   const isRequired = useMemo(
     () => !!customizationItem.customization?.controlValues?.enableEmptyFilter,
     [customizationItem.customization?.controlValues?.enableEmptyFilter],
@@ -471,47 +482,52 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             </div>
           }
         >
-          <Select
-            allowClear
-            autoClearSearchValue
-            placeholder={t('Search columns...')}
-            value={columnName || null}
-            onChange={(value: string | string[]) => {
-              const columnValue = canSelectMultiple
-                ? Array.isArray(value)
-                  ? value.length > 0
+          <div
+            onMouseEnter={setHoveredChartCustomization}
+            onMouseLeave={unsetHoveredChartCustomization}
+          >
+            <Select
+              allowClear
+              autoClearSearchValue
+              placeholder={t('Search columns...')}
+              value={columnName || null}
+              onChange={(value: string | string[]) => {
+                const columnValue = canSelectMultiple
+                  ? Array.isArray(value)
+                    ? value.length > 0
+                      ? value
+                      : null
+                    : value || null
+                  : typeof value === 'string'
                     ? value
-                    : null
-                  : value || null
-                : typeof value === 'string'
-                  ? value
-                  : null;
+                    : null;
 
-              const updatedCustomization = {
-                ...customizationItem.customization,
-                column: columnValue,
-              };
+                const updatedCustomization = {
+                  ...customizationItem.customization,
+                  column: columnValue,
+                };
 
-              dispatch(
-                setPendingChartCustomization({
-                  id: customizationItem.id,
-                  title: customizationItem.title,
-                  customization: updatedCustomization,
-                }),
-              );
-            }}
-            options={columnOptions}
-            showSearch
-            mode={canSelectMultiple ? 'multiple' : undefined}
-            filterOption={(input, option) =>
-              ((option?.label as string) ?? '')
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-            getPopupContainer={triggerNode => triggerNode.parentNode}
-            oneLine={isHorizontalLayout}
-            className="select-container"
-          />
+                dispatch(
+                  setPendingChartCustomization({
+                    id: customizationItem.id,
+                    title: customizationItem.title,
+                    customization: updatedCustomization,
+                  }),
+                );
+              }}
+              options={columnOptions}
+              showSearch
+              mode={canSelectMultiple ? 'multiple' : undefined}
+              filterOption={(input, option) =>
+                ((option?.label as string) ?? '')
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              getPopupContainer={triggerNode => triggerNode.parentNode}
+              oneLine={isHorizontalLayout}
+              className="select-container"
+            />
+          </div>
         </HorizontalFormItem>
 
         {loading && (
@@ -568,6 +584,8 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         css={css`
           margin-bottom: ${theme.sizeUnit}px;
         `}
+        onMouseEnter={setHoveredChartCustomization}
+        onMouseLeave={unsetHoveredChartCustomization}
       >
         <Select
           allowClear
