@@ -22,8 +22,9 @@ import {
   type OnClickHandler,
   Alert,
   Icons,
+  Flex,
 } from '@superset-ui/core/components';
-import { t, useTheme, styled } from '@superset-ui/core';
+import { t, useTheme, styled, css } from '@superset-ui/core';
 import { BaseExpandButtonWrapper } from './SharedStyles';
 
 const StyledAlert = styled(Alert)`
@@ -43,11 +44,6 @@ const StyledFooterContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-`;
-
-const StyledButtonGroup = styled.div`
-  display: flex;
-  gap: 8px;
 `;
 
 export interface ConfirmationAlertProps {
@@ -145,7 +141,11 @@ export const ModalFooter: FC<ModalFooterProps> = ({
 
   return (
     <StyledFooterContainer>
-      <StyledButtonGroup>
+      <Flex
+        css={css`
+          gap: 8px;
+        `}
+      >
         <Button
           key="cancel"
           buttonStyle="secondary"
@@ -163,7 +163,7 @@ export const ModalFooter: FC<ModalFooterProps> = ({
         >
           {saveButtonText}
         </Button>
-      </StyledButtonGroup>
+      </Flex>
       {onToggleExpand && (
         <BaseExpandButtonWrapper>
           {(() => {
