@@ -24,6 +24,7 @@ import { ClassNames } from '@emotion/react';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
+import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
 
 export interface GroupByBadgeProps {
   chartId: number;
@@ -179,26 +180,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       return [];
     }
 
-    const excludedChartTypes = [
-      'big_number',
-      'big_number_total',
-      'cal_heatmap',
-      'gantt',
-      'table',
-      'deck_arc',
-      'deck_geojson',
-      'deck_grid',
-      'deck_hex',
-      'deck_heatmap',
-      'deck_multi',
-      'deck_polygon',
-      'deck_scatter',
-      'deck_screengrid',
-      'deck_contour',
-      'deck_path',
-    ];
-
-    if (excludedChartTypes.includes(chartType)) {
+    if (isChartWithoutGroupBy(chartType)) {
       return [];
     }
 
