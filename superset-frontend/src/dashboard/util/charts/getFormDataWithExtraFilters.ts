@@ -34,6 +34,11 @@ import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/C
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { isEqual } from 'lodash';
 import { areObjectsEqual } from 'src/reduxUtils';
+import {
+  isSingleColumnDimensionChart,
+  limitColumnsForChartType,
+  isChartWithoutGroupBy,
+} from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -153,26 +158,7 @@ function processGroupByCustomizations(
 
   const chartType = chart.form_data?.viz_type;
 
-  const excludedChartTypes = [
-    'big_number',
-    'big_number_total',
-    'cal_heatmap',
-    'gantt',
-    'table',
-    'deck_arc',
-    'deck_geojson',
-    'deck_grid',
-    'deck_hex',
-    'deck_heatmap',
-    'deck_multi',
-    'deck_polygon',
-    'deck_scatter',
-    'deck_screengrid',
-    'deck_contour',
-    'deck_path',
-  ];
-
-  if (excludedChartTypes.includes(chartType)) {
+  if (isChartWithoutGroupBy(chartType)) {
     return {};
   }
 
@@ -370,11 +356,7 @@ function processGroupByCustomizations(
         return;
       }
 
-      if (
-        chartType === 'heatmap' ||
-        chartType === 'heatmap_v2' ||
-        chartType === 'waterfall'
-      ) {
+      if (isSingleColumnDimensionChart(chartType)) {
         if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
           const firstColumn = nonConflictingColumns[0];
           if (!groupByColumns.includes(firstColumn)) {
@@ -383,11 +365,7 @@ function processGroupByCustomizations(
           }
         }
         if (nonConflictingColumns.length > 1) {
-          const chartTypeName =
-            chartType === 'waterfall' ? 'Waterfall' : 'Heatmap';
-          console.warn(
-            `${chartTypeName} charts only support one column dimension. Using "${nonConflictingColumns[0]}" only. Additional columns (${nonConflictingColumns.slice(1).join(', ')}) will be ignored.`,
-          );
+          limitColumnsForChartType(chartType, nonConflictingColumns);
         }
       } else {
         nonConflictingColumns.forEach(columnName => {
@@ -434,22 +412,16 @@ function processGroupByCustomizations(
           groupByFormData.groupby = existingGroupBy;
         }
       } else {
-        if (groupByColumns.length > 1) {
-          console.warn(
-            `Time series charts only support one x-axis dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
-          );
-        }
         const newXAxis = groupByColumns[0];
         groupByFormData.x_axis = newXAxis;
         groupByFormData.groupby = [];
       }
     } else if (chartType === 'word_cloud') {
-      if (groupByColumns.length > 1) {
-        console.warn(
-          `Word cloud charts only support one series dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
-        );
-      }
-      groupByFormData.series = groupByColumns[0];
+      const { limitedColumns } = limitColumnsForChartType(
+        chartType,
+        groupByColumns,
+      );
+      groupByFormData.series = limitedColumns[0];
       groupByFormData.groupby = [];
     } else if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
       if (groupByColumns.length > 0) {
@@ -462,12 +434,11 @@ function processGroupByCustomizations(
       }
     } else if (chartType === 'waterfall') {
       if (groupByColumns.length > 0) {
-        if (groupByColumns.length > 1) {
-          console.warn(
-            `Waterfall charts only support one dimension. Using "${groupByColumns[0]}" only. Additional columns (${groupByColumns.slice(1).join(', ')}) will be ignored.`,
-          );
-        }
-        groupByFormData.groupby = [groupByColumns[0]];
+        const { limitedColumns } = limitColumnsForChartType(
+          chartType,
+          groupByColumns,
+        );
+        groupByFormData.groupby = [limitedColumns[0]];
       } else {
         const groupbyWithoutXAxis = existingGroupBy.filter(
           col => col !== xAxisColumn,
@@ -479,40 +450,37 @@ function processGroupByCustomizations(
       groupByFormData.groupby = [];
     } else if (chartType === 'graph_chart') {
       if (groupByColumns.length > 0) {
-        if (groupByColumns.length > 2) {
-          console.warn(
-            `Graph charts only support two dimensions (source and target). Using "${groupByColumns[0]}" for source and "${groupByColumns[1]}" for target. Additional columns (${groupByColumns.slice(2).join(', ')}) will be ignored.`,
-          );
-        }
-        groupByFormData.source = groupByColumns[0];
-        if (groupByColumns.length > 1) {
-          groupByFormData.target = groupByColumns[1];
+        const { limitedColumns } = limitColumnsForChartType(
+          chartType,
+          groupByColumns,
+        );
+        groupByFormData.source = limitedColumns[0];
+        if (limitedColumns.length > 1) {
+          groupByFormData.target = limitedColumns[1];
         }
       }
     } else if (chartType === 'sankey_v2') {
       if (groupByColumns.length > 0) {
-        if (groupByColumns.length > 2) {
-          console.warn(
-            `Sankey charts only support two dimensions (source and target). Using "${groupByColumns[0]}" for source and "${groupByColumns[1]}" for target. Additional columns (${groupByColumns.slice(2).join(', ')}) will be ignored.`,
-          );
-        }
-        groupByFormData.source = groupByColumns[0];
-        if (groupByColumns.length > 1) {
-          groupByFormData.target = groupByColumns[1];
+        const { limitedColumns } = limitColumnsForChartType(
+          chartType,
+          groupByColumns,
+        );
+        groupByFormData.source = limitedColumns[0];
+        if (limitedColumns.length > 1) {
+          groupByFormData.target = limitedColumns[1];
         }
       }
     } else if (['chord'].includes(chartType)) {
       groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
     } else if (chartType === 'bubble_v2') {
       if (groupByColumns.length > 0) {
-        if (groupByColumns.length > 2) {
-          console.warn(
-            `Bubble charts only support two dimensions (series and entity). Using "${groupByColumns[0]}" for series and "${groupByColumns[1]}" for entity. Additional columns (${groupByColumns.slice(2).join(', ')}) will be ignored.`,
-          );
-        }
-        groupByFormData.series = groupByColumns[0];
-        if (groupByColumns.length > 1) {
-          groupByFormData.entity = groupByColumns[1];
+        const { limitedColumns } = limitColumnsForChartType(
+          chartType,
+          groupByColumns,
+        );
+        groupByFormData.series = limitedColumns[0];
+        if (limitedColumns.length > 1) {
+          groupByFormData.entity = limitedColumns[1];
         }
         groupByFormData.groupby = [];
       }
