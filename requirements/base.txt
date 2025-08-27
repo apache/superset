@@ -101,11 +101,6 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
-exceptiongroup==1.3.0
-    # via
-    #   cattrs
-    #   trio
-    #   trio-websocket
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
