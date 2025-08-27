@@ -141,12 +141,6 @@ const StyledFormItem = styled(FormItem)`
   ${({ theme }) => `
     width: ${FORM_ITEM_WIDTH}px;
     margin-bottom: ${theme.sizeUnit * 4}px;
-
-    .ant-form-item-label > label {
-      font-size: ${theme.fontSizeSM}px;
-      font-weight: ${theme.fontWeightNormal};
-      color: ${theme.colorText};
-    }
   `}
 `;
 
@@ -155,11 +149,6 @@ const CheckboxLabel = styled.span`
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colorTextSecondary};
   `}
-`;
-
-const StyledTextArea = styled(TextArea)`
-  min-height: ${({ theme }) => theme.sizeUnit * 24}px;
-  resize: vertical;
 `;
 
 const StyledRadioGroup = styled(Radio.Group)`
@@ -258,6 +247,11 @@ const ChartCustomizationForm: FC<Props> = ({
     [],
   );
 
+  const getFormValues = useCallback(
+    () => form.getFieldValue('filters')?.[item.id] || {},
+    [form, item.id],
+  );
+
   const excludeDatasetIds = useMemo(() => {
     const usedIds: number[] = [];
 
@@ -347,7 +341,6 @@ const ChartCustomizationForm: FC<Props> = ({
     customization.datasetInfo,
     datasetDetails,
     loadedDatasets,
-    charts,
     getDatasetId,
   ]);
 
@@ -416,7 +409,7 @@ const ChartCustomizationForm: FC<Props> = ({
   }, [form, item.id]);
 
   const fetchDatasetInfo = useCallback(async () => {
-    const formValues = form.getFieldValue('filters')?.[item.id] || {};
+    const formValues = getFormValues();
     const dataset = formValues.dataset || customization.dataset;
 
     if (!dataset) {
@@ -546,7 +539,7 @@ const ChartCustomizationForm: FC<Props> = ({
   }, [customization.dataset, fetchDatasetInfo, getDatasetId]);
 
   const fetchDefaultValueData = useCallback(async () => {
-    const formValues = form.getFieldValue('filters')?.[item.id] || {};
+    const formValues = getFormValues();
     const dataset = formValues.dataset || customization.dataset;
 
     if (!dataset) {
@@ -593,7 +586,7 @@ const ChartCustomizationForm: FC<Props> = ({
       ensureFilterSlot();
       const currentFilters = form.getFieldValue('filters') || {};
 
-      const currentFormValues = form.getFieldValue('filters')?.[item.id] || {};
+      const currentFormValues = getFormValues();
       const selectFirstEnabled =
         currentFormValues.selectFirst ?? customization.selectFirst ?? false;
 
@@ -634,7 +627,6 @@ const ChartCustomizationForm: FC<Props> = ({
 
       setError(null);
     } catch (error) {
-      console.error('Error fetching dataset columns:', error);
       setError(error);
 
       ensureFilterSlot();
@@ -1019,22 +1011,29 @@ const ChartCustomizationForm: FC<Props> = ({
         </StyledFormItem>
       </StyledContainer>
 
-      <Collapse defaultActiveKey={['settings']} expandIconPosition="right">
+      <Collapse
+        defaultActiveKey={['settings']}
+        expandIconPosition="right"
+        modalMode
+      >
         <Collapse.Panel header={t('Customization settings')} key="settings">
           <StyledFormItem
             name={['filters', item.id, 'description']}
             label={t('Description')}
             initialValue={customization.description || ''}
             css={css`
-              width: ${FORM_ITEM_WIDTH * 1.5}px;
+              width: 100% !important;
             `}
           >
-            <StyledTextArea
+            <TextArea
               placeholder={t(
                 'Add description that will be displayed when hovering over the label...',
               )}
               onChange={debouncedFormChanged}
-              autoSize={{ minRows: 4 }}
+              autoSize={{ minRows: 2, maxRows: 3 }}
+              css={css`
+                resize: none;
+              `}
             />
           </StyledFormItem>
 
