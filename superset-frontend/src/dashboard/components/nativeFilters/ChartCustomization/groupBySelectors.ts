@@ -24,22 +24,40 @@ import { ChartCustomizationItem } from './types';
 export const selectGroupByState = (state: RootState): GroupByState =>
   state.groupByCustomizations?.groupByState || {};
 
-export const selectGroupByValues = createSelector(
+export const selectGroupByValues: (
+  state: RootState,
+  groupById: string,
+) => string[] = createSelector(
   [selectGroupByState, (state: RootState, groupById: string) => groupById],
-  (groupByState, groupById) => groupByState[groupById]?.selectedValues || [],
+  (groupByState, groupById): string[] =>
+    groupByState[groupById]?.selectedValues || [],
 );
 
-export const selectGroupByLoading = createSelector(
+export const selectGroupByLoading: (
+  state: RootState,
+  groupById: string,
+) => boolean = createSelector(
   [selectGroupByState, (state: RootState, groupById: string) => groupById],
-  (groupByState, groupById) => groupByState[groupById]?.isLoading || false,
+  (groupByState, groupById): boolean =>
+    groupByState[groupById]?.isLoading || false,
 );
 
-export const selectGroupByOptions = createSelector(
+export const selectGroupByOptions: (
+  state: RootState,
+  groupById: string,
+) => Array<{ label: string; value: string }> = createSelector(
   [selectGroupByState, (state: RootState, groupById: string) => groupById],
-  (groupByState, groupById) => groupByState[groupById]?.availableOptions || [],
+  (groupByState, groupById): Array<{ label: string; value: string }> =>
+    groupByState[groupById]?.availableOptions || [],
 );
 
-export const selectGroupByFormData = createSelector(
+export const selectGroupByFormData: (
+  state: RootState,
+  chartId: number,
+) => {
+  groupby?: string[];
+  filters?: Array<{ col: string; op: string; val: string[] }>;
+} = createSelector(
   [
     selectGroupByState,
     (state: RootState) =>
@@ -85,12 +103,10 @@ export const selectGroupByFormData = createSelector(
             columnNames = [columnName];
           }
         } else {
-          console.warn('Invalid column format:', item.customization.column);
           return;
         }
 
         if (columnNames.length === 0) {
-          console.warn('Empty column names in customization:', item.id);
           return;
         }
 
@@ -124,7 +140,15 @@ export const selectGroupByFormData = createSelector(
   },
 );
 
-export const selectGroupByExtraFormData = createSelector(
+export const selectGroupByExtraFormData: (
+  state: RootState,
+  chartId: number,
+  datasetId: string,
+) => {
+  groupby?: string[];
+  order_by_cols?: string[];
+  filters?: Array<{ col: string; op: string; val: string[] }>;
+} = createSelector(
   [
     selectGroupByState,
     (state: RootState) =>
@@ -184,12 +208,10 @@ export const selectGroupByExtraFormData = createSelector(
             columnNames = [columnName];
           }
         } else {
-          console.warn('Invalid column format:', customization.column);
           return;
         }
 
         if (columnNames.length === 0) {
-          console.warn('Empty column names in customization:', item.id);
           return;
         }
 
