@@ -20,7 +20,6 @@ import { useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { saveChartCustomization } from 'src/dashboard/actions/dashboardInfo';
-import ChartCustomizationModal from './ChartCustomizationModal';
 import { ChartCustomizationItem } from './types';
 
 export const useChartCustomizationModal = (chartId?: number) => {
@@ -37,21 +36,17 @@ export const useChartCustomizationModal = (chartId?: number) => {
   const handleSave = useCallback(
     (dashboardId: number, items: ChartCustomizationItem[]) => {
       dispatch(saveChartCustomization(items));
-      closeChartCustomizationModal();
+      setIsOpen(false);
     },
-    [dispatch, closeChartCustomizationModal],
+    [dispatch],
   );
 
   return {
+    isOpen,
+    dashboardId,
+    chartId,
     openChartCustomizationModal,
-    ChartCustomizationModalComponent: isOpen ? (
-      <ChartCustomizationModal
-        isOpen={isOpen}
-        dashboardId={dashboardId}
-        chartId={chartId}
-        onCancel={closeChartCustomizationModal}
-        onSave={handleSave}
-      />
-    ) : null,
+    closeChartCustomizationModal,
+    handleSave,
   };
 };

@@ -33,6 +33,7 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useChartCustomizationModal } from '../../ChartCustomization/useChartCustomizationModal';
+import ChartCustomizationModal from '../../ChartCustomization/ChartCustomizationModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -80,8 +81,14 @@ const FilterBarSettings = () => {
     ({ dashboardInfo }) => dashboardInfo.id,
   );
 
-  const { openChartCustomizationModal, ChartCustomizationModalComponent } =
-    useChartCustomizationModal();
+  const {
+    isOpen: isChartCustomizationModalOpen,
+    dashboardId: chartCustomizationDashboardId,
+    chartId: chartCustomizationChartId,
+    openChartCustomizationModal,
+    closeChartCustomizationModal,
+    handleSave: handleChartCustomizationSave,
+  } = useChartCustomizationModal();
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -292,7 +299,15 @@ const FilterBarSettings = () => {
       </Dropdown>
       {scopingModal}
       {FilterConfigModalComponent}
-      {ChartCustomizationModalComponent}
+      {isChartCustomizationModalOpen && (
+        <ChartCustomizationModal
+          isOpen={isChartCustomizationModalOpen}
+          dashboardId={chartCustomizationDashboardId}
+          chartId={chartCustomizationChartId}
+          onCancel={closeChartCustomizationModal}
+          onSave={handleChartCustomizationSave}
+        />
+      )}
     </>
   );
 };
