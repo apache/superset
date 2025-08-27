@@ -105,7 +105,7 @@ const SQLEditorWithValidation = forwardRef<any, SQLEditorWithValidationProps>(
       if (!value || !datasourceId || !datasourceType) {
         const error = {
           message: !value
-            ? t('Expression Cannot be empty')
+            ? t('Expression cannot be empty')
             : t('Datasource is required for validation'),
         };
         setValidationResult({

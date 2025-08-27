@@ -114,18 +114,15 @@ const TimeTable = ({
     });
   }, [columnConfigs, data, rowType, rows, url]);
 
-  const defaultSort = useMemo(
-    () =>
-      rowType === 'column' && columnConfigs.length
-        ? [
-            {
-              id: columnConfigs[0].key,
-              desc: true,
-            },
-          ]
-        : [],
-    [rowType, columnConfigs],
-  );
+  const defaultSort =
+    rowType === 'column' && columnConfigs.length
+      ? [
+          {
+            id: columnConfigs[0].key,
+            desc: true,
+          },
+        ]
+      : [];
 
   return (
     <TimeTableStyles

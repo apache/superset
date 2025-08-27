@@ -17,25 +17,23 @@
  * under the License.
  */
 import { formatNumber } from '@superset-ui/core';
+import { parseToNumber } from '../../utils';
 
 interface FormattedNumberProps {
   num?: string | number | null;
   format?: string;
 }
 
-function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
+const FormattedNumber = ({ num = 0, format }: FormattedNumberProps) => {
   const displayNum = num ?? 0;
-  const numericValue =
-    typeof displayNum === 'string' ? parseFloat(displayNum) : displayNum;
+  const numericValue = parseToNumber(num);
 
   if (format)
     return (
-      <span title={`${displayNum}`}>
-        {formatNumber(format, Number.isNaN(numericValue) ? 0 : numericValue)}
-      </span>
+      <span title={`${displayNum}`}>{formatNumber(format, numericValue)}</span>
     );
 
   return <span>{displayNum}</span>;
-}
+};
 
 export default FormattedNumber;

@@ -23,7 +23,7 @@ import {
   supersetTheme,
   Metric,
 } from '@superset-ui/core';
-import transformProps, { TableChartProps } from './transformProps';
+import { transformProps, TableChartProps } from './transformProps';
 
 interface ExtendedMetric extends Omit<Metric, 'uuid'> {
   uuid?: string;

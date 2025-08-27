@@ -26,10 +26,10 @@ export function processTimeTableData(data: TimeTableData): {
   reversedEntries: Entry[];
 } {
   const entries: Entry[] = Object.keys(data)
-    .sort()
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
     .map(time => ({ ...data[time], time }));
 
-  const reversedEntries = entries.concat().reverse();
+  const reversedEntries = [...entries].reverse();
 
   return { entries, reversedEntries };
 }

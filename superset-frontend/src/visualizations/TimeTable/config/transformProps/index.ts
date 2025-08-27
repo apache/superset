@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export { default } from './transformProps';
+export { transformProps, TableChartProps } from './transformProps';

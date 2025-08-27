@@ -22,7 +22,7 @@ import {
   transformSparklineData,
   parseSparklineDimensions,
   validateYAxisBounds,
-} from '../../utils/sparklineDataUtils';
+} from '../../utils';
 import type { ColumnConfig, Entry } from '../../types';
 
 interface SparklineProps {
@@ -34,11 +34,11 @@ interface SparklineProps {
 /**
  * Renders a sparkline component with processed data
  */
-function Sparkline({
+const Sparkline = ({
   valueField,
   column,
   entries,
-}: SparklineProps): ReactElement {
+}: SparklineProps): ReactElement => {
   const sparkData = transformSparklineData(valueField, column, entries);
   const { width, height } = parseSparklineDimensions(column);
   const yAxisBounds = validateYAxisBounds(column.yAxisBounds);
@@ -57,6 +57,6 @@ function Sparkline({
       entries={entries}
     />
   );
-}
+};
 
 export default Sparkline;

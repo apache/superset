@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import controlPanelConfig from './controlPanel';
+import { controlPanel as controlPanelConfig } from './controlPanel';
 
 describe('TimeTable Control Panel', () => {
   test('should have required control panel structure', () => {

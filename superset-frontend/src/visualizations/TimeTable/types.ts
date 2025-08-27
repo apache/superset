@@ -34,11 +34,27 @@ export interface ColumnConfig {
   showYAxis?: boolean;
 }
 
-export interface Row {
+export interface ColumnRow {
   label?: string;
-  metric_name?: string;
+  column_name?: string;
   [key: string]: any;
 }
+
+export interface MetricRow {
+  label?: string;
+  metric_name: string;
+  verbose_name?: string;
+  expression?: string;
+  warning_text?: string;
+  description?: string;
+  d3format?: string;
+  is_certified?: boolean;
+  certified_by?: string;
+  certification_details?: string;
+  [key: string]: any;
+}
+
+export type Row = ColumnRow | MetricRow;
 
 export interface TimeTableData {
   [timestamp: string]: {

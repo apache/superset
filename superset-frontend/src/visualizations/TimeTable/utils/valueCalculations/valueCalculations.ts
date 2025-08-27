@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import type { ColumnConfig, Entry, Stats } from '../../types';
+import type { ColumnConfig, Entry } from '../../types';
 
 export interface ValueCalculationResult {
   value: number | null;
@@ -34,7 +34,7 @@ export function calculateTimeValue(
   column: ColumnConfig,
 ): ValueCalculationResult {
   const timeLag = column.timeLag || 0;
-  const totalLag = Object.keys(reversedEntries).length;
+  const totalLag = reversedEntries.length;
 
   if (Math.abs(timeLag) >= totalLag)
     return {
@@ -73,9 +73,13 @@ export function calculateContribution(
   if (typeof recent !== 'number' || reversedEntries.length === 0)
     return { value: null };
 
-  const total = Object.keys(reversedEntries[0])
-    .map(k => (k !== 'time' ? reversedEntries[0][k] : 0))
-    .reduce((a: number, b: number) => a + b, 0);
+  const firstEntry = reversedEntries[0];
+  let total = 0;
+
+  Object.keys(firstEntry).forEach(k => {
+    if (k !== 'time' && typeof firstEntry[k] === 'number')
+      total += firstEntry[k];
+  });
 
   if (total === 0) return { value: null };
 
@@ -92,19 +96,22 @@ export function calculateAverage(
 ): ValueCalculationResult {
   if (reversedEntries.length === 0) return { value: null };
 
-  const stats = reversedEntries
-    .slice(undefined, column.timeLag)
-    .reduce<Stats>(
-      ({ count, sum }, entry) =>
-        entry[valueField] !== undefined && entry[valueField] !== null
-          ? { count: count + 1, sum: sum + entry[valueField] }
-          : { count, sum },
-      { count: 0, sum: 0 },
-    );
+  const sliceEnd = column.timeLag || reversedEntries.length;
+  let count = 0;
+  let sum = 0;
 
-  if (stats.count === 0) return { value: null };
+  for (let i = 0; i < sliceEnd && i < reversedEntries.length; i += 1) {
+    const value = reversedEntries[i][valueField];
 
-  return { value: stats.sum / stats.count };
+    if (value !== undefined && value !== null) {
+      count += 1;
+      sum += value;
+    }
+  }
+
+  if (count === 0) return { value: null };
+
+  return { value: sum / count };
 }
 
 /**

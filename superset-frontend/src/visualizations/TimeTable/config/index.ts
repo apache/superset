@@ -17,5 +17,5 @@
  * under the License.
  */
 
-export { default as controlPanel } from './controlPanel';
-export { default as transformProps } from './transformProps';
+export { controlPanel } from './controlPanel';
+export { transformProps, TableChartProps } from './transformProps';

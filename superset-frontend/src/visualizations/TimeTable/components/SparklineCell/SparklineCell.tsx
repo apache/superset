@@ -60,7 +60,7 @@ const MARGIN = {
   left: 8,
 } as const;
 
-function SparklineCell({
+const SparklineCell = ({
   ariaLabel,
   dataKey,
   data,
@@ -71,7 +71,7 @@ function SparklineCell({
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
   entries = [],
-}: SparklineCellProps): ReactElement {
+}: SparklineCellProps): ReactElement => {
   const theme = useTheme();
 
   const xyTheme = useMemo(
@@ -235,6 +235,6 @@ function SparklineCell({
       </style>
     </>
   );
-}
+};
 
 export default SparklineCell;

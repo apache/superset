@@ -23,7 +23,7 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 
-const config: ControlPanelConfig = {
+export const controlPanel: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     {
@@ -75,5 +75,3 @@ const config: ControlPanelConfig = {
     metrics: getStandardizedControls().popAllMetrics(),
   }),
 };
-
-export default config;

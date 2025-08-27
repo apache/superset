@@ -17,10 +17,15 @@
  * under the License.
  */
 
-export * from './colorUtils';
-export * from './numberUtils';
-export * from './rowProcessing';
-export * from './sortUtils';
-export * from './sparklineDataUtils';
-export * from './sparklineHelpers';
-export * from './valueCalculations';
+/**
+ * Safely parses a value to a numeric type
+ * @param value - The value to parse (string, number, or null)
+ * @returns The numeric value or 0 if invalid
+ */
+export function parseToNumber(value?: string | number | null): number {
+  const displayValue = value ?? 0;
+  const numericValue =
+    typeof displayValue === 'string' ? parseFloat(displayValue) : displayValue;
+
+  return Number.isNaN(numericValue) ? 0 : numericValue;
+}

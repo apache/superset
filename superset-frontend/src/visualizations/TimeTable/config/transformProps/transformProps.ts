@@ -41,7 +41,7 @@ interface ColumnData {
   timeLag?: string | number;
 }
 
-const transformProps = (chartProps: TableChartProps) => {
+export function transformProps(chartProps: TableChartProps) {
   const { height, datasource, formData, queriesData } = chartProps;
   const { columnCollection = [], groupby, metrics, url } = formData;
   const { records, columns } = queriesData[0].data;
@@ -83,6 +83,4 @@ const transformProps = (chartProps: TableChartProps) => {
     rowType: isGroupBy ? 'column' : 'metric',
     url,
   };
-};
-
-export default transformProps;
+}

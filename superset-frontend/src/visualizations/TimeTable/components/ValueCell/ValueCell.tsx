@@ -31,11 +31,11 @@ interface ValueCellProps {
  * Renders a value cell with different calculation types (time, contrib, avg)
  * and applies color coding based on bounds
  */
-function ValueCell({
+const ValueCell = ({
   valueField,
   column,
   reversedEntries,
-}: ValueCellProps): ReactElement {
+}: ValueCellProps): ReactElement => {
   const { value: v, errorMsg } = useMemo(
     () => calculateCellValue(valueField, column, reversedEntries),
     [valueField, column, reversedEntries],
@@ -61,6 +61,6 @@ function ValueCell({
       )}
     </span>
   );
-}
+};
 
 export default ValueCell;

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement } from 'react';
+import { ReactElement, useMemo } from 'react';
 import Mustache from 'mustache';
 import { Typography } from '@superset-ui/core/components';
 import { MetricOption } from '@superset-ui/chart-controls';
-import type { Row } from '../../types';
+import type { Row, ColumnRow, MetricRow } from '../../types';
 
 interface LeftCellProps {
   row: Row;
@@ -31,13 +31,15 @@ interface LeftCellProps {
 /**
  * Renders the left cell containing either column labels or metric information
  */
-function LeftCell({ row, rowType, url }: LeftCellProps): ReactElement {
-  const context = { metric: row };
-  const fullUrl = url ? Mustache.render(url, context) : undefined;
+const LeftCell = ({ row, rowType, url }: LeftCellProps): ReactElement => {
+  const fullUrl = useMemo(() => {
+    if (!url) return undefined;
+    const context = { metric: row };
+    return Mustache.render(url, context);
+  }, [url, row]);
 
   if (rowType === 'column') {
-    const column = row;
-
+    const column = row as ColumnRow;
     if (fullUrl)
       return (
         <Typography.Link
@@ -54,12 +56,12 @@ function LeftCell({ row, rowType, url }: LeftCellProps): ReactElement {
 
   return (
     <MetricOption
-      metric={row as any}
+      metric={row as MetricRow}
       url={fullUrl}
       showFormula={false}
       openInNewWindow
     />
   );
-}
+};
 
 export default LeftCell;
