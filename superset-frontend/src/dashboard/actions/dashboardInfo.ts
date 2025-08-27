@@ -289,7 +289,12 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
 
 export function saveChartCustomization(
   chartCustomizationItems: ChartCustomizationSavePayload[],
-): ThunkAction<Promise<any>, RootState, null, AnyAction> {
+): ThunkAction<
+  Promise<{ result: Partial<DashboardInfo>; last_modified_time: number }>,
+  RootState,
+  null,
+  AnyAction
+> {
   return async function (
     dispatch: ThunkDispatch<RootState, null, AnyAction>,
     getState: () => RootState,
@@ -408,7 +413,6 @@ export function saveChartCustomization(
 
       return response;
     } catch (errorObject) {
-      console.error('Error saving chart customization:', errorObject);
       const { error } = await getClientErrorObject(errorObject);
       dispatch(
         addDangerToast(error || t('Failed to save chart customization')),
