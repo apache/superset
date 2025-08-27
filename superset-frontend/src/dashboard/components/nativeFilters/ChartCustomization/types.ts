@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DataMask } from '@superset-ui/core';
+
 interface DatasetReference {
   value: string | number;
   label?: string;
   table_name?: string;
   schema?: string;
+}
+
+export interface ColumnOption {
+  label: string;
+  value: string;
 }
 
 export interface GroupByCustomization {
@@ -40,8 +47,8 @@ export interface GroupByCustomization {
   defaultValue?: string;
   isRequired?: boolean;
   selectFirst?: boolean;
-  defaultDataMask?: any;
-  defaultValueQueriesData?: any;
+  defaultDataMask?: DataMask;
+  defaultValueQueriesData?: ColumnOption[] | null;
   aggregation?: string;
   canSelectMultiple?: boolean;
   controlValues?: {

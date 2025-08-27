@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FC, forwardRef, MouseEvent } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components';
+import { styled, t, css, useTheme } from '@superset-ui/core';
+import { Icons, Flex } from '@superset-ui/core/components';
 import { ChartCustomizationItem } from './types';
 
 interface Props {
@@ -30,12 +30,6 @@ interface Props {
   removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
   erroredItems?: string[];
 }
-
-const ListContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
 
 const FilterTitle = styled.div<{ selected: boolean; errored: boolean }>`
   display: flex;
@@ -114,73 +108,85 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
       erroredItems = [],
     },
     ref,
-  ) => (
-    <ListContainer ref={ref as any}>
-      {items.map(item => {
-        const isRemoved = !!removedItems[item.id];
-        const selected = item.id === currentId;
-        const isErrored = erroredItems.includes(item.id);
-        const displayName = item.customization.name?.trim() || t('[untitled]');
-        const classNames = [];
+  ) => {
+    const theme = useTheme();
+    return (
+      <Flex
+        css={css`
+          flex-direction: column;
+          gap: ${theme.sizeUnit * 2}px;
+        `}
+        ref={ref as any}
+      >
+        {items.map(item => {
+          const isRemoved = !!removedItems[item.id];
+          const selected = item.id === currentId;
+          const isErrored = erroredItems.includes(item.id);
+          const displayName =
+            item.customization.name?.trim() || t('[untitled]');
+          const classNames = [];
 
-        if (isErrored) {
-          classNames.push('errored');
-        }
-        if (selected) {
-          classNames.push('active');
-        }
+          if (isErrored) {
+            classNames.push('errored');
+          }
+          if (selected) {
+            classNames.push('active');
+          }
 
-        return (
-          <FilterTitle
-            key={`group-by-title-${item.id}`}
-            role="tab"
-            tabIndex={0}
-            selected={selected}
-            errored={isErrored}
-            onClick={() => onChange(item.id)}
-            className={classNames.join(' ')}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onChange(item.id);
-              }
-            }}
-          >
-            <LabelWrapper>
-              <TitleText>{isRemoved ? t('(Removed)') : displayName}</TitleText>
-              {isRemoved && (
-                <UndoButton
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e: MouseEvent<HTMLElement>) => {
-                    e.stopPropagation();
-                    restoreItem(item.id);
-                  }}
-                >
-                  {t('Undo?')}
-                </UndoButton>
-              )}
-            </LabelWrapper>
-            {!isRemoved && (
-              <>
-                {isErrored && (
-                  <StyledWarning className="warning" iconSize="s" />
+          return (
+            <FilterTitle
+              key={`group-by-title-${item.id}`}
+              role="tab"
+              tabIndex={0}
+              selected={selected}
+              errored={isErrored}
+              onClick={() => onChange(item.id)}
+              className={classNames.join(' ')}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onChange(item.id);
+                }
+              }}
+            >
+              <LabelWrapper>
+                <TitleText>
+                  {isRemoved ? t('(Removed)') : displayName}
+                </TitleText>
+                {isRemoved && (
+                  <UndoButton
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e: MouseEvent<HTMLElement>) => {
+                      e.stopPropagation();
+                      restoreItem(item.id);
+                    }}
+                  >
+                    {t('Undo?')}
+                  </UndoButton>
                 )}
-                <TrashIcon
-                  iconSize="m"
-                  onClick={(e: MouseEvent<HTMLElement>) => {
-                    e.stopPropagation();
-                    onRemove(item.id);
-                  }}
-                  alt="RemoveGroupBy"
-                />
-              </>
-            )}
-          </FilterTitle>
-        );
-      })}
-    </ListContainer>
-  ),
+              </LabelWrapper>
+              {!isRemoved && (
+                <>
+                  {isErrored && (
+                    <StyledWarning className="warning" iconSize="s" />
+                  )}
+                  <TrashIcon
+                    iconSize="m"
+                    onClick={(e: MouseEvent<HTMLElement>) => {
+                      e.stopPropagation();
+                      onRemove(item.id);
+                    }}
+                    aria-label={t('Remove group by')}
+                  />
+                </>
+              )}
+            </FilterTitle>
+          );
+        })}
+      </Flex>
+    );
+  },
 );
 
 export default ChartCustomizationTitleContainer;
