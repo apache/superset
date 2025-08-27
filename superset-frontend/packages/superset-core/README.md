@@ -30,14 +30,6 @@ The official core package for building Apache Superset extensions and integratio
 npm install @apache-superset/core
 ```
 
-```bash
-yarn add @apache-superset/core
-```
-
-```bash
-pnpm add @apache-superset/core
-```
-
 ## 🏗️ Architecture
 
 The package is organized into logical namespaces, each providing specific functionality:
