@@ -196,6 +196,32 @@ export function unsetHoveredNativeFilter(): UnsetHoveredNativeFilter {
   };
 }
 
+export const SET_HOVERED_CHART_CUSTOMIZATION =
+  'SET_HOVERED_CHART_CUSTOMIZATION';
+export interface SetHoveredChartCustomization {
+  type: typeof SET_HOVERED_CHART_CUSTOMIZATION;
+  id: string;
+}
+export const UNSET_HOVERED_CHART_CUSTOMIZATION =
+  'UNSET_HOVERED_CHART_CUSTOMIZATION';
+export interface UnsetHoveredChartCustomization {
+  type: typeof UNSET_HOVERED_CHART_CUSTOMIZATION;
+}
+
+export function setHoveredChartCustomization(
+  id: string,
+): SetHoveredChartCustomization {
+  return {
+    type: SET_HOVERED_CHART_CUSTOMIZATION,
+    id,
+  };
+}
+export function unsetHoveredChartCustomization(): UnsetHoveredChartCustomization {
+  return {
+    type: UNSET_HOVERED_CHART_CUSTOMIZATION,
+  };
+}
+
 export const UPDATE_CASCADE_PARENT_IDS = 'UPDATE_CASCADE_PARENT_IDS';
 export interface UpdateCascadeParentIds {
   type: typeof UPDATE_CASCADE_PARENT_IDS;
@@ -223,4 +249,6 @@ export type AnyFilterAction =
   | UnsetFocusedNativeFilter
   | SetHoveredNativeFilter
   | UnsetHoveredNativeFilter
+  | SetHoveredChartCustomization
+  | UnsetHoveredChartCustomization
   | UpdateCascadeParentIds;
