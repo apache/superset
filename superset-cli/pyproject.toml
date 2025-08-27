@@ -17,25 +17,46 @@
 
 [project]
 name = "apache-superset-cli"
-version = "0.0.1"
-description = "SDK to build Apache Superset extensions"
+version = "0.0.1rc1"
+description = "Official command-line interface for building, bundling, and managing Apache Superset extensions"
+readme = "README.md"
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
 license = { file="LICENSE.txt" }
 requires-python = ">=3.10"
+keywords = ["superset", "apache", "cli", "extensions", "analytics", "business-intelligence", "development-tools"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Software Distribution",
 ]
 dependencies = [
-    "apache-superset-core>=0.0.1, <0.2",
+    "apache-superset-core>=0.0.1rc1, <0.2",
     "click>=8.0.3",
     "jinja2>=3.1.6",
     "semver>=3.0.4",
     "tomli>=2.2.1; python_version < '3.11'",
     "watchdog>=6.0.0",
 ]
+
+[project.urls]
+Homepage = "https://superset.apache.org/"
+Documentation = "https://superset.apache.org/docs/"
+Repository = "https://github.com/apache/superset"
+"Bug Tracker" = "https://github.com/apache/superset/issues"
+Changelog = "https://github.com/apache/superset/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = [
