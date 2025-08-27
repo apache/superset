@@ -34,7 +34,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "apache-superset-core>=0.0.1, <0.2",
+    "apache-superset-core>=0.0.1rc1, <0.2",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
     "click>=8.0.3",
