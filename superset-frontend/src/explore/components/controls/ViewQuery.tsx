@@ -97,33 +97,29 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       setShowFormatSQL(val => !val);
       return;
     }
-    let backend = exploreBackend;
-    if (!backend) {
-      const queryParams = rison.encode(DATASET_BACKEND_QUERY);
-      try {
-        backend = (
-          await SupersetClient.get({
-            endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
-          })
-        ).json.result.database;
-      } catch (error) {
-        setShowFormatSQL(false);
-        return;
-      }
-    }
-
     try {
-      const { result } = (
-        await SupersetClient.post({
-          endpoint: `/api/v1/sqllab/format_sql/`,
-          body: JSON.stringify({
-            sql,
-            engine: backend,
-          }),
-          headers: { 'Content-Type': 'application/json' },
-        })
-      ).json;
-      setFormattedSQL(result);
+      let backend = exploreBackend;
+
+      // Fetch backend info if not available in Redux state
+      if (!backend) {
+        const queryParams = rison.encode(DATASET_BACKEND_QUERY);
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
+        });
+        backend = response.json.result.database;
+      }
+
+      // Format the SQL query
+      const formatResponse = await SupersetClient.post({
+        endpoint: `/api/v1/sqllab/format_sql/`,
+        body: JSON.stringify({
+          sql,
+          engine: backend,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      setFormattedSQL(formatResponse.json.result);
       setShowFormatSQL(true);
     } catch (error) {
       setShowFormatSQL(false);
