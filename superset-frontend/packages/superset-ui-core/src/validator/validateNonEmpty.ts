@@ -26,7 +26,7 @@ export default function validateNonEmpty(v: unknown) {
     v === '' ||
     (Array.isArray(v) && v.length === 0)
   ) {
-    return t('Cannot be empty');
+    return t('cannot be empty');
   }
   return false;
 }

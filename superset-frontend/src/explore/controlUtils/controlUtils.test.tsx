@@ -189,7 +189,7 @@ describe('controlUtils', () => {
   describe('validateControl', () => {
     it('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
-      expect(control?.validationErrors).toEqual(['Cannot be empty']);
+      expect(control?.validationErrors).toEqual(['cannot be empty']);
     });
     it('should not validate if control panel is initializing', () => {
       const control = getControlState(
