@@ -522,7 +522,7 @@ takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
 reference), and whether to force the `latest` Docker tag on the
 generated images.
 
-**NOTE:** If the docker image isn't built, you'll need to run this [GH action](https://github.com/apache/superset/actions/workflows/tag-release.yml) where you provide it the tag sha. 
+**NOTE:** If the docker image isn't built, you'll need to run this [GH action](https://github.com/apache/superset/actions/workflows/tag-release.yml) where you provide it the tag sha.
 
 ### Npm Release
 
