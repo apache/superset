@@ -43,6 +43,7 @@ import CodeSyntaxHighlighter, {
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { useHistory } from 'react-router-dom';
+import { ExplorePageState } from 'src/explore/types';
 
 export interface ViewQueryProps {
   sql: string;
@@ -74,7 +75,10 @@ const DATASET_BACKEND_QUERY = {
 const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
   const theme = useTheme();
-  const datasetId = datasource.split('__')[0];
+  const datasetId = datasource?.split('__')[0];
+  const exploreBackend = useSelector(
+    (state: ExplorePageState) => state.explore?.datasource?.database?.backend,
+  );
   const [formattedSQL, setFormattedSQL] = useState<string>();
   const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
@@ -88,31 +92,37 @@ const ViewQuery: FC<ViewQueryProps> = props => {
     preloadLanguages([language]);
   }, [language]);
 
-  const formatCurrentQuery = useCallback(() => {
+  const formatCurrentQuery = useCallback(async () => {
     if (formattedSQL) {
       setShowFormatSQL(val => !val);
-    } else {
-      const queryParams = rison.encode(DATASET_BACKEND_QUERY);
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
-      })
-        .then(({ json }) =>
-          SupersetClient.post({
-            endpoint: `/api/v1/sqllab/format_sql/`,
-            body: JSON.stringify({
-              sql,
-              engine: json.result.database.backend,
-            }),
-            headers: { 'Content-Type': 'application/json' },
-          }),
-        )
-        .then(({ json }) => {
-          setFormattedSQL(json.result);
-          setShowFormatSQL(true);
-        })
-        .catch(() => {
-          setShowFormatSQL(true);
+      return;
+    }
+    try {
+      let backend = exploreBackend;
+
+      // Fetch backend info if not available in Redux state
+      if (!backend) {
+        const queryParams = rison.encode(DATASET_BACKEND_QUERY);
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
         });
+        backend = response.json.result.database;
+      }
+
+      // Format the SQL query
+      const formatResponse = await SupersetClient.post({
+        endpoint: `/api/v1/sqllab/format_sql/`,
+        body: JSON.stringify({
+          sql,
+          engine: backend,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      setFormattedSQL(formatResponse.json.result);
+      setShowFormatSQL(true);
+    } catch (error) {
+      setShowFormatSQL(false);
     }
   }, [sql, datasetId, formattedSQL]);
 
@@ -142,8 +152,9 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   return (
     <Card bodyStyle={{ padding: theme.sizeUnit * 4 }}>
       <StyledSyntaxContainer key={sql}>
-        {!formattedSQL && <Skeleton active />}
-        {formattedSQL && (
+        {!formattedSQL && showFormatSQL ? (
+          <Skeleton active />
+        ) : (
           <StyledThemedSyntaxHighlighter
             language={language}
             customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
