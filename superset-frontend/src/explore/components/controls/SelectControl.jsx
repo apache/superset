@@ -162,19 +162,29 @@ export default class SelectControl extends PureComponent {
     super(props);
     this.state = {
       options: this.getOptions(props),
+      prevChoices: props.choices,
+      prevOptions: props.options,
     };
     this.onChange = this.onChange.bind(this);
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  static getDerivedStateFromProps(nextProps, prevState) {
     if (
-      !isEqualArray(nextProps.choices, this.props.choices) ||
-      !isEqualArray(nextProps.options, this.props.options)
+      !isEqualArray(nextProps.choices, prevState.prevChoices) ||
+      !isEqualArray(nextProps.options, prevState.prevOptions)
     ) {
-      const options = this.getOptions(nextProps);
-      this.setState({ options });
+      const options = innerGetOptions(nextProps);
+      return {
+        options,
+        prevChoices: nextProps.choices,
+        prevOptions: nextProps.options,
+      };
     }
+    return {
+      prevChoices: nextProps.choices,
+      prevOptions: nextProps.options,
+    };
   }
 
   // Beware: This is acting like an on-click instead of an on-change

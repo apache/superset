@@ -87,10 +87,48 @@ function isDictionaryForAdhocFilter(value) {
   return value && !(value instanceof AdhocFilter) && value.expressionType;
 }
 
+function optionsForSelect(props) {
+  const options = [
+    ...props.columns,
+    ...ensureIsArray(props.selectedMetrics).map(
+      metric =>
+        metric &&
+        (typeof metric === 'string'
+          ? { saved_metric_name: metric }
+          : new AdhocMetric(metric)),
+    ),
+  ].filter(option => option);
+
+  return options
+    .reduce((results, option) => {
+      if (option.saved_metric_name) {
+        results.push({
+          ...option,
+          filterOptionName: option.saved_metric_name,
+        });
+      } else if (option.column_name) {
+        results.push({
+          ...option,
+          filterOptionName: `_col_${option.column_name}`,
+        });
+      } else if (option instanceof AdhocMetric) {
+        results.push({
+          ...option,
+          filterOptionName: `_adhocmetric_${option.label}`,
+        });
+      }
+      return results;
+    }, [])
+    .sort((a, b) =>
+      (a.saved_metric_name || a.column_name || a.label).localeCompare(
+        b.saved_metric_name || b.column_name || b.label,
+      ),
+    );
+}
+
 class AdhocFilterControl extends Component {
   constructor(props) {
     super(props);
-    this.optionsForSelect = this.optionsForSelect.bind(this);
     this.onRemoveFilter = this.onRemoveFilter.bind(this);
     this.onNewFilter = this.onNewFilter.bind(this);
     this.onFilterEdit = this.onFilterEdit.bind(this);
@@ -126,8 +164,10 @@ class AdhocFilterControl extends Component {
     );
     this.state = {
       values: filters,
-      options: this.optionsForSelect(this.props),
+      options: optionsForSelect(this.props),
       partitionColumn: null,
+      prevColumns: props.columns,
+      prevValue: props.value,
     };
   }
 
@@ -173,17 +213,21 @@ class AdhocFilterControl extends Component {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (this.props.columns !== nextProps.columns) {
-      this.setState({ options: this.optionsForSelect(nextProps) });
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const newState = {};
+    if (nextProps.columns !== prevState.prevColumns) {
+      newState.options = optionsForSelect(nextProps);
     }
-    if (this.props.value !== nextProps.value) {
-      this.setState({
-        values: (nextProps.value || []).map(filter =>
-          isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
-        ),
-      });
+    if (nextProps.value !== prevState.prevValue) {
+      newState.values = (nextProps.value || []).map(filter =>
+        isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
+      );
     }
+    return {
+      ...newState,
+      prevColumns: nextProps.columns,
+      prevValue: nextProps.value,
+    };
   }
 
   removeFilter(index) {
@@ -296,45 +340,6 @@ class AdhocFilterControl extends Component {
       });
     }
     return null;
-  }
-
-  optionsForSelect(props) {
-    const options = [
-      ...props.columns,
-      ...ensureIsArray(props.selectedMetrics).map(
-        metric =>
-          metric &&
-          (typeof metric === 'string'
-            ? { saved_metric_name: metric }
-            : new AdhocMetric(metric)),
-      ),
-    ].filter(option => option);
-
-    return options
-      .reduce((results, option) => {
-        if (option.saved_metric_name) {
-          results.push({
-            ...option,
-            filterOptionName: option.saved_metric_name,
-          });
-        } else if (option.column_name) {
-          results.push({
-            ...option,
-            filterOptionName: `_col_${option.column_name}`,
-          });
-        } else if (option instanceof AdhocMetric) {
-          results.push({
-            ...option,
-            filterOptionName: `_adhocmetric_${option.label}`,
-          });
-        }
-        return results;
-      }, [])
-      .sort((a, b) =>
-        (a.saved_metric_name || a.column_name || a.label).localeCompare(
-          b.saved_metric_name || b.column_name || b.label,
-        ),
-      );
   }
 
   addNewFilterPopoverTrigger(trigger) {
