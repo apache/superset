@@ -248,7 +248,7 @@ COPY requirements/*.txt requirements/
 
 # Copy local packages needed for editable installs in development.txt
 COPY superset-core superset-core
-COPY superset-cli superset-cli
+COPY superset-extensions-cli superset-extensions-cli
 
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \

@@ -25,7 +25,7 @@ repos:
       - id: mypy
         name: mypy (main)
         args: [--check-untyped-defs]
-        exclude: ^superset-cli/
+        exclude: ^superset-extensions-cli/
         additional_dependencies: [
             types-simplejson,
             types-python-dateutil,
@@ -41,9 +41,9 @@ repos:
             types-Markdown,
           ]
       - id: mypy
-        name: mypy (superset-cli)
+        name: mypy (superset-extensions-cli)
         args: [--check-untyped-defs]
-        files: ^superset-cli/
+        files: ^superset-extensions-cli/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

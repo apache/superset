@@ -34,7 +34,7 @@
 # Notify PMC members of changes to extension-related files
 
 /superset-core/ @michael-s-molina @villebro
-/superset-cli/ @michael-s-molina @villebro
+/superset-extensions-cli/ @michael-s-molina @villebro
 /superset/core/ @michael-s-molina @villebro
 /superset/extensions/ @michael-s-molina @villebro
 /superset-frontend/src/packages/superset-core/ @michael-s-molina @villebro
