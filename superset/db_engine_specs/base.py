@@ -1335,9 +1335,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         context = context or {}
 
         config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
+
         if not isinstance(config_custom_errors, dict):
             config_custom_errors = {}
-        db_engine_custom_errors = config_custom_errors.get(cls.engine_name, {})
+
+        db_engine_custom_errors = {}
+
+        for engine_key in [cls.engine, cls.engine_name]:
+            if engine_key and engine_key in config_custom_errors:
+                engine_errors = config_custom_errors[engine_key]
+                if isinstance(engine_errors, dict):
+                    db_engine_custom_errors.update(engine_errors)
+
         if not isinstance(db_engine_custom_errors, dict):
             db_engine_custom_errors = {}
 
@@ -1348,10 +1357,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if match := regex.search(raw_message):
                 params = {**context, **match.groupdict()}
                 extra["engine_name"] = cls.engine_name
+                formatted_message = (message % params) if message else raw_message
                 return [
                     SupersetError(
                         error_type=error_type,
-                        message=message % params,
+                        message=formatted_message,
                         level=ErrorLevel.ERROR,
                         extra=extra,
                     )
