@@ -2,14 +2,14 @@
 #    uv pip compile requirements/development.in -c requirements/base-constraint.txt -o requirements/development.txt
 -e .
     # via -r requirements/development.in
--e ./superset-cli
-    # via
-    #   -r requirements/development.in
-    #   apache-superset
 -e ./superset-core
     # via
     #   apache-superset
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
+-e ./superset-extensions-cli
+    # via
+    #   -r requirements/development.in
+    #   apache-superset
 alembic==1.15.2
     # via
     #   -c requirements/base-constraint.txt
@@ -102,7 +102,7 @@ click==8.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
     #   celery
     #   click-didyoumean
     #   click-option-group
@@ -327,7 +327,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -383,7 +382,7 @@ itsdangerous==2.2.0
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
     #   flask
     #   flask-babel
 jsonpath-ng==1.7.0
@@ -670,17 +669,17 @@ pysocks==1.7.1
 pytest==7.4.4
     # via
     #   apache-superset
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
     #   pytest-cov
     #   pytest-mock
 pytest-cov==6.0.0
     # via
     #   apache-superset
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
 pytest-mock==3.10.0
     # via
     #   apache-superset
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
 python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base-constraint.txt
@@ -777,7 +776,7 @@ selenium==4.32.0
     #   -c requirements/base-constraint.txt
     #   apache-superset
 semver==3.0.4
-    # via apache-superset-cli
+    # via apache-superset-extensions-cli
 setuptools==80.7.1
     # via
     #   nodeenv
@@ -869,13 +868,10 @@ typing-extensions==4.14.0
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-    #   astroid
     #   cattrs
-    #   exceptiongroup
     #   limits
     #   pyopenssl
     #   referencing
-    #   rich
     #   selenium
     #   shillelagh
 tzdata==2025.2
@@ -908,7 +904,7 @@ watchdog==6.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-    #   apache-superset-cli
+    #   apache-superset-extensions-cli
 wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt

@@ -17,9 +17,9 @@ outputs:
   docs:
     description: Whether docs-related files were changed
     value: ${{ steps.change-detector.outputs.docs }}
-  superset-cli:
-    description: Whether superset-cli package-related files were changed
-    value: ${{ steps.change-detector.outputs.superset-cli }}
+  superset-extensions-cli:
+    description: Whether superset-extensions-cli package-related files were changed
+    value: ${{ steps.change-detector.outputs.superset-extensions-cli }}
 runs:
   using: composite
   steps:

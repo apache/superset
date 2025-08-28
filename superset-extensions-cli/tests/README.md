@@ -51,7 +51,7 @@ under the License.
 
 # Superset CLI Tests
 
-This directory contains tests for the superset-cli package, focusing on the `init` command and other CLI functionality.
+This directory contains tests for the superset-extensions-cli package, focusing on the `init` command and other CLI functionality.
 
 ## Test Structure
 
@@ -164,7 +164,7 @@ pytest -m cli           # CLI tests only
 ### With coverage
 
 ```bash
-pytest --cov=superset_cli --cov-report=html
+pytest --cov=superset_extensions_cli --cov-report=html
 ```
 
 ### Specific test files
