@@ -1512,7 +1512,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         except Exception as ex:
             # Convert any exception to validation error format
-            error_msg = str(ex.orig) if hasattr(ex, "orig") else str(ex)
+            error_msg = str(getattr(ex, "orig", ex))
             return ValidationResultDict(
                 valid=False,
                 errors=[

@@ -688,7 +688,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             all_filters.extend(grouped_filters)
             return all_filters
         except (TemplateError, SupersetSyntaxErrorException) as ex:
-            msg = ex.message if hasattr(ex, "message") else str(ex)
+            msg = getattr(ex, "message", str(ex))
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in RLS filters: %(msg)s",
@@ -1386,7 +1386,7 @@ class SqlaTable(
         try:
             return self.text(fetch_values_predicate)
         except (TemplateError, SupersetSyntaxErrorException) as ex:
-            msg = ex.message if hasattr(ex, "message") else str(ex)
+            msg = getattr(ex, "message", str(ex))
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in fetch values predicate: %(msg)s",
