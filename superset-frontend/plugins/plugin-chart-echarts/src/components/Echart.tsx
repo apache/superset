@@ -27,11 +27,9 @@ import {
   Ref,
   useState,
 } from 'react';
-import { merge } from 'lodash';
-
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, mergeReplaceArrays } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -131,6 +129,7 @@ function Echart(
     zrEventHandlers,
     selectedValues = {},
     refs,
+    vizType,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
@@ -237,10 +236,13 @@ function Echart(
         return echartsTheme;
       };
 
-      const themedEchartOptions = merge(
-        {},
+      const themedEchartOptions = mergeReplaceArrays(
         getEchartsTheme(echartOptions),
         echartOptions,
+        theme.echartsOptionsOverrides || {},
+        vizType
+          ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
+          : {},
       );
       chartRef.current?.setOption(themedEchartOptions, true);
     }

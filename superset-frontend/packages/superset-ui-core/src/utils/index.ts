@@ -33,3 +33,4 @@ export * from './random';
 export * from './typedMemo';
 export * from './html';
 export * from './tooltip';
+export * from './lodash';
