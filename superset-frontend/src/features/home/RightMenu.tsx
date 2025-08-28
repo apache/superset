@@ -683,6 +683,12 @@ const RightMenu = ({
           flex-direction: row;
           align-items: center;
 
+          /* Remove the underline from menu items */
+          .ant-menu-item:after,
+          .ant-menu-submenu:after {
+            content: none !important;
+          }
+
           .submenu-with-caret {
             padding: 0 ${theme.sizeUnit}px;
             .ant-menu-submenu-title {

@@ -91,7 +91,7 @@ js-format:
 	cd superset-frontend; npm run prettier
 
 flask-app:
-	flask run -p 8088 --with-threads --reload --debugger
+	flask run -p 8088 --reload --debugger
 
 node-app:
 	cd superset-frontend; npm run dev-server

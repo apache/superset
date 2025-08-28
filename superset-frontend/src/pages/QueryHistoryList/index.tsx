@@ -190,7 +190,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           ) {
             statusConfig.name = (
               <Icons.CloseOutlined
-                iconSize="xs"
+                iconSize="m"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
@@ -201,19 +201,22 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colorPrimary} />
+              <Icons.LoadingOutlined
+                iconSize="m"
+                iconColor={theme.colorPrimary}
+              />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colorIcon} />
+              <Icons.CircleSolid iconSize="m" iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = <Icons.Queued />;
+            statusConfig.name = <Icons.Queued iconSize="m" />;
             statusConfig.label = t('Scheduled');
           }
           return (
