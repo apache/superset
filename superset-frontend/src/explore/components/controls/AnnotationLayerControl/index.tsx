@@ -121,9 +121,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
         this.props.actions.setControlValue(
           name,
           value,
-          Object.keys(annotationError).length
-            ? Object.keys(annotationError)
-            : [],
+          Object.keys(annotationError),
         );
       }
     }

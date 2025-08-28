@@ -81,8 +81,6 @@ type SliceAdderState = {
   sortBy: keyof Slice;
   selectedSliceIdsSet: Set<number>;
   showOnlyMyCharts: boolean;
-  prevLastUpdated: number;
-  prevSelectedSliceIds?: number[];
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
@@ -194,8 +192,6 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
         LocalStorageKeys.DashboardEditorShowOnlyMyCharts,
         true,
       ),
-      prevLastUpdated: props.lastUpdated,
-      prevSelectedSliceIds: props.selectedSliceIds,
     };
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
@@ -216,28 +212,25 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  static getDerivedStateFromProps(
-    nextProps: SliceAdderProps,
-    prevState: SliceAdderState,
-  ) {
-    const newState: Partial<SliceAdderState> = {};
-    if (prevState.prevLastUpdated !== nextProps.lastUpdated) {
-      newState.filteredSlices = getFilteredSortedSlices(
-        nextProps.slices,
-        prevState.searchTerm,
-        prevState.sortBy,
-        prevState.showOnlyMyCharts,
-        nextProps.userId,
+  componentDidUpdate(prevProps: SliceAdderProps) {
+    const nextState: SliceAdderState = {} as SliceAdderState;
+    if (this.props.lastUpdated !== prevProps.lastUpdated) {
+      nextState.filteredSlices = getFilteredSortedSlices(
+        this.props.slices,
+        this.state.searchTerm,
+        this.state.sortBy,
+        this.state.showOnlyMyCharts,
+        this.props.userId,
       );
     }
-    if (nextProps.selectedSliceIds !== prevState.prevSelectedSliceIds) {
-      newState.selectedSliceIdsSet = new Set(nextProps.selectedSliceIds);
+
+    if (prevProps.selectedSliceIds !== this.props.selectedSliceIds) {
+      nextState.selectedSliceIdsSet = new Set(this.props.selectedSliceIds);
     }
-    return {
-      ...newState,
-      prevLastUpdated: nextProps.lastUpdated,
-      prevSelectedSliceIds: nextProps.selectedSliceIds,
-    };
+
+    if (Object.keys(nextState).length) {
+      this.setState(nextState);
+    }
   }
 
   componentWillUnmount() {
