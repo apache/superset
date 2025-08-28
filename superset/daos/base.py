@@ -61,7 +61,7 @@ class BaseDAO(Generic[T]):
         skip_base_filter: bool = False,
     ) -> T | None:
         """
-        Find a model by id, if defined applies `base_filter`
+        Find a model by id or uuid, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
         if cls.base_filter and not skip_base_filter:
@@ -79,7 +79,7 @@ class BaseDAO(Generic[T]):
         try:
             return query.filter(filter).one_or_none()
         except StatementError:
-            # can happen if int is passed instead of a string or similar
+            # can happen if neither uuid nor int is passed
             return None
 
     @classmethod
