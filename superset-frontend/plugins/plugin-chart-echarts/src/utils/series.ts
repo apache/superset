@@ -272,6 +272,7 @@ export function extractSeries(
     sortSeriesAscending?: boolean;
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
+    xAxisType?: AxisType;
   } = {},
 ): [SeriesOption[], number[], number | undefined] {
   const {
@@ -286,11 +287,15 @@ export function extractSeries(
     sortSeriesAscending,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
+    xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
-    [xAxis]: datum[xAxis],
+    [xAxis]:
+      datum[xAxis] === null && xAxisType === AxisType.Category
+        ? NULL_STRING
+        : datum[xAxis],
   }));
   const sortedSeries = sortAndFilterSeries(
     rows,
