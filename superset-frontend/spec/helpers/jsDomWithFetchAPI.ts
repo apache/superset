@@ -36,7 +36,7 @@ export default class FixJSDOMEnvironment extends JSDOMEnvironment {
     // Forces rc-overflow to use requestAnimationFrame fallback instead
     // Can be removed when rc-overflow properly cleans up MessagePorts in test environments
     // See: https://github.com/apache/superset/pull/34871
-    delete (this.global as any).MessageChannel;
-    delete (this.global as any).MessagePort;
+    this.global.MessageChannel = undefined as any;
+    this.global.MessagePort = undefined as any;
   }
 }
