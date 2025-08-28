@@ -55,7 +55,7 @@ describe('processChartProps', () => {
     plugin.configure({ key: props.chartType }).register();
   });
 
-  test('should return the result from cache unless transformProps has changed', async () => {
+  it('should return the result from cache unless transformProps has changed', async () => {
     const pre = jest.fn(x => x);
     const transform = jest.fn(x => x);
     const post = jest.fn(x => x);
