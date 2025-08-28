@@ -70,7 +70,7 @@ SQLGLOT_DIALECTS = {
     # "denodo": ???
     "dremio": Dremio,
     "drill": Dialects.DRILL,
-    "druid": Dialects.DRUID,
+    # "druid": Dialects.DRUID,  # DRUID dialect not available in current sqlglot version
     "duckdb": Dialects.DUCKDB,
     # "dynamodb": ???
     # "elasticsearch": ???

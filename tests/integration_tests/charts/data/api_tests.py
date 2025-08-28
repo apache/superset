@@ -930,6 +930,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         request_payload["queries"][0]["columns"] = ["foo", "bar", "state"]
         request_payload["queries"][0]["where"] = "':abc' != ':xyz:qwerty'"
         request_payload["queries"][0]["orderby"] = None
+        request_payload["queries"][0]["granularity"] = (
+            None  # Virtual table has no time column
+        )
         request_payload["queries"][0]["metrics"] = [
             {
                 "expressionType": AdhocMetricExpressionType.SQL,
@@ -1107,7 +1110,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "orderby": [["sum__num", False]],
                         "annotation_layers": [],
                         "row_limit": 50000,
-                        "timeseries_limit": 0,
+                        "series_limit": 0,
                         "order_desc": True,
                         "url_params": {},
                         "custom_params": {},
@@ -1160,7 +1163,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "orderby": [["sum__num", False]],
                         "annotation_layers": [],
                         "row_limit": 50000,
-                        "timeseries_limit": 0,
+                        "series_limit": 0,
                         "order_desc": True,
                         "url_params": {},
                         "custom_params": {},
@@ -1214,7 +1217,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "orderby": [["sum__num", False]],
                         "annotation_layers": [],
                         "row_limit": 50000,
-                        "timeseries_limit": 0,
+                        "series_limit": 0,
                         "order_desc": True,
                         "url_params": {},
                         "custom_params": {},

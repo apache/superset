@@ -44,7 +44,7 @@ import pandas as pd
 import pytz
 import sqlalchemy as sa
 import yaml
-from flask import current_app as app, g
+from flask import current_app, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
@@ -64,18 +64,16 @@ from sqlalchemy_utils import UUIDType
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.common.query_object import QueryObject
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
-    ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
@@ -90,8 +88,6 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
-    get_column_name,
-    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
@@ -110,7 +106,7 @@ class ValidationResultDict(TypedDict):
 
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import SqlMetric, TableColumn
+    from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
 
@@ -124,7 +120,7 @@ def validate_adhoc_subquery(
     sql: str,
     database: Database,
     catalog: str | None,
-    default_schema: str,
+    default_schema: str | None,
     engine: str,
 ) -> str:
     """
@@ -149,7 +145,7 @@ def validate_adhoc_subquery(
             )
 
         # enforce RLS rules in any relevant tables
-        apply_rls(database, catalog, default_schema, parsed_statement)
+        apply_rls(database, catalog, default_schema or "", parsed_statement)
 
     return parsed_statement.format()
 
@@ -905,7 +901,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         mutate: bool = True,
     ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
+        from superset.common.query_object import QueryObject
+
+        # Handle the filter -> filters migration
+        if "filter" in query_obj and "filters" not in query_obj:
+            query_obj = query_obj.copy()  # Don't mutate the original
+            query_obj["filters"] = query_obj.pop("filter")
+
+        query_object = QueryObject(datasource=self, **query_obj)  # type: ignore[arg-type]
+        sqlaq = self.get_sqla_query(query_object)
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -1238,18 +1242,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: dict[str, "SqlMetric"],
-        columns_by_name: dict[str, "TableColumn"],
+        query_obj: QueryObject,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric, query_obj.columns_by_name
+            )
         elif (
             isinstance(series_limit_metric, str)
-            and series_limit_metric in metrics_by_name
+            and series_limit_metric in query_obj.metrics_by_name
         ):
-            ob = metrics_by_name[series_limit_metric].get_sqla_col(
+            ob = query_obj.metrics_by_name[series_limit_metric].get_sqla_col(
                 template_processor=template_processor
             )
         else:
@@ -1627,176 +1632,105 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = self.make_sqla_column_compatible(col, label)
         return col
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
+    def _build_metric_expression(
         self,
-        apply_fetch_values_predicate: bool = False,
-        columns: Optional[list[Column]] = None,
-        extras: Optional[dict[str, Any]] = None,
-        filter: Optional[  # pylint: disable=redefined-builtin
-            list[utils.QueryObjectFilterClause]
-        ] = None,
-        from_dttm: Optional[datetime] = None,
-        granularity: Optional[str] = None,
-        groupby: Optional[list[Column]] = None,
-        inner_from_dttm: Optional[datetime] = None,
-        inner_to_dttm: Optional[datetime] = None,
-        is_rowcount: bool = False,
-        is_timeseries: bool = True,
-        metrics: Optional[list[Metric]] = None,
-        orderby: Optional[list[OrderBy]] = None,
-        order_desc: bool = True,
-        to_dttm: Optional[datetime] = None,
-        series_columns: Optional[list[Column]] = None,
-        series_limit: Optional[int] = None,
-        series_limit_metric: Optional[Metric] = None,
-        group_others_when_limit_reached: bool = False,
-        row_limit: Optional[int] = None,
-        row_offset: Optional[int] = None,
-        timeseries_limit: Optional[int] = None,
-        timeseries_limit_metric: Optional[Metric] = None,
-        time_shift: Optional[str] = None,
-    ) -> SqlaQuery:
-        """Querying any sqla table from this common interface"""
-        if granularity not in self.dttm_cols and granularity is not None:
-            granularity = self.main_dttm_col
+        metric: Metric,
+        query_obj: QueryObject,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> ColumnElement:
+        """Convert a single metric (adhoc or predefined) to SQLAlchemy expression."""
+        if utils.is_adhoc_metric(metric):
+            assert isinstance(metric, dict)
+            return self.adhoc_metric_to_sqla(
+                metric=metric,
+                columns_by_name=query_obj.columns_by_name,
+                template_processor=template_processor,
+            )
+        elif isinstance(metric, str) and metric in query_obj.metrics_by_name:
+            return query_obj.metrics_by_name[metric].get_sqla_col(
+                template_processor=template_processor
+            )
+        else:
+            raise QueryObjectValidationError(
+                _("Metric '%(metric)s' does not exist", metric=metric)
+            )
 
-        extras = extras or {}
-        time_grain = extras.get("time_grain_sqla")
+    def _process_adhoc_sql_expression(
+        self,
+        expression: str,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Optional[str]:
+        """Process and validate an adhoc SQL expression with template processing."""
+        return self._process_sql_expression(
+            expression=expression,
+            database_id=self.database_id,
+            engine=self.database.backend,
+            schema=self.schema,
+            template_processor=template_processor,
+        )
 
-        # DB-specifc quoting for identifiers
-        with self.database.get_sqla_engine() as engine:
-            quote = engine.dialect.identifier_preparer.quote
-
-        template_kwargs = {
-            "columns": columns,
-            "from_dttm": from_dttm.isoformat() if from_dttm else None,
-            "groupby": groupby,
-            "metrics": metrics,
-            "row_limit": row_limit,
-            "row_offset": row_offset,
-            "time_column": granularity,
-            "time_grain": time_grain,
-            "to_dttm": to_dttm.isoformat() if to_dttm else None,
-            "table_columns": [col.column_name for col in self.columns],
-            "filter": filter,
-        }
-        columns = columns or []
-        groupby = groupby or []
-        rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
-        applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
-        db_engine_spec = self.db_engine_spec
-        series_column_labels = [
-            db_engine_spec.make_label_compatible(column)
+    def _normalize_column_labels(
+        self,
+        columns: Optional[list[Column]],
+        series_columns: Optional[list[Column]],
+    ) -> list[str]:
+        """Extract and normalize column labels for series columns."""
+        return [
+            self.db_engine_spec.make_label_compatible(column)
             for column in utils.get_column_names(
                 columns=series_columns or [],
             )
         ]
-        # deprecated, to be removed in 2.0
-        if is_timeseries and timeseries_limit:
-            series_limit = timeseries_limit
-        series_limit_metric = series_limit_metric or timeseries_limit_metric
-        template_kwargs.update(self.template_params_dict)
-        extra_cache_keys: list[Any] = []
-        template_kwargs["extra_cache_keys"] = extra_cache_keys
-        removed_filters: list[str] = []
-        applied_template_filters: list[str] = []
-        template_kwargs["removed_filters"] = removed_filters
-        template_kwargs["applied_filters"] = applied_template_filters
-        template_processor = self.get_template_processor(**template_kwargs)
-        prequeries: list[str] = []
-        orderby = orderby or []
-        need_groupby = bool(metrics is not None or groupby)
-        metrics = metrics or []
 
-        # For backward compatibility
-        if granularity not in self.dttm_cols and granularity is not None:
-            granularity = self.main_dttm_col
+    def _build_top_groups_filter(
+        self,
+        df: pd.DataFrame,
+        groupby_series_columns: dict[str, Any],
+        columns_by_name: dict[str, "TableColumn"],
+    ) -> ColumnElement:
+        """Build SQL filter for top groups based on prequery results."""
+        dimensions = [c for c in df.columns if c in groupby_series_columns]
+        return self._get_top_groups(
+            df, dimensions, groupby_series_columns, columns_by_name
+        )
 
-        columns_by_name: dict[str, "TableColumn"] = {
-            col.column_name: col for col in self.columns
-        }
-        quoted_columns_by_name = {quote(k): v for k, v in columns_by_name.items()}
-
-        metrics_by_name: dict[str, "SqlMetric"] = {
-            m.metric_name: m for m in self.metrics
-        }
-
-        if not granularity and is_timeseries:
-            raise QueryObjectValidationError(
-                _(
-                    "Datetime column not provided as part table configuration "
-                    "and is required by this type of chart"
-                )
-            )
-        if not metrics and not columns and not groupby:
-            raise QueryObjectValidationError(_("Empty query?"))
-
-        metrics_exprs: list[ColumnElement] = []
-        for metric in metrics:
-            if utils.is_adhoc_metric(metric):
-                assert isinstance(metric, dict)
-                metrics_exprs.append(
-                    self.adhoc_metric_to_sqla(
-                        metric=metric,
-                        columns_by_name=columns_by_name,
-                        template_processor=template_processor,
-                    )
-                )
-            elif isinstance(metric, str) and metric in metrics_by_name:
-                metrics_exprs.append(
-                    metrics_by_name[metric].get_sqla_col(
-                        template_processor=template_processor
-                    )
-                )
-            else:
-                raise QueryObjectValidationError(
-                    _("Metric '%(metric)s' does not exist", metric=metric)
-                )
-
-        if metrics_exprs:
-            main_metric_expr = metrics_exprs[0]
-        else:
-            main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
-            main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
-
-        # To ensure correct handling of the ORDER BY labeling we need to reference the
-        # metric instance if defined in the SELECT clause.
-        # use the key of the ColumnClause for the expected label
-        metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
-        metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
-
-        # Since orderby may use adhoc metrics, too; we need to process them first
+    def _build_orderby_expressions(
+        self,
+        query_obj: QueryObject,
+        metrics_exprs_by_label: dict[str, ColumnElement],
+        metrics_exprs_by_expr: dict[str, ColumnElement],
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> list[ColumnElement]:
+        """Build ORDER BY expressions, handling adhoc metrics and column references."""
         orderby_exprs: list[ColumnElement] = []
-        for orig_col, ascending in orderby:  # noqa: B007
+
+        for orig_col, ascending in query_obj.orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_sql_expression(
-                        expression=col["sqlExpression"],
-                        database_id=self.database_id,
-                        engine=self.database.backend,
-                        schema=self.schema,
-                        template_processor=template_processor,
-                    )
+                    sql_expr = col.get("sqlExpression")
+                    if sql_expr is not None:
+                        col["sqlExpression"] = self._process_adhoc_sql_expression(
+                            expression=sql_expr,
+                            template_processor=template_processor,
+                        )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
-                    col = self.adhoc_metric_to_sqla(col, columns_by_name)
+                    col = self.adhoc_metric_to_sqla(col, query_obj.columns_by_name)
                     # if the adhoc metric has been defined before
                     # use the existing instance.
                     col = metrics_exprs_by_expr.get(str(col), col)
-                    need_groupby = True
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
-                need_groupby = True
-            elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col(
+            elif col in query_obj.metrics_by_name:
+                col = query_obj.metrics_by_name[col].get_sqla_col(
                     template_processor=template_processor
                 )
-                need_groupby = True
-            elif col in columns_by_name:
+            elif col in query_obj.columns_by_name:
                 col = self.convert_tbl_column_to_sqla_col(
-                    columns_by_name[col], template_processor=template_processor
+                    query_obj.columns_by_name[col],
+                    template_processor=template_processor,
                 )
 
             if isinstance(col, ColumnElement):
@@ -1807,97 +1741,332 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     _("Unknown column used in orderby: %(col)s", col=orig_col)
                 )
 
-        select_exprs: list[Union[Column, Label]] = []
-        groupby_all_columns = {}
-        groupby_series_columns = {}
+        return orderby_exprs
 
-        # filter out the pseudo column  __timestamp from columns
-        columns = [col for col in columns if col != utils.DTTM_ALIAS]
-        dttm_col = columns_by_name.get(granularity) if granularity else None
+    def _build_metrics_expressions(
+        self,
+        query_obj: QueryObject,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> tuple[list[ColumnElement], ColumnElement]:
+        """Build metric expressions from QueryObject metrics.
 
-        if need_groupby:
-            # dedup columns while preserving order
-            columns = groupby or columns
-            for selected in columns:
-                if isinstance(selected, str):
-                    # if groupby field/expr equals granularity field/expr
-                    if selected == granularity:
-                        table_col = columns_by_name[selected]
-                        outer = table_col.get_timestamp_expression(
-                            time_grain=time_grain,
-                            label=selected,
-                            template_processor=template_processor,
-                        )
-                    # if groupby field equals a selected column
-                    elif selected in columns_by_name:
-                        outer = self.convert_tbl_column_to_sqla_col(
-                            columns_by_name[selected],
-                            template_processor=template_processor,
-                        )
-                    else:
-                        selected = validate_adhoc_subquery(
-                            selected,
-                            self.database,
-                            self.catalog,
-                            self.schema,
-                            self.database.db_engine_spec.engine,
-                        )
-                        outer = literal_column(f"({selected})")
-                        outer = self.make_sqla_column_compatible(outer, selected)
-                else:
-                    outer = self.adhoc_column_to_sqla(
-                        col=selected,
-                        template_processor=template_processor,
-                    )
-                groupby_all_columns[outer.name] = outer
-                if (
-                    is_timeseries and not series_column_labels
-                ) or outer.name in series_column_labels:
-                    groupby_series_columns[outer.name] = outer
-                select_exprs.append(outer)
-        elif columns:
-            for selected in columns:
-                if is_adhoc_column(selected):
-                    _sql = selected["sqlExpression"]
-                    _column_label = selected["label"]
-                elif isinstance(selected, str):
-                    _sql = quote(selected)
-                    _column_label = selected
-
-                selected = validate_adhoc_subquery(
-                    _sql,
-                    self.database,
-                    self.catalog,
-                    self.schema,
-                    self.database.db_engine_spec.engine,
+        Returns:
+            Tuple of (metric expressions list, main metric expression)
+        """
+        metrics_exprs: list[ColumnElement] = []
+        for metric in query_obj.metrics:
+            metrics_exprs.append(
+                self._build_metric_expression(
+                    metric=metric,
+                    query_obj=query_obj,
+                    template_processor=template_processor,
                 )
+            )
 
-                select_exprs.append(
-                    self.convert_tbl_column_to_sqla_col(
-                        quoted_columns_by_name[selected],
-                        template_processor=template_processor,
-                        label=_column_label,
-                    )
-                    if selected in quoted_columns_by_name
-                    else self.make_sqla_column_compatible(
-                        literal_column(selected), _column_label
-                    )
+        if metrics_exprs:
+            main_metric_expr = metrics_exprs[0]
+        else:
+            main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
+            main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
+
+        return metrics_exprs, main_metric_expr
+
+    def _get_series_orderby_expression(
+        self,
+        query_obj: QueryObject,
+        main_metric_expr: ColumnElement,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> ColumnElement:
+        """Get the ORDER BY expression for series limit queries."""
+        series_limit_metric = query_obj.series_limit_metric
+        if not series_limit_metric:
+            return main_metric_expr
+
+        return self._get_series_orderby(
+            series_limit_metric=series_limit_metric,
+            query_obj=query_obj,
+            template_processor=template_processor,
+        )
+
+    def _normalize_filter_value(
+        self,
+        value: FilterValue,
+        target_generic_type: GenericDataType,
+        operator: utils.FilterOperator,
+    ) -> Optional[FilterValue]:
+        """Normalize a single filter value based on type and operator."""
+        if operator == utils.FilterOperator.TEMPORAL_RANGE:
+            return value
+        if (
+            isinstance(value, (float, int))
+            and target_generic_type == utils.GenericDataType.TEMPORAL
+        ):
+            # Note: This would need db_engine_spec and target_native_type
+            # passed in for full implementation
+            return value
+        if isinstance(value, str):
+            value = value.strip("\t\n")
+            if (
+                target_generic_type == utils.GenericDataType.NUMERIC
+                and operator
+                not in {
+                    utils.FilterOperator.ILIKE,
+                    utils.FilterOperator.LIKE,
+                }
+            ):
+                return utils.cast_to_num(value)
+            if value == NULL_STRING:
+                return None
+            if value == EMPTY_STRING:
+                return ""
+        if target_generic_type == utils.GenericDataType.BOOLEAN:
+            return utils.cast_to_boolean(value)
+        return value
+
+    def _build_time_filter_expression(
+        self,
+        col: ColumnElement,
+        start_dttm: Optional[datetime],
+        end_dttm: Optional[datetime],
+        time_col: "TableColumn",
+    ) -> ColumnElement:
+        """Build time range filter expression."""
+        filters = []
+        if start_dttm:
+            filters.append(
+                col
+                >= self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(start_dttm, time_col)
                 )
-            metrics_exprs = []
+            )
+        if end_dttm:
+            filters.append(
+                col
+                < self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(end_dttm, time_col)
+                )
+            )
+        return and_(*filters) if filters else sa.true()
+
+    def _build_template_kwargs(
+        self,
+        query_obj: QueryObject,
+        granularity: str | None,
+    ) -> dict[str, Any]:
+        """Build template kwargs from QueryObject and datasource.
+
+        Args:
+            query_obj: QueryObject containing query parameters
+            granularity: The time column name (may be adjusted from
+                query_obj.granularity)
+
+        Returns:
+            Dictionary of template parameters
+        """
+        template_kwargs = {
+            "columns": query_obj.columns,
+            "from_dttm": query_obj.from_dttm.isoformat()
+            if query_obj.from_dttm
+            else None,
+            "groupby": query_obj.columns,  # QueryObject uses columns instead of groupby
+            "metrics": query_obj.metrics,
+            "row_limit": query_obj.row_limit,
+            "row_offset": query_obj.row_offset,
+            "time_column": granularity,
+            "time_grain": query_obj.time_grain,
+            "to_dttm": query_obj.to_dttm.isoformat() if query_obj.to_dttm else None,
+            "table_columns": [col.column_name for col in self.columns],
+            "filters": query_obj.filter,
+        }
+
+        # Add deprecated template params (to be removed in 2.0)
+        template_kwargs.update(self.template_params_dict)
+
+        # Add mutable tracking lists
+        template_kwargs["extra_cache_keys"] = []
+        template_kwargs["removed_filters"] = []
+        template_kwargs["applied_filters"] = []
+
+        return template_kwargs
+
+    def _wrap_query_for_rowcount(
+        self,
+        qry: Select,
+    ) -> tuple[Select, list[str]]:
+        """Wrap a query in COUNT(*) for row count queries."""
+        if not self.db_engine_spec.allows_subqueries:
+            raise QueryObjectValidationError(_("Database does not support subqueries"))
+        label = "rowcount"
+        col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
+        wrapped_qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
+        labels_expected = [label]
+        return wrapped_qry, labels_expected
+
+    def _create_others_case_expression(
+        self,
+        expr: ColumnElement,
+        condition: Any,
+        label: Optional[str] = None,
+    ) -> ColumnElement:
+        """Create CASE expression for 'Others' grouping."""
+        case_expr = sa.case([(condition, expr)], else_=sa.literal("Others"))
+        if label:
+            case_expr = self.make_sqla_column_compatible(case_expr, label)
+        return case_expr
+
+    def _apply_advanced_data_type_filter(
+        self,
+        sqla_col: Column,
+        col_advanced_data_type: str,
+        operator: utils.FilterOperator,
+        values: FilterValues,
+    ) -> ColumnElement:
+        """Apply advanced data type filtering.
+
+        This method assumes the caller has already verified that:
+        - col_advanced_data_type is not empty
+        - ENABLE_ADVANCED_DATA_TYPES feature flag is enabled
+        - col_advanced_data_type exists in ADVANCED_DATA_TYPES
+        """
+        # Get ADVANCED_DATA_TYPES from config
+        ADVANCED_DATA_TYPES = current_app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
+
+        is_list_target = operator in (
+            utils.FilterOperator.IN,
+            utils.FilterOperator.NOT_IN,
+        )
+        values_list = values if is_list_target else [values]  # type: ignore
+        bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
+            col_advanced_data_type
+        ].translate_type(
+            {
+                "type": col_advanced_data_type,
+                "values": values_list,
+            }
+        )
+        if bus_resp["error_message"]:
+            raise AdvancedDataTypeResponseError(_(bus_resp["error_message"]))
+
+        return ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
+            sqla_col, operator, bus_resp["values"]
+        )
+
+    def _apply_orderby_direction(
+        self,
+        qry: Select,
+        orderby_exprs: list[ColumnElement],
+        orderby: list[OrderBy],
+        select_exprs: list[Union[Column, Label]],
+    ) -> Select:
+        """Apply ORDER BY with proper direction and column handling."""
+        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
+            if not self.db_engine_spec.allows_alias_in_orderby and isinstance(
+                col, Label
+            ):
+                # if engine does not allow using SELECT alias in ORDER BY
+                # revert to the underlying column
+                col = col.element
+
+            if (
+                self.db_engine_spec.get_allows_alias_in_select(self.database)
+                and self.db_engine_spec.allows_hidden_cc_in_orderby
+                and col.name in [select_col.name for select_col in select_exprs]
+            ):
+                with self.database.get_sqla_engine() as engine:
+                    quote = engine.dialect.identifier_preparer.quote
+                    col = literal_column(quote(col.name))
+            direction = sa.asc if ascending else sa.desc
+            qry = qry.order_by(direction(col))
+        return qry
+
+    def _deduplicate_select_columns(
+        self,
+        select_exprs: list[Union[Column, Label]],
+        metrics_exprs: list[ColumnElement],
+        orderby_exprs: list[ColumnElement],
+    ) -> list[Union[Column, Label]]:
+        """Remove duplicate columns from SELECT clause."""
+        # Always remove duplicates by column name, as sometimes `metrics_exprs`
+        # can have the same name as a groupby column (e.g. when users use
+        # raw columns as custom SQL adhoc metric).
+        deduped = remove_duplicates(select_exprs + metrics_exprs, key=lambda x: x.name)
+
+        # Order by columns are "hidden" columns, some databases require them
+        # always be present in SELECT if an aggregation function is used
+        if not self.db_engine_spec.allows_hidden_orderby_agg:
+            deduped = remove_duplicates(deduped + orderby_exprs)
+
+        return deduped
+
+    def _validate_query_params(self, query_obj: QueryObject) -> None:
+        """Validate query parameters and raise appropriate errors.
+
+        Args:
+            query_obj: QueryObject containing all query parameters
+
+        Raises:
+            QueryObjectValidationError: If validation fails
+        """
+        if not query_obj.granularity and query_obj.is_timeseries:
+            raise QueryObjectValidationError(
+                _(
+                    "Datetime column not provided as part table configuration "
+                    "and is required by this type of chart"
+                )
+            )
+        if not query_obj.metrics and not query_obj.columns:
+            raise QueryObjectValidationError(_("Empty query?"))
+
+    def _build_time_filters(
+        self,
+        query_obj: QueryObject,
+        template_processor: BaseTemplateProcessor,
+        select_exprs: list[ColumnElement],
+        groupby_all_columns: dict[str, ColumnElement],
+    ) -> tuple[list[ColumnElement], Optional["TableColumn"]]:
+        """Build time filters and prepare timeseries column.
+
+        Args:
+            query_obj: Query object containing granularity, is_timeseries, from_dttm,
+                to_dttm, time_grain settings, and columns_by_name mapping
+            template_processor: Template processor for dynamic SQL
+            select_exprs: List of select expressions (modified in place)
+            groupby_all_columns: Mapping of column names to expressions
+                (modified in place)
+
+        Returns:
+            Tuple of (time_filters, dttm_col)
+        """
+        time_filters = []
+        dttm_col = None
+
+        # Extract values from QueryObject
+        granularity = query_obj.granularity
+        is_timeseries = query_obj.is_timeseries
+        from_dttm = query_obj.from_dttm
+        to_dttm = query_obj.to_dttm
 
         if granularity:
-            if granularity not in columns_by_name or not dttm_col:
+            if granularity not in query_obj.columns_by_name:
                 raise QueryObjectValidationError(
                     _(
                         'Time column "%(col)s" does not exist in dataset',
                         col=granularity,
                     )
                 )
-            time_filters = []
+            dttm_col = query_obj.columns_by_name[granularity]
+            if not dttm_col:
+                raise QueryObjectValidationError(
+                    _(
+                        'Time column "%(col)s" does not exist in dataset',
+                        col=granularity,
+                    )
+                )
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
+                    time_grain=query_obj.time_grain,
+                    template_processor=template_processor,
                 )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
@@ -1911,7 +2080,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             ):
                 time_filters.append(
                     self.get_time_filter(
-                        time_col=columns_by_name[self.main_dttm_col],
+                        time_col=query_obj.columns_by_name[self.main_dttm_col],
                         start_dttm=from_dttm,
                         end_dttm=to_dttm,
                         template_processor=template_processor,
@@ -1926,20 +2095,98 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             time_filters.append(time_filter_column)
 
-        # Always remove duplicates by column name, as sometimes `metrics_exprs`
-        # can have the same name as a groupby column (e.g. when users use
-        # raw columns as custom SQL adhoc metric).
-        select_exprs = remove_duplicates(
-            select_exprs + metrics_exprs, key=lambda x: x.name
+        return time_filters, dttm_col
+
+    def get_sqla_query(self, query_obj: QueryObject) -> SqlaQuery:  # noqa: C901
+        """Build SQLAlchemy query from QueryObject (immutable)."""
+        # Create short alias for frequently used object
+        qo = query_obj
+
+        # Extract values from QueryObject
+        granularity = qo.granularity
+        if granularity not in self.dttm_cols and granularity is not None:
+            granularity = self.main_dttm_col
+
+        # Extract values that need special handling
+        from_dttm = qo.from_dttm
+        to_dttm = qo.to_dttm
+        inner_from_dttm = qo.inner_from_dttm
+        inner_to_dttm = qo.inner_to_dttm
+
+        # DB-specifc quoting for identifiers (handled in QueryObject methods)
+
+        # Build template kwargs
+        template_kwargs = self._build_template_kwargs(qo, granularity)
+        extra_cache_keys = template_kwargs["extra_cache_keys"]
+        removed_filters = template_kwargs["removed_filters"]
+        applied_template_filters = template_kwargs["applied_filters"]
+
+        rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
+        applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
+        db_engine_spec = self.db_engine_spec
+        series_column_labels = self._normalize_column_labels(
+            qo.columns, qo.series_columns
+        )
+
+        template_processor = self.get_template_processor(**template_kwargs)
+        prequeries: list[str] = []
+
+        # For backward compatibility (already handled above)
+
+        # Use mappings from QueryObject instead of building local ones
+
+        self._validate_query_params(qo)
+
+        metrics_exprs, main_metric_expr = self._build_metrics_expressions(
+            qo, template_processor
+        )
+
+        # To ensure correct handling of the ORDER BY labeling we need to reference the
+        # metric instance if defined in the SELECT clause.
+        # use the key of the ColumnClause for the expected label
+        metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
+        metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
+
+        # Since orderby may use adhoc metrics, too; we need to process them first
+        orderby_exprs = self._build_orderby_expressions(
+            qo,
+            metrics_exprs_by_label,
+            metrics_exprs_by_expr,
+            template_processor,
+        )
+
+        # Build SELECT expressions using QueryObject
+        select_exprs, groupby_all_columns, groupby_series_columns = (
+            qo.build_select_expressions(
+                granularity=granularity,
+                series_column_labels=set(series_column_labels),
+                datasource=self,
+                template_processor=template_processor,
+            )
+        )
+
+        # Extract is_timeseries for repeated use
+        is_timeseries = qo.is_timeseries
+        dttm_col = qo.columns_by_name.get(granularity) if granularity else None
+
+        # If we're not using groupby, metrics should be empty
+        if not qo.need_groupby:
+            metrics_exprs = []
+
+        time_filters, dttm_col = self._build_time_filters(
+            query_obj=qo,
+            template_processor=template_processor,
+            select_exprs=select_exprs,
+            groupby_all_columns=groupby_all_columns,
+        )
+
+        # Deduplicate select columns
+        select_exprs = self._deduplicate_select_columns(
+            select_exprs, metrics_exprs, orderby_exprs
         )
 
         # Expected output columns
         labels_expected = [c.key for c in select_exprs]
-
-        # Order by columns are "hidden" columns, some databases require them
-        # always be present in SELECT if an aggregation function is used
-        if not db_engine_spec.allows_hidden_orderby_agg:
-            select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
         qry = sa.select(select_exprs)
 
@@ -1948,221 +2195,42 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
 
-        where_clause_and = []
-        having_clause_and = []
+        # Build filter clauses using QueryObject method
+        where_clause_and, having_clause_and = qo.build_filter_clauses(
+            datasource=self,
+            template_processor=template_processor,
+            time_filters=time_filters,
+            removed_filters=removed_filters,
+            applied_adhoc_filters_columns=applied_adhoc_filters_columns,
+            rejected_adhoc_filters_columns=rejected_adhoc_filters_columns,
+            is_timeseries=is_timeseries,
+            dttm_col=dttm_col,
+        )
 
-        for flt in filter:  # type: ignore
-            if not all(flt.get(s) for s in ["col", "op"]):
-                continue
-            flt_col = flt["col"]
-            val = flt.get("val")
-            flt_grain = flt.get("grain")
-            op = utils.FilterOperator(flt["op"].upper())
-            col_obj: Optional["TableColumn"] = None
-            sqla_col: Optional[Column] = None
-            if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
-                col_obj = dttm_col
-            elif is_adhoc_column(flt_col):
-                try:
-                    sqla_col = self.adhoc_column_to_sqla(flt_col, force_type_check=True)
-                    applied_adhoc_filters_columns.append(flt_col)
-                except ColumnNotFoundException:
-                    rejected_adhoc_filters_columns.append(flt_col)
-                    continue
-            else:
-                col_obj = columns_by_name.get(cast(str, flt_col))
-            filter_grain = flt.get("grain")
+        # Build applied/rejected filter columns (like original code)
+        filter_columns = [flt.get("col") for flt in qo.filter] if qo.filter else []
 
-            if get_column_name(flt_col) in removed_filters:
-                # Skip generating SQLA filter when the jinja template handles it.
-                continue
+        rejected_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and col not in self.column_names
+            and col not in applied_template_filters
+        ] + rejected_adhoc_filters_columns
 
-            if col_obj or sqla_col is not None:
-                if sqla_col is not None:
-                    pass
-                elif col_obj and filter_grain:
-                    sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
-                    )
-                elif col_obj:
-                    sqla_col = self.convert_tbl_column_to_sqla_col(
-                        tbl_column=col_obj, template_processor=template_processor
-                    )
-                col_type = col_obj.type if col_obj else None
-                col_spec = db_engine_spec.get_column_spec(native_type=col_type)
-                is_list_target = op in (
-                    utils.FilterOperator.IN,
-                    utils.FilterOperator.NOT_IN,
-                )
+        applied_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and (col in self.column_names or col in applied_template_filters)
+        ] + applied_adhoc_filters_columns
 
-                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
-
-                if col_spec and not col_advanced_data_type:
-                    target_generic_type = col_spec.generic_type
-                else:
-                    target_generic_type = GenericDataType.STRING
-                eq = self.filter_values_handler(
-                    values=val,
-                    operator=op,
-                    target_generic_type=target_generic_type,
-                    target_native_type=col_type,
-                    is_list_target=is_list_target,
-                    db_engine_spec=db_engine_spec,
-                )
-
-                # Get ADVANCED_DATA_TYPES from config when needed
-                ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
-
-                if (
-                    col_advanced_data_type != ""
-                    and feature_flag_manager.is_feature_enabled(
-                        "ENABLE_ADVANCED_DATA_TYPES"
-                    )
-                    and col_advanced_data_type in ADVANCED_DATA_TYPES
-                ):
-                    values = eq if is_list_target else [eq]  # type: ignore
-                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
-                        col_advanced_data_type
-                    ].translate_type(
-                        {
-                            "type": col_advanced_data_type,
-                            "values": values,
-                        }
-                    )
-                    if bus_resp["error_message"]:
-                        raise AdvancedDataTypeResponseError(
-                            _(bus_resp["error_message"])
-                        )
-
-                    where_clause_and.append(
-                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
-                            sqla_col, op, bus_resp["values"]
-                        )
-                    )
-                elif is_list_target:
-                    assert isinstance(eq, (tuple, list))
-                    if len(eq) == 0:
-                        raise QueryObjectValidationError(
-                            _("Filter value list cannot be empty")
-                        )
-                    if len(eq) > len(
-                        eq_without_none := [x for x in eq if x is not None]
-                    ):
-                        is_null_cond = sqla_col.is_(None)
-                        if eq:
-                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
-                        else:
-                            cond = is_null_cond
-                    else:
-                        cond = sqla_col.in_(eq)
-                    if op == utils.FilterOperator.NOT_IN:
-                        cond = ~cond
-                    where_clause_and.append(cond)
-                elif op in {
-                    utils.FilterOperator.IS_NULL,
-                    utils.FilterOperator.IS_NOT_NULL,
-                }:
-                    where_clause_and.append(
-                        db_engine_spec.handle_null_filter(sqla_col, op)
-                    )
-                elif op == utils.FilterOperator.IS_TRUE:
-                    where_clause_and.append(
-                        db_engine_spec.handle_boolean_filter(sqla_col, op, True)
-                    )
-                elif op == utils.FilterOperator.IS_FALSE:
-                    where_clause_and.append(
-                        db_engine_spec.handle_boolean_filter(sqla_col, op, False)
-                    )
-                else:
-                    if (
-                        op
-                        not in {
-                            utils.FilterOperator.EQUALS,
-                            utils.FilterOperator.NOT_EQUALS,
-                        }
-                        and eq is None
-                    ):
-                        raise QueryObjectValidationError(
-                            _(
-                                "Must specify a value for filters "
-                                "with comparison operators"
-                            )
-                        )
-                    if op in {
-                        utils.FilterOperator.EQUALS,
-                        utils.FilterOperator.NOT_EQUALS,
-                        utils.FilterOperator.GREATER_THAN,
-                        utils.FilterOperator.LESS_THAN,
-                        utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                        utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                    }:
-                        where_clause_and.append(
-                            db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
-                        )
-                    elif op in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
-                    }:
-                        if target_generic_type != GenericDataType.STRING:
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        if op == utils.FilterOperator.LIKE:
-                            where_clause_and.append(sqla_col.like(eq))
-                        else:
-                            where_clause_and.append(sqla_col.ilike(eq))
-                    elif op in {utils.FilterOperator.NOT_LIKE}:
-                        if target_generic_type != GenericDataType.STRING:
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        where_clause_and.append(sqla_col.not_like(eq))
-                    elif (
-                        op == utils.FilterOperator.TEMPORAL_RANGE
-                        and isinstance(eq, str)
-                        and col_obj is not None
-                    ):
-                        _since, _until = get_since_until_from_time_range(
-                            time_range=eq,
-                            time_shift=time_shift,
-                            extras=extras,
-                        )
-                        where_clause_and.append(
-                            self.get_time_filter(
-                                time_col=col_obj,
-                                start_dttm=_since,
-                                end_dttm=_until,
-                                time_grain=flt_grain,
-                                label=sqla_col.key,
-                                template_processor=template_processor,
-                            )
-                        )
-                    else:
-                        raise QueryObjectValidationError(
-                            _("Invalid filter operation type: %(op)s", op=op)
-                        )
+        # Add row level filters
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
-        if extras:
-            where = extras.get("where")
-            if where:
-                where = self._process_sql_expression(
-                    expression=where,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-                where_clause_and += [self.text(where)]
-            having = extras.get("having")
-            if having:
-                having = self._process_sql_expression(
-                    expression=having,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-                having_clause_and += [self.text(having)]
 
-        if apply_fetch_values_predicate and self.fetch_values_predicate:
+        if qo.apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
@@ -2174,27 +2242,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
-            if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
-                # if engine does not allow using SELECT alias in ORDER BY
-                # revert to the underlying column
-                col = col.element
+        # Apply ORDER BY with proper direction
+        qry = self._apply_orderby_direction(
+            qry, orderby_exprs, qo.orderby, select_exprs
+        )
 
-            if (
-                db_engine_spec.get_allows_alias_in_select(self.database)
-                and db_engine_spec.allows_hidden_cc_in_orderby
-                and col.name in [select_col.name for select_col in select_exprs]
-            ):
-                col = literal_column(quote(col.name))
-            direction = sa.asc if ascending else sa.desc
-            qry = qry.order_by(direction(col))
+        if qo.row_limit:
+            qry = qry.limit(qo.row_limit)
+        if qo.row_offset:
+            qry = qry.offset(qo.row_offset)
 
-        if row_limit:
-            qry = qry.limit(row_limit)
-        if row_offset:
-            qry = qry.offset(row_offset)
-
-        if series_limit and groupby_series_columns:
+        if qo.series_limit is not None and groupby_series_columns:
             if db_engine_spec.allows_joins and db_engine_spec.allows_subqueries:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
@@ -2225,17 +2283,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 
-                ob = inner_main_metric_expr
-                if series_limit_metric:
-                    ob = self._get_series_orderby(
-                        series_limit_metric=series_limit_metric,
-                        metrics_by_name=metrics_by_name,
-                        columns_by_name=columns_by_name,
-                        template_processor=template_processor,
-                    )
-                direction = sa.desc if order_desc else sa.asc
+                ob = self._get_series_orderby_expression(
+                    query_obj=query_obj,
+                    main_metric_expr=inner_main_metric_expr,
+                    template_processor=template_processor,
+                )
+                direction = sa.desc if query_obj.order_desc else sa.asc
                 subq = subq.order_by(direction(ob))
-                subq = subq.limit(series_limit)
+                subq = subq.limit(query_obj.series_limit)
 
                 on_clause = []
                 for gby_name, gby_obj in groupby_series_columns.items():
@@ -2246,7 +2301,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
-                if group_others_when_limit_reached:
+                if query_obj.group_others_when_limit_reached:
                     # Create the alias once and reuse it
                     subq_alias = subq.alias(SERIES_LIMIT_SUBQ_ALIAS)
                     tbl = tbl.join(
@@ -2283,47 +2338,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause)
                     )
             else:
-                if series_limit_metric:
+                orderby = None
+                if qo.series_limit_metric:
                     orderby = [
                         (
-                            self._get_series_orderby(
-                                series_limit_metric=series_limit_metric,
-                                metrics_by_name=metrics_by_name,
-                                columns_by_name=columns_by_name,
+                            self._get_series_orderby_expression(
+                                query_obj=qo,
+                                main_metric_expr=main_metric_expr,
                                 template_processor=template_processor,
                             ),
-                            not order_desc,
+                            not qo.order_desc,
                         )
                     ]
 
                 # run prequery to get top groups
-                prequery_obj = {
-                    "is_timeseries": False,
-                    "row_limit": series_limit,
-                    "metrics": metrics,
-                    "granularity": granularity,
-                    "groupby": groupby,
-                    "from_dttm": inner_from_dttm or from_dttm,
-                    "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": filter,
-                    "orderby": orderby,
-                    "extras": extras,
-                    "columns": get_non_base_axis_columns(columns),
-                    "order_desc": True,
-                }
+                prequery_obj = qo.get_series_limit_prequery_obj(
+                    granularity=granularity,
+                    inner_from_dttm=inner_from_dttm,
+                    inner_to_dttm=inner_to_dttm,
+                    orderby=orderby,
+                )
 
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)
-                dimensions = [
-                    c
-                    for c in result.df.columns
-                    if c not in metrics and c in groupby_series_columns
-                ]
-                top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_series_columns, columns_by_name
+                top_groups = self._build_top_groups_filter(
+                    result.df, groupby_series_columns, qo.columns_by_name
                 )
 
-                if group_others_when_limit_reached:
+                if qo.group_others_when_limit_reached:
                     # Apply Others grouping using the refactored method
                     def _create_top_groups_condition(col_name: str, expr: Any) -> Any:
                         return top_groups
@@ -2347,33 +2389,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         qry = qry.select_from(tbl)
 
-        if is_rowcount:
-            if not db_engine_spec.allows_subqueries:
-                raise QueryObjectValidationError(
-                    _("Database does not support subqueries")
-                )
-            label = "rowcount"
-            col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
-            qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
-            labels_expected = [label]
-
-        filter_columns = [flt.get("col") for flt in filter] if filter else []
-        rejected_filter_columns = [
-            col
-            for col in filter_columns
-            if col
-            and not is_adhoc_column(col)
-            and col not in self.column_names
-            and col not in applied_template_filters
-        ] + rejected_adhoc_filters_columns
-
-        applied_filter_columns = [
-            col
-            for col in filter_columns
-            if col
-            and not is_adhoc_column(col)
-            and (col in self.column_names or col in applied_template_filters)
-        ] + applied_adhoc_filters_columns
+        if qo.is_rowcount:
+            qry, labels_expected = self._wrap_query_for_rowcount(qry)
 
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
