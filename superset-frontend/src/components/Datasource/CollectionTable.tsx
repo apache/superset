@@ -93,6 +93,7 @@ export default class CRUDCollection extends PureComponent<
       collectionArray,
       sortColumn: '',
       sort: 0,
+      prevCollection: props.collection,
     };
     this.onAddItem = this.onAddItem.bind(this);
     this.renderExpandableSection = this.renderExpandableSection.bind(this);
@@ -104,17 +105,24 @@ export default class CRUDCollection extends PureComponent<
     this.toggleExpand = this.toggleExpand.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
-    if (nextProps.collection !== this.props.collection) {
+  static getDerivedStateFromProps(
+    nextProps: CRUDCollectionProps,
+    prevState: CRUDCollectionState,
+  ) {
+    if (nextProps.collection !== prevState.prevCollection) {
       const { collection, collectionArray } = createKeyedCollection(
         nextProps.collection,
       );
-      this.setState(prevState => ({
+      return {
         collection,
         collectionArray,
         expandedColumns: prevState.expandedColumns,
-      }));
+        prevCollection: nextProps.collection,
+      };
     }
+    return {
+      prevCollection: nextProps.collection,
+    };
   }
 
   onCellChange(id: number, col: string, val: boolean) {
