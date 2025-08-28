@@ -136,7 +136,8 @@ export default class WithPopoverMenu extends PureComponent<
   ) {
     if (nextProps.editMode && nextProps.isFocused && !prevState.isFocused) {
       return { isFocused: true, needsClickListner: true };
-    } else if (prevState.isFocused && !nextProps.editMode) {
+    }
+    if (prevState.isFocused && !nextProps.editMode) {
       return { isFocused: false, needsClickListner: false };
     }
     return { needsClickListner: undefined };
