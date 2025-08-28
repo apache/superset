@@ -89,5 +89,4 @@ export interface CRUDCollectionState {
   expandedColumns: Record<PropertyKey, any>;
   sortColumn: string;
   sort: SortOrder;
-  prevCollection: Record<PropertyKey, any>[];
 }

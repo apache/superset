@@ -40,7 +40,6 @@ interface WithPopoverMenuProps {
 
 interface WithPopoverMenuState {
   isFocused: Boolean;
-  needsClickListner?: boolean;
 }
 
 const WithPopoverMenuStyles = styled.div`
@@ -130,27 +129,15 @@ export default class WithPopoverMenu extends PureComponent<
     this.handleClick = this.handleClick.bind(this);
   }
 
-  static getDerivedStateFromProps(
-    nextProps: WithPopoverMenuProps,
-    prevState: WithPopoverMenuState,
-  ) {
-    if (nextProps.editMode && nextProps.isFocused && !prevState.isFocused) {
-      return { isFocused: true, needsClickListner: true };
-    }
-    if (prevState.isFocused && !nextProps.editMode) {
-      return { isFocused: false, needsClickListner: false };
-    }
-    return { needsClickListner: undefined };
-  }
-
   componentDidUpdate(prevProps: WithPopoverMenuProps) {
-    const { needsClickListner } = this.state;
-    if (needsClickListner === true) {
+    if (this.props.editMode && this.props.isFocused && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
-    } else if (needsClickListner === false) {
+      this.setState({ isFocused: true });
+    } else if (this.state.isFocused && !this.props.editMode) {
       document.removeEventListener('click', this.handleClick);
       document.removeEventListener('drag', this.handleClick);
+      this.setState({ isFocused: false });
     }
   }
 
