@@ -85,8 +85,7 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
   container?: HTMLElement | null;
 
   /**
-   * memoized function so it will not recompute
-   * and return previous value
+   * memoized function so it will not recompute and return previous value
    * unless one of
    * - preTransformProps
    * - chartProps
@@ -104,12 +103,8 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
   );
 
   /**
-   * memoized function so it will not recompute
-   * and return previous value
-   * unless one of
-   * - transformProps
-   * - preprocessed result
-   * is changed.
+   * memoized function so it will not recompute and return previous value
+   * unless one of the input arguments have changed.
    */
   transformSelector = createSelector(
     [
@@ -122,12 +117,8 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
   );
 
   /**
-   * memoized function so it will not recompute
-   * and return previous value
-   * unless one of
-   * - postTransformProps
-   * - transformed result
-   * is changed.
+   * memoized function so it will not recompute and return previous value
+   * unless one of the input arguments have changed.
    */
   postSelector = createSelector(
     [
@@ -140,6 +131,9 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
     (transformedChartProps, post = IDENTITY) => post(transformedChartProps),
   );
 
+  /**
+   * Using each memoized function to retrieve the computed chartProps
+   */
   processChartProps = ({
     chartProps,
     preTransformProps,
