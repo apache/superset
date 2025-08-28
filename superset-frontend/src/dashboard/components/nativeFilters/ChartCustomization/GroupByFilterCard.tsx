@@ -579,7 +579,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </div>
       </Popover>
 
-      {/* Column dropdown below the name */}
       <div
         css={css`
           margin-bottom: ${theme.sizeUnit}px;
