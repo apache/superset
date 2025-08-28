@@ -24,7 +24,6 @@ import yaml
 
 from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.database import DatabaseDAO
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.daos.dataset import DatasetDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
@@ -111,7 +110,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
                 except json.JSONDecodeError:
                     logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(model.database.id):
+            if ssh_tunnel := model.database.ssh_tunnel:
                 ssh_tunnel_payload = ssh_tunnel.export_to_dict(
                     recursive=False,
                     include_parent_ref=False,
