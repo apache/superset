@@ -42,18 +42,10 @@ export const getCurrencySymbol = (currency: Partial<Currency>) => {
     | keyof typeof CURRENCY_SYMBOL_MAPPING
     | undefined;
 
-  console.log('zenCurrency', zenCurrency);
-
   if (zenCurrency) {
     if (CURRENCY_SYMBOL_MAPPING[zenCurrency]) {
-      console.log(
-        'CURRENCY_SYMBOL_MAPPING[zenCurrency]',
-        CURRENCY_SYMBOL_MAPPING[zenCurrency],
-      );
       return CURRENCY_SYMBOL_MAPPING[zenCurrency];
     }
-    console.log('zenCurrency not found', zenCurrency);
-    console.log('using default Intl');
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: zenCurrency,
