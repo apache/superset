@@ -23,17 +23,17 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
-from superset_cli.cli import app, FrontendChangeHandler
+from superset_extensions_cli.cli import app, FrontendChangeHandler
 
 
 # Dev Command Tests
 @pytest.mark.cli
-@patch("superset_cli.cli.Observer")
-@patch("superset_cli.cli.init_frontend_deps")
-@patch("superset_cli.cli.rebuild_frontend")
-@patch("superset_cli.cli.rebuild_backend")
-@patch("superset_cli.cli.build_manifest")
-@patch("superset_cli.cli.write_manifest")
+@patch("superset_extensions_cli.cli.Observer")
+@patch("superset_extensions_cli.cli.init_frontend_deps")
+@patch("superset_extensions_cli.cli.rebuild_frontend")
+@patch("superset_extensions_cli.cli.rebuild_backend")
+@patch("superset_extensions_cli.cli.build_manifest")
+@patch("superset_extensions_cli.cli.write_manifest")
 def test_dev_command_starts_watchers(
     mock_write_manifest,
     mock_build_manifest,
@@ -82,11 +82,11 @@ def test_dev_command_starts_watchers(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.init_frontend_deps")
-@patch("superset_cli.cli.rebuild_frontend")
-@patch("superset_cli.cli.rebuild_backend")
-@patch("superset_cli.cli.build_manifest")
-@patch("superset_cli.cli.write_manifest")
+@patch("superset_extensions_cli.cli.init_frontend_deps")
+@patch("superset_extensions_cli.cli.rebuild_frontend")
+@patch("superset_extensions_cli.cli.rebuild_backend")
+@patch("superset_extensions_cli.cli.build_manifest")
+@patch("superset_extensions_cli.cli.write_manifest")
 def test_dev_command_initial_build(
     mock_write_manifest,
     mock_build_manifest,
@@ -104,7 +104,7 @@ def test_dev_command_initial_build(
 
     extension_setup_for_dev(isolated_filesystem)
 
-    with patch("superset_cli.cli.Observer") as mock_observer_class:
+    with patch("superset_extensions_cli.cli.Observer") as mock_observer_class:
         mock_observer = Mock()
         mock_observer_class.return_value = mock_observer
 
@@ -188,9 +188,9 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
     dist_dir = isolated_filesystem / "dist"
     dist_dir.mkdir()
 
-    with patch("superset_cli.cli.rebuild_frontend") as mock_rebuild:
-        with patch("superset_cli.cli.build_manifest") as mock_build:
-            with patch("superset_cli.cli.write_manifest") as mock_write:
+    with patch("superset_extensions_cli.cli.rebuild_frontend") as mock_rebuild:
+        with patch("superset_extensions_cli.cli.build_manifest") as mock_build:
+            with patch("superset_extensions_cli.cli.write_manifest") as mock_write:
                 mock_rebuild.return_value = "remoteEntry.abc123.js"
                 mock_build.return_value = {"name": "test", "version": "1.0.0"}
 
@@ -224,8 +224,8 @@ def test_backend_watcher_function_coverage(isolated_filesystem):
     manifest_data = {"name": "test", "version": "1.0.0"}
     (dist_dir / "manifest.json").write_text(json.dumps(manifest_data))
 
-    with patch("superset_cli.cli.rebuild_backend") as mock_rebuild:
-        with patch("superset_cli.cli.write_manifest") as mock_write:
+    with patch("superset_extensions_cli.cli.rebuild_backend") as mock_rebuild:
+        with patch("superset_extensions_cli.cli.write_manifest") as mock_write:
             # Simulate backend watcher function
             mock_rebuild(isolated_filesystem)
 

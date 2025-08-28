@@ -13,9 +13,7 @@ apispec==6.6.1
 apsw==3.50.1.0
     # via shillelagh
 async-timeout==4.0.3
-    # via
-    #   -r requirements/base.in
-    #   redis
+    # via -r requirements/base.in
 attrs==25.3.0
     # via
     #   cattrs
@@ -160,7 +158,6 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
-    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -405,11 +402,9 @@ typing-extensions==4.14.0
     #   apache-superset (pyproject.toml)
     #   alembic
     #   cattrs
-    #   exceptiongroup
     #   limits
     #   pyopenssl
     #   referencing
-    #   rich
     #   selenium
     #   shillelagh
 tzdata==2025.2

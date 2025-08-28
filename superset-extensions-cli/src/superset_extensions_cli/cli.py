@@ -32,8 +32,8 @@ from superset_core.extensions.types import Manifest, Metadata
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from superset_cli.constants import MIN_NPM_VERSION
-from superset_cli.utils import read_json, read_toml
+from superset_extensions_cli.constants import MIN_NPM_VERSION
+from superset_extensions_cli.utils import read_json, read_toml
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")

@@ -20,7 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from superset_cli.cli import app
+from superset_extensions_cli.cli import app
 
 from tests.utils import (
     assert_directory_exists,

@@ -17,9 +17,9 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# apache-superset-cli
+# apache-superset-extensions-cli
 
-[![PyPI version](https://badge.fury.io/py/apache-superset-cli.svg)](https://badge.fury.io/py/apache-superset-cli)
+[![PyPI version](https://badge.fury.io/py/apache-superset-extensions-cli.svg)](https://badge.fury.io/py/apache-superset-extensions-cli)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
@@ -35,7 +35,7 @@ Official command-line interface for building, bundling, and managing Apache Supe
 ## 📦 Installation
 
 ```bash
-pip install apache-superset-cli
+pip install apache-superset-extensions-cli
 ```
 
 ## 🛠️ Quick Start
