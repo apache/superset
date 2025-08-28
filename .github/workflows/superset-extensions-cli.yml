@@ -1,4 +1,4 @@
-name: Superset CLI Package Tests
+name: Superset Extensions CLI Package Tests
 
 on:
   push:
@@ -14,14 +14,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-superset-cli-package:
+  test-superset-extensions-cli-package:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ["previous", "current", "next"]
     defaults:
       run:
-        working-directory: superset-cli
+        working-directory: superset-extensions-cli
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -36,29 +36,29 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
-        if: steps.check.outputs.superset-cli
+        if: steps.check.outputs.superset-extensions-cli
         uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
           requirements-type: dev
 
       - name: Run pytest with coverage
-        if: steps.check.outputs.superset-cli
+        if: steps.check.outputs.superset-extensions-cli
         run: |
-          pytest --cov=superset_cli --cov-report=xml --cov-report=term-missing --cov-report=html -v --tb=short
+          pytest --cov=superset_extensions_cli --cov-report=xml --cov-report=term-missing --cov-report=html -v --tb=short
 
       - name: Upload coverage reports to Codecov
-        if: steps.check.outputs.superset-cli
+        if: steps.check.outputs.superset-extensions-cli
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
-          flags: superset-cli
-          name: superset-cli-coverage
+          flags: superset-extensions-cli
+          name: superset-extensions-cli-coverage
           fail_ci_if_error: false
 
       - name: Upload HTML coverage report
-        if: steps.check.outputs.superset-cli
+        if: steps.check.outputs.superset-extensions-cli
         uses: actions/upload-artifact@v4
         with:
-          name: superset-cli-coverage-html
+          name: superset-extensions-cli-coverage-html
           path: htmlcov/

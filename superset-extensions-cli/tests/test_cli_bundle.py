@@ -22,14 +22,14 @@ import zipfile
 from unittest.mock import patch
 
 import pytest
-from superset_cli.cli import app
+from superset_extensions_cli.cli import app
 
 from tests.utils import assert_file_exists
 
 
 # Bundle Command Tests
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_creates_zip_with_default_name(
     mock_build, cli_runner, isolated_filesystem, extension_setup_for_bundling
 ):
@@ -59,7 +59,7 @@ def test_bundle_command_creates_zip_with_default_name(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_with_custom_output_filename(
     mock_build, cli_runner, isolated_filesystem, extension_setup_for_bundling
 ):
@@ -81,7 +81,7 @@ def test_bundle_command_with_custom_output_filename(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_with_output_directory(
     mock_build, cli_runner, isolated_filesystem, extension_setup_for_bundling
 ):
@@ -106,7 +106,7 @@ def test_bundle_command_with_output_directory(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_fails_without_manifest(
     mock_build, cli_runner, isolated_filesystem
 ):
@@ -124,7 +124,7 @@ def test_bundle_command_fails_without_manifest(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_handles_zip_creation_error(
     mock_build, cli_runner, isolated_filesystem, extension_setup_for_bundling
 ):
@@ -145,7 +145,7 @@ def test_bundle_command_handles_zip_creation_error(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_includes_all_files_recursively(
     mock_build, cli_runner, isolated_filesystem
 ):
@@ -214,7 +214,7 @@ def test_bundle_includes_all_files_recursively(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_short_option(
     mock_build, cli_runner, isolated_filesystem, extension_setup_for_bundling
 ):
@@ -233,7 +233,7 @@ def test_bundle_command_short_option(
 
 @pytest.mark.cli
 @pytest.mark.parametrize("output_option", ["--output", "-o"])
-@patch("superset_cli.cli.build")
+@patch("superset_extensions_cli.cli.build")
 def test_bundle_command_output_options(
     mock_build,
     output_option,

@@ -16,7 +16,7 @@
 # under the License.
 
 [project]
-name = "apache-superset-cli"
+name = "apache-superset-extensions-cli"
 version = "0.0.1rc1"
 description = "Official command-line interface for building, bundling, and managing Apache Superset extensions"
 readme = "README.md"
@@ -70,11 +70,11 @@ requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["superset_cli"]
+packages = ["superset_extensions_cli"]
 package-dir = { "" = "src" }
 
 [project.scripts]
-superset-extensions = "superset_cli.cli:app"
+superset-extensions = "superset_extensions_cli.cli:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -85,7 +85,7 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--verbose",
-    "--cov=superset_cli",
+    "--cov=superset_extensions_cli",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov"
 ]
@@ -97,7 +97,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src/superset_cli"]
+source = ["src/superset_extensions_cli"]
 omit = ["*/tests/*", "*/test_*"]
 
 [tool.coverage.report]
@@ -115,4 +115,4 @@ exclude_lines = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/superset_cli/*" = ["TID251"]
+"src/superset_extensions_cli/*" = ["TID251"]

@@ -21,7 +21,7 @@ import json
 from unittest.mock import Mock, patch
 
 import pytest
-from superset_cli.cli import (
+from superset_extensions_cli.cli import (
     app,
     build_manifest,
     clean_dist,
@@ -79,11 +79,11 @@ def extension_with_build_structure():
 
 # Build Command Tests
 @pytest.mark.cli
-@patch("superset_cli.cli.validate_npm")
-@patch("superset_cli.cli.init_frontend_deps")
-@patch("superset_cli.cli.rebuild_frontend")
-@patch("superset_cli.cli.rebuild_backend")
-@patch("superset_cli.cli.read_toml")
+@patch("superset_extensions_cli.cli.validate_npm")
+@patch("superset_extensions_cli.cli.init_frontend_deps")
+@patch("superset_extensions_cli.cli.rebuild_frontend")
+@patch("superset_extensions_cli.cli.rebuild_backend")
+@patch("superset_extensions_cli.cli.read_toml")
 def test_build_command_success_flow(
     mock_read_toml,
     mock_rebuild_backend,
@@ -115,9 +115,9 @@ def test_build_command_success_flow(
 
 
 @pytest.mark.cli
-@patch("superset_cli.cli.validate_npm")
-@patch("superset_cli.cli.init_frontend_deps")
-@patch("superset_cli.cli.rebuild_frontend")
+@patch("superset_extensions_cli.cli.validate_npm")
+@patch("superset_extensions_cli.cli.init_frontend_deps")
+@patch("superset_extensions_cli.cli.rebuild_frontend")
 def test_build_command_handles_frontend_build_failure(
     mock_rebuild_frontend,
     mock_init_frontend_deps,
@@ -187,7 +187,7 @@ def test_init_frontend_deps_skips_when_node_modules_exists(
 
 @pytest.mark.unit
 @patch("subprocess.run")
-@patch("superset_cli.cli.validate_npm")
+@patch("superset_extensions_cli.cli.validate_npm")
 def test_init_frontend_deps_runs_npm_i_when_missing(
     mock_validate_npm, mock_run, isolated_filesystem
 ):
@@ -207,7 +207,7 @@ def test_init_frontend_deps_runs_npm_i_when_missing(
 
 @pytest.mark.unit
 @patch("subprocess.run")
-@patch("superset_cli.cli.validate_npm")
+@patch("superset_extensions_cli.cli.validate_npm")
 def test_init_frontend_deps_exits_on_npm_ci_failure(
     mock_validate_npm, mock_run, isolated_filesystem
 ):
@@ -303,7 +303,7 @@ def test_build_manifest_exits_when_extension_json_missing(isolated_filesystem):
 @pytest.mark.unit
 def test_clean_dist_frontend_removes_frontend_dist(isolated_filesystem):
     """Test clean_dist_frontend removes frontend/dist directory specifically."""
-    from superset_cli.cli import clean_dist_frontend
+    from superset_extensions_cli.cli import clean_dist_frontend
 
     # Create dist/frontend structure
     dist_dir = isolated_filesystem / "dist"
@@ -322,7 +322,7 @@ def test_clean_dist_frontend_removes_frontend_dist(isolated_filesystem):
 @pytest.mark.unit
 def test_clean_dist_frontend_handles_nonexistent_directory(isolated_filesystem):
     """Test clean_dist_frontend handles case where frontend dist doesn't exist."""
-    from superset_cli.cli import clean_dist_frontend
+    from superset_extensions_cli.cli import clean_dist_frontend
 
     # No dist directory exists
     clean_dist_frontend(isolated_filesystem)
@@ -333,7 +333,7 @@ def test_clean_dist_frontend_handles_nonexistent_directory(isolated_filesystem):
 @pytest.mark.unit
 def test_run_frontend_build_with_output_messages(isolated_filesystem):
     """Test run_frontend_build produces expected output messages."""
-    from superset_cli.cli import run_frontend_build
+    from superset_extensions_cli.cli import run_frontend_build
 
     frontend_dir = isolated_filesystem / "frontend"
     frontend_dir.mkdir()
@@ -362,7 +362,7 @@ def test_rebuild_frontend_handles_build_results(
     isolated_filesystem, return_code, expected_result
 ):
     """Test rebuild_frontend handles different build results."""
-    from superset_cli.cli import rebuild_frontend
+    from superset_extensions_cli.cli import rebuild_frontend
 
     # Create frontend structure
     frontend_dir = isolated_filesystem / "frontend"
@@ -378,7 +378,7 @@ def test_rebuild_frontend_handles_build_results(
         dist_dir = isolated_filesystem / "dist"
         dist_dir.mkdir()
 
-    with patch("superset_cli.cli.run_frontend_build") as mock_build:
+    with patch("superset_extensions_cli.cli.run_frontend_build") as mock_build:
         mock_build.return_value = Mock(returncode=return_code)
 
         result = rebuild_frontend(isolated_filesystem, frontend_dir)
@@ -390,7 +390,7 @@ def test_rebuild_frontend_handles_build_results(
 @pytest.mark.unit
 def test_rebuild_backend_calls_copy_and_shows_message(isolated_filesystem):
     """Test rebuild_backend calls copy_backend_files and shows success message."""
-    from superset_cli.cli import rebuild_backend
+    from superset_extensions_cli.cli import rebuild_backend
 
     # Create extension.json
     extension_json = {
@@ -401,7 +401,7 @@ def test_rebuild_backend_calls_copy_and_shows_message(isolated_filesystem):
     }
     (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
 
-    with patch("superset_cli.cli.copy_backend_files") as mock_copy:
+    with patch("superset_extensions_cli.cli.copy_backend_files") as mock_copy:
         rebuild_backend(isolated_filesystem)
 
         mock_copy.assert_called_once_with(isolated_filesystem)

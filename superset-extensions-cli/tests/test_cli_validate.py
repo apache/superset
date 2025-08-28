@@ -20,14 +20,14 @@ from __future__ import annotations
 from unittest.mock import Mock, patch
 
 import pytest
-from superset_cli.cli import app, validate_npm
+from superset_extensions_cli.cli import app, validate_npm
 
 
 # Validate Command Tests
 @pytest.mark.cli
 def test_validate_command_success(cli_runner):
     """Test validate command succeeds when npm is available and valid."""
-    with patch("superset_cli.cli.validate_npm") as mock_validate:
+    with patch("superset_extensions_cli.cli.validate_npm") as mock_validate:
         result = cli_runner.invoke(app, ["validate"])
 
         assert result.exit_code == 0
@@ -38,7 +38,7 @@ def test_validate_command_success(cli_runner):
 @pytest.mark.cli
 def test_validate_command_calls_npm_validation(cli_runner):
     """Test that validate command calls the npm validation function."""
-    with patch("superset_cli.cli.validate_npm") as mock_validate:
+    with patch("superset_extensions_cli.cli.validate_npm") as mock_validate:
         cli_runner.invoke(app, ["validate"])
         mock_validate.assert_called_once()
 
