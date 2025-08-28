@@ -25,6 +25,7 @@ import {
   isFeatureEnabled,
   COMMON_ERR_MESSAGES,
   getClientErrorObject,
+  logging,
 } from '@superset-ui/core';
 import { invert, mapKeys } from 'lodash';
 
@@ -866,8 +867,7 @@ export function updateSavedQuery(query, clientId) {
       })
       .catch(e => {
         const message = t('Your query could not be updated');
-        // eslint-disable-next-line no-console
-        console.error(message, e);
+        logging.error(message, e);
         dispatch(addDangerToast(message));
       })
       .then(() => dispatch(updateQueryEditor(query)));

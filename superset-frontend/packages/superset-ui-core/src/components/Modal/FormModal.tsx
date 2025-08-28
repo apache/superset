@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@superset-ui/core';
+import { logging, t } from '@superset-ui/core';
 import { Button } from '../Button';
 import { Form } from '../Form';
 import { Modal } from './Modal';
@@ -60,7 +60,7 @@ export function FormModal({
         await formSubmitHandler(values);
         handleSave();
       } catch (err) {
-        console.error(err);
+        logging.error(err);
       } finally {
         setIsSaving(false);
       }

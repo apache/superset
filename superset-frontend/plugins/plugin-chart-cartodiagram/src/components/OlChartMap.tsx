@@ -25,6 +25,7 @@ import BaseEvent from 'ol/events/Event';
 import { unByKey } from 'ol/Observable';
 import { toLonLat } from 'ol/proj';
 import { debounce } from 'lodash';
+import { logging } from '@superset-ui/core';
 import { fitMapToCharts } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
@@ -188,7 +189,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
           olMap.getLayers().insertAt(0, createdLayer.value);
         } else {
-          console.warn(`Layer could not be created: ${configs[idx]}`);
+          logging.warn(`Layer could not be created: ${configs[idx]}`);
         }
       });
     };

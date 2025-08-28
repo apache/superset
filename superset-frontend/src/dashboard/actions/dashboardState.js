@@ -30,6 +30,7 @@ import {
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
+  logging,
 } from '@superset-ui/core';
 import {
   addChart,
