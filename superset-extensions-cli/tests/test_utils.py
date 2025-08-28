@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from superset_cli.utils import read_json, read_toml
+from superset_extensions_cli.utils import read_json, read_toml
 
 
 # Read JSON Tests
