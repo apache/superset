@@ -69,7 +69,10 @@ export const selectGroupByFormData: (
     chartCustomizationItems: ChartCustomizationItem[],
     chartId,
   ) => {
-    const groupByFormData: { groupby?: string[]; filters?: any[] } = {};
+    const groupByFormData: {
+      groupby?: string[];
+      filters?: Array<{ col: string; op: string; val: string[] }>;
+    } = {};
 
     const matchingCustomizations = chartCustomizationItems.filter(item => {
       if (item.removed) return false;
@@ -77,7 +80,7 @@ export const selectGroupByFormData: (
     });
 
     const groupByColumns: string[] = [];
-    const allFilters: any[] = [];
+    const allFilters: Array<{ col: string; op: string; val: string[] }> = [];
 
     matchingCustomizations.forEach(item => {
       const groupById = `chart_customization_${item.id}`;
@@ -166,7 +169,7 @@ export const selectGroupByExtraFormData: (
     const extraFormData: {
       groupby?: string[];
       order_by_cols?: string[];
-      filters?: any[];
+      filters?: Array<{ col: string; op: string; val: string[] }>;
     } = {};
 
     const matchingCustomizations = chartCustomizationItems.filter(item => {
@@ -180,7 +183,7 @@ export const selectGroupByExtraFormData: (
     });
 
     const groupByColumns: string[] = [];
-    const allFilters: any[] = [];
+    const allFilters: Array<{ col: string; op: string; val: string[] }> = [];
     let orderByConfig: string[] | undefined;
 
     matchingCustomizations.forEach(item => {
