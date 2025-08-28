@@ -27,8 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import SelectControl, {
   innerGetOptions,
-  areAllChoiceValuesNumbers,
-  areAllOptionValuesNumbers,
+  areAllValuesNumbers,
   getSortComparator,
 } from 'src/explore/components/controls/SelectControl';
 
@@ -239,101 +238,66 @@ describe('SelectControl', () => {
     });
   });
 
-  describe('areAllChoiceValuesNumbers', () => {
-    it('returns true when all choice values are numbers (array format)', () => {
-      const choices = [
+  describe('areAllValuesNumbers', () => {
+    it('returns true when all values are numbers (array format)', () => {
+      const items = [
         [1, 'One'],
         [2, 'Two'],
         [3, 'Three'],
       ];
-      expect(areAllChoiceValuesNumbers(choices)).toBe(true);
+      expect(areAllValuesNumbers(items)).toBe(true);
     });
 
-    it('returns false when some choice values are not numbers (array format)', () => {
-      const choices = [
+    it('returns false when some values are not numbers (array format)', () => {
+      const items = [
         [1, 'One'],
         ['two', 'Two'],
         [3, 'Three'],
       ];
-      expect(areAllChoiceValuesNumbers(choices)).toBe(false);
+      expect(areAllValuesNumbers(items)).toBe(false);
     });
 
-    it('returns true when all choice values are numbers (object format)', () => {
-      const choices = [
+    it('returns true when all values are numbers (object format)', () => {
+      const items = [
         { value: 1, label: 'One' },
         { value: 2, label: 'Two' },
         { value: 3, label: 'Three' },
       ];
-      expect(areAllChoiceValuesNumbers(choices)).toBe(true);
+      expect(areAllValuesNumbers(items)).toBe(true);
     });
 
-    it('returns false when some choice values are not numbers (object format)', () => {
-      const choices = [
+    it('returns false when some values are not numbers (object format)', () => {
+      const items = [
         { value: 1, label: 'One' },
         { value: 'two', label: 'Two' },
         { value: 3, label: 'Three' },
       ];
-      expect(areAllChoiceValuesNumbers(choices)).toBe(false);
+      expect(areAllValuesNumbers(items)).toBe(false);
     });
 
-    it('returns true when all choice values are numbers (primitive format)', () => {
-      const choices = [1, 2, 3];
-      expect(areAllChoiceValuesNumbers(choices)).toBe(true);
+    it('returns true when all values are numbers (primitive format)', () => {
+      const items = [1, 2, 3];
+      expect(areAllValuesNumbers(items)).toBe(true);
     });
 
-    it('returns false when some choice values are not numbers (primitive format)', () => {
-      const choices = [1, 'two', 3];
-      expect(areAllChoiceValuesNumbers(choices)).toBe(false);
+    it('returns false when some values are not numbers (primitive format)', () => {
+      const items = [1, 'two', 3];
+      expect(areAllValuesNumbers(items)).toBe(false);
     });
 
     it('works with custom valueKey', () => {
-      const choices = [
+      const items = [
         { id: 1, label: 'One' },
         { id: 2, label: 'Two' },
         { id: 3, label: 'Three' },
       ];
-      expect(areAllChoiceValuesNumbers(choices, 'id')).toBe(true);
+      expect(areAllValuesNumbers(items, 'id')).toBe(true);
     });
 
-    it('returns false for empty choices', () => {
-      expect(areAllChoiceValuesNumbers([])).toBe(false);
-      expect(areAllChoiceValuesNumbers(null)).toBe(false);
-      expect(areAllChoiceValuesNumbers(undefined)).toBe(false);
-    });
-  });
-
-  describe('areAllOptionValuesNumbers', () => {
-    it('returns true when all option values are numbers', () => {
-      const options = [
-        { value: 1, label: 'One' },
-        { value: 2, label: 'Two' },
-        { value: 3, label: 'Three' },
-      ];
-      expect(areAllOptionValuesNumbers(options)).toBe(true);
-    });
-
-    it('returns false when some option values are not numbers', () => {
-      const options = [
-        { value: 1, label: 'One' },
-        { value: 'two', label: 'Two' },
-        { value: 3, label: 'Three' },
-      ];
-      expect(areAllOptionValuesNumbers(options)).toBe(false);
-    });
-
-    it('works with custom valueKey', () => {
-      const options = [
-        { id: 1, label: 'One' },
-        { id: 2, label: 'Two' },
-        { id: 3, label: 'Three' },
-      ];
-      expect(areAllOptionValuesNumbers(options, 'id')).toBe(true);
-    });
-
-    it('returns false for empty options', () => {
-      expect(areAllOptionValuesNumbers([])).toBe(false);
-      expect(areAllOptionValuesNumbers(null)).toBe(false);
-      expect(areAllOptionValuesNumbers(undefined)).toBe(false);
+    it('returns false for empty items', () => {
+      expect(areAllValuesNumbers([])).toBe(false);
+      expect(areAllValuesNumbers(null)).toBe(false);
+      expect(areAllValuesNumbers(undefined)).toBe(false);
     });
   });
 

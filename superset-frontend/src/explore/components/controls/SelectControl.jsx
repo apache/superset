@@ -87,33 +87,22 @@ const defaultProps = {
   valueKey: 'value',
 };
 
-const numberComparator = (a, b) => {
-  const aVal = typeof a.value === 'number' ? a.value : parseFloat(a.value);
-  const bVal = typeof b.value === 'number' ? b.value : parseFloat(b.value);
-  return aVal - bVal;
-};
+const numberComparator = (a, b) => a.value - b.value;
 
-export const areAllChoiceValuesNumbers = (choices, valueKey = 'value') => {
-  if (!choices || choices.length === 0) {
+export const areAllValuesNumbers = (items, valueKey = 'value') => {
+  if (!items || items.length === 0) {
     return false;
   }
-  return choices.every(c => {
-    if (Array.isArray(c)) {
-      const [value] = c;
+  return items.every(item => {
+    if (Array.isArray(item)) {
+      const [value] = item;
       return typeof value === 'number';
     }
-    if (typeof c === 'object' && c !== null) {
-      return typeof c[valueKey] === 'number';
+    if (typeof item === 'object' && item !== null) {
+      return typeof item[valueKey] === 'number';
     }
-    return typeof c === 'number';
+    return typeof item === 'number';
   });
-};
-
-export const areAllOptionValuesNumbers = (options, valueKey = 'value') => {
-  if (!options || options.length === 0) {
-    return false;
-  }
-  return options.every(o => typeof o[valueKey] === 'number');
 };
 
 export const getSortComparator = (
@@ -126,11 +115,10 @@ export const getSortComparator = (
     return explicitComparator;
   }
 
-  if (options && areAllOptionValuesNumbers(options, valueKey)) {
-    return numberComparator;
-  }
-
-  if (choices && areAllChoiceValuesNumbers(choices, valueKey)) {
+  if (
+    (options && areAllValuesNumbers(options, valueKey)) ||
+    (choices && areAllValuesNumbers(choices, valueKey))
+  ) {
     return numberComparator;
   }
 
