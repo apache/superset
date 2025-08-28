@@ -598,6 +598,9 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "trino"
+
     mocker.patch(
         "flask.current_app.config",
         {
@@ -614,8 +617,7 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
     )
 
     msg = "This connector does not support roles"
-    BaseEngineSpec.engine_name = "trino"
-    result = BaseEngineSpec.extract_errors(Exception(msg))
+    result = TestEngineSpec.extract_errors(Exception(msg))
 
     expected = create_expected_superset_error(
         message="Custom error message",
@@ -631,6 +633,9 @@ def test_extract_errors_only_to_specified_engine(mocker: MockerFixture) -> None:
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "mysql"
+
     mocker.patch(
         "flask.current_app.config",
         {
@@ -647,8 +652,7 @@ def test_extract_errors_only_to_specified_engine(mocker: MockerFixture) -> None:
     )
 
     msg = "This connector does not support roles"
-    BaseEngineSpec.engine_name = "mysql"
-    result = BaseEngineSpec.extract_errors(Exception(msg))
+    result = TestEngineSpec.extract_errors(Exception(msg))
 
     expected = create_expected_superset_error(
         message="This connector does not support roles",
@@ -664,6 +668,9 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
     """
 
     from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "trino"
 
     mocker.patch(
         "flask.current_app.config",
@@ -693,8 +700,7 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
         "message=\"line 3:6: Table 'postgresql.pg_catalog.pg_authid' does not exist\", "
         "query_id=20250812_074513_00084_kju62)"
     )
-    BaseEngineSpec.engine_name = "trino"
-    result = BaseEngineSpec.extract_errors(Exception(msg))
+    result = TestEngineSpec.extract_errors(Exception(msg))
 
     assert result == [
         SupersetError(
@@ -731,14 +737,16 @@ def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "trino"
+
     mocker.patch(
         "flask.current_app.config",
         {"CUSTOM_DATABASE_ERRORS": "not a dict"},
     )
 
     msg = "This connector does not support roles"
-    BaseEngineSpec.engine_name = "trino"
-    result = BaseEngineSpec.extract_errors(Exception(msg))
+    result = TestEngineSpec.extract_errors(Exception(msg))
 
     expected = create_expected_superset_error(
         message="This connector does not support roles",
@@ -754,17 +762,171 @@ def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "trino"
+
     mocker.patch(
         "flask.current_app.config",
         {"CUSTOM_DATABASE_ERRORS": {"trino": "not a dict"}},
     )
 
     msg = "This connector does not support roles"
-    BaseEngineSpec.engine_name = "trino"
-    result = BaseEngineSpec.extract_errors(Exception(msg))
+    result = TestEngineSpec.extract_errors(Exception(msg))
 
     expected = create_expected_superset_error(
         message="This connector does not support roles",
         engine_name="trino",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_with_empty_custom_error_message(mocker: MockerFixture):
+    """
+    Test that when the custom error message is empty,
+    the original error message is preserved.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "trino"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "trino": {
+                    re.compile("This connector does not support roles"): (
+                        "",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "This connector does not support roles"
+    result = TestEngineSpec.extract_errors(Exception(msg))
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="trino",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_engine_vs_engine_name_precedence(mocker: MockerFixture) -> None:
+    """
+    Test that custom error messages are matched using both engine and engine_name,
+    with engine_name taking precedence when both exist.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine = "postgresql"
+        engine_name = "PostgreSQL"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "postgresql": {
+                    re.compile("connection error"): (
+                        "Engine-specific error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                },
+                "PostgreSQL": {
+                    re.compile("connection error"): (
+                        "Engine name-specific error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                },
+            }
+        },
+    )
+
+    msg = "connection error occurred"
+    result = TestEngineSpec.extract_errors(Exception(msg))
+
+    expected = create_expected_superset_error(
+        message="Engine name-specific error message",
+        engine_name="PostgreSQL",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_matches_engine_when_no_engine_name_match(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that custom error messages fall back to engine when engine_name has no match.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine = "postgresql"
+        engine_name = "PostgreSQL"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "postgresql": {
+                    re.compile("connection error"): (
+                        "Engine-specific error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "connection error occurred"
+    result = TestEngineSpec.extract_errors(Exception(msg))
+
+    expected = create_expected_superset_error(
+        message="Engine-specific error message",
+        engine_name="PostgreSQL",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_matches_engine_name_when_no_engine_match(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that custom error messages use engine_name when engine has no match.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine = "postgresql"
+        engine_name = "PostgreSQL"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "PostgreSQL": {
+                    re.compile("connection error"): (
+                        "Engine name-specific error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "connection error occurred"
+    result = TestEngineSpec.extract_errors(Exception(msg))
+
+    expected = create_expected_superset_error(
+        message="Engine name-specific error message",
+        engine_name="PostgreSQL",
     )
     assert result == [expected]
