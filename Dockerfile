@@ -109,6 +109,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Copy the .json translations from the frontend layer
 COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
 
+# Copy pythonpath_dev files to the image (can be overwritten by volume mounts)
+COPY --chown=superset:superset docker/pythonpath_dev /app/pythonpath/
+
 # Compile translations for the backend - this generates .mo files, then deletes the .po files
 COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
 RUN ./scripts/translations/generate_mo_files.sh \
