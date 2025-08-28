@@ -34,7 +34,6 @@ from superset.commands.database.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
-from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.backports import StrEnum
@@ -125,8 +124,6 @@ class BaseDataReader:
                 df,
                 to_sql_kwargs=to_sql_kwargs,
             )
-        except SupersetException:
-            raise
         except ValueError as ex:
             raise DatabaseUploadFailed(
                 message=_(
@@ -136,7 +133,8 @@ class BaseDataReader:
                 )
             ) from ex
         except Exception as ex:
-            raise DatabaseUploadFailed(exception=ex) from ex
+            message = ex.message if hasattr(ex, "message") and ex.message else str(ex)
+            raise DatabaseUploadFailed(message=message, exception=ex) from ex
 
 
 class UploadCommand(BaseCommand):
