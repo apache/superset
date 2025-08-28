@@ -166,8 +166,6 @@ class AdhocFilterControl extends Component {
       values: filters,
       options: optionsForSelect(this.props),
       partitionColumn: null,
-      prevColumns: props.columns,
-      prevValue: props.value,
     };
   }
 
@@ -213,21 +211,17 @@ class AdhocFilterControl extends Component {
     }
   }
 
-  static getDerivedStateFromProps(nextProps, prevState) {
-    const newState = {};
-    if (nextProps.columns !== prevState.prevColumns) {
-      newState.options = optionsForSelect(nextProps);
+  componentDidUpdate(prevProps) {
+    if (this.props.columns !== prevProps.columns) {
+      this.setState({ options: optionsForSelect(this.props) });
     }
-    if (nextProps.value !== prevState.prevValue) {
-      newState.values = (nextProps.value || []).map(filter =>
-        isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
-      );
+    if (this.props.value !== prevProps.value) {
+      this.setState({
+        values: (this.props.value || []).map(filter =>
+          isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
+        ),
+      });
     }
-    return {
-      ...newState,
-      prevColumns: nextProps.columns,
-      prevValue: nextProps.value,
-    };
   }
 
   removeFilter(index) {
