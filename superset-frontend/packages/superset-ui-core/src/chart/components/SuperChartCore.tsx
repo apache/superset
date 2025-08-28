@@ -140,6 +140,25 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
     (transformedChartProps, post = IDENTITY) => post(transformedChartProps),
   );
 
+  processChartProps = ({
+    chartProps,
+    preTransformProps,
+    transformProps,
+    postTransformProps,
+  }: {
+    chartProps: ChartProps;
+    preTransformProps?: PreTransformProps;
+    transformProps?: TransformProps;
+    postTransformProps?: PostTransformProps;
+  }) =>
+    this.postSelector({
+      chartProps: this.transformSelector({
+        chartProps: this.preSelector({ chartProps, preTransformProps }),
+        transformProps,
+      }),
+      postTransformProps,
+    });
+
   /**
    * memoized function so it will not recompute
    * and return previous value
@@ -186,11 +205,10 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
 
     return (
       <Chart
-        {...this.postSelector({
-          chartProps: this.transformSelector({
-            chartProps: this.preSelector({ chartProps, preTransformProps }),
-            transformProps,
-          }),
+        {...this.processChartProps({
+          chartProps,
+          preTransformProps,
+          transformProps,
           postTransformProps,
         })}
       />
