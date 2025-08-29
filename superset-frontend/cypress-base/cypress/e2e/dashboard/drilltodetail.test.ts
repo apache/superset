@@ -179,13 +179,13 @@ describe.skip('Drill to detail modal', () => {
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
         cy.get('.virtual-table-cell').should($rows => {
-          expect($rows).to.contain('Kelly');
+          expect($rows).to.contain('Kimberly');
         });
 
         // verify scroll top on pagination
         cy.getBySelLike('Number-modal').find('.virtual-grid').scrollTo(0, 200);
 
-        cy.get('.virtual-grid').contains('Juan').should('not.be.visible');
+        cy.get('.virtual-grid').contains('Kim').should('not.be.visible');
 
         cy.get('.ant-pagination-item').eq(0).click();
 
