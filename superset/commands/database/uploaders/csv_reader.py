@@ -154,6 +154,7 @@ class CSVReader(BaseDataReader):
         kwargs["low_memory"] = False
 
         try:
+            types = kwargs.pop("dtype", None)
             if "chunksize" in kwargs:
                 chunks = []
                 total_rows = 0
@@ -188,13 +189,32 @@ class CSVReader(BaseDataReader):
                         index_col = kwargs.get("index_col")
                         if isinstance(index_col, str):
                             result.index.name = index_col
-                    return result
-                return pd.DataFrame()
+                    df = result
+            else:
+                df = pd.read_csv(
+                    filepath_or_buffer=file.stream,
+                    **kwargs,
+                )
 
-            return pd.read_csv(
-                filepath_or_buffer=file.stream,
-                **kwargs,
-            )
+            if types:
+                for column, dtype in types.items():
+                    try:
+                        df[column] = df[column].astype(dtype)
+                    except ValueError as ex:
+                        error_msg = f"Non {dtype} value found in column '{column}'."
+                        ex_msg = str(ex)
+                        invalid_value = ex_msg.split(":")[-1].strip().strip("'")
+                        error_msg += (
+                            f" Value: '{invalid_value}'" if invalid_value else ""
+                        )
+                        mask = df[column] == invalid_value
+                        if mask.any() and invalid_value:
+                            line_number = mask.idxmax() + kwargs.get("header", 0) + 1
+                            error_msg += f", line: {line_number}."
+                        raise DatabaseUploadFailed(message=error_msg) from ex
+            return df
+        except DatabaseUploadFailed:
+            raise
         except UnicodeDecodeError as ex:
             if encoding != DEFAULT_ENCODING:
                 raise DatabaseUploadFailed(
