@@ -90,6 +90,7 @@ export const CHARTS_WITHOUT_GROUPBY = [
   'country_map',
   'gantt',
   'table',
+  'world_map',
   'deck_arc',
   'deck_geojson',
   'deck_grid',
