@@ -724,8 +724,8 @@ pysocks==1.7.1
 pytest==7.4.4
     # via
     #   apache-superset
-    #   pytest-asyncio
     #   apache-superset-extensions-cli
+    #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
 pytest-asyncio==0.23.8
