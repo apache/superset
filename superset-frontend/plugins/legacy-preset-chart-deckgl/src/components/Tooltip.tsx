@@ -56,7 +56,9 @@ const StyledDiv = styled.div<{
       border-radius: ${theme.borderRadius}px;
       box-shadow: ${theme.boxShadowSecondary};
     `
-        : ''
+        : `
+      margin: ${theme.sizeUnit * 3}px;
+    `
     }
   `}
 `;
