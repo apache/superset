@@ -19,7 +19,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { styled, t, css } from '@superset-ui/core';
 import { CertifiedBadge, InfoTooltip } from '@superset-ui/core/components';
-import Table, { TableSize } from '@superset-ui/core/components/Table';
+import Table, {
+  TableSize,
+  SortOrder,
+  type TablePaginationConfig,
+  type OnChangeFunction,
+} from '@superset-ui/core/components/Table';
 import { FacePile, ModifiedInfo, GenericLink } from 'src/components';
 import DashboardLinksExternal from '../DashboardLinksExternal';
 
@@ -42,14 +47,6 @@ const FlexRowContainer = styled.div`
 
 const PAGE_SIZE = 25;
 
-const processChartsForSorting = (charts: Chart[]): Chart[] =>
-  (charts || []).map(chart => ({
-    ...chart,
-    changed_on_ts: chart.changed_on
-      ? new Date(chart.changed_on).getTime()
-      : undefined,
-  }));
-
 interface Chart {
   id?: number;
   slice_name: string;
@@ -64,7 +61,6 @@ interface Chart {
   }>;
   changed_on_delta_humanized: string;
   changed_on?: string;
-  changed_on_ts?: number;
   changed_by: {
     first_name: string;
     last_name: string;
@@ -84,6 +80,8 @@ interface DatasetUsageTabProps {
   onFetchCharts: (
     page?: number,
     pageSize?: number,
+    sortColumn?: string,
+    sortDirection?: 'asc' | 'desc',
   ) => Promise<{
     charts: Chart[];
     count: number;
@@ -100,64 +98,74 @@ const DatasetUsageTab = ({
   addDangerToast,
 }: DatasetUsageTabProps) => {
   const addDangerToastRef = useRef(addDangerToast);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [processedCharts, setProcessedCharts] = useState<Chart[]>(
-    processChartsForSorting(charts || []),
+  const [sortColumn, setSortColumn] = useState<string>(
+    'changed_on_delta_humanized',
   );
-  const [shouldScrollToTop, setShouldScrollToTop] = useState(false);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const handleFetchCharts = useCallback(
-    async (page = 1) => {
+    async (page = 1, column = sortColumn, direction = sortDirection) => {
       if (!datasourceId) return;
 
       setLoading(true);
-      setShouldScrollToTop(true);
 
       try {
-        await onFetchCharts(page, PAGE_SIZE);
+        await onFetchCharts(page, PAGE_SIZE, column, direction);
         setCurrentPage(page);
+        setSortColumn(column);
+        setSortDirection(direction);
       } catch (error) {
         if (addDangerToastRef.current)
           addDangerToastRef.current(t('Error fetching charts'));
-        setShouldScrollToTop(false);
       } finally {
         setLoading(false);
       }
     },
-    [datasourceId, onFetchCharts],
+    [datasourceId, onFetchCharts, sortColumn, sortDirection],
   );
 
   useEffect(() => {
     addDangerToastRef.current = addDangerToast;
   }, [addDangerToast]);
 
-  useEffect(() => {
-    setProcessedCharts(processChartsForSorting(charts || []));
-  }, [charts]);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      handleFetchCharts(page);
 
-  useEffect(() => {
-    if (!loading && shouldScrollToTop) {
-      const timeoutId = setTimeout(() => {
-        const tableBody = document.querySelector('.ant-table-body');
-        if (tableBody && typeof tableBody.scrollTo === 'function')
+      setTimeout(() => {
+        const tableBody =
+          tableContainerRef.current?.querySelector('.ant-table-body');
+        if (tableBody) {
           tableBody.scrollTo({
             top: 0,
             behavior: 'smooth',
           });
-
-        setShouldScrollToTop(false);
+        }
       }, 100);
+    },
+    [handleFetchCharts],
+  );
 
-      return () => clearTimeout(timeoutId);
-    }
-    return undefined;
-  }, [loading, shouldScrollToTop]);
+  const handleSortChange = useCallback(
+    (column: string) => {
+      const newDirection =
+        column === sortColumn && sortDirection === 'desc' ? 'asc' : 'desc';
+      handleFetchCharts(1, column, newDirection);
+    },
+    [handleFetchCharts, sortColumn, sortDirection],
+  );
 
-  const handlePageChange = (page: number) => {
-    handleFetchCharts(page);
-  };
+  const handleTableChange: OnChangeFunction<Chart> = useCallback(
+    (pagination: TablePaginationConfig) => {
+      if (pagination?.current && pagination.current !== currentPage)
+        handlePageChange(pagination.current);
+    },
+    [currentPage, handlePageChange],
+  );
 
   const columns = useMemo(
     () => [
@@ -165,7 +173,7 @@ const DatasetUsageTab = ({
         title: t('Chart'),
         dataIndex: 'slice_name',
         key: 'slice_name',
-        render: (_: any, record: Chart) => (
+        render: (_: unknown, record: Chart) => (
           <FlexRowContainer>
             <GenericLink
               to={record.url}
@@ -185,15 +193,22 @@ const DatasetUsageTab = ({
             {record.description && <InfoTooltip tooltip={record.description} />}
           </FlexRowContainer>
         ),
-        sorter: (a: Chart, b: Chart) =>
-          a.slice_name.localeCompare(b.slice_name),
+        sorter: true,
+        sortOrder:
+          sortColumn === 'slice_name'
+            ? ((sortDirection === 'asc' ? 'ascend' : 'descend') as SortOrder)
+            : undefined,
+        onHeaderCell: () => ({
+          onClick: () => handleSortChange('slice_name'),
+          style: { cursor: 'pointer' },
+        }),
         width: 300,
       },
       {
         title: t('Chart owners'),
         dataIndex: 'owners',
         key: 'owners',
-        render: (_: any, record: Chart) => (
+        render: (_: unknown, record: Chart) => (
           <FacePile users={record.owners} maxCount={3} />
         ),
         sorter: false,
@@ -203,68 +218,73 @@ const DatasetUsageTab = ({
         title: t('Last modified'),
         dataIndex: 'changed_on_delta_humanized',
         key: 'changed_on_delta_humanized',
-        render: (_: any, record: Chart) => (
+        render: (_, record: Chart) => (
           <ModifiedInfo
             date={record.changed_on_delta_humanized}
             user={record.changed_by || undefined}
           />
         ),
-        sorter: (a: Chart, b: Chart) => {
-          if (a.changed_on_ts && b.changed_on_ts)
-            return b.changed_on_ts - a.changed_on_ts;
-
-          return a.changed_on_delta_humanized.localeCompare(
-            b.changed_on_delta_humanized,
-          );
-        },
+        sorter: true,
+        sortOrder:
+          sortColumn === 'changed_on_delta_humanized'
+            ? ((sortDirection === 'asc' ? 'ascend' : 'descend') as SortOrder)
+            : undefined,
+        onHeaderCell: () => ({
+          onClick: () => handleSortChange('changed_on_delta_humanized'),
+          style: { cursor: 'pointer' },
+        }),
         width: 160,
       },
       {
         title: t('Dashboard usage'),
         dataIndex: 'dashboards',
         key: 'dashboards',
-        render: (_: any, record: Chart) => (
+        render: (_, record: Chart) => (
           <DashboardLinksExternal dashboards={record.dashboards} />
         ),
         sorter: false,
         width: 200,
       },
     ],
-    [],
+    [handleSortChange, sortColumn, sortDirection],
   );
 
   return (
-    <Table
-      columns={columns}
-      data={processedCharts}
-      pagination={{
-        current: currentPage,
-        total: totalCount,
-        pageSize: PAGE_SIZE,
-        onChange: handlePageChange,
-        showSizeChanger: false,
-        size: 'default',
-      }}
-      loading={loading}
-      size={TableSize.Middle}
-      rowKey={(record: Chart) =>
-        record.id ? `chart-${record.id}` : `chart-${record.slice_name}`
-      }
-      tableLayout="fixed"
-      css={css`
-        .ant-table-body {
-          height: 293px;
-          overflow-y: auto;
-          overflow-x: hidden;
+    <div ref={tableContainerRef}>
+      <Table
+        columns={columns}
+        data={charts}
+        pagination={{
+          current: currentPage,
+          total: totalCount,
+          pageSize: PAGE_SIZE,
+          onChange: handlePageChange,
+          showSizeChanger: false,
+          size: 'default',
+        }}
+        loading={loading}
+        size={TableSize.Middle}
+        rowKey={(record: Chart) =>
+          record.id ? `chart-${record.id}` : `chart-${record.slice_name}`
         }
-        .ant-table-pagination.ant-pagination {
-          margin-bottom: 0 !important;
-        }
-      `}
-      locale={{
-        emptyText: t('No items'),
-      }}
-    />
+        tableLayout="fixed"
+        css={css`
+          .ant-table-body {
+            height: 293px;
+            overflow-y: auto;
+            overflow-x: hidden;
+          }
+          .ant-table-pagination.ant-pagination {
+            justify-content: center;
+            margin-bottom: 0;
+          }
+        `}
+        locale={{
+          emptyText: t('No items'),
+        }}
+        onChange={handleTableChange}
+      />
+    </div>
   );
 };
 

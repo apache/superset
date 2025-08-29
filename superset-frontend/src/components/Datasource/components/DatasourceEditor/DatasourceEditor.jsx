@@ -849,7 +849,12 @@ class DatasourceEditor extends PureComponent {
     }
   }
 
-  async fetchUsageData(page = 1, pageSize = 25) {
+  async fetchUsageData(
+    page = 1,
+    pageSize = 25,
+    sortColumn = 'changed_on_delta_humanized',
+    sortDirection = 'desc',
+  ) {
     const { datasource } = this.state;
     try {
       const queryParams = rison.encode({
@@ -878,9 +883,9 @@ class DatasourceEditor extends PureComponent {
             value: datasource.id,
           },
         ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-        page: page - 1, // API uses 0-based pagination
+        order_column: sortColumn,
+        order_direction: sortDirection,
+        page: page - 1,
         page_size: pageSize,
       });
 
