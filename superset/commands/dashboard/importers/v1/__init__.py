@@ -35,6 +35,7 @@ from superset.commands.dashboard.importers.v1.utils import (
 )
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
+from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.importers.v1.utils import import_tag
 from superset.commands.utils import update_chart_config_dataset
@@ -61,6 +62,28 @@ class ImportDashboardsCommand(ImportModelsCommand):
     }
     import_error = DashboardImportError
 
+    def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
+        self.overwrite_all = kwargs.pop("overwrite_all", False)
+        super().__init__(contents, *args, **kwargs)
+
+    # not sure if overriding run is the best approach here
+    # it works fine and is better than a global variable imo
+    # open to suggestions
+    def run(self) -> None:
+        self.validate()
+
+        try:
+            self._import(
+                self._configs,
+                self.overwrite,
+                self.contents,
+                overwrite_all=self.overwrite_all,
+            )
+        except CommandException:
+            raise
+        except Exception as ex:
+            raise self.import_error() from ex
+
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals, too-many-statements
     @staticmethod
@@ -69,6 +92,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         configs: dict[str, Any],
         overwrite: bool = False,
         contents: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         contents = {} if contents is None else contents
         # discover charts and datasets associated with dashboards
@@ -92,11 +116,15 @@ class ImportDashboardsCommand(ImportModelsCommand):
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
+        # assets inside dashboard databases, datasets and charts
+        # should be overwritten only if both flags are set to True
+        overwrite_assets = overwrite and kwargs.get("overwrite_all", False)
+
         # import related databases
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(config, overwrite=overwrite)
+                database = import_database(config, overwrite=overwrite_assets)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -107,7 +135,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(config, overwrite=overwrite)
+                dataset = import_dataset(config, overwrite=overwrite_assets)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -126,7 +154,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
 
-                chart = import_chart(config, overwrite=overwrite)
+                chart = import_chart(config, overwrite=overwrite_assets)
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 

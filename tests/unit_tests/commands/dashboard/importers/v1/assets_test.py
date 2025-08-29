@@ -71,7 +71,7 @@ def test_import_dashboard_overwrite_charts_and_datasets(
     dataset_uuid = dataset_configs[0]["uuid"]
 
     # importing first time and retrieving initial records
-    ImportDashboardsCommand._import(base_configs, overwrite=True)
+    ImportDashboardsCommand._import(base_configs, overwrite=True, overwrite_all=True)
     imported_dashboard = (
         db.session.query(Dashboard).filter_by(uuid=dashboard_uuid).one()
     )
@@ -91,7 +91,7 @@ def test_import_dashboard_overwrite_charts_and_datasets(
     time.sleep(1)
 
     # importing second time and retrieving updated records
-    ImportDashboardsCommand._import(new_configs, overwrite=True)
+    ImportDashboardsCommand._import(new_configs, overwrite=True, overwrite_all=True)
     imported_dashboard = (
         db.session.query(Dashboard).filter_by(uuid=dashboard_uuid).one()
     )
@@ -114,3 +114,85 @@ def test_import_dashboard_overwrite_charts_and_datasets(
     assert (
         final_dashboard_changed_on == final_chart_changed_on == final_dataset_changed_on
     )
+
+
+def test_import_dashboard_do_not_overwrite_charts_and_datasets(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test that existing dashboards are overwritten.
+    """
+    import time
+
+    from superset import db, security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    Dashboard.metadata.create_all(engine)
+
+    # for some reason it won't allow me to reuse the same config in the second import
+    # thus declaring two configs with the same content
+    base_configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+    new_configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+
+    # gettings uuids
+    dasboard_configs = list(dashboards_config_1.values())
+    dashboard_uuid = dasboard_configs[0]["uuid"]
+    chart_configs = list(charts_config_1.values())
+    chart_uuid = chart_configs[0]["uuid"]
+    dataset_configs = list(datasets_config.values())
+    dataset_uuid = dataset_configs[0]["uuid"]
+
+    # importing first time and retrieving initial records
+    ImportDashboardsCommand._import(base_configs, overwrite=True, overwrite_all=False)
+    imported_dashboard = (
+        db.session.query(Dashboard).filter_by(uuid=dashboard_uuid).one()
+    )
+    imported_chart = db.session.query(Slice).filter_by(uuid=chart_uuid).one()
+    imported_dataset = db.session.query(SqlaTable).filter_by(uuid=dataset_uuid).one()
+
+    # extracting changed_on field to compare later, ignoring milliseconds
+    initial_dashboard_changed_on = imported_dashboard.changed_on.strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+    initial_chart_changed_on = imported_chart.changed_on
+    initial_dataset_changed_on = imported_dataset.changed_on
+
+    # ensuring the changed_on field will be different
+    time.sleep(1)
+
+    # importing second time and retrieving updated records
+    ImportDashboardsCommand._import(new_configs, overwrite=True, overwrite_all=False)
+    imported_dashboard = (
+        db.session.query(Dashboard).filter_by(uuid=dashboard_uuid).one()
+    )
+    imported_chart = db.session.query(Slice).filter_by(uuid=chart_uuid).one()
+    imported_dataset = db.session.query(SqlaTable).filter_by(uuid=dataset_uuid).one()
+
+    # extracting changed_on field to compare with the previous retrieved
+    # ignoring milliseconds
+    final_dashboard_changed_on = imported_dashboard.changed_on.strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+    final_chart_changed_on = imported_chart.changed_on
+    final_dataset_changed_on = imported_dataset.changed_on
+
+    # asserting the changed_on field was updated on all three records
+    assert initial_dashboard_changed_on != final_dashboard_changed_on
+    assert initial_chart_changed_on == final_chart_changed_on
+    assert initial_dataset_changed_on == final_dataset_changed_on
