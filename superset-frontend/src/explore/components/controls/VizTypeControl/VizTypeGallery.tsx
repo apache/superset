@@ -176,11 +176,11 @@ const SelectorLabel = styled.button`
     }
 
     &.selected {
-      background-color: ${theme.colorPrimaryBgHover};
-      color: ${theme.colorPrimaryTextActive};
+      background-color: ${theme.colorPrimary};
+      color: ${theme.colorTextLightSolid};
 
       svg {
-        color: ${theme.colorIcon};
+        color: ${theme.colorTextLightSolid};
       }
 
       &:hover {
@@ -294,7 +294,7 @@ const HighlightLabel = styled.div`
     border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
     border-radius: ${theme.borderRadius}px;
-    background: ${theme.colors.grayscale.light5};
+    background: ${theme.colorBgContainer};
     line-height: ${theme.sizeUnit * 2.5}px;
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
@@ -575,6 +575,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     setIsSearchFocused(true);
   }, []);
 
+  // Auto-focus the search input when the modal opens
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
+
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     event => setSearchInputValue(event.target.value),
     [],
@@ -697,7 +704,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           onClick={clickSelector}
         />
         <Collapse
-          expandIconPosition="right"
+          expandIconPosition="end"
           ghost
           defaultActiveKey={Sections.Category}
           items={Object.keys(sectionMap).map(sectionId => {

@@ -67,6 +67,12 @@ export {
   type CheckboxChangeEvent,
 } from './Checkbox';
 export {
+  ColorPicker,
+  type ColorPickerProps,
+  type RGBColor,
+  type ColorValue,
+} from './ColorPicker';
+export {
   Collapse,
   type CollapseProps,
   CollapseLabelInModal,
@@ -76,6 +82,7 @@ export { CronPicker, type CronError } from './CronPicker';
 export * from './DatePicker';
 export { DeleteModal, type DeleteModalProps } from './DeleteModal';
 export { Divider, type DividerProps } from './Divider';
+export { Drawer, type DrawerProps } from './Drawer';
 export {
   Dropdown,
   MenuDotsDropdown,
@@ -148,9 +155,11 @@ export {
   Typography,
   type TypographyProps,
   type ParagraphProps,
+  type TitleProps,
 } from './Typography';
 
 export { Image, type ImageProps } from './Image';
+export { Popconfirm, type PopconfirmProps } from './Popconfirm';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 // Add these to your index.ts
 export * from './Menu';
@@ -163,4 +172,12 @@ export * from './Steps';
 export * from './Table';
 export * from './TableView';
 export * from './Tag';
+export * from './TelemetryPixel';
+export * from './UnsavedChangesModal';
 export * from './constants';
+export * from './Result';
+export {
+  ThemedAgGridReact,
+  type ThemedAgGridReactProps,
+  setupAGGridModules,
+} from './ThemedAgGridReact';

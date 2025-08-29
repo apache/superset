@@ -20,14 +20,21 @@
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { theme as antdThemeImport, ConfigProvider } from 'antd';
-import tinycolor from 'tinycolor2';
 
+// @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
+/* eslint-disable import/extensions */
 import '@fontsource/inter/200.css';
+/* eslint-disable import/extensions */
 import '@fontsource/inter/400.css';
+/* eslint-disable import/extensions */
 import '@fontsource/inter/500.css';
+/* eslint-disable import/extensions */
 import '@fontsource/inter/600.css';
+/* eslint-disable import/extensions */
 import '@fontsource/fira-code/400.css';
+/* eslint-disable import/extensions */
 import '@fontsource/fira-code/500.css';
+/* eslint-disable import/extensions */
 import '@fontsource/fira-code/600.css';
 
 import {
@@ -35,6 +42,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
+import { noop } from 'lodash';
 import { GlobalStyles } from './GlobalStyles';
 
 import {
@@ -44,17 +52,9 @@ import {
   SupersetTheme,
   allowedAntdTokens,
   SharedAntdTokens,
-  ColorVariants,
-  DeprecatedThemeColors,
-  FontSizeKey,
 } from './types';
 
-import {
-  normalizeThemeConfig,
-  serializeThemeConfig,
-  getSystemColors,
-  getDeprecatedColors,
-} from './utils';
+import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
 /* eslint-disable theme-colors/no-literal-colors */
 
@@ -66,7 +66,7 @@ export class Theme {
     brandLogoAlt: 'Apache Superset',
     brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
     brandLogoMargin: '18px',
-    brandLogoHref: 'https://supserset.apache.org',
+    brandLogoHref: '/',
     brandLogoHeight: '24px',
 
     // Default colors
@@ -92,15 +92,6 @@ export class Theme {
   };
 
   private antdConfig: AntdThemeConfig;
-
-  private static readonly sizeMap: Record<FontSizeKey, string> = {
-    xs: 'fontSizeXS',
-    s: 'fontSizeSM',
-    m: 'fontSize',
-    l: 'fontSizeLG',
-    xl: 'fontSizeXL',
-    xxl: 'fontSizeXXL',
-  };
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
@@ -168,14 +159,7 @@ export class Theme {
       ...Theme.defaultTokens,
       ...antdConfig.token, // Passing through the extra, superset-specific tokens
       ...tokens,
-      colors: {} as DeprecatedThemeColors, // Placeholder that will be filled in the second phase
     };
-
-    // Second phase: Now that theme is initialized, we can determine if it's dark
-    // and generate the legacy colors correctly
-    const systemColors = getSystemColors(tokens);
-    const isDark = this.isThemeDark(); // Now we can safely call this
-    this.theme.colors = getDeprecatedColors(systemColors, isDark);
 
     // Update the providers with the fully formed theme
     this.updateProviders(
@@ -190,22 +174,6 @@ export class Theme {
    */
   toSerializedConfig(): SerializableThemeConfig {
     return serializeThemeConfig(this.antdConfig);
-  }
-
-  private getToken(token: string): any {
-    return (this.theme as Record<string, any>)[token];
-  }
-
-  public getFontSize(size?: FontSizeKey): string {
-    const fontSizeKey = Theme.sizeMap[size || 'm'];
-    return this.getToken(fontSizeKey) || this.getToken('fontSize');
-  }
-
-  /**
-   * Check if the current theme is dark based on background color
-   */
-  isThemeDark(): boolean {
-    return tinycolor(this.theme.colorBgContainer).isDark();
   }
 
   toggleDarkMode(isDark: boolean): void {
@@ -241,50 +209,12 @@ export class Theme {
     return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
   }
 
-  getColorVariants(color: string): ColorVariants {
-    const firstLetterCapped = color.charAt(0).toUpperCase() + color.slice(1);
-    if (color === 'default' || color === 'grayscale') {
-      const isDark = this.isThemeDark();
-
-      const flipBrightness = (baseColor: string): string => {
-        if (!isDark) return baseColor;
-        const { r, g, b } = tinycolor(baseColor).toRgb();
-        const invertedColor = tinycolor({ r: 255 - r, g: 255 - g, b: 255 - b });
-        return invertedColor.toHexString();
-      };
-
-      return {
-        active: flipBrightness('#222'),
-        textActive: flipBrightness('#444'),
-        text: flipBrightness('#555'),
-        textHover: flipBrightness('#666'),
-        hover: flipBrightness('#888'),
-        borderHover: flipBrightness('#AAA'),
-        border: flipBrightness('#CCC'),
-        bgHover: flipBrightness('#DDD'),
-        bg: flipBrightness('#F4F4F4'),
-      };
-    }
-
-    const theme = this.getToken.bind(this);
-    return {
-      active: theme(`color${firstLetterCapped}Active`),
-      textActive: theme(`color${firstLetterCapped}TextActive`),
-      text: theme(`color${firstLetterCapped}Text`),
-      textHover: theme(`color${firstLetterCapped}TextHover`),
-      hover: theme(`color${firstLetterCapped}Hover`),
-      borderHover: theme(`color${firstLetterCapped}BorderHover`),
-      border: theme(`color${firstLetterCapped}Border`),
-      bgHover: theme(`color${firstLetterCapped}BgHover`),
-      bg: theme(`color${firstLetterCapped}Bg`),
-    };
-  }
-
   private updateProviders(
     theme: SupersetTheme,
     antdConfig: AntdThemeConfig,
     emotionCache: any,
   ): void {
+    noop(theme, antdConfig, emotionCache);
     // Overridden at runtime by SupersetThemeProvider using setThemeState
   }
 

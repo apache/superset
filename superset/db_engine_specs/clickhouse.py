@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -54,6 +54,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -247,7 +248,7 @@ try:
     )
     set_setting(
         "product_name",
-        f"superset/{current_app.config.get('VERSION_STRING', 'dev')}",
+        f"superset/{app.config.get('VERSION_STRING', 'dev')}",
     )
 except ImportError:  # ClickHouse Connect not installed, do nothing
     pass

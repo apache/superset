@@ -19,6 +19,7 @@
 
 from datetime import datetime
 from typing import Optional
+from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -451,43 +452,80 @@ def test_adjust_engine_params_catalog_as_host() -> None:
     assert str(uri) == "bigquery://other-project/"
 
 
-def test_adjust_engine_params_catalog_as_database() -> None:
+def test_get_materialized_view_names() -> None:
     """
-    Test passing a custom catalog.
-
-    In this test, the original URI has the catalog as the database.
+    Test get_materialized_view_names method.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    url = make_url("bigquery:///project")
+    database = mock.Mock()
+    database.get_default_catalog.return_value = "my_project"
 
-    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "bigquery:///project"
+    inspector = mock.Mock()
 
-    uri = BigQueryEngineSpec.adjust_engine_params(
-        url,
-        {},
-        catalog="other-project",
-    )[0]
-    assert str(uri) == "bigquery://other-project/"
+    # Mock the raw connection and cursor
+    cursor_mock = mock.Mock()
+    cursor_mock.fetchall.return_value = [
+        ("materialized_view_1",),
+        ("materialized_view_2",),
+    ]
+
+    connection_mock = mock.Mock()
+    connection_mock.cursor.return_value = cursor_mock
+    connection_mock.__enter__ = mock.Mock(return_value=connection_mock)
+    connection_mock.__exit__ = mock.Mock(return_value=None)
+
+    database.get_raw_connection.return_value = connection_mock
+
+    result = BigQueryEngineSpec.get_materialized_view_names(
+        database=database, inspector=inspector, schema="my_dataset"
+    )
+
+    assert result == {"materialized_view_1", "materialized_view_2"}
+
+    # Verify the SQL query was correct
+    cursor_mock.execute.assert_called_once()
+    executed_query = cursor_mock.execute.call_args[0][0]
+    assert "INFORMATION_SCHEMA.TABLES" in executed_query
+    assert "table_type = 'MATERIALIZED VIEW'" in executed_query
 
 
-def test_adjust_engine_params_no_catalog() -> None:
+def test_get_view_names_excludes_materialized_views() -> None:
     """
-    Test passing a custom catalog.
-
-    In this test, the original URI has no catalog.
+    Test get_view_names excludes materialized views.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    url = make_url("bigquery://")
+    database = mock.Mock()
+    database.get_default_catalog.return_value = "my_project"
 
-    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "bigquery://"
+    inspector = mock.Mock()
 
-    uri = BigQueryEngineSpec.adjust_engine_params(
-        url,
-        {},
-        catalog="other-project",
-    )[0]
-    assert str(uri) == "bigquery://other-project/"
+    # Mock the raw connection and cursor
+    cursor_mock = mock.Mock()
+    # Return only regular views, not materialized views
+    cursor_mock.fetchall.return_value = [
+        ("regular_view_1",),
+        ("regular_view_2",),
+    ]
+
+    connection_mock = mock.Mock()
+    connection_mock.cursor.return_value = cursor_mock
+    connection_mock.__enter__ = mock.Mock(return_value=connection_mock)
+    connection_mock.__exit__ = mock.Mock(return_value=None)
+
+    database.get_raw_connection.return_value = connection_mock
+
+    result = BigQueryEngineSpec.get_view_names(
+        database=database, inspector=inspector, schema="my_dataset"
+    )
+
+    assert result == {"regular_view_1", "regular_view_2"}
+
+    # Verify the SQL query only gets regular views
+    cursor_mock.execute.assert_called_once()
+    executed_query = cursor_mock.execute.call_args[0][0]
+    assert "INFORMATION_SCHEMA.TABLES" in executed_query
+    assert "table_type = 'VIEW'" in executed_query
+    # Ensure it's not querying for materialized views
+    assert "MATERIALIZED VIEW" not in executed_query

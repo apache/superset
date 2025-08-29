@@ -79,7 +79,7 @@ describe('SupersetClient', () => {
       SupersetClientClass.prototype,
       'isAuthenticated',
     );
-    const csrfSpy = jest.spyOn(SupersetClientClass.prototype, 'getCSRFToken');
+    const csrfSpy = jest.spyOn(SupersetClientClass.prototype, 'fetchCSRFToken');
     const requestSpy = jest.spyOn(SupersetClientClass.prototype, 'request');
     const getGuestTokenSpy = jest.spyOn(
       SupersetClientClass.prototype,
@@ -110,7 +110,7 @@ describe('SupersetClient', () => {
     networkCalls.map((url: string) =>
       expect(fetchMock.calls(url)[0][1]?.headers).toStrictEqual({
         Accept: 'application/json',
-        'X-CSRFToken': '',
+        'X-CSRFToken': '1234',
       }),
     );
 

@@ -35,6 +35,11 @@ import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
+export { useJsonValidation } from './useJsonValidation';
+export type {
+  JsonValidationAnnotation,
+  UseJsonValidationOptions,
+} from './useJsonValidation';
 
 export interface AceCompleterKeywordData {
   name: string;
@@ -202,7 +207,7 @@ export function AsyncAceEditor(
 
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
-                .ace_editor.ace-textmate {
+                .ace_editor.ace-tm {
                   background-color: ${token.colorBgContainer} !important;
                   color: ${token.colorText} !important;
                 }
@@ -212,7 +217,9 @@ export function AsyncAceEditor(
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorTextSecondary} !important;
                 }
-
+                .ace_editor.ace_editor .ace_gutter .ace_gutter-active-line {
+                  background-color: ${token.colorBorderSecondary};
+                }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
                   background-color: ${token.colorPrimaryBgHover} !important;
@@ -263,7 +270,7 @@ export function AsyncAceEditor(
                 /* Adjust tooltip styles */
                 .ace_tooltip {
                   margin-left: ${token.margin}px;
-                  padding: 0px;
+                  padding: ${token.sizeUnit * 2}px;
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorText} !important;
                   border: 1px solid ${token.colorBorderSecondary};

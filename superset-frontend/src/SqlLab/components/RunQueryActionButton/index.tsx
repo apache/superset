@@ -21,7 +21,7 @@ import { useMemo, FC, ReactElement } from 'react';
 import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
 
 import { Button, DropdownButton } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { IconType, Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -40,23 +40,24 @@ export interface RunQueryActionButtonProps {
   overlayCreateAsMenu: ReactElement | null;
 }
 
-const buildText = (
+const buildTextAndIcon = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
   theme: SupersetTheme,
-): string | JSX.Element => {
-  if (shouldShowStopButton) {
-    return (
-      <>
-        <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
-        {t('Stop')}
-      </>
-    );
-  }
+): { text: string; icon?: IconType } => {
+  let text = t('Run');
+  let icon: IconType | undefined;
   if (selectedText) {
-    return t('Run selection');
+    text = t('Run selection');
   }
-  return t('Run');
+  if (shouldShowStopButton) {
+    text = t('Stop');
+    icon = <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />;
+  }
+  return {
+    text,
+    icon,
+  };
 };
 
 const onClick = (
@@ -130,6 +131,11 @@ const RunQueryActionButton = ({
     [userOS],
   );
 
+  const { text, icon } = useMemo(
+    () => buildTextAndIcon(shouldShowStopBtn, selectedText, theme),
+    [shouldShowStopBtn, selectedText, theme],
+  );
+
   return (
     <StyledButton>
       <ButtonComponent
@@ -159,9 +165,10 @@ const RunQueryActionButton = ({
             }
           : {
               buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
+              icon,
             })}
       >
-        {buildText(shouldShowStopBtn, selectedText, theme)}
+        {text}
       </ButtonComponent>
     </StyledButton>
   );

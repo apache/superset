@@ -231,7 +231,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             >
               <Icons.TableOutlined
                 iconSize="m"
-                iconColor={theme.colors.primary.dark2}
+                iconColor={theme.colorPrimary}
               />
             </IconTooltip>
           }
@@ -368,7 +368,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       <div data-test="table-element" css={{ paddingTop: 6 }}>
         {renderWell()}
         <div>
-          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
+          {cols?.map(col => (
+            <ColumnElement column={col} key={col.name} />
+          ))}
         </div>
       </div>
     );
@@ -378,7 +380,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   return (
     <Collapse
       activeKey={props.activeKey}
-      expandIconPosition="right"
+      expandIconPosition="end"
       onChange={props.onChange}
       ghost
       items={[

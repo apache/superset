@@ -104,7 +104,7 @@ const Select = forwardRef(
       onBlur,
       onChange,
       onClear,
-      onDropdownVisibleChange,
+      onOpenChange,
       onDeselect,
       onSearch,
       onSelect,
@@ -373,9 +373,27 @@ const Select = forwardRef(
         setSelectOptions(updatedOptions);
       }
 
-      const filteredOptions = updatedOptions.filter(
-        (option: AntdLabeledValue) => handleFilterOption(search, option),
-      );
+      const filteredOptions = updatedOptions
+        .map((option: any) => {
+          /*
+          If it's a group, filter its nested options and only return it
+          if it has matching options
+          */
+          if ('options' in option && Array.isArray(option.options)) {
+            const filteredGroupOptions = option.options.filter(
+              (subOption: AntdLabeledValue) =>
+                handleFilterOption(search, subOption),
+            );
+            return filteredGroupOptions.length > 0
+              ? { ...option, options: filteredGroupOptions }
+              : null;
+          }
+
+          return handleFilterOption(search, option as AntdLabeledValue)
+            ? option
+            : null;
+        })
+        .filter((option): option is AntdLabeledValue => option !== null);
 
       setVisibleOptions(filteredOptions);
       setInputValue(searchValue);
@@ -398,8 +416,8 @@ const Select = forwardRef(
       if (!isDropdownVisible) {
         setSelectOptions(initialOptionsSorted);
       }
-      if (onDropdownVisibleChange) {
-        onDropdownVisibleChange(isDropdownVisible);
+      if (onOpenChange) {
+        onOpenChange(isDropdownVisible);
       }
     };
 
@@ -492,7 +510,7 @@ const Select = forwardRef(
       ],
     );
 
-    const dropdownRender = (
+    const popupRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) =>
       dropDownRenderHelper(
@@ -694,7 +712,7 @@ const Select = forwardRef(
           }
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
-          dropdownRender={dropdownRender}
+          popupRender={popupRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
           getPopupContainer={
@@ -708,7 +726,7 @@ const Select = forwardRef(
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
-          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          onOpenChange={handleOnDropdownVisibleChange}
           // @ts-ignore
           onPaste={onPaste}
           onPopupScroll={undefined}

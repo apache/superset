@@ -104,6 +104,7 @@ import {
   PicCenterOutlined,
   PlusCircleOutlined,
   PlusOutlined,
+  ProfileOutlined,
   QuestionCircleOutlined,
   ReloadOutlined,
   RightOutlined,
@@ -123,8 +124,9 @@ import {
   UnlockOutlined,
   UploadOutlined,
   UpOutlined,
-  UserOutlined,
   UserAddOutlined,
+  UsergroupAddOutlined,
+  UserOutlined,
   VerticalAlignBottomOutlined,
   VerticalAlignTopOutlined,
   VerticalLeftOutlined,
@@ -144,6 +146,7 @@ import {
   FormatPainterOutlined,
   ExportOutlined,
   CompressOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -240,6 +243,7 @@ const AntdIcons = {
   PicCenterOutlined,
   PlusCircleOutlined,
   PlusOutlined,
+  ProfileOutlined,
   ReloadOutlined,
   QuestionCircleOutlined,
   RightOutlined,
@@ -259,8 +263,9 @@ const AntdIcons = {
   UploadOutlined,
   UnlockOutlined,
   UpOutlined,
-  UserOutlined,
   UserAddOutlined,
+  UsergroupAddOutlined,
+  UserOutlined,
   VerticalAlignBottomOutlined,
   VerticalAlignTopOutlined,
   VerticalLeftOutlined,
@@ -277,6 +282,7 @@ const AntdIcons = {
   FormatPainterOutlined,
   ExportOutlined,
   CompressOutlined,
+  HistoryOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;

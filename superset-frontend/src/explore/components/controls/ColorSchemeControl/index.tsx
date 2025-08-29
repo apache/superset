@@ -36,11 +36,12 @@ import {
   type SelectOptionsType,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { handleFilterOptionHelper } from '@superset-ui/core/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
-export type OptionData = SelectOptionsType[number]['options'][number];
+export type OptionData = SelectOptionsType[number]['options'][number] & {
+  searchText?: string;
+};
 
 export interface ColorSchemes {
   [key: string]: ColorScheme;
@@ -115,7 +116,7 @@ const Label = ({
         {label}{' '}
         <Tooltip title={alertTitle}>
           <Icons.WarningOutlined
-            iconColor={theme.colors.warning.base}
+            iconColor={theme.colorWarning}
             css={css`
               vertical-align: baseline;
             `}
@@ -217,6 +218,7 @@ const ColorSchemeControl = ({
             />
           ) as ReactNode,
           value,
+          searchText: currentScheme.label,
         };
         acc[currentScheme.group ?? ColorSchemeGroup.Other].options.push(option);
         return acc;
@@ -261,6 +263,7 @@ const ColorSchemeControl = ({
       options: group.options.map(opt => ({
         value: opt.value,
         label: opt.customLabel || opt.label,
+        searchText: opt.searchText,
       })),
     }));
   }, [choices, hasDashboardScheme, hasSharedLabelsColor, isLinear, schemes]);
@@ -321,14 +324,7 @@ const ColorSchemeControl = ({
         showSearch
         getPopupContainer={triggerNode => triggerNode.parentNode}
         options={options}
-        filterOption={(search, option) =>
-          handleFilterOptionHelper(
-            search,
-            option as OptionData,
-            ['label', 'value'],
-            true,
-          )
-        }
+        optionFilterProps={['label', 'value', 'searchText']}
       />
     </>
   );

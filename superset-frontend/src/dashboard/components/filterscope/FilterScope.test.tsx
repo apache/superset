@@ -168,9 +168,9 @@ function getCheckboxState(name: string): CheckboxState {
   const element = screen.getByRole('link', { name });
   const svgPath = getCheckboxIcon(element).children[1].children[0].children[0];
   const fill = svgPath.getAttribute('fill');
-  return fill === supersetTheme.colors.primary.base
+  return fill === supersetTheme.colorPrimary
     ? CHECKED
-    : fill === supersetTheme.colors.grayscale.light1
+    : fill === supersetTheme.colorTextSecondary
       ? INDETERMINATE
       : UNCHECKED;
 }

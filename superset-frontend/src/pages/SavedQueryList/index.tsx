@@ -23,7 +23,6 @@ import {
   styled,
   SupersetClient,
   t,
-  css,
 } from '@superset-ui/core';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
@@ -59,8 +58,10 @@ import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import copyTextToClipboard from 'src/utils/copy';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -99,7 +100,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 function SavedQueryList({
@@ -190,33 +191,6 @@ function SavedQueryList({
 
   const subMenuButtons: Array<ButtonProps> = [];
 
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-    });
-  }
-
-  subMenuButtons.push({
-    name: (
-      <Link
-        to="/sqllab?new=true"
-        css={css`
-          display: flex;
-          &:hover {
-            color: currentColor;
-            text-decoration: none;
-          }
-        `}
-      >
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Query')}
-      </Link>
-    ),
-    buttonStyle: 'primary',
-  });
-
   if (canCreate) {
     subMenuButtons.push({
       name: (
@@ -235,10 +209,36 @@ function SavedQueryList({
     });
   }
 
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  subMenuButtons.push({
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Query'),
+    buttonStyle: 'primary',
+    onClick: () => {
+      history.push('/sqllab?new=true');
+    },
+  });
+
   menuData.buttons = subMenuButtons;
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    copyTextToClipboard(() =>
+      Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    )
+      .then(() => {
+        addSuccessToast(t('Link Copied!'));
+      })
+      .catch(() => {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      });
     if (openInNewWindow) {
       window.open(`/sqllab?savedQueryId=${id}`);
     } else {
@@ -325,6 +325,7 @@ function SavedQueryList({
       {
         accessor: 'label',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { id, label },
@@ -335,12 +336,13 @@ function SavedQueryList({
       {
         accessor: 'description',
         Header: t('Description'),
+        size: 'xl',
         id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: 'database.database_name',
       },
       {
@@ -352,7 +354,7 @@ function SavedQueryList({
       {
         accessor: 'schema',
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: 'schema',
       },
       {
@@ -390,7 +392,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: 'sql_tables',
       },
@@ -401,7 +403,11 @@ function SavedQueryList({
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList tags={tags.filter((tag: TagType) => tag.type === 1)} />
+          <TagsList
+            tags={tags.filter(
+              (tag: TagType) => tag.type === TagTypeEnum.Custom,
+            )}
+          />
         ),
         Header: t('Tags'),
         accessor: 'tags',
@@ -609,6 +615,7 @@ function SavedQueryList({
         onConfirm={handleBulkQueryDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -643,7 +650,7 @@ function SavedQueryList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
-              enableBulkTag
+              enableBulkTag={enableBulkTag}
               bulkTagResourceName="query"
               refreshData={refreshData}
             />

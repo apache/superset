@@ -90,7 +90,7 @@ const StyledSpan = styled.span`
   cursor: pointer;
   color: ${({ theme }) => theme.colorPrimaryText};
   &: hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
+    color: ${({ theme }) => theme.colorPrimaryTextActive};
   }
 `;
 
@@ -255,6 +255,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
+      name="Swap dataset"
       title={t('Swap dataset')}
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '540px'}

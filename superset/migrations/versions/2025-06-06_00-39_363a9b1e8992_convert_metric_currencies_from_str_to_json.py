@@ -22,7 +22,7 @@ Create Date: 2025-06-06 00:39:00.107746
 
 """
 
-import json
+import json  # noqa: TID251
 import logging
 
 from alembic import op
@@ -32,8 +32,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 from superset.migrations.shared.utils import paginated_update
 
-logger = logging.getLogger("alembic")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "363a9b1e8992"

@@ -24,7 +24,6 @@ import {
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
@@ -87,7 +86,7 @@ describe('ResultsPaneOnDashboard', () => {
     },
   );
 
-  const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
+  const setForceQuery = jest.fn();
 
   afterAll(() => {
     fetchMock.reset();
@@ -123,7 +122,7 @@ describe('ResultsPaneOnDashboard', () => {
       useRedux: true,
     });
     expect(await findByText('0 rows')).toBeVisible();
-    expect(await findByText('Bad Request')).toBeVisible();
+    expect(await findByText('Bad request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {
@@ -132,7 +131,7 @@ describe('ResultsPaneOnDashboard', () => {
       queryForce: true,
     });
     const { queryByText, getByPlaceholderText } = render(
-      <ResultsPaneOnDashboard {...props} />,
+      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
       },

@@ -106,29 +106,26 @@ const FilterTitlePane: FC<Props> = ({
           buttonSize="default"
           buttonStyle="secondary"
           icon={
-            <Icons.FilterOutlined
-              iconColor={theme.colors.primary.dark1}
-              iconSize="m"
-            />
+            <Icons.FilterOutlined iconColor={theme.colorPrimary} iconSize="m" />
           }
           data-test="add-new-filter-button"
           onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
         >
-          {t('Add Filter')}
+          {t('Add filter')}
         </Button>
         <Button
           buttonSize="default"
           buttonStyle="secondary"
           icon={
             <Icons.PicCenterOutlined
-              iconColor={theme.colors.primary.dark1}
+              iconColor={theme.colorPrimary}
               iconSize="m"
             />
           }
           data-test="add-new-divider-button"
           onClick={() => handleOnAdd(NativeFilterType.Divider)}
         >
-          {t('Add Divider')}
+          {t('Add divider')}
         </Button>
       </div>
     </TabsContainer>

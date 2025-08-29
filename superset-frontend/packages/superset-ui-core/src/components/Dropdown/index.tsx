@@ -31,7 +31,7 @@ const MenuDots = styled.div`
   width: ${({ theme }) => theme.sizeUnit * 0.75}px;
   height: ${({ theme }) => theme.sizeUnit * 0.75}px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light1};
+  background-color: ${({ theme }) => theme.colorFill};
 
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   display: inline-flex;
@@ -53,7 +53,7 @@ const MenuDots = styled.div`
     width: ${({ theme }) => theme.sizeUnit * 0.75}px;
     height: ${({ theme }) => theme.sizeUnit * 0.75}px;
     border-radius: 50%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
+    background-color: ${({ theme }) => theme.colorFill};
   }
 
   &::before {
@@ -89,7 +89,7 @@ export const MenuDotsDropdown = ({
   iconOrientation = IconOrientation.Vertical,
   ...rest
 }: MenuDotsDropdownProps) => (
-  <AntdDropdown dropdownRender={() => overlay} {...rest}>
+  <AntdDropdown popupRender={() => overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>

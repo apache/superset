@@ -192,3 +192,166 @@ export const getFilterValueForDisplay = (
   }
   return t('Unknown value');
 };
+
+export interface FilterTarget {
+  type: 'CHART' | 'LAYER';
+  chartId: string;
+  layerId?: string;
+}
+
+export interface FilterScope {
+  filterId: string;
+  targets: FilterTarget[];
+}
+
+// Matches layer keys in format: 'chart-123-layer-456' where 123 is chartId and 456 is layerId
+const LAYER_KEY_REGEX = /^chart-(\d+)-layer-(\d+)$/;
+// Matches chart keys in format: 'chart-123' where 123 is chartId
+const CHART_KEY_REGEX = /^chart-(\d+)$/;
+
+export function parseFilterTarget(scopeKey: string): FilterTarget | null {
+  const layerMatch = scopeKey.match(LAYER_KEY_REGEX);
+  if (layerMatch) {
+    return {
+      type: 'LAYER',
+      chartId: layerMatch[1],
+      layerId: layerMatch[2],
+    };
+  }
+
+  const chartMatch = scopeKey.match(CHART_KEY_REGEX);
+  if (chartMatch) {
+    return {
+      type: 'CHART',
+      chartId: chartMatch[1],
+    };
+  }
+
+  return null;
+}
+
+export function getFilterScope(
+  filterId: string,
+  filterScopes: Record<string, string[]>,
+): FilterScope {
+  const scopeKeys = filterScopes[filterId] || [];
+  const targets: FilterTarget[] = [];
+
+  scopeKeys.forEach(scopeKey => {
+    const target = parseFilterTarget(scopeKey);
+    if (target) {
+      targets.push(target);
+    } else {
+      console.warn(`Invalid filter scope key format: ${scopeKey}`);
+    }
+  });
+
+  return {
+    filterId,
+    targets,
+  };
+}
+
+export function aggregateFiltersForTarget(
+  dataMask: DataMaskStateWithId,
+  filterIds: string[],
+): ExtraFormData {
+  let aggregatedFormData: ExtraFormData = {};
+
+  filterIds.forEach(filterId => {
+    const filterData = dataMask[filterId];
+    if (filterData?.extraFormData) {
+      aggregatedFormData = mergeExtraFormData(
+        aggregatedFormData,
+        filterData.extraFormData,
+      );
+    }
+  });
+
+  return aggregatedFormData;
+}
+
+function createTargetKey(target: FilterTarget): string {
+  if (target.type === 'LAYER') {
+    return `${target.chartId}-${target.layerId}`;
+  }
+  return target.chartId;
+}
+
+export function groupFiltersByTarget(
+  dataMask: DataMaskStateWithId,
+  filterScopes: Record<string, string[]>,
+): {
+  chartFilters: Map<string, ExtraFormData>;
+  layerFilters: Map<string, ExtraFormData>;
+} {
+  const chartFilters = new Map<string, ExtraFormData>();
+  const layerFilters = new Map<string, ExtraFormData>();
+
+  Object.keys(dataMask).forEach(filterId => {
+    const scope = getFilterScope(filterId, filterScopes);
+
+    scope.targets.forEach(target => {
+      const filterData = dataMask[filterId]?.extraFormData || {};
+      const targetKey = createTargetKey(target);
+
+      if (target.type === 'CHART') {
+        const existing = chartFilters.get(targetKey) || {};
+        chartFilters.set(targetKey, mergeExtraFormData(existing, filterData));
+      } else if (target.type === 'LAYER') {
+        const existing = layerFilters.get(targetKey) || {};
+        layerFilters.set(targetKey, mergeExtraFormData(existing, filterData));
+      }
+    });
+  });
+
+  return { chartFilters, layerFilters };
+}
+
+export function buildFilterScopesFromFilters(
+  filters: any,
+): Record<string, string[]> {
+  const filterScopes: Record<string, string[]> = {};
+
+  Object.values(filters).forEach((filter: Filter) => {
+    if (filter.chartsInScope) {
+      filterScopes[filter.id] = filter.chartsInScope.map(
+        (chartId: number) => `chart-${chartId}`,
+      );
+    }
+  });
+
+  return filterScopes;
+}
+
+export function getLayerSpecificExtraFormData(
+  dataMask: DataMaskStateWithId,
+  filterIds: string[],
+  chartId: number,
+  layerId?: string,
+): ExtraFormData {
+  let extraFormData: ExtraFormData = {};
+
+  filterIds.forEach(filterId => {
+    const filterData = dataMask[filterId];
+    if (filterData?.extraFormData) {
+      extraFormData = mergeExtraFormData(
+        extraFormData,
+        filterData.extraFormData,
+      );
+    }
+  });
+
+  if (layerId) {
+    const layerKey = `${chartId}-${layerId}`;
+    const layerFilterData = dataMask[layerKey];
+    if (layerFilterData?.extraFormData) {
+      extraFormData = mergeExtraFormData(
+        extraFormData,
+        layerFilterData.extraFormData,
+      );
+    }
+  }
+
+  return extraFormData;
+}

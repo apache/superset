@@ -64,6 +64,10 @@ const CssTemplateList = lazy(
     ),
 );
 
+const ThemeList = lazy(
+  () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
+);
+
 const DashboardList = lazy(
   () =>
     import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
@@ -123,6 +127,10 @@ const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const Extensions = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+);
+
 const RowLevelSecurityList = lazy(
   () =>
     import(
@@ -156,6 +164,13 @@ const Register = lazy(
 const GroupsList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
+const UserRegistrations = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -167,6 +182,10 @@ export const routes: Routes = [
   {
     path: '/login/',
     Component: Login,
+  },
+  {
+    path: '/register/activation/:activationHash',
+    Component: Register,
   },
   {
     path: '/register/',
@@ -211,6 +230,10 @@ export const routes: Routes = [
   {
     path: '/csstemplatemodelview/list/',
     Component: CssTemplateList,
+  },
+  {
+    path: '/theme/list/',
+    Component: ThemeList,
   },
   {
     path: '/annotationlayer/list/',
@@ -275,6 +298,10 @@ export const routes: Routes = [
     path: '/actionlog/list',
     Component: ActionLogList,
   },
+  {
+    path: '/registrations/',
+    Component: UserRegistrations,
+  },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
@@ -289,6 +316,8 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
 }
 
 const user = getBootstrapData()?.user;
+const authRegistrationEnabled =
+  getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
 const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
@@ -306,6 +335,20 @@ if (isAdmin) {
       Component: GroupsList,
     },
   );
+
+  if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+    routes.push({
+      path: '/extensions/list/',
+      Component: Extensions,
+    });
+  }
+}
+
+if (authRegistrationEnabled) {
+  routes.push({
+    path: '/registrations/',
+    Component: UserRegistrations,
+  });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes

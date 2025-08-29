@@ -17,18 +17,18 @@
  * under the License.
  */
 import * as redux from 'redux';
-import {
-  render,
-  screen,
-  fireEvent,
-  userEvent,
-} from 'spec/helpers/testing-library';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import getOwnerName from 'src/utils/getOwnerName';
+import { render, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
+import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
 
 const initialState = {
   dashboardInfo: {
@@ -114,15 +114,7 @@ const undoState = {
   ...editableState,
   dashboardLayout: {
     ...initialState.dashboardLayout,
-    past: [{}],
-  },
-};
-
-const redoState = {
-  ...editableState,
-  dashboardLayout: {
-    ...initialState.dashboardLayout,
-    future: [{}],
+    past: [initialState.dashboardLayout.present],
   },
 };
 
@@ -133,7 +125,11 @@ function setup(overrideState: JsonObject = {}) {
     <div className="dashboard">
       <Header />
     </div>,
-    { useRedux: true, initialState: { ...initialState, ...overrideState } },
+    {
+      useRedux: true,
+      useTheme: true,
+      initialState: { ...initialState, ...overrideState },
+    },
   );
 }
 
@@ -166,6 +162,10 @@ const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
 
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
+
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -195,9 +195,14 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-});
 
-beforeEach(() => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
@@ -265,19 +270,15 @@ test('should render the "Undo" action as disabled', () => {
   expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
-test('should undo', () => {
+test('should undo when past actions exist', () => {
   setup(undoState);
   const undo = screen.getByTestId('undo-action');
-  expect(onUndo).not.toHaveBeenCalled();
-  userEvent.click(undo);
-  expect(onUndo).toHaveBeenCalledTimes(1);
-});
+  const undoButton = undo.parentElement;
 
-test('should undo with key listener', () => {
-  onUndo.mockReset();
-  setup(undoState);
+  expect(undoButton).toBeEnabled();
   expect(onUndo).not.toHaveBeenCalled();
-  fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
+
+  userEvent.click(undo);
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
@@ -286,19 +287,157 @@ test('should render the "Redo" action as disabled', () => {
   expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
-test('should redo', () => {
-  setup(redoState);
+test('should have correct redo button structure', () => {
+  setup(editableState);
+
   const redo = screen.getByTestId('redo-action');
+  const redoButton = redo.parentElement;
+
+  expect(redoButton).toBeInTheDocument();
+  expect(redo).toBeInTheDocument();
+  expect(redoButton).toBeDisabled();
+});
+
+test('should enable undo button when past actions exist', () => {
+  setup(undoState);
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  const redoButton = screen.getByTestId('redo-action').parentElement;
+
+  expect(undoButton).toBeEnabled();
+  expect(redoButton).toBeDisabled();
+  expect(onUndo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  expect(onUndo).toHaveBeenCalledTimes(1);
+});
+
+test('should enable redo button after undo creates future history', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            meta: { text: 'Original Title' },
+          },
+        },
+        past: [],
+        future: [],
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  testStore.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          meta: { text: 'Updated Title' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  });
+
+  testStore.dispatch(UndoActionCreators.undo());
+
+  await waitFor(() => {
+    const redoButton = screen.getByTestId('redo-action').parentElement;
+    expect(redoButton).toBeEnabled();
+  });
+
   expect(onRedo).not.toHaveBeenCalled();
-  userEvent.click(redo);
+
+  userEvent.click(screen.getByTestId('redo-action'));
   expect(onRedo).toHaveBeenCalledTimes(1);
 });
 
-test('should redo with key listener', () => {
-  setup(redoState);
+test('should enable undo button when real actions create past history', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            meta: { text: 'Original Title' },
+          },
+        },
+        past: [],
+        future: [],
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  expect(undoButton).toBeDisabled();
+
+  testStore.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          meta: { text: 'Updated Title' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  });
+
+  expect(onUndo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  expect(onUndo).toHaveBeenCalledTimes(1);
+});
+
+test('should disable both buttons when no actions available', () => {
+  setup(editableState);
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  const redoButton = screen.getByTestId('redo-action').parentElement;
+
+  expect(undoButton).toBeDisabled();
+  expect(redoButton).toBeDisabled();
+  expect(onUndo).not.toHaveBeenCalled();
   expect(onRedo).not.toHaveBeenCalled();
-  fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
-  expect(onRedo).toHaveBeenCalledTimes(1);
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  userEvent.click(screen.getByTestId('redo-action'));
+
+  expect(onUndo).not.toHaveBeenCalled();
+  expect(onRedo).not.toHaveBeenCalled();
 });
 
 test('should render the "Discard changes" button', () => {
@@ -460,7 +599,7 @@ test('should hide edit button and navbar, and show Exit fullscreen when in fulls
 test('should show Exit fullscreen when in fullscreen mode', async () => {
   setup();
 
-  fireEvent.click(screen.getByTestId('actions-trigger'));
+  userEvent.click(screen.getByTestId('actions-trigger'));
 
   expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
 });
@@ -483,4 +622,92 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
   expect(
     screen.getByText(state.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
+});
+
+test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modalTitle: HTMLElement = await screen.findByText(
+    'Save changes to your dashboard?',
+  );
+
+  const modalBody: HTMLElement = await screen.findByText(
+    "If you don't save, changes will be lost.",
+  );
+
+  expect(modalTitle).toBeInTheDocument();
+  expect(modalBody).toBeInTheDocument();
+});
+
+test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
+  const handleSaveAndCloseModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal,
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const saveButton: HTMLElement = within(modal).getByRole('button', {
+    name: /save/i,
+  });
+
+  userEvent.click(saveButton);
+
+  expect(handleSaveAndCloseModal).toHaveBeenCalled();
+});
+
+test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
+  const handleConfirmNavigation = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation,
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const discardButton: HTMLElement = within(modal).getByRole('button', {
+    name: /discard/i,
+  });
+
+  userEvent.click(discardButton);
+
+  expect(handleConfirmNavigation).toHaveBeenCalled();
+});
+
+test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
+  const setShowModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal,
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const closeButton: HTMLElement = within(modal).getByRole('button', {
+    name: /close/i,
+  });
+
+  userEvent.click(closeButton);
+
+  expect(setShowModal).toHaveBeenCalledWith(false);
 });

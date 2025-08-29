@@ -37,6 +37,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -361,9 +362,15 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.query_context_factory
 
     @classmethod
-    def get(cls, id_: int) -> Slice:
-        qry = db.session.query(Slice).filter_by(id=id_)
+    def get(cls, id_or_uuid: str) -> Slice:
+        qry = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
         return qry.one_or_none()
+
+
+def id_or_uuid_filter(id_or_uuid: str) -> BinaryExpression:
+    if id_or_uuid.isdigit():
+        return Slice.id == int(id_or_uuid)
+    return Slice.uuid == id_or_uuid
 
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:

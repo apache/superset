@@ -612,3 +612,42 @@ test('should render an extension component if one is supplied', async () => {
 
   expect(extension[0]).toBeInTheDocument();
 });
+
+test('should render the brand text if available', async () => {
+  useSelectorMock.mockReturnValue({ roles: [] });
+
+  const modifiedProps = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        text: 'Welcome to Superset',
+      },
+    },
+  };
+
+  render(<Menu {...modifiedProps} />, {
+    useRouter: true,
+    useQueryParams: true,
+    useRedux: true,
+    useTheme: true,
+  });
+
+  const brandText = await screen.findByText('Welcome to Superset');
+  expect(brandText).toBeInTheDocument();
+});
+
+test('should not render the brand text if not available', async () => {
+  useSelectorMock.mockReturnValue({ roles: [] });
+  const text = 'Welcome to Superset';
+  render(<Menu {...mockedProps} />, {
+    useRouter: true,
+    useQueryParams: true,
+    useRedux: true,
+    useTheme: true,
+  });
+
+  const brandText = screen.queryByText(text);
+  expect(brandText).not.toBeInTheDocument();
+});

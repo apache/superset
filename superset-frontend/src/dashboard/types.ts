@@ -39,6 +39,10 @@ import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
+export interface ExtendedNativeFilterScope extends NativeFilterScope {
+  selectedLayers?: string[];
+}
+
 export type ChartReducerInitialState = typeof chart;
 
 // chart query built from initialState
@@ -103,6 +107,7 @@ export type DashboardState = {
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
+  css?: string;
   focusedFilterField?: {
     chartId: number;
     column: string;
@@ -146,6 +151,12 @@ export type DashboardInfo = {
   changed_by?: Owner;
   created_by?: Owner;
   owners: Owner[];
+  theme?: {
+    id: number;
+    name: string;
+  } | null;
+  theme_id?: number | null;
+  css?: string;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -210,6 +221,9 @@ type ActiveFilter = {
   targets: number[] | [Partial<NativeFilterTarget>];
   scope: number[];
   values: ExtraFormData;
+  layerScope?: {
+    [chartId: number]: number[];
+  };
 };
 
 export type ActiveFilters = {
@@ -282,4 +296,5 @@ export enum MenuKeys {
   ToggleFullscreen = 'toggle_fullscreen',
   ManageEmbedded = 'manage_embedded',
   ManageEmailReports = 'manage_email_reports',
+  ExportPivotXlsx = 'export_pivot_xlsx',
 }

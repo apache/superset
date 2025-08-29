@@ -28,7 +28,7 @@ import { WelcomeTable } from './types';
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
-  color: ${({ theme }) => theme.colors.grayscale.light2};
+  color: ${({ theme }) => theme.colorTextDescription};
   flex-direction: column;
   justify-content: space-around;
 `;
@@ -59,11 +59,7 @@ export interface EmptyStateProps {
   otherTabTitle?: string;
 }
 
-export default function EmptyState({
-  tableName,
-  tab,
-  otherTabTitle,
-}: EmptyStateProps) {
+export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;

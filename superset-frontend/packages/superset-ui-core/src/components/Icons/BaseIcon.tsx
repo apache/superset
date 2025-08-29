@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, useTheme, themeObject } from '../..';
+import { css, useTheme, getFontSize } from '../..';
 import { AntdIconType, BaseIconProps, CustomIconType, IconType } from './types';
 
 const genAriaLabel = (fileName: string) => {
@@ -43,15 +43,16 @@ export const BaseIconComponent: React.FC<
   iconSize,
   viewBox,
   customIcons,
+  fileName,
   ...rest
 }) => {
   const theme = useTheme();
   const whatRole = rest?.onClick ? 'button' : 'img';
-  const ariaLabel = genAriaLabel(rest.fileName || '');
+  const ariaLabel = genAriaLabel(fileName || '');
   const style = {
     color: iconColor,
     fontSize: iconSize
-      ? `${themeObject.getFontSize(iconSize)}px`
+      ? `${getFontSize(theme, iconSize)}px`
       : `${theme.fontSize}px`,
     cursor: rest?.onClick ? 'pointer' : undefined,
   };
@@ -75,12 +76,12 @@ export const BaseIconComponent: React.FC<
         style={style}
         width={
           iconSize
-            ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
+            ? `${getFontSize(theme, iconSize) || theme.fontSize}px`
             : `${theme.fontSize}px`
         }
         height={
           iconSize
-            ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
+            ? `${getFontSize(theme, iconSize) || theme.fontSize}px`
             : `${theme.fontSize}px`
         }
         {...(rest as CustomIconType)}

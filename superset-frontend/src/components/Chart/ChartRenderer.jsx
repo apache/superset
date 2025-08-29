@@ -151,6 +151,20 @@ class ChartRenderer extends Component {
         this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
       }
 
+      // Check if any matrixify-related properties have changed
+      const hasMatrixifyChanges = () => {
+        if (!nextProps.formData.matrixify_enabled) return false;
+
+        // Check all matrixify-related properties
+        const matrixifyKeys = Object.keys(nextProps.formData).filter(key =>
+          key.startsWith('matrixify_'),
+        );
+
+        return matrixifyKeys.some(
+          key => !isEqual(nextProps.formData[key], this.props.formData[key]),
+        );
+      };
+
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
@@ -164,8 +178,11 @@ class ChartRenderer extends Component {
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
+        nextProps.formData.subcategories !==
+          this.props.formData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
-        nextProps.emitCrossFilters !== this.props.emitCrossFilters
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
+        hasMatrixifyChanges()
       );
     }
     return false;

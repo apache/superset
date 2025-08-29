@@ -20,6 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+
+const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -53,6 +55,7 @@ const {
   measure = false,
   nameChunks = false,
 } = parsedArgs;
+
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 
@@ -140,6 +143,27 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies.react,
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies['react-dom'],
+      },
+      antd: {
+        singleton: true,
+        requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+    },
+  }),
 ];
 
 if (!process.env.CI) {
@@ -156,7 +180,22 @@ if (!isDevMode) {
   );
 
   // Runs type checking on a separate process to speed up the build
-  plugins.push(new ForkTsCheckerWebpackPlugin());
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        memoryLimit: 4096,
+        build: true,
+        exclude: [
+          '**/node_modules/**',
+          '**/dist/**',
+          '**/coverage/**',
+          '**/storybook/**',
+          '**/*.stories.{ts,tsx,js,jsx}',
+          '**/*.{test,spec}.{ts,tsx,js,jsx}',
+        ],
+      },
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -258,7 +297,6 @@ const config = {
           name: 'vendors',
           test: new RegExp(
             `/node_modules/(${[
-              'abortcontroller-polyfill',
               'react',
               'react-dom',
               'prop-types',
@@ -338,6 +376,13 @@ const config = {
         loader: 'imports-loader',
         options: {
           additionalCode: 'var define = false;',
+        },
+      },
+      {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
         },
       },
       {
@@ -494,7 +539,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }
@@ -529,6 +577,11 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        port: 0,
+      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),

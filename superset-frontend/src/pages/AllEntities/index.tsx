@@ -49,7 +49,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
 
 const AllEntitiesContainer = styled.div`
   ${({ theme }) => `
-  background-color: ${theme.colors.grayscale.light4};
+  background-color: ${theme.colorBgContainer};
   .select-control {
     margin-left: ${theme.sizeUnit * 4}px;
     margin-right: ${theme.sizeUnit * 4}px;
@@ -57,7 +57,7 @@ const AllEntitiesContainer = styled.div`
   }
   .select-control-label {
     font-size: ${theme.sizeUnit * 3}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     margin-bottom: ${theme.sizeUnit * 1}px;
   }
   .entities {
@@ -72,7 +72,7 @@ const AllEntitiesContainer = styled.div`
 const AllEntitiesNav = styled.div`
   ${({ theme }) => `
   height: ${theme.sizeUnit * 12.5}px;
-  background-color: ${theme.colors.grayscale.light5};
+  background-color: ${theme.colorBgBase};
   margin-bottom: ${theme.sizeUnit * 4}px;
   .navbar-brand {
     margin-left: ${theme.sizeUnit * 2}px;
@@ -109,7 +109,7 @@ function AllEntities() {
   const editableTitleProps = {
     title: tag?.name || '',
     placeholder: 'testing',
-    onSave: (newDatasetName: string) => {},
+    onSave: () => {},
     canEdit: false,
     label: t('dataset name'),
   };

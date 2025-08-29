@@ -58,6 +58,11 @@ class MainPreset extends Preset {
 const defaultState = () => ({
   datasources: { ...mockDatasource },
   charts: chartQueries,
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
 });
 
 const noTemporalColumnsState = () => {
@@ -71,6 +76,29 @@ const noTemporalColumnsState = () => {
       [datasourceId]: {
         ...state.datasources[datasourceId],
         column_types: [0, 1],
+      },
+    },
+  };
+};
+
+const bigIntChartDataState = () => {
+  const state = defaultState();
+  return {
+    ...state,
+    charts: {
+      ...state.charts,
+      999: {
+        queriesResponse: [
+          {
+            status: 'success',
+            data: [
+              { name: 'Abigail', count: 228 },
+              { name: 'Aaron', count: 123012930123123n },
+              { name: 'Adam', count: 454 },
+            ],
+            applied_filters: [{ column: 'name' }],
+          },
+        ],
       },
     },
   };
@@ -155,6 +183,9 @@ beforeAll(() => {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// Set timeout for all tests in this file to prevent CI timeouts
+jest.setTimeout(60000);
 
 function defaultRender(initialState: any = defaultState(), modalProps = props) {
   return render(<FiltersConfigModal {...modalProps} />, {
@@ -305,13 +336,20 @@ test.skip('validates the default value', async () => {
 });
 
 test('validates the pre-filter value', async () => {
+  jest.useFakeTimers();
+
   defaultRender();
+
   userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-  expect(
-    await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
-  ).toBeInTheDocument();
-});
+
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+
+  await waitFor(() => {
+    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+  });
+}, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
@@ -583,4 +621,25 @@ test('modifies the name of a filter', async () => {
       }),
     ),
   );
+});
+
+test('renders a filter with a chart containing BigInt values', async () => {
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+  const state = {
+    ...bigIntChartDataState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });

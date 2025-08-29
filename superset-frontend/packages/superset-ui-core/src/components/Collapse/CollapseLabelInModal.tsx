@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { useTheme, css } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { Icons } from '@superset-ui/core/components';
 
@@ -29,7 +29,7 @@ interface CollapseLabelInModalProps {
 export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
   title,
   subtitle,
-  validateCheckStatus = false,
+  validateCheckStatus,
   testId,
 }) => {
   const theme = useTheme();
@@ -37,36 +37,34 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
   return (
     <div data-test={testId}>
       <Typography.Title
-        style={{
-          marginTop: 0,
-          marginBottom: theme.sizeUnit / 2,
-          fontSize: theme.fontSizeLG,
-        }}
+        css={css`
+          && {
+            margin-top: 0;
+            margin-bottom: ${theme.sizeUnit / 2}px;
+            font-size: ${theme.fontSizeLG}px;
+          }
+        `}
       >
         {title}{' '}
-        {validateCheckStatus ? (
-          <Icons.CheckCircleOutlined
-            style={{ color: theme.colorSuccess }}
-            aria-label="check-circle"
-            role="img"
-          />
-        ) : (
-          <span
-            style={{
-              color: theme.colorErrorText,
-              fontSize: theme.fontSizeLG,
-            }}
-          >
-            *
-          </span>
-        )}
+        {validateCheckStatus !== undefined &&
+          (validateCheckStatus ? (
+            <Icons.CheckCircleOutlined
+              iconColor={theme.colorSuccess}
+              aria-label="check-circle"
+            />
+          ) : (
+            <Icons.ExclamationCircleOutlined
+              iconColor={theme.colorError}
+              aria-label="error-circle"
+            />
+          ))}
       </Typography.Title>
       <Typography.Paragraph
-        style={{
-          margin: 0,
-          fontSize: theme.fontSizeSM,
-          color: theme.colorTextDescription,
-        }}
+        css={css`
+          margin: 0;
+          font-size: ${theme.fontSizeSM}px;
+          color: ${theme.colorTextDescription};
+        `}
       >
         {subtitle}
       </Typography.Paragraph>

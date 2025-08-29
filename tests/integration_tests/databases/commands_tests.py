@@ -1202,3 +1202,54 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         assert result["count"] > 0
         assert len(result["result"]) > 0
         assert len(result["result"]) == result["count"]
+
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
+    def test_database_tables_list_tables_default_catalog(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.return_value = True
+        mock_g.user = security_manager.find_user("admin")
+
+        with (
+            patch.object(
+                database, "get_default_catalog", return_value="default_catalog"
+            ),
+            patch.object(
+                database, "get_all_table_names_in_schema", return_value=[]
+            ) as mock_get_all_table_names,
+            patch.object(
+                database, "get_all_view_names_in_schema", return_value=[]
+            ) as mock_get_all_view_names,
+            patch.object(
+                database, "get_all_materialized_view_names_in_schema", return_value=[]
+            ) as mock_get_all_materialized_view_names,
+        ):
+            command = TablesDatabaseCommand(database.id, None, "schema_name", False)
+            command.run()
+
+            # Assert that the default catalog is used instead of None
+            mock_get_all_table_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_materialized_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
