@@ -154,7 +154,8 @@ test('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
   const viewInSQLLabButton = screen.getByText('View in SQL Lab');
   fireEvent.click(viewInSQLLabButton);
 
-  expect(mockHistoryPush).toHaveBeenCalledWith('/sqllab', {
+  expect(mockHistoryPush).toHaveBeenCalledWith({
+    pathname: '/sqllab',
     state: {
       requestedQuery: {
         datasourceKey: mockProps.datasource,
@@ -174,7 +175,7 @@ test('opens SQL Lab in a new tab when View in SQL Lab button is clicked with met
 
   const { datasource, sql } = mockProps;
   expect(window.open).toHaveBeenCalledWith(
-    `/sqllab?datasourceKey=${datasource}&sql=${sql}`,
+    `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(sql)}`,
     '_blank',
   );
 });
@@ -189,4 +190,78 @@ test('hides View in SQL Lab button when user does not have SQL Lab access', () =
 
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
   expect(screen.getByText('Copy')).toBeInTheDocument(); // Copy button should still be visible
+});
+
+test('handles undefined datasource without crashing', () => {
+  const propsWithUndefinedDatasource = {
+    ...mockProps,
+    datasource: undefined as any,
+  };
+
+  expect(() => setup(propsWithUndefinedDatasource)).not.toThrow();
+});
+
+test('handles dataset API error gracefully when no exploreBackend', async () => {
+  const stateWithoutBackend = {
+    ...mockState(),
+    explore: undefined,
+  };
+
+  fetchMock.get(
+    datasetApiEndpoint,
+    { throws: new Error('API Error') },
+    { overwriteRoutes: true },
+  );
+
+  setup(mockProps, stateWithoutBackend);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(0);
+});
+
+test('handles SQL formatting API error gracefully', async () => {
+  const stateWithoutBackend = {
+    ...mockState(),
+    explore: undefined,
+  };
+
+  fetchMock.post(
+    formatSqlEndpoint,
+    { throws: new Error('Format Error') },
+    { overwriteRoutes: true },
+  );
+
+  setup(mockProps, stateWithoutBackend);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+});
+
+test('uses exploreBackend from Redux state when available', async () => {
+  const stateWithBackend = {
+    ...mockState(),
+    explore: {
+      datasource: {
+        database: {
+          backend: 'postgresql',
+        },
+      },
+    },
+  };
+
+  setup(mockProps, stateWithBackend);
+
+  await waitFor(() => {
+    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1);
+  });
+
+  const formatCallBody = JSON.parse(
+    fetchMock.lastCall(formatSqlEndpoint)?.[1]?.body as string,
+  );
+  expect(formatCallBody.engine).toBe('postgresql');
+  expect(fetchMock.calls(datasetApiEndpoint)).toHaveLength(0);
 });

@@ -37,7 +37,7 @@ export const VizTile = ({
   const [showTooltip, setShowTooltip] = useState(false);
   const chartName = vizMeta.name
     ? mountedPluginMetadata[vizMeta.name]?.name || `${vizMeta.name}`
-    : t('Select Viz Type');
+    : t('Select chart type');
 
   const handleTileClick = useCallback(() => {
     onTileClick(vizMeta.name);
@@ -90,7 +90,7 @@ export const VizTile = ({
         css={css`
           display: flex;
           align-items: center;
-          color: ${theme.colors.grayscale.base};
+          color: ${theme.colorText};
           font-weight: ${theme.fontWeightStrong};
           border-radius: 6px;
           white-space: nowrap;
@@ -111,7 +111,7 @@ export const VizTile = ({
           ${isActive &&
           css`
             width: 100%;
-            background-color: ${theme.colors.grayscale.light4};
+            background-color: ${theme.colorBgLayout};
             transition:
               width ${TILE_TRANSITION_TIME} ease-out,
               background-color ${TILE_TRANSITION_TIME} ease-out;

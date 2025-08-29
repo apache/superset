@@ -59,6 +59,8 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
+import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
@@ -177,6 +179,19 @@ const SliceHeaderControls = (
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
   const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+
+  const datasetResource = useDatasetDrillInfo(
+    props.slice.datasource,
+    props.dashboardId,
+    props.formData,
+    !canDrillToDetail,
+  );
+
+  const datasetWithVerboseMap =
+    datasetResource.status === ResourceStatus.Complete
+      ? datasetResource.result
+      : undefined;
+
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -257,7 +272,11 @@ const SliceHeaderControls = (
         break;
       }
       case MenuKeys.ExportPivotXlsx: {
-        props.exportPivotExcel?.('.pvtTable', props.slice.slice_name);
+        const sliceSelector = `#chart-id-${props.slice.slice_id}`;
+        props.exportPivotExcel?.(
+          `${sliceSelector} .pvtTable`,
+          props.slice.slice_name,
+        );
         break;
       }
       case MenuKeys.CrossFilterScoping: {
@@ -574,6 +593,7 @@ const SliceHeaderControls = (
         }}
         chartId={slice.slice_id}
         showModal={drillModalIsOpen}
+        dataset={datasetWithVerboseMap}
       />
 
       {canEditCrossFilters && scopingModal}

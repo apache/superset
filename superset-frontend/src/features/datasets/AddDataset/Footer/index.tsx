@@ -121,19 +121,23 @@ function Footer({
     onSave(false);
   };
 
-  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
-  const CREATE_DATASET_ONLY_TEXT = t('Create dataset only');
+  const CREATE_DATASET_TEXT = t('Create and explore dataset');
+  const CREATE_DATASET_ONLY_TEXT = t('Create dataset');
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||
     datasets?.includes(datasetObject?.table_name);
 
   const dropdownMenu = (
-    <Menu>
-      <Menu.Item key="create-only" onClick={onSaveOnly}>
-        {CREATE_DATASET_ONLY_TEXT}
-      </Menu.Item>
-    </Menu>
+    <Menu
+      items={[
+        {
+          key: 'create-only',
+          onClick: onSaveOnly,
+          label: CREATE_DATASET_ONLY_TEXT,
+        },
+      ]}
+    />
   );
 
   return (
@@ -150,7 +154,7 @@ function Footer({
         icon={
           <Icons.DownOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.light5}
+            iconColor={theme.colorTextLightSolid}
           />
         }
         trigger={['click']}

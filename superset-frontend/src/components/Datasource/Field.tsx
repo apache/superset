@@ -26,12 +26,6 @@ import {
   FormLabel,
 } from '@superset-ui/core/components';
 
-const formItemInlineCss = css`
-  .ant-form-item-control-input-content {
-    display: flex;
-    flex-direction: row;
-  }
-`;
 interface FieldProps<V> {
   fieldKey: string;
   value?: V;
@@ -64,10 +58,6 @@ export default function Field<V>({
     [onChange, fieldKey],
   );
 
-  const hookedControl = cloneElement(control, {
-    value,
-    onChange: onControlChange,
-  });
   const theme = useTheme();
   const extra = !compact && description ? description : undefined;
   const infoTooltip =
@@ -83,12 +73,23 @@ export default function Field<V>({
         <Icons.InfoCircleOutlined
           iconSize="s"
           css={css`
-            margin-left: ${theme.sizeUnit}px;
+            margin-left: ${theme.marginXXS}px;
           `}
           iconColor={theme.colorTextTertiary}
         />
       </Tooltip>
     ) : undefined;
+
+  const hookedControl = cloneElement(control, {
+    value,
+    onChange: onControlChange,
+    label: (
+      <FormLabel>
+        {label || fieldKey}
+        {infoTooltip}
+      </FormLabel>
+    ),
+  });
 
   return (
     <div
@@ -101,14 +102,15 @@ export default function Field<V>({
     >
       {additionalControl}
       <FormItem
-        label={
-          <FormLabel>
-            {label || fieldKey}
-            {infoTooltip}
-          </FormLabel>
-        }
-        css={inline && formItemInlineCss}
         extra={extra}
+        css={
+          !inline &&
+          css`
+            .ControlHeader {
+              margin-bottom: ${theme.marginXXS}px;
+            }
+          `
+        }
       >
         {hookedControl}
       </FormItem>
@@ -116,7 +118,7 @@ export default function Field<V>({
         <div
           css={(theme: SupersetTheme) => ({
             color: theme.colorText,
-            [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
+            [inline ? 'marginLeft' : 'marginTop']: theme.marginXXS,
           })}
         >
           {errorMessage}

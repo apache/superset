@@ -601,6 +601,7 @@ export const getDatasourceSamples = async (
   jsonPayload,
   perPage,
   page,
+  dashboardId,
 ) => {
   try {
     const searchParams = {
@@ -608,6 +609,10 @@ export const getDatasourceSamples = async (
       datasource_type: datasourceType,
       datasource_id: datasourceId,
     };
+
+    if (isDefined(dashboardId)) {
+      searchParams.dashboard_id = dashboardId;
+    }
 
     if (isDefined(perPage) && isDefined(page)) {
       searchParams.per_page = perPage;

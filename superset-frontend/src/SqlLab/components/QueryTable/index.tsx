@@ -302,7 +302,6 @@ const QueryTable = ({
                 <ResultSet
                   showSql
                   queryId={query.id}
-                  height={400}
                   displayLimit={displayLimit}
                   defaultQueryLimit={1000}
                 />

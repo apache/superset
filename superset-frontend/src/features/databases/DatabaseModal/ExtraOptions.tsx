@@ -120,7 +120,8 @@ const ExtraOptions = ({
     if (!expandableModalIsOpen && activeKey !== undefined) {
       setActiveKey(undefined);
     }
-  }, [expandableModalIsOpen, activeKey]);
+    // See issue #34630 for why we omit `activeKey` from the dependency array
+  }, [expandableModalIsOpen]);
 
   return (
     <Collapse
@@ -514,7 +515,7 @@ const ExtraOptions = ({
                     onChange={onInputChange}
                   >
                     {t(
-                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
+                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
                     )}
                   </Checkbox>
                   <InfoTooltip

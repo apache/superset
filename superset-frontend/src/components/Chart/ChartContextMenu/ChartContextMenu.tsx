@@ -23,6 +23,7 @@ import {
   RefObject,
   useCallback,
   useImperativeHandle,
+  useMemo,
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
@@ -35,6 +36,7 @@ import {
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
+  getExtensionsRegistry,
   isFeatureEnabled,
   QueryFormData,
   t,
@@ -46,8 +48,8 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from '@superset-ui/core/components';
 import { updateDataMask } from 'src/dataMask/actions';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
-import { useVerboseMap } from 'src/hooks/apiResources/datasets';
-import { Dataset } from 'src/components/Chart/types';
+import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -99,6 +101,9 @@ const ChartContextMenu = (
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
   const [openKeys, setOpenKeys] = useState<Key[]>([]);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
@@ -117,11 +122,41 @@ const ChartContextMenu = (
     filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
+  // Extract matrixifyContext if present and merge cell filters
+  const enhancedFilters = useMemo(() => {
+    if (!filters) return filters;
+
+    // Check if this is from a matrixified cell
+    const matrixifyContext = (filters as any)?.matrixifyContext;
+    if (!matrixifyContext) return filters;
+
+    // Merge cell filters with drill filters
+    const enhancedDrillBy = filters.drillBy
+      ? {
+          ...filters.drillBy,
+          filters: [
+            ...(filters.drillBy.filters || []),
+            ...(matrixifyContext.cellFilters || []),
+          ],
+        }
+      : undefined;
+
+    return {
+      ...filters,
+      drillBy: enhancedDrillBy,
+    };
+  }, [filters]);
+
+  // Use cell's formData for drill-to-detail if from matrixified cell
+  const drillFormData = useMemo(() => {
+    const matrixifyContext = (filters as any)?.matrixifyContext;
+    // If this is from a matrixified cell, use the cell's formData which includes adhoc_filters
+    return matrixifyContext?.cellFormData || formData;
+  }, [filters, formData]);
+
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
-  const [dataset, setDataset] = useState<Dataset>();
-  const verboseMap = useVerboseMap(dataset);
 
   const closeContextMenu = useCallback(() => {
     setVisible(false);
@@ -129,11 +164,14 @@ const ChartContextMenu = (
     onClose();
   }, [onClose]);
 
-  const handleDrillBy = useCallback((column: Column, dataset: Dataset) => {
+  const handleDrillBy = useCallback((column: Column) => {
     setDrillByColumn(column);
-    setDataset(dataset); // Save dataset when drilling
     setShowDrillByModal(true);
   }, []);
+
+  const loadDrillByOptionsExtension = getExtensionsRegistry().get(
+    'load.drillby.options',
+  );
 
   const handleCloseDrillByModal = useCallback(() => {
     setShowDrillByModal(false);
@@ -149,7 +187,59 @@ const ChartContextMenu = (
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
-    isDisplayed(ContextMenuItem.DrillBy);
+    isDisplayed(ContextMenuItem.DrillBy) &&
+    !formData.matrixify_enabled; // Disable drill by when matrixify is enabled
+
+  const datasetResource = useDatasetDrillInfo(
+    formData.datasource,
+    dashboardId,
+    formData,
+    !canDrillToDetail && !canDrillBy,
+  );
+
+  const isLoadingDataset = datasetResource.status === ResourceStatus.Loading;
+
+  // Compute filteredDataset with all columns returned + a filtered list of valid drillable options
+  const filteredDataset = useMemo(() => {
+    // Short circuit if still loading
+    if (datasetResource.status !== ResourceStatus.Complete) {
+      return undefined;
+    }
+
+    // No need to filter the dataset if Drill By is not allowed
+    if (!showDrillBy) {
+      return datasetResource.result;
+    }
+
+    const dataset = datasetResource.result;
+
+    const filteredColumns = ensureIsArray(dataset.columns).filter(
+      column =>
+        // If using an extension, also filter by column.groupby since the extension might not do this
+        (!loadDrillByOptionsExtension || column.groupby) &&
+        !ensureIsArray(
+          formData[filters?.drillBy?.groupbyFieldName ?? ''],
+        ).includes(column.column_name) &&
+        column.column_name !== formData.x_axis &&
+        ensureIsArray(additionalConfig?.drillBy?.excludedColumns)?.every(
+          excludedCol => excludedCol.column_name !== column.column_name,
+        ),
+    );
+
+    return {
+      ...dataset,
+      drillable_columns: filteredColumns,
+    };
+  }, [
+    datasetResource.status,
+    datasetResource.result,
+    showDrillBy,
+    enhancedFilters?.drillBy?.groupbyFieldName,
+    formData.x_axis,
+    formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
+    additionalConfig?.drillBy?.excludedColumns,
+    loadDrillByOptionsExtension,
+  ]);
 
   const showCrossFilters = isDisplayed(ContextMenuItem.CrossFilter);
 
@@ -230,11 +320,7 @@ const ChartContextMenu = (
               {t('Add cross-filter')}
               <MenuItemTooltip
                 title={crossFilteringTooltipTitle}
-                color={
-                  !isCrossFilterDisabled
-                    ? theme.colors.grayscale.base
-                    : undefined
-                }
+                color={!isCrossFilterDisabled ? theme.colorIcon : undefined}
               />
             </div>
           )}
@@ -246,7 +332,7 @@ const ChartContextMenu = (
   if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems
-        formData={formData}
+        formData={drillFormData}
         filters={filters?.drillToDetail}
         setFilters={setFilters}
         isContextMenu
@@ -254,6 +340,8 @@ const ChartContextMenu = (
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
         setShowModal={setDrillModalIsOpen}
+        dataset={filteredDataset}
+        isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillToDetail || {})}
       />,
     );
@@ -268,7 +356,7 @@ const ChartContextMenu = (
     }
     menuItems.push(
       <DrillByMenuItems
-        drillByConfig={filters?.drillBy}
+        drillByConfig={enhancedFilters?.drillBy}
         onSelection={onSelection}
         onCloseMenu={closeContextMenu}
         formData={formData}
@@ -277,6 +365,8 @@ const ChartContextMenu = (
         open={openKeys.includes('drill-by-submenu')}
         key="drill-by-submenu"
         onDrillBy={handleDrillBy}
+        dataset={filteredDataset}
+        isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillBy || {})}
       />,
     );
@@ -354,23 +444,27 @@ const ChartContextMenu = (
         <DrillDetailModal
           initialFilters={modalFilters}
           chartId={id}
-          formData={formData}
+          formData={drillFormData}
           showModal={drillModalIsOpen}
           onHideModal={() => {
             setDrillModalIsOpen(false);
           }}
+          dataset={filteredDataset}
         />
       )}
-      {showDrillByModal && drillByColumn && dataset && filters?.drillBy && (
-        <DrillByModal
-          column={drillByColumn}
-          drillByConfig={filters?.drillBy}
-          formData={formData}
-          onHideModal={handleCloseDrillByModal}
-          dataset={{ ...dataset!, verbose_map: verboseMap }}
-          canDownload={canDownload}
-        />
-      )}
+      {showDrillByModal &&
+        drillByColumn &&
+        filteredDataset &&
+        enhancedFilters?.drillBy && (
+          <DrillByModal
+            column={drillByColumn}
+            drillByConfig={enhancedFilters?.drillBy}
+            formData={formData}
+            onHideModal={handleCloseDrillByModal}
+            dataset={filteredDataset}
+            canDownload={canDownload}
+          />
+        )}
     </>,
     document.body,
   );

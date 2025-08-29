@@ -44,12 +44,16 @@ from superset.utils.database import (  # noqa: F401
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 
 @contextmanager
@@ -516,6 +520,72 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         assert resp.get("error") == "'druid' is not a valid DatasourceType"
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user(
+        self, mock_has_guest_access, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can access the /samples view.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_has_guest_access.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("births")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_without_dash_id(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view if not providing a dashboard ID.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_dashboard_without_dataset(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view when providing a dashboard ID that
+        does not include the target dataset.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("world_health")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
+
 
 def test_get_samples(test_client, login_as_admin, virtual_dataset):
     """
@@ -648,7 +718,14 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    assert rv.json["result"]["colnames"] == []
+    assert rv.json["result"]["colnames"] == [
+        "col1",
+        "col2",
+        "col3",
+        "col4",
+        "col5",
+        "col6",
+    ]
     assert rv.json["result"]["rowcount"] == 0
 
 

@@ -34,12 +34,17 @@ from typing import (
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_sqlalchemy import BaseQuery
+from sqlalchemy.exc import SQLAlchemyError, StatementError
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import StatementError
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
 
+from superset.daos.exceptions import (
+    DAOFindFailedError,
+)
 from superset.extensions import db
 
 T = TypeVar("T", bound=Model)
@@ -229,7 +234,7 @@ class BaseDAO(Generic[T]):
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)
-        if id_col is None:
+        if id_col is None or not model_ids:
             return []
 
         # Convert IDs to appropriate types based on column type
@@ -241,7 +246,16 @@ class BaseDAO(Generic[T]):
 
         query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
-        return query.all()
+
+        try:
+            results = query.all()
+        except SQLAlchemyError as ex:
+            model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
+            raise DAOFindFailedError(
+                f"Failed to find {model_name} with ids: {model_ids}"
+            ) from ex
+
+        return results
 
     @classmethod
     def find_all(cls) -> list[T]:
@@ -328,6 +342,31 @@ class BaseDAO(Generic[T]):
 
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def query(cls, query: BaseQuery) -> list[T]:
+        """
+        Get all that fit the `base_filter` based on a BaseQuery object
+        """
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query.all()
+
+    @classmethod
+    def filter_by(cls, **filter_by: Any) -> list[T]:
+        """
+        Get all entries that fit the `base_filter`
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query.filter_by(**filter_by).all()
 
     @classmethod
     def apply_column_operators(

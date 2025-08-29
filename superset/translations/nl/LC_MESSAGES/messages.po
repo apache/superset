@@ -824,11 +824,11 @@ msgid "Add Dashboard"
 msgstr "Voeg Dashboard toe"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Verdeler"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Filter toevoegen"
 
 #, fuzzy
@@ -1848,7 +1848,7 @@ msgstr "Filters automatisch aanvullen"
 msgid "Autocomplete query predicate"
 msgstr "Autocomplete query predicaat"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Automatische kleur"
 
 #, fuzzy
@@ -3318,7 +3318,7 @@ msgstr "Landenkaart"
 msgid "Create"
 msgstr "Maak"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Grafiek aanmaken"
 
 msgid "Create a dataset"
@@ -5974,7 +5974,7 @@ msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "Inloggen als ingelogde gebruiker (Presto, Trino, Drill, Hive en GSheets)"
 
 msgid "Import"
@@ -8913,7 +8913,7 @@ msgstr "Deze bron heeft al een bijgevoegd rapport."
 msgid "Resource was not found."
 msgstr "Bron is niet gevonden."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Herstel Filter"
 
 msgid "Results"
@@ -9513,7 +9513,7 @@ msgstr "Selecteer verzendmethode"
 msgid "Select Tags"
 msgstr "Selecteer Tags"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selecteer Viz Type"
 
 msgid "Select a column"
@@ -13731,7 +13731,7 @@ msgstr "X-as Sorteren Op"
 msgid "X-axis"
 msgstr "X-as"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "XSchaal Interval"
 
 msgid "XYZ"
@@ -13789,7 +13789,7 @@ msgstr "Y-as"
 msgid "Y-axis bounds"
 msgstr "Y-as grenzen"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "YSchaal Interval"
 
 msgid "Year"

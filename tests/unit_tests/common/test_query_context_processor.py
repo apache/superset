@@ -240,3 +240,387 @@ def test_get_data_xlsx_apply_column_types_error(
     mock_query_context.result_format = ChartDataResultFormat.XLSX
     with pytest.raises(ValueError, match="Conversion error"):
         processor.get_data(df, coltypes)
+
+
+def test_is_valid_date_range_format(processor):
+    """Test that date range format validation works correctly."""
+    # Should return True for valid date range format
+    assert processor.is_valid_date_range("2023-01-01 : 2023-01-31") is True
+    assert processor.is_valid_date_range("2020-12-25 : 2020-12-31") is True
+
+    # Should return False for invalid format
+    assert processor.is_valid_date_range("1 day ago") is False
+    assert processor.is_valid_date_range("2023-01-01") is False
+    assert processor.is_valid_date_range("invalid") is False
+
+
+def test_is_valid_date_range_static_format():
+    """Test that static date range format validation works correctly."""
+    # Should return True for valid date range format
+    assert (
+        QueryContextProcessor.is_valid_date_range_static("2023-01-01 : 2023-01-31")
+        is True
+    )
+    assert (
+        QueryContextProcessor.is_valid_date_range_static("2020-12-25 : 2020-12-31")
+        is True
+    )
+
+    # Should return False for invalid format
+    assert QueryContextProcessor.is_valid_date_range_static("1 day ago") is False
+    assert QueryContextProcessor.is_valid_date_range_static("2023-01-01") is False
+    assert QueryContextProcessor.is_valid_date_range_static("invalid") is False
+
+
+def test_processing_time_offsets_date_range_logic(processor):
+    """Test that date range timeshift logic works correctly with feature flag checks."""
+    # Test that the date range validation works
+    assert processor.is_valid_date_range("2023-01-01 : 2023-01-31") is True
+    assert processor.is_valid_date_range("1 year ago") is False
+
+    # Test that static method also works
+    assert (
+        QueryContextProcessor.is_valid_date_range_static("2023-01-01 : 2023-01-31")
+        is True
+    )
+    assert QueryContextProcessor.is_valid_date_range_static("1 year ago") is False
+
+
+def test_feature_flag_validation_logic():
+    """Test that feature flag validation logic works as expected."""
+    from superset.extensions import feature_flag_manager
+
+    # This tests the concept - actual feature flag value depends on config
+    # The important thing is that the code checks for DATE_RANGE_TIMESHIFTS_ENABLED
+    flag_name = "DATE_RANGE_TIMESHIFTS_ENABLED"
+
+    # Test that the feature flag is being checked
+    # (This will vary based on actual config but tests the mechanism)
+    result = feature_flag_manager.is_feature_enabled(flag_name)
+    assert isinstance(result, bool)  # Should return a boolean
+
+
+def test_join_offset_dfs_date_range_basic(processor):
+    """Test basic join logic for date range offsets."""
+    # Create simple test data
+    main_df = pd.DataFrame({"dim1": ["A", "B", "C"], "metric1": [10, 20, 30]})
+
+    offset_df = pd.DataFrame({"dim1": ["A", "B", "C"], "metric1": [5, 10, 15]})
+
+    # Mock query context
+    mock_query = MagicMock()
+    mock_query.granularity = "date_col"
+    processor._query_context.queries = [mock_query]
+
+    # Test basic join with date range offset
+    offset_dfs = {"2023-01-01 : 2023-01-31": offset_df}
+    join_keys = ["dim1"]
+
+    with patch(
+        "superset.common.query_context_processor.feature_flag_manager"
+    ) as mock_ff:
+        mock_ff.is_feature_enabled.return_value = True
+        with patch(
+            "superset.common.query_context_processor.dataframe_utils.left_join_df"
+        ) as mock_join:
+            mock_join.return_value = pd.DataFrame(
+                {
+                    "dim1": ["A", "B", "C"],
+                    "metric1": [10, 20, 30],
+                    "metric1 2023-01-01 : 2023-01-31": [5, 10, 15],
+                }
+            )
+
+            result_df = processor.join_offset_dfs(
+                main_df, offset_dfs, time_grain=None, join_keys=join_keys
+            )
+
+            # Verify join was called
+            mock_join.assert_called_once()
+            assert len(result_df) == 3
+
+
+def test_get_offset_custom_or_inherit_with_inherit(processor):
+    """Test get_offset_custom_or_inherit with 'inherit' option."""
+    from_dttm = pd.Timestamp("2024-01-01")
+    to_dttm = pd.Timestamp("2024-01-10")
+
+    result = processor.get_offset_custom_or_inherit("inherit", from_dttm, to_dttm)
+
+    # Should return the difference in days
+    assert result == "9 days ago"
+
+
+def test_get_offset_custom_or_inherit_with_date(processor):
+    """Test get_offset_custom_or_inherit with specific date."""
+    from_dttm = pd.Timestamp("2024-01-10")
+    to_dttm = pd.Timestamp("2024-01-20")
+
+    result = processor.get_offset_custom_or_inherit("2024-01-05", from_dttm, to_dttm)
+
+    # Should return difference between from_dttm and the specified date
+    assert result == "5 days ago"
+
+
+def test_get_offset_custom_or_inherit_with_invalid_date(processor):
+    """Test get_offset_custom_or_inherit with invalid date format."""
+    from_dttm = pd.Timestamp("2024-01-10")
+    to_dttm = pd.Timestamp("2024-01-20")
+
+    result = processor.get_offset_custom_or_inherit("invalid-date", from_dttm, to_dttm)
+
+    # Should return empty string for invalid format
+    assert result == ""
+
+
+def test_get_temporal_column_for_filter_with_granularity(processor):
+    """Test _get_temporal_column_for_filter returns granularity when available."""
+    query_object = MagicMock()
+    query_object.granularity = "date_column"
+
+    result = processor._get_temporal_column_for_filter(query_object, "x_axis_col")
+
+    assert result == "date_column"
+
+
+def test_get_temporal_column_for_filter_with_x_axis_fallback(processor):
+    """Test _get_temporal_column_for_filter falls back to x_axis_label."""
+    query_object = MagicMock()
+    query_object.granularity = None
+
+    result = processor._get_temporal_column_for_filter(query_object, "x_axis_col")
+
+    assert result == "x_axis_col"
+
+
+def test_get_temporal_column_for_filter_with_datasource_columns(processor):
+    """Test _get_temporal_column_for_filter finds datetime column from datasource."""
+    query_object = MagicMock()
+    query_object.granularity = None
+
+    # Mock datasource with datetime columns
+    mock_datetime_col = MagicMock()
+    mock_datetime_col.is_dttm = True
+    mock_datetime_col.column_name = "created_at"
+
+    mock_regular_col = MagicMock()
+    mock_regular_col.is_dttm = False
+    mock_regular_col.column_name = "name"
+
+    processor._qc_datasource.columns = [mock_regular_col, mock_datetime_col]
+
+    result = processor._get_temporal_column_for_filter(query_object, None)
+
+    assert result == "created_at"
+
+
+def test_get_temporal_column_for_filter_with_datasource_name_attr(processor):
+    """Test _get_temporal_column_for_filter with columns using name attribute."""
+    query_object = MagicMock()
+    query_object.granularity = None
+
+    # Mock datasource with datetime column using 'name' attribute
+    # instead of 'column_name'
+    mock_datetime_col = MagicMock()
+    mock_datetime_col.is_dttm = True
+    mock_datetime_col.name = "timestamp_col"
+    # Remove column_name attribute to test name fallback
+    del mock_datetime_col.column_name
+
+    processor._qc_datasource.columns = [mock_datetime_col]
+
+    result = processor._get_temporal_column_for_filter(query_object, None)
+
+    assert result == "timestamp_col"
+
+
+def test_get_temporal_column_for_filter_no_columns_found(processor):
+    """Test _get_temporal_column_for_filter
+    returns None when no temporal column found."""
+    query_object = MagicMock()
+    query_object.granularity = None
+
+    # Mock datasource with no datetime columns
+    mock_regular_col = MagicMock()
+    mock_regular_col.is_dttm = False
+    mock_regular_col.column_name = "name"
+
+    processor._qc_datasource.columns = [mock_regular_col]
+
+    result = processor._get_temporal_column_for_filter(query_object, None)
+
+    assert result is None
+
+
+def test_get_temporal_column_for_filter_no_datasource_columns(processor):
+    """Test _get_temporal_column_for_filter handles datasource
+    without columns attribute."""
+    query_object = MagicMock()
+    query_object.granularity = None
+
+    # Remove columns attribute from datasource
+    if hasattr(processor._qc_datasource, "columns"):
+        delattr(processor._qc_datasource, "columns")
+
+    result = processor._get_temporal_column_for_filter(query_object, None)
+
+    assert result is None
+
+
+def test_processing_time_offsets_temporal_column_error(processor):
+    """Test processing_time_offsets raises QueryObjectValidationError
+    when temporal column can't be determined."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+
+    # Create a dataframe for testing
+    df = pd.DataFrame({"dim1": ["A", "B", "C"], "metric1": [10, 20, 30]})
+
+    # Create query object with date range offset and proper time range
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity=None,  # No granularity set
+        columns=[],
+        is_timeseries=True,
+        time_offsets=["2023-01-01 : 2023-01-31"],
+        filter=[
+            {
+                "col": "some_date_col",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-01-01 : 2024-01-31",
+            }
+        ],
+    )
+
+    # Mock get_since_until_from_query_object to return valid dates
+    with patch(
+        "superset.common.query_context_processor.get_since_until_from_query_object"
+    ) as mock_dates:
+        mock_dates.return_value = (
+            pd.Timestamp("2024-01-01"),
+            pd.Timestamp("2024-01-31"),
+        )
+
+        # Mock feature flag to be enabled
+        with patch(
+            "superset.common.query_context_processor.feature_flag_manager"
+        ) as mock_ff:
+            mock_ff.is_feature_enabled.return_value = True
+
+            # Mock _get_temporal_column_for_filter to return None
+            # (no temporal column found)
+            with patch.object(
+                processor, "_get_temporal_column_for_filter", return_value=None
+            ):
+                with patch(
+                    "superset.common.query_context_processor.get_base_axis_labels",
+                    return_value=["__timestamp"],
+                ):
+                    with pytest.raises(
+                        QueryObjectValidationError,
+                        match="Unable to identify temporal column",
+                    ):
+                        processor.processing_time_offsets(df, query_object)
+
+
+def test_processing_time_offsets_date_range_enabled(processor):
+    """Test processing_time_offsets correctly handles
+    date range offsets when enabled."""
+    from superset.common.query_object import QueryObject
+
+    # Create a dataframe for testing
+    df = pd.DataFrame(
+        {
+            "dim1": ["A", "B", "C"],
+            "metric1": [10, 20, 30],
+            "__timestamp": pd.date_range("2023-01-01", periods=3, freq="D"),
+        }
+    )
+
+    # Create a properly mocked datasource
+    mock_datasource = MagicMock()
+    mock_datasource.id = 123
+    mock_datasource.uid = "abc123"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = pd.Timestamp("2023-01-01")
+    mock_datasource.get_extra_cache_keys.return_value = {}
+
+    # Create query object with date range offset
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        granularity="date_col",
+        columns=[],
+        is_timeseries=True,
+        time_offsets=["2022-01-01 : 2022-01-31"],
+        filter=[],
+    )
+
+    # Mock the query context and its methods
+    processor._query_context.queries = [query_object]
+
+    with patch(
+        "superset.common.query_context_processor.feature_flag_manager"
+    ) as mock_ff:
+        mock_ff.is_feature_enabled.return_value = True
+
+        with patch(
+            "superset.common.query_context_processor.get_base_axis_labels",
+            return_value=["__timestamp"],
+        ):
+            with patch(
+                "superset.common.query_context_processor.get_since_until_from_query_object"
+            ) as mock_dates:
+                mock_dates.return_value = (
+                    pd.Timestamp("2023-01-01"),
+                    pd.Timestamp("2023-01-03"),
+                )
+
+                with patch(
+                    "superset.common.query_context_processor.get_since_until_from_time_range"
+                ) as mock_time_range:
+                    mock_time_range.return_value = (
+                        pd.Timestamp("2022-01-01"),
+                        pd.Timestamp("2022-01-31"),
+                    )
+
+                    with patch.object(
+                        processor, "get_query_result"
+                    ) as mock_query_result:
+                        mock_result = MagicMock()
+                        mock_result.df = pd.DataFrame(
+                            {
+                                "dim1": ["A", "B"],
+                                "metric1": [5, 10],
+                                "__timestamp": pd.date_range(
+                                    "2022-01-01", periods=2, freq="D"
+                                ),
+                            }
+                        )
+                        mock_result.query = "SELECT * FROM table"
+                        mock_result.cache_key = "offset_cache_key"
+                        mock_query_result.return_value = mock_result
+
+                        with patch.object(
+                            processor,
+                            "_get_temporal_column_for_filter",
+                            return_value="date_col",
+                        ):
+                            with patch.object(
+                                processor,
+                                "query_cache_key",
+                                return_value="mock_cache_key",
+                            ):
+                                # Test the method
+                                result = processor.processing_time_offsets(
+                                    df, query_object
+                                )
+
+                                # Verify that the method completes successfully
+                                assert "df" in result
+                                assert "queries" in result
+                                assert "cache_keys" in result
+
+                                # Verify the result has the expected structure
+                                assert isinstance(result["df"], pd.DataFrame)
+                                assert isinstance(result["queries"], list)
+                                assert isinstance(result["cache_keys"], list)

@@ -43,6 +43,7 @@ import fitViewport, { Viewport } from '../../utils/fitViewport';
 import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 import { GetLayerType } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -119,7 +120,21 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-const getFillColor = (feature: JsonObject) => feature?.properties?.fillColor;
+const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
+  if (filterStateValue) {
+    if (
+      JSON.stringify(feature.geometry.coordinates) ===
+      JSON.stringify(filterStateValue?.[0])
+    ) {
+      return HIGHLIGHT_COLOR_ARRAY;
+    }
+
+    const fillColor = feature?.properties?.fillColor;
+    fillColor[3] = 125;
+    return fillColor;
+  }
+  return feature?.properties?.fillColor;
+};
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
 export const getLayer: GetLayerType<GeoJsonLayer> = function ({
@@ -160,7 +175,8 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
     extruded: fd.extruded,
     filled: fd.filled,
     stroked: fd.stroked,
-    getFillColor,
+    getFillColor: (feature: JsonObject) =>
+      getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
     pointRadiusScale: fd.point_radius_scale,
@@ -188,6 +204,7 @@ export type DeckGLGeoJsonProps = {
   filterState: FilterState;
   onContextMenu: HandlerFunction;
   setDataMask: SetDataMaskHook;
+  emitCrossFilters?: boolean;
 };
 
 export function getPoints(data: Point[]) {
@@ -242,6 +259,7 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     onAddFilter,
     payload,
     formData,
+    emitCrossFilters: props.emitCrossFilters,
   });
 
   return (

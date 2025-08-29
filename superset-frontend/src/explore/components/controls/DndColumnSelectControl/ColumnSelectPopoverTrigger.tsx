@@ -112,6 +112,7 @@ const ColumnSelectPopoverTrigger = ({
           getCurrentTab={getCurrentTab}
           isTemporal={isTemporal}
           disabledTabs={disabledTabs}
+          datasource={datasource}
         />
       </ExplorePopoverContent>
     ),
@@ -125,6 +126,7 @@ const ColumnSelectPopoverTrigger = ({
       onColumnEdit,
       popoverLabel,
       disabledTabs,
+      datasource,
     ],
   );
 
