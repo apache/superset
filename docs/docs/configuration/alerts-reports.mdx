@@ -12,7 +12,7 @@ Users can configure automated alerts and reports to send dashboards or charts to
 - *Alerts* are sent when a SQL condition is reached
 - *Reports* are sent on a schedule
 
-Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
+Alerts and reports are disabled by default. To turn them on, you'll need to change configuration settings and install a suitable headless browser in your environment.
 
 ## Requirements
 
@@ -35,16 +35,12 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 
 #### In your `Dockerfile`
 
-- You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
-  > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+You'll need to extend the Superset image to include a headless browser. Your options include:
+- Use Playwright with Chrome: this is the recommended approach. A working example of a Dockerfile that installs these tools is provided under “Building your own production Docker image” on the [Docker Builds](/docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
+- Use Firefox: you'll need to install geckodriver and Firefox.
+- Use Chrome without Playwright: you'll need to install Chrome and set the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
-Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](/docs/installation/docker-compose/).
-All you need to do is add the required config variables described in this guide (See `Detailed Config`).
-
-If you are running a non-dev docker image, e.g., a stable release like `apache/superset:3.1.0`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.
-You can either install and configure the headless browser - see "Custom Dockerfile" section below - or when deploying via `docker compose`, modify your `docker-compose.yml` file to use a dev image for the worker container and a stable release image for the `superset_app` container.
-
-*Note*: In this context, a "dev image" is the same application software as its corresponding non-dev image, just bundled with additional tools.  So an image like `3.1.0-dev` is identical to `3.1.0` when it comes to stability, functionality, and running in production.  The actual "in-development" versions of Superset - cutting-edge and unstable - are not tagged with version numbers on Docker Hub and will display version `0.0.0-dev` within the Superset UI.
+Only the worker container needs the browser.
 
 ### Slack integration
 
@@ -152,8 +148,8 @@ SMTP_MAIL_FROM = "noreply@youremail.com"
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Superset] " # optional - overwrites default value in config.py of "[Report] "
 
 # WebDriver configuration
-# If you use Firefox, you can stick with default values
-# If you use Chrome, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
+# If you use Firefox or Playwright with Chrome, you can stick with default values
+# If you use Chrome and are *not* using Playwright, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
 WEBDRIVER_TYPE = "chrome"
 WEBDRIVER_OPTION_ARGS = [
     "--force-device-scale-factor=2.0",
@@ -219,62 +215,6 @@ def alert_dynamic_minimal_interval(**kwargs) -> int:
 ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
 ```
 
-## Custom Dockerfile
-
-If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.
-
-But if you're building your own image, or starting with a non-dev version, a webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient.
-Here's how you can modify your Dockerfile to take the screenshots either with Firefox or Chrome.
-
-### Using Firefox
-
-```docker
-FROM apache/superset:3.1.0
-
-USER root
-
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y firefox-esr
-
-ENV GECKODRIVER_VERSION=0.29.0
-RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
-    tar -x geckodriver -zf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -O > /usr/bin/geckodriver && \
-    chmod 755 /usr/bin/geckodriver && \
-    rm geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz
-
-RUN pip install --no-cache gevent psycopg2 redis
-
-USER superset
-```
-
-### Using Chrome
-
-```docker
-FROM apache/superset:3.1.0
-
-USER root
-
-RUN apt-get update && \
-    apt-get install -y wget zip libaio1
-
-RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
-    wget -O google-chrome-stable_current_amd64.deb -q http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROMEDRIVER_VERSION}-1_amd64.deb && \
-    apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
-    rm -f google-chrome-stable_current_amd64.deb
-
-RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
-    wget -q https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip && \
-    unzip -j chromedriver-linux64.zip -d /usr/bin && \
-    chmod 755 /usr/bin/chromedriver && \
-    rm -f chromedriver-linux64.zip
-
-RUN pip install --no-cache gevent psycopg2 redis
-
-USER superset
-```
-
-Don't forget to set `WEBDRIVER_TYPE` and `WEBDRIVER_OPTION_ARGS` in your config if you use Chrome.
-
 ## Troubleshooting
 
 There are many reasons that reports might not be working.  Try these steps to check for specific issues.
@@ -293,9 +233,7 @@ This is the best source of information about the problem.  In a docker compose d
 
 To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV or text but can't send as PNG, your problem may lie with the browser.
 
-Superset docker images that have a tag ending with `-dev` have the Firefox headless browser and geckodriver already installed. You can test that these are installed and in the proper path by entering your Superset worker and running `firefox --headless` and then `geckodriver`. Both commands should start those applications.
-
-If you are handling the installation of that software on your own, or wish to use Chromium instead, do your own verification to ensure that the headless browser opens successfully in the worker environment.
+If you are handling the installation of the headless browser on your own, do your own verification to ensure that the headless browser opens successfully in the worker environment.
 
 ### Send a test email
 
