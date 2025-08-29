@@ -163,7 +163,10 @@ export default function getInitialState({
     if (localStorageData && sqlLabCacheData?.sqlLab) {
       const { sqlLab } = sqlLabCacheData;
 
-      if (sqlLab.queryEditors.length === 0) {
+      if (
+        sqlLab.queryEditors.length === 0 &&
+        Object.keys(sqlLab.destroyedQueryEditors ?? {}).length === 0
+      ) {
         // migration was successful
         localStorage.removeItem('redux');
       } else {
@@ -221,18 +224,21 @@ export default function getInitialState({
           });
         }
         if (sqlLab.tabHistory) {
-          tabHistory.push(...sqlLab.tabHistory);
+          tabHistory.push(
+            ...sqlLab.tabHistory.filter(
+              tabId => !sqlLab.destroyedQueryEditors?.[tabId],
+            ),
+          );
         }
-        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
-
         if (sqlLab.destroyedQueryEditors) {
           Object.entries(sqlLab.destroyedQueryEditors).forEach(([id, ts]) => {
+            destroyedQueryEditors[id] = ts;
             if (queryEditors[id]) {
-              destroyedQueryEditors[id] = ts;
               delete queryEditors[id];
             }
           });
         }
+        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
       }
     }
   } catch (error) {
