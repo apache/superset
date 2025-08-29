@@ -162,8 +162,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             payload["position"] = append_charts(payload["position"], orphan_charts)
 
         # Add theme UUID for proper cross-system imports
-        if model.theme:
-            payload["theme_uuid"] = str(model.theme.uuid)
+        payload["theme_uuid"] = str(model.theme.uuid) if model.theme else None
 
         payload["version"] = EXPORT_VERSION
 

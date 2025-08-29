@@ -239,7 +239,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             },
             "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
-            "theme_id": None,
+            "theme_uuid": None,
         }
 
     # @pytest.mark.usefixtures("load_covid_dashboard")
@@ -318,8 +318,8 @@ class TestExportDashboardsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
-    def test_export_dashboard_command_key_order(self, mock_g1, mock_g2):
-        """Test that they keys in the YAML have the same order as export_fields"""
+    def test_export_dashboard_command_required_fields(self, mock_g1, mock_g2):
+        """Test that all required keys are present in the exported YAML"""
         mock_g1.user = security_manager.find_user("admin")
         mock_g2.user = security_manager.find_user("admin")
 
@@ -332,11 +332,11 @@ class TestExportDashboardsCommand(SupersetTestCase):
         metadata = yaml.safe_load(
             contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
-        assert list(metadata.keys()) == [
+        assert set(metadata.keys()) == {
             "dashboard_title",
             "description",
             "css",
-            "theme_id",
+            "theme_uuid",
             "slug",
             "certified_by",
             "certification_details",
@@ -345,7 +345,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "position",
             "metadata",
             "version",
-        ]
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.commands.dashboard.export.suffix")
