@@ -445,3 +445,103 @@ describe('Other category', () => {
     expect(data[3].isOther).toBe(true);
   });
 });
+
+describe('Sort Legend', () => {
+  const defaultFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'metric',
+    groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
+  };
+
+  const getChartProps = (formData: Partial<SqlaFormData>) =>
+    new ChartProps({
+      formData: {
+        ...defaultFormData,
+        ...formData,
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              foo: 'A foo',
+              bar: 'A bar',
+              metric: 1,
+            },
+            {
+              foo: 'D foo',
+              bar: 'D bar',
+              metric: 2,
+            },
+
+            {
+              foo: 'C foo',
+              bar: 'C bar',
+              metric: 3,
+            },
+            {
+              foo: 'B foo',
+              bar: 'B bar',
+              metric: 4,
+            },
+
+            {
+              foo: 'E foo',
+              bar: 'E bar',
+              metric: 5,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+  it('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'A foo, A bar',
+      'D foo, D bar',
+      'C foo, C bar',
+      'B foo, B bar',
+      'E foo, E bar',
+    ]);
+  });
+
+  it('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'A foo, A bar',
+      'B foo, B bar',
+      'C foo, C bar',
+      'D foo, D bar',
+      'E foo, E bar',
+    ]);
+  });
+
+  it('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'E foo, E bar',
+      'D foo, D bar',
+      'C foo, C bar',
+      'B foo, B bar',
+      'A foo, A bar',
+    ]);
+  });
+});
