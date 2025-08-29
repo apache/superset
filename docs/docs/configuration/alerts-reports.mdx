@@ -36,9 +36,11 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 #### In your `Dockerfile`
 
 You'll need to extend the Superset image to include a headless browser. Your options include:
-- Use Playwright with Chrome: this is the recommended approach. A working example of a Dockerfile that installs these tools is provided under “Building your own production Docker image” on the [Docker Builds](/docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
+- Use Playwright with Chrome: this is the recommended approach as of version >=4.1.x. A working example of a Dockerfile that installs these tools is provided under “Building your own production Docker image” on the [Docker Builds](/docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
 - Use Firefox: you'll need to install geckodriver and Firefox.
 - Use Chrome without Playwright: you'll need to install Chrome and set the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+
+In Superset versions <=4.0x, users installed Firefox or Chrome and that was documented here.
 
 Only the worker container needs the browser.
 
