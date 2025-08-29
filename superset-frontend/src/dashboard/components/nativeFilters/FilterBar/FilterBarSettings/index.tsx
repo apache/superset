@@ -190,6 +190,7 @@ const FilterBarSettings = () => {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
+        className: 'filter-bar-orientation-submenu',
         children: [
           {
             key: FilterBarOrientation.Vertical,
@@ -200,9 +201,6 @@ const FilterBarSettings = () => {
                   FilterBarOrientation.Vertical && (
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
-                    css={css`
-                      vertical-align: -${theme.sizeUnit * 0.03125}em;
-                    `}
                     iconSize="m"
                   />
                 )}
@@ -252,6 +250,18 @@ const FilterBarSettings = () => {
           selectedKeys: [selectedFilterBarOrientation],
         }}
         trigger={['click']}
+        popupRender={menu => (
+          <div
+            css={css`
+              .filter-bar-orientation-submenu.ant-dropdown-menu-submenu-selected
+                > .ant-dropdown-menu-submenu-title {
+                color: inherit;
+              }
+            `}
+          >
+            {menu}
+          </div>
+        )}
       >
         <Button
           buttonStyle="link"
