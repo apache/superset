@@ -690,6 +690,7 @@ pytest==7.4.4
     # via
     #   apache-superset
     #   apache-superset-extensions-cli
+    #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
 pytest-cov==6.0.0
