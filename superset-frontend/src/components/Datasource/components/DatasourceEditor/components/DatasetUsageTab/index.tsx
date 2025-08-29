@@ -26,7 +26,7 @@ import Table, {
   type OnChangeFunction,
 } from '@superset-ui/core/components/Table';
 import { FacePile, ModifiedInfo, GenericLink } from 'src/components';
-import DashboardLinksExternal from '../DashboardLinksExternal';
+import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -240,7 +240,13 @@ const DatasetUsageTab = ({
         dataIndex: 'dashboards',
         key: 'dashboards',
         render: (_, record: Chart) => (
-          <DashboardLinksExternal dashboards={record.dashboards} />
+          <DashboardCrossLinks
+            dashboards={record.dashboards.map(d => ({
+              id: d.id,
+              dashboard_title: d.dashboard_title,
+            }))}
+            external
+          />
         ),
         sorter: false,
         width: 200,
@@ -252,6 +258,7 @@ const DatasetUsageTab = ({
   return (
     <div ref={tableContainerRef}>
       <Table
+        sticky
         columns={columns}
         data={charts}
         pagination={{
@@ -268,14 +275,9 @@ const DatasetUsageTab = ({
           record.id ? `chart-${record.id}` : `chart-${record.slice_name}`
         }
         tableLayout="fixed"
+        scroll={{ y: 293, x: '100%' }}
         css={css`
-          .ant-table-body {
-            height: 293px;
-            overflow-y: auto;
-            overflow-x: hidden;
-          }
           .ant-table-pagination.ant-pagination {
-            justify-content: center;
             margin-bottom: 0;
           }
         `}
