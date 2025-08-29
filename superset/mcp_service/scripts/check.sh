@@ -67,10 +67,12 @@ WEBSERVER_ADDRESS=$(grep -oE "SUPERSET_WEBSERVER_ADDRESS\s*=\s*['\"]([^'\"]+)['\
 if curl -s -f "$WEBSERVER_ADDRESS/health" >/dev/null 2>&1; then
     echo -e "${GREEN}✓ Superset is running at $WEBSERVER_ADDRESS${NC}"
 else
-    echo -e "${YELLOW}⚠ Superset is not running (start with: make flask-app)${NC}"
+    echo -e "${YELLOW}⚠ Superset is not running${NC}"
+    echo -e "${YELLOW}  Start with Docker: docker-compose -f docker-compose-light.yml --profile mcp up -d${NC}"
+    echo -e "${YELLOW}  Or manually: superset run -p 8088${NC}"
 fi
 
 echo ""
-echo "To set up MCP service, run: make mcp-setup"
-echo "To start MCP service, run: make mcp-run"
-echo "To stop background Superset: make mcp-stop"
+echo "To set up and run MCP service:"
+echo "  Docker: docker-compose -f docker-compose-light.yml --profile mcp up -d"
+echo "  Manual: superset mcp run --port 5008"

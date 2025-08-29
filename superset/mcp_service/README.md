@@ -18,58 +18,66 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## 🚀 Quickstart
 
-### Option 1: Automated Setup (Recommended) 🎯
+### Option 1: Docker Setup (Recommended) 🎯
 
-The fastest way to get everything running:
+The fastest way to get everything running with Docker:
+
+**Prerequisites:** Docker and Docker Compose installed
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/apache/superset.git
 cd superset
 
-# 2. Run automated setup (Python 3.10 or 3.11 required)
-make mcp-setup
+# 2. Start Superset and MCP service with docker-compose-light
+docker-compose -f docker-compose-light.yml --profile mcp up -d
 
-# 3. Start everything
-make mcp-run
+# 3. Initialize Superset (first time only)
+docker exec -it superset_superset-light_1 superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
+
+docker exec -it superset_superset-light_1 superset db upgrade
+docker exec -it superset_superset-light_1 superset init
 ```
 
 **That's it!** ✨
-- Superset is running at http://localhost:8088 (login: admin/admin)
+- Superset frontend is running at http://localhost:9001 (login: admin/admin)
 - MCP service is running on port 5008
 - Now configure Claude Desktop (see Step 2 below)
 
-#### What `make mcp-setup` does:
-- Creates Python virtual environment
-- Installs all dependencies
-- Initializes database
-- Creates admin user (admin/admin)
-- Configures MCP service
-- Optionally loads example datasets
+#### What Docker Compose does:
+- Sets up PostgreSQL database
+- Builds and runs Superset containers
+- Starts the MCP service (with `--profile mcp`)
+- Handles all networking and dependencies
+- Provides hot-reload for development
 
-#### What `make mcp-run` does:
-- Starts Superset backend and frontend
-- Starts MCP service on port 5008
-- Everything runs in the background
+#### Customizing ports:
+```bash
+# Use different ports if defaults are in use
+NODE_PORT=9002 MCP_PORT=5009 docker-compose -f docker-compose-light.yml --profile mcp up -d
+```
 
 ### Option 2: Manual Setup
 
-If you prefer manual control or the make commands don't work:
-
-<details>
-<summary>Click to expand manual setup instructions</summary>
+If Docker is not available, you can set up manually:
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/apache/superset.git
 cd superset
 
-# 2. Set up Python environment
-make venv
+# 2. Set up Python environment (Python 3.10 or 3.11 required)
+python3 -m venv venv
 source venv/bin/activate
 
 # 3. Install dependencies
-make install
+pip install -e .
+cd superset-frontend && npm ci && npm run build && cd ..
 
 # 4. Initialize database
 superset db upgrade
@@ -86,22 +94,43 @@ superset fab create-admin \
 # 6. Start Superset (in one terminal)
 superset run -p 8088 --with-threads --reload --debugger
 
-# 7. Start MCP service (in another terminal)
+# 7. Start frontend (in another terminal)
+cd superset-frontend && npm run dev
+
+# 8. Start MCP service (in another terminal, optional)
 source venv/bin/activate
 superset mcp run --port 5008 --debug
 ```
 
-</details>
+Access Superset at http://localhost:8088 (login: admin/admin)
 
 ## 🔌 Step 2: Connect Claude Desktop
 
-### Option A: For Claude Desktop (Manual Config)
+### For Docker Setup
+
+Since the MCP service runs inside Docker on port 5008, you need to connect Claude Desktop to the HTTP endpoint:
 
 Add this to your Claude Desktop config file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-axios", "http://localhost:5008/mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+### For Local Setup (Make/Manual)
+
+If running MCP locally (not in Docker), use the direct connection:
 
 ```json
 {
@@ -119,23 +148,6 @@ Add this to your Claude Desktop config file:
 
 Then restart Claude Desktop. That's it! ✨
 
-### Option B: Manual Proxy Connection
-
-If using `make mcp-run` and prefer manual setup:
-
-```json
-{
-  "mcpServers": {
-    "superset": {
-      "command": "/absolute/path/to/your/superset/superset/mcp_service/run_proxy.sh",
-      "args": [],
-      "env": {}
-    }
-  }
-}
-```
-
-**Important:** Replace `/absolute/path/to/your/superset` with your actual path!
 
 ### Alternative Connection Methods
 
@@ -181,9 +193,25 @@ If using `make mcp-run` and prefer manual setup:
 
 ## ✅ Step 3: Verify Everything Works
 
+For Docker setup:
 ```bash
-# Check setup and configuration
-make mcp-check
+# Check if services are running
+docker-compose -f docker-compose-light.yml ps
+
+# Check MCP service logs
+docker-compose -f docker-compose-light.yml logs superset-mcp-light
+
+# Test MCP service directly
+curl http://localhost:5008/health
+```
+
+For manual setup:
+```bash
+# Check if MCP service is responding
+curl http://localhost:5008/health
+
+# Check Superset is running
+curl http://localhost:8088/health
 ```
 
 Then in Claude Desktop, try:
@@ -191,26 +219,49 @@ Then in Claude Desktop, try:
 - "Show me the available datasets"
 - "Get superset instance info"
 
-## 🛠️ Available Make Commands
+## 🛠️ Available Commands
+
+### Docker Commands (Recommended)
 
 | Command | Description |
 |---------|-------------|
-| `make mcp-setup` | One-command setup for everything |
-| `make mcp-run` | Start Superset + MCP service together |
-| `make mcp-check` | Verify setup and configuration |
-| `make mcp-stop` | Stop all MCP-related services |
-| `make flask-app` | Start only Superset backend |
-| `make node-app` | Start only Superset frontend |
+| `docker-compose -f docker-compose-light.yml --profile mcp up -d` | Start Superset + MCP service |
+| `docker-compose -f docker-compose-light.yml down` | Stop all services |
+| `docker-compose -f docker-compose-light.yml logs -f` | View logs |
+| `docker-compose -f docker-compose-light.yml ps` | Check service status |
+| `docker exec -it superset_superset-light_1 bash` | Shell into Superset container |
+
+### Manual Setup Commands
+
+| Command | Description |
+|---------|-------------|
+| `superset run -p 8088` | Start Superset backend |
+| `npm run dev` | Start frontend dev server (in superset-frontend) |
+| `superset mcp run --port 5008` | Start MCP service |
+| `superset db upgrade` | Initialize/upgrade database |
+| `superset init` | Initialize Superset |
 
 ## 🚨 Troubleshooting
 
+### Docker Issues
+
 | Issue | Solution |
 |-------|----------|
-| Setup fails | Try `make mcp-setup --force` |
-| Can't connect | Run `make mcp-check` to diagnose |
+| Container name conflicts | Use different project names: `docker-compose -p myproject -f docker-compose-light.yml up` |
+| Port already in use | Change ports: `NODE_PORT=9002 MCP_PORT=5009 docker-compose -f docker-compose-light.yml up` |
+| Database connection errors | Ensure db-light service is running: `docker-compose -f docker-compose-light.yml ps` |
+| MCP service not starting | Check logs: `docker-compose -f docker-compose-light.yml logs superset-mcp-light` |
+| Permission errors | Run with proper user permissions or adjust docker group membership |
+
+### General Issues
+
+| Issue | Solution |
+|-------|----------|
+| Can't connect to MCP | Check service is running on port 5008 |
 | "Command not found" | Use absolute paths in Claude config |
 | "No MCP tools" | Restart Claude Desktop after config changes |
-| Port already in use | Check with `lsof -i :5008` and `lsof -i :8088` |
+| Frontend not loading | Check correct port (9001 for Docker, 8088 for manual) |
+| Python version issues | Ensure Python 3.10 or 3.11 is installed |
 
 ## 📚 Documentation
 

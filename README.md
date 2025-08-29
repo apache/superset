@@ -149,36 +149,6 @@ Want to add support for your datastore or data engine? Read more [here](https://
 
 Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) guide or learn about [the options for production deployments](https://superset.apache.org/docs/installation/architecture/).
 
-### Quick Setup for Local Development with MCP Service
-
-For developers who want to get started quickly with Superset and the MCP (Model Context Protocol) service:
-
-```bash
-# Clone the repository
-git clone https://github.com/apache/superset.git
-cd superset
-
-# Run the MCP setup (interactive)
-make mcp-setup
-
-# Start Superset (in separate terminals)
-make flask-app    # Terminal 1: Backend
-make node-app     # Terminal 2: Frontend
-
-# Start MCP service (optional, for AI-powered features)
-make mcp-run      # Terminal 3: MCP service
-```
-
-The `make mcp-setup` command will:
-- Create a Python virtual environment
-- Install all dependencies
-- Set up configuration with secure defaults
-- Initialize the database
-- Create an admin user (admin/admin)
-- Optionally load example datasets
-- Configure the MCP service for AI-powered chart generation
-
-For more details, see the [MCP Service Documentation](docs/docs/configuration/mcp-service.mdx).
 
 ## Get Involved
 
