@@ -17,17 +17,12 @@ on:
         required: false
         type: string
 
-# Common environment variables for all jobs
+# Common environment variables for all jobs (non-sensitive only)
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-west-2
   GITHUB_ORG: ${{ github.repository_owner }}
   GITHUB_REPO: ${{ github.event.repository.name }}
   GITHUB_ACTOR: ${{ github.actor }}
-  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
   sync:
@@ -43,6 +38,8 @@ jobs:
       - name: Security Check - Authorize Maintainers Only
         id: auth
         uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             const actor = context.actor;
@@ -105,12 +102,17 @@ jobs:
       - name: Install Superset Showtime
         if: steps.auth.outputs.authorized == 'true'
         run: |
+          echo "::notice::Maintainer ${{ github.actor }} triggered deploy for PR ${{ github.event.pull_request.number || github.event.inputs.pr_number }}"
           pip install --upgrade superset-showtime
           showtime version
 
       - name: Check what actions are needed
         if: steps.auth.outputs.authorized == 'true'
         id: check
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Bulletproof PR number extraction
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
@@ -154,13 +156,19 @@ jobs:
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
         uses: ./.github/actions/setup-docker
         with:
-          dockerhub-user: ${{ env.DOCKERHUB_USER }}
-          dockerhub-token: ${{ env.DOCKERHUB_TOKEN }}
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           build: "true"
           install-docker-compose: "false"
 
       - name: Execute sync (handles everything)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.sync_needed == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           PR_NUM="${{ steps.check.outputs.pr_number }}"
           TARGET_SHA="${{ steps.check.outputs.target_sha }}"
