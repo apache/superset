@@ -23,35 +23,19 @@ Apache Superset MCP Service
 This package provides the Model Context Protocol (MCP) service for Apache Superset,
 enabling programmatic access to Superset's functionality through a standardized API.
 
-The MCP service can operate in three modes:
-1. Integrated: Flask Blueprint within Superset (recommended)
-2. Standalone: Separate FastMCP server with JWT auth
-3. Hybrid: Both endpoints available simultaneously
+The MCP service operates as a standalone FastMCP server.
 
 Quick Start:
 -----------
-# In superset_config.py
-MCP_ENABLED = True
-MCP_MODE = "integrated"  # Use Superset's auth
+# Run the MCP server
+superset mcp run --port 5009
 
 # The service will be available at:
-# http://localhost:8088/api/v1/mcp/
-
-For more information, see MIGRATION_GUIDE.md
+# http://localhost:5009/mcp/
 """
 
 __version__ = "1.0.0"
 
-# Re-export key functions for convenience
-from superset.mcp_service.integration import (
-    create_mcp_config_template,
-    get_mcp_status,
-    init_mcp_service,
-)
-
 __all__ = [
-    "init_mcp_service",
-    "get_mcp_status",
-    "create_mcp_config_template",
     "__version__",
 ]
