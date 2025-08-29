@@ -167,7 +167,7 @@ export default function sqlLabReducer(state = {}, action) {
         },
         destroyedQueryEditors: {
           ...newState.destroyedQueryEditors,
-          [queryEditor.id]: Date.now(),
+          ...(!queryEditor.inLocalStorage && { [queryEditor.id]: Date.now() }),
         },
       };
       return newState;
@@ -317,10 +317,17 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.START_QUERY]() {
       let newState = { ...state };
+      let sqlEditorId;
       if (action.query.sqlEditorId) {
+        const queryEditorByTabId = getFromArr(
+          state.queryEditors,
+          action.query.sqlEditorId,
+          'tabViewId',
+        );
+        sqlEditorId = queryEditorByTabId?.id ?? action.query.sqlEditorId;
         const qe = {
-          ...getFromArr(state.queryEditors, action.query.sqlEditorId),
-          ...(action.query.sqlEditorId === state.unsavedQueryEditor.id &&
+          ...getFromArr(state.queryEditors, sqlEditorId),
+          ...(sqlEditorId === state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         };
         if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
@@ -343,7 +350,7 @@ export default function sqlLabReducer(state = {}, action) {
           {
             latestQueryId: action.query.id,
           },
-          action.query.sqlEditorId,
+          sqlEditorId,
           action.query.isDataPreview,
         ),
       };
@@ -382,6 +389,7 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.query?.rows || 0,
         state: QueryState.Success,
+        executedSql: action?.results?.query?.executedSql,
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
@@ -494,12 +502,6 @@ export default function sqlLabReducer(state = {}, action) {
         'tables',
         action.newTable,
       );
-    },
-    [actions.MIGRATE_TAB_HISTORY]() {
-      const tabHistory = state.tabHistory.map(tabId =>
-        tabId === action.oldId ? action.newId : tabId,
-      );
-      return { ...state, tabHistory };
     },
     [actions.MIGRATE_QUERY]() {
       const query = {

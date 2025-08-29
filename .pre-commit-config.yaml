@@ -23,7 +23,9 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
+        name: mypy (main)
         args: [--check-untyped-defs]
+        exclude: ^superset-extensions-cli/
         additional_dependencies: [
             types-simplejson,
             types-python-dateutil,
@@ -38,6 +40,10 @@ repos:
             types-paramiko,
             types-Markdown,
           ]
+      - id: mypy
+        name: mypy (superset-extensions-cli)
+        args: [--check-untyped-defs]
+        files: ^superset-extensions-cli/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -54,25 +60,25 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-    - id: eslint-frontend
-      name: eslint (frontend)
-      entry: ./scripts/eslint.sh
-      language: system
-      pass_filenames: true
-      files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
-    - id: eslint-docs
-      name: eslint (docs)
-      entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --ext .js,.jsx,.ts,.tsx --quiet $FILES'
-      language: system
-      pass_filenames: true
-      files: ^docs/.*\.(js|jsx|ts|tsx)$
-    - id: type-checking-frontend
-      name: Type-Checking (Frontend)
-      entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
-      language: system
-      files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
-      exclude: ^superset-frontend/cypress-base\/
-      require_serial: true
+      - id: eslint-frontend
+        name: eslint (frontend)
+        entry: ./scripts/eslint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: eslint-docs
+        name: eslint (docs)
+        entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --ext .js,.jsx,.ts,.tsx --quiet $FILES'
+        language: system
+        pass_filenames: true
+        files: ^docs/.*\.(js|jsx|ts|tsx)$
+      - id: type-checking-frontend
+        name: Type-Checking (Frontend)
+        entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
+        language: system
+        files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
+        exclude: ^superset-frontend/cypress-base\/
+        require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
@@ -94,21 +100,21 @@ repos:
         args: [--fix]
   - repo: local
     hooks:
-    - id: pylint
-      name: pylint with custom Superset plugins
-      entry: bash
-      language: system
-      types: [python]
-      exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
-      args:
-        - -c
-        - |
-          TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-          git fetch origin "$TARGET_BRANCH"
-          BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
-          files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
-          if [ -n "$files" ]; then
-            pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
-          else
-            echo "No Python files to lint."
-          fi
+      - id: pylint
+        name: pylint with custom Superset plugins
+        entry: bash
+        language: system
+        types: [python]
+        exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
+        args:
+          - -c
+          - |
+            TARGET_BRANCH=${GITHUB_BASE_REF:-master}
+            git fetch origin "$TARGET_BRANCH"
+            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
+            if [ -n "$files" ]; then
+              pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
+            else
+              echo "No Python files to lint."
+            fi

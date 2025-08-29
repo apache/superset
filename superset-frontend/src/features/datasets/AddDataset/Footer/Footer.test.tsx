@@ -38,6 +38,10 @@ jest.mock('src/views/CRUD/hooks', () => ({
   useSingleViewResource: () => ({
     createResource: mockCreateResource,
   }),
+  getDatabaseDocumentationLinks: () => ({
+    support:
+      'https://superset.apache.org/docs/databases/installing-database-drivers',
+  }),
 }));
 
 const mockedProps = {

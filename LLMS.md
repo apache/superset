@@ -9,13 +9,16 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 ### Frontend Modernization
 - **NO `any` types** - Use proper TypeScript types
 - **NO JavaScript files** - Convert to TypeScript (.ts/.tsx)
-- **Use @superset-ui/core** - Don't import Ant Design directly
+- **Use @superset-ui/core** - Don't import Ant Design directly, prefer Ant Design component wrappers from @superset-ui/core/components
+- **Use antd theming tokens** - Prefer antd tokens over legacy theming tokens
+- **Avoid custom css and styles** - Follow antd best practices and avoid styling and custom CSS whenever possible
 
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
 - **Prefer integration tests** over Cypress end-to-end tests
 - **Cypress is last resort** - Actively moving away from Cypress
 - **Use Jest + React Testing Library** for component testing
+- **Use `test()` instead of `describe()`** - Follow [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principles
 
 ### Backend Type Safety
 - **Add type hints** - All new Python code needs proper typing

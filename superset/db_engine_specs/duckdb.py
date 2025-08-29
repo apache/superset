@@ -33,9 +33,9 @@ from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.core import get_user_agent, QuerySource
+from superset.utils.core import GenericDataType, get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -196,6 +196,36 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     default_driver = "duckdb_engine"
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
+    supports_multivalues_insert = True
+
+    # DuckDB-specific column type mappings to ensure float/double types are recognized
+    column_type_mappings = (
+        (
+            re.compile(r"^hugeint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^ubigint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^uinteger", re.IGNORECASE),
+            types.Integer(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^usmallint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^utinyint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -230,6 +260,39 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         if isinstance(sqla_type, (types.String, types.DateTime)):
             return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
         return None
+
+    @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """
+        Override fetch_data to work around duckdb-engine cursor.description bug.
+
+        The duckdb-engine SQLAlchemy driver has a bug where cursor.description
+        becomes None after calling fetchall(), even though the native DuckDB cursor
+        preserves this information correctly.
+
+        See: https://github.com/Mause/duckdb_engine/issues/1322
+
+        This method captures the cursor description before fetchall() and restores
+        it afterward to prevent downstream processing failures.
+        """
+        # Capture description BEFORE fetchall() invalidates it
+        description = cursor.description
+
+        # Execute fetchall() (which will clear cursor.description in duckdb-engine)
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+        try:
+            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
+                data = cursor.fetchmany(limit)
+            else:
+                data = cursor.fetchall()
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+        # Restore the captured description for downstream processing
+        cursor.description = description
+
+        return data
 
     @classmethod
     def get_table_names(

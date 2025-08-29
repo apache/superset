@@ -106,7 +106,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
       text: 'Text',
     },
     defaultEncoding: {
-      color: { value: this.props.theme.colors.grayscale.dark2 },
+      color: { value: this.props.theme.colorTextLabel },
       fontFamily: { value: this.props.theme.fontFamily },
       fontSize: { value: 20 },
       fontWeight: { value: 'bold' },

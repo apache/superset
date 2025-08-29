@@ -24,8 +24,6 @@ import {
   normalizeThemeConfig,
   getAntdConfig,
   getSystemColors,
-  getDeprecatedColors,
-  genDeprecatedColorVariations,
 } from './utils';
 import {
   type AnyThemeConfig,
@@ -33,17 +31,6 @@ import {
   type AntdThemeConfig,
   ThemeAlgorithm,
 } from './types';
-
-// Mock tinycolor2 for consistent testing
-jest.mock('tinycolor2', () => {
-  const mockMix = jest.fn().mockImplementation(() => ({
-    toHexString: jest.fn().mockReturnValue('#mixed-color'),
-  }));
-
-  return {
-    mix: mockMix,
-  };
-});
 
 describe('Theme utilities', () => {
   describe('isSerializableConfig', () => {
@@ -360,45 +347,6 @@ describe('Theme utilities', () => {
         colorSuccess: '#success',
         colorInfo: '#info',
       });
-    });
-  });
-
-  describe('genDeprecatedColorVariations', () => {
-    it('generates color variations for light mode', () => {
-      const result = genDeprecatedColorVariations('#base-color', false);
-
-      expect(result.base).toBe('#base-color');
-      expect(result.light1).toBe('#mixed-color');
-      expect(result.dark1).toBe('#mixed-color');
-    });
-
-    it('generates color variations for dark mode', () => {
-      const result = genDeprecatedColorVariations('#base-color', true);
-
-      expect(result.base).toBe('#base-color');
-      expect(result.light1).toBe('#mixed-color');
-      expect(result.dark1).toBe('#mixed-color');
-    });
-  });
-
-  describe('getDeprecatedColors', () => {
-    it('generates deprecated colors from system colors', () => {
-      const systemColors = {
-        colorPrimary: '#primary',
-        colorError: '#error',
-        colorWarning: '#warning',
-        colorSuccess: '#success',
-        colorInfo: '#info',
-      };
-
-      const result = getDeprecatedColors(systemColors, false);
-
-      expect(result.primary.base).toBe('#primary');
-      expect(result.error.base).toBe('#error');
-      expect(result.warning.base).toBe('#warning');
-      expect(result.success.base).toBe('#success');
-      expect(result.info.base).toBe('#info');
-      expect(result.grayscale.base).toBe('#666');
     });
   });
 });

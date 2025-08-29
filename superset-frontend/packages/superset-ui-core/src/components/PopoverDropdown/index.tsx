@@ -60,12 +60,12 @@ const menuItemStyles = (theme: any) => css`
     }
 
     &:hover {
-      background: ${theme.colors.grayscale.light3};
+      background: ${theme.colorFillQuaternary};
     }
 
     &.active {
       font-weight: ${theme.fontWeightStrong};
-      background: ${theme.colors.grayscale.light2};
+      background: ${theme.colorFillTertiary};
     }
   }
 

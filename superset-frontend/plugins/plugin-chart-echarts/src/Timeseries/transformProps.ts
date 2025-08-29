@@ -331,6 +331,7 @@ export default function transformProps(
         lineStyle,
         timeCompare: array,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) {
@@ -493,7 +494,7 @@ export default function transformProps(
         ForecastSeriesEnum.Observation,
     )
     .map(entry => entry.name || '')
-    .concat(extractAnnotationLabels(annotationLayers, annotationData));
+    .concat(extractAnnotationLabels(annotationLayers));
 
   let xAxis: any = {
     type: xAxisType,

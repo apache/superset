@@ -20,6 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+
+const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -140,6 +142,27 @@ const plugins = [
     inject: true,
     chunks: [],
     filename: '500.html',
+  }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies.react,
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies['react-dom'],
+      },
+      antd: {
+        singleton: true,
+        requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+    },
   }),
 ];
 
@@ -335,13 +358,6 @@ const config = {
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
       ),
-      // Workaround for react-color trying to import non-existent icon
-      '@icons/material/UnfoldMoreHorizontalIcon': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@icons/material/CubeUnfoldedIcon.js',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -360,6 +376,13 @@ const config = {
         loader: 'imports-loader',
         options: {
           additionalCode: 'var define = false;',
+        },
+      },
+      {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
         },
       },
       {
@@ -516,7 +539,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }

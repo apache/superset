@@ -67,6 +67,12 @@ export {
   type CheckboxChangeEvent,
 } from './Checkbox';
 export {
+  ColorPicker,
+  type ColorPickerProps,
+  type RGBColor,
+  type ColorValue,
+} from './ColorPicker';
+export {
   Collapse,
   type CollapseProps,
   CollapseLabelInModal,
@@ -153,6 +159,7 @@ export {
 } from './Typography';
 
 export { Image, type ImageProps } from './Image';
+export { Popconfirm, type PopconfirmProps } from './Popconfirm';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 // Add these to your index.ts
 export * from './Menu';

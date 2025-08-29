@@ -98,7 +98,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -190,30 +190,33 @@ function QueryList({ addDangerToast }: QueryListProps) {
           ) {
             statusConfig.name = (
               <Icons.CloseOutlined
-                iconSize="xs"
+                iconSize="m"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colorPrimary} />
+              <Icons.LoadingOutlined
+                iconSize="m"
+                iconColor={theme.colorPrimary}
+              />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconSize="m" iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = <Icons.Queued />;
+            statusConfig.name = <Icons.Queued iconSize="m" />;
             statusConfig.label = t('Scheduled');
           }
           return (
