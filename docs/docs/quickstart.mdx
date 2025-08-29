@@ -69,6 +69,40 @@ You can use the same environment more than once, as Superset will persist data l
 processes by running Docker Compose `stop` command. By doing so, you can avoid data corruption and/or loss of data.
 :::
 
+## Alternative: Local Development with MCP Service
+
+If you prefer to run Superset directly on your machine (without Docker) and want to include the MCP (Model Context Protocol) service for AI-powered features, you can use our streamlined setup:
+
+```bash
+# Clone the repository
+$ git clone https://github.com/apache/superset
+$ cd superset
+
+# Run the interactive MCP setup
+$ make mcp-setup
+
+# Start the services
+$ make flask-app    # Terminal 1: Backend
+$ make node-app     # Terminal 2: Frontend
+$ make mcp-run      # Terminal 3: MCP service (optional)
+```
+
+The `make mcp-setup` command provides an interactive setup that:
+- Creates a Python virtual environment
+- Installs all dependencies
+- Configures Superset with secure defaults
+- Initializes the database
+- Creates an admin user (admin/admin)
+- Optionally configures AI features via MCP
+
+This approach is ideal for:
+- Local development without Docker overhead
+- Contributing to Superset
+- Testing AI-powered features
+- Custom development workflows
+
+For more details, see the [MCP Service Documentation](/docs/configuration/mcp-service) and [Development Setup](/docs/contributing/development).
+
 ## What's next?
 
 From this point on, you can head on to:
