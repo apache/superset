@@ -1,17 +1,21 @@
 import pytest
+
 from superset.views.datasource.utils import replace_verbose_with_column
+
 
 class Column:
     def __init__(self, column_name, verbose_name):
         self.column_name = column_name
         self.verbose_name = verbose_name
 
+
 # Test dataset and filters
 columns = [
     Column("col1", "Column 1"),
     Column("col2", "Column 2"),
-    Column("col3", "Column 3")
+    Column("col3", "Column 3"),
 ]
+
 
 # Test the replacement function
 @pytest.mark.parametrize(
@@ -19,27 +23,25 @@ columns = [
     [
         # Normal match, should be replaced with the actual column_name
         ([{"col": "Column 1"}], [{"col": "col1"}]),
-
         # Multiple filters, should correctly replace all matching columns
-        ([{"col": "Column 1"}, {"col": "Column 3"}], [{"col": "col1"}, {"col": "col3"}]),
-
+        (
+            [{"col": "Column 1"}, {"col": "Column 3"}],
+            [{"col": "col1"}, {"col": "col3"}],
+        ),
         # No matching case, the original value should remain unchanged
         ([{"col": "Non-existent"}], [{"col": "Non-existent"}]),
-
         # Empty filters, no changes should be made
         ([], []),
-
         # Column verbose_name and column_name match, should be replaced
         ([{"col": "Column 2"}], [{"col": "col2"}]),
-
         # Using custom attribute names
         ([{"col": "Column 2"}], [{"col": "col2"}]),
-    ]
+    ],
 )
 def test_replace_verbose_with_column(filters, expected):
     # Copy input data to avoid modifying the original
     filters_copy = [dict(f) for f in filters]
-    
+
     # Run the replacement function
     replace_verbose_with_column(filters_copy, columns)
 
