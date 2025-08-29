@@ -112,16 +112,3 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
-
-# MCP Service Commands - Using external scripts for maintainability
-mcp-setup: venv
-	@. venv/bin/activate && bash superset/mcp_service/scripts/setup.sh
-
-mcp-run: venv
-	@. venv/bin/activate && bash superset/mcp_service/scripts/run.sh
-
-mcp-stop:
-	@bash superset/mcp_service/scripts/stop.sh
-
-mcp-check:
-	@bash superset/mcp_service/scripts/check.sh
