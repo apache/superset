@@ -32,6 +32,23 @@ import {
   BuggyChartPlugin,
 } from './MockChartPlugins';
 
+import { isMatrixifyEnabled } from '../../../src/chart/types/matrixify';
+import MatrixifyGridRenderer from '../../../src/chart/components/Matrixify/MatrixifyGridRenderer';
+
+// Mock Matrixify imports
+jest.mock('../../../src/chart/types/matrixify', () => ({
+  isMatrixifyEnabled: jest.fn(() => false),
+  getMatrixifyConfig: jest.fn(() => null),
+}));
+
+jest.mock(
+  '../../../src/chart/components/Matrixify/MatrixifyGridRenderer',
+  () => ({
+    __esModule: true,
+    default: jest.fn(() => null),
+  }),
+);
+
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
 const DEFAULT_QUERIES_DATA = [
   { data: ['foo', 'bar'] },
@@ -438,5 +455,112 @@ describe('SuperChart', () => {
 
       document.body.removeChild(wrapper);
     }, 30000);
+  });
+
+  it('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(screen.queryByText('No Results')).not.toBeInTheDocument();
+  });
+
+  it('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: null }]}
+        enableNoResults
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(screen.queryByText('No Results')).not.toBeInTheDocument();
+  });
+
+  it('should ignore custom noResults component when matrixify is enabled', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+
+    const CustomNoResults = () => <div>Custom No Data Message</div>;
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+        noResults={<CustomNoResults />}
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(
+      screen.queryByText('Custom No Data Message'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should apply error boundary to matrixify grid renderer', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+    const onErrorBoundary = jest.fn();
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+        onErrorBoundary={onErrorBoundary}
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(onErrorBoundary).not.toHaveBeenCalled();
   });
 });

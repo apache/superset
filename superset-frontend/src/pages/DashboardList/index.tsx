@@ -115,7 +115,7 @@ export interface Dashboard {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -361,6 +361,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'published',
         size: 'sm',
         id: 'published',
+        className: 'no-ellipsis',
       },
       {
         Cell: ({

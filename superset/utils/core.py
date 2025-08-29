@@ -161,6 +161,15 @@ class AdhocMetricExpressionType(StrEnum):
     SQL = "SQL"
 
 
+class SqlExpressionType(StrEnum):
+    """Types of SQL expressions that can be validated."""
+
+    COLUMN = "column"
+    METRIC = "metric"
+    WHERE = "where"
+    HAVING = "having"
+
+
 class AnnotationType(StrEnum):
     FORMULA = "FORMULA"
     INTERVAL = "INTERVAL"

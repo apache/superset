@@ -44,8 +44,8 @@ const StyledDiv = styled.div`
       }
       & .empty-droptarget:before {
         display: block;
-        border-color: ${theme.colors.primary.light1};
-        background-color: ${theme.colors.primary.light3};
+        border-color: ${theme.colorPrimary};
+        background-color: ${theme.colorPrimaryBg};
       }
       & .grid-row:after {
         border-style: hidden;

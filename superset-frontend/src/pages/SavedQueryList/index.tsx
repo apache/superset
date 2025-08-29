@@ -61,6 +61,7 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import copyTextToClipboard from 'src/utils/copy';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -99,7 +100,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 function SavedQueryList({
@@ -229,6 +230,15 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    copyTextToClipboard(() =>
+      Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    )
+      .then(() => {
+        addSuccessToast(t('Link Copied!'));
+      })
+      .catch(() => {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      });
     if (openInNewWindow) {
       window.open(`/sqllab?savedQueryId=${id}`);
     } else {
