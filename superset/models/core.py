@@ -98,6 +98,48 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 
+@contextmanager
+def temporarily_disconnect_db():  # type: ignore
+    """
+    Temporary disconnects the metadata database session.
+
+    This is meant to be used during long, blocking operations, so that we can release
+    the database connection for the duration of, for example, a potentially long running
+    query against an analytics database.
+
+    The goal here is to lower the number of concurrent connections to the metadata
+    database, given that Superset has no control over the duration of the
+    analytics query.
+
+    NOTE: only has an effect if feature flag DISABLE_METADATA_DB_DURING_ANALYTICS
+    and using NullPool
+    """
+    pool_type = db.engine.pool.__class__.__name__
+    # Currently only tested/available when used with NullPool
+    do_it = (
+        is_feature_enabled("DISABLE_METADATA_DB_DURING_ANALYTICS")
+        and pool_type == "NullPool"
+    )
+    conn = None
+    try:
+        if do_it:
+            conn = db.session.connection()
+            logger.info("Disconnecting metadata database temporarily")
+            # Closing the session
+            db.session.close()
+            # Closing the connection
+            conn.close()
+        yield None
+    finally:
+        if do_it:
+            logger.info("Reconnecting to metadata database")
+            if not conn or conn.closed:
+                conn = db.session.connection()
+            # Creating a new scoped session
+            # NOTE: Interface changes in flask-sqlalchemy ~3.0
+            db.session = db.create_scoped_session()
+
+
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
     """Used for any type of key-value store"""
 
@@ -720,12 +762,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
 
-                # Fetch results from last statement if requested
-                if fetch_last_result and i == len(script.statements) - 1:
-                    rows = self.db_engine_spec.fetch_data(cursor)
-                else:
-                    # Consume results without storing
-                    cursor.fetchall()
+                with temporarily_disconnect_db():
+                    # Fetch results from last statement if requested
+                    if fetch_last_result and i == len(script.statements) - 1:
+                        rows = self.db_engine_spec.fetch_data(cursor)
+                    else:
+                        # Consume results without storing
+                        cursor.fetchall()
 
             return cursor, rows
 
