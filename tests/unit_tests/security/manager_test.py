@@ -450,7 +450,7 @@ def test_raise_for_access_chart_for_datasource_permission(
     when the user does not have access to the chart datasource
     """
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.get_session
+    session = sm.session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -510,7 +510,7 @@ def test_raise_for_access_chart_on_admin(
     from superset.utils.core import override_user
 
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.get_session
+    session = sm.session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -547,7 +547,7 @@ def test_raise_for_access_chart_owner(
     when the user does not have access to the chart datasource
     """
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.get_session
+    session = sm.session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
