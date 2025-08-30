@@ -426,10 +426,15 @@ marshmallow==3.26.1
     #   apache-superset
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
+    #   marshmallow-union
 marshmallow-sqlalchemy==1.4.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
+marshmallow-union==0.1.15
+    # via
+    #   -c requirements/base.txt
+    #   apache-superset
 matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
