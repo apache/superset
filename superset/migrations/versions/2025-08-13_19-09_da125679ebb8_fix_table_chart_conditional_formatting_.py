@@ -49,6 +49,7 @@ class Slice(Base):
 
 
 def _process_slice_params_upgrade(params):
+    """Process slice parameters for upgrade migration."""
     conditional_formatting = params.get("conditional_formatting", [])
 
     if not conditional_formatting:
@@ -74,6 +75,7 @@ def _process_slice_params_upgrade(params):
 
 
 def _process_slice_params_downgrade(params):
+    """Process slice parameters for downgrade migration."""
     conditional_formatting = params.get("conditional_formatting", [])
 
     if not conditional_formatting:
@@ -94,6 +96,7 @@ def _process_slice_params_downgrade(params):
 
 
 def _process_slices_in_batches(session, process_func, migration_type):
+    """Process slices in batches with the given processing function."""
     total_count = session.query(Slice).filter(Slice.viz_type == "table").count()
     logger.info(f"Found {total_count} table slices to process for {migration_type}")
 
