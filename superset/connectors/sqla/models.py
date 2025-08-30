@@ -1376,6 +1376,7 @@ class SqlaTable(
             data_["owners"] = self.owners_data
             data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
+            data_["drill_through_chart_id"] = self.drill_through_chart_id
         return data_
 
     @property
