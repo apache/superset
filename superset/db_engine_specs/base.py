@@ -49,6 +49,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, select, types
+from sqlalchemy.engine import Result
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -1682,14 +1683,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_statement_cost(
-        cls, database: Database, statement: str, cursor: Any
+        cls, database: Database, statement: str
     ) -> dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
         :param database: A Database object
         :param statement: A single SQL statement
-        :param cursor: Cursor instance
         :return: Dictionary with different costs
         """
         raise Exception(  # pylint: disable=broad-exception-raised
@@ -1750,20 +1750,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         parsed_script = SQLScript(sql, engine=cls.engine)
 
-        with database.get_raw_connection(
-            catalog=catalog,
-            schema=schema,
-            source=source,
-        ) as conn:
-            cursor = conn.cursor()
-            return [
-                cls.estimate_statement_cost(
-                    database,
-                    cls.process_statement(statement, database),
-                    cursor,
-                )
-                for statement in parsed_script.statements
-            ]
+        return [
+            cls.estimate_statement_cost(
+                database,
+                cls.process_statement(statement, database),
+            )
+            for statement in parsed_script.statements
+        ]
 
     @classmethod
     def impersonate_user(
@@ -1865,6 +1858,42 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
                 cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def execute_metadata_query(
+        cls,
+        database: Database,
+        query: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Result:
+        """
+        Standardized method for executing metadata queries.
+
+        This method provides a unified interface for all metadata query operations
+        across different database engines using SQLAlchemy connections.
+
+        For single-row results, add "LIMIT 1" to your query rather than using
+        separate fetch parameters.
+
+        :param database: Database instance
+        :param query: SQL query to execute for metadata
+        :param catalog: Optional catalog/database name
+        :param schema: Optional schema name
+        :return: SQLAlchemy Result object with methods like:
+                 - result.fetchall() -> list[Row]: Get all rows
+                 - result.fetchone() -> Row | None: Get single row
+                 - result.scalar() -> Any: Get single value
+                 - result.mappings() -> mappings for dict-like access
+        """
+        with cls.get_engine(
+            database,
+            catalog=catalog,
+            schema=schema,
+            source=utils.QuerySource.METADATA,
+        ) as engine:
+            with engine.connect() as conn:
+                return conn.execute(text(query))
 
     @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:

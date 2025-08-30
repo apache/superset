@@ -388,9 +388,8 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
-            )
-        }
+        results = cls.execute_metadata_query(
+            database,
+            "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;",
+        )
+        return {catalog for (catalog,) in results}

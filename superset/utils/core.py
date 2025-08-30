@@ -320,6 +320,7 @@ class QuerySource(Enum):
     CHART = 0
     DASHBOARD = 1
     SQL_LAB = 2
+    METADATA = 3
 
 
 class QueryStatus(StrEnum):

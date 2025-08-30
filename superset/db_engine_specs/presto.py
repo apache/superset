@@ -321,7 +321,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         Get all catalogs.
         """
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+        result = cls.execute_metadata_query(database, "SHOW CATALOGS")
+        return {catalog for (catalog,) in result}
 
     @classmethod
     def adjust_engine_params(
@@ -373,17 +374,16 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     def estimate_statement_cost(
-        cls, database: Database, statement: str, cursor: Any
+        cls, database: Database, statement: str
     ) -> dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
         :param database: A Database object
         :param statement: A single SQL statement
-        :param cursor: Cursor instance
         :return: JSON response from Trino
         """
-        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
-        cursor.execute(sql)
+        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement} LIMIT 1"
+        results = cls.execute_metadata_query(database, sql)
 
         # the output from Trino is a single column and a single row containing
         # JSON:
@@ -398,7 +398,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         #       "networkCost" : 3.41425774958E11
         #     }
         #   }
-        result = json.loads(cursor.fetchone()[0])
+        result = json.loads(results[0][0]) if results else {}
         return result
 
     @classmethod
@@ -1037,7 +1037,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 AND table_type = 'VIEW'
                 """
             ).strip()
-            params = {"schema": schema}
+            results = inspector.bind.execute(sql, {"schema": schema}).fetchall()
         else:
             sql = dedent(
                 """
@@ -1045,13 +1045,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 WHERE table_type = 'VIEW'
                 """
             ).strip()
-            params = {}
+            results = inspector.bind.execute(sql).fetchall()
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
-            return {row[0] for row in results}
+        return {row[0] for row in results}
 
     @classmethod
     def _is_column_name_quoted(cls, column_name: str) -> bool:
@@ -1299,16 +1295,12 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
-            sql = f"SHOW CREATE VIEW {schema}.{table}"
-            try:
-                cls.execute(cursor, sql, database)
-                rows = cls.fetch_data(cursor, 1)
-
-                return rows[0][0]
-            except DatabaseError:  # not a VIEW
-                return None
+        sql = f"SHOW CREATE VIEW {schema}.{table} LIMIT 1"
+        try:
+            results = cls.execute_metadata_query(database, sql, schema=schema)
+            return results[0][0] if results else None
+        except DatabaseError:  # not a VIEW
+            return None
 
     @classmethod
     def get_tracking_url(cls, cursor: Cursor) -> str | None:
