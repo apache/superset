@@ -439,6 +439,7 @@ export function useImportResource(
       sshTunnelPrivateKey: Record<string, string> = {},
       sshTunnelPrivateKeyPasswords: Record<string, string> = {},
       overwrite = false,
+      overwriteAll = false,
     ) => {
       // Set loading state
       updateState({
@@ -464,6 +465,9 @@ export function useImportResource(
        */
       if (overwrite) {
         formData.append('overwrite', 'true');
+        // this will be rechecked in the backend
+        // but no harm to only send it if overwrite is true
+        formData.append('overwrite_all', overwriteAll ? 'true' : 'false');
       }
       /* The import bundle may contain ssh tunnel passwords; if required
        * they should be provided by the user during import.

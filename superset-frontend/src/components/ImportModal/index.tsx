@@ -24,7 +24,7 @@ import {
   type UploadChangeParam,
   type UploadFile,
 } from '@superset-ui/core/components/Upload';
-import { Button, Input, Modal } from '@superset-ui/core/components';
+import { Button, Input, Checkbox, Modal } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
@@ -82,6 +82,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
     useState<boolean>(false);
+  const [overwriteAll, setOverwriteAll] = useState<boolean>(false);
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);
@@ -100,6 +101,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
     setPasswordFields([]);
     setPasswords({});
     setNeedsOverwriteConfirm(false);
+    setOverwriteAll(false);
     setConfirmedOverwrite(false);
     setImportingModel(false);
     setErrorMessage('');
@@ -181,6 +183,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       sshTunnelPrivateKeys,
       sshTunnelPrivateKeyPasswords,
       confirmedOverwrite,
+      overwriteAll,
     ).then(result => {
       if (result) {
         clearModal();
@@ -341,6 +344,14 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
             type="text"
             onChange={confirmOverwrite}
           />
+          {resourceLabel === 'dashboard' && needsOverwriteConfirm && (
+            <Checkbox
+              checked={overwriteAll}
+              onChange={e => setOverwriteAll(e.target.checked)}
+            >
+              {t('Also overwrite all assets (charts, datasets and databases)')}
+            </Checkbox>
+          )}
         </StyledContainer>
       </>
     );
