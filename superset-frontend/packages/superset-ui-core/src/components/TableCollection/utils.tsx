@@ -95,7 +95,7 @@ export function mapColumns<T extends object>(
       dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
       hidden: column.hidden,
       key: column.id,
-      width: column.size ? COLUMN_SIZE_MAP[column.size] : COLUMN_SIZE_MAP.md,
+      width: column.size ? COLUMN_SIZE_MAP[column.size] : undefined,
       ellipsis: !columnsForWrapText?.includes(column.id),
       defaultSortOrder: (isSorted
         ? isSortedDesc
