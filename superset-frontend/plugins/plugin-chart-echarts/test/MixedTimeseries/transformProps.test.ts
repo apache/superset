@@ -81,6 +81,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   forecastPeriods: [],
   forecastInterval: 0,
   forecastSeasonalityDaily: 0,
+  legendSort: null,
 };
 
 const queriesData = [
@@ -160,4 +161,64 @@ it('should transform chart props for viz with showQueryIdentifiers=true', () => 
   expect(seriesIds).toContain('sum__num (Query B), boy');
   expect(seriesIds).not.toContain('sum__num, girl');
   expect(seriesIds).not.toContain('sum__num, boy');
+});
+
+describe('legend sorting', () => {
+  const getChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        ...overrides,
+        showQueryIdentifiers: true,
+      },
+    });
+
+  it('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query A), girl',
+      'sum__num (Query A), boy',
+      'sum__num (Query B), girl',
+      'sum__num (Query B), boy',
+    ]);
+  });
+
+  it('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query A), boy',
+      'sum__num (Query A), girl',
+      'sum__num (Query B), boy',
+      'sum__num (Query B), girl',
+    ]);
+  });
+
+  it('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query B), girl',
+      'sum__num (Query B), boy',
+      'sum__num (Query A), girl',
+      'sum__num (Query A), boy',
+    ]);
+  });
 });
