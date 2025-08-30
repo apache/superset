@@ -27,7 +27,9 @@ from flask import current_app
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-from superset import db, security_manager
+# Note: Import Database functionality without importing the actual model
+from superset import db, db_engine_specs, security_manager
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import GenericDBException
 from superset.migrations.shared.security_converge import (
     add_pvms,
@@ -35,11 +37,34 @@ from superset.migrations.shared.security_converge import (
     PermissionView,
     ViewMenu,
 )
-from superset.models.core import Database
 
 logger = logging.getLogger("alembic.env")
 
 Base: Type[Any] = declarative_base()
+
+
+class Database(Base):
+    """Local Database model for migration"""
+
+    __tablename__ = "dbs"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    sqlalchemy_uri = sa.Column(sa.String(1024))
+    encrypted_extra = sa.Column(sa.Text)
+
+    @property
+    def db_engine_spec(self) -> Type[Any]:
+        url = make_url_safe(self.sqlalchemy_uri)
+        backend = url.get_backend_name()
+        try:
+            driver = url.get_driver_name()
+        except Exception:
+            driver = None
+        return db_engine_specs.get_engine_spec(backend, driver)
+
+    def get_default_catalog(self) -> str | None:
+        """Get default catalog using the engine spec."""
+        return self.db_engine_spec.get_default_catalog(self)
 
 
 class SqlaTable(Base):
