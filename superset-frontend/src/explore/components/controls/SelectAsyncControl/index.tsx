@@ -50,7 +50,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
 }
 
 function isLabeledValue(arg: any): arg is LabeledValue {
-  return arg.value !== undefined;
+  return arg && typeof arg === 'object' && arg.value !== undefined;
 }
 
 const SelectAsyncControl = ({
