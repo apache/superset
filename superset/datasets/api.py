@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -29,7 +29,6 @@ from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import (
     API_RESULT_RES_KEY,
     API_SELECT_COLUMNS_RIS_KEY,
-    API_FILTERS_RIS_KEY,
 )
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
