@@ -93,7 +93,7 @@ export default function ChartSelectUsingAsync({
     <SelectAsyncControl
       ariaLabel={ariaLabel}
       dataEndpoint="/api/v1/chart/"
-      queryParams={queryParams}
+      searchParams={queryParams}
       mutator={mutator}
       value={value}
       onChange={onChange}
