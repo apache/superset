@@ -16,39 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from '../Tooltip';
-import { Button } from '../Button';
-import type { IconTooltipProps } from './types';
 
-export const IconTooltip = ({
-  children = null,
-  className = '',
-  onClick = () => undefined,
-  placement = 'top',
-  style = {},
-  tooltip = null,
-}: IconTooltipProps) => {
-  const iconTooltip = (
-    <Button
-      onClick={onClick}
-      style={{
-        padding: 0,
-        ...style,
-      }}
-      buttonStyle="link"
-      className={`IconTooltip ${className}`}
-    >
-      {children}
-    </Button>
-  );
-  if (tooltip) {
-    return (
-      <Tooltip id="tooltip" title={tooltip} placement={placement}>
-        {iconTooltip}
-      </Tooltip>
-    );
-  }
-  return iconTooltip;
-};
-
-export type { IconTooltipProps };
+export { controlPanel } from './controlPanel';
+export { transformProps, TableChartProps } from './transformProps';

@@ -16,39 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from '../Tooltip';
-import { Button } from '../Button';
-import type { IconTooltipProps } from './types';
+import type { TimeTableData, Entry } from '../../types';
 
-export const IconTooltip = ({
-  children = null,
-  className = '',
-  onClick = () => undefined,
-  placement = 'top',
-  style = {},
-  tooltip = null,
-}: IconTooltipProps) => {
-  const iconTooltip = (
-    <Button
-      onClick={onClick}
-      style={{
-        padding: 0,
-        ...style,
-      }}
-      buttonStyle="link"
-      className={`IconTooltip ${className}`}
-    >
-      {children}
-    </Button>
-  );
-  if (tooltip) {
-    return (
-      <Tooltip id="tooltip" title={tooltip} placement={placement}>
-        {iconTooltip}
-      </Tooltip>
-    );
-  }
-  return iconTooltip;
-};
+/**
+ * Converts raw time table data into sorted entries
+ */
+export function processTimeTableData(data: TimeTableData): {
+  entries: Entry[];
+  reversedEntries: Entry[];
+} {
+  const entries: Entry[] = Object.keys(data)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+    .map(time => ({ ...data[time], time }));
 
-export type { IconTooltipProps };
+  const reversedEntries = [...entries].reverse();
+
+  return { entries, reversedEntries };
+}

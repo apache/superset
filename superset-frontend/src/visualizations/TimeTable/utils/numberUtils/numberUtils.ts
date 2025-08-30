@@ -16,39 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from '../Tooltip';
-import { Button } from '../Button';
-import type { IconTooltipProps } from './types';
 
-export const IconTooltip = ({
-  children = null,
-  className = '',
-  onClick = () => undefined,
-  placement = 'top',
-  style = {},
-  tooltip = null,
-}: IconTooltipProps) => {
-  const iconTooltip = (
-    <Button
-      onClick={onClick}
-      style={{
-        padding: 0,
-        ...style,
-      }}
-      buttonStyle="link"
-      className={`IconTooltip ${className}`}
-    >
-      {children}
-    </Button>
-  );
-  if (tooltip) {
-    return (
-      <Tooltip id="tooltip" title={tooltip} placement={placement}>
-        {iconTooltip}
-      </Tooltip>
-    );
-  }
-  return iconTooltip;
-};
+/**
+ * Safely parses a value to a numeric type
+ * @param value - The value to parse (string, number, or null)
+ * @returns The numeric value or 0 if invalid
+ */
+export function parseToNumber(value?: string | number | null): number {
+  const displayValue = value ?? 0;
+  const numericValue =
+    typeof displayValue === 'string' ? parseFloat(displayValue) : displayValue;
 
-export type { IconTooltipProps };
+  return Number.isNaN(numericValue) ? 0 : numericValue;
+}

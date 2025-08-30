@@ -72,6 +72,12 @@ export default styled(NVD3)`
     text.nv-axislabel {
       font-size: ${({ theme }) => theme.fontSize} !important;
     }
+    g.nv-axis text {
+      fill: ${({ theme }) => theme.colorText};
+    }
+    g.nv-series text {
+      fill: ${({ theme }) => theme.colorText};
+    }
     g.solid path,
     line.solid {
       stroke-dasharray: unset;

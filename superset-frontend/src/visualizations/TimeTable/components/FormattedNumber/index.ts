@@ -16,19 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { formatNumber } from '@superset-ui/core';
-
-interface FormattedNumberProps {
-  num?: string | number;
-  format?: string;
-}
-
-function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
-  if (format) {
-    // @ts-expect-error formatNumber can actually accept strings, even though it's not typed as such
-    return <span title={`${num}`}>{formatNumber(format, num)}</span>;
-  }
-  return <span>{num}</span>;
-}
-
-export default FormattedNumber;
+export { default } from './FormattedNumber';

@@ -16,39 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from '../Tooltip';
-import { Button } from '../Button';
-import type { IconTooltipProps } from './types';
+import { formatNumber } from '@superset-ui/core';
+import { parseToNumber } from '../../utils';
 
-export const IconTooltip = ({
-  children = null,
-  className = '',
-  onClick = () => undefined,
-  placement = 'top',
-  style = {},
-  tooltip = null,
-}: IconTooltipProps) => {
-  const iconTooltip = (
-    <Button
-      onClick={onClick}
-      style={{
-        padding: 0,
-        ...style,
-      }}
-      buttonStyle="link"
-      className={`IconTooltip ${className}`}
-    >
-      {children}
-    </Button>
-  );
-  if (tooltip) {
+interface FormattedNumberProps {
+  num?: string | number | null;
+  format?: string;
+}
+
+const FormattedNumber = ({ num = 0, format }: FormattedNumberProps) => {
+  const displayNum = num ?? 0;
+  const numericValue = parseToNumber(num);
+
+  if (format)
     return (
-      <Tooltip id="tooltip" title={tooltip} placement={placement}>
-        {iconTooltip}
-      </Tooltip>
+      <span title={`${displayNum}`}>{formatNumber(format, numericValue)}</span>
     );
-  }
-  return iconTooltip;
+
+  return <span>{displayNum}</span>;
 };
 
-export type { IconTooltipProps };
+export default FormattedNumber;
