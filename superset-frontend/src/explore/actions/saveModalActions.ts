@@ -83,13 +83,13 @@ const hasTemporalRangeFilter = (formData: Partial<QueryFormData>): boolean =>
     (filter: SimpleAdhocFilter) => filter.operator === Operators.TemporalRange,
   );
 
-export const getSlicePayload = (
+export const getSlicePayload = async (
   sliceName: string,
   formDataWithNativeFilters: QueryFormData = {} as QueryFormData,
   dashboards: number[],
   owners: [],
   formDataFromSlice: QueryFormData = {} as QueryFormData,
-): Partial<PayloadSlice> => {
+): Promise<Partial<PayloadSlice>> => {
   const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
     formDataWithNativeFilters,
   );
@@ -159,6 +159,15 @@ export const getSlicePayload = (
     }
   }
 
+  const queryContext = await buildV1ChartDataPayload({
+    formData,
+    force: false,
+    resultFormat: 'json',
+    resultType: 'full',
+    setDataMask: null,
+    ownState: null,
+  });
+
   const payload: Partial<PayloadSlice> = {
     params: JSON.stringify(formData),
     slice_name: sliceName,
@@ -167,16 +176,7 @@ export const getSlicePayload = (
     datasource_type: datasourceType,
     dashboards,
     owners,
-    query_context: JSON.stringify(
-      buildV1ChartDataPayload({
-        formData,
-        force: false,
-        resultFormat: 'json',
-        resultType: 'full',
-        setDataMask: null,
-        ownState: null,
-      }),
-    ),
+    query_context: JSON.stringify(queryContext),
   };
 
   return payload;
@@ -242,7 +242,7 @@ export const updateSlice =
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: getSlicePayload(
+        jsonPayload: await getSlicePayload(
           sliceName,
           formData,
           dashboards,
@@ -274,7 +274,7 @@ export const createSlice =
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
-        jsonPayload: getSlicePayload(
+        jsonPayload: await getSlicePayload(
           sliceName,
           formData,
           dashboards,

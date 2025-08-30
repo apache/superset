@@ -120,6 +120,78 @@ docker volume rm superset_db_home
 docker-compose up
 ```
 
+## GitHub Codespaces (Cloud Development)
+
+GitHub Codespaces provides a complete, pre-configured development environment in the cloud. This is ideal for:
+- Quick contributions without local setup
+- Consistent development environments across team members
+- Working from devices that can't run Docker locally
+- Safe experimentation in isolated environments
+
+:::info
+We're grateful to GitHub for providing this excellent cloud development service that makes
+contributing to Apache Superset more accessible to developers worldwide.
+:::
+
+### Getting Started with Codespaces
+
+1. **Create a Codespace**: Use this pre-configured link that sets up everything you need:
+
+   [**Launch Superset Codespace →**](https://github.com/codespaces/new?skip_quickstart=true&machine=standardLinux32gb&repo=39464018&ref=master&devcontainer_path=.devcontainer%2Fdevcontainer.json&geo=UsWest)
+
+   :::caution
+   **Important**: You must select at least the **4 CPU / 16GB RAM** machine type (pre-selected in the link above).
+   Smaller instances will not have sufficient resources to run Superset effectively.
+   :::
+
+2. **Wait for Setup**: The initial setup takes several minutes. The Codespace will:
+   - Build the development container
+   - Install all dependencies
+   - Start all required services (PostgreSQL, Redis, etc.)
+   - Initialize the database with example data
+
+3. **Access Superset**: Once ready, check the **PORTS** tab in VS Code for port `9001`.
+   Click the globe icon to open Superset in your browser.
+   - Default credentials: `admin` / `admin`
+
+### Key Features
+
+- **Auto-reload**: Both Python and TypeScript files auto-refresh on save
+- **Pre-installed Extensions**: VS Code extensions for Python, TypeScript, and database tools
+- **Multiple Instances**: Run multiple Codespaces for different branches/features
+- **SSH Access**: Connect via terminal using `gh cs ssh` or through the GitHub web UI
+- **VS Code Integration**: Works seamlessly with VS Code desktop app
+
+### Managing Codespaces
+
+- **List active Codespaces**: `gh cs list`
+- **SSH into a Codespace**: `gh cs ssh`
+- **Stop a Codespace**: Via GitHub UI or `gh cs stop`
+- **Delete a Codespace**: Via GitHub UI or `gh cs delete`
+
+### Debugging and Logs
+
+Since Codespaces uses `docker-compose-light.yml`, you can monitor all services:
+
+```bash
+# Stream logs from all services
+docker compose -f docker-compose-light.yml logs -f
+
+# Stream logs from a specific service
+docker compose -f docker-compose-light.yml logs -f superset
+
+# View last 100 lines and follow
+docker compose -f docker-compose-light.yml logs --tail=100 -f
+
+# List all running services
+docker compose -f docker-compose-light.yml ps
+```
+
+:::tip
+Codespaces automatically stop after 30 minutes of inactivity to save resources.
+Your work is preserved and you can restart anytime.
+:::
+
 ## Installing Development Tools
 
 :::note
@@ -347,14 +419,6 @@ Then make sure you run your WSGI server using the right worker type:
 
 ```bash
 gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
-```
-
-You can log anything to the browser console, including objects:
-
-```python
-from superset import app
-app.logger.error('An exception occurred!')
-app.logger.info(form_data)
 ```
 
 ### Frontend
@@ -682,6 +746,26 @@ To run a single test file:
 ```bash
 npm run test -- path/to/file.js
 ```
+
+#### Known Issues and Workarounds
+
+**Jest Test Hanging (MessageChannel Issue)**
+
+If Jest tests hang with "Jest did not exit one second after the test run has completed", this is likely due to the MessageChannel issue from rc-overflow (Ant Design v5 components).
+
+**Root Cause**: `rc-overflow@1.4.1` creates MessageChannel handles for responsive overflow detection that remain open after test completion.
+
+**Current Workaround**: MessageChannel is mocked as undefined in `spec/helpers/jsDomWithFetchAPI.ts`, forcing rc-overflow to use requestAnimationFrame fallback.
+
+**To verify if still needed**: Remove the MessageChannel mocking lines and run `npm test -- --shard=4/8`. If tests hang, the workaround is still required.
+
+**Future removal conditions**: This workaround can be removed when:
+- rc-overflow updates to properly clean up MessagePorts in test environments
+- Jest updates to handle MessageChannel/MessagePort cleanup better
+- Ant Design switches away from rc-overflow
+- We switch away from Ant Design v5
+
+**See**: [PR #34871](https://github.com/apache/superset/pull/34871) for full technical details.
 
 ### Debugging Server App
 

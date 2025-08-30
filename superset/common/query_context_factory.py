@@ -18,7 +18,8 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-from superset import app
+from flask import current_app
+
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
@@ -31,11 +32,9 @@ from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
 
-config = app.config
-
 
 def create_query_object_factory() -> QueryObjectFactory:
-    return QueryObjectFactory(config, DatasourceDAO())
+    return QueryObjectFactory(current_app.config, DatasourceDAO())
 
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
@@ -107,7 +106,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
         return DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
-            datasource_id=int(datasource["id"]),
+            database_id_or_uuid=datasource["id"],
         )
 
     def _get_slice(self, slice_id: Any) -> Slice | None:

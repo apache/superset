@@ -23,9 +23,10 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from flask import current_app
 from pandas import DateOffset
 
-from superset import app, db
+from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
@@ -152,7 +153,7 @@ class TestQueryContext(SupersetTestCase):
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(payload["datasource"]["type"]),
-            datasource_id=payload["datasource"]["id"],
+            database_id_or_uuid=payload["datasource"]["id"],
         )
         description_original = datasource.description
         datasource.description = "temporary description"
@@ -536,13 +537,11 @@ class TestQueryContext(SupersetTestCase):
             sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
         ]
         assert len(sqls) == 3
-        # 1 year ago
+        # 1 year ago - should only contain the shifted range
         assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
-        assert re.search(r"1990-01-01.+1991-01-01", sqls[1], re.S)
 
-        # # 1 year later
+        # # 1 year later - should only contain the shifted range
         assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
-        assert re.search(r"1990-01-01.+1991-01-01", sqls[2], re.S)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_processing_time_offsets_cache(self):
@@ -744,7 +743,7 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         time_offsets_obj = query_context.processing_time_offsets(df, query_object)
         sqls = time_offsets_obj["queries"]
-        row_limit_value = app.config["ROW_LIMIT"]
+        row_limit_value = current_app.config["ROW_LIMIT"]
         row_limit_pattern_with_config_value = r"LIMIT " + re.escape(
             str(row_limit_value)
         )
@@ -1179,6 +1178,273 @@ OFFSET 0
         re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_enabled(app_context, physical_dataset):
+    """Test date range timeshift functionality when feature flag is enabled."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["2001-01-01 : 2001-12-31"],  # Date range timeshift
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+
+    # Should have both main metrics and offset metrics columns
+    assert "SUM(col1)" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
+
+    # Check that queries were generated correctly
+    sqls = query_payload["query"].split(";")
+    assert len(sqls) >= 2  # Main query + offset query
+
+    # Main query should filter for 2002 data
+    main_sql = sqls[0]
+    assert "2002-01-01" in main_sql
+    assert "2002-12-31" in main_sql or "2003-01-01" in main_sql
+
+    # Offset query should filter for 2001 data
+    offset_sql = sqls[1]
+    assert "2001-01-01" in offset_sql
+    assert "2001-12-31" in offset_sql or "2002-01-01" in offset_sql
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=False)
+def test_date_range_timeshift_disabled(app_context, physical_dataset):
+    """Test that date range timeshift raises error when feature flag is disabled."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["2001-01-01 : 2001-12-31"],  # Date range timeshift
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    # Should raise QueryObjectValidationError
+    from superset.exceptions import QueryObjectValidationError
+
+    with pytest.raises(
+        QueryObjectValidationError, match="Date range timeshifts are not enabled"
+    ):
+        qc.get_df_payload(qc.queries[0])
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_multiple_periods(app_context, physical_dataset):
+    """Test date range timeshift with multiple comparison periods."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": [
+                    "2001-01-01 : 2001-12-31",  # Previous year
+                    "2000-01-01 : 2000-12-31",  # Two years ago
+                ],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+
+    # Should have main metrics and both offset metrics columns
+    assert "SUM(col1)" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__2000-01-01 : 2000-12-31" in df.columns
+
+    # Check that all queries were generated
+    sqls = query_payload["query"].split(";")
+    assert len(sqls) >= 3  # Main query + 2 offset queries
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
+    """Test that invalid date range format raises appropriate error."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["invalid-date-range"],  # Invalid format
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    # Should raise an error for invalid date range format
+    from superset.commands.chart.exceptions import TimeDeltaAmbiguousError
+
+    with pytest.raises(TimeDeltaAmbiguousError):
+        qc.get_df_payload(qc.queries[0])
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_timeshift_mixed_with_relative_offsets(
+    app_context, physical_dataset
+):
+    """Test mixing date range timeshifts with traditional relative offsets."""
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": [
+                    "2001-01-01 : 2001-12-31",  # Date range timeshift
+                    "1 year ago",  # Traditional relative offset
+                ],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01-01 : 2002-12-31",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+
+    # Should have main metrics and both offset metrics columns
+    assert "SUM(col1)" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__1 year ago" in df.columns
+
+    # Check that all queries were generated
+    sqls = query_payload["query"].split(";")
+    assert len(sqls) >= 3  # Main query + 2 offset queries
 
 
 def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comments):

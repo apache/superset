@@ -22,14 +22,14 @@ from typing import Any, Callable, DefaultDict, Optional, Union
 
 import msgpack
 import pyarrow as pa
-from flask import flash, g, has_request_context, redirect, request
+from flask import current_app as app, flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
-from superset import app, dataframe, db, result_set, viz
+from superset import dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -101,8 +101,8 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
     return payload
 
 
-def get_config_value(conf: Any, key: str) -> Any:
-    value = conf[key]
+def get_config_value(key: str) -> Any:
+    value = app.config[key]
     return value() if callable(value) else value
 
 

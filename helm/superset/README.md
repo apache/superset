@@ -337,3 +337,6 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to supersetWorker deployments |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to all deployments |
+
+## Versioning
+This chart follows [semantic versioning](https://semver.org/). The chart version is independent of the Superset version. The chart version is incremented when there are changes to the chart itself, such as new features, bug fixes, or changes in configuration options. In addition to semver, the chart version is also incremented in the minor version when there is a breaking change in the Superset appVersion itself. When there are non-breaking changes in the Superset appVersion, the chart version is incremented in the patch version.

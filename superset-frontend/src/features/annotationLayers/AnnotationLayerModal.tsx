@@ -81,7 +81,7 @@ const LayerContainer = styled.div`
 
   input::placeholder,
   textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextPlaceholder};
   }
 `;
 
@@ -251,7 +251,9 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       }
     >
       <StyledAnnotationLayerTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <Typography.Title level={4}>
+          {t('General information')}
+        </Typography.Title>
       </StyledAnnotationLayerTitle>
       <LayerContainer>
         <div className="control-label">

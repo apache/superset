@@ -23,7 +23,7 @@ import pytest
 from flask import g
 import prison
 
-from superset import db, security_manager, app  # noqa: F401
+from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
     GuestTokenResourceType,
@@ -471,7 +471,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
-        assert status_code == 201
+        assert status_code == 200
 
         rls = (
             db.session.query(RowLevelSecurityFilter)
@@ -625,15 +625,16 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         def _base_filter(query):
             return query.filter_by(name="Alpha")
 
-        with mock.patch.dict(
-            "superset.views.filters.current_app.config",
-            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
-        ):
+        original_conf = self.app.config.get("EXTRA_RELATED_QUERY_FILTERS", {}).copy()
+        try:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = {"role": _base_filter}
             rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             response_roles = [result["text"] for result in response["result"]]
             assert response_roles == ["Alpha"]
+        finally:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = original_conf
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")

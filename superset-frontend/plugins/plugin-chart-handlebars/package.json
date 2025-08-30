@@ -27,7 +27,6 @@
     "access": "public"
   },
   "dependencies": {
-    "handlebars": "^4.7.8",
     "handlebars-group-by": "^1.0.1",
     "just-handlebars-helpers": "^1.0.19"
   },
@@ -35,6 +34,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
+    "handlebars": "^4.7.8",
     "lodash": "^4.17.11",
     "dayjs": "^1.11.13",
     "react": "^17.0.2",
@@ -44,6 +44,6 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "jest": "^30.0.4"
+    "jest": "^30.0.5"
   }
 }

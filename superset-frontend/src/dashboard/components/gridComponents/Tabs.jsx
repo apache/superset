@@ -96,7 +96,6 @@ const StyledTabsContainer = styled.div`
 
       .ant-tabs-content-holder {
         overflow: visible;
-        padding-top: ${theme.sizeUnit * 4}px;
       }
     }
 
@@ -160,6 +159,7 @@ const Tabs = props => {
   const [dropPosition, setDropPosition] = useState(null);
   const [dragOverTabIndex, setDragOverTabIndex] = useState(null);
   const [draggingTabId, setDraggingTabId] = useState(null);
+  const [tabToDelete, setTabToDelete] = useState(null);
   const prevActiveKey = usePrevious(activeKey);
   const prevDashboardId = usePrevious(props.dashboardId);
   const prevDirectPathToChild = usePrevious(directPathToChild);
@@ -293,34 +293,23 @@ const Tabs = props => {
     [selectedTabIndex, handleClickTab],
   );
 
-  const showDeleteConfirmModal = useCallback(
-    key => {
+  const showDeleteConfirmModal = useCallback(key => {
+    setTabToDelete(key);
+  }, []);
+
+  const handleConfirmTabDelete = useCallback(() => {
+    if (tabToDelete) {
       const { component, deleteComponent } = props;
-      Modal.confirm({
-        title: t('Delete dashboard tab?'),
-        content: (
-          <span>
-            {t(
-              'Deleting a tab will remove all content within it and will deactivate any related alerts or reports. You may still ' +
-                'reverse this action with the',
-            )}{' '}
-            <b>{t('undo')}</b>{' '}
-            {t('button (cmd + z) until you save your changes.')}
-          </span>
-        ),
-        onOk: () => {
-          deleteComponent(key, component.id);
-          const tabIndex = component.children.indexOf(key);
-          handleDeleteTab(tabIndex);
-        },
-        okType: 'danger',
-        okText: t('DELETE'),
-        cancelText: t('CANCEL'),
-        icon: null,
-      });
-    },
-    [props.component, props.deleteComponent, handleDeleteTab],
-  );
+      deleteComponent(tabToDelete, component.id);
+      const tabIndex = component.children.indexOf(tabToDelete);
+      handleDeleteTab(tabIndex);
+      setTabToDelete(null);
+    }
+  }, [tabToDelete, props.component, props.deleteComponent, handleDeleteTab]);
+
+  const handleCancelTabDelete = useCallback(() => {
+    setTabToDelete(null);
+  }, []);
 
   const handleEdit = useCallback(
     (event, action) => {
@@ -523,17 +512,39 @@ const Tabs = props => {
   );
 
   return (
-    <Draggable
-      component={tabsComponent}
-      parentComponent={parentComponent}
-      orientation="row"
-      index={index}
-      depth={depth}
-      onDrop={handleDrop}
-      editMode={editMode}
-    >
-      {renderChild}
-    </Draggable>
+    <>
+      <Draggable
+        component={tabsComponent}
+        parentComponent={parentComponent}
+        orientation="row"
+        index={index}
+        depth={depth}
+        onDrop={handleDrop}
+        editMode={editMode}
+      >
+        {renderChild}
+      </Draggable>
+      {tabToDelete && (
+        <Modal
+          show={!!tabToDelete}
+          onHide={handleCancelTabDelete}
+          onHandledPrimaryAction={handleConfirmTabDelete}
+          primaryButtonName={t('DELETE')}
+          primaryButtonStyle="danger"
+          title={t('Delete dashboard tab?')}
+          centered
+        >
+          <span>
+            {t(
+              'Deleting a tab will remove all content within it and will deactivate any related alerts or reports. You may still ' +
+                'reverse this action with the',
+            )}{' '}
+            <b>{t('undo')}</b>{' '}
+            {t('button (cmd + z) until you save your changes.')}
+          </span>
+        </Modal>
+      )}
+    </>
   );
 };
 

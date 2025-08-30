@@ -59,7 +59,6 @@ import {
   Space,
   RawAntdSelect as Select,
   Dropdown,
-  Menu,
   Tooltip,
 } from '@superset-ui/core/components';
 import {
@@ -198,7 +197,6 @@ function SearchInput({
     <Space direction="horizontal" size={4} className="dt-global-filter">
       {t('Search')}
       <Input
-        size="small"
         aria-label={t('Search %s records', count)}
         placeholder={tn('search.num_records', count)}
         value={value}
@@ -324,8 +322,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
-      if (typeof data?.[0]?.[key] === 'number') {
-        const nums = data.map(row => row[key]) as number[];
+      const nums = data
+        ?.map(row => row?.[key])
+        .filter(value => typeof value === 'number') as number[];
+      if (data && nums.length === data.length) {
         return (
           alignPositiveNegative
             ? [0, d3Max(nums.map(Math.abs))]
@@ -564,52 +564,62 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     return (
       <Dropdown
         placement="bottomRight"
-        visible={showComparisonDropdown}
-        onVisibleChange={(flag: boolean) => {
+        open={showComparisonDropdown}
+        onOpenChange={(flag: boolean) => {
           setShowComparisonDropdown(flag);
         }}
-        overlay={
-          <Menu
-            multiple
-            onClick={handleOnClick}
-            onBlur={handleOnBlur}
-            selectedKeys={selectedComparisonColumns}
-          >
-            <div
-              css={css`
-                max-width: 242px;
-                padding: 0 ${theme.sizeUnit * 2}px;
-                color: ${theme.colorText};
-                font-size: ${theme.fontSizeSM}px;
-              `}
-            >
-              {t(
-                'Select columns that will be displayed in the table. You can multiselect columns.',
-              )}
-            </div>
-            {comparisonColumns.map(column => (
-              <Menu.Item key={column.key}>
-                <span
+        menu={{
+          multiple: true,
+          onClick: handleOnClick,
+          onBlur: handleOnBlur,
+          selectedKeys: selectedComparisonColumns,
+          items: [
+            {
+              key: 'all',
+              label: (
+                <div
                   css={css`
+                    max-width: 242px;
+                    padding: 0 ${theme.sizeUnit * 2}px;
                     color: ${theme.colorText};
-                  `}
-                >
-                  {column.label}
-                </span>
-                <span
-                  css={css`
-                    float: right;
                     font-size: ${theme.fontSizeSM}px;
                   `}
                 >
-                  {selectedComparisonColumns.includes(column.key) && (
-                    <CheckOutlined />
+                  {t(
+                    'Select columns that will be displayed in the table. You can multiselect columns.',
                   )}
-                </span>
-              </Menu.Item>
-            ))}
-          </Menu>
-        }
+                </div>
+              ),
+              type: 'group',
+              children: comparisonColumns.map(
+                (column: { key: string; label: string }) => ({
+                  key: column.key,
+                  label: (
+                    <>
+                      <span
+                        css={css`
+                          color: ${theme.colorText};
+                        `}
+                      >
+                        {column.label}
+                      </span>
+                      <span
+                        css={css`
+                          float: right;
+                          font-size: ${theme.fontSizeSM}px;
+                        `}
+                      >
+                        {selectedComparisonColumns.includes(column.key) && (
+                          <CheckOutlined />
+                        )}
+                      </span>
+                    </>
+                  ),
+                }),
+              ),
+            },
+          ],
+        }}
         trigger={['click']}
       >
         <span>
@@ -715,7 +725,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const {
         key,
         label: originalLabel,
-        isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
@@ -760,7 +769,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const { truncateLongCells } = config;
 
       const hasColumnColorFormatters =
-        isNumeric &&
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 

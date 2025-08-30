@@ -61,6 +61,7 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import copyTextToClipboard from 'src/utils/copy';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -99,7 +100,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 function SavedQueryList({
@@ -229,6 +230,15 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    copyTextToClipboard(() =>
+      Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    )
+      .then(() => {
+        addSuccessToast(t('Link Copied!'));
+      })
+      .catch(() => {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      });
     if (openInNewWindow) {
       window.open(`/sqllab?savedQueryId=${id}`);
     } else {
@@ -315,6 +325,7 @@ function SavedQueryList({
       {
         accessor: 'label',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { id, label },
@@ -325,12 +336,13 @@ function SavedQueryList({
       {
         accessor: 'description',
         Header: t('Description'),
+        size: 'xl',
         id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: 'database.database_name',
       },
       {
@@ -342,7 +354,7 @@ function SavedQueryList({
       {
         accessor: 'schema',
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: 'schema',
       },
       {
@@ -380,7 +392,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: 'sql_tables',
       },

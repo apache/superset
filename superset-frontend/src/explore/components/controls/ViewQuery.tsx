@@ -26,25 +26,24 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t } from '@superset-ui/core';
-import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import {
+  Icons,
+  Switch,
+  Button,
+  Skeleton,
+  Card,
+  Space,
+} from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
-import { CopyButton } from 'src/explore/components/DataTableControl';
 import { findPermission } from 'src/utils/findPermission';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { useHistory } from 'react-router-dom';
-
-const CopyButtonViewQuery = styled(CopyButton)`
-  ${({ theme }) => `
-		&& {
-			margin: 0 0 ${theme.sizeUnit}px;
-		}
-  `}
-`;
+import { ExplorePageState } from 'src/explore/types';
 
 export interface ViewQueryProps {
   sql: string;
@@ -58,26 +57,14 @@ const StyledSyntaxContainer = styled.div`
   flex-direction: column;
 `;
 
-const StyledHeaderMenuContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-top: ${({ theme }) => -theme.sizeUnit * 4}px;
-  align-items: flex-end;
-`;
-
-const StyledHeaderActionContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  column-gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
 `;
 
-const StyledLabel = styled.label`
-  font-size: ${({ theme }) => theme.fontSize}px;
+const StyledFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const DATASET_BACKEND_QUERY = {
@@ -87,7 +74,11 @@ const DATASET_BACKEND_QUERY = {
 
 const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
-  const datasetId = datasource.split('__')[0];
+  const theme = useTheme();
+  const datasetId = datasource?.split('__')[0];
+  const exploreBackend = useSelector(
+    (state: ExplorePageState) => state.explore?.datasource?.database?.backend,
+  );
   const [formattedSQL, setFormattedSQL] = useState<string>();
   const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
@@ -101,31 +92,37 @@ const ViewQuery: FC<ViewQueryProps> = props => {
     preloadLanguages([language]);
   }, [language]);
 
-  const formatCurrentQuery = useCallback(() => {
+  const formatCurrentQuery = useCallback(async () => {
     if (formattedSQL) {
       setShowFormatSQL(val => !val);
-    } else {
-      const queryParams = rison.encode(DATASET_BACKEND_QUERY);
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
-      })
-        .then(({ json }) =>
-          SupersetClient.post({
-            endpoint: `/api/v1/sqllab/format_sql/`,
-            body: JSON.stringify({
-              sql,
-              engine: json.result.database.backend,
-            }),
-            headers: { 'Content-Type': 'application/json' },
-          }),
-        )
-        .then(({ json }) => {
-          setFormattedSQL(json.result);
-          setShowFormatSQL(true);
-        })
-        .catch(() => {
-          setShowFormatSQL(true);
+      return;
+    }
+    try {
+      let backend = exploreBackend;
+
+      // Fetch backend info if not available in Redux state
+      if (!backend) {
+        const queryParams = rison.encode(DATASET_BACKEND_QUERY);
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
         });
+        backend = response.json.result.database;
+      }
+
+      // Format the SQL query
+      const formatResponse = await SupersetClient.post({
+        endpoint: `/api/v1/sqllab/format_sql/`,
+        body: JSON.stringify({
+          sql,
+          engine: backend,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      setFormattedSQL(formatResponse.json.result);
+      setShowFormatSQL(true);
+    } catch (error) {
+      setShowFormatSQL(false);
     }
   }, [sql, datasetId, formattedSQL]);
 
@@ -138,11 +135,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
         window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${currentSQL}`,
+          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
           '_blank',
         );
       } else {
-        history.push('/sqllab', { state: { requestedQuery } });
+        history.push({ pathname: '/sqllab', state: { requestedQuery } });
       }
     },
     [history, datasource, currentSQL],
@@ -153,46 +150,58 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   }, [sql]);
 
   return (
-    <StyledSyntaxContainer key={sql}>
-      <StyledHeaderMenuContainer>
-        <StyledHeaderActionContainer>
-          <CopyToClipboard
-            text={currentSQL}
-            shouldShowText={false}
-            copyNode={
-              <CopyButtonViewQuery
+    <Card bodyStyle={{ padding: theme.sizeUnit * 4 }}>
+      <StyledSyntaxContainer key={sql}>
+        {!formattedSQL && showFormatSQL ? (
+          <Skeleton active />
+        ) : (
+          <StyledThemedSyntaxHighlighter
+            language={language}
+            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
+          >
+            {currentSQL}
+          </StyledThemedSyntaxHighlighter>
+        )}
+
+        <StyledFooter>
+          <Space size={theme.sizeUnit * 2}>
+            <CopyToClipboard
+              text={currentSQL}
+              shouldShowText={false}
+              copyNode={
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  icon={<Icons.CopyOutlined />}
+                >
+                  {t('Copy')}
+                </Button>
+              }
+            />
+            {canAccessSQLLab && (
+              <Button
+                buttonStyle="secondary"
                 buttonSize="small"
-                icon={<Icons.CopyOutlined />}
+                onClick={navToSQLLab}
               >
-                {t('Copy')}
-              </CopyButtonViewQuery>
-            }
-          />
-          {canAccessSQLLab && (
-            <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
-          )}
-        </StyledHeaderActionContainer>
-        <StyledHeaderActionContainer>
-          <Switch
-            id="formatSwitch"
-            checked={!showFormatSQL}
-            onChange={formatCurrentQuery}
-          />
-          <StyledLabel htmlFor="formatSwitch">
-            {t('Show original SQL')}
-          </StyledLabel>
-        </StyledHeaderActionContainer>
-      </StyledHeaderMenuContainer>
-      {!formattedSQL && <Skeleton active />}
-      {formattedSQL && (
-        <StyledThemedSyntaxHighlighter
-          language={language}
-          customStyle={{ flex: 1 }}
-        >
-          {currentSQL}
-        </StyledThemedSyntaxHighlighter>
-      )}
-    </StyledSyntaxContainer>
+                {t('View in SQL Lab')}
+              </Button>
+            )}
+          </Space>
+
+          <Space size={theme.sizeUnit * 2} align="center">
+            <Icons.ConsoleSqlOutlined />
+            <Switch
+              id="formatSwitch"
+              checked={showFormatSQL}
+              onChange={formatCurrentQuery}
+              checkedChildren={t('formatted')}
+              unCheckedChildren={t('original')}
+            />
+          </Space>
+        </StyledFooter>
+      </StyledSyntaxContainer>
+    </Card>
   );
 };
 

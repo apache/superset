@@ -183,7 +183,7 @@ const FilterTypeInfo = styled.div<{ expanded: boolean }>`
   ${({ theme, expanded }) => `
     width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
     margin:
       ${theme.sizeUnit * 2}px
       0px
@@ -676,7 +676,7 @@ const FiltersConfigForm = (
     });
     return excluded;
   }, [
-    JSON.stringify(charts),
+    JSON.stringify(Object.values(charts).map(chart => chart.id)),
     formFilter?.dataset?.value,
     JSON.stringify(loadedDatasets),
   ]);

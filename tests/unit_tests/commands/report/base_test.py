@@ -76,13 +76,11 @@ def app_custom_config(
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with patch(
-                "superset.commands.report.base.current_app.config"
-            ) as mock_config:
-                mock_config.get.side_effect = lambda key, default=0: {
-                    "ALERT_MINIMUM_INTERVAL": alert_minimum_interval,
-                    "REPORT_MINIMUM_INTERVAL": report_minimum_interval,
-                }.get(key, default)
+            config_overrides = {
+                "ALERT_MINIMUM_INTERVAL": alert_minimum_interval,
+                "REPORT_MINIMUM_INTERVAL": report_minimum_interval,
+            }
+            with patch("flask.current_app.config", config_overrides):
                 return func(*args, **kwargs)
 
         return wrapper

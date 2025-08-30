@@ -28,6 +28,7 @@ from typing import Any, Callable, cast, Optional, Union
 
 import pandas as pd
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -67,7 +68,7 @@ from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
@@ -111,10 +112,9 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 
-config = app.config
+config = current_app.config  # Backward compatibility for tests
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics
@@ -1310,7 +1310,7 @@ class SqlaTable(
 
     @property
     def health_check_message(self) -> str | None:
-        check = config["DATASET_HEALTH_CHECK"]
+        check = current_app.config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None
 
     @property
@@ -1368,10 +1368,23 @@ class SqlaTable(
         return get_template_processor(table=self, database=self.database, **kwargs)
 
     def get_sqla_table(self) -> TableClause:
-        tbl = table(self.table_name)
+        # For databases that support cross-catalog queries (like BigQuery),
+        # include the catalog in the table identifier to generate
+        # project.dataset.table format
+        if self.catalog and self.database.db_engine_spec.supports_cross_catalog_queries:
+            # SQLAlchemy doesn't have built-in catalog support for TableClause,
+            # so we need to construct the full identifier manually
+            if self.schema:
+                full_name = f"{self.catalog}.{self.schema}.{self.table_name}"
+            else:
+                full_name = f"{self.catalog}.{self.table_name}"
+
+            return table(full_name)
+
         if self.schema:
-            tbl.schema = self.schema
-        return tbl
+            return table(self.table_name, schema=self.schema)
+
+        return table(self.table_name)
 
     def get_from_clause(
         self,
@@ -1680,6 +1693,9 @@ class SqlaTable(
                     table=self,
                 )
                 new_column.is_dttm = new_column.is_temporal
+                # Set description from comment field if available
+                if col.get("comment"):
+                    new_column.description = col["comment"]
                 db_engine_spec.alter_new_orm_column(new_column)
             else:
                 new_column = old_column
@@ -1687,6 +1703,9 @@ class SqlaTable(
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
+                # Set description from comment field if available
+                if col.get("comment"):
+                    new_column.description = col["comment"]
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
@@ -1702,7 +1721,7 @@ class SqlaTable(
         self.add_missing_metrics(metrics)
 
         # Apply config supplied mutations.
-        config["SQLA_TABLE_MUTATOR"](self)
+        current_app.config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
         return results

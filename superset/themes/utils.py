@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Dict
 
-from superset.themes.types import ThemeMode, ThemeSettingsKey
+from superset.themes.types import ThemeMode
 
 
 def _is_valid_theme_mode(mode: str) -> bool:
@@ -83,32 +83,6 @@ def is_valid_theme(theme: Dict[str, Any]) -> bool:
         # Validate algorithm field separately due to its complexity
         if "algorithm" in theme and not _is_valid_algorithm(theme["algorithm"]):
             return False
-
-        return True
-    except Exception:
-        return False
-
-
-def is_valid_theme_settings(settings: Dict[str, Any]) -> bool:
-    """Check if theme settings are valid"""
-    try:
-        if not isinstance(settings, dict):
-            return False
-
-        # Empty dict is valid
-        if not settings:
-            return True
-
-        # Check if all keys are valid
-        valid_keys = {setting.value for setting in ThemeSettingsKey}
-        for key in settings.keys():
-            if key not in valid_keys:
-                return False
-
-        # Type check values - all must be booleans
-        for _key, value in settings.items():
-            if not isinstance(value, bool):
-                return False
 
         return True
     except Exception:

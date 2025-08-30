@@ -530,6 +530,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "last_name": "user",
                 },
                 "id": dashboard.id,
+                "uuid": str(dashboard.uuid),
                 "css": "",
                 "dashboard_title": "title",
                 "datasources": [],
@@ -2584,7 +2585,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             return query.filter_by(name="Alpha")
 
         with patch.dict(
-            "superset.views.filters.current_app.config",
+            "flask.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
             uri = "api/v1/dashboard/related/roles"  # noqa: F541

@@ -24,8 +24,12 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Theme, AnyThemeConfig, ThemeContextType } from '@superset-ui/core';
-import { ThemeMode } from '@superset-ui/core/theme/types';
+import {
+  type AnyThemeConfig,
+  type ThemeContextType,
+  Theme,
+  ThemeMode,
+} from '@superset-ui/core';
 import { ThemeController } from './ThemeController';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);

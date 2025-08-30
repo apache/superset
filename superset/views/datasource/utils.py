@@ -16,7 +16,8 @@
 # under the License.
 from typing import Any, Optional
 
-from superset import app
+from flask import current_app as app
+
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -53,7 +54,7 @@ def get_samples(  # pylint: disable=too-many-arguments
 ) -> dict[str, Any]:
     datasource = DatasourceDAO.get_datasource(
         datasource_type=datasource_type,
-        datasource_id=datasource_id,
+        database_id_or_uuid=str(datasource_id),
     )
 
     limit_clause = get_limit_clause(page, per_page)
