@@ -60,6 +60,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import DashboardExplore from '../components/DashboardExplore';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -273,6 +274,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               >
                 {DashboardBuilderComponent}
               </DashboardContainer>
+              <DashboardExplore />
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>

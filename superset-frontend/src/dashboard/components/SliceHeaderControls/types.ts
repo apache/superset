@@ -59,4 +59,7 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  isFromEasyChart?: boolean;
+  onEditEasyChart?: () => void;
 }

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { useSelector } from 'react-redux';
 import Split from 'react-split';
 import {
   css,
@@ -147,6 +148,9 @@ const ExploreChartPanel = ({
   const theme = useTheme();
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
+  const isPortableExplore = useSelector(
+    (state: any) => state.explore?.isPortableExplore || false,
+  );
   const {
     ref: chartPanelRef,
     observerRef: resizeObserverRef,
@@ -459,29 +463,37 @@ const ExploreChartPanel = ({
   }
 
   return (
-    <Styles className="chart-container" showSplite={showSplite}>
-      <Split
-        sizes={splitSizes}
-        minSize={MIN_SIZES}
-        direction="vertical"
-        gutterSize={gutterHeight}
-        onDragEnd={onDragEnd}
-        elementStyle={elementStyle}
-        expandToMin
-      >
-        {panelBody}
-        <DataTablesPane
-          ownState={ownState}
-          queryFormData={queryFormData}
-          datasource={datasource}
-          queryForce={Boolean(force)}
-          onCollapseChange={onCollapseChange}
-          chartStatus={chart.chartStatus}
-          errorMessage={errorMessage}
-          setForceQuery={actions.setForceQuery}
-          canDownload={canDownload}
-        />
-      </Split>
+    <Styles
+      className="chart-container"
+      showSplite={showSplite && !isPortableExplore}
+    >
+      {isPortableExplore ? (
+        // Render only the chart panel without data tables pane for portable explore
+        panelBody
+      ) : (
+        <Split
+          sizes={splitSizes}
+          minSize={MIN_SIZES}
+          direction="vertical"
+          gutterSize={gutterHeight}
+          onDragEnd={onDragEnd}
+          elementStyle={elementStyle}
+          expandToMin
+        >
+          {panelBody}
+          <DataTablesPane
+            ownState={ownState}
+            queryFormData={queryFormData}
+            datasource={datasource}
+            queryForce={Boolean(force)}
+            onCollapseChange={onCollapseChange}
+            chartStatus={chart.chartStatus}
+            errorMessage={errorMessage}
+            setForceQuery={actions.setForceQuery}
+            canDownload={canDownload}
+          />
+        </Split>
+      )}
       {showDatasetModal && (
         <SaveDatasetModal
           visible={showDatasetModal}

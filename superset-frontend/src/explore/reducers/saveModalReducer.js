@@ -18,7 +18,10 @@
  */
 /* eslint camelcase: 0 */
 import * as actions from '../actions/saveModalActions';
-import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
+import {
+  HYDRATE_EXPLORE,
+  HYDRATE_PORTABLE_EXPLORE,
+} from '../actions/hydrateExplore';
 
 export default function saveModalReducer(state = {}, action) {
   const actionHandlers = {
@@ -41,6 +44,9 @@ export default function saveModalReducer(state = {}, action) {
       return { ...state, data };
     },
     [HYDRATE_EXPLORE]() {
+      return { ...action.data.saveModal };
+    },
+    [HYDRATE_PORTABLE_EXPLORE]() {
       return { ...action.data.saveModal };
     },
   };

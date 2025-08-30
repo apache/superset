@@ -20,6 +20,7 @@
 
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 import {
   css,
   DatasourceType,
@@ -65,6 +66,7 @@ const propTypes = {
   form_data: PropTypes.object.isRequired,
   isEditable: PropTypes.bool,
   onDatasourceSave: PropTypes.func,
+  isPortableExplore: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -72,6 +74,7 @@ const defaultProps = {
   onDatasourceSave: null,
   value: null,
   isEditable: true,
+  isPortableExplore: false,
 };
 
 const getDatasetType = datasource => {
@@ -337,10 +340,13 @@ class DatasourceControl extends PureComponent {
       });
     }
 
-    defaultDatasourceMenuItems.push({
-      key: CHANGE_DATASET,
-      label: t('Swap dataset'),
-    });
+    // Only show "Swap dataset" option if not in portable explore mode
+    if (!this.props.isPortableExplore) {
+      defaultDatasourceMenuItems.push({
+        key: CHANGE_DATASET,
+        label: t('Swap dataset'),
+      });
+    }
 
     if (!isMissingDatasource && canAccessSqlLab) {
       defaultDatasourceMenuItems.push({
@@ -510,7 +516,7 @@ class DatasourceControl extends PureComponent {
                           this.handleMenuItemClick({ key: CHANGE_DATASET })
                         }
                       >
-                        {t('Swap dataset')}
+                        {t('Swap datasrrrret')}
                       </Button>
                     </p>
                   </>
@@ -557,4 +563,8 @@ class DatasourceControl extends PureComponent {
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
 
-export default withTheme(DatasourceControl);
+const mapStateToProps = state => ({
+  isPortableExplore: state.explore?.isPortableExplore || false,
+});
+
+export default connect(mapStateToProps)(withTheme(DatasourceControl));

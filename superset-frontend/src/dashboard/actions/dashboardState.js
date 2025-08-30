@@ -742,6 +742,17 @@ export function setFullSizeChartId(chartId) {
   return { type: SET_FULL_SIZE_CHART_ID, chartId };
 }
 
+export const TOGGLE_DASHBOARD_EXPLORE_MODAL = 'TOGGLE_DASHBOARD_EXPLORE_MODAL';
+export function toggleDashboardExploreModal(isOpen, sliceId = null) {
+  return {
+    type: TOGGLE_DASHBOARD_EXPLORE_MODAL,
+    payload: {
+      isDashboardExploreOpen: isOpen,
+      dashboardExploreSliceId: sliceId,
+    },
+  };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {

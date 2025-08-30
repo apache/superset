@@ -22,12 +22,17 @@ import {
   AnyDatasourcesAction,
   SET_DATASOURCE,
 } from '../actions/datasourcesActions';
-import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
+import {
+  HYDRATE_EXPLORE,
+  HydrateExplore,
+  HYDRATE_PORTABLE_EXPLORE,
+  HydratePortableExplore,
+} from '../actions/hydrateExplore';
 
 export default function datasourcesReducer(
   // TODO: change type to include other datasource types
   datasources: { [key: string]: Dataset },
-  action: AnyDatasourcesAction | HydrateExplore,
+  action: AnyDatasourcesAction | HydrateExplore | HydratePortableExplore,
 ) {
   if (action.type === SET_DATASOURCE) {
     return {
@@ -37,6 +42,9 @@ export default function datasourcesReducer(
   }
   if (action.type === HYDRATE_EXPLORE) {
     return { ...(action as HydrateExplore).data.datasources };
+  }
+  if (action.type === HYDRATE_PORTABLE_EXPLORE) {
+    return { ...(action as HydratePortableExplore).data.datasources };
   }
   return datasources || {};
 }

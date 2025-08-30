@@ -60,6 +60,8 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   width: number;
   height: number;
   exportPivotExcel?: (arg0: string) => void;
+  isFromEasyChart?: boolean;
+  onEditEasyChart?: () => void;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -169,6 +171,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      isFromEasyChart = false,
+      onEditEasyChart,
     },
     ref,
   ) => {
@@ -350,6 +354,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  isFromEasyChart={isFromEasyChart}
+                  onEditEasyChart={onEditEasyChart}
                 />
               )}
             </>

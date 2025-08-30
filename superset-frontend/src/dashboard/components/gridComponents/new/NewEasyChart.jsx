@@ -16,36 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DASHBOARD_GRID_TYPE,
-  CHART_TYPE,
-  COLUMN_TYPE,
-  MARKDOWN_TYPE,
-  TAB_TYPE,
-  EASY_CHART_TYPE,
-} from './componentTypes';
+import { t } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components';
+import { EASY_CHART_TYPE } from '../../../util/componentTypes';
+import DraggableNewComponent from './DraggableNewComponent';
 
-const typeToWrapChildLookup = {
-  [DASHBOARD_GRID_TYPE]: {
-    [CHART_TYPE]: true,
-    [COLUMN_TYPE]: true,
-    [MARKDOWN_TYPE]: true,
-    [EASY_CHART_TYPE]: true,
-  },
-
-  [TAB_TYPE]: {
-    [CHART_TYPE]: true,
-    [COLUMN_TYPE]: true,
-    [MARKDOWN_TYPE]: true,
-    [EASY_CHART_TYPE]: true,
-  },
-};
-
-export default function shouldWrapChildInRow({ parentType, childType }) {
-  if (!parentType || !childType) return false;
-
-  const wrapChildLookup = typeToWrapChildLookup[parentType];
-  if (!wrapChildLookup) return false;
-
-  return Boolean(wrapChildLookup[childType]);
+export default function NewEasyChart() {
+  return (
+    <DraggableNewComponent
+      id="NEW_EASY_CHART"
+      type={EASY_CHART_TYPE}
+      label={t('Easy Chart')}
+      IconComponent={Icons.BarChartOutlined}
+    />
+  );
 }

@@ -49,6 +49,7 @@ import {
   setFocusedFilterField,
   toggleExpandSlice,
   unsetFocusedFilterField,
+  toggleDashboardExploreModal,
 } from '../../actions/dashboardState';
 import { changeFilter } from '../../actions/dashboardFilters';
 import { refreshChart } from '../../../components/Chart/chartAction';
@@ -74,6 +75,7 @@ const propTypes = {
   isFullSize: PropTypes.bool,
   extraControls: PropTypes.object,
   isInView: PropTypes.bool,
+  isFromEasyChart: PropTypes.bool,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -368,6 +370,12 @@ const Chart = props => {
     ],
   );
 
+  const handleEditEasyChart = useCallback(() => {
+    if (props.isFromEasyChart && slice.slice_id) {
+      dispatch(toggleDashboardExploreModal(true, slice.slice_id));
+    }
+  }, [dispatch, props.isFromEasyChart, slice.slice_id]);
+
   const exportTable = useCallback(
     (format, isFullCSV, isPivot = false) => {
       const logAction =
@@ -484,6 +492,8 @@ const Chart = props => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel}
+        isFromEasyChart={props.isFromEasyChart}
+        onEditEasyChart={handleEditEasyChart}
       />
 
       {/*
