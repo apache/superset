@@ -70,6 +70,7 @@ import {
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
 import { DatabaseSelector } from '../DatabaseSelector';
+import ChartSelect from '../Select/ChartSelect';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -962,6 +963,25 @@ class DatasourceEditor extends PureComponent {
                 controlId="fetch_values_predicate"
                 minLines={5}
                 resize="vertical"
+              />
+            }
+          />
+        )}
+        {this.state.isSqla && (
+          <Field
+            fieldKey="drill_through_chart_id"
+            value={datasource.drill_through_chart_id}
+            onChange={this.onDatasourcePropChange}
+            label={t('Drill-to-details table/chart')}
+            description={t(
+              'Select a chart to display when users drill into this dataset. If not configured, shows all columns in a table.',
+            )}
+            control={
+              <ChartSelect
+                datasetId={datasource.id}
+                placeholder={t('Default (show all columns)')}
+                clearable
+                ariaLabel={t('Select drill-to-details chart')}
               />
             }
           />

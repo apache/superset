@@ -104,3 +104,15 @@ test('Should send correct props to Select component - function onChange multi:fa
   userEvent.click(await screen.findByText('onChange'));
   expect(props.onChange).toHaveBeenCalledTimes(1);
 });
+
+test('Should handle null value without crashing when clearing selection', () => {
+  const props = createProps();
+  const { rerender } = render(<SelectAsyncControl {...props} />, {
+    useRedux: true,
+  });
+
+  // Simulate clearing the selection by passing null value
+  expect(() => {
+    rerender(<SelectAsyncControl {...props} value={null} />);
+  }).not.toThrow();
+});

@@ -31,8 +31,10 @@ import {
   css,
   ensureIsArray,
   GenericDataType,
+  getColumnLabel,
   JsonObject,
   QueryFormData,
+  StatefulChart,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -40,7 +42,7 @@ import { useResizeDetector } from 'react-resize-detector';
 import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
 import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import { EmptyState, Flex, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, {
   ColumnsType,
@@ -49,6 +51,7 @@ import Table, {
 import { RootState } from 'src/dashboard/types';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
 import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
@@ -118,6 +121,11 @@ export default function DrillDetailPane({
     dataset,
   });
 
+  // Get dashboard context for StatefulChart
+  const dashboardContext = useDashboardFormData(
+    dataset?.drill_through_chart_id,
+  );
+
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -161,7 +169,7 @@ export default function DrillDetailPane({
           ) : (
             dataset?.verbose_map?.[column] || column
           ),
-        render: value => {
+        render: (value: any) => {
           if (value === true || value === false) {
             return <BooleanCell value={value} />;
           }
@@ -233,6 +241,10 @@ export default function DrillDetailPane({
 
   // Download page of results & trim cache if page not in cache
   useEffect(() => {
+    // Skip table data fetching if we're using a drill-through chart
+    if (dataset?.drill_through_chart_id) {
+      return;
+    }
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(formData, filters) ?? {};
@@ -282,12 +294,39 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  const bootstrapping = !responseError && !resultsPages.size;
+  const bootstrapping =
+    !dataset?.drill_through_chart_id && !responseError && !resultsPages.size;
 
   const allowHTML = formData.allow_render_html ?? true;
 
   let tableContent = null;
-  if (responseError) {
+
+  // If a drill-through chart is configured, use it instead of the table
+  if (dataset?.drill_through_chart_id) {
+    // Convert filters to adhoc filter format for StatefulChart
+    const adhocFilters = filters.map(filter => ({
+      clause: 'WHERE' as const,
+      subject: getColumnLabel(filter.col),
+      operator: filter.op,
+      comparator: filter.formattedVal ?? String(filter.val),
+      expressionType: 'SIMPLE' as const,
+    }));
+
+    tableContent = (
+      <Flex vertical style={{ height: '100%' }}>
+        <StatefulChart
+          chartId={dataset.drill_through_chart_id}
+          formDataOverrides={{
+            ...dashboardContext,
+            adhoc_filters: adhocFilters,
+          }}
+          height="100%"
+          width="100%"
+          showLoading
+        />
+      </Flex>
+    );
+  } else if (responseError) {
     // Render error if page download failed
     tableContent = (
       <pre
@@ -331,7 +370,7 @@ export default function DrillDetailPane({
   return (
     <>
       {!bootstrapping && metadataBarComponent}
-      {!bootstrapping && (
+      {!bootstrapping && !dataset?.drill_through_chart_id && (
         <TableControls
           filters={filters}
           setFilters={setFilters}

@@ -109,10 +109,11 @@ export default function DrillDetailModal({
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
-  const exploreUrl = useMemo(
-    () => `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
-    [chartId, dashboardPageId],
-  );
+  const exploreUrl = useMemo(() => {
+    // Use drill-through chart ID if configured, otherwise use original chart
+    const targetChartId = dataset?.drill_through_chart_id || chartId;
+    return `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${targetChartId}`;
+  }, [chartId, dashboardPageId, dataset?.drill_through_chart_id]);
 
   const exploreChart = useCallback(() => {
     history.push(exploreUrl);
