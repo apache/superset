@@ -29,7 +29,7 @@ maintainers:
   - name: craig-rueda
     email: craig@craigrueda.com
     url: https://github.com/craig-rueda
-version: 0.15.1
+version: 0.15.1 # See [README](https://github.com/apache/superset/blob/master/helm/superset/README.md#versioning) for version details.
 dependencies:
   - name: postgresql
     version: 13.4.4
