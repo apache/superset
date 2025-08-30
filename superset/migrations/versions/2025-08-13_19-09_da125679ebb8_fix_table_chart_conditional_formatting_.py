@@ -28,7 +28,6 @@ from alembic import op
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
 
 from superset import db
 from superset.utils import json
@@ -38,7 +37,6 @@ logger = logging.getLogger("alembic.env")
 # revision identifiers, used by Alembic.
 revision = "da125679ebb8"
 down_revision = "c233f5365c9e"
-
 
 Base = declarative_base()
 
@@ -50,80 +48,109 @@ class Slice(Base):
     params = Column(Text)
 
 
+def _process_slice_params_upgrade(params):
+    conditional_formatting = params.get("conditional_formatting", [])
+
+    if not conditional_formatting:
+        return params
+
+    new_conditional_formatting = []
+    for formatter in conditional_formatting:
+        color_scheme = formatter.get("colorScheme")
+
+        if color_scheme not in ["Green", "Red"]:
+            new_conditional_formatting.append(
+                {
+                    **formatter,
+                    "toAllRow": False,
+                    "toTextColor": False,
+                }
+            )
+        else:
+            new_conditional_formatting.append(formatter)
+
+    params["conditional_formatting"] = new_conditional_formatting
+    return params
+
+
+def _process_slice_params_downgrade(params):
+    conditional_formatting = params.get("conditional_formatting", [])
+
+    if not conditional_formatting:
+        return params
+
+    new_conditional_formatting = []
+    for formatter in conditional_formatting:
+        if "toAllRow" in formatter or "toTextColor" in formatter:
+            new_formatter = formatter.copy()
+            new_formatter.pop("toAllRow", None)
+            new_formatter.pop("toTextColor", None)
+            new_conditional_formatting.append(new_formatter)
+        else:
+            new_conditional_formatting.append(formatter)
+
+    params["conditional_formatting"] = new_conditional_formatting
+    return params
+
+
+def _process_slices_in_batches(session, process_func, migration_type):
+    total_count = session.query(Slice).filter(Slice.viz_type == "table").count()
+    logger.info(f"Found {total_count} table slices to process for {migration_type}")
+
+    batch_size = 1000
+    processed = 0
+
+    while processed < total_count:
+        try:
+            slices_batch = (
+                session.query(Slice)
+                .filter(Slice.viz_type == "table")
+                .offset(processed)
+                .limit(batch_size)
+                .all()
+            )
+
+            if not slices_batch:
+                break
+
+            for slc in slices_batch:
+                try:
+                    params = json.loads(slc.params)
+                    processed_params = process_func(params)
+
+                    if processed_params != params:
+                        slc.params = json.dumps(processed_params)
+
+                except Exception as e:
+                    logger.error(f"Error processing slice {slc.id}: {str(e)}")
+                    continue
+
+            session.commit()
+            processed += len(slices_batch)
+            logger.info(
+                f"Processed {processed}/{total_count} slices for {migration_type}"
+            )
+
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(
+                f"Error processing batch {processed}-{processed + batch_size} "
+                f"for {migration_type}: {str(e)}"
+            )
+            processed += batch_size
+
+
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
     try:
-        total_count = session.query(Slice).filter(Slice.viz_type == "table").count()
-        logger.info(f"Found {total_count} table slices to process")
-
-        batch_size = 1000
-        processed = 0
-
-        while processed < total_count:
-            try:
-                slices_batch = (
-                    session.query(Slice)
-                    .filter(Slice.viz_type == "table")
-                    .offset(processed)
-                    .limit(batch_size)
-                    .all()
-                )
-
-                if not slices_batch:
-                    break
-
-                for slc in slices_batch:
-                    try:
-                        params = json.loads(slc.params)
-                        conditional_formatting = params.get(
-                            "conditional_formatting", []
-                        )
-
-                        if conditional_formatting:
-                            new_conditional_formatting = []
-                            for formatter in conditional_formatting:
-                                color_scheme = formatter.get("colorScheme")
-
-                                if color_scheme not in ["Green", "Red"]:
-                                    new_conditional_formatting.append(
-                                        {
-                                            **formatter,
-                                            "toAllRow": False,
-                                            "toTextColor": False,
-                                        }
-                                    )
-                                else:
-                                    new_conditional_formatting.append(formatter)
-
-                            params["conditional_formatting"] = (
-                                new_conditional_formatting
-                            )
-                            slc.params = json.dumps(params)
-
-                    except Exception as e:
-                        logger.error(f"Error processing slice {slc.id}: {str(e)}")
-
-                        continue
-
-                session.commit()
-                processed += len(slices_batch)
-                logger.info(f"Processed {processed}/{total_count} slices")
-
-            except SQLAlchemyError as e:
-                session.rollback()
-                logger.error(
-                    f"Error processing batch {processed}-{processed + batch_size}: "
-                    f"{str(e)}"
-                )
-                processed += batch_size
-
-        logger.info("Migration completed successfully")
+        _process_slices_in_batches(session, _process_slice_params_upgrade, "upgrade")
+        logger.info("Upgrade migration completed successfully")
 
     except Exception as e:
         session.rollback()
-        logger.error(f"Unexpected error in migration: {str(e)}")
+        logger.error(f"Unexpected error in upgrade migration: {str(e)}")
         raise
 
     finally:
@@ -132,77 +159,17 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = Session(bind=bind)
+    session = db.Session(bind=bind)
 
     try:
-        total_count = session.query(Slice).filter(Slice.viz_type == "table").count()
-        logger.info(f"Found {total_count} table slices to process for downgrade")
-
-        batch_size = 1000
-        processed = 0
-
-        while processed < total_count:
-            try:
-                slices_batch = (
-                    session.query(Slice)
-                    .filter(Slice.viz_type == "table")
-                    .offset(processed)
-                    .limit(batch_size)
-                    .all()
-                )
-
-                if not slices_batch:
-                    break
-
-                for slc in slices_batch:
-                    try:
-                        params = json.loads(slc.params)
-                        conditional_formatting = params.get(
-                            "conditional_formatting", []
-                        )
-
-                        if conditional_formatting:
-                            new_conditional_formatting = []
-                            for formatter in conditional_formatting:
-                                if (
-                                    "toAllRow" in formatter
-                                    or "toTextColor" in formatter
-                                ):
-                                    new_formatter = formatter.copy()
-                                    new_formatter.pop("toAllRow", None)
-                                    new_formatter.pop("toTextColor", None)
-                                    new_conditional_formatting.append(new_formatter)
-                                else:
-                                    new_conditional_formatting.append(formatter)
-
-                            params["conditional_formatting"] = (
-                                new_conditional_formatting
-                            )
-                            slc.params = json.dumps(params)
-
-                    except Exception as e:
-                        logger.error(
-                            f"Error processing slice {slc.id} while downgrade: {str(e)}"
-                        )
-                        continue
-
-                session.commit()
-                processed += len(slices_batch)
-                logger.info(f"Processed {processed}/{total_count} slices for downgrade")
-
-            except SQLAlchemyError as e:
-                session.rollback()
-                logger.error(
-                    f"Error processing batch {processed}-{processed + batch_size} "
-                    f"while downgrade: {str(e)}"
-                )
-                processed += batch_size
-
-        logger.info("Downgrade completed successfully")
+        _process_slices_in_batches(
+            session, _process_slice_params_downgrade, "downgrade"
+        )
+        logger.info("Downgrade migration completed successfully")
 
     except Exception as e:
         session.rollback()
-        logger.error(f"Unexpected error in downgrade: {str(e)}")
+        logger.error(f"Unexpected error in downgrade migration: {str(e)}")
         raise
 
     finally:
