@@ -26,6 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
+import { getExploreUrl } from 'src/explore/exploreUtils';
 import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -112,7 +113,15 @@ export default function DrillDetailModal({
   const exploreUrl = useMemo(() => {
     // Use drill-through chart ID if configured, otherwise use original chart
     const targetChartId = dataset?.drill_through_chart_id || chartId;
-    return `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${targetChartId}`;
+    return getExploreUrl({
+      formData: {
+        slice_id: targetChartId,
+      },
+      endpointType: 'base',
+      requestParams: dashboardPageId
+        ? { dashboard_page_id: dashboardPageId }
+        : {},
+    });
   }, [chartId, dashboardPageId, dataset?.drill_through_chart_id]);
 
   const exploreChart = useCallback(() => {

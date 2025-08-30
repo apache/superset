@@ -1068,7 +1068,7 @@ class DatasourceEditor extends PureComponent {
               <ChartSelect
                 datasetId={datasource.id}
                 placeholder={t('Default (show all columns)')}
-                clearable
+                allowClear
                 ariaLabel={t('Select drill-to-details chart')}
               />
             }

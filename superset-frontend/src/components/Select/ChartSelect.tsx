@@ -19,16 +19,21 @@
 import { useMemo } from 'react';
 import { t } from '@superset-ui/core';
 import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
+import type { ComponentProps } from 'react';
 import rison from 'rison';
 
-export interface ChartSelectProps {
+// Extract the actual props from SelectAsyncControl component
+type SelectAsyncControlProps = ComponentProps<typeof SelectAsyncControl>;
+
+export interface ChartSelectProps
+  extends Omit<
+    SelectAsyncControlProps,
+    'onChange' | 'dataEndpoint' | 'mutator' | 'addDangerToast'
+  > {
+  // ChartSelect-specific props that override base props
   value?: number | null;
   onChange: (value: number | null) => void;
   datasetId?: number;
-  placeholder?: string;
-  clearable?: boolean;
-  ariaLabel?: string;
-  label?: React.ReactNode;
 }
 
 /**
@@ -37,18 +42,16 @@ export interface ChartSelectProps {
  * @param onChange - Callback when selection changes
  * @param datasetId - Optional dataset ID to filter charts
  * @param placeholder - Optional placeholder text
- * @param clearable - Whether the selection can be cleared
  * @param ariaLabel - ARIA label for accessibility
- * @param label - Form label (passed by Field component)
+ * @param rest - All other props are passed through to SelectAsyncControl
  */
 export default function ChartSelectUsingAsync({
   value,
   onChange,
   datasetId,
   placeholder = t('Select a chart'),
-  clearable = true,
   ariaLabel = t('Select drill-to-details chart'),
-  label,
+  ...rest
 }: ChartSelectProps) {
   // Build query parameters for filtering charts by dataset
   const queryParams = useMemo(() => {
@@ -95,9 +98,8 @@ export default function ChartSelectUsingAsync({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      allowClear={clearable}
       multi={false}
-      label={label}
+      {...rest}
     />
   );
 }
