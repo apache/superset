@@ -51,6 +51,7 @@ import Table, {
 import { RootState } from 'src/dashboard/types';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
 import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
@@ -119,6 +120,11 @@ export default function DrillDetailPane({
   const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
     dataset,
   });
+
+  // Get dashboard context for StatefulChart
+  const dashboardContext = useDashboardFormData(
+    dataset?.drill_through_chart_id,
+  );
 
   // Get page of results
   const resultsPage = useMemo(() => {
@@ -311,6 +317,7 @@ export default function DrillDetailPane({
         <StatefulChart
           chartId={dataset.drill_through_chart_id}
           formDataOverrides={{
+            ...dashboardContext,
             adhoc_filters: adhocFilters,
           }}
           height="100%"

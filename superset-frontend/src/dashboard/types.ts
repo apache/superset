@@ -26,6 +26,7 @@ import {
   NativeFilterScope,
   NativeFiltersState,
   NativeFilterTarget,
+  QueryFormData,
 } from '@superset-ui/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
@@ -297,4 +298,32 @@ export enum MenuKeys {
   ManageEmbedded = 'manage_embedded',
   ManageEmailReports = 'manage_email_reports',
   ExportPivotXlsx = 'export_pivot_xlsx',
+}
+
+/**
+ * Represents the dashboard context that can be applied to a chart's formData.
+ * This type defines the specific formData fields that dashboard components
+ * can provide to integrate charts with the current dashboard state.
+ */
+export interface DashboardContextFormData extends Partial<QueryFormData> {
+  /** The ID of the current dashboard */
+  dashboardId: number;
+
+  /** Dashboard native filters applied to the chart */
+  extra_form_data?: ExtraFormData;
+
+  /** Dashboard color scheme */
+  color_scheme?: string;
+
+  /** Dashboard color namespace */
+  color_namespace?: string;
+
+  /** Dashboard label colors mapping */
+  label_colors?: Record<string, string>;
+
+  /** Dashboard shared label colors */
+  shared_label_colors?: string[];
+
+  /** Dashboard map label colors */
+  map_label_colors?: Record<string, string>;
 }
