@@ -31,6 +31,7 @@ const metadata = new ChartMetadata({
   thumbnail,
   useLegacyApi: true,
   tags: [t('deckGL'), t('Multi-Layers')],
+  dynamicQueryObjectCount: true,
 });
 
 export default class MultiChartPlugin extends ChartPlugin {
