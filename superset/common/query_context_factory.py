@@ -106,7 +106,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
         return DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
-            datasource_id=int(datasource["id"]),
+            database_id_or_uuid=datasource["id"],
         )
 
     def _get_slice(self, slice_id: Any) -> Slice | None:
