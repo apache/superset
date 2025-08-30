@@ -66,6 +66,7 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { prettifyRisonFilterUrl } from 'src/dashboard/util/risonFilters';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -190,6 +191,12 @@ const updateHistory = debounce(
       }
     });
 
+    // Preserve Rison filter parameter during URL redirects
+    const risonParam = params.get('f');
+    if (risonParam) {
+      additionalParam.f = risonParam;
+    }
+
     try {
       let key;
       let stateModifier;
@@ -225,6 +232,11 @@ const updateHistory = debounce(
           force,
         );
         window.history[stateModifier](payload, title, url);
+
+        // Prettify the URL after updating history to maintain human-readable Rison filters
+        if (additionalParam.f) {
+          setTimeout(() => prettifyRisonFilterUrl(), 50);
+        }
       }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);

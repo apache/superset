@@ -38,6 +38,10 @@ import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
+import {
+  getRisonFilterParam,
+  parseRisonFilters,
+} from '../../../util/risonFilters';
 
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
@@ -111,6 +115,40 @@ const FilterControlsWrapper = styled.div`
   `}
 `;
 
+const RisonFiltersContainer = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+    border-bottom: 1px solid ${theme.colorSplit};
+    background-color: ${theme.colorPrimaryBg};
+  `}
+`;
+
+const RisonFilterItem = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    padding: ${theme.sizeUnit}px;
+    margin: ${theme.sizeUnit / 2}px 0;
+    background-color: ${theme.colorPrimaryBg};
+    border-radius: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorPrimaryText};
+  `}
+`;
+
+const RisonFilterTitle = styled.div`
+  ${({ theme }) => `
+    font-weight: bold;
+    color: ${theme.colorPrimaryText};
+    margin-bottom: ${theme.sizeUnit}px;
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 export const FilterBarScrollContext = createContext(false);
 const VerticalFilterBar: FC<VerticalBarProps> = ({
   actions,
@@ -159,6 +197,39 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
     [height],
   );
+
+  // Get active Rison filters from URL
+  const activeRisonFilters = useMemo(() => {
+    const risonParam = getRisonFilterParam();
+    if (risonParam) {
+      return parseRisonFilters(risonParam);
+    }
+    return [];
+  }, []);
+
+  const risonFiltersComponent = useMemo(() => {
+    if (activeRisonFilters.length === 0) return null;
+
+    return (
+      <RisonFiltersContainer>
+        <RisonFilterTitle>
+          <Icons.LinkOutlined iconSize="s" />
+          {t('URL Filters')}
+        </RisonFilterTitle>
+        {activeRisonFilters.map((filter, index) => (
+          <RisonFilterItem key={`${filter.subject}-${index}`}>
+            <strong>{filter.subject}</strong>
+            <span>{filter.operator}</span>
+            <span>
+              {Array.isArray(filter.comparator)
+                ? filter.comparator.join(', ')
+                : filter.comparator}
+            </span>
+          </RisonFilterItem>
+        ))}
+      </RisonFiltersContainer>
+    );
+  }, [activeRisonFilters]);
 
   const filterControls = useMemo(
     () =>
@@ -228,6 +299,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
+                {risonFiltersComponent}
                 <CrossFiltersVertical />
                 {filterControls}
               </>

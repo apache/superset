@@ -42,6 +42,12 @@ import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import type Chart from 'src/types/Chart';
+import {
+  parseRisonFilters,
+  risonToAdhocFilters,
+  prettifyRisonFilterUrl,
+  setupRisonUrlPrettification,
+} from 'src/dashboard/util/risonFilters';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
@@ -132,6 +138,9 @@ export default function ExplorePage() {
   const location = useLocation();
 
   useEffect(() => {
+    // Set up automatic URL prettification for Rison filters
+    setupRisonUrlPrettification();
+
     const exploreUrlParams = getParsedExploreURLParams(location);
     const saveAction = getUrlParam(
       URL_PARAMS.saveAction,
@@ -141,13 +150,38 @@ export default function ExplorePage() {
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData = dashboardContextFormData
+          let formData = dashboardContextFormData
             ? getFormDataWithDashboardContext(
                 result.form_data,
                 dashboardContextFormData,
                 saveAction,
               )
             : result.form_data;
+
+          // Parse Rison URL filters and add to form_data
+          const params = new URLSearchParams(window.location.search);
+          const risonFilterParam = params.get('f');
+          if (risonFilterParam) {
+            const risonFilters = parseRisonFilters(risonFilterParam);
+            if (risonFilters.length > 0) {
+              const risonAdhocFilters = risonToAdhocFilters(
+                risonFilters,
+              ) as any;
+
+              // Simply add the Rison filters to existing filters
+              // Backend no longer processes them, so no duplication
+              const existingFilters = formData.adhoc_filters || [];
+              formData = {
+                ...formData,
+                adhoc_filters: [...existingFilters, ...risonAdhocFilters],
+              };
+            }
+
+            // Prettify URL after processing - try multiple times to catch all mutations
+            setTimeout(() => prettifyRisonFilterUrl(), 50);
+            setTimeout(() => prettifyRisonFilterUrl(), 200);
+            setTimeout(() => prettifyRisonFilterUrl(), 500);
+          }
 
           dispatch(
             hydrateExplore({
