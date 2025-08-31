@@ -1,0 +1,310 @@
+openapi: 3.0.0
+info:
+  title: Superset Charts API
+  version: 1.0.0
+servers:
+- url: http://localhost:8088
+paths:
+  /api/v1/chart/:
+    get:
+      tags:
+      - charts
+      summary: Get list of charts
+      operationId: getCharts
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - name: order_column
+        in: query
+        schema:
+          type: string
+      - name: order_direction
+        in: query
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+      responses:
+        '200':
+          description: Charts list response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChartsListResponse'
+    post:
+      tags:
+      - charts
+      summary: Create new chart
+      operationId: createChart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChartCreatePayload'
+      responses:
+        '201':
+          description: Chart created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chart'
+  /api/v1/chart/{pk}:
+    get:
+      tags:
+      - charts
+      summary: Get chart by ID
+      operationId: getChart
+      parameters:
+      - name: pk
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Chart details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chart'
+    put:
+      tags:
+      - charts
+      summary: Update chart
+      operationId: updateChart
+      parameters:
+      - name: pk
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChartUpdatePayload'
+      responses:
+        '200':
+          description: Chart updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chart'
+    delete:
+      tags:
+      - charts
+      summary: Delete chart
+      operationId: deleteChart
+      parameters:
+      - name: pk
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Chart deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/v1/chart/{pk}/favorites/:
+    post:
+      tags:
+      - charts
+      summary: Add chart to favorites
+      operationId: addChartToFavorites
+      parameters:
+      - name: pk
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Added to favorites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+    delete:
+      tags:
+      - charts
+      summary: Remove chart from favorites
+      operationId: removeChartFromFavorites
+      parameters:
+      - name: pk
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Removed from favorites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+components:
+  schemas:
+    ChartsListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChartListItem'
+    ChartListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        slice_name:
+          type: string
+        description:
+          type: string
+        viz_type:
+          type: string
+        url:
+          type: string
+        changed_on:
+          type: string
+          format: date-time
+        changed_by_name:
+          type: string
+        created_by_name:
+          type: string
+        datasource_name_text:
+          type: string
+        last_saved_at:
+          type: string
+          format: date-time
+        last_saved_by_name:
+          type: string
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+    Chart:
+      type: object
+      properties:
+        id:
+          type: integer
+        slice_name:
+          type: string
+        description:
+          type: string
+        viz_type:
+          type: string
+        params:
+          type: string
+        query_context:
+          type: string
+        cache_timeout:
+          type: integer
+        datasource_id:
+          type: integer
+        datasource_type:
+          type: string
+        datasource_name:
+          type: string
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    ChartCreatePayload:
+      type: object
+      required:
+      - slice_name
+      - viz_type
+      - datasource_id
+      - datasource_type
+      properties:
+        slice_name:
+          type: string
+        description:
+          type: string
+        viz_type:
+          type: string
+        params:
+          type: string
+        cache_timeout:
+          type: integer
+        datasource_id:
+          type: integer
+        datasource_type:
+          type: string
+        owners:
+          type: array
+          items:
+            type: integer
+    ChartUpdatePayload:
+      type: object
+      properties:
+        slice_name:
+          type: string
+        description:
+          type: string
+        viz_type:
+          type: string
+        params:
+          type: string
+        cache_timeout:
+          type: integer
+        owners:
+          type: array
+          items:
+            type: integer
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - custom
+          - dashboard
+          - chart
+          - query
+          - owner

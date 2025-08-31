@@ -45,6 +45,7 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import { useUpdateChart, type ChartUpdatePayload } from '@superset-ui/core/api';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -64,6 +65,9 @@ function PropertiesModal({
   addSuccessToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
+
+  // 🚀 ORVAL POC: TanStack Query mutation hook
+  const updateChartMutation = useUpdateChart();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
@@ -205,55 +209,35 @@ function PropertiesModal({
     [],
   );
 
+  // 🚀 ORVAL: Replace SupersetClient.put with TanStack Query mutation
   const onSubmit = async () => {
-    // Run validation first
-    if (!validateAll()) {
-      return;
-    }
+    if (!validateAll()) return;
 
     setSubmitting(true);
-    const payload: { [key: string]: any } = {
-      slice_name: name || null,
-      description: description || null,
-      cache_timeout: cacheTimeout ? Number(cacheTimeout) : null,
-      certified_by: certifiedBy || null,
-      certification_details:
-        certifiedBy && certificationDetails ? certificationDetails : null,
+    const payload: ChartUpdatePayload = {
+      slice_name: name || undefined,
+      description: description || undefined,
+      cache_timeout: cacheTimeout ? Number(cacheTimeout) : undefined,
     };
-    if (selectedOwners) {
-      payload.owners = (
-        selectedOwners as {
-          value: number;
-          label: string;
-        }[]
-      ).map(o => o.value);
-    }
-    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-      payload.tags = tags.map(tag => tag.id);
-    }
 
     try {
-      const res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      // Type-safe mutation with automatic cache management!
+      const updatedChart = await updateChartMutation.mutateAsync({
+        pk: slice.slice_id,
+        data: payload,
       });
-      // update the redux state
-      const updatedChart = {
-        ...payload,
-        ...res.json.result,
-        tags,
-        id: slice.slice_id,
-        owners: selectedOwners,
-      };
-      onSave(updatedChart);
+
+      onSave(updatedChart as any); // POC: Type conversion for demo
       addSuccessToast(t('Chart properties updated'));
       onHide();
-    } catch (res) {
-      const clientError = await getClientErrorObject(res);
-      showError(clientError);
+    } catch (error) {
+      console.error('Chart update failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Update failed';
+      showError({ error: errorMessage });
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const ownersLabel = t('Owners');

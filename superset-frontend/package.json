@@ -71,6 +71,7 @@
     "tdd": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --watch",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80% --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
+    "orval:regenerate-client": "orval --config orval.config.ts",
     "type": "tsc --noEmit",
     "update-maps": "cd plugins/legacy-plugin-chart-country-map/scripts && jupyter nbconvert --to notebook --execute --inplace --allow-errors --ExecutePreprocessor.timeout=1200 'Country Map GeoJSON Generator.ipynb'",
     "validate-release": "../RELEASING/validate_this_release.sh"
@@ -313,6 +314,7 @@
     "lerna": "^8.2.1",
     "mini-css-extract-plugin": "^2.9.0",
     "open-cli": "^8.0.0",
+    "orval": "^7.11.2",
     "po2json": "^0.4.5",
     "prettier": "3.6.2",
     "prettier-plugin-packagejson": "^2.5.3",

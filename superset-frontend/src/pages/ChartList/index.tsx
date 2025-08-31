@@ -39,6 +39,7 @@ import {
   useFavoriteStatus,
   useListViewResource,
 } from 'src/views/CRUD/hooks';
+import { useGetCharts } from '@superset-ui/core/api';
 import handleResourceExport from 'src/utils/export';
 import {
   ConfirmStatusChange,
@@ -171,19 +172,28 @@ function ChartList(props: ChartListProps) {
 
   const history = useHistory();
 
-  const {
-    state: {
-      loading,
-      resourceCount: chartCount,
-      resourceCollection: charts,
-      bulkSelectEnabled,
-    },
-    setResourceCollection: setCharts,
-    hasPerm,
-    fetchData,
-    toggleBulkSelect,
-    refreshData,
-  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+  // 🚀 ORVAL: Replace useListViewResource with TanStack Query hook
+  const orvalQuery = useGetCharts({
+    page: 0,
+    page_size: PAGE_SIZE,
+    order_column: 'changed_on_delta_humanized',
+    order_direction: 'desc',
+  });
+
+  // Extract chart data with proper typing
+  const charts = (orvalQuery.data?.result || []) as Chart[];
+  const chartCount = orvalQuery.data?.count || 0;
+  const loading = orvalQuery.isLoading;
+
+  // Keep legacy functionality for interface compatibility (bulk operations, etc.)
+  const legacyQuery = useListViewResource<Chart>(
+    'chart',
+    t('chart'),
+    addDangerToast,
+  );
+  const { hasPerm, toggleBulkSelect, fetchData, refreshData } = legacyQuery;
+  const { bulkSelectEnabled } = legacyQuery.state;
+  const setCharts = legacyQuery.setResourceCollection;
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
@@ -811,6 +821,7 @@ function ChartList(props: ChartListProps) {
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
+
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}
