@@ -577,7 +577,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Sync configuration to database (themes, etc.)
         # This can be called separately in multi-tenant environments
-        if self.flask_app.config["SYNC_CONFIG_TO_DB_ON_INIT"]:
+        if self.config["SYNC_CONFIG_TO_DB_ON_INIT"]:
             self.superset_app.sync_config_to_db()
 
         self.init_views()
