@@ -145,6 +145,8 @@ class CollectionControl extends Component {
                 placement="right"
                 onClick={this.removeItem.bind(this, i)}
                 tooltip={t('Remove item')}
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
                 css={theme => ({
                   padding: 0,
                   minWidth: 'auto',

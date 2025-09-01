@@ -27,6 +27,8 @@ export const IconTooltip = ({
   placement = 'top',
   style = {},
   tooltip = null,
+  mouseEnterDelay = 0.3,
+  mouseLeaveDelay = 0.15,
 }: IconTooltipProps) => {
   const iconTooltip = (
     <Button
@@ -43,7 +45,13 @@ export const IconTooltip = ({
   );
   if (tooltip) {
     return (
-      <Tooltip id="tooltip" title={tooltip} placement={placement}>
+      <Tooltip
+        id="tooltip"
+        title={tooltip}
+        placement={placement}
+        mouseEnterDelay={mouseEnterDelay}
+        mouseLeaveDelay={mouseLeaveDelay}
+      >
         {iconTooltip}
       </Tooltip>
     );
