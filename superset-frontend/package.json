@@ -221,7 +221,7 @@
     "@babel/runtime": "^7.28.2",
     "@babel/runtime-corejs3": "^7.28.2",
     "@babel/types": "^7.26.9",
-    "@cypress/react": "^8.0.2",
+    "@cypress/react": "^9.0.1",
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.13.0",
     "@hot-loader/react-dom": "^17.0.2",
