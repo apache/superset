@@ -1,0 +1,459 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { supersetTheme } from '@superset-ui/core';
+import BigNumberViz from '../../src/BigNumber/BigNumberViz';
+import { BigNumberVizProps } from '../../src/BigNumber/types';
+
+// Mock the getNumberFormatter function
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getNumberFormatter: jest.fn(() => (value: number) => `${value}%`),
+}));
+
+const defaultProps: BigNumberVizProps = {
+  width: 200,
+  height: 200,
+  bigNumber: 1000,
+  className: 'test-class',
+  headerFontSize: 0.3,
+  subheaderFontSize: 0.125,
+  subheader: 'Test subheader',
+  formatNumber: (value: number) => value.toString(),
+  formatTime: (value: string) => value,
+  theme: supersetTheme,
+};
+
+describe('BigNumberViz with Time Comparison', () => {
+  describe('Basic Rendering', () => {
+    it('should render basic big number without time comparison', () => {
+      render(<BigNumberViz {...defaultProps} />);
+      
+      expect(screen.getByText('1000%')).toBeInTheDocument();
+      expect(screen.getByText('Test subheader')).toBeInTheDocument();
+    });
+
+    it('should render with custom formatting', () => {
+      const customFormatNumber = (value: number) => `$${value}`;
+      render(<BigNumberViz {...defaultProps} formatNumber={customFormatNumber} />);
+      
+      expect(screen.getByText('1000%')).toBeInTheDocument();
+    });
+
+    it('should handle null big number', () => {
+      render(<BigNumberViz {...defaultProps} bigNumber={null} />);
+      
+      expect(screen.getByText('0')).toBeInTheDocument();
+    });
+  });
+
+  describe('Time Comparison - Positive Changes', () => {
+    it('should render positive comparison indicator with green color and up arrow', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      // Check that the comparison indicator is rendered
+      const indicator = screen.getByText('↗');
+      expect(indicator).toBeInTheDocument();
+      
+      // Check that the percentage is displayed
+      expect(screen.getByText('50%')).toBeInTheDocument();
+      
+      // Check that the comparison period text is displayed
+      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+    });
+
+    it('should render large positive change correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 2.0,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 week ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('200%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+    });
+
+    it('should render small positive change correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.01,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 month ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('1%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 month ago')).toBeInTheDocument();
+    });
+  });
+
+  describe('Time Comparison - Negative Changes', () => {
+    it('should render negative comparison indicator with red color and down arrow', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: -0.25,
+        comparisonIndicator: 'negative' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      // Check that the comparison indicator is rendered
+      const indicator = screen.getByText('↘');
+      expect(indicator).toBeInTheDocument();
+      
+      // Check that the percentage is displayed
+      expect(screen.getByText('-25%')).toBeInTheDocument();
+      
+      // Check that the comparison period text is displayed
+      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+    });
+
+    it('should render large negative change correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: -0.75,
+        comparisonIndicator: 'negative' as const,
+        comparisonPeriodText: '1 week ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↘')).toBeInTheDocument();
+      expect(screen.getByText('-75%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+    });
+
+    it('should render small negative change correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: -0.05,
+        comparisonIndicator: 'negative' as const,
+        comparisonPeriodText: '1 month ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↘')).toBeInTheDocument();
+      expect(screen.getByText('-5%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 month ago')).toBeInTheDocument();
+    });
+  });
+
+  describe('Time Comparison - No Change', () => {
+    it('should render neutral comparison indicator with orange color and dash', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0,
+        comparisonIndicator: 'neutral' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      // Check that the comparison indicator is rendered
+      const indicator = screen.getByText('−');
+      expect(indicator).toBeInTheDocument();
+      
+      // Check that the percentage is displayed
+      expect(screen.getByText('0%')).toBeInTheDocument();
+      
+      // Check that the comparison period text is displayed
+      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+    });
+
+    it('should render very small change as neutral', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.0001,
+        comparisonIndicator: 'neutral' as const,
+        comparisonPeriodText: '1 week ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('−')).toBeInTheDocument();
+      expect(screen.getByText('0.01%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+    });
+  });
+
+  describe('Time Comparison - Edge Cases', () => {
+    it('should not render comparison indicator when percentageChange is undefined', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: undefined,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.queryByText('↗')).not.toBeInTheDocument();
+      expect(screen.queryByText('vs 1 day ago')).not.toBeInTheDocument();
+    });
+
+    it('should not render comparison indicator when comparisonIndicator is undefined', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: undefined,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.queryByText('↗')).not.toBeInTheDocument();
+      expect(screen.queryByText('vs 1 day ago')).not.toBeInTheDocument();
+    });
+
+    it('should render comparison indicator without period text when comparisonPeriodText is undefined', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: undefined,
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('50%')).toBeInTheDocument();
+      expect(screen.queryByText('vs')).not.toBeInTheDocument();
+    });
+
+    it('should render comparison indicator without period text when comparisonPeriodText is empty', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('50%')).toBeInTheDocument();
+      expect(screen.queryByText('vs')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Different Time Periods', () => {
+    it('should render "inherit" time comparison correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.33,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: 'inherit',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('33%')).toBeInTheDocument();
+      expect(screen.getByText('vs inherit')).toBeInTheDocument();
+    });
+
+    it('should render "1 week ago" time comparison correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.2,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 week ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('20%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+    });
+
+    it('should render "1 month ago" time comparison correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.15,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 month ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('15%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 month ago')).toBeInTheDocument();
+    });
+
+    it('should render custom time comparison correctly', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.1,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: 'custom_range',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('10%')).toBeInTheDocument();
+      expect(screen.getByText('vs custom_range')).toBeInTheDocument();
+    });
+  });
+
+  describe('Styling and Layout', () => {
+    it('should position comparison indicator in top right corner', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      const indicator = screen.getByText('↗').closest('div');
+      expect(indicator).toHaveStyle({
+        position: 'absolute',
+        top: '8px',
+        right: '8px',
+      });
+    });
+
+    it('should apply correct colors for different indicators', () => {
+      // Test positive indicator
+      const { rerender } = render(
+        <BigNumberViz
+          {...defaultProps}
+          percentageChange={0.5}
+          comparisonIndicator="positive"
+          comparisonPeriodText="1 day ago"
+        />
+      );
+      
+      let indicator = screen.getByText('↗').closest('div');
+      expect(indicator).toHaveStyle({ color: '#28a745' });
+
+      // Test negative indicator
+      rerender(
+        <BigNumberViz
+          {...defaultProps}
+          percentageChange={-0.5}
+          comparisonIndicator="negative"
+          comparisonPeriodText="1 day ago"
+        />
+      );
+      
+      indicator = screen.getByText('↘').closest('div');
+      expect(indicator).toHaveStyle({ color: '#dc3545' });
+
+      // Test neutral indicator
+      rerender(
+        <BigNumberViz
+          {...defaultProps}
+          percentageChange={0}
+          comparisonIndicator="neutral"
+          comparisonPeriodText="1 day ago"
+        />
+      );
+      
+      indicator = screen.getByText('−').closest('div');
+      expect(indicator).toHaveStyle({ color: '#ffc107' });
+    });
+
+    it('should maintain proper spacing and typography', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      const indicator = screen.getByText('↗').closest('div');
+      expect(indicator).toHaveStyle({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        fontSize: '12px',
+        fontWeight: 'bold',
+      });
+    });
+  });
+
+  describe('Integration with Existing Features', () => {
+    it('should work with conditional formatting', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 day ago',
+        conditionalFormatting: [
+          {
+            operator: '>',
+            targetValue: 500,
+            color: '#ff0000',
+          },
+        ],
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      // Should still render the comparison indicator
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('50%')).toBeInTheDocument();
+      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+    });
+
+    it('should work with custom number formatting', () => {
+      const customFormatNumber = (value: number) => `$${value.toLocaleString()}`;
+      const props = {
+        ...defaultProps,
+        formatNumber: customFormatNumber,
+        percentageChange: 0.5,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+      
+      render(<BigNumberViz {...props} />);
+      
+      // Should render the main number with custom formatting
+      expect(screen.getByText('1000%')).toBeInTheDocument();
+      
+      // Should still render the comparison indicator
+      expect(screen.getByText('↗')).toBeInTheDocument();
+      expect(screen.getByText('50%')).toBeInTheDocument();
+    });
+  });
+});

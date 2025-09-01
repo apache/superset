@@ -87,6 +87,11 @@ export default function transformProps(
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
+  // Handle comparison data if available and time comparison is enabled
+  let previousPeriodValue: number | null = null;
+  let percentageChange: number | undefined;
+  let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
+
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
@@ -96,6 +101,32 @@ export default function transformProps(
   let bigNumber = data.length === 0 ? null : data[0][metricName];
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
+
+  // Handle comparison data if available and time comparison is enabled
+  const timeCompare = 
+    (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+    (formData.extra_form_data as any)?.time_compare;
+  if (queriesData.length > 1 && timeCompare && timeCompare !== 'NoComparison') {
+    const comparisonData = queriesData[1];
+    if (comparisonData.data && comparisonData.data.length > 0) {
+      const rawValue = comparisonData.data[0][metricName];
+      if (rawValue !== null && rawValue !== undefined) {
+        previousPeriodValue = parseMetricValue(rawValue);
+
+        if (bigNumber !== null && previousPeriodValue !== null && previousPeriodValue !== 0) {
+          percentageChange = (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
+
+          if (percentageChange > 0) {
+            comparisonIndicator = 'positive';
+          } else if (percentageChange < 0) {
+            comparisonIndicator = 'negative';
+          } else {
+            comparisonIndicator = 'neutral';
+          }
+        }
+      }
+    }
+  }
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
   const metricColtype =
@@ -276,5 +307,8 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    previousPeriodValue,
+    percentageChange,
+    comparisonIndicator,
   };
 }

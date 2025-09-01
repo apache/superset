@@ -96,4 +96,9 @@ export type BigNumberVizProps = {
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
+  // New comparison properties
+  previousPeriodValue?: number | null;
+  percentageChange?: number;
+  comparisonIndicator?: 'positive' | 'negative' | 'neutral';
+  comparisonPeriodText?: string;
 };

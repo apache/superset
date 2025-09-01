@@ -22,6 +22,7 @@ import {
   getXAxisColumn,
   isXAxisSet,
   QueryFormData,
+  getComparisonInfo,
 } from '@superset-ui/core';
 import {
   flattenOperator,
@@ -31,21 +32,53 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      columns: [
-        ...(isXAxisSet(formData)
-          ? ensureIsArray(getXAxisColumn(formData))
-          : []),
-      ],
-      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
-      post_processing: [
-        pivotOperator(formData, baseQueryObject),
-        rollingWindowOperator(formData, baseQueryObject),
-        resampleOperator(formData, baseQueryObject),
-        flattenOperator(formData, baseQueryObject),
-      ],
-    },
-  ]);
+  const buildQuery = (baseQueryObject: any) => {
+    const queries = [
+      {
+        ...baseQueryObject,
+        columns: [
+          ...(isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []),
+        ],
+        ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+        post_processing: [
+          pivotOperator(formData, baseQueryObject),
+          rollingWindowOperator(formData, baseQueryObject),
+          resampleOperator(formData, baseQueryObject),
+          flattenOperator(formData, baseQueryObject),
+        ],
+      },
+    ];
+
+    const timeComparison = 
+      (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+      (formData.extra_form_data as any)?.time_compare;
+    if (timeComparison && timeComparison !== 'NoComparison') {
+      const comparisonFormData = getComparisonInfo(
+        formData,
+        timeComparison,
+        formData.extra_form_data,
+      );
+      queries.push({
+        ...baseQueryObject,
+        ...comparisonFormData,
+        columns: [
+          ...(isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []),
+        ],
+        ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+        post_processing: [
+          pivotOperator(formData, baseQueryObject),
+          rollingWindowOperator(formData, baseQueryObject),
+          resampleOperator(formData, baseQueryObject),
+          flattenOperator(formData, baseQueryObject),
+        ],
+      });
+    }
+    return queries;
+  };
+
+  return buildQueryContext(formData, buildQuery);
 }

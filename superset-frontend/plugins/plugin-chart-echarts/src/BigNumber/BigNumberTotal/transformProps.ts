@@ -63,6 +63,33 @@ export default function transformProps(
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
+  // Handle comparison data if available and time comparison is enabled
+  let previousPeriodValue: number | null = null;
+  let percentageChange: number | undefined;
+  let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
+
+  const timeCompare = 
+    (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+    (formData.extra_form_data as any)?.time_compare;
+  if (queriesData.length > 1 && timeCompare && timeCompare !== 'NoComparison') {
+    const comparisonData = queriesData[1];
+    if (comparisonData.data && comparisonData.data.length > 0) {
+      previousPeriodValue = parseMetricValue(comparisonData.data[0][metricName]);
+      
+      if (bigNumber !== null && previousPeriodValue !== null && previousPeriodValue !== 0) {
+        percentageChange = (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
+        
+        if (percentageChange > 0) {
+          comparisonIndicator = 'positive';
+        } else if (percentageChange < 0) {
+          comparisonIndicator = 'negative';
+        } else {
+          comparisonIndicator = 'neutral';
+        }
+      }
+    }
+  }
+
   let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
@@ -110,5 +137,8 @@ export default function transformProps(
     onContextMenu,
     refs,
     colorThresholdFormatters,
+    previousPeriodValue,
+    percentageChange,
+    comparisonIndicator,
   };
 }

@@ -26,7 +26,7 @@ import {
   BRAND_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
-  getCurrencySymbol,
+  NumberFormats,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -125,6 +125,80 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         }}
       >
         {text}
+      </div>
+    );
+  }
+
+  renderComparisonIndicator() {
+    const { percentageChange, comparisonIndicator, formData, comparisonPeriodText: propComparisonPeriodText } = this.props;
+    
+    if (percentageChange === undefined || comparisonIndicator === undefined) {
+      return null;
+    }
+
+    const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_SIGNED_1_POINT);
+
+    let indicatorColor: string;
+    let arrowIcon: string;
+    
+    switch (comparisonIndicator) {
+      case 'positive':
+        indicatorColor = '#28a745'; // green
+        arrowIcon = '↗';
+        break;
+      case 'negative':
+        indicatorColor = '#dc3545'; // red
+        arrowIcon = '↘';
+        break;
+      case 'neutral':
+        indicatorColor = '#ffc107'; // orange
+        arrowIcon = '−';
+        break;
+      default:
+        return null;
+    }
+
+    // Use prop comparison period text if provided, otherwise generate from formData
+    let comparisonPeriodText = propComparisonPeriodText;
+    
+    if (!comparisonPeriodText) {
+      const timeCompare = (formData?.extra_form_data as any)?.time_compare;
+      
+      if (timeCompare === 'inherit') {
+        comparisonPeriodText = t('vs previous period');
+      } else if (timeCompare) {
+        comparisonPeriodText = t('vs %s', timeCompare);
+      }
+    }
+
+    return (
+      <div
+        className="comparison-indicator"
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          color: indicatorColor,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: `1px solid ${indicatorColor}`,
+          cursor: 'help',
+        }}
+        title={comparisonPeriodText}
+      >
+        <span>{arrowIcon}</span>
+        <span>{formatPercentChange(percentageChange * 100)}</span>
+        {comparisonPeriodText && (
+          <span style={{ fontSize: '10px', opacity: 0.8 }}>
+            vs {comparisonPeriodText}
+          </span>
+        )}
       </div>
     );
   }
@@ -288,7 +362,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       const allTextHeight = height - chartHeight;
 
       return (
-        <div className={className}>
+        <div className={className} style={{ position: 'relative' }}>
+          {this.renderComparisonIndicator()}
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
             {this.renderKicker(
@@ -311,7 +386,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     }
 
     return (
-      <div className={className} style={{ height }}>
+      <div className={className} style={{ height, position: 'relative' }}>
+        {this.renderComparisonIndicator()}
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}

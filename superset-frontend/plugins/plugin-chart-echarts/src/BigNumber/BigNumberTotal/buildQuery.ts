@@ -16,8 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  QueryFormData,
+  getComparisonInfo,
+} from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => [baseQueryObject]);
+  const buildQuery = (baseQueryObject: any) => {
+    const queries = [baseQueryObject];
+
+    // Handle both old and new time comparison formats
+    const timeComparison = 
+      (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+      (formData.extra_form_data as any)?.time_compare;
+      
+    if (timeComparison && timeComparison !== 'NoComparison') {
+      const comparisonFormData = getComparisonInfo(
+        formData,
+        timeComparison,
+        formData.extra_form_data,
+      );
+      queries.push({
+        ...baseQueryObject,
+        ...comparisonFormData,
+      });
+    }
+    return queries;
+  };
+
+  return buildQueryContext(formData, buildQuery);
 }
