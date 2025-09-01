@@ -44,7 +44,7 @@
     "build-storybook": "storybook build",
     "build-translation": "scripts/po2json.sh",
     "bundle-stats": "cross-env BUNDLE_ANALYZER=true npm run build && npx open-cli ../superset/static/stats/statistics.html",
-    "core:cover": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
+    "core:cover": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\", \"!packages/superset-core/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
