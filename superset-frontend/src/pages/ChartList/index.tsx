@@ -34,11 +34,7 @@ import {
   createFetchRelated,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
-import {
-  useChartEditModal,
-  useFavoriteStatus,
-  useListViewResource,
-} from 'src/views/CRUD/hooks';
+import { useChartEditModal, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { useGetCharts } from '@superset-ui/core/api';
 import handleResourceExport from 'src/utils/export';
 import {
@@ -172,12 +168,17 @@ function ChartList(props: ChartListProps) {
 
   const history = useHistory();
 
-  // 🚀 ORVAL: Replace useListViewResource with TanStack Query hook
+  // 🚀 ORVAL: Pure TanStack Query implementation with local pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [sortColumn, setSortColumn] = useState('changed_on_delta_humanized');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [bulkSelectEnabled, setBulkSelectEnabled] = useState(false);
+
   const orvalQuery = useGetCharts({
-    page: 0,
+    page: currentPage,
     page_size: PAGE_SIZE,
-    order_column: 'changed_on_delta_humanized',
-    order_direction: 'desc',
+    order_column: sortColumn,
+    order_direction: sortOrder,
   });
 
   // Extract chart data with proper typing
@@ -185,20 +186,48 @@ function ChartList(props: ChartListProps) {
   const chartCount = orvalQuery.data?.count || 0;
   const loading = orvalQuery.isLoading;
 
-  // Keep legacy functionality for interface compatibility (bulk operations, etc.)
-  const legacyQuery = useListViewResource<Chart>(
-    'chart',
-    t('chart'),
-    addDangerToast,
-  );
-  const { hasPerm, toggleBulkSelect, fetchData, refreshData } = legacyQuery;
-  const { bulkSelectEnabled } = legacyQuery.state;
-  const setCharts = legacyQuery.setResourceCollection;
+  // Simple handlers for ListView compatibility
+  const fetchData = useCallback((params?: any) => {
+    if (params?.pageIndex !== undefined) {
+      setCurrentPage(params.pageIndex);
+    }
+    if (params?.sortBy) {
+      setSortColumn(params.sortBy[0]?.id || 'changed_on_delta_humanized');
+      setSortOrder(params.sortBy[0]?.desc ? 'desc' : 'asc');
+    }
+  }, []);
+
+  const refreshData = useCallback(() => {
+    orvalQuery.refetch();
+  }, [orvalQuery]);
+
+  const toggleBulkSelect = useCallback(() => {
+    setBulkSelectEnabled(!bulkSelectEnabled);
+  }, [bulkSelectEnabled]);
+
+  // Custom setCharts function that triggers refetch (for chart edit modal)
+  const setCharts = useCallback(() => {
+    orvalQuery.refetch();
+  }, [orvalQuery]);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+
+  // Permissions check using user roles (same pattern as rest of component)
+  const hasPerm = useCallback(
+    (perm: string) => {
+      if (!roles || !Array.isArray(roles)) return false;
+      return Boolean(
+        roles.find(role =>
+          role.permissions?.find((p: any) => p.permission_name === perm),
+        ),
+      );
+    },
+    [roles],
+  );
+
   const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(

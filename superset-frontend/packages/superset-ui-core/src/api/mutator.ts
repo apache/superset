@@ -27,6 +27,7 @@
  * 4. Authentication flow integration
  */
 
+import rison from 'rison';
 import SupersetClient from '../connection/SupersetClient';
 
 interface CustomRequestConfig extends RequestInit {
@@ -36,30 +37,14 @@ interface CustomRequestConfig extends RequestInit {
 }
 
 /**
- * Get the application root path from current SupersetClient configuration
+ * Get the application root path from SupersetClient configuration
  * This ensures compatibility with existing URL prefix handling
  */
 function getAppRoot(): string {
-  // Access the singleton SupersetClient's appRoot configuration
-  try {
-    // SupersetClient stores appRoot internally, we need to extract it
-    // For now, use the same logic as SupersetClient.getUrl()
-    const currentUrl = new URL(window.location.href);
-    const pathSegments = currentUrl.pathname.split('/');
-
-    // Common Superset deployment patterns:
-    // - Root: / (appRoot = '')
-    // - Subpath: /superset (appRoot = '/superset')
-    // - Custom: /analytics (appRoot = '/analytics')
-
-    // Extract from current path or use empty string for root deployment
-    return pathSegments.length > 1 && pathSegments[1]
-      ? `/${pathSegments[1]}`
-      : '';
-  } catch {
-    // Fallback to empty string (root deployment)
-    return '';
-  }
+  // For most Superset deployments, the appRoot is empty (root deployment)
+  // If Superset is deployed under a subpath, it would be configured in SupersetClient
+  // For now, assume root deployment to match existing SupersetClient behavior
+  return '';
 }
 
 /**
@@ -76,17 +61,18 @@ export const customInstance = async <T>(
     ? config.url
     : `${baseURL}${config.url}`;
 
-  // Handle query parameters
+  // Handle query parameters using rison encoding (Superset standard)
   if (config.params) {
-    const searchParams = new URLSearchParams();
+    const cleanParams: Record<string, any> = {};
     Object.entries(config.params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
+        cleanParams[key] = value;
       }
     });
-    const queryString = searchParams.toString();
-    if (queryString) {
-      fullUrl += `${fullUrl.includes('?') ? '&' : '?'}${queryString}`;
+
+    if (Object.keys(cleanParams).length > 0) {
+      const risonQuery = rison.encode_uri(cleanParams);
+      fullUrl += `${fullUrl.includes('?') ? '&' : '?'}q=${risonQuery}`;
     }
   }
 

@@ -162,6 +162,7 @@
     "mustache": "^4.2.0",
     "nanoid": "^5.0.9",
     "ol": "^7.5.2",
+    "@tanstack/react-query": "^4.40.1",
     "polished": "^4.3.1",
     "prop-types": "^15.8.1",
     "re-resizable": "^6.10.1",
@@ -223,6 +224,9 @@
     "@babel/runtime-corejs3": "^7.28.2",
     "@babel/types": "^7.26.9",
     "@cypress/react": "^8.0.2",
+    "@deck.gl/extensions": "^9.1.14",
+    "@deck.gl/mesh-layers": "^9.1.14",
+    "@deck.gl/widgets": "^9.1.14",
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.13.0",
     "@hot-loader/react-dom": "^17.0.2",
@@ -280,6 +284,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
+    "currencyformatter.js": "^2.2.0",
     "eslint": "^8.56.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
@@ -303,6 +308,7 @@
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
     "fetch-mock": "^11.1.5",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
+    "global-box": "^2.0.2",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.3",
     "imports-loader": "^5.0.0",
@@ -359,7 +365,8 @@
     "puppeteer": "^22.4.1",
     "underscore": "^1.13.7",
     "jspdf": "^3.0.1",
-    "nwsapi": "^2.2.13"
+    "nwsapi": "^2.2.13",
+    "query-string": "^6.14.1"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
