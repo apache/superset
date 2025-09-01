@@ -21,8 +21,8 @@ import fetchMock from 'fetch-mock';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import { getExtensionsRegistry } from '@superset-ui/core';
-import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import { Menu } from './Menu';
 
 const dropdownItems = [
   {
@@ -238,9 +238,11 @@ const notanonProps = {
   },
 };
 
-
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-const staticAssetsPrefixMock = jest.spyOn(getBootstrapData, 'staticAssetsPrefix')
+const staticAssetsPrefixMock = jest.spyOn(
+  getBootstrapData,
+  'staticAssetsPrefix',
+);
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
@@ -278,7 +280,7 @@ test('should render the navigation', async () => {
 });
 
 describe('should render the brand', () => {
-  it.each(['', '/myapp'])("including app_root '%s'", async (app_root) => {
+  it.each(['', '/myapp'])("including app_root '%s'", async app_root => {
     staticAssetsPrefixMock.mockReturnValue(app_root);
     useSelectorMock.mockReturnValue({ roles: user.roles });
     const {
@@ -295,9 +297,8 @@ describe('should render the brand', () => {
     expect(await screen.findByAltText(alt)).toBeInTheDocument();
     const image = screen.getByAltText(alt);
     expect(image).toHaveAttribute('src', `${app_root}${icon}`);
-  })
+  });
 });
-
 
 test('should render the environment tag', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
