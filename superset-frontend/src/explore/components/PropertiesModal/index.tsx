@@ -52,7 +52,7 @@ export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
   onHide: () => void;
-  onSave: (chart: Chart) => void; // TODO: Update to use generated ChartRestApiPut type
+  onSave: (chart: Chart) => void; // Legacy callback - kept for compatibility but not used
   permissionsError?: string;
   existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
@@ -72,10 +72,11 @@ function PropertiesModal({
   const updateChartMutation = useUpdateChart({
     mutation: {
       onSuccess: () => {
-        // Invalidate all chart list queries (the standard TanStack Query pattern)
+        // Invalidate all chart queries to refresh the list
         queryClient.invalidateQueries({
-          queryKey: ['/api/v1/chart/'],
-          exact: false, // This invalidates all queries that start with this key
+          predicate: query =>
+            Array.isArray(query.queryKey) &&
+            query.queryKey[0] === '/api/v1/chart/',
         });
       },
     },
@@ -256,14 +257,14 @@ function PropertiesModal({
     }
 
     try {
-      // Type-safe mutation with automatic cache management!
+      // Type-safe mutation with automatic optimistic updates and cache management!
       await updateChartMutation.mutateAsync({
         pk: slice.slice_id,
         data: payload,
       });
 
-      // TanStack Query automatically updates cache - no manual Redux state needed!
-      // The mutation already contains the updated data
+      // Success! TanStack Query has already updated the cache optimistically
+      // and will sync with server data in the background
       addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {

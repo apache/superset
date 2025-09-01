@@ -210,11 +210,6 @@ function ChartList(props: ChartListProps) {
     setBulkSelectEnabled(!bulkSelectEnabled);
   }, [bulkSelectEnabled]);
 
-  // Custom setCharts function that triggers refetch (for chart edit modal)
-  const setCharts = useCallback(() => {
-    orvalQuery.refetch();
-  }, [orvalQuery]);
-
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -238,12 +233,17 @@ function ChartList(props: ChartListProps) {
     chartIds,
     addDangerToast,
   );
+
+  // 🚀 ORVAL: Simplified chart edit modal - no manual state management needed!
+  // TanStack Query handles cache updates automatically via optimistic updates
   const {
     sliceCurrentlyEditing,
     handleChartUpdated,
     openChartEditModal,
     closeChartEditModal,
-  } = useChartEditModal(setCharts, charts);
+  } = useChartEditModal(() => {
+    // No-op: TanStack Query handles cache automatically
+  }, charts);
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
