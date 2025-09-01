@@ -113,6 +113,7 @@ class TestSupersetAppInitializer:
         mock_app.config = {
             "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db",
             "FLASK_APP_MUTATOR": None,
+            "SYNC_CONFIG_TO_DB_ON_INIT": True,
         }
         app_initializer = SupersetAppInitializer(mock_app)
 
@@ -131,6 +132,35 @@ class TestSupersetAppInitializer:
 
         # Assert that sync_config_to_db was called on the app
         mock_app.sync_config_to_db.assert_called_once()
+
+    @patch("superset.initialization.logger")
+    def test_init_app_in_ctx_skips_sync_when_disabled(self, mock_logger):
+        """Test that sync_config_to_db is skipped when SYNC_CONFIG_TO_DB_ON_INIT
+        is False."""
+        # Setup
+        mock_app = MagicMock()
+        mock_app.config = {
+            "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db",
+            "FLASK_APP_MUTATOR": None,
+            "SYNC_CONFIG_TO_DB_ON_INIT": False,
+        }
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        # Execute init_app_in_ctx which should NOT call sync_config_to_db
+        with (
+            patch.object(app_initializer, "configure_fab"),
+            patch.object(app_initializer, "configure_url_map_converters"),
+            patch.object(app_initializer, "configure_data_sources"),
+            patch.object(app_initializer, "configure_auth_provider"),
+            patch.object(app_initializer, "configure_async_queries"),
+            patch.object(app_initializer, "configure_ssh_manager"),
+            patch.object(app_initializer, "configure_stats_manager"),
+            patch.object(app_initializer, "init_views"),
+        ):
+            app_initializer.init_app_in_ctx()
+
+        # Assert that sync_config_to_db was NOT called on the app
+        mock_app.sync_config_to_db.assert_not_called()
 
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""
