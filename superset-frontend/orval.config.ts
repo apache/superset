@@ -22,7 +22,7 @@ import { defineConfig } from 'orval';
 export default defineConfig({
   superset: {
     input: {
-      target: './packages/superset-ui-core/openapi.yaml', // POC spec lives with generated code
+      target: './openapi-normalized.json', // Pre-normalized OpenAPI spec
       validation: false,
     },
     output: {
@@ -42,6 +42,9 @@ export default defineConfig({
           useQuery: true, // Generate useQuery hooks
           useMutation: true, // Generate useMutation hooks
           useInfinite: false, // Disable infinite queries for now
+        },
+        tags: {
+          charts: true, // Only generate Charts endpoints
         },
       },
     },
