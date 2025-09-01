@@ -283,7 +283,7 @@ describe('should render the brand', () => {
     useSelectorMock.mockReturnValue({ roles: user.roles });
     const {
       data: {
-        brand: { alt, icon, path },
+        brand: { alt, icon },
       },
     } = mockedProps;
     render(<Menu {...mockedProps} />, {
