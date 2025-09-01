@@ -157,7 +157,7 @@ class Superset(BaseSupersetView):
             return json_error_response(err_msg)
 
         if not query:
-            query = "No query."
+            query = "Query cannot be loaded"
 
         return self.json_response(
             {"query": query, "language": viz_obj.datasource.query_language}
