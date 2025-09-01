@@ -65,7 +65,7 @@
     "storybook": "^8.6.11",
     "swagger-ui-react": "^5.27.1",
     "tinycolor2": "^1.4.2",
-    "ts-loader": "^9.5.2"
+    "ts-loader": "^9.5.4"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.8.1",
