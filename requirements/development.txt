@@ -18,6 +18,21 @@ amqp==5.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
+annotated-types==0.7.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pydantic
+anthropic==0.61.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
+anyio==4.10.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   anthropic
+    #   google-genai
+    #   httpx
+    #   openai
 apispec==6.6.1
     # via
     #   -c requirements/base-constraint.txt
@@ -28,6 +43,10 @@ apsw==3.50.1.0
     #   shillelagh
 astroid==3.3.10
     # via pylint
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   redis
 attrs==25.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -85,6 +104,8 @@ celery==5.5.2
 certifi==2025.6.15
     # via
     #   -c requirements/base-constraint.txt
+    #   httpcore
+    #   httpx
     #   requests
     #   selenium
 cffi==1.17.1
@@ -171,6 +192,11 @@ dill==0.4.0
     # via pylint
 distlib==0.3.8
     # via virtualenv
+distro==1.9.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   anthropic
+    #   openai
 dnspython==2.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -189,6 +215,14 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   openpyxl
+exceptiongroup==1.3.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   anyio
+    #   cattrs
+    #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -296,6 +330,7 @@ google-auth==2.40.3
     #   google-auth-oauthlib
     #   google-cloud-bigquery
     #   google-cloud-core
+    #   google-genai
     #   pandas-gbq
     #   pydata-google-auth
     #   shillelagh
@@ -315,6 +350,10 @@ google-cloud-core==2.4.1
     # via google-cloud-bigquery
 google-crc32c==1.6.0
     # via google-resumable-media
+google-genai==1.28.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 google-resumable-media==2.7.2
     # via google-cloud-bigquery
 googleapis-common-protos==1.66.0
@@ -327,7 +366,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -342,6 +380,7 @@ gunicorn==23.0.0
 h11==0.16.0
     # via
     #   -c requirements/base-constraint.txt
+    #   httpcore
     #   wsproto
 hashids==1.3.1
     # via
@@ -352,6 +391,16 @@ holidays==0.25
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   prophet
+httpcore==1.0.9
+    # via
+    #   -c requirements/base-constraint.txt
+    #   httpx
+httpx==0.28.1
+    # via
+    #   -c requirements/base-constraint.txt
+    #   anthropic
+    #   google-genai
+    #   openai
 humanize==4.12.3
     # via
     #   -c requirements/base-constraint.txt
@@ -361,7 +410,9 @@ identify==2.5.36
 idna==3.10
     # via
     #   -c requirements/base-constraint.txt
+    #   anyio
     #   email-validator
+    #   httpx
     #   requests
     #   trio
     #   url-normalize
@@ -386,6 +437,11 @@ jinja2==3.1.6
     #   apache-superset-extensions-cli
     #   flask
     #   flask-babel
+jiter==0.10.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   anthropic
+    #   openai
 jsonpath-ng==1.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -452,7 +508,7 @@ marshmallow-sqlalchemy==1.4.0
     #   flask-appbuilder
 marshmallow-union==0.1.15
     # via
-    #   -c requirements/base.txt
+    #   -c requirements/base-constraint.txt
     #   apache-superset
 matplotlib==3.9.0
     # via prophet
@@ -497,6 +553,10 @@ odfpy==1.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
+openai==1.99.1
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 openapi-schema-validator==0.6.3
     # via
     #   -c requirements/base-constraint.txt
@@ -633,6 +693,16 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
+pydantic==2.11.7
+    # via
+    #   -c requirements/base-constraint.txt
+    #   anthropic
+    #   google-genai
+    #   openai
+pydantic-core==2.33.2
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pydantic
 pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
@@ -739,18 +809,24 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
+regex==2025.7.34
+    # via
+    #   -c requirements/base-constraint.txt
+    #   tiktoken
 requests==2.32.4
     # via
     #   -c requirements/base-constraint.txt
     #   docker
     #   google-api-core
     #   google-cloud-bigquery
+    #   google-genai
     #   jsonschema-path
     #   pydruid
     #   pyhive
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -812,6 +888,9 @@ slack-sdk==3.35.0
 sniffio==1.3.1
     # via
     #   -c requirements/base-constraint.txt
+    #   anthropic
+    #   anyio
+    #   openai
     #   trio
 sortedcontainers==2.4.0
     # via
@@ -842,6 +921,10 @@ sqlglot==27.3.0
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
+sqlparse==0.5.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 sshtunnel==0.4.0
     # via
     #   -c requirements/base-constraint.txt
@@ -852,11 +935,27 @@ tabulate==0.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+tenacity==8.5.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   google-genai
+tiktoken==0.10.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
+tomli==2.2.1
+    # via
+    #   apache-superset-extensions-cli
+    #   coverage
+    #   pylint
+    #   pytest
 tomlkit==0.13.3
     # via pylint
 tqdm==4.67.1
     # via
+    #   -c requirements/base-constraint.txt
     #   cmdstanpy
+    #   openai
     #   prophet
 trino==0.330.0
     # via apache-superset
@@ -873,13 +972,27 @@ typing-extensions==4.14.0
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
+    #   anthropic
+    #   anyio
     #   apache-superset
+    #   astroid
     #   cattrs
+    #   exceptiongroup
+    #   google-genai
     #   limits
+    #   openai
+    #   pydantic
+    #   pydantic-core
     #   pyopenssl
     #   referencing
+    #   rich
     #   selenium
     #   shillelagh
+    #   typing-inspection
+typing-inspection==0.4.1
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pydantic
 tzdata==2025.2
     # via
     #   -c requirements/base-constraint.txt
@@ -919,6 +1032,10 @@ websocket-client==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
+websockets==15.0.1
+    # via
+    #   -c requirements/base-constraint.txt
+    #   google-genai
 werkzeug==3.1.3
     # via
     #   -c requirements/base-constraint.txt

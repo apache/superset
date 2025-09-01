@@ -16,369 +16,452 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import fetchMock from 'fetch-mock';
 import {
-  act,
-  defaultStore as store,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
-import { api } from 'src/hooks/apiResources/queryApi';
-import { EmptyState } from '@superset-ui/core/components';
-import { DatabaseSelector } from '.';
-import type { DatabaseSelectorProps } from './types';
+  ReactNode,
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
+import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
+import rison from 'rison';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  useCatalogs,
+  CatalogOption,
+  useSchemas,
+  SchemaOption,
+} from 'src/hooks/apiResources';
+import {
+  Select,
+  AsyncSelect,
+  Label,
+  FormLabel,
+  LabeledValue as AntdLabeledValue,
+} from '@superset-ui/core/components';
 
-const createProps = (): DatabaseSelectorProps => ({
-  db: {
-    id: 1,
-    database_name: 'test',
-    backend: 'test-postgresql',
-  },
-  formMode: false,
-  isDatabaseSelectEnabled: true,
-  readOnly: false,
-  catalog: null,
-  schema: 'public',
-  sqlLabMode: true,
-  getDbList: jest.fn(),
-  handleError: jest.fn(),
-  onDbChange: jest.fn(),
-  onSchemaChange: jest.fn(),
-});
+import { ErrorMessageWithStackTrace } from 'src/components';
+import type {
+  DatabaseSelectorProps,
+  DatabaseValue,
+  DatabaseObject,
+} from './types';
 
-const fakeDatabaseApiResult = {
-  count: 2,
-  description_columns: {},
-  ids: [1, 2],
-  label_columns: {
-    allow_file_upload: 'Allow Csv Upload',
-    allow_ctas: 'Allow Ctas',
-    allow_cvas: 'Allow Cvas',
-    allow_dml: 'Allow DDL and DML',
-    allow_run_async: 'Allow Run Async',
-    allows_cost_estimate: 'Allows Cost Estimate',
-    allows_subquery: 'Allows Subquery',
-    allows_virtual_table_explore: 'Allows Virtual Table Explore',
-    disable_data_preview: 'Disables SQL Lab Data Preview',
-    disable_drill_to_detail: 'Disable Drill To Detail',
-    backend: 'Backend',
-    changed_on: 'Changed On',
-    changed_on_delta_humanized: 'Changed On Delta Humanized',
-    'created_by.first_name': 'Created By First Name',
-    'created_by.last_name': 'Created By Last Name',
-    database_name: 'Database Name',
-    explore_database_id: 'Explore Database Id',
-    expose_in_sqllab: 'Expose In Sqllab',
-    force_ctas_schema: 'Force Ctas Schema',
-    id: 'Id',
-  },
-  list_columns: [
-    'allow_file_upload',
-    'allow_ctas',
-    'allow_cvas',
-    'allow_dml',
-    'allow_run_async',
-    'allows_cost_estimate',
-    'allows_subquery',
-    'allows_virtual_table_explore',
-    'disable_data_preview',
-    'disable_drill_to_detail',
-    'backend',
-    'changed_on',
-    'changed_on_delta_humanized',
-    'created_by.first_name',
-    'created_by.last_name',
-    'database_name',
-    'explore_database_id',
-    'expose_in_sqllab',
-    'force_ctas_schema',
-    'id',
-  ],
-  list_title: 'List Database',
-  order_columns: [
-    'allow_file_upload',
-    'allow_dml',
-    'allow_run_async',
-    'changed_on',
-    'changed_on_delta_humanized',
-    'created_by.first_name',
-    'database_name',
-    'expose_in_sqllab',
-  ],
-  result: [
-    {
-      allow_file_upload: false,
-      allow_ctas: false,
-      allow_cvas: false,
-      allow_dml: false,
-      allow_run_async: false,
-      allows_cost_estimate: null,
-      allows_subquery: true,
-      allows_virtual_table_explore: true,
-      disable_data_preview: false,
-      disable_drill_to_detail: false,
-      backend: 'postgresql',
-      changed_on: '2021-03-09T19:02:07.141095',
-      changed_on_delta_humanized: 'a day ago',
-      created_by: null,
-      database_name: 'test-postgres',
-      explore_database_id: 1,
-      expose_in_sqllab: true,
-      force_ctas_schema: null,
-      id: 1,
-    },
-    {
-      allow_csv_upload: false,
-      allow_ctas: false,
-      allow_cvas: false,
-      allow_dml: false,
-      allow_run_async: false,
-      allows_cost_estimate: null,
-      allows_subquery: true,
-      allows_virtual_table_explore: true,
-      disable_data_preview: false,
-      disable_drill_to_detail: false,
-      backend: 'mysql',
-      changed_on: '2021-03-09T19:02:07.141095',
-      changed_on_delta_humanized: 'a day ago',
-      created_by: null,
-      database_name: 'test-mysql',
-      explore_database_id: 1,
-      expose_in_sqllab: true,
-      force_ctas_schema: null,
-      id: 2,
-    },
-  ],
-};
+const DatabaseSelectorWrapper = styled.div`
+  ${({ theme }) => `
+    .refresh {
+      display: flex;
+      align-items: center;
+      width: 30px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-top: ${theme.sizeUnit * 5}px;
+    }
 
-const fakeDatabaseApiResultInReverseOrder = {
-  ...fakeDatabaseApiResult,
-  ids: [2, 1],
-  result: [...fakeDatabaseApiResult.result].reverse(),
-};
+    .section {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
 
-const fakeSchemaApiResult = {
-  count: 2,
-  result: ['information_schema', 'public'],
-};
+    .select {
+      width: calc(100% - 30px - ${theme.sizeUnit}px);
+      flex: 1;
+    }
 
-const fakeCatalogApiResult = {
-  count: 0,
-  result: [],
-};
+    & > div {
+      margin-bottom: ${theme.sizeUnit * 4}px;
+    }
+  `}
+`;
 
-const fakeFunctionNamesApiResult = {
-  function_names: [],
-};
+const LabelStyle = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-left: ${({ theme }) => theme.sizeUnit - 2}px;
 
-const databaseApiRoute =
-  'glob:*/api/v1/database/?*order_column:database_name,order_direction*';
-const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
-const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
-const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
+  .backend {
+    overflow: visible;
+  }
 
-function setupFetchMock() {
-  fetchMock.get(databaseApiRoute, fakeDatabaseApiResult);
-  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
-  fetchMock.get(schemaApiRoute, fakeSchemaApiResult);
-  fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+const SelectLabel = ({
+  backend,
+  databaseName,
+}: {
+  backend?: string;
+  databaseName: string;
+}) => (
+  <LabelStyle>
+    <Label className="backend">{backend || ''}</Label>
+    <span className="name" title={databaseName}>
+      {databaseName}
+    </span>
+  </LabelStyle>
+);
+
+const EMPTY_CATALOG_OPTIONS: CatalogOption[] = [];
+const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
+
+interface AntdLabeledValueWithOrder extends AntdLabeledValue {
+  order: number;
 }
 
-beforeEach(() => {
-  setupFetchMock();
-});
-
-afterEach(() => {
-  fetchMock.reset();
-  act(() => {
-    store.dispatch(api.util.resetApiState());
-  });
-});
-
-test('Should render', async () => {
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
-});
-
-test('Refresh should work', async () => {
-  const props = createProps();
-
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-
-  expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
-
-  const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: public',
-  });
-
-  await userEvent.click(select);
-
-  await waitFor(() => {
-    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
-    expect(props.handleError).toHaveBeenCalledTimes(0);
-    expect(props.onDbChange).toHaveBeenCalledTimes(0);
-    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
-  });
-
-  // click schema reload
-  await userEvent.click(screen.getByRole('button', { name: 'sync' }));
-
-  await waitFor(() => {
-    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
-    expect(props.handleError).toHaveBeenCalledTimes(0);
-    expect(props.onDbChange).toHaveBeenCalledTimes(0);
-    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
-  });
-});
-
-test('Should database select display options', async () => {
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  expect(await screen.findByText('test-mysql')).toBeInTheDocument();
-});
-
-test('should display options in order of the api response', async () => {
-  fetchMock.get(databaseApiRoute, fakeDatabaseApiResultInReverseOrder, {
-    overwriteRoutes: true,
-  });
-  const props = createProps();
-  render(<DatabaseSelector {...props} db={undefined} />, {
-    useRedux: true,
-    store,
-  });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  const options = await screen.findAllByRole('option');
-
-  expect(options[0]).toHaveTextContent(
-    `${fakeDatabaseApiResultInReverseOrder.result[0].id}`,
+export function DatabaseSelector({
+  db,
+  formMode = false,
+  emptyState,
+  getDbList,
+  handleError,
+  isDatabaseSelectEnabled = true,
+  onDbChange,
+  onEmptyResults,
+  onCatalogChange,
+  catalog,
+  onSchemaChange,
+  schema,
+  readOnly = false,
+  sqlLabMode = false,
+  schemaSelectMode = 'single',
+}: DatabaseSelectorProps) {
+  const showCatalogSelector = !!db?.allow_multi_catalog;
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
+  const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
+  const [currentCatalog, setCurrentCatalog] = useState<
+    CatalogOption | null | undefined
+  >(catalog ? { label: catalog, value: catalog, title: catalog } : undefined);
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
+  const [currentSchema, setCurrentSchema] = useState<
+    SchemaOption | SchemaOption[] | undefined
+  >(undefined);
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
+  const { addSuccessToast } = useToasts();
+  const sortComparator = useCallback(
+    (itemA: AntdLabeledValueWithOrder, itemB: AntdLabeledValueWithOrder) =>
+      itemA.order - itemB.order,
+    [],
   );
-  expect(options[1]).toHaveTextContent(
-    `${fakeDatabaseApiResultInReverseOrder.result[1].id}`,
-  );
-});
 
-test('Should fetch the search keyword when total count exceeds initial options', async () => {
-  fetchMock.get(
-    databaseApiRoute,
-    {
-      ...fakeDatabaseApiResult,
-      count: fakeDatabaseApiResult.result.length + 1,
+  useEffect(() => {
+    if (schemaSelectMode === 'single') {
+      setCurrentSchema(
+        schema && !Array.isArray(schema)
+          ? { label: schema, value: schema, title: schema }
+          : undefined,
+      );
+    } else {
+      setCurrentSchema(
+        Array.isArray(schema)
+          ? schema.map(schema => ({
+              label: schema,
+              value: schema,
+              title: schema,
+            }))
+          : typeof schema === 'string' && schema
+            ? [{ label: schema, value: schema, title: schema }]
+            : [],
+      );
+    }
+  }, [schema]);
+
+  const loadDatabases = useMemo(
+    () =>
+      async (
+        search: string,
+        page: number,
+        pageSize: number,
+      ): Promise<{
+        data: DatabaseValue[];
+        totalCount: number;
+      }> => {
+        const queryParams = rison.encode({
+          order_column: 'database_name',
+          order_direction: 'asc',
+          page,
+          page_size: pageSize,
+          ...(formMode || !sqlLabMode
+            ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
+            : {
+                filters: [
+                  { col: 'database_name', opr: 'ct', value: search },
+                  {
+                    col: 'expose_in_sqllab',
+                    opr: 'eq',
+                    value: true,
+                  },
+                ],
+              }),
+        });
+        const endpoint = `/api/v1/database/?q=${queryParams}`;
+        return SupersetClient.get({ endpoint }).then(({ json }) => {
+          const { result, count } = json;
+          if (getDbList) {
+            getDbList(result);
+          }
+          if (result.length === 0) {
+            if (onEmptyResults) onEmptyResults(search);
+          }
+
+          const options = result.map((row: DatabaseObject, order: number) => ({
+            label: (
+              <SelectLabel
+                backend={row.backend}
+                databaseName={row.database_name}
+              />
+            ),
+            value: row.id,
+            id: `${row.backend}-${row.database_name}-${row.id}`,
+            database_name: row.database_name,
+            backend: row.backend,
+            allow_multi_catalog: row.allow_multi_catalog,
+            order,
+          }));
+
+          return {
+            data: options,
+            totalCount: count ?? options.length,
+          };
+        });
+      },
+    [formMode, getDbList, sqlLabMode, onEmptyResults],
+  );
+
+  useEffect(() => {
+    setCurrentDb(current =>
+      current?.id !== db?.id
+        ? db
+          ? {
+              label: (
+                <SelectLabel
+                  backend={db.backend}
+                  databaseName={db.database_name}
+                />
+              ),
+              value: db.id,
+              ...db,
+            }
+          : undefined
+        : current,
+    );
+  }, [db]);
+
+  function changeSchema(schema?: SchemaOption | SchemaOption[]) {
+    setCurrentSchema(schema);
+    if (Array.isArray(schema)) {
+      const schema_values = schema.map(schema => schema.value);
+      if (onSchemaChange && schema_values !== schemaRef.current) {
+        onSchemaChange(schema_values);
+      }
+    } else {
+      onSchemaChange && onSchemaChange(schema?.value);
+    }
+  }
+
+  const {
+    currentData: schemaData,
+    isFetching: loadingSchemas,
+    refetch: refetchSchemas,
+  } = useSchemas({
+    dbId: currentDb?.value,
+    catalog: currentCatalog?.value,
+    onSuccess: (schemas, isFetched) => {
+      setErrorPayload(null);
+      if (schemas.length === 1) {
+        changeSchema(schemas[0]);
+      } else if (
+        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+      ) {
+        changeSchema(undefined);
+      }
+
+      if (isFetched) {
+        addSuccessToast('List refreshed');
+      }
     },
-    { overwriteRoutes: true },
-  );
+    onError: error => {
+      if (error?.errors) {
+        setErrorPayload(error?.errors?.[0]);
+      } else {
+        handleError(t('There was an error loading the schemas'));
+      }
+    },
+  });
 
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  await waitFor(() =>
-    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1),
-  );
-  expect(select).toBeInTheDocument();
-  await userEvent.type(select, 'keywordtest');
-  await waitFor(() =>
-    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2),
-  );
-  expect(fetchMock.calls(databaseApiRoute)[1][0]).toContain('keywordtest');
-});
+  const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
 
-test('should show empty state if there are no options', async () => {
-  fetchMock.reset();
-  fetchMock.get(databaseApiRoute, { result: [] });
-  fetchMock.get(schemaApiRoute, { result: [] });
-  fetchMock.get(tablesApiRoute, { result: [] });
-  const props = createProps();
-  render(
-    <DatabaseSelector
-      {...props}
-      db={undefined}
-      emptyState={<EmptyState size="small" title="empty" />}
-    />,
-    { useRedux: true, store },
+  function changeCatalog(catalog: CatalogOption | null | undefined) {
+    setCurrentCatalog(catalog);
+    setCurrentSchema(schemaSelectMode === 'single' ? undefined : []);
+    if (onCatalogChange && catalog?.value !== catalogRef.current) {
+      onCatalogChange(catalog?.value);
+    }
+  }
+
+  const {
+    data: catalogData,
+    isFetching: loadingCatalogs,
+    refetch: refetchCatalogs,
+  } = useCatalogs({
+    dbId: showCatalogSelector ? currentDb?.value : undefined,
+    onSuccess: (catalogs, isFetched) => {
+      setErrorPayload(null);
+      if (!showCatalogSelector) {
+        changeCatalog(null);
+      } else if (catalogs.length === 1) {
+        changeCatalog(catalogs[0]);
+      } else if (
+        !catalogs.find(
+          catalogOption => catalogRef.current === catalogOption.value,
+        )
+      ) {
+        changeCatalog(undefined);
+      }
+
+      if (showCatalogSelector && isFetched) {
+        addSuccessToast('List refreshed');
+      }
+    },
+    onError: error => {
+      if (showCatalogSelector) {
+        if (error?.errors) {
+          setErrorPayload(error?.errors?.[0]);
+        } else {
+          handleError(t('There was an error loading the catalogs'));
+        }
+      }
+    },
+  });
+
+  const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+
+  function changeDatabase(
+    value: { label: string; value: number },
+    database: DatabaseValue,
+  ) {
+    // the database id is actually stored in the value property; the ID is used
+    // for the DOM, so it can't be an integer
+    const databaseWithId = { ...database, id: database.value };
+    setCurrentDb(databaseWithId);
+    setCurrentCatalog(undefined);
+    setCurrentSchema(schemaSelectMode === 'single' ? undefined : []);
+    if (onDbChange) {
+      onDbChange(databaseWithId);
+    }
+    if (onCatalogChange) {
+      onCatalogChange(undefined);
+    }
+    if (onSchemaChange) {
+      onSchemaChange(schemaSelectMode === 'single' ? undefined : []);
+    }
+  }
+
+  function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
+    return (
+      <div className="section">
+        <span className="select">{select}</span>
+        <span className="refresh">{refreshBtn}</span>
+      </div>
+    );
+  }
+
+  function renderDatabaseSelect() {
+    return renderSelectRow(
+      <AsyncSelect
+        ariaLabel={t('Select database or type to search databases')}
+        optionFilterProps={['database_name', 'value']}
+        data-test="select-database"
+        header={<FormLabel>{t('Database')}</FormLabel>}
+        lazyLoading={false}
+        notFoundContent={emptyState}
+        onChange={changeDatabase}
+        value={currentDb}
+        placeholder={t('Select database or type to search databases')}
+        disabled={!isDatabaseSelectEnabled || readOnly}
+        options={loadDatabases}
+        sortComparator={sortComparator}
+      />,
+      null,
+    );
+  }
+
+  function renderCatalogSelect() {
+    const refreshIcon = !readOnly && (
+      <RefreshLabel
+        onClick={refetchCatalogs}
+        tooltipContent={t('Force refresh catalog list')}
+      />
+    );
+    return renderSelectRow(
+      <Select
+        ariaLabel={t('Select catalog or type to search catalogs')}
+        disabled={!currentDb || readOnly}
+        header={<FormLabel>{t('Catalog')}</FormLabel>}
+        labelInValue
+        loading={loadingCatalogs}
+        name="select-catalog"
+        notFoundContent={t('No compatible catalog found')}
+        placeholder={t('Select catalog or type to search catalogs')}
+        onChange={item => changeCatalog(item as CatalogOption)}
+        options={catalogOptions}
+        showSearch
+        value={currentCatalog || undefined}
+        allowClear
+      />,
+      refreshIcon,
+    );
+  }
+
+  function renderSchemaSelect() {
+    const refreshIcon = !readOnly && (
+      <RefreshLabel
+        onClick={refetchSchemas}
+        tooltipContent={t('Force refresh schema list')}
+      />
+    );
+    return renderSelectRow(
+      <Select
+        ariaLabel={t('Select schema or type to search schemas')}
+        disabled={!currentDb || readOnly}
+        header={<FormLabel>{t('Schema')}</FormLabel>}
+        labelInValue
+        loading={loadingSchemas}
+        name="select-schema"
+        notFoundContent={t('No compatible schema found')}
+        placeholder={t('Select schema or type to search schemas')}
+        onChange={items => changeSchema(items as SchemaOption[])}
+        options={schemaOptions}
+        showSearch
+        value={currentSchema}
+        allowClear
+        mode={schemaSelectMode}
+      />,
+      refreshIcon,
+    );
+  }
+
+  function renderError() {
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : null;
+  }
+
+  return (
+    <DatabaseSelectorWrapper data-test="DatabaseSelector">
+      {renderDatabaseSelect()}
+      {renderError()}
+      {showCatalogSelector && renderCatalogSelect()}
+      {renderSchemaSelect()}
+    </DatabaseSelectorWrapper>
   );
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  await userEvent.click(select);
-  const emptystate = await screen.findByText('empty');
-  expect(emptystate).toBeInTheDocument();
-  expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
-});
+}
 
-test('Should schema select display options', async () => {
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: public',
-  });
-  expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-  });
-  const publicOption = await screen.findByRole('option', { name: 'public' });
-  expect(publicOption).toBeInTheDocument();
-
-  const infoSchemaOption = await screen.findByRole('option', {
-    name: 'information_schema',
-  });
-  expect(infoSchemaOption).toBeInTheDocument();
-});
-
-test('Sends the correct db when changing the database', async () => {
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  await userEvent.click(await screen.findByText('test-mysql'));
-  await waitFor(() =>
-    expect(props.onDbChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        value: 2,
-        database_name: 'test-mysql',
-        backend: 'mysql',
-      }),
-    ),
-  );
-});
-
-test('Sends the correct schema when changing the schema', async () => {
-  const props = createProps();
-  const { rerender } = render(<DatabaseSelector {...props} db={null} />, {
-    useRedux: true,
-    store,
-  });
-  await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
-  rerender(<DatabaseSelector {...props} />);
-  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
-  const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: public',
-  });
-  expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  const schemaOption = await screen.findByText('information_schema');
-  await userEvent.click(schemaOption);
-  await waitFor(() =>
-    expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
-  );
-  expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
-});
+export type { DatabaseObject };

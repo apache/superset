@@ -268,6 +268,10 @@ export default function getInitialState({
       unsavedQueryEditor,
       lastUpdatedActiveTab,
       destroyedQueryEditors,
+      queryGenerator: {
+        isGeneratingQuery: false,
+        prompt: '',
+      },
     },
     localStorageUsageInKilobytes: 0,
     common,
