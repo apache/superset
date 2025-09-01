@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable */
+/* eslint-disable no-param-reassign, no-plusplus, no-restricted-syntax */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,7 +29,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 
 const isRef = s => !!s && typeof s === 'object' && '$ref' in s;
 const asSchema = s =>
