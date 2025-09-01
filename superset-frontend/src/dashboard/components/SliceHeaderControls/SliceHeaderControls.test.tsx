@@ -20,7 +20,7 @@
 import { KeyboardEvent, ReactElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { Menu } from 'src/components/Menu';
 import SliceHeaderControls, {
@@ -282,6 +282,26 @@ test('Should "Force refresh"', () => {
   expect(props.forceRefresh).toBeCalledTimes(1);
   expect(props.forceRefresh).toBeCalledWith(371, 26);
   expect(props.addSuccessToast).toBeCalledTimes(1);
+});
+
+test('Should hide "Force refresh" when feature flag is disabled', () => {
+  // Mock the feature flag to be disabled
+  jest.spyOn(require('@superset-ui/core'), 'isFeatureEnabled').mockReturnValue(false);
+  
+  const props = createProps();
+  renderWrapper(props);
+  
+  // Open the dropdown menu
+  userEvent.click(screen.getByRole('button', { name: 'More Options' }));
+  
+  // Verify Force refresh option is not present
+  expect(screen.queryByText('Force refresh')).not.toBeInTheDocument();
+  
+  // Verify other menu items are still present
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  
+  // Restore the mock
+  jest.restoreAllMocks();
 });
 
 test('Should "Enter fullscreen"', () => {
