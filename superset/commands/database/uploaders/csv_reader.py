@@ -207,10 +207,9 @@ class CSVReader(BaseDataReader):
                         error_msg += (
                             f" Value: '{invalid_value}'" if invalid_value else ""
                         )
-                        mask = df[column] == invalid_value
-                        if mask.any() and invalid_value:
-                            line_number = mask.idxmax() + kwargs.get("header", 0) + 1
-                            error_msg += f", line: {line_number}."
+                        invalid_idx = df.index[df[column] == invalid_value][0]
+                        line_number = invalid_idx + kwargs.get("header", 0) + 1
+                        error_msg += f", line: {line_number}."
                         raise DatabaseUploadFailed(message=error_msg) from ex
             return df
         except DatabaseUploadFailed:
