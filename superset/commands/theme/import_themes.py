@@ -32,7 +32,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | None":
+def import_theme(config: dict[str, Any], overwrite: bool = False) -> Theme | None:
     """Import a single theme from config dictionary"""
     from superset import db, security_manager
     from superset.models.core import Theme

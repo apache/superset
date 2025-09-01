@@ -299,12 +299,9 @@ class SupersetTestCase(TestCase):
     #
     # - upsert_* methods: UPDATE existing objects with new data (true upsert)
     # - get_or_create_* methods: RETURN existing objects unchanged
-    # - cleanup_test_objects_by_prefix: CLEAN UP test objects by name patterns
     #
     # Usage Example:
     #   class TestMyFeature(SupersetTestCase):
-    #       def setUp(self):
-    #           self.cleanup_test_objects_by_prefix("test_myfeature_")
     #
     #       def test_create_chart(self):
     #           # Instead of hardcoded name that might exist:
@@ -312,11 +309,7 @@ class SupersetTestCase(TestCase):
     #
     #           # Use idempotent helper:
     #           chart_data = {"slice_name": "test_myfeature_unique_chart", ...}
-    #           # Or even better, ensure it doesn't exist first:
-    #           self.cleanup_test_objects_by_prefix("test_myfeature_unique_")
-    #
-    #       def tearDown(self):
-    #           self.cleanup_test_objects_by_prefix("test_myfeature_")
+    #           # Or use unique identifiers to avoid conflicts
     # ============================================================================
 
     def upsert_dashboard_by_slug(self, slug: str, **kwargs):
@@ -451,39 +444,6 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             models.Database, {"database_name": database_name}, **kwargs
         )
-
-    def cleanup_test_objects_by_prefix(self, *prefixes: str):
-        """Clean up test objects by name prefixes to ensure test idempotency
-
-        Args:
-            *prefixes: Name prefixes to clean up (defaults to "test_", "Test ")
-
-        Example:
-            # In setUp/tearDown methods:
-            self.cleanup_test_objects_by_prefix("test_myfeature_", "temp_")
-        """
-        if not prefixes:
-            prefixes = ("test_", "Test ")
-
-        for prefix in prefixes:
-            # Clean dashboards
-            db.session.query(Dashboard).filter(
-                Dashboard.dashboard_title.like(f"{prefix}%")
-            ).delete(synchronize_session=False)
-
-            # Clean charts
-            db.session.query(Slice).filter(Slice.slice_name.like(f"{prefix}%")).delete(
-                synchronize_session=False
-            )
-
-            # Clean databases (excluding examples)
-            db.session.query(models.Database).filter(
-                models.Database.database_name.like(f"{prefix}%")
-            ).filter(~models.Database.database_name.like("examples%")).delete(
-                synchronize_session=False
-            )
-
-        db.session.commit()
 
     def login(self, username, password=DEFAULT_PASSWORD):
         return login(self.client, username, password)
