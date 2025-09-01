@@ -94,9 +94,7 @@ class AnthropicLlm(BaseLlm):
             logger.error(f"Model not set for database {self.pk}.")
             return
 
-        logger.info(
-            f"Using API key {llm_api_key} and model {llm_model} for database {self.pk}"
-        )
+        logger.info(f"Using model {llm_model} for database {self.pk}")
 
         user_instructions = db.llm_context_options.instructions
         client = anthropic.Anthropic(api_key=llm_api_key)
