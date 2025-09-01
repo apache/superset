@@ -683,12 +683,21 @@ const RightMenu = ({
           flex-direction: row;
           align-items: center;
 
+          /* Remove the underline from menu items */
+          .ant-menu-item:after,
+          .ant-menu-submenu:after {
+            content: none !important;
+          }
+
           .submenu-with-caret {
-            padding: 0 ${theme.paddingSM}px;
+            padding: 0 ${theme.sizeUnit}px;
             .ant-menu-submenu-title {
               display: flex;
               gap: ${theme.sizeUnit * 2}px;
               flex-direction: row-reverse;
+            }
+            &.ant-menu-submenu::after {
+              inset-inline: ${theme.sizeUnit}px;
             }
           }
         `}

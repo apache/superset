@@ -114,7 +114,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.8.0
+flask-appbuilder==4.8.1
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -158,6 +158,7 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -219,10 +220,13 @@ marshmallow==3.26.1
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
+    #   marshmallow-union
 marshmallow-sqlalchemy==1.4.0
     # via
     #   -r requirements/base.in
     #   flask-appbuilder
+marshmallow-union==0.1.15
+    # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.0.8
@@ -239,6 +243,7 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
+    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openapi-schema-validator==0.6.3

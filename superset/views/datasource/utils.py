@@ -54,7 +54,7 @@ def get_samples(  # pylint: disable=too-many-arguments
 ) -> dict[str, Any]:
     datasource = DatasourceDAO.get_datasource(
         datasource_type=datasource_type,
-        datasource_id=datasource_id,
+        database_id_or_uuid=str(datasource_id),
     )
 
     limit_clause = get_limit_clause(page, per_page)

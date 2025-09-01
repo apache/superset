@@ -365,7 +365,6 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        size: 'xxl',
         id: 'slice_name',
       },
       {
@@ -376,7 +375,6 @@ function ChartList(props: ChartListProps) {
         }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Type'),
         accessor: 'viz_type',
-        size: 'lg',
         id: 'viz_type',
       },
       {
@@ -398,7 +396,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'lg',
+        size: 'xl',
         id: 'datasource_id',
       },
       {
@@ -433,7 +431,6 @@ function ChartList(props: ChartListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
       },
@@ -546,6 +543,7 @@ function ChartList(props: ChartListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        size: 'lg',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },

@@ -18,20 +18,39 @@
 
 [project]
 name = "apache-superset-core"
-version = "0.0.1"
-description = "Common components for Apache Superset"
+version = "0.0.1rc1"
+description = "Core Python package for building Apache Superset backend extensions and integrations"
+readme = "README.md"
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
 license = { file="LICENSE.txt" }
 requires-python = ">=3.10"
+keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "flask-appbuilder>=4.5.3, <5.0.0",
 ]
+
+[project.urls]
+Homepage = "https://superset.apache.org/"
+Documentation = "https://superset.apache.org/docs/"
+Repository = "https://github.com/apache/superset"
+"Bug Tracker" = "https://github.com/apache/superset/issues"
+Changelog = "https://github.com/apache/superset/blob/master/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=76.0.0", "wheel"]
