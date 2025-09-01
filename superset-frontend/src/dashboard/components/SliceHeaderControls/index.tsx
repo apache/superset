@@ -573,6 +573,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   const canViewTable = useSelector((state: RootState) =>
     findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
   );
+  const isForceRefreshEnabled = isFeatureEnabled(FeatureFlag.EnableChartForceRefresh);
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -590,8 +591,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     toggleDropdown({ close: true });
     switch (key) {
       case MenuKeys.ForceRefresh:
-        refreshChart();
-        props.addSuccessToast(t('Data refreshed'));
+        if (isForceRefreshEnabled) {
+          refreshChart();
+          props.addSuccessToast(t('Data refreshed'));
+        }
         break;
       case MenuKeys.ToggleChartDescription:
         // eslint-disable-next-line no-unused-expressions
@@ -743,17 +746,19 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       forceSubMenuRender
       {...openKeysProps}
     >
-      <Menu.Item
-        key={MenuKeys.ForceRefresh}
-        disabled={props.chartStatus === 'loading'}
-        style={{ height: 'auto', lineHeight: 'initial' }}
-        data-test="refresh-chart-menu-item"
-      >
-        {t('Force refresh')}
-        <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
-          {refreshTooltip}
-        </RefreshTooltip>
-      </Menu.Item>
+      {isForceRefreshEnabled && (
+        <Menu.Item
+          key={MenuKeys.ForceRefresh}
+          disabled={props.chartStatus === 'loading'}
+          style={{ height: 'auto', lineHeight: 'initial' }}
+          data-test="refresh-chart-menu-item"
+        >
+          {t('Force refresh')}
+          <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
+            {refreshTooltip}
+          </RefreshTooltip>
+        </Menu.Item>
+      )}
 
       <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
 
