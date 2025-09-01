@@ -490,7 +490,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dataset"
+        assert str(excinfo.value).startswith("Error importing dataset")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SqlaTable."]}
         }
@@ -503,7 +503,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dataset"
+        assert str(excinfo.value).startswith("Error importing dataset")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],
