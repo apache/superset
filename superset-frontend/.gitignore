@@ -3,3 +3,7 @@ cypress/screenshots
 cypress/videos
 src/temp
 .temp_cache/
+
+# Orval OpenAPI generation artifacts
+openapi-raw.json
+openapi-normalized.json

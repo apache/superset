@@ -35,7 +35,7 @@ import {
   handleChartDelete,
 } from 'src/views/CRUD/utils';
 import { useChartEditModal, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import { useGetCharts } from '@superset-ui/core/api';
+import { useGetCharts, useGetApiV1ChartInfo } from '@superset-ui/core/api';
 import handleResourceExport from 'src/utils/export';
 import {
   ConfirmStatusChange,
@@ -181,6 +181,11 @@ function ChartList(props: ChartListProps) {
     order_direction: sortOrder,
   });
 
+  // Fetch permissions for UI controls
+  const permissionsQuery = useGetApiV1ChartInfo({
+    q: { keys: ['permissions'] },
+  });
+
   // Extract chart data with proper typing
   const charts = (orvalQuery.data?.result || []) as Chart[];
   const chartCount = orvalQuery.data?.count || 0;
@@ -215,19 +220,17 @@ function ChartList(props: ChartListProps) {
     state => state.user,
   );
 
-  // Permissions check using user roles (same pattern as rest of component)
+  // Restore hasPerm logic from permissions API
+  const permissions = permissionsQuery.data?.permissions || [];
   const hasPerm = useCallback(
-    (perm: string) => {
-      if (!roles || !Array.isArray(roles)) return false;
-      return Boolean(
-        roles.find(role =>
-          role.permissions?.find((p: any) => p.permission_name === perm),
-        ),
-      );
-    },
-    [roles],
+    (perm: string) => Boolean(permissions.find(p => p === perm)),
+    [permissions],
   );
 
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_export');
   const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -275,10 +278,6 @@ function ChartList(props: ChartListProps) {
     addSuccessToast(t('Chart imported'));
   };
 
-  const canCreate = hasPerm('can_write');
-  const canEdit = hasPerm('can_write');
-  const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);

@@ -26,10 +26,31 @@
  */
 
 // Re-export all generated hooks and functions
-export * from '../orval-generated-code/supersetChartsAPI';
+// Custom wrapper for useGetCharts to flatten the parameter structure
+import { useGetApiV1Chart } from '../orval-generated-code/charts/charts';
+import type { GetListSchema } from '../orval-generated-code/types';
+
+export * from '../orval-generated-code/charts/charts';
 
 // Re-export all generated types (already consolidated in types/index.ts)
 export * from '../orval-generated-code/types';
 
 // Re-export custom mutator for advanced usage
 export { customInstance } from './mutator';
+
+// POC-compatible aliases for easier migration
+export {
+  usePostApiV1Chart as useCreateChart,
+  usePutApiV1ChartPk as useUpdateChart,
+  useDeleteApiV1ChartPk as useDeleteChart,
+} from '../orval-generated-code/charts/charts';
+
+export const useGetCharts = (params: GetListSchema) =>
+  // Pass params directly - the mutator will wrap them in q=rison.encode(params)
+  useGetApiV1Chart(params as any);
+
+// Type aliases for POC compatibility
+export type {
+  ChartDataRestApiPost as ChartCreatePayload,
+  ChartDataRestApiPut as ChartUpdatePayload,
+} from '../orval-generated-code/types';

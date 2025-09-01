@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,18 +21,19 @@
 
 /**
  * Normalize OpenAPI spec for orval compatibility
- * 
+ *
  * Converts Flask-AppBuilder anyOf patterns that orval can't handle
  * into oneOf patterns that work properly.
- * 
+ *
  * Usage: node scripts/normalize-openapi.js input.json output.json
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const isRef = (s) => !!s && typeof s === 'object' && '$ref' in s;
-const asSchema = (s) => s && typeof s === 'object' && !('$ref' in s) ? s : undefined;
+const isRef = s => !!s && typeof s === 'object' && '$ref' in s;
+const asSchema = s =>
+  s && typeof s === 'object' && !('$ref' in s) ? s : undefined;
 
 /**
  * Transforms anyOf patterns that orval can't handle into oneOf patterns.
@@ -40,8 +42,8 @@ const asSchema = (s) => s && typeof s === 'object' && !('$ref' in s) ? s : undef
 function normalizeOneOrMany(doc) {
   console.log('🔧 Normalizing OpenAPI spec for orval compatibility...');
   let fixCount = 0;
-  
-  const visitSchema = (sch) => {
+
+  const visitSchema = sch => {
     if (!sch || isRef(sch)) return;
 
     // Fix bare arrays missing items (common Flask-AppBuilder issue)
@@ -60,7 +62,7 @@ function normalizeOneOrMany(doc) {
     if (sch.oneOf) sch.oneOf.forEach(visitSchema);
 
     if (sch.anyOf && Array.isArray(sch.anyOf)) {
-      const anyOf = sch.anyOf;
+      const { anyOf } = sch;
       const arrayBranches = anyOf.filter(a => asSchema(a)?.type === 'array');
       const nonArray = anyOf.find(a => asSchema(a)?.type !== 'array');
 
@@ -71,9 +73,11 @@ function normalizeOneOrMany(doc) {
       });
 
       if (nonArray && hasBareArray) {
-        console.log(`🔧 Fixing anyOf pattern with ${arrayBranches.length} array branches`);
+        console.log(
+          `🔧 Fixing anyOf pattern with ${arrayBranches.length} array branches`,
+        );
         fixCount++;
-        
+
         // Replace with oneOf: [ nonArray, array(nonArray) ]
         const itemSchema = isRef(nonArray) ? nonArray : { ...nonArray };
 
@@ -97,8 +101,9 @@ function normalizeOneOrMany(doc) {
   for (const path of Object.values(doc.paths ?? {})) {
     for (const op of Object.values(path ?? {})) {
       const operation = op;
-      operation?.parameters?.forEach((p) => visitSchema(p.schema));
-      const bodySchema = operation?.requestBody?.content?.['application/json']?.schema;
+      operation?.parameters?.forEach(p => visitSchema(p.schema));
+      const bodySchema =
+        operation?.requestBody?.content?.['application/json']?.schema;
       visitSchema(bodySchema);
       const resp = operation?.responses;
       if (resp) {
@@ -110,39 +115,115 @@ function normalizeOneOrMany(doc) {
     }
   }
 
-  // Fix duplicate schema names by renaming
+  // Fix invalid TypeScript identifiers (numbers can't start names)
   const schemas = componentSchemas;
-  const nameCount = {};
+  const responses = doc.components?.responses ?? {};
   const toRename = [];
-  
-  for (const name of Object.keys(schemas)) {
-    nameCount[name] = (nameCount[name] || 0) + 1;
-    if (nameCount[name] > 1) {
-      toRename.push({ oldName: name, newName: `${name}_${nameCount[name]}` });
+
+  // Check both schemas and responses for numeric names
+  for (const name of [...Object.keys(schemas), ...Object.keys(responses)]) {
+    if (/^\d/.test(name)) {
+      // Names starting with numbers are invalid TypeScript identifiers
+      toRename.push({ oldName: name, newName: `N${name}Response` });
     }
   }
-  
+
   if (toRename.length > 0) {
-    console.log(`🔧 Fixing ${toRename.length} duplicate schema names`);
+    console.log(`🔧 Fixing ${toRename.length} invalid TypeScript names`);
     toRename.forEach(({ oldName, newName }) => {
       console.log(`  ${oldName} → ${newName}`);
-      schemas[newName] = schemas[oldName];
-      delete schemas[oldName];
+
+      // Rename in schemas if it exists
+      if (schemas[oldName]) {
+        schemas[newName] = schemas[oldName];
+        delete schemas[oldName];
+      }
+
+      // Rename in responses if it exists
+      if (responses[oldName]) {
+        responses[newName] = responses[oldName];
+        delete responses[oldName];
+      }
+
       fixCount++;
     });
+
+    // Also fix any $ref references to the renamed items
+    const updateRefs = obj => {
+      if (typeof obj === 'object' && obj !== null) {
+        for (const [key, value] of Object.entries(obj)) {
+          if (key === '$ref' && typeof value === 'string') {
+            toRename.forEach(({ oldName, newName }) => {
+              // Fix both schema and response references
+              if (value.includes(`/schemas/${oldName}`)) {
+                obj[key] = value.replace(
+                  `/schemas/${oldName}`,
+                  `/schemas/${newName}`,
+                );
+              }
+              if (value.includes(`/responses/${oldName}`)) {
+                obj[key] = value.replace(
+                  `/responses/${oldName}`,
+                  `/responses/${newName}`,
+                );
+              }
+            });
+          } else if (typeof value === 'object') {
+            updateRefs(value);
+          }
+        }
+      }
+    };
+    updateRefs(doc);
   }
 
-  // Filter to only Charts endpoints for POC
+  // Filter to Charts endpoints for POC (tags filtering didn't work)
   const chartsPaths = {};
   for (const [path, methods] of Object.entries(doc.paths ?? {})) {
     if (path.includes('/chart')) {
       chartsPaths[path] = methods;
     }
   }
-  
+
   if (Object.keys(chartsPaths).length > 0) {
-    console.log(`🎯 Filtering to Charts endpoints only: ${Object.keys(chartsPaths).length} paths`);
+    console.log(
+      `🎯 Filtering to Charts endpoints: ${Object.keys(chartsPaths).length} paths`,
+    );
     doc.paths = chartsPaths;
+    fixCount++;
+  }
+
+  // Handle known orval duplicate issues
+  const allSchemas = doc.components?.schemas ?? {};
+
+  // Rename potentially problematic schema to avoid orval conflicts
+  if (allSchemas.GetFavStarIdsSchema) {
+    console.log(
+      '🔧 Renaming GetFavStarIdsSchema to avoid orval duplicate detection',
+    );
+    allSchemas.FavoriteIdsSchema = allSchemas.GetFavStarIdsSchema;
+    delete allSchemas.GetFavStarIdsSchema;
+
+    // Update all references
+    const updateRefs = obj => {
+      if (typeof obj === 'object' && obj !== null) {
+        for (const [key, value] of Object.entries(obj)) {
+          if (
+            key === '$ref' &&
+            typeof value === 'string' &&
+            value.includes('GetFavStarIdsSchema')
+          ) {
+            obj[key] = value.replace(
+              'GetFavStarIdsSchema',
+              'FavoriteIdsSchema',
+            );
+          } else if (typeof value === 'object') {
+            updateRefs(value);
+          }
+        }
+      }
+    };
+    updateRefs(doc);
     fixCount++;
   }
 
@@ -151,7 +232,7 @@ function normalizeOneOrMany(doc) {
 }
 
 // Main script
-const [,, inputFile, outputFile] = process.argv;
+const [, , inputFile, outputFile] = process.argv;
 
 if (!inputFile || !outputFile) {
   console.error('Usage: node normalize-openapi.js <input.json> <output.json>');
@@ -161,12 +242,12 @@ if (!inputFile || !outputFile) {
 try {
   console.log(`📖 Reading ${inputFile}...`);
   const spec = JSON.parse(fs.readFileSync(inputFile, 'utf8'));
-  
+
   const normalizedSpec = normalizeOneOrMany(spec);
-  
+
   console.log(`💾 Writing normalized spec to ${outputFile}...`);
   fs.writeFileSync(outputFile, JSON.stringify(normalizedSpec, null, 2));
-  
+
   console.log('🎉 OpenAPI normalization successful!');
 } catch (error) {
   console.error('❌ Error normalizing OpenAPI spec:', error.message);

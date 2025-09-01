@@ -49,7 +49,7 @@ repos:
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$|^superset-frontend/openapi-raw\.json$|^docs/static/resources/openapi\.json$|^superset/static/openapi\.json$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements

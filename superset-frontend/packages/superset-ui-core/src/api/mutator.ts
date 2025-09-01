@@ -34,6 +34,7 @@ interface CustomRequestConfig extends RequestInit {
   url: string;
   params?: Record<string, any>;
   data?: any;
+  responseType?: 'blob' | 'text' | 'json';
 }
 
 /**
@@ -124,9 +125,21 @@ export const customInstance = async <T>(
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
-  // Return parsed response
+  // Return parsed response based on responseType or content-type
+  if (config.responseType === 'blob') {
+    return response.blob() as T;
+  }
+
+  if (config.responseType === 'text') {
+    return response.text() as T;
+  }
+
+  // Default JSON handling
   const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
+  if (
+    contentType?.includes('application/json') ||
+    config.responseType === 'json'
+  ) {
     return response.json();
   }
 

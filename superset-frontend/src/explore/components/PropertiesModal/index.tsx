@@ -46,12 +46,13 @@ import {
   useModalValidation,
 } from 'src/components/Modal';
 import { useUpdateChart, type ChartUpdatePayload } from '@superset-ui/core/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
   onHide: () => void;
-  onSave: (chart: Chart) => void;
+  onSave: (chart: Chart) => void; // TODO: Update to use generated ChartRestApiPut type
   permissionsError?: string;
   existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
@@ -66,8 +67,19 @@ function PropertiesModal({
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
-  // 🚀 ORVAL POC: TanStack Query mutation hook
-  const updateChartMutation = useUpdateChart();
+  // 🚀 ORVAL POC: TanStack Query mutation hook with cache invalidation
+  const queryClient = useQueryClient();
+  const updateChartMutation = useUpdateChart({
+    mutation: {
+      onSuccess: () => {
+        // Invalidate all chart list queries (the standard TanStack Query pattern)
+        queryClient.invalidateQueries({
+          queryKey: ['/api/v1/chart/'],
+          exact: false, // This invalidates all queries that start with this key
+        });
+      },
+    },
+  });
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
@@ -211,33 +223,54 @@ function PropertiesModal({
 
   // 🚀 ORVAL: Replace SupersetClient.put with TanStack Query mutation
   const onSubmit = async () => {
-    if (!validateAll()) return;
+    // Run validation first
+    if (!validateAll()) {
+      return;
+    }
 
     setSubmitting(true);
     const payload: ChartUpdatePayload = {
       slice_name: name || undefined,
       description: description || undefined,
       cache_timeout: cacheTimeout ? Number(cacheTimeout) : undefined,
+      certified_by: certifiedBy || undefined,
+      certification_details:
+        certifiedBy && certificationDetails ? certificationDetails : undefined,
     };
+
+    // Add owners if selected
+    if (selectedOwners) {
+      payload.owners = (
+        selectedOwners as {
+          value: number;
+          label: string;
+        }[]
+      ).map(o => o.value);
+    }
+
+    // Add tags if tagging system is enabled
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      payload.tags = tags
+        .map(tag => tag.id)
+        .filter((id): id is number => id !== undefined);
+    }
 
     try {
       // Type-safe mutation with automatic cache management!
-      const updatedChart = await updateChartMutation.mutateAsync({
+      await updateChartMutation.mutateAsync({
         pk: slice.slice_id,
         data: payload,
       });
 
-      onSave(updatedChart as any); // POC: Type conversion for demo
+      // TanStack Query automatically updates cache - no manual Redux state needed!
+      // The mutation already contains the updated data
       addSuccessToast(t('Chart properties updated'));
       onHide();
-    } catch (error) {
-      console.error('Chart update failed:', error);
-      const errorMessage =
-        error instanceof Error ? error.message : 'Update failed';
-      showError({ error: errorMessage });
-    } finally {
-      setSubmitting(false);
+    } catch (res) {
+      const clientError = await getClientErrorObject(res);
+      showError(clientError);
     }
+    setSubmitting(false);
   };
 
   const ownersLabel = t('Owners');

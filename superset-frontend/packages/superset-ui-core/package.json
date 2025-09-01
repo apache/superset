@@ -115,29 +115,29 @@
   },
   "exports": {
     ".": {
+      "types": "./lib/index.d.ts",
       "import": "./esm/index.js",
-      "require": "./lib/index.js",
-      "types": "./lib/index.d.ts"
+      "require": "./lib/index.js"
     },
     "./components/*": {
+      "types": "./lib/components/*/index.d.ts",
       "import": "./esm/components/*/index.js",
-      "require": "./lib/components/*/index.js",
-      "types": "./lib/components/*/index.d.ts"
+      "require": "./lib/components/*/index.js"
     },
     "./components": {
+      "types": "./lib/components/index.d.ts",
       "import": "./esm/components/index.js",
-      "require": "./lib/components/index.js",
-      "types": "./lib/components/index.d.ts"
+      "require": "./lib/components/index.js"
     },
     "./utils/*": {
+      "types": "./lib/utils/*.d.ts",
       "import": "./esm/utils/*.js",
-      "require": "./lib/utils/*.js",
-      "types": "./lib/utils/*.d.ts"
+      "require": "./lib/utils/*.js"
     },
     "./api": {
+      "types": "./lib/api/index.d.ts",
       "import": "./esm/api/index.js",
-      "require": "./lib/api/index.js",
-      "types": "./lib/api/index.d.ts"
+      "require": "./lib/api/index.js"
     }
   }
 }

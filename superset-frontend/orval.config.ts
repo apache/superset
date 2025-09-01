@@ -26,7 +26,7 @@ export default defineConfig({
       validation: false,
     },
     output: {
-      mode: 'split',
+      mode: 'tags-split',
       target: './packages/superset-ui-core/src/orval-generated-code',
       client: 'react-query', // 🚀 Generate TanStack Query hooks!
       schemas: './packages/superset-ui-core/src/orval-generated-code/types', // Types inside generated folder
