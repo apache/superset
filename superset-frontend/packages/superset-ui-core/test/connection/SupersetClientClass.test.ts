@@ -186,6 +186,43 @@ describe('SupersetClientClass', () => {
     });
   });
 
+  describe('.getCSRFToken()', () => {
+    afterEach(() => fetchMock.reset());
+
+    it('returns csrfToken when available', async () => {
+      expect.assertions(1);
+      const client = new SupersetClientClass({
+        protocol: 'https:',
+        host: 'CONFIG_HOST',
+      });
+
+      // Set csrfToken directly
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (client as any).csrfToken = 'test-csrf-token';
+
+      const csrfToken = await client.getCSRFToken();
+      expect(csrfToken).toEqual('test-csrf-token');
+    });
+
+    it('calls fetchCSRFToken when csrfToken is not available', async () => {
+      expect.assertions(2);
+      const client = new SupersetClientClass({
+        protocol: 'https:',
+        host: 'CONFIG_HOST',
+      });
+
+      // Mock fetchCSRFToken method
+      const fetchCSRFTokenSpy = jest.spyOn(client, 'fetchCSRFToken');
+      fetchCSRFTokenSpy.mockResolvedValue('fetched-csrf-token');
+
+      const csrfToken = await client.getCSRFToken();
+      expect(fetchCSRFTokenSpy).toHaveBeenCalledTimes(1);
+      expect(csrfToken).toEqual('fetched-csrf-token');
+
+      fetchCSRFTokenSpy.mockRestore();
+    });
+  });
+
   describe('.ensureAuth()', () => {
     it(`returns a promise that rejects if .init() has not been called`, async () => {
       expect.assertions(2);

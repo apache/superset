@@ -28,7 +28,7 @@ describe('SupersetClient', () => {
 
   afterEach(() => SupersetClient.reset());
 
-  it('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
+  it('exposes reset, configure, init, get, post, postForm, isAuthenticated, getCSRFToken, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
@@ -39,9 +39,10 @@ describe('SupersetClient', () => {
     expect(typeof SupersetClient.getGuestToken).toBe('function');
     expect(typeof SupersetClient.request).toBe('function');
     expect(typeof SupersetClient.reset).toBe('function');
+    expect(typeof SupersetClient.getCSRFToken).toBe('function');
   });
 
-  it('throws if you call init, get, post, postForm, isAuthenticated, or reAuthenticate before configure', () => {
+  it('throws if you call init, get, post, postForm, isAuthenticated, getCSRFToken, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
@@ -49,12 +50,13 @@ describe('SupersetClient', () => {
     expect(SupersetClient.isAuthenticated).toThrow();
     expect(SupersetClient.reAuthenticate).toThrow();
     expect(SupersetClient.request).toThrow();
+    expect(SupersetClient.getCSRFToken).toThrow();
     expect(SupersetClient.configure).not.toThrow();
   });
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
   it('calls appropriate SupersetClient methods when configured', async () => {
-    expect.assertions(16);
+    expect.assertions(17);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';
     const mockRequestUrl = '/mock/request/url';
@@ -84,6 +86,10 @@ describe('SupersetClient', () => {
     const getGuestTokenSpy = jest.spyOn(
       SupersetClientClass.prototype,
       'getGuestToken',
+    );
+    const getCSRFTokenSpy = jest.spyOn(
+      SupersetClientClass.prototype,
+      'getCSRFToken',
     );
 
     SupersetClient.configure({});
@@ -120,13 +126,16 @@ describe('SupersetClient', () => {
     SupersetClient.getGuestToken();
     expect(getGuestTokenSpy).toHaveBeenCalledTimes(1);
 
+    await SupersetClient.getCSRFToken();
+    expect(getCSRFTokenSpy).toHaveBeenCalledTimes(1);
+
     expect(initSpy).toHaveBeenCalledTimes(2);
     expect(deleteSpy).toHaveBeenCalledTimes(1);
     expect(putSpy).toHaveBeenCalledTimes(1);
     expect(getSpy).toHaveBeenCalledTimes(1);
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(requestSpy).toHaveBeenCalledTimes(5); // request rewires to get
-    expect(csrfSpy).toHaveBeenCalledTimes(2); // from init() + reAuthenticate()
+    expect(csrfSpy).toHaveBeenCalledTimes(3); // from init() + reAuthenticate() + getCSRFToken()
 
     initSpy.mockRestore();
     getSpy.mockRestore();
@@ -136,6 +145,8 @@ describe('SupersetClient', () => {
     postSpy.mockRestore();
     authenticatedSpy.mockRestore();
     csrfSpy.mockRestore();
+    getGuestTokenSpy.mockRestore();
+    getCSRFTokenSpy.mockRestore();
 
     fetchMock.reset();
   });
