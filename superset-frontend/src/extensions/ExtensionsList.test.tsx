@@ -54,7 +54,6 @@ const renderWithStore = (props = {}) =>
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
     initialState: mockInitialState,
   });
 

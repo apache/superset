@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import ExtensionPlaceholder from './ExtensionPlaceholder';
 
 test('renders the placeholder component with correct text', () => {
-  render(<ExtensionPlaceholder id="test-extension" />, { useTheme: true });
+  render(<ExtensionPlaceholder id="test-extension" />);
 
   expect(
     screen.getByText('The extension test-extension could not be loaded.'),
@@ -33,7 +33,7 @@ test('renders the placeholder component with correct text', () => {
 });
 
 test('renders with the empty state image', () => {
-  render(<ExtensionPlaceholder id="test-extension" />, { useTheme: true });
+  render(<ExtensionPlaceholder id="test-extension" />);
 
   // Check that the EmptyState component is rendered with the correct props
   const emptyStateContainer = screen
