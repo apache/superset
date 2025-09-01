@@ -162,7 +162,6 @@
     "mustache": "^4.2.0",
     "nanoid": "^5.0.9",
     "ol": "^7.5.2",
-    "@tanstack/react-query": "^4.40.1",
     "polished": "^4.3.1",
     "prop-types": "^15.8.1",
     "re-resizable": "^6.10.1",
@@ -349,6 +348,7 @@
     "webpack-visualizer-plugin2": "^1.2.0"
   },
   "peerDependencies": {
+    "@tanstack/react-query": "^4.40.1",
     "ace-builds": "^1.41.0",
     "core-js": "^3.38.1",
     "handlebars": "^4.7.8",
