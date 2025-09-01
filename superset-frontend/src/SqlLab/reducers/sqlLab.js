@@ -389,6 +389,7 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.query?.rows || 0,
         state: QueryState.Success,
+        executedSql: action?.results?.query?.executedSql,
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,

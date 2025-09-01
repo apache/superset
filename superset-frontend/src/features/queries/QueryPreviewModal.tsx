@@ -40,11 +40,10 @@ const QueryLabel = styled.div`
 `;
 
 const QueryViewToggle = styled.div`
-  margin: 0 0 ${({ theme }) => theme.sizeUnit * 6}px 0;
+  display: flex;
 `;
 
 const TabButton = styled.div`
-  display: inline;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   padding: ${({ theme }) => theme.sizeUnit * 2}px
     ${({ theme }) => theme.sizeUnit * 4}px;
@@ -55,9 +54,7 @@ const TabButton = styled.div`
   &:focus,
   &:hover {
     background: ${({ theme }) => theme.colorPrimaryBg};
-    border-bottom: none;
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   &:hover:not(.active) {
@@ -110,6 +107,7 @@ function QueryPreviewModal({
             <Button
               data-test="previous-query"
               key="previous-query"
+              buttonStyle="secondary"
               disabled={disablePrevious}
               onClick={() => handleDataChange(true)}
             >
@@ -118,6 +116,7 @@ function QueryPreviewModal({
             <Button
               data-test="next-query"
               key="next-query"
+              buttonStyle="secondary"
               disabled={disableNext}
               onClick={() => handleDataChange(false)}
             >
@@ -126,7 +125,6 @@ function QueryPreviewModal({
             <Button
               data-test="open-in-sql-lab"
               key="open-in-sql-lab"
-              buttonStyle="primary"
               onClick={() => openInSqlLab(id)}
             >
               {t('Open in SQL Lab')}

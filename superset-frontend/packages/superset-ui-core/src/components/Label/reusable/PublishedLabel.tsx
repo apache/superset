@@ -40,7 +40,14 @@ export const PublishedLabel: React.FC<PublishedLabelProps> = ({
   const labelType = isPublished ? 'success' : 'primary';
 
   return (
-    <Label type={labelType} icon={icon} onClick={onClick}>
+    <Label
+      type={labelType}
+      icon={icon}
+      onClick={onClick}
+      style={{
+        color: isPublished ? theme.colorSuccessText : theme.colorPrimaryText,
+      }}
+    >
       {label}
     </Label>
   );

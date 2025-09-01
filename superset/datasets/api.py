@@ -708,7 +708,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/related_objects", methods=("GET",))
+    @expose("/<id_or_uuid>/related_objects", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -717,16 +717,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         f".related_objects",
         log_to_statsd=False,
     )
-    def related_objects(self, pk: int) -> Response:
+    def related_objects(self, id_or_uuid: str) -> Response:
         """Get charts and dashboards count associated to a dataset.
         ---
         get:
           summary: Get charts and dashboards count associated to a dataset
           parameters:
           - in: path
-            name: pk
+            name: id_or_uuid
             schema:
-              type: integer
+              type: string
           responses:
             200:
             200:
@@ -742,10 +742,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dataset = DatasetDAO.find_by_id(pk)
+        dataset = DatasetDAO.find_by_id_or_uuid(id_or_uuid)
         if not dataset:
             return self.response_404()
-        data = DatasetDAO.get_related_objects(pk)
+        data = DatasetDAO.get_related_objects(dataset.id)
         charts = [
             {
                 "id": chart.id,
@@ -1087,7 +1087,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except CommandException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/<int:pk>", methods=("GET",))
+    @expose("/<id_or_uuid>", methods=("GET",))
     @protect()
     @safe
     @rison(get_item_schema)
@@ -1097,7 +1097,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, pk: int, **kwargs: Any) -> Response:
+    def get(self, id_or_uuid: str, **kwargs: Any) -> Response:
         """Get a dataset.
         ---
         get:
@@ -1106,9 +1106,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            description: The dataset ID
-            name: pk
+              type: string
+            description: Either the id of the dataset, or its uuid
+            name: id_or_uuid
           - in: query
             name: q
             content:
@@ -1144,13 +1144,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item: SqlaTable | None = self.datamodel.get(
-            pk,
-            self._base_filters,
-            self.show_select_columns,
-            self.show_outer_default_load,
-        )
-        if not item:
+        table = DatasetDAO.find_by_id_or_uuid(id_or_uuid)
+        if not table:
             return self.response_404()
 
         response: dict[str, Any] = {}
@@ -1168,8 +1163,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         else:
             show_model_schema = self.show_model_schema
 
-        response["id"] = pk
-        response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
+        response["id"] = table.id
+        response[API_RESULT_RES_KEY] = show_model_schema.dump(table, many=False)
 
         # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
         # possible to inspect if the feature is supported or not
@@ -1181,12 +1176,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
-                processor = get_template_processor(database=item.database)
+                processor = get_template_processor(database=table.database)
                 response["result"] = self.render_dataset_fields(
                     response["result"], processor
                 )
             except SupersetTemplateException as ex:
                 return self.response_400(message=str(ex))
+
         return self.response(200, **response)
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
