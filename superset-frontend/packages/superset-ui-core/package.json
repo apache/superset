@@ -28,7 +28,7 @@
     "@babel/runtime": "^7.28.2",
     "@fontsource/fira-code": "^5.2.6",
     "@fontsource/inter": "^5.2.6",
-    "@tanstack/react-query": "^5.85.6",
+    "@tanstack/react-query": "^4.40.1",
     "@types/json-bigint": "^1.0.4",
     "@visx/responsive": "^3.12.0",
     "ace-builds": "^1.43.1",
