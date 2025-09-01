@@ -721,6 +721,10 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
+# When SYNC_CONFIG_TO_DB_ON_INIT is True (default), configuration
+# will be synchronized to the database during initialization. Set to False if your setup
+# does not support db operation at the Flask app init stage
+SYNC_CONFIG_TO_DB_ON_INIT = True
 # ---------------------------------------------------
 # Theme Configuration for Superset
 # ---------------------------------------------------
