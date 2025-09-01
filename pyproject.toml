@@ -119,7 +119,7 @@ cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
-    "databricks-sql-connector==4.0.5",
+    "databricks-sql-connector==4.1.2",
     "databricks-sqlalchemy==1.0.5",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.0"]
