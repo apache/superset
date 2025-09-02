@@ -81,6 +81,9 @@ def monkeypatch_dialect() -> None:
     try:
         from sqlalchemy_databricks._dialect import DatabricksDialect
 
+        # copy because the dictionary is shared with other subclasses if it hasn't been
+        # overwritten
+        DatabricksDialect.colspecs = DatabricksDialect.colspecs.copy()
         DatabricksDialect.colspecs[types.String] = DatabricksStringType
     except ImportError:
         pass
