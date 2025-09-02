@@ -188,7 +188,7 @@ class NullValueException(SupersetException):
 
 
 class SupersetTemplateException(SupersetException):
-    pass
+    status = 422
 
 
 class SpatialException(SupersetException):

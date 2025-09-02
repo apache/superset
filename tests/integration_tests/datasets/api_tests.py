@@ -548,7 +548,7 @@ class TestDatasetApi(SupersetTestCase):
 
         uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"  # noqa: E501
         rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert response["message"] == "Unable to render expression from dataset query."
 
@@ -557,7 +557,7 @@ class TestDatasetApi(SupersetTestCase):
             "&include_rendered_sql=true&multiplier=4"
         )
         rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert response["message"] == "Unable to render expression from dataset metric."
 
@@ -566,7 +566,7 @@ class TestDatasetApi(SupersetTestCase):
             "&include_rendered_sql=true"
         )
         rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert (
             response["message"]
