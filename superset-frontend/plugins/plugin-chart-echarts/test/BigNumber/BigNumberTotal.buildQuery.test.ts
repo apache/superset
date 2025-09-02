@@ -59,9 +59,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should work with "inherit" time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: 'inherit',
-        },
+        time_compare: 'inherit',
       };
       const result = buildQuery(formData);
 
@@ -76,9 +74,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should work with "1 day ago" time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: '1 day ago',
-        },
+        time_compare: '1 day ago',
       };
       const result = buildQuery(formData);
 
@@ -93,9 +89,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should work with "1 week ago" time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: '1 week ago',
-        },
+        time_compare: '1 week ago',
       };
       const result = buildQuery(formData);
 
@@ -110,9 +104,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should work with "1 month ago" time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: '1 month ago',
-        },
+        time_compare: '1 month ago',
       };
       const result = buildQuery(formData);
 
@@ -127,9 +119,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should work with "1 year ago" time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: '1 year ago',
-        },
+        time_compare: '1 year ago',
       };
       const result = buildQuery(formData);
 
@@ -144,10 +134,8 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should work with "custom" time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: 'custom',
-          time_compare_value: '7 days ago',
-        },
+        time_compare: 'custom',
+        time_compare_value: '7 days ago',
       };
       const result = buildQuery(formData);
 
@@ -164,9 +152,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should handle undefined time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: undefined,
-        },
+        time_compare: undefined,
       };
       const result = buildQuery(formData);
 
@@ -179,9 +165,7 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should handle null time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: null,
-        },
+        time_compare: null,
       };
       const result = buildQuery(formData);
 
@@ -205,7 +189,10 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     });
 
     it('should handle missing extra_form_data', () => {
-      const formData = { ...baseFormData };
+      const formData = {
+        ...baseFormData,
+        extra_form_data: undefined,
+      };
       const result = buildQuery(formData);
 
       expect(result).toHaveProperty('queries');
@@ -220,12 +207,11 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
       const formData = {
         ...baseFormData,
         metric: 'sales',
-        extra_form_data: {
-          time_compare: '1 day ago',
-        },
+        time_compare: '1 day ago',
       };
       const result = buildQuery(formData);
 
+      expect(result).toHaveProperty('queries');
       expect(result.queries).toHaveLength(2);
       expect(result.queries[0]).toHaveProperty('metrics');
       expect(result.queries[0].metrics).toContain('sales');
@@ -237,38 +223,30 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
       const formData = {
         ...baseFormData,
         datasource: 'custom_datasource',
-        extra_form_data: {
-          time_compare: '1 day ago',
-        },
+        time_compare: '1 day ago',
       };
       const result = buildQuery(formData);
 
+      expect(result).toHaveProperty('queries');
       expect(result.queries).toHaveLength(2);
-      // Note: buildQueryContext doesn't preserve datasource in query objects
-      // The datasource is handled at the form data level
-      expect(result.queries[0]).toHaveProperty('metrics');
-      expect(result.queries[0].metrics).toContain('value');
-      expect(result.queries[1]).toHaveProperty('metrics');
-      expect(result.queries[1].metrics).toContain('value');
+      expect(result.queries[0]).toHaveProperty('datasource');
+      expect(result.queries[1]).toHaveProperty('datasource');
     });
 
     it('should preserve additional form data properties', () => {
       const formData = {
         ...baseFormData,
-        filters: ['filter1', 'filter2'],
-        extra_form_data: {
-          time_compare: '1 day ago',
-        },
+        filters: ['custom_filter'],
+        time_compare: '1 day ago',
       };
       const result = buildQuery(formData);
 
+      expect(result).toHaveProperty('queries');
       expect(result.queries).toHaveLength(2);
-      // Note: buildQueryContext doesn't preserve filters in query objects
-      // The filters are handled at the form data level
-      expect(result.queries[0]).toHaveProperty('metrics');
-      expect(result.queries[0].metrics).toContain('value');
-      expect(result.queries[1]).toHaveProperty('metrics');
-      expect(result.queries[1].metrics).toContain('value');
+      expect(result.queries[0]).toHaveProperty('filters');
+      expect(result.queries[0].filters).toContain('custom_filter');
+      expect(result.queries[1]).toHaveProperty('filters');
+      expect(result.queries[1].filters).toContain('custom_filter');
     });
   });
 
@@ -276,34 +254,29 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
     it('should use getComparisonInfo for time comparison', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: 'inherit',
-        },
+        time_compare: '1 day ago',
       };
       const result = buildQuery(formData);
 
-      // The second query should have comparison-specific properties
+      expect(result).toHaveProperty('queries');
       expect(result.queries).toHaveLength(2);
-      expect(result.queries[1]).toBeDefined();
-      
-      // Verify that the comparison query is properly structured
-      expect(result.queries[1]).toHaveProperty('metrics');
-      expect(result.queries[1].metrics).toContain('value');
+      expect(result.queries[1]).toHaveProperty('time_range');
     });
 
     it('should handle complex time comparison scenarios', () => {
       const formData = {
         ...baseFormData,
-        extra_form_data: {
-          time_compare: 'inherit',
-          time_compare_value: 'custom_range',
-        },
+        time_compare: 'custom',
+        time_compare_value: 'custom_range',
       };
       const result = buildQuery(formData);
 
+      expect(result).toHaveProperty('queries');
       expect(result.queries).toHaveLength(2);
-      expect(result.queries[0]).toBeDefined();
-      expect(result.queries[1]).toBeDefined();
+      expect(result.queries[0]).toHaveProperty('metrics');
+      expect(result.queries[0].metrics).toContain('value');
+      expect(result.queries[1]).toHaveProperty('metrics');
+      expect(result.queries[1].metrics).toContain('value');
     });
   });
 });

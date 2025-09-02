@@ -37,16 +37,44 @@ export default function buildQuery(formData: QueryFormData) {
     hasExtraFormData: !!formData.extra_form_data,
     extraFormData: formData.extra_form_data,
     customFormData: formData.extra_form_data?.custom_form_data,
-    timeCompare: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
+    timeCompare: formData.time_compare,
+    timeCompareExtra: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
     timeCompareDirect: (formData.extra_form_data as any)?.time_compare,
     metrics: formData.metrics,
     datasource: formData.datasource,
     xAxis: formData.x_axis,
     timeGrain: formData.time_grain_sqla,
+    timeRange: formData.time_range,
+    since: formData.since,
+    until: formData.until,
+    granularity: formData.granularity,
+    filters: formData.filters,
+    adhocFilters: formData.adhoc_filters,
   });
 
   const buildQuery = (baseQueryObject: any) => {
-    console.log('BigNumberWithTrendline buildQuery - baseQueryObject:', baseQueryObject);
+    console.log('BigNumberWithTrendline buildQuery - baseQueryObject (Current Period):', {
+      time_range: baseQueryObject.time_range,
+      since: baseQueryObject.since,
+      until: baseQueryObject.until,
+      granularity: baseQueryObject.granularity,
+      filters: baseQueryObject.filters,
+      extras: baseQueryObject.extras,
+      applied_time_extras: baseQueryObject.applied_time_extras,
+      columns: baseQueryObject.columns,
+      metrics: baseQueryObject.metrics,
+      orderby: baseQueryObject.orderby,
+      annotation_layers: baseQueryObject.annotation_layers,
+      row_limit: baseQueryObject.row_limit,
+      row_offset: baseQueryObject.row_offset,
+      series_columns: baseQueryObject.series_columns,
+      series_limit: baseQueryObject.series_limit,
+      series_limit_metric: baseQueryObject.series_limit_metric,
+      order_desc: baseQueryObject.order_desc,
+      url_params: baseQueryObject.url_params,
+      custom_params: baseQueryObject.custom_params,
+      custom_form_data: baseQueryObject.custom_form_data,
+    });
     
     const queries = [
       {
@@ -68,12 +96,21 @@ export default function buildQuery(formData: QueryFormData) {
 
     console.log('BigNumberWithTrendline buildQuery - Base query created:', queries[0]);
 
-    // Handle both old and new time comparison formats
-    const timeComparison = 
-      (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
-      (formData.extra_form_data as any)?.time_compare;
+    // Handle time comparison - time_compare is at the root level of formData
+    const timeComparison = formData.time_compare || 
+                         (formData.extra_form_data?.custom_form_data as any)?.time_compare || 
+                         (formData.extra_form_data as any)?.time_compare;
       
-    console.log('BigNumberWithTrendline buildQuery - timeComparison resolved:', timeComparison);
+    console.log('BigNumberWithTrendline buildQuery - Time Comparison Analysis:', {
+      timeComparison,
+      hasTimeComparison: !!timeComparison,
+      isNoComparison: timeComparison === 'NoComparison',
+      comparisonType: typeof timeComparison,
+      comparisonValue: timeComparison,
+      source: timeComparison === formData.time_compare ? 'formData.time_compare' :
+              timeComparison === (formData.extra_form_data?.custom_form_data as any)?.time_compare ? 'extra_form_data.custom_form_data.time_compare' :
+              timeComparison === (formData.extra_form_data as any)?.time_compare ? 'extra_form_data.time_compare' : 'none',
+    });
     
     if (timeComparison && timeComparison !== 'NoComparison') {
       console.log('BigNumberWithTrendline buildQuery - Processing time comparison for:', timeComparison);
@@ -84,7 +121,17 @@ export default function buildQuery(formData: QueryFormData) {
           timeComparison,
           formData.extra_form_data,
         );
-        console.log('BigNumberWithTrendline buildQuery - comparisonFormData from getComparisonInfo:', comparisonFormData);
+        console.log('BigNumberWithTrendline buildQuery - Comparison Form Data from getComparisonInfo:', {
+          comparisonFormData,
+          hasTimeRange: !!comparisonFormData.time_range,
+          hasSince: !!comparisonFormData.since,
+          hasUntil: !!comparisonFormData.until,
+          hasGranularity: !!comparisonFormData.granularity,
+          hasFilters: !!comparisonFormData.filters,
+          hasAdhocFilters: !!comparisonFormData.adhoc_filters,
+          hasExtraFormData: !!comparisonFormData.extra_form_data,
+          comparisonKeys: Object.keys(comparisonFormData),
+        });
         
         const comparisonQuery = {
           ...baseQueryObject,
@@ -102,22 +149,117 @@ export default function buildQuery(formData: QueryFormData) {
             flattenOperator(formData, baseQueryObject),
           ],
         };
-        console.log('BigNumberWithTrendline buildQuery - comparisonQuery created:', comparisonQuery);
+        console.log('BigNumberWithTrendline buildQuery - Comparison Query (Previous Period):', {
+          time_range: comparisonQuery.time_range,
+          since: comparisonQuery.since,
+          until: comparisonQuery.until,
+          granularity: comparisonQuery.granularity,
+          filters: comparisonQuery.filters,
+          extras: comparisonQuery.extras,
+          applied_time_extras: comparisonQuery.applied_time_extras,
+          columns: comparisonQuery.columns,
+          metrics: comparisonQuery.metrics,
+          orderby: comparisonQuery.orderby,
+          annotation_layers: comparisonQuery.annotation_layers,
+          row_limit: comparisonQuery.row_limit,
+          row_offset: comparisonQuery.row_offset,
+          series_columns: comparisonQuery.series_columns,
+          series_limit: comparisonQuery.series_limit,
+          series_limit_metric: comparisonQuery.series_limit_metric,
+          order_desc: comparisonQuery.order_desc,
+          url_params: comparisonQuery.url_params,
+          custom_params: comparisonQuery.custom_params,
+          custom_form_data: comparisonQuery.custom_form_data,
+          // Additional comparison-specific properties
+          metric: comparisonQuery.metric,
+          viz_type: comparisonQuery.viz_type,
+          datasource: comparisonQuery.datasource,
+          x_axis: comparisonQuery.x_axis,
+          time_grain_sqla: comparisonQuery.time_grain_sqla,
+          adhoc_filters: comparisonQuery.adhoc_filters,
+          post_processing: comparisonQuery.post_processing,
+        });
+        
+        console.log('BigNumberWithTrendline buildQuery - Query Comparison Analysis:', {
+          timeRangeChanged: baseQueryObject.time_range !== comparisonQuery.time_range,
+          sinceChanged: baseQueryObject.since !== comparisonQuery.since,
+          untilChanged: baseQueryObject.until !== comparisonQuery.until,
+          granularityChanged: baseQueryObject.granularity !== comparisonQuery.granularity,
+          filtersChanged: JSON.stringify(baseQueryObject.filters) !== JSON.stringify(comparisonQuery.filters),
+          extrasChanged: JSON.stringify(baseQueryObject.extras) !== JSON.stringify(comparisonQuery.extras),
+          appliedTimeExtrasChanged: JSON.stringify(baseQueryObject.applied_time_extras) !== JSON.stringify(comparisonQuery.applied_time_extras),
+          metricsChanged: JSON.stringify(baseQueryObject.metrics) !== JSON.stringify(comparisonQuery.metrics),
+          columnsChanged: JSON.stringify(baseQueryObject.columns) !== JSON.stringify(comparisonQuery.columns),
+          postProcessingChanged: JSON.stringify(baseQueryObject.post_processing) !== JSON.stringify(comparisonQuery.post_processing),
+        });
         
         queries.push(comparisonQuery);
       } catch (error) {
         console.error('BigNumberWithTrendline buildQuery - Error in getComparisonInfo:', error);
+        console.error('BigNumberWithTrendline buildQuery - Error details:', {
+          errorMessage: error.message,
+          errorStack: error.stack,
+          formDataKeys: Object.keys(formData),
+          timeComparison,
+          extraFormData: formData.extra_form_data,
+        });
       }
     } else {
-      console.log('BigNumberWithTrendline buildQuery - No time comparison or NoComparison selected');
+      console.log('BigNumberWithTrendline buildQuery - No time comparison or NoComparison selected:', {
+        reason: !timeComparison ? 'No time comparison' : 
+                timeComparison === 'NoComparison' ? 'NoComparison selected' : 'unknown',
+        timeComparison,
+        formDataKeys: Object.keys(formData),
+        hasTimeCompare: 'time_compare' in formData,
+        timeCompareValue: formData.time_compare,
+      });
     }
     
-    console.log('BigNumberWithTrendline buildQuery - Final queries array:', queries);
+    console.log('BigNumberWithTrendline buildQuery - Final queries array summary:', {
+      totalQueries: queries.length,
+      queryTypes: queries.map((q, i) => ({
+        index: i,
+        type: i === 0 ? 'Current Period' : 'Comparison Period',
+        hasTimeRange: !!q.time_range,
+        hasSince: !!q.since,
+        hasUntil: !!q.until,
+        hasFilters: !!q.filters && q.filters.length > 0,
+        hasMetrics: !!q.metrics && q.metrics.length > 0,
+        hasColumns: !!q.columns && q.columns.length > 0,
+        hasPostProcessing: !!q.post_processing && q.post_processing.length > 0,
+        metrics: q.metrics,
+        columns: q.columns,
+        timeRange: q.time_range,
+        since: q.since,
+        until: q.until,
+        postProcessing: q.post_processing,
+      })),
+    });
     return queries;
   };
 
   const result = buildQueryContext(formData, buildQuery);
-  console.log('BigNumberWithTrendline buildQuery - Final result from buildQueryContext:', result);
+  console.log('BigNumberWithTrendline buildQuery - Final result from buildQueryContext:', {
+    result,
+    hasQueries: !!result.queries,
+    queriesLength: result.queries?.length || 0,
+    queriesSummary: result.queries?.map((q, i) => ({
+      index: i,
+      type: i === 0 ? 'Current Period' : 'Comparison Period',
+      metrics: q.metrics,
+      columns: q.columns,
+      timeRange: q.time_range,
+      since: q.since,
+      until: q.until,
+      filters: q.filters,
+      extras: q.extras,
+      postProcessing: q.post_processing,
+    })) || [],
+    formData: result.form_data,
+    datasource: result.datasource,
+    resultFormat: result.result_format,
+    resultType: result.result_type,
+  });
   
   return result;
 }
