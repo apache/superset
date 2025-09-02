@@ -124,8 +124,8 @@ cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
-    "databricks-sql-connector>=2.0.2, <3",
-    "sqlalchemy-databricks>=0.2.0",
+    "databricks-sql-connector==4.1.2",
+    "databricks-sqlalchemy==1.0.5",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.0"]
 denodo = ["denodo-sqlalchemy~=1.0.6"]
