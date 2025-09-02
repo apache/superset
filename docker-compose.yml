@@ -51,7 +51,7 @@ services:
     container_name: superset_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "85:85"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -77,7 +77,7 @@ services:
     container_name: superset_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5440:5440"
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -112,7 +112,7 @@ services:
     container_name: superset_websocket
     build: ./superset-websocket
     ports:
-      - 8080:8080
+      - 8085:8085
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -136,7 +136,7 @@ services:
       # do not use this docker compose in production
       - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
-      - PORT=8080
+      - PORT=8085
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_SSL=false
