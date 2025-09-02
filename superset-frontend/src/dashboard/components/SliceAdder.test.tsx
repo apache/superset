@@ -21,6 +21,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { DatasourceType } from '@superset-ui/core';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
@@ -107,11 +108,13 @@ describe('SliceAdder', () => {
     renderSliceAdder();
     const searchInput = screen.getByPlaceholderText('Filter your charts');
     await userEvent.type(searchInput, 'test search');
-    expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
-      1,
-      'test search',
-      'changed_on',
-    );
+    await waitFor(() => {
+      expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
+        1,
+        'test search',
+        'changed_on',
+      );
+    });
   });
 
   it('handles sort selection changes', async () => {

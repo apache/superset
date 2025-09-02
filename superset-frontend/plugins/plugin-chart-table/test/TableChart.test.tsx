@@ -461,9 +461,11 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       it('render cell without color', () => {
@@ -500,12 +502,14 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(172, 225, 196, 0.812)',
+          'rgba(172, 225, 196, 0.81)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
       it('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
@@ -597,10 +601,10 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -628,9 +632,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       it('render color with string column color formatter (operator containing)', () => {
@@ -657,9 +663,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       it('render color with string column color formatter (operator not containing)', () => {
@@ -686,10 +694,10 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -717,10 +725,10 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -747,13 +755,13 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
     });

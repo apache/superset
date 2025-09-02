@@ -38,10 +38,10 @@ import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
-jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
-  // eslint-disable-next-line no-param-reassign
-  fn.debounce = jest.fn();
-  return fn;
+jest.mock('lodash/debounce', () => (fn: Function) => {
+  const mockFn = (...args: any[]) => fn(...args);
+  mockFn.cancel = jest.fn();
+  return mockFn;
 });
 
 const defaultColumns = [
@@ -214,17 +214,19 @@ test('render menu item with submenu and searchbox', async () => {
   );
   expect(searchbox).toBeInTheDocument();
 
-  userEvent.type(searchbox, 'col1');
+  await userEvent.type(searchbox, 'col1');
 
   const expectedFilteredColumnNames = ['col1', 'col10', 'col11'];
 
-  // Wait for filtered results
+  // Wait for filtered results and ensure unwanted items are gone
   await waitFor(() => {
     const submenus = screen.getAllByTestId('drill-by-submenu');
     const submenu = submenus[0];
     expectedFilteredColumnNames.forEach(colName => {
       expect(within(submenu).getByText(colName)).toBeInTheDocument();
     });
+    // Also check that col2 is not there
+    expect(within(submenu).queryByText('col2')).not.toBeInTheDocument();
   });
 
   const submenus = screen.getAllByTestId('drill-by-submenu');

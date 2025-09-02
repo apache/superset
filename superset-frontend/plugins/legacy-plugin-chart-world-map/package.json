@@ -31,13 +31,13 @@
   "dependencies": {
     "d3": "^3.5.17",
     "d3-array": "^2.4.0",
-    "d3-color": "^3.1.0",
     "datamaps": "^0.5.9",
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^17.0.2"
+    "react": "^17.0.2",
+    "tinycolor2": "*"
   }
 }

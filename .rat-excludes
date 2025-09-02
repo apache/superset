@@ -83,6 +83,7 @@ intro_header.txt
 # for LLMs
 llm-context.md
 LLMS.md
+AGENTS.md
 CLAUDE.md
 CURSOR.md
 GEMINI.md

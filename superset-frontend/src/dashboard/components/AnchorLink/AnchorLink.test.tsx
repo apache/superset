@@ -31,22 +31,52 @@ describe('AnchorLink', () => {
   });
 
   it('should scroll the AnchorLink into view upon mount if id matches hash', async () => {
+    jest.useFakeTimers();
+
     const callback = jest.fn();
-    jest.spyOn(document, 'getElementById').mockReturnValue({
-      scrollIntoView: callback,
-    } as unknown as HTMLElement);
+    const getElementByIdSpy = jest
+      .spyOn(document, 'getElementById')
+      .mockReturnValue({
+        scrollIntoView: callback,
+      } as unknown as HTMLElement);
 
     window.location.hash = props.id;
+
+    let component1: ReturnType<typeof render>;
     await act(async () => {
-      render(<AnchorLink {...props} />, { useRedux: true });
+      component1 = render(<AnchorLink {...props} />, { useRedux: true });
+      await jest.runAllTimersAsync();
     });
+
+    // Wait for any async operations to complete
+    await act(async () => {
+      await jest.runAllTimersAsync();
+    });
+
     expect(callback).toHaveBeenCalledTimes(1);
 
+    // Clean up first render
+    component1!.unmount();
+    callback.mockClear();
+
     window.location.hash = 'random';
+
+    let component2: ReturnType<typeof render>;
     await act(async () => {
-      render(<AnchorLink {...props} />, { useRedux: true });
+      component2 = render(<AnchorLink {...props} />, { useRedux: true });
+      await jest.runAllTimersAsync();
     });
-    expect(callback).toHaveBeenCalledTimes(1);
+
+    // Wait for any async operations to complete
+    await act(async () => {
+      await jest.runAllTimersAsync();
+    });
+
+    expect(callback).toHaveBeenCalledTimes(0);
+
+    component2!.unmount();
+    getElementByIdSpy.mockRestore();
+    jest.useRealTimers();
   });
 
   it('should render anchor link without short link button', () => {

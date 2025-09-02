@@ -85,13 +85,10 @@ describe('getChartIdsFromLayout', () => {
   });
 
   it('should preserve unknown filters', () => {
-    const windowSpy = jest.spyOn(window, 'window', 'get');
-    windowSpy.mockImplementation(() => ({
-      location: {
-        origin: 'https://localhost',
-        search: '?unknown_param=value',
-      },
-    }));
+    // jsdom 26+ compatibility: Use relative URL for pushState
+    const originalHref = window.location.href;
+    window.history.pushState({}, '', '/?unknown_param=value');
+
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       standalone: DashboardStandaloneMode.HideNav,
@@ -99,18 +96,19 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithStandalone).toBe(
       `path?unknown_param=value&standalone=${DashboardStandaloneMode.HideNav}`,
     );
-    windowSpy.mockRestore();
+
+    // Restore original URL
+    window.history.pushState({}, '', originalHref);
   });
 
   it('should process native filters key', () => {
-    const windowSpy = jest.spyOn(window, 'window', 'get');
-    windowSpy.mockImplementation(() => ({
-      location: {
-        origin: 'https://localhost',
-        search:
-          '?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
-      },
-    }));
+    // jsdom 26+ compatibility: Use relative URL for pushState
+    const originalHref = window.location.href;
+    window.history.pushState(
+      {},
+      '',
+      '/?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
+    );
 
     const urlWithNativeFilters = getDashboardUrl({
       pathname: 'path',
@@ -118,6 +116,8 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithNativeFilters).toBe(
       'path?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
     );
-    windowSpy.mockRestore();
+
+    // Restore original URL
+    window.history.pushState({}, '', originalHref);
   });
 });

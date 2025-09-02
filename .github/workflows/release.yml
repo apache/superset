@@ -40,40 +40,9 @@ jobs:
           git fetch --prune --unshallow
           git tag -d `git tag | grep -E '^trigger-'`
 
-      - name: Install Node.js
+      - name: Setup Frontend Environment
         if: env.HAS_TAGS
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: './superset-frontend/.nvmrc'
-
-      - name: Cache npm
-        if: env.HAS_TAGS
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-            ${{ runner.OS }}-
-
-      - name: Get npm cache directory path
-        if: env.HAS_TAGS
-        id: npm-cache-dir-path
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-      - name: Cache npm
-        if: env.HAS_TAGS
-        uses: actions/cache@v4
-        id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.npm-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - name: Install dependencies
-        if: env.HAS_TAGS
-        working-directory: ./superset-frontend
-        run: npm ci
+        uses: ./.github/actions/setup-frontend/
       - name: Run unit tests
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
