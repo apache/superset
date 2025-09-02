@@ -124,6 +124,96 @@ class CSVReader(BaseDataReader):
             return "c"
 
     @staticmethod
+    def _find_invalid_values_numeric(df: pd.DataFrame, column: str) -> pd.Series:
+        """Find invalid values for numeric type conversion."""
+        converted = pd.to_numeric(df[column], errors="coerce")
+        return converted.isna() & df[column].notna()
+
+    @staticmethod
+    def _find_invalid_values_non_numeric(
+        df: pd.DataFrame, column: str, dtype: str
+    ) -> pd.Series:
+        """Find invalid values for non-numeric type conversion."""
+        invalid_mask = pd.Series([False] * len(df), index=df.index)
+        for idx, value in df[column].items():
+            if pd.notna(value):
+                try:
+                    pd.Series([value]).astype(dtype)
+                except (ValueError, TypeError):
+                    invalid_mask[idx] = True
+                    break
+        return invalid_mask
+
+    @staticmethod
+    def _create_error_message(
+        df: pd.DataFrame,
+        column: str,
+        dtype: str,
+        invalid_mask: pd.Series,
+        kwargs: dict[str, Any],
+        original_error: Exception,
+    ) -> str:
+        """Create detailed error message for type conversion failure."""
+        if invalid_mask.any():
+            invalid_idx = invalid_mask.idxmax()
+            invalid_value = df.loc[invalid_idx, column]
+            line_number = invalid_idx + kwargs.get("header", 0) + 2
+            return (
+                f"Cannot convert value '{invalid_value}' to {dtype} "
+                f"in column '{column}' at line {line_number}."
+            )
+        else:
+            return f"Cannot convert column '{column}' to {dtype}. {str(original_error)}"
+
+    @staticmethod
+    def _cast_single_column(
+        df: pd.DataFrame, column: str, dtype: str, kwargs: dict[str, Any]
+    ) -> None:
+        numeric_types = {"int64", "int32", "float64", "float32"}
+
+        try:
+            if dtype in numeric_types:
+                df[column] = pd.to_numeric(df[column], errors="raise")
+                df[column] = df[column].astype(dtype)
+            else:
+                df[column] = df[column].astype(dtype)
+        except (ValueError, TypeError) as ex:
+            try:
+                if dtype in numeric_types:
+                    invalid_mask = CSVReader._find_invalid_values_numeric(df, column)
+                else:
+                    invalid_mask = CSVReader._find_invalid_values_non_numeric(
+                        df, column, dtype
+                    )
+
+                error_msg = CSVReader._create_error_message(
+                    df, column, dtype, invalid_mask, kwargs, ex
+                )
+            except Exception:
+                error_msg = f"Cannot convert column '{column}' to {dtype}. {str(ex)}"
+
+            raise DatabaseUploadFailed(message=error_msg) from ex
+
+    @staticmethod
+    def _cast_column_types(
+        df: pd.DataFrame, types: dict[str, str], kwargs: dict[str, Any]
+    ) -> pd.DataFrame:
+        """
+        Cast DataFrame columns to specified types with detailed error reporting.
+
+        :param df: DataFrame to cast
+        :param types: Dictionary mapping column names to target types
+        :param kwargs: Original read_csv kwargs for line number calculation
+        :return: DataFrame with casted columns
+        :raises DatabaseUploadFailed: If type conversion fails with detailed error info
+        """
+        for column, dtype in types.items():
+            if column not in df.columns:
+                continue
+            CSVReader._cast_single_column(df, column, dtype, kwargs)
+        return df
+
+    @staticmethod
     def _read_csv(  # noqa: C901
         file: FileStorage,
         kwargs: dict[str, Any],
@@ -197,20 +287,8 @@ class CSVReader(BaseDataReader):
                 )
 
             if types:
-                for column, dtype in types.items():
-                    try:
-                        df[column] = df[column].astype(dtype)
-                    except ValueError as ex:
-                        error_msg = f"Non {dtype} value found in column '{column}'."
-                        ex_msg = str(ex)
-                        invalid_value = ex_msg.split(":")[-1].strip().strip("'")
-                        error_msg += (
-                            f" Value: '{invalid_value}'" if invalid_value else ""
-                        )
-                        invalid_idx = df.index[df[column] == invalid_value][0]
-                        line_number = invalid_idx + kwargs.get("header", 0) + 1
-                        error_msg += f", line: {line_number}."
-                        raise DatabaseUploadFailed(message=error_msg) from ex
+                df = CSVReader._cast_column_types(df, types, kwargs)
+
             return df
         except DatabaseUploadFailed:
             raise

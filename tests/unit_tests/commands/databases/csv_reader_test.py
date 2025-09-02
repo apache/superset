@@ -557,13 +557,14 @@ def test_csv_reader_non_numeric_in_integer_column():
         ["name2", "25", "city2"],
     ]
 
-    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"Age": "int"}))
+    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"Age": "int64"}))
 
     with pytest.raises(DatabaseUploadFailed) as ex:
         csv_reader.file_to_dataframe(create_csv_file(csv_data))
 
     assert (
-        str(ex.value) == "Non int value found in column 'Age'. Value: 'abc', line: 1."
+        str(ex.value)
+        == "Cannot convert value 'abc' to int64 in column 'Age' at line 2."
     )
 
 
@@ -578,7 +579,7 @@ def test_csv_reader_non_numeric_in_float_column():
     ]
 
     csv_reader = CSVReader(
-        options=CSVReaderOptions(column_data_types={"Score": "float"})
+        options=CSVReaderOptions(column_data_types={"Score": "float64"})
     )
 
     with pytest.raises(DatabaseUploadFailed) as ex:
@@ -586,8 +587,344 @@ def test_csv_reader_non_numeric_in_float_column():
 
     assert (
         str(ex.value)
-        == "Non float value found in column 'Score'. Value: 'one point five', line: 5."
+        == "Cannot convert value 'one point five' to float64 in column 'Score' "
+        "at line 6."
     )
+
+
+def test_csv_reader_improved_error_detection_int32():
+    """Test improved error detection for int32 type casting."""
+    csv_data = [
+        ["Name", "ID", "City"],
+        ["name1", "123", "city1"],
+        ["name2", "456", "city2"],
+        ["name3", "not_a_number", "city3"],
+        ["name4", "789", "city4"],
+    ]
+
+    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"ID": "int32"}))
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert (
+        str(ex.value)
+        == "Cannot convert value 'not_a_number' to int32 in column 'ID' at line 4."
+    )
+
+
+def test_csv_reader_improved_error_detection_float32():
+    """Test improved error detection for float32 type casting."""
+    csv_data = [
+        ["Name", "Score", "City"],
+        ["name1", "1.5", "city1"],
+        ["name2", "2.7", "city2"],
+        ["name3", "invalid_float", "city3"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"Score": "float32"})
+    )
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert (
+        str(ex.value)
+        == "Cannot convert value 'invalid_float' to float32 in column 'Score' "
+        "at line 4."
+    )
+
+
+def test_csv_reader_error_detection_with_header_row():
+    """Test that line numbers are correctly calculated with custom header row."""
+    csv_data = [
+        ["skip_this_row", "skip", "skip"],
+        ["Name", "Age", "City"],
+        ["name1", "25", "city1"],
+        ["name2", "invalid_age", "city2"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(header_row=1, column_data_types={"Age": "int64"})
+    )
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert (
+        str(ex.value)
+        == "Cannot convert value 'invalid_age' to int64 in column 'Age' at line 4."
+    )
+
+
+def test_csv_reader_error_detection_first_row_error():
+    """Test error detection when the first data row has the error."""
+    csv_data = [
+        ["Name", "Age", "City"],
+        ["name1", "not_a_number", "city1"],
+        ["name2", "25", "city2"],
+    ]
+
+    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"Age": "int64"}))
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert (
+        str(ex.value)
+        == "Cannot convert value 'not_a_number' to int64 in column 'Age' at line 2."
+    )
+
+
+def test_csv_reader_error_detection_missing_column():
+    """Test that missing columns are handled gracefully."""
+    csv_data = [
+        ["Name", "City"],
+        ["name1", "city1"],
+        ["name2", "city2"],
+    ]
+
+    # Try to cast a column that doesn't exist
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"NonExistent": "int64"})
+    )
+
+    # Should not raise an error for missing columns
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+    assert df.shape == (2, 2)
+    assert df.columns.tolist() == ["Name", "City"]
+
+
+def test_csv_reader_error_detection_mixed_valid_invalid():
+    """Test error detection in a column with mixed valid and invalid values."""
+    csv_data = [
+        ["Name", "Score", "City"],
+        ["name1", "95.5", "city1"],
+        ["name2", "87.2", "city2"],
+        ["name3", "92.1", "city3"],
+        ["name4", "eighty-five", "city4"],  # Invalid value in 4th data row
+        ["name5", "78.9", "city5"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"Score": "float64"})
+    )
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert (
+        str(ex.value)
+        == "Cannot convert value 'eighty-five' to float64 in column 'Score' at line 5."
+    )
+
+
+def test_csv_reader_error_detection_non_numeric_types():
+    """Test error detection for non-numeric type casting."""
+    csv_data = [
+        ["Name", "Status", "City"],
+        ["name1", "active", "city1"],
+        ["name2", "inactive", "city2"],
+        ["name3", 123, "city3"],  # This should cause an error when casting to string
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"Status": "string"})
+    )
+
+    # For non-numeric types, the error detection should still work
+    # but might have different behavior depending on pandas version
+    try:
+        df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+        # If no error is raised, the conversion succeeded
+        assert df["Status"].dtype == "string"
+    except DatabaseUploadFailed as ex:
+        # If an error is raised, it should have proper formatting
+        error_msg = str(ex.value)
+        assert "Cannot convert" in error_msg
+        assert "Status" in error_msg
+
+
+def test_csv_reader_error_detection_with_null_values():
+    """Test error detection when null values are present."""
+    csv_data = [
+        ["Name", "Age", "City"],
+        ["name1", "25", "city1"],
+        ["name2", "", "city2"],  # Empty string (null)
+        ["name3", "invalid_age", "city3"],  # Invalid value
+    ]
+
+    csv_reader = CSVReader(options=CSVReaderOptions(column_data_types={"Age": "int64"}))
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    # The error should be for the invalid value, not the null value
+    assert (
+        str(ex.value)
+        == "Cannot convert value 'invalid_age' to int64 in column 'Age' at line 4."
+    )
+
+
+def test_csv_reader_successful_numeric_conversion():
+    """Test that valid numeric conversions work properly with the new logic."""
+    csv_data = [
+        ["Name", "Age", "Score", "ID"],
+        ["name1", "25", "95.5", "1001"],
+        ["name2", "30", "87.2", "1002"],
+        ["name3", "35", "92.1", "1003"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(
+            column_data_types={
+                "Age": "int64",
+                "Score": "float64",
+                "ID": "int32",
+            }
+        )
+    )
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (3, 4)
+    assert df["Age"].dtype == "int64"
+    assert df["Score"].dtype == "float64"
+    assert df["ID"].dtype == "int32"
+    assert df.iloc[0]["Age"] == 25
+    assert df.iloc[0]["Score"] == 95.5
+    assert df.iloc[0]["ID"] == 1001
+
+
+def test_csv_reader_error_detection_improvements_summary():
+    """
+    Summary test demonstrating the key improvements in error detection:
+    1. More accurate error messages with exact values and line numbers
+    2. Better performance using pd.to_numeric for numeric types
+    3. Proper handling of different numeric types (int32, int64, float32, float64)
+    4. Correct line number calculation with custom headers
+    """
+    # Test case 1: Error in middle of file with custom header
+    csv_data_with_custom_header = [
+        ["metadata_row", "skip", "this"],
+        ["Name", "Age", "Score"],
+        ["Alice", "25", "95.5"],
+        ["Bob", "invalid_age", "87.2"],  # Error on line 4
+        ["Charlie", "30", "92.1"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(
+            header_row=1, column_data_types={"Age": "int64", "Score": "float64"}
+        )
+    )
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data_with_custom_header))
+
+    error_msg = str(ex.value)
+    assert "Cannot convert value 'invalid_age' to int64" in error_msg
+    assert "column 'Age'" in error_msg
+    assert "line 4" in error_msg
+
+    # Test case 2: Multiple type errors - Age comes first alphabetically
+    csv_data_multiple_errors = [
+        ["Name", "Age", "Score"],
+        ["Alice", "25", "95.5"],
+        ["Bob", "invalid_age", "invalid_score"],  # Error in both columns (line 3)
+        ["Charlie", "30", "92.1"],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(column_data_types={"Age": "int64", "Score": "float64"})
+    )
+
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(csv_data_multiple_errors))
+
+    error_msg = str(ex.value)
+    # Should catch the Age error first (Age comes before Score alphabetically)
+    assert "Cannot convert value 'invalid_age' to int64" in error_msg
+    assert "column 'Age'" in error_msg
+    assert "line 3" in error_msg
+
+
+def test_csv_reader_cast_column_types_function():
+    """Test the _cast_column_types function directly for better isolation."""
+    # Create test DataFrame
+    test_data = {
+        "name": ["Alice", "Bob", "Charlie"],
+        "age": ["25", "30", "invalid_age"],
+        "score": ["95.5", "87.2", "92.1"],
+    }
+    df = pd.DataFrame(test_data)
+
+    # Test successful casting
+    types_success = {"age": "int64", "score": "float64"}
+    kwargs = {"header": 0}
+
+    # This should work for first two rows, but we'll only test the first two
+    df_subset = df.iloc[:2].copy()
+    result_df = CSVReader._cast_column_types(df_subset, types_success, kwargs)
+
+    assert result_df["age"].dtype == "int64"
+    assert result_df["score"].dtype == "float64"
+    assert result_df.iloc[0]["age"] == 25
+    assert result_df.iloc[0]["score"] == 95.5
+
+    # Test error case
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        CSVReader._cast_column_types(df, types_success, kwargs)
+
+    error_msg = str(ex.value)
+    assert "Cannot convert value 'invalid_age' to int64" in error_msg
+    assert "column 'age'" in error_msg
+    assert "line 4" in error_msg  # 3rd row (index 2) + header(0) + 2
+
+
+def test_csv_reader_cast_column_types_missing_column():
+    """Test _cast_column_types with missing columns."""
+    test_data = {
+        "name": ["Alice", "Bob"],
+        "age": ["25", "30"],
+    }
+    df = pd.DataFrame(test_data)
+
+    # Try to cast a column that doesn't exist
+    types = {"age": "int64", "nonexistent": "float64"}
+    kwargs = {"header": 0}
+
+    # Should not raise an error for missing columns
+    result_df = CSVReader._cast_column_types(df, types, kwargs)
+    assert result_df["age"].dtype == "int64"
+    assert "nonexistent" not in result_df.columns
+
+
+def test_csv_reader_cast_column_types_different_numeric_types():
+    """Test _cast_column_types with various numeric types."""
+    test_data = {
+        "int32_col": ["1", "2", "3"],
+        "int64_col": ["100", "200", "300"],
+        "float32_col": ["1.5", "2.5", "3.5"],
+        "float64_col": ["10.1", "20.2", "30.3"],
+    }
+    df = pd.DataFrame(test_data)
+
+    types = {
+        "int32_col": "int32",
+        "int64_col": "int64",
+        "float32_col": "float32",
+        "float64_col": "float64",
+    }
+    kwargs = {"header": 0}
+
+    result_df = CSVReader._cast_column_types(df, types, kwargs)
+
+    assert result_df["int32_col"].dtype == "int32"
+    assert result_df["int64_col"].dtype == "int64"
+    assert result_df["float32_col"].dtype == "float32"
+    assert result_df["float64_col"].dtype == "float64"
 
 
 def test_csv_reader_chunking_large_file():
