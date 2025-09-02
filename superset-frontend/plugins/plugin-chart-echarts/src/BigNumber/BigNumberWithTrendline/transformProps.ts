@@ -92,19 +92,18 @@ export default function transformProps(
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
   let trendLineData: TimeSeriesDatum[] | undefined;
-  let percentChange = 0;
+  let percentageChange: number | undefined;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
 
   // Handle comparison data if available and time comparison is enabled
   let previousPeriodValue: number | null = null;
-  let percentageChange: number | undefined;
   let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
 
-  const timeCompare = 
-    (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
-    (formData.extra_form_data as any)?.time_compare;
+  const timeCompare = formData.time_compare || 
+                     (formData.extra_form_data?.custom_form_data as any)?.time_compare || 
+                     (formData.extra_form_data as any)?.time_compare;
     
   // Debug logging
   console.log('BigNumberWithTrendline transformProps - Debug Info:', {
@@ -145,11 +144,11 @@ export default function transformProps(
         const compareValue = sortedData[compareIndex][1];
         // compare values must both be non-nulls
         if (bigNumber !== null && compareValue !== null) {
-          percentChange = compareValue
+          percentageChange = compareValue
             ? (bigNumber - compareValue) / Math.abs(compareValue)
             : 0;
           formattedSubheader = `${formatPercentChange(
-            percentChange,
+            percentageChange,
           )} ${compareSuffix}`;
         }
       }
@@ -181,18 +180,19 @@ export default function transformProps(
         console.log('BigNumberWithTrendline transformProps - Parsed previousPeriodValue:', previousPeriodValue);
 
         if (bigNumber !== null && previousPeriodValue !== null && previousPeriodValue !== 0) {
-          percentageChange = (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
+          const calculatedPercentageChange = (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
+          percentageChange = calculatedPercentageChange;
           console.log('BigNumberWithTrendline transformProps - Percentage change calculation:', {
             bigNumber,
             previousPeriodValue,
             difference: bigNumber - previousPeriodValue,
             absolutePrevious: Math.abs(previousPeriodValue),
-            percentageChange,
+            percentageChange: calculatedPercentageChange,
           });
 
-          if (percentageChange > 0) {
+          if (calculatedPercentageChange > 0) {
             comparisonIndicator = 'positive';
-          } else if (percentageChange < 0) {
+          } else if (calculatedPercentageChange < 0) {
             comparisonIndicator = 'negative';
           } else {
             comparisonIndicator = 'neutral';
@@ -225,9 +225,9 @@ export default function transformProps(
   }
 
   let className = '';
-  if (percentChange > 0) {
+  if (percentageChange && percentageChange > 0) {
     className = 'positive';
-  } else if (percentChange < 0) {
+  } else if (percentageChange && percentageChange < 0) {
     className = 'negative';
   }
 
