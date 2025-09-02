@@ -428,7 +428,7 @@ const Selector: FC<{
       role="tab"
     >
       {icon}
-      {selector}
+      {t(selector)}
     </SelectorLabel>
   );
 };
