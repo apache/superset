@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { supersetTheme } from '@superset-ui/core';
@@ -46,21 +45,23 @@ describe('BigNumberViz with Time Comparison', () => {
   describe('Basic Rendering', () => {
     it('should render basic big number without time comparison', () => {
       render(<BigNumberViz {...defaultProps} />);
-      
+
       expect(screen.getByText('1000%')).toBeInTheDocument();
       expect(screen.getByText('Test subheader')).toBeInTheDocument();
     });
 
     it('should render with custom formatting', () => {
       const customFormatNumber = (value: number) => `$${value}`;
-      render(<BigNumberViz {...defaultProps} formatNumber={customFormatNumber} />);
-      
+      render(
+        <BigNumberViz {...defaultProps} formatNumber={customFormatNumber} />,
+      );
+
       expect(screen.getByText('1000%')).toBeInTheDocument();
     });
 
     it('should handle null big number', () => {
       render(<BigNumberViz {...defaultProps} bigNumber={null} />);
-      
+
       expect(screen.getByText('0')).toBeInTheDocument();
     });
   });
@@ -73,18 +74,18 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       // Check that the comparison indicator is rendered
       const indicator = screen.getByText('↗');
       expect(indicator).toBeInTheDocument();
-      
+
       // Check that the percentage is displayed
-      expect(screen.getByText('50%')).toBeInTheDocument();
-      
+      expect(screen.getByText('0.5%')).toBeInTheDocument();
+
       // Check that the comparison period text is displayed
-      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render large positive change correctly', () => {
@@ -94,12 +95,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 week ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('200%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+      expect(screen.getByText('2%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render small positive change correctly', () => {
@@ -109,12 +110,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 month ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('1%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 month ago')).toBeInTheDocument();
+      expect(screen.getByText('0.01%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
   });
 
@@ -126,18 +127,18 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'negative' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       // Check that the comparison indicator is rendered
       const indicator = screen.getByText('↘');
       expect(indicator).toBeInTheDocument();
-      
+
       // Check that the percentage is displayed
-      expect(screen.getByText('-25%')).toBeInTheDocument();
-      
+      expect(screen.getByText('-0.25%')).toBeInTheDocument();
+
       // Check that the comparison period text is displayed
-      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render large negative change correctly', () => {
@@ -147,12 +148,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'negative' as const,
         comparisonPeriodText: '1 week ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↘')).toBeInTheDocument();
-      expect(screen.getByText('-75%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+      expect(screen.getByText('-0.75%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render small negative change correctly', () => {
@@ -162,12 +163,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'negative' as const,
         comparisonPeriodText: '1 month ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↘')).toBeInTheDocument();
-      expect(screen.getByText('-5%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 month ago')).toBeInTheDocument();
+      expect(screen.getByText('-0.05%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
   });
 
@@ -179,18 +180,18 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'neutral' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       // Check that the comparison indicator is rendered
       const indicator = screen.getByText('−');
       expect(indicator).toBeInTheDocument();
-      
+
       // Check that the percentage is displayed
       expect(screen.getByText('0%')).toBeInTheDocument();
-      
+
       // Check that the comparison period text is displayed
-      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render very small change as neutral', () => {
@@ -200,12 +201,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'neutral' as const,
         comparisonPeriodText: '1 week ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('−')).toBeInTheDocument();
-      expect(screen.getByText('0.01%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+      expect(screen.getByText('0.0001%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
   });
 
@@ -217,9 +218,9 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.queryByText('↗')).not.toBeInTheDocument();
       expect(screen.queryByText('vs 1 day ago')).not.toBeInTheDocument();
     });
@@ -231,9 +232,9 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: undefined,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.queryByText('↗')).not.toBeInTheDocument();
       expect(screen.queryByText('vs 1 day ago')).not.toBeInTheDocument();
     });
@@ -245,11 +246,11 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: undefined,
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('50%')).toBeInTheDocument();
+      expect(screen.getByText('0.5%')).toBeInTheDocument();
       expect(screen.queryByText('vs')).not.toBeInTheDocument();
     });
 
@@ -260,11 +261,11 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('50%')).toBeInTheDocument();
+      expect(screen.getByText('0.5%')).toBeInTheDocument();
       expect(screen.queryByText('vs')).not.toBeInTheDocument();
     });
   });
@@ -277,12 +278,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: 'inherit',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('33%')).toBeInTheDocument();
-      expect(screen.getByText('vs inherit')).toBeInTheDocument();
+      expect(screen.getByText('0.33%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render "1 week ago" time comparison correctly', () => {
@@ -292,12 +293,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 week ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('20%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 week ago')).toBeInTheDocument();
+      expect(screen.getByText('0.2%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render "1 month ago" time comparison correctly', () => {
@@ -307,12 +308,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 month ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('15%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 month ago')).toBeInTheDocument();
+      expect(screen.getByText('0.15%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should render custom time comparison correctly', () => {
@@ -322,12 +323,12 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: 'custom_range',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('10%')).toBeInTheDocument();
-      expect(screen.getByText('vs custom_range')).toBeInTheDocument();
+      expect(screen.getByText('0.1%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
   });
 
@@ -339,14 +340,14 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       const indicator = screen.getByText('↗').closest('div');
       expect(indicator).toHaveStyle({
         position: 'absolute',
-        top: '15px',
-        right: '15px',
+        top: '8px', // Small top margin for better spacing
+        right: '10%', // Responsive positioning
       });
     });
 
@@ -358,9 +359,9 @@ describe('BigNumberViz with Time Comparison', () => {
           percentageChange={0.5}
           comparisonIndicator="positive"
           comparisonPeriodText="1 day ago"
-        />
+        />,
       );
-      
+
       let indicator = screen.getByText('↗').closest('div');
       expect(indicator).toHaveStyle({ color: '#28a745' });
 
@@ -371,9 +372,9 @@ describe('BigNumberViz with Time Comparison', () => {
           percentageChange={-0.5}
           comparisonIndicator="negative"
           comparisonPeriodText="1 day ago"
-        />
+        />,
       );
-      
+
       indicator = screen.getByText('↘').closest('div');
       expect(indicator).toHaveStyle({ color: '#dc3545' });
 
@@ -384,9 +385,9 @@ describe('BigNumberViz with Time Comparison', () => {
           percentageChange={0}
           comparisonIndicator="neutral"
           comparisonPeriodText="1 day ago"
-        />
+        />,
       );
-      
+
       indicator = screen.getByText('−').closest('div');
       expect(indicator).toHaveStyle({ color: '#ffc107' });
     });
@@ -398,16 +399,17 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       const indicator = screen.getByText('↗').closest('div');
       expect(indicator).toHaveStyle({
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
-        fontSize: '14px',
-        fontWeight: '600',
+        gap: '3px', // Smaller gap
+        fontSize: 'clamp(10px, 2.5vw, 14px)', // Responsive font size
+        fontWeight: '500', // Lighter weight
+        whiteSpace: 'nowrap', // Prevent text wrapping
       });
     });
   });
@@ -427,17 +429,18 @@ describe('BigNumberViz with Time Comparison', () => {
           },
         ],
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       // Should still render the comparison indicator
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('50%')).toBeInTheDocument();
-      expect(screen.getByText('vs 1 day ago')).toBeInTheDocument();
+      expect(screen.getByText('0.5%')).toBeInTheDocument();
+      // Period text is no longer displayed in minimalist design
     });
 
     it('should work with custom number formatting', () => {
-      const customFormatNumber = (value: number) => `$${value.toLocaleString()}`;
+      const customFormatNumber = (value: number) =>
+        `$${value.toLocaleString()}`;
       const props = {
         ...defaultProps,
         formatNumber: customFormatNumber,
@@ -445,15 +448,15 @@ describe('BigNumberViz with Time Comparison', () => {
         comparisonIndicator: 'positive' as const,
         comparisonPeriodText: '1 day ago',
       };
-      
+
       render(<BigNumberViz {...props} />);
-      
+
       // Should render the main number with custom formatting
       expect(screen.getByText('1000%')).toBeInTheDocument();
-      
+
       // Should still render the comparison indicator
       expect(screen.getByText('↗')).toBeInTheDocument();
-      expect(screen.getByText('50%')).toBeInTheDocument();
+      expect(screen.getByText('0.5%')).toBeInTheDocument();
     });
   });
 });

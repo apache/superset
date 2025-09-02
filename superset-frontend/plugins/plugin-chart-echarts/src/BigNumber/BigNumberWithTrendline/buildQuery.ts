@@ -25,7 +25,6 @@ import {
 } from '@superset-ui/core';
 import {
   flattenOperator,
-
   pivotOperator,
   resampleOperator,
   rollingWindowOperator,
@@ -41,16 +40,16 @@ function detectTimePeriod(timeRange: string): string | null {
     const value = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();
     // Handle singular vs plural
-    const singularUnit = value === 1 ? unit : unit + 's';
+    const singularUnit = value === 1 ? unit : `${unit}s`;
     return `${value} ${singularUnit} ago`;
   }
-  
+
   // Handle special cases
   const lowerTimeRange = timeRange.toLowerCase();
   if (lowerTimeRange.includes('this week')) return '1 week ago';
   if (lowerTimeRange.includes('this month')) return '1 month ago';
   if (lowerTimeRange.includes('this year')) return '1 year ago';
-  
+
   return null;
 }
 
@@ -64,7 +63,7 @@ function calculatePeriodFromDates(since: string, until: string): string | null {
     const untilDate = new Date(until);
     const diffTime = Math.abs(untilDate.getTime() - sinceDate.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both dates
-    
+
     if (diffDays === 1) return '1 day ago';
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) {
@@ -90,7 +89,8 @@ export default function buildQuery(formData: QueryFormData) {
     extraFormData: formData.extra_form_data,
     customFormData: formData.extra_form_data?.custom_form_data,
     timeCompare: formData.time_compare,
-    timeCompareExtra: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
+    timeCompareExtra: (formData.extra_form_data?.custom_form_data as any)
+      ?.time_compare,
     timeCompareDirect: (formData.extra_form_data as any)?.time_compare,
     metrics: formData.metrics,
     datasource: formData.datasource,
@@ -105,60 +105,76 @@ export default function buildQuery(formData: QueryFormData) {
   });
 
   const buildQuery = (baseQueryObject: any) => {
-    console.log('BigNumberWithTrendline buildQuery - baseQueryObject:', baseQueryObject);
+    console.log(
+      'BigNumberWithTrendline buildQuery - baseQueryObject:',
+      baseQueryObject,
+    );
 
     // Use the proper Superset single-query approach for time comparison
     // This ensures that formData.time_compare is preserved and passed to transformProps
     const time_offsets = (() => {
-      const timeCompare = formData.time_compare || 
-                         (formData.extra_form_data as any)?.time_compare;
-      
+      const timeCompare =
+        formData.time_compare ||
+        (formData.extra_form_data as any)?.time_compare;
+
       // Convert string time comparison to array format for transformProps
       if (timeCompare && timeCompare !== 'NoComparison') {
         if (timeCompare === 'inherit') {
           // Enhanced inherit logic: detect actual time period and apply same offset
           const timeRange = formData.time_range;
-          const since = formData.since;
-          const until = formData.until;
-          
-          console.log('BigNumberWithTrendline buildQuery - Inherit logic analysis:', {
-            timeRange,
-            since,
-            until,
-            hasTimeRange: !!timeRange,
-            hasSinceUntil: !!(since && until)
-          });
+          const { since } = formData;
+          const { until } = formData;
+
+          console.log(
+            'BigNumberWithTrendline buildQuery - Inherit logic analysis:',
+            {
+              timeRange,
+              since,
+              until,
+              hasTimeRange: !!timeRange,
+              hasSinceUntil: !!(since && until),
+            },
+          );
 
           if (timeRange && typeof timeRange === 'string') {
             // Parse time range string to detect period
             const period = detectTimePeriod(timeRange);
             if (period) {
-              console.log('BigNumberWithTrendline buildQuery - Detected period from timeRange:', period);
+              console.log(
+                'BigNumberWithTrendline buildQuery - Detected period from timeRange:',
+                period,
+              );
               return [period];
             }
           }
-          
+
           if (since && until) {
             // Calculate period from since/until dates
             const period = calculatePeriodFromDates(since, until);
             if (period) {
-              console.log('BigNumberWithTrendline buildQuery - Calculated period from dates:', period);
+              console.log(
+                'BigNumberWithTrendline buildQuery - Calculated period from dates:',
+                period,
+              );
               return [period];
             }
           }
-          
+
           // Fallback to default
-          console.log('BigNumberWithTrendline buildQuery - Using fallback period: 1 day ago');
+          console.log(
+            'BigNumberWithTrendline buildQuery - Using fallback period: 1 day ago',
+          );
           return ['1 day ago'];
-        } else if (timeCompare === 'custom') {
-          // For custom, use the time_compare_value
-          const customValue = formData.time_compare_value || 
-                             (formData.extra_form_data as any)?.time_compare_value;
-          return customValue ? [customValue] : [];
-        } else {
-          // For direct string values like "1 day ago", "1 week ago", etc.
-          return Array.isArray(timeCompare) ? timeCompare : [timeCompare];
         }
+        if (timeCompare === 'custom') {
+          // For custom, use the time_compare_value
+          const customValue =
+            formData.time_compare_value ||
+            (formData.extra_form_data as any)?.time_compare_value;
+          return customValue ? [customValue] : [];
+        }
+        // For direct string values like "1 day ago", "1 week ago", etc.
+        return Array.isArray(timeCompare) ? timeCompare : [timeCompare];
       }
       return [];
     })();
@@ -184,22 +200,29 @@ export default function buildQuery(formData: QueryFormData) {
   };
 
   // Ensure time_compare is preserved on the root formData object
-  const timeCompare = formData.time_compare || 
-                     (formData.extra_form_data as any)?.time_compare;
-  
+  const timeCompare =
+    formData.time_compare || (formData.extra_form_data as any)?.time_compare;
+
   if (timeCompare && !formData.time_compare) {
+    // eslint-disable-next-line no-param-reassign
     formData.time_compare = timeCompare;
-    console.log('BigNumberWithTrendline buildQuery - Setting time_compare on root formData:', timeCompare);
+    console.log(
+      'BigNumberWithTrendline buildQuery - Setting time_compare on root formData:',
+      timeCompare,
+    );
   }
 
   const result = buildQueryContext(formData, buildQuery);
-  console.log('BigNumberWithTrendline buildQuery - Final result from buildQueryContext:', {
-    result,
-    hasQueries: !!result.queries,
-    queriesLength: result.queries?.length,
-    formData: result.form_data,
-    timeCompare: result.form_data?.time_compare,
-  });
+  console.log(
+    'BigNumberWithTrendline buildQuery - Final result from buildQueryContext:',
+    {
+      result,
+      hasQueries: !!result.queries,
+      queriesLength: result.queries?.length,
+      formData: result.form_data,
+      timeCompare: result.form_data?.time_compare,
+    },
+  );
 
   return result;
 }

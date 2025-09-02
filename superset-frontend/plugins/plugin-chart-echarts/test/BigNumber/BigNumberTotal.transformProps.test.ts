@@ -56,26 +56,28 @@ function generateProps(
   // Add comparison data if provided - now as time-offset columns in the same query
   if (comparisonData.length > 0) {
     // Get the time comparison value from extraFormData
-    const timeCompare = (extraFormData as any)?.extra_form_data?.time_compare ||
-                       (extraFormData as any)?.time_compare;
-    
+    const timeCompare =
+      (extraFormData as any)?.extra_form_data?.time_compare ||
+      (extraFormData as any)?.time_compare;
+
     if (timeCompare && timeCompare !== 'NoComparison') {
       // Resolve the actual time offset string
       let resolvedTimeOffset: string;
       if (timeCompare === 'inherit') {
         resolvedTimeOffset = '1 day ago';
       } else if (timeCompare === 'custom') {
-        resolvedTimeOffset = (extraFormData as any)?.time_compare_value || 'custom_range';
+        resolvedTimeOffset =
+          (extraFormData as any)?.time_compare_value || 'custom_range';
       } else {
         resolvedTimeOffset = timeCompare;
       }
 
       // Get the metric name from the formData (default to 'value' if not specified)
       const metricName = (extraFormData as any)?.metric || 'value';
-      
+
       // Create time-offset column name using the actual metric name
       const timeOffsetColumn = `${metricName}__${resolvedTimeOffset}`;
-      
+
       // Update the first query to include both current and comparison data
       queriesData[0] = {
         data: data.map((row, index) => ({
@@ -139,7 +141,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1500 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -155,7 +157,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 2000 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -171,7 +173,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 10000 }], // current period
         [{ value: 100 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -189,7 +191,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 800 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -205,7 +207,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 500 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -221,7 +223,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 100 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -239,7 +241,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1000 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -255,7 +257,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1000.001 }], // current period
         [{ value: 1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -273,7 +275,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1000 }], // current period
         [{ value: 0 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -289,7 +291,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1000 }], // current period
         [{ value: null }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -305,7 +307,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1000 }], // current period
         [], // empty comparison data
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -321,7 +323,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: -500 }], // current period
         [{ value: -1000 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
@@ -339,7 +341,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 2000 }], // current period
         [{ value: 1500 }], // previous period
-        { extra_form_data: { time_compare: 'inherit' } }
+        { extra_form_data: { time_compare: 'inherit' } },
       );
       const result = transformProps(props);
 
@@ -355,7 +357,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 3000 }], // current period
         [{ value: 2500 }], // previous period
-        { extra_form_data: { time_compare: '1 week ago' } }
+        { extra_form_data: { time_compare: '1 week ago' } },
       );
       const result = transformProps(props);
 
@@ -371,7 +373,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 4000 }], // current period
         [{ value: 3500 }], // previous period
-        { extra_form_data: { time_compare: '1 month ago' } }
+        { extra_form_data: { time_compare: '1 month ago' } },
       );
       const result = transformProps(props);
 
@@ -398,11 +400,9 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
     });
 
     it('should handle undefined time comparison', () => {
-      const props = generateProps(
-        [{ value: 1000 }],
-        [{ value: 800 }],
-        { extra_form_data: { time_compare: undefined } }
-      );
+      const props = generateProps([{ value: 1000 }], [{ value: 800 }], {
+        extra_form_data: { time_compare: undefined },
+      });
       const result = transformProps(props);
 
       expect(result).toMatchObject({
@@ -416,15 +416,15 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
 
   describe('Data Format Handling', () => {
     it('should handle different metric names', () => {
-      const customFormData = { 
-        ...formData, 
+      const customFormData = {
+        ...formData,
         metric: 'sales',
-        extra_form_data: { time_compare: '1 day ago' }
+        extra_form_data: { time_compare: '1 day ago' },
       };
       const props = generateProps(
         [{ sales: 1500 }], // current period
         [{ sales: 1000 }], // previous period
-        customFormData
+        customFormData,
       );
       const result = transformProps(props);
 
@@ -440,7 +440,7 @@ describe('BigNumberTotal transformProps with Time Comparison', () => {
       const props = generateProps(
         [{ value: 1500 }, { value: 1600 }], // current period
         [{ value: 1000 }, { value: 1100 }], // previous period
-        { extra_form_data: { time_compare: '1 day ago' } }
+        { extra_form_data: { time_compare: '1 day ago' } },
       );
       const result = transformProps(props);
 
