@@ -74,6 +74,7 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetSecurityException,
+    SupersetSyntaxErrorException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
@@ -1082,11 +1083,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if template_processor:
             try:
                 sql = template_processor.process_template(sql)
-            except TemplateError as ex:
+            except (TemplateError, SupersetSyntaxErrorException) as ex:
+                # Extract error message from different exception types
+                if isinstance(ex, TemplateError):
+                    error_msg = ex.message
+                else:  # SupersetSyntaxErrorException
+                    error_msg = str(ex.errors[0].message if ex.errors else ex)
+
                 raise QueryObjectValidationError(
                     _(
                         "Error while rendering virtual dataset query: %(msg)s",
-                        msg=ex.message,
+                        msg=error_msg,
                     )
                 ) from ex
 
@@ -1505,7 +1512,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         except Exception as ex:
             # Convert any exception to validation error format
-            error_msg = str(ex.orig) if hasattr(ex, "orig") else str(ex)
+            error_msg = str(getattr(ex, "orig", ex))
             return ValidationResultDict(
                 valid=False,
                 errors=[

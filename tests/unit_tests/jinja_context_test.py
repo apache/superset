@@ -1435,3 +1435,134 @@ def test_get_time_filter(
         assert cache.get_time_filter(*args, **kwargs) == time_filter, description
         assert cache.removed_filters == removed_filters
         assert cache.applied_filters == applied_filters
+
+
+def test_jinja2_template_syntax_error_handling(mocker: MockerFixture) -> None:
+    """Test TemplateSyntaxError handling with proper error message and 422 status"""
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+
+    # Test with invalid Jinja2 syntax
+    template = "SELECT * WHERE column = {{ variable such as 'default' }}"
+
+    with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+        processor.process_template(template)
+
+    exception = exc_info.value
+    assert len(exception.errors) == 1
+    error = exception.errors[0]
+
+    # Verify error message contains helpful guidance
+    assert "Jinja2 template error" in error.message
+    assert "TemplateSyntaxError" in error.message
+    assert "expected token" in error.message
+
+    # Verify error type and status
+    assert error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+    assert exception.status == 422
+
+    # Verify extra data includes template snippet
+    assert "template" in error.extra
+    assert error.extra["template"][:50] == template[:50]
+
+
+def test_jinja2_undefined_error_handling(mocker: MockerFixture) -> None:
+    """Test that UndefinedError is handled as client error"""
+    from unittest.mock import patch
+
+    from jinja2.exceptions import UndefinedError
+
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise UndefinedError
+    with patch.object(
+        processor.env, "from_string", side_effect=UndefinedError("Variable not defined")
+    ):
+        with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+        error = exception.errors[0]
+
+        # Should get client error message (422)
+        assert "Jinja2 template error" in error.message
+        assert "UndefinedError" in error.message
+        assert "Variable not defined" in error.message
+        assert exception.status == 422
+
+
+def test_jinja2_security_error_handling(mocker: MockerFixture) -> None:
+    """Test that SecurityError is handled as client error"""
+    from unittest.mock import patch
+
+    from jinja2.exceptions import SecurityError
+
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise SecurityError
+    with patch.object(
+        processor.env, "from_string", side_effect=SecurityError("Access denied")
+    ):
+        with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+        error = exception.errors[0]
+
+        # Should get client error message with SecurityError type
+        assert "Jinja2 template error" in error.message
+        assert "SecurityError" in error.message
+        assert "Access denied" in error.message
+        assert exception.status == 422
+
+
+def test_jinja2_server_error_handling(mocker: MockerFixture) -> None:
+    """Test that server errors (like MemoryError) are handled with 500 status"""
+    from unittest.mock import patch
+
+    from superset.exceptions import SupersetTemplateException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise MemoryError (server error)
+    with patch.object(
+        processor.env, "from_string", side_effect=MemoryError("Out of memory")
+    ):
+        with pytest.raises(SupersetTemplateException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+
+        # Should get server error message (500)
+        assert "Internal Jinja2 template error" in str(exception)
+        assert "MemoryError" in str(exception)
+        assert "Out of memory" in str(exception)
