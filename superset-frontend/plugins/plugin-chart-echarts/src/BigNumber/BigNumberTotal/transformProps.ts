@@ -239,13 +239,40 @@ export default function transformProps(
             previousPeriodValue,
           );
 
-          if (
-            bigNumber !== null &&
-            previousPeriodValue !== null &&
-            previousPeriodValue !== 0
-          ) {
-            percentageChange =
-              (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
+          if (bigNumber !== null && previousPeriodValue !== null) {
+            // Handle special cases
+            if (previousPeriodValue === 0) {
+              if (bigNumber === 0) {
+                // Both values are 0 - no change
+                percentageChange = 0;
+                comparisonIndicator = 'neutral';
+              } else if (bigNumber > 0) {
+                // Previous was 0, now positive - infinite growth, treat as positive
+                percentageChange = 1; // 100% change as maximum
+                comparisonIndicator = 'positive';
+              } else {
+                // Previous was 0, now negative - treat as negative  
+                percentageChange = -1; // -100% change as minimum
+                comparisonIndicator = 'negative';
+              }
+            } else if (bigNumber === 0) {
+              // Current is 0 but previous was not 0 - complete loss (-100%)
+              percentageChange = -1; // -100% change (complete loss)
+              comparisonIndicator = 'negative';
+            } else {
+              // Normal calculation when both values are non-zero
+              percentageChange =
+                (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
+              
+              if (percentageChange > 0) {
+                comparisonIndicator = 'positive';
+              } else if (percentageChange < 0) {
+                comparisonIndicator = 'negative';
+              } else {
+                comparisonIndicator = 'neutral';
+              }
+            }
+            
             console.log(
               'BigNumberTotal transformProps - Percentage change calculation:',
               {
@@ -254,16 +281,9 @@ export default function transformProps(
                 difference: bigNumber - previousPeriodValue,
                 absolutePrevious: Math.abs(previousPeriodValue),
                 percentageChange,
+                comparisonIndicator,
               },
             );
-
-            if (percentageChange > 0) {
-              comparisonIndicator = 'positive';
-            } else if (percentageChange < 0) {
-              comparisonIndicator = 'negative';
-            } else {
-              comparisonIndicator = 'neutral';
-            }
             console.log(
               'BigNumberTotal transformProps - Comparison indicator set to:',
               comparisonIndicator,

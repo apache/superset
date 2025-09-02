@@ -346,8 +346,8 @@ describe('BigNumberViz with Time Comparison', () => {
       const indicator = screen.getByText('↗').closest('div');
       expect(indicator).toHaveStyle({
         position: 'absolute',
-        top: '8px', // Small top margin for better spacing
-        right: '10%', // Responsive positioning
+        top: '-35px', // Position above chart to appear in header area
+        right: '60px', // Position left of controls menu
       });
     });
 
@@ -392,6 +392,101 @@ describe('BigNumberViz with Time Comparison', () => {
       expect(indicator).toHaveStyle({ color: '#ffc107' });
     });
 
+    it('should handle NaN percentage values gracefully', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: NaN,
+        comparisonIndicator: 'neutral' as const,
+        comparisonPeriodText: '1 day ago',
+      };
+
+      render(<BigNumberViz {...props} />);
+
+      // Should display 0% instead of NaN
+      expect(screen.getByText('0%')).toBeInTheDocument();
+      expect(screen.getByText('−')).toBeInTheDocument(); // Neutral arrow
+      
+      const indicator = screen.getByText('−').closest('div');
+      expect(indicator).toHaveStyle({ color: '#ffc107' }); // Amber color
+    });
+
+    it('should handle undefined percentage values gracefully', () => {
+      const props = {
+        ...defaultProps,
+        percentageChange: undefined as any,
+        comparisonIndicator: undefined as any, // When percentageChange is undefined, comparisonIndicator should also be undefined
+        comparisonPeriodText: '1 day ago',
+      };
+
+      render(<BigNumberViz {...props} />);
+
+      // Should not render comparison indicator when data is undefined
+      expect(screen.queryByText('0%')).not.toBeInTheDocument();
+      expect(screen.queryByText('−')).not.toBeInTheDocument();
+      expect(screen.queryByText('↗')).not.toBeInTheDocument();
+      expect(screen.queryByText('↘')).not.toBeInTheDocument();
+    });
+
+    it('should display proper tooltip text for different time periods', () => {
+      const inheritProps = {
+        ...defaultProps,
+        percentageChange: 0.1,
+        comparisonIndicator: 'positive' as const,
+        comparisonPeriodText: 'inherit',
+      };
+
+      const { rerender } = render(<BigNumberViz {...inheritProps} />);
+      
+      const indicator = screen.getByText('↗').closest('div');
+      expect(indicator).toHaveAttribute('title', 'Compared to previous period');
+
+      // Test inherit mode with specific date range
+      rerender(
+        <BigNumberViz
+          {...defaultProps}
+          percentageChange={0.1}
+          comparisonIndicator="positive"
+          comparisonPeriodText="inherit"
+          formData={{
+            since: '2024-01-01T00:00:00',
+            until: '2024-01-07T23:59:59',
+            time_range: 'Last 7 days',
+          } as any}
+        />,
+      );
+
+      const inheritIndicator = screen.getByText('↗').closest('div');
+      expect(inheritIndicator?.getAttribute('title')).toContain('Compared to');
+      expect(inheritIndicator?.getAttribute('title')).toContain('2023'); // Previous year dates
+      expect(inheritIndicator?.getAttribute('title')).not.toContain('vs current'); // Should not contain vs current
+
+      // Test with specific time period
+      rerender(
+        <BigNumberViz
+          {...defaultProps}
+          percentageChange={0.1}
+          comparisonIndicator="positive"
+          comparisonPeriodText="1 week ago"
+        />,
+      );
+
+      const weekIndicator = screen.getByText('↗').closest('div');
+      expect(weekIndicator).toHaveAttribute('title', 'Compared to 1 week ago');
+
+      // Test with custom range
+      rerender(
+        <BigNumberViz
+          {...defaultProps}
+          percentageChange={0.1}
+          comparisonIndicator="positive"
+          comparisonPeriodText="custom_range"
+        />,
+      );
+
+      const customIndicator = screen.getByText('↗').closest('div');
+      expect(customIndicator).toHaveAttribute('title', 'Compared to custom date range');
+    });
+
     it('should maintain proper spacing and typography', () => {
       const props = {
         ...defaultProps,
@@ -407,7 +502,7 @@ describe('BigNumberViz with Time Comparison', () => {
         display: 'flex',
         alignItems: 'center',
         gap: '3px', // Smaller gap
-        fontSize: 'clamp(10px, 2.5vw, 14px)', // Responsive font size
+        fontSize: 'clamp(8px, 2.0vw, 14px)', // Responsive font size
         fontWeight: '500', // Lighter weight
         whiteSpace: 'nowrap', // Prevent text wrapping
       });
