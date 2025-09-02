@@ -93,6 +93,84 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
+  it('correctly displays dataset names with and without schema', async () => {
+    // Create custom mock data with different datasource_name_text formats
+    const customMockCharts = [
+      {
+        ...mockCharts[0],
+        id: 100,
+        slice_name: 'Chart with Schema',
+        datasource_name_text: 'public.test_dataset',
+      },
+      {
+        ...mockCharts[0],
+        id: 101,
+        slice_name: 'Chart without Schema',
+        datasource_name_text: 'Jinja 5', // Virtual dataset without schema
+      },
+      {
+        ...mockCharts[0],
+        id: 102,
+        slice_name: 'Chart with Dots in Name',
+        datasource_name_text: 'schema.table.with.dots', // Name contains dots
+      },
+    ];
+
+    // Setup mock with custom charts
+    fetchMock.reset();
+    setupMocks();
+    fetchMock.get(
+      'glob:*/api/v1/chart/?*',
+      {
+        result: customMockCharts,
+        chart_count: customMockCharts.length,
+      },
+      { overwriteRoutes: true },
+    );
+
+    renderChartList(mockUser);
+
+    // Wait for table to be rendered
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText('Chart with Schema')).toBeInTheDocument();
+    });
+
+    // Find the specific dataset links by their parent row context
+    const schemaRow = screen.getByText('Chart with Schema').closest('tr');
+    const noSchemaRow = screen.getByText('Chart without Schema').closest('tr');
+    const dotsRow = screen.getByText('Chart with Dots in Name').closest('tr');
+
+    // Check dataset name displays correctly for each case
+    // For chart with schema (public.test_dataset)
+    expect(schemaRow).toBeInTheDocument();
+    const schemaLink = within(schemaRow!).getByRole('link', {
+      name: /test_dataset/i,
+    });
+    expect(schemaLink).toBeInTheDocument();
+    expect(schemaLink).toHaveTextContent('test_dataset');
+
+    // For chart without schema (Jinja 5)
+    expect(noSchemaRow).toBeInTheDocument();
+    const noSchemaLink = within(noSchemaRow!).getByRole('link', {
+      name: /Jinja 5/i,
+    });
+    expect(noSchemaLink).toBeInTheDocument();
+    expect(noSchemaLink).toHaveTextContent('Jinja 5');
+
+    // For chart with dots in name (schema.table.with.dots)
+    expect(dotsRow).toBeInTheDocument();
+    const dotsLink = within(dotsRow!).getByRole('link', {
+      name: /table\.with\.dots/i,
+    });
+    expect(dotsLink).toBeInTheDocument();
+    expect(dotsLink).toHaveTextContent('table.with.dots');
+  });
+
   it('switches from list view to card view', async () => {
     renderChartList(mockUser);
 
