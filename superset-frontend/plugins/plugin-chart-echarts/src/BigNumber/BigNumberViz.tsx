@@ -59,6 +59,19 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     timeRangeFixed: false,
   };
 
+  componentDidMount() {
+    // Debug logging for component mounting
+    console.log('BigNumberViz componentDidMount - Props received:', {
+      percentageChange: this.props.percentageChange,
+      comparisonIndicator: this.props.comparisonIndicator,
+      hasFormData: !!this.props.formData,
+      extraFormData: this.props.formData?.extra_form_data,
+      customFormData: this.props.formData?.extra_form_data?.custom_form_data,
+      timeCompare: (this.props.formData?.extra_form_data as any)?.time_compare,
+      comparisonPeriodText: this.props.comparisonPeriodText,
+    });
+  }
+
   getClassName() {
     const { className, showTrendLine, bigNumberFallback } = this.props;
     const names = `superset-legacy-chart-big-number ${className} ${
@@ -132,7 +145,19 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   renderComparisonIndicator() {
     const { percentageChange, comparisonIndicator, formData, comparisonPeriodText: propComparisonPeriodText } = this.props;
     
+    // Debug logging
+    console.log('BigNumberViz renderComparisonIndicator - Debug Info:', {
+      percentageChange,
+      comparisonIndicator,
+      hasFormData: !!formData,
+      extraFormData: formData?.extra_form_data,
+      customFormData: formData?.extra_form_data?.custom_form_data,
+      timeCompare: (formData?.extra_form_data as any)?.time_compare,
+      propComparisonPeriodText
+    });
+    
     if (percentageChange === undefined || comparisonIndicator === undefined) {
+      console.log('BigNumberViz: Not rendering comparison indicator - missing data:', { percentageChange, comparisonIndicator });
       return null;
     }
 
