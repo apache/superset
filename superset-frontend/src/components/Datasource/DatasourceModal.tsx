@@ -134,7 +134,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       cache_timeout:
         datasource.cache_timeout === '' ? null : datasource.cache_timeout,
       is_sqllab_view: datasource.is_sqllab_view,
-      template_params: datasource.template_params,
+      template_params: datasource.template_params === '' ? null : datasource.template_params,
       extra: datasource.extra,
       is_managed_externally: datasource.is_managed_externally,
       external_url: datasource.external_url,
