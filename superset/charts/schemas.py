@@ -268,7 +268,9 @@ class ChartPutSchema(Schema):
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     params = fields.String(
-        metadata={"description": params_description}, allow_none=True
+        metadata={"description": params_description},
+        allow_none=True,
+        validate=utils.validate_json,
     )
     query_context = fields.String(
         metadata={"description": query_context_description}, allow_none=True
