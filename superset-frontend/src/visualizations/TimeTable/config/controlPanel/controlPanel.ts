@@ -17,9 +17,13 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { getStandardizedControls, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+  sections,
+} from '@superset-ui/chart-controls';
 
-export default {
+export const controlPanel: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     {

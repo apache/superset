@@ -119,11 +119,12 @@ test('Should have remove button', async () => {
   const props = createProps();
   render(<CollectionControl {...props} />);
 
-  expect(
-    await screen.findByRole('button', { name: 'Show info tooltip' }),
-  ).toBeInTheDocument();
+  const removeButton = await screen.findByRole('img', { name: 'close' });
+  expect(removeButton).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Show info tooltip' }));
+  const buttonElement = removeButton.closest('button');
+  expect(buttonElement).not.toBeNull();
+  userEvent.click(buttonElement!);
   expect(props.onChange).toHaveBeenCalledWith([]);
 });
 

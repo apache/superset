@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { InfoTooltip, List } from '@superset-ui/core/components';
+import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t, withTheme } from '@superset-ui/core';
 import {
@@ -118,9 +118,10 @@ class CollectionControl extends Component {
             <SortableListItem
               className="clearfix"
               css={theme => ({
+                alignItems: 'center',
                 justifyContent: 'flex-start',
-                display: '-webkit-flex',
-                paddingInline: theme.sizeUnit * 3,
+                display: 'flex',
+                paddingInline: theme.sizeUnit * 6,
               })}
               key={this.props.keyAccessor(o)}
               index={i}
@@ -139,14 +140,30 @@ class CollectionControl extends Component {
                   onChange={this.onChange.bind(this, i)}
                 />
               </div>
-              <InfoTooltip
-                icon="times"
-                role="button"
-                label="remove-item"
-                tooltip={t('Remove item')}
-                bsStyle="primary"
+              <IconTooltip
+                className="pointer"
+                placement="right"
                 onClick={this.removeItem.bind(this, i)}
-              />
+                tooltip={t('Remove item')}
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                css={theme => ({
+                  padding: 0,
+                  minWidth: 'auto',
+                  height: 'auto',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                  '& svg path': {
+                    fill: theme.colorIcon,
+                    transition: `fill ${theme.motionDurationMid} ease-out`,
+                  },
+                  '&:hover svg path': {
+                    fill: theme.colorError,
+                  },
+                })}
+              >
+                <Icons.CloseOutlined iconSize="s" />
+              </IconTooltip>
             </SortableListItem>
           );
         })}
@@ -160,7 +177,10 @@ class CollectionControl extends Component {
         <HeaderContainer>
           <ControlHeader {...this.props} />
           <AddIconButton onClick={this.onAdd}>
-            <Icons.PlusOutlined iconSize="s" />
+            <Icons.PlusOutlined
+              iconSize="s"
+              iconColor={this.props.theme.colorTextLightSolid}
+            />
           </AddIconButton>
         </HeaderContainer>
         {this.renderList()}

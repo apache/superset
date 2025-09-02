@@ -28,7 +28,7 @@ interface FormData {
 interface QueryData {
   data: {
     records: DataRecord[];
-    columns: string[];
+    columns: string[] | Array<{ column_name: string; id: number }>;
   };
 }
 
@@ -40,22 +40,20 @@ export type TableChartProps = ChartProps & {
 interface ColumnData {
   timeLag?: string | number;
 }
-export default function transformProps(chartProps: TableChartProps) {
+
+export function transformProps(chartProps: TableChartProps) {
   const { height, datasource, formData, queriesData } = chartProps;
   const { columnCollection = [], groupby, metrics, url } = formData;
   const { records, columns } = queriesData[0].data;
   const isGroupBy = groupby?.length > 0;
 
-  // When there is a "group by",
-  // each row in the table is a database column
-  // Otherwise each row in the table is a metric
   let rows;
+
   if (isGroupBy) {
     rows = columns.map(column =>
       typeof column === 'object' ? column : { label: column },
     );
   } else {
-    /* eslint-disable */
     const metricMap = datasource.metrics.reduce<Record<string, Metric>>(
       (acc, current) => {
         const map = acc;
@@ -64,18 +62,17 @@ export default function transformProps(chartProps: TableChartProps) {
       },
       {},
     );
-    /* eslint-disable */
+
     rows = metrics.map(metric =>
       typeof metric === 'object' ? metric : metricMap[metric],
     );
   }
 
-  // TODO: Better parse this from controls instead of mutative value here.
   columnCollection.forEach(column => {
     const c: ColumnData = column;
-    if (typeof c.timeLag === 'string' && c.timeLag) {
+
+    if (typeof c.timeLag === 'string' && c.timeLag)
       c.timeLag = parseInt(c.timeLag, 10);
-    }
   });
 
   return {
