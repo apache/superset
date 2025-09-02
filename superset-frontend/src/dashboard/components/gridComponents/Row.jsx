@@ -171,6 +171,7 @@ const Row = props => {
   useEffect(() => {
     let observerEnabler;
     let observerDisabler;
+
     if (
       isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
       !isCurrentUserBot()
@@ -179,12 +180,15 @@ const Row = props => {
         ([entry]) => {
           if (entry.isIntersecting && isComponentVisibleRef.current) {
             setIsInView(true);
+          } else if (!isComponentVisibleRef.current) {
+            setIsInView(false);
           }
         },
         {
           rootMargin: '100% 0px',
         },
       );
+
       observerDisabler = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting && isComponentVisibleRef.current) {
@@ -198,12 +202,14 @@ const Row = props => {
           rootMargin: '400% 0px',
         },
       );
+
       const element = containerRef.current;
       if (element) {
         observerEnabler.observe(element);
         observerDisabler.observe(element);
       }
     }
+
     return () => {
       observerEnabler?.disconnect();
       observerDisabler?.disconnect();
