@@ -37,7 +37,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
+from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -427,12 +427,6 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
-
-    if auth_type == AUTH_OID:
-        oid_providers = []
-        for provider in appbuilder.sm.openid_providers:
-            oid_providers.append(provider)
-        frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
