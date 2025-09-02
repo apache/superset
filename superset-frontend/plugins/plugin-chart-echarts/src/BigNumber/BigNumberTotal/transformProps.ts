@@ -71,14 +71,50 @@ export default function transformProps(
   const timeCompare = 
     (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
     (formData.extra_form_data as any)?.time_compare;
+    
+  // Debug logging
+  console.log('BigNumberTotal transformProps - Debug Info:', {
+    queriesDataLength: queriesData.length,
+    timeCompare,
+    extraFormData: formData.extra_form_data,
+    customFormData: formData.extra_form_data?.custom_form_data,
+    hasComparisonData: queriesData.length > 1,
+    comparisonDataExists: queriesData.length > 1 ? !!queriesData[1] : false,
+    comparisonDataStructure: queriesData.length > 1 ? queriesData[1] : null,
+    currentDataStructure: queriesData[0],
+    metricName,
+    bigNumber,
+  });
+  
   if (queriesData.length > 1 && timeCompare && timeCompare !== 'NoComparison') {
+    console.log('BigNumberTotal transformProps - Processing comparison data...');
+    
     const comparisonData = queriesData[1];
+    console.log('BigNumberTotal transformProps - Comparison data details:', {
+      comparisonData,
+      hasData: !!comparisonData.data,
+      dataLength: comparisonData.data?.length || 0,
+      firstRow: comparisonData.data?.[0],
+      metricValue: comparisonData.data?.[0]?.[metricName],
+    });
+    
     if (comparisonData.data && comparisonData.data.length > 0) {
-      previousPeriodValue = parseMetricValue(comparisonData.data[0][metricName]);
+      const rawValue = comparisonData.data[0][metricName];
+      console.log('BigNumberTotal transformProps - Raw comparison value:', rawValue);
       
+      previousPeriodValue = parseMetricValue(rawValue);
+      console.log('BigNumberTotal transformProps - Parsed previousPeriodValue:', previousPeriodValue);
+
       if (bigNumber !== null && previousPeriodValue !== null && previousPeriodValue !== 0) {
         percentageChange = (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
-        
+        console.log('BigNumberTotal transformProps - Percentage change calculation:', {
+          bigNumber,
+          previousPeriodValue,
+          difference: bigNumber - previousPeriodValue,
+          absolutePrevious: Math.abs(previousPeriodValue),
+          percentageChange,
+        });
+
         if (percentageChange > 0) {
           comparisonIndicator = 'positive';
         } else if (percentageChange < 0) {
@@ -86,8 +122,25 @@ export default function transformProps(
         } else {
           comparisonIndicator = 'neutral';
         }
+        console.log('BigNumberTotal transformProps - Comparison indicator set to:', comparisonIndicator);
+      } else {
+        console.log('BigNumberTotal transformProps - Cannot calculate percentage change:', {
+          bigNumber,
+          previousPeriodValue,
+          reason: bigNumber === null ? 'bigNumber is null' : 
+                  previousPeriodValue === null ? 'previousPeriodValue is null' : 
+                  previousPeriodValue === 0 ? 'previousPeriodValue is 0' : 'unknown'
+        });
       }
+    } else {
+      console.log('BigNumberTotal transformProps - No comparison data available');
     }
+  } else {
+    console.log('BigNumberTotal transformProps - Skipping comparison processing:', {
+      reason: queriesData.length <= 1 ? 'No comparison data' : 
+              !timeCompare ? 'No time comparison' : 
+              timeCompare === 'NoComparison' ? 'NoComparison selected' : 'unknown'
+    });
   }
 
   let metricEntry: Metric | undefined;

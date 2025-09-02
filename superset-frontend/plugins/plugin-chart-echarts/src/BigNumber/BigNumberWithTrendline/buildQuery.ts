@@ -32,7 +32,22 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
+  // Debug logging for buildQuery
+  console.log('BigNumberWithTrendline buildQuery - Input formData:', {
+    hasExtraFormData: !!formData.extra_form_data,
+    extraFormData: formData.extra_form_data,
+    customFormData: formData.extra_form_data?.custom_form_data,
+    timeCompare: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
+    timeCompareDirect: (formData.extra_form_data as any)?.time_compare,
+    metrics: formData.metrics,
+    datasource: formData.datasource,
+    xAxis: formData.x_axis,
+    timeGrain: formData.time_grain_sqla,
+  });
+
   const buildQuery = (baseQueryObject: any) => {
+    console.log('BigNumberWithTrendline buildQuery - baseQueryObject:', baseQueryObject);
+    
     const queries = [
       {
         ...baseQueryObject,
@@ -51,34 +66,58 @@ export default function buildQuery(formData: QueryFormData) {
       },
     ];
 
+    console.log('BigNumberWithTrendline buildQuery - Base query created:', queries[0]);
+
+    // Handle both old and new time comparison formats
     const timeComparison = 
       (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
       (formData.extra_form_data as any)?.time_compare;
+      
+    console.log('BigNumberWithTrendline buildQuery - timeComparison resolved:', timeComparison);
+    
     if (timeComparison && timeComparison !== 'NoComparison') {
-      const comparisonFormData = getComparisonInfo(
-        formData,
-        timeComparison,
-        formData.extra_form_data,
-      );
-      queries.push({
-        ...baseQueryObject,
-        ...comparisonFormData,
-        columns: [
-          ...(isXAxisSet(formData)
-            ? ensureIsArray(getXAxisColumn(formData))
-            : []),
-        ],
-        ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
-        post_processing: [
-          pivotOperator(formData, baseQueryObject),
-          rollingWindowOperator(formData, baseQueryObject),
-          resampleOperator(formData, baseQueryObject),
-          flattenOperator(formData, baseQueryObject),
-        ],
-      });
+      console.log('BigNumberWithTrendline buildQuery - Processing time comparison for:', timeComparison);
+      
+      try {
+        const comparisonFormData = getComparisonInfo(
+          formData,
+          timeComparison,
+          formData.extra_form_data,
+        );
+        console.log('BigNumberWithTrendline buildQuery - comparisonFormData from getComparisonInfo:', comparisonFormData);
+        
+        const comparisonQuery = {
+          ...baseQueryObject,
+          ...comparisonFormData,
+          columns: [
+            ...(isXAxisSet(formData)
+              ? ensureIsArray(getXAxisColumn(formData))
+              : []),
+          ],
+          ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+          post_processing: [
+            pivotOperator(formData, baseQueryObject),
+            rollingWindowOperator(formData, baseQueryObject),
+            resampleOperator(formData, baseQueryObject),
+            flattenOperator(formData, baseQueryObject),
+          ],
+        };
+        console.log('BigNumberWithTrendline buildQuery - comparisonQuery created:', comparisonQuery);
+        
+        queries.push(comparisonQuery);
+      } catch (error) {
+        console.error('BigNumberWithTrendline buildQuery - Error in getComparisonInfo:', error);
+      }
+    } else {
+      console.log('BigNumberWithTrendline buildQuery - No time comparison or NoComparison selected');
     }
+    
+    console.log('BigNumberWithTrendline buildQuery - Final queries array:', queries);
     return queries;
   };
 
-  return buildQueryContext(formData, buildQuery);
+  const result = buildQueryContext(formData, buildQuery);
+  console.log('BigNumberWithTrendline buildQuery - Final result from buildQueryContext:', result);
+  
+  return result;
 }

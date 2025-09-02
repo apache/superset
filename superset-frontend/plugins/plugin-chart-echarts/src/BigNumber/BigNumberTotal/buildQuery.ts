@@ -23,7 +23,20 @@ import {
 } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
+  // Debug logging for buildQuery
+  console.log('BigNumberTotal buildQuery - Input formData:', {
+    hasExtraFormData: !!formData.extra_form_data,
+    extraFormData: formData.extra_form_data,
+    customFormData: formData.extra_form_data?.custom_form_data,
+    timeCompare: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
+    timeCompareDirect: (formData.extra_form_data as any)?.time_compare,
+    metrics: formData.metrics,
+    datasource: formData.datasource,
+  });
+
   const buildQuery = (baseQueryObject: any) => {
+    console.log('BigNumberTotal buildQuery - baseQueryObject:', baseQueryObject);
+    
     const queries = [baseQueryObject];
 
     // Handle both old and new time comparison formats
@@ -31,19 +44,39 @@ export default function buildQuery(formData: QueryFormData) {
       (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
       (formData.extra_form_data as any)?.time_compare;
       
+    console.log('BigNumberTotal buildQuery - timeComparison resolved:', timeComparison);
+    
     if (timeComparison && timeComparison !== 'NoComparison') {
-      const comparisonFormData = getComparisonInfo(
-        formData,
-        timeComparison,
-        formData.extra_form_data,
-      );
-      queries.push({
-        ...baseQueryObject,
-        ...comparisonFormData,
-      });
+      console.log('BigNumberTotal buildQuery - Processing time comparison for:', timeComparison);
+      
+      try {
+        const comparisonFormData = getComparisonInfo(
+          formData,
+          timeComparison,
+          formData.extra_form_data,
+        );
+        console.log('BigNumberTotal buildQuery - comparisonFormData from getComparisonInfo:', comparisonFormData);
+        
+        const comparisonQuery = {
+          ...baseQueryObject,
+          ...comparisonFormData,
+        };
+        console.log('BigNumberTotal buildQuery - comparisonQuery created:', comparisonQuery);
+        
+        queries.push(comparisonQuery);
+      } catch (error) {
+        console.error('BigNumberTotal buildQuery - Error in getComparisonInfo:', error);
+      }
+    } else {
+      console.log('BigNumberTotal buildQuery - No time comparison or NoComparison selected');
     }
+    
+    console.log('BigNumberTotal buildQuery - Final queries array:', queries);
     return queries;
   };
 
-  return buildQueryContext(formData, buildQuery);
+  const result = buildQueryContext(formData, buildQuery);
+  console.log('BigNumberTotal buildQuery - Final result from buildQueryContext:', result);
+  
+  return result;
 }
