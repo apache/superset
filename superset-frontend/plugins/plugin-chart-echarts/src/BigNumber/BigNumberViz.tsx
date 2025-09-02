@@ -322,27 +322,30 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         const timeRange = formData?.time_range;
         const since = formData?.since;
         const until = formData?.until;
-        
+
         if (since && until) {
-          // Format the actual date range for inherit mode
-          const currentStart = new Date(since).toLocaleDateString();
-          const currentEnd = new Date(until).toLocaleDateString();
-          
           // Calculate previous period dates
           const currentStartDate = new Date(since);
           const currentEndDate = new Date(until);
-          const duration = currentEndDate.getTime() - currentStartDate.getTime();
-          
-          const previousStartDate = new Date(currentStartDate.getTime() - duration);
-          const previousEndDate = new Date(currentEndDate.getTime() - duration);
-          
+          const duration =
+            currentEndDate.getTime() - currentStartDate.getTime();
+
+          const previousStartDate = new Date(
+            currentStartDate.getTime() - duration,
+          );
+          const previousEndDate = new Date(
+            currentEndDate.getTime() - duration,
+          );
+
           const previousStart = previousStartDate.toLocaleDateString();
           const previousEnd = previousEndDate.toLocaleDateString();
-          
+
           tooltipText = `Compared to ${previousStart} - ${previousEnd}`;
         } else if (timeRange && typeof timeRange === 'string') {
           // Use time range string to generate more specific text
-          tooltipText = `Compared to previous ${timeRange.toLowerCase().replace('last ', '')}`;
+          tooltipText = `Compared to previous ${timeRange
+            .toLowerCase()
+            .replace('last ', '')}`;
         } else {
           tooltipText = 'Compared to previous period';
         }
