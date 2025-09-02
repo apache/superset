@@ -98,12 +98,25 @@ export const useDownloadScreenshot = (
           headers: { Accept: 'application/pdf, image/png' },
           parseMethod: 'raw',
         })
-          .then((response: Response) => response.blob())
-          .then(blob => {
+          .then((response: Response) => {
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = `screenshot.${format}`; // default filename
+
+            if (disposition && disposition.includes('filename=')) {
+              const filenameRegex = /filename="([^"]+)"/;
+              const matches = filenameRegex.exec(disposition);
+              if (matches && matches[1]) {
+                filename = matches[1];
+              }
+            }
+
+            return response.blob().then(blob => ({ blob, filename }));
+          })
+          .then(({ blob, filename }) => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `screenshot.${format}`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

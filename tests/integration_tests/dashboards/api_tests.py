@@ -3180,6 +3180,43 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_filename_in_header(
+        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Dashboard API: Test that screenshot download includes proper filename in header
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 200
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
+            response = self._get_screenshot(dashboard.id, cache_key, format)
+            assert response.status_code == 200
+            assert response.mimetype == mt
+            assert (
+                response.headers["Content-Disposition"]
+                == f'attachment; filename="dash_with_tag.{format}"'
+            )
+
     @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_cache_dashboard_screenshot_feature_thumbnails_ff_disabled(self):
