@@ -327,7 +327,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -452,7 +451,7 @@ marshmallow-sqlalchemy==1.4.0
     #   flask-appbuilder
 marshmallow-union==0.1.15
     # via
-    #   -c requirements/base.txt
+    #   -c requirements/base-constraint.txt
     #   apache-superset
 matplotlib==3.9.0
     # via prophet
