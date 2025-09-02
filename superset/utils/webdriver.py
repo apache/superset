@@ -38,7 +38,6 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
 
-from superset import feature_flag_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import take_tiled_screenshot
@@ -47,9 +46,11 @@ WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from flask_appbuilder.security.sqla.models import User
 
-if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+try:
     from playwright.sync_api import (
         BrowserContext,
         Error as PlaywrightError,
@@ -58,6 +59,16 @@ if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
         sync_playwright,
         TimeoutError as PlaywrightTimeout,
     )
+except ImportError:
+    from typing import Any
+
+    # Define dummy classes when playwright is not available
+    BrowserContext = Any
+    PlaywrightError = Exception
+    PlaywrightTimeout = Exception
+    Locator = Any
+    Page = Any
+    sync_playwright = None
 
 
 class DashboardStandaloneMode(Enum):
