@@ -1178,7 +1178,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     response["result"], processor
                 )
             except SupersetTemplateException as ex:
-                return self.response_400(message=str(ex))
+                return self.response(ex.status, message=str(ex))
 
         return self.response(200, **response)
 
@@ -1322,8 +1322,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 template_exception = SupersetTemplateException(
                     f"Unable to render expression from dataset {item_type}.",
                 )
-
-                template_exception.status = 400
                 raise template_exception from ex
 
         return data
