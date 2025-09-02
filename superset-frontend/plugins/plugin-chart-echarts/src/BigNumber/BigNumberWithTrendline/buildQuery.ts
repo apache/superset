@@ -183,6 +183,15 @@ export default function buildQuery(formData: QueryFormData) {
     ];
   };
 
+  // Ensure time_compare is preserved on the root formData object
+  const timeCompare = formData.time_compare || 
+                     (formData.extra_form_data as any)?.time_compare;
+  
+  if (timeCompare && !formData.time_compare) {
+    formData.time_compare = timeCompare;
+    console.log('BigNumberWithTrendline buildQuery - Setting time_compare on root formData:', timeCompare);
+  }
+
   const result = buildQueryContext(formData, buildQuery);
   console.log('BigNumberWithTrendline buildQuery - Final result from buildQueryContext:', {
     result,

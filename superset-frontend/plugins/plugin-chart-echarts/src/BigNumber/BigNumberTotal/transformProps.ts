@@ -68,10 +68,65 @@ export default function transformProps(
   let percentageChange: number | undefined;
   let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
 
-  // Handle time comparison - time_compare is at the root level of formData
-  const timeCompare = formData.time_compare ||
-                     (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
-                     (formData.extra_form_data as any)?.time_compare;
+  // Handle time comparison - check all possible locations where time_compare might be stored
+  let timeCompare = formData.time_compare ||
+                   (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+                   (formData.extra_form_data as any)?.time_compare;
+
+  // If we have time-offset columns but no timeCompare detected, force it to 'inherit'
+  // This handles cases where the UI selection isn't properly propagated to formData
+  const hasTimeOffsetColumns = queriesData[0]?.colnames?.some((col: string) => 
+    col.includes('__') && col !== metricName
+  );
+
+  if (!timeCompare && hasTimeOffsetColumns) {
+    timeCompare = 'inherit';
+    console.log('BigNumberTotal transformProps - Forcing timeCompare to inherit due to time-offset columns');
+  }
+
+  // Comprehensive debug logging
+  console.group('🔍 BigNumberTotal transformProps - COMPREHENSIVE DEBUG');
+  console.log('📊 Input Data Analysis:', {
+    chartPropsKeys: Object.keys(chartProps),
+    hasQueriesData: !!queriesData,
+    queriesDataLength: queriesData?.length,
+    hasFormData: !!formData,
+    metricName,
+    bigNumber,
+    bigNumberType: typeof bigNumber,
+  });
+
+  console.log('📋 FormData Comprehensive Analysis:', {
+    hasTimeCompare: 'time_compare' in formData,
+    timeCompareValue: formData.time_compare,
+    timeCompareType: typeof formData.time_compare,
+    hasExtraFormData: 'extra_form_data' in formData,
+    extraFormDataKeys: formData.extra_form_data ? Object.keys(formData.extra_form_data) : [],
+    extraFormDataTimeCompare: (formData.extra_form_data as any)?.time_compare,
+    customFormDataTimeCompare: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
+    allFormDataKeys: Object.keys(formData),
+    hasTimeOffsetColumns,
+    finalTimeCompare: timeCompare,
+    finalTimeCompareType: typeof timeCompare,
+  });
+
+  console.log('🗂️ Query Data Analysis:', {
+    firstQueryData: queriesData[0],
+    colnames: queriesData[0]?.colnames,
+    hasData: !!queriesData[0]?.data,
+    dataLength: queriesData[0]?.data?.length,
+    firstRow: queriesData[0]?.data?.[0],
+    hasTimeOffsetColumns,
+    timeOffsetColumns: queriesData[0]?.colnames?.filter((col: string) => 
+      col.includes('__') && col !== metricName
+    ),
+  });
+  console.groupEnd();
+
+  // Check for time-offset columns in the single query
+  const timeOffsetColumns = queriesData[0]?.colnames?.filter((col: string) => 
+    col.includes('__') && col !== metricName
+  ) || [];
 
   // Debug logging
   console.log('BigNumberTotal transformProps - Debug Info:', {
@@ -79,9 +134,8 @@ export default function transformProps(
     timeCompare,
     extraFormData: formData.extra_form_data,
     customFormData: formData.extra_form_data?.custom_form_data,
-    hasComparisonData: queriesData.length > 1,
-    comparisonDataExists: queriesData.length > 1 ? !!queriesData[1] : false,
-    comparisonDataStructure: queriesData.length > 1 ? queriesData[1] : null,
+    hasComparisonData: timeOffsetColumns.length > 0,
+    timeOffsetColumns,
     currentDataStructure: queriesData[0],
     metricName,
     bigNumber,
@@ -118,8 +172,17 @@ export default function transformProps(
   }
 
   // With single-query approach, we need to look for time-offset data in the same result
+  console.group('⚙️ BigNumberTotal transformProps - COMPARISON PROCESSING');
+  
+  console.log('🔄 Processing conditions:', {
+    hasQueriesData: queriesData.length > 0,
+    timeCompare,
+    timeCompareValid: timeCompare && timeCompare !== 'NoComparison',
+    willProcess: queriesData.length > 0 && timeCompare && timeCompare !== 'NoComparison'
+  });
+
   if (queriesData.length > 0 && timeCompare && timeCompare !== 'NoComparison') {
-    console.log('BigNumberTotal transformProps - Processing time comparison data...');
+    console.log('✅ Starting time comparison data processing...');
 
     const queryData = queriesData[0].data;
     const queryColnames = queriesData[0].colnames || [];
@@ -129,10 +192,13 @@ export default function transformProps(
       col.includes('__') && col !== metricName
     );
 
-    console.log('BigNumberTotal transformProps - Time offset columns found:', {
+    console.log('📋 Time offset analysis:', {
       timeOffsetColumns,
       metricName,
-      allColumns: queryColnames
+      allColumns: queryColnames,
+      hasTimeOffsetColumns: timeOffsetColumns.length > 0,
+      queryDataLength: queryData?.length,
+      firstRowData: queryData?.[0]
     });
 
     if (timeOffsetColumns.length > 0 && queryData && queryData.length > 0) {
@@ -183,12 +249,29 @@ export default function transformProps(
       console.log('BigNumberTotal transformProps - No time offset columns or data available');
     }
   } else {
-    console.log('BigNumberTotal transformProps - Skipping comparison processing:', {
+    console.log('❌ Skipping comparison processing:', {
       reason: queriesData.length === 0 ? 'No query data' :
               !timeCompare ? 'No time comparison' :
               timeCompare === 'NoComparison' ? 'NoComparison selected' : 'unknown'
     });
   }
+  
+  console.log('🎯 FINAL COMPARISON RESULTS:', {
+    previousPeriodValue,
+    previousPeriodValueType: typeof previousPeriodValue,
+    percentageChange,
+    percentageChangeType: typeof percentageChange,
+    comparisonIndicator,
+    comparisonIndicatorType: typeof comparisonIndicator,
+    hasValidComparison: percentageChange !== undefined && comparisonIndicator !== undefined,
+    comparisonCalculation: previousPeriodValue !== null && bigNumber !== null ? {
+      current: bigNumber,
+      previous: previousPeriodValue,
+      difference: (bigNumber as number) - previousPeriodValue,
+      calculation: `(${bigNumber} - ${previousPeriodValue}) / ${Math.abs(previousPeriodValue)} = ${percentageChange}`,
+    } : 'Cannot calculate'
+  });
+  console.groupEnd();
 
   let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
@@ -226,7 +309,7 @@ export default function transformProps(
     getColorFormatters(conditionalFormatting, data, false) ??
     defaultColorFormatters;
 
-  return {
+  const returnProps = {
     width,
     height,
     bigNumber,
@@ -241,4 +324,25 @@ export default function transformProps(
     percentageChange,
     comparisonIndicator,
   };
+
+  console.group('🚀 BigNumberTotal transformProps - FINAL RETURN PROPS');
+  console.log('📦 Returning props to BigNumberViz:', {
+    width,
+    height,
+    bigNumber,
+    bigNumberType: typeof bigNumber,
+    subheader: formattedSubheader,
+    previousPeriodValue,
+    previousPeriodValueType: typeof previousPeriodValue,
+    percentageChange,
+    percentageChangeType: typeof percentageChange,
+    comparisonIndicator,
+    comparisonIndicatorType: typeof comparisonIndicator,
+    hasComparison: percentageChange !== undefined && comparisonIndicator !== undefined,
+    formData: formData.time_compare,
+    returnPropsKeys: Object.keys(returnProps),
+  });
+  console.groupEnd();
+
+  return returnProps;
 }

@@ -141,9 +141,40 @@ export default function transformProps(
   let previousPeriodValue: number | null = null;
   let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
 
-  const timeCompare = formData.time_compare ||
-                     (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
-                     (formData.extra_form_data as any)?.time_compare;
+  // Handle time comparison - check all possible locations where time_compare might be stored
+  let timeCompare = formData.time_compare ||
+                   (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+                   (formData.extra_form_data as any)?.time_compare;
+
+  // If we have time-offset columns but no timeCompare detected, force it to 'inherit'
+  // This handles cases where the UI selection isn't properly propagated to formData
+  const hasTimeOffsetColumns = queriesData[0]?.colnames?.some((col: string) => 
+    col.includes('__') && col !== metricName
+  );
+
+  if (!timeCompare && hasTimeOffsetColumns) {
+    timeCompare = 'inherit';
+    console.log('BigNumberWithTrendline transformProps - Forcing timeCompare to inherit due to time-offset columns');
+  }
+
+  // Additional debugging to understand formData structure
+  console.log('BigNumberWithTrendline transformProps - Full formData analysis:', {
+    hasTimeCompare: 'time_compare' in formData,
+    timeCompareValue: formData.time_compare,
+    hasExtraFormData: 'extra_form_data' in formData,
+    extraFormDataKeys: formData.extra_form_data ? Object.keys(formData.extra_form_data) : [],
+    extraFormDataTimeCompare: (formData.extra_form_data as any)?.time_compare,
+    customFormDataTimeCompare: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
+    allFormDataKeys: Object.keys(formData),
+    hasTimeOffsetColumns,
+    finalTimeCompare: timeCompare,
+    fullFormData: formData,
+  });
+
+  // Check for time-offset columns in the single query
+  const timeOffsetColumns = queriesData[0]?.colnames?.filter((col: string) => 
+    col.includes('__') && col !== metricName
+  ) || [];
 
   // Debug logging
   console.log('BigNumberWithTrendline transformProps - Debug Info:', {
@@ -151,9 +182,8 @@ export default function transformProps(
     timeCompare,
     extraFormData: formData.extra_form_data,
     customFormData: formData.extra_form_data?.custom_form_data,
-    hasComparisonData: queriesData.length > 1,
-    comparisonDataExists: queriesData.length > 1 ? !!queriesData[1] : false,
-    comparisonDataStructure: queriesData.length > 1 ? queriesData[1] : null,
+    hasComparisonData: timeOffsetColumns.length > 0,
+    timeOffsetColumns,
     currentDataStructure: queriesData[0],
     metricName,
     bigNumber,

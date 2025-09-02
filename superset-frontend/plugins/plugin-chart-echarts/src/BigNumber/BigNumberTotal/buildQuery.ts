@@ -76,22 +76,23 @@ function calculatePeriodFromDates(since: string, until: string): string | null {
 
 export default function buildQuery(formData: QueryFormData) {
   // Debug logging for buildQuery
-  console.log('BigNumberTotal buildQuery - Input formData:', {
+  console.group('🔧 BigNumberTotal buildQuery - COMPREHENSIVE DEBUG');
+  console.log('📥 Input formData analysis:', {
     hasExtraFormData: !!formData.extra_form_data,
     extraFormData: formData.extra_form_data,
     customFormData: formData.extra_form_data?.custom_form_data,
     timeCompare: formData.time_compare,
+    timeCompareType: typeof formData.time_compare,
     timeCompareExtra: (formData.extra_form_data?.custom_form_data as any)?.time_compare,
     timeCompareDirect: (formData.extra_form_data as any)?.time_compare,
+    allFormDataKeys: Object.keys(formData),
     metrics: formData.metrics,
     datasource: formData.datasource,
     timeRange: formData.time_range,
     since: formData.since,
     until: formData.until,
-    granularity: formData.granularity,
-    filters: formData.filters,
-    adhocFilters: formData.adhoc_filters,
   });
+  console.groupEnd();
 
   const buildQuery = (baseQueryObject: any) => {
     console.log('BigNumberTotal buildQuery - baseQueryObject:', baseQueryObject);
@@ -159,6 +160,15 @@ export default function buildQuery(formData: QueryFormData) {
       },
     ];
   };
+
+  // Ensure time_compare is preserved on the root formData object
+  const timeCompare = formData.time_compare || 
+                     (formData.extra_form_data as any)?.time_compare;
+  
+  if (timeCompare && !formData.time_compare) {
+    formData.time_compare = timeCompare;
+    console.log('BigNumberTotal buildQuery - Setting time_compare on root formData:', timeCompare);
+  }
 
   const result = buildQueryContext(formData, buildQuery);
   console.log('BigNumberTotal buildQuery - Final result from buildQueryContext:', {
