@@ -25,6 +25,7 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import types
+from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -78,22 +79,12 @@ def monkeypatch_dialect() -> None:
     doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
     fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
 
-    The challenge: DatabricksDialect inherits from HiveDialect and accesses the
-    `colspecs` type mapping through its parent class rather than its own. This means:
-    - Direct assignment (`DatabricksDialect.colspecs[types.String] = ...`) works because
-    DatabricksDialect.colspecs points to the same dict object as HiveDialect.colspecs,
-    but then it affects all other dialects that inherit from HiveDialect, causing
-    incorrect escaping for them.
-    - Shallow copying then modifying `DatabricksDialect.colspecs` doesn't work
-    because it's never accessed.
-
-    The solution: A context-aware approach by creating a custom String type
-    that checks which dialect is being used during SQL compilation, allowing
-    to apply Databricks-specific escaping only for Databricks connections.
+    Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
+    we can't patch it without affecting other Hive-based dialects. The solution is to
+    introduce a dialect-aware string type so that the change applies only to Databricks.
     """
     try:
         from pyhive.sqlalchemy_hive import HiveDialect
-        from sqlalchemy.engine.default import DefaultDialect
 
         class ContextAwareStringType(types.TypeDecorator):
             impl = types.String
