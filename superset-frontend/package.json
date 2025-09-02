@@ -276,7 +276,7 @@
     "babel-plugin-typescript-to-proptypes": "^2.0.0",
     "cheerio": "1.1.0",
     "copy-webpack-plugin": "^13.0.0",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
     "eslint": "^8.56.0",
