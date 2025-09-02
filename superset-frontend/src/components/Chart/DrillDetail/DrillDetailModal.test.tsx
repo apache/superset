@@ -32,6 +32,14 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
+jest.mock('src/explore/exploreUtils', () => ({
+  ...jest.requireActual('src/explore/exploreUtils'),
+  getExploreUrl: jest.fn(
+    ({ formData }) =>
+      `/explore/?dashboard_page_id=&slice_id=${formData.slice_id}`,
+  ),
+}));
+
 const { id: chartId, form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
 const store = getMockStoreWithNativeFilters();
