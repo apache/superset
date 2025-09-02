@@ -72,19 +72,42 @@ class DatabricksStringType(types.TypeDecorator):
 
 def monkeypatch_dialect() -> None:
     """
-    Monkeypatch dialect to correctly escape single quotes.
+    Monkeypatch dialect to correctly escape single quotes for Databricks.
 
-    The Databricks SQLAlchemy dialect we currently use does not escape single quotes
-    correctly -- it doubles the single quotes, instead of adding a backslash. The fixed
-    version requires SQLAlchemy 2.0, which is not yet available in Superset.
+    The Databricks SQLAlchemy dialect (<3.0) incorrectly escapes single quotes by
+    doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
+    fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
+
+    The challenge: DatabricksDialect inherits from HiveDialect and accesses the
+    `colspecs` type mapping through its parent class rather than its own. This means:
+    - Direct assignment (`DatabricksDialect.colspecs[types.String] = ...`) works because
+    DatabricksDialect.colspecs points to the same dict object as HiveDialect.colspecs,
+    but then it affects all other dialects that inherit from HiveDialect, causing
+    incorrect escaping for them.
+    - Shallow copying then modifying `DatabricksDialect.colspecs` doesn't work
+    because it's never accessed.
+
+    The solution: A context-aware approach by creating a custom String type
+    that checks which dialect is being used during SQL compilation, allowing
+    to apply Databricks-specific escaping only for Databricks connections.
     """
     try:
-        from sqlalchemy_databricks._dialect import DatabricksDialect
+        from pyhive.sqlalchemy_hive import HiveDialect
+        from sqlalchemy.engine.default import DefaultDialect
 
-        # copy because the dictionary is shared with other subclasses if it hasn't been
-        # overwritten
-        DatabricksDialect.colspecs = DatabricksDialect.colspecs.copy()
-        DatabricksDialect.colspecs[types.String] = DatabricksStringType
+        class ContextAwareStringType(types.TypeDecorator):
+            impl = types.String
+            cache_ok = True
+
+            def literal_processor(
+                self, dialect: DefaultDialect
+            ) -> Callable[[Any], str]:
+                if dialect.__class__.__name__ == "DatabricksDialect":
+                    return DatabricksStringType().literal_processor(dialect)
+                return super().literal_processor(dialect)
+
+        HiveDialect.colspecs[types.String] = ContextAwareStringType
+
     except ImportError:
         pass
 
@@ -646,5 +669,5 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         return uri, connect_args
 
 
-# remove once we've upgraded to SQLAlchemy 2.0 and the 2.x databricks-sqlalchemy lib
+# TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x
 monkeypatch_dialect()
