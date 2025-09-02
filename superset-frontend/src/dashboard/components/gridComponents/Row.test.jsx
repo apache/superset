@@ -27,6 +27,22 @@ import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(() => true),
+  FeatureFlag: {
+    DashboardVirtualization: 'DASHBOARD_VIRTUALIZATION',
+  },
+}));
+
+jest.mock('src/utils/isBot', () => ({
+  isCurrentUserBot: jest.fn(() => false),
+}));
+
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn(() => false),
+}));
+
 jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({ children }) => (
     <div data-test="mock-draggable">{children({})}</div>
@@ -184,4 +200,78 @@ test('should increment the depth of its children', () => {
     'depth',
     `${props.depth + 1}`,
   );
+});
+
+describe('visibility handling for intersection observers', () => {
+  const mockIntersectionObserver = jest.fn();
+  const mockObserve = jest.fn();
+  const mockDisconnect = jest.fn();
+
+  beforeAll(() => {
+    mockIntersectionObserver.mockReturnValue({
+      observe: mockObserve,
+      unobserve: jest.fn(),
+      disconnect: mockDisconnect,
+    });
+    window.IntersectionObserver = mockIntersectionObserver;
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    delete window.IntersectionObserver;
+  });
+
+  test('should handle visibility prop changes without crashing', () => {
+    const { rerender } = setup({ isComponentVisible: true });
+
+    expect(setup).not.toThrow();
+
+    expect(() => {
+      rerender(<Row {...props} isComponentVisible={false} />);
+    }).not.toThrow();
+
+    expect(() => {
+      rerender(<Row {...props} isComponentVisible />);
+    }).not.toThrow();
+  });
+
+  test('should create intersection observers when feature is enabled', () => {
+    setup({ isComponentVisible: true });
+
+    expect(mockIntersectionObserver).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ rootMargin: expect.any(String) }),
+    );
+  });
+
+  test('should not create intersection observers when feature is disabled', () => {
+    const coreMock = jest.requireMock('@superset-ui/core');
+    coreMock.isFeatureEnabled.mockReturnValue(false);
+
+    jest.clearAllMocks();
+    setup({ isComponentVisible: true });
+
+    expect(mockIntersectionObserver).not.toHaveBeenCalled();
+
+    coreMock.isFeatureEnabled.mockReturnValue(true);
+  });
+
+  test('intersection observer callbacks handle entries without errors', () => {
+    const callback = ([entry]) => {
+      if (entry.isIntersecting) return true;
+
+      return false;
+    };
+
+    const intersectingEntry = { isIntersecting: true };
+    expect(() => callback([intersectingEntry])).not.toThrow();
+    expect(callback([intersectingEntry])).toBe(true);
+
+    const nonIntersectingEntry = { isIntersecting: false };
+    expect(() => callback([nonIntersectingEntry])).not.toThrow();
+    expect(callback([nonIntersectingEntry])).toBe(false);
+  });
 });
