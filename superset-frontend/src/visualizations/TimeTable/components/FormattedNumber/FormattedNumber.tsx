@@ -16,27 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { formatNumber } from '@superset-ui/core';
+import { parseToNumber } from '../../utils';
 
-export interface IconTooltipProps {
-  children?: ReactNode;
-  className?: string;
-  onClick?: () => void;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'topLeft'
-    | 'topRight'
-    | 'bottomLeft'
-    | 'bottomRight'
-    | 'leftTop'
-    | 'leftBottom'
-    | 'rightTop'
-    | 'rightBottom';
-  style?: object;
-  tooltip?: string | null;
-  mouseEnterDelay?: number;
-  mouseLeaveDelay?: number;
+interface FormattedNumberProps {
+  num?: string | number | null;
+  format?: string;
 }
+
+const FormattedNumber = ({ num = 0, format }: FormattedNumberProps) => {
+  const displayNum = num ?? 0;
+  const numericValue = parseToNumber(num);
+
+  if (format)
+    return (
+      <span title={`${displayNum}`}>{formatNumber(format, numericValue)}</span>
+    );
+
+  return <span>{displayNum}</span>;
+};
+
+export default FormattedNumber;
