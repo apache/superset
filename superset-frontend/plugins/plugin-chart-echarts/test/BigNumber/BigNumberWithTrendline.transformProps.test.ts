@@ -62,14 +62,40 @@ function generateProps(
     },
   ];
 
-  // Add comparison data if provided
+  // Add comparison data if provided - now as time-offset columns in the same query
   if (comparisonData.length > 0) {
-    queriesData.push({
-      data: comparisonData,
-      colnames: ['value'],
-      coltypes: ['DOUBLE'],
-      ...extraQueryData,
-    });
+    // Get the time comparison value from extraFormData
+    const timeCompare = (extraFormData as any)?.extra_form_data?.time_compare ||
+                       (extraFormData as any)?.time_compare;
+    
+    if (timeCompare && timeCompare !== 'NoComparison') {
+      // Resolve the actual time offset string
+      let resolvedTimeOffset: string;
+      if (timeCompare === 'inherit') {
+        resolvedTimeOffset = '1 day ago';
+      } else if (timeCompare === 'custom') {
+        resolvedTimeOffset = (extraFormData as any)?.time_compare_value || 'custom_range';
+      } else {
+        resolvedTimeOffset = timeCompare;
+      }
+
+      // Get the metric name from the formData (default to 'value' if not specified)
+      const metricName = (extraFormData as any)?.metric || 'value';
+      
+      // Create time-offset column name using the actual metric name
+      const timeOffsetColumn = `${metricName}__${resolvedTimeOffset}`;
+      
+      // Update the first query to include both current and comparison data
+      queriesData[0] = {
+        data: data.map((row, index) => ({
+          ...row,
+          [timeOffsetColumn]: comparisonData[index]?.[metricName] ?? null,
+        })),
+        colnames: [metricName, timeOffsetColumn],
+        coltypes: ['DOUBLE', 'DOUBLE'],
+        ...extraQueryData,
+      };
+    }
   }
 
   return {

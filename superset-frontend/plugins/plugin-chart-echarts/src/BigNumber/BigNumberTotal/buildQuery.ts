@@ -19,7 +19,6 @@
 import {
   buildQueryContext,
   QueryFormData,
-  getComparisonInfo,
 } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
@@ -42,178 +41,162 @@ export default function buildQuery(formData: QueryFormData) {
   });
 
   const buildQuery = (baseQueryObject: any) => {
-    console.log('BigNumberTotal buildQuery - baseQueryObject (Current Period):', {
-      time_range: baseQueryObject.time_range,
-      since: baseQueryObject.since,
-      until: baseQueryObject.until,
-      granularity: baseQueryObject.granularity,
-      filters: baseQueryObject.filters,
-      extras: baseQueryObject.extras,
-      applied_time_extras: baseQueryObject.applied_time_extras,
-      columns: baseQueryObject.columns,
-      metrics: baseQueryObject.metrics,
-      orderby: baseQueryObject.orderby,
-      annotation_layers: baseQueryObject.annotation_layers,
-      row_limit: baseQueryObject.row_limit,
-      row_offset: baseQueryObject.row_offset,
-      series_columns: baseQueryObject.series_columns,
-      series_limit: baseQueryObject.series_limit,
-      series_limit_metric: baseQueryObject.series_limit_metric,
-      order_desc: baseQueryObject.order_desc,
-      url_params: baseQueryObject.url_params,
-      custom_params: baseQueryObject.custom_params,
-      custom_form_data: baseQueryObject.custom_form_data,
-    });
-    
-    const queries = [baseQueryObject];
+    console.log('BigNumberTotal buildQuery - baseQueryObject:', baseQueryObject);
 
-    // Handle time comparison - time_compare is at the root level of formData
-    const timeComparison = formData.time_compare;
-      
-    console.log('BigNumberTotal buildQuery - Time Comparison Analysis:', {
-      timeComparison,
-      hasTimeComparison: !!timeComparison,
-      isNoComparison: timeComparison === 'NoComparison',
-      comparisonType: typeof timeComparison,
-      comparisonValue: timeComparison,
-    });
-    
-    if (timeComparison && timeComparison !== 'NoComparison') {
-      console.log('BigNumberTotal buildQuery - Processing time comparison for:', timeComparison);
-      
-      try {
-        const comparisonFormData = getComparisonInfo(
-          formData,
-          timeComparison,
-          formData.extra_form_data,
-        );
-        console.log('BigNumberTotal buildQuery - Comparison Form Data from getComparisonInfo:', {
-          comparisonFormData,
-          hasTimeRange: !!comparisonFormData.time_range,
-          hasSince: !!comparisonFormData.since,
-          hasUntil: !!comparisonFormData.until,
-          hasGranularity: !!comparisonFormData.granularity,
-          hasFilters: !!comparisonFormData.filters,
-          hasAdhocFilters: !!comparisonFormData.adhoc_filters,
-          hasExtraFormData: !!comparisonFormData.extra_form_data,
-          comparisonKeys: Object.keys(comparisonFormData),
-        });
-        
-        const comparisonQuery = {
-          ...baseQueryObject,
-          ...comparisonFormData,
-          // Ensure critical fields are preserved
-          datasource: baseQueryObject.datasource,
-          metrics: baseQueryObject.metrics,
-          filters: baseQueryObject.filters,
-          adhoc_filters: baseQueryObject.adhoc_filters,
-          // Preserve form data structure
-          form_data: {
-            ...baseQueryObject.form_data,
-            ...comparisonFormData,
-          },
-        };
-        console.log('BigNumberTotal buildQuery - Comparison Query (Previous Period):', {
-          time_range: comparisonQuery.time_range,
-          since: comparisonQuery.since,
-          until: comparisonQuery.until,
-          granularity: comparisonQuery.granularity,
-          filters: comparisonQuery.filters,
-          extras: comparisonQuery.extras,
-          applied_time_extras: comparisonQuery.applied_time_extras,
-          columns: comparisonQuery.columns,
-          metrics: comparisonQuery.metrics,
-          orderby: comparisonQuery.orderby,
-          annotation_layers: comparisonQuery.annotation_layers,
-          row_limit: comparisonQuery.row_limit,
-          row_offset: comparisonQuery.row_offset,
-          series_columns: comparisonQuery.series_columns,
-          series_limit: comparisonQuery.series_limit,
-          series_limit_metric: comparisonQuery.series_limit_metric,
-          order_desc: comparisonQuery.order_desc,
-          url_params: comparisonQuery.url_params,
-          custom_params: comparisonQuery.custom_params,
-          custom_form_data: comparisonQuery.custom_form_data,
-          // Additional comparison-specific properties
-          metric: comparisonQuery.metric,
-          viz_type: comparisonQuery.viz_type,
-          datasource: comparisonQuery.datasource,
-          adhoc_filters: comparisonQuery.adhoc_filters,
-        });
-        
-        console.log('BigNumberTotal buildQuery - Query Comparison Analysis:', {
-          timeRangeChanged: baseQueryObject.time_range !== comparisonQuery.time_range,
-          sinceChanged: baseQueryObject.since !== comparisonQuery.since,
-          untilChanged: baseQueryObject.until !== comparisonQuery.until,
-          granularityChanged: baseQueryObject.granularity !== comparisonQuery.granularity,
-          filtersChanged: JSON.stringify(baseQueryObject.filters) !== JSON.stringify(comparisonQuery.filters),
-          extrasChanged: JSON.stringify(baseQueryObject.extras) !== JSON.stringify(comparisonQuery.extras),
-          appliedTimeExtrasChanged: JSON.stringify(baseQueryObject.applied_time_extras) !== JSON.stringify(comparisonQuery.applied_time_extras),
-          metricsChanged: JSON.stringify(baseQueryObject.metrics) !== JSON.stringify(comparisonQuery.metrics),
-          columnsChanged: JSON.stringify(baseQueryObject.columns) !== JSON.stringify(comparisonQuery.columns),
-        });
-        
-        queries.push(comparisonQuery);
-      } catch (error) {
-        console.error('BigNumberTotal buildQuery - Error in getComparisonInfo:', error);
-        console.error('BigNumberTotal buildQuery - Error details:', {
-          errorMessage: error.message,
-          errorStack: error.stack,
-          formDataKeys: Object.keys(formData),
-          timeComparison,
-          extraFormData: formData.extra_form_data,
-        });
-      }
-    } else {
-      console.log('BigNumberTotal buildQuery - No time comparison or NoComparison selected:', {
-        reason: !timeComparison ? 'No time comparison' : 
-                timeComparison === 'NoComparison' ? 'NoComparison selected' : 'unknown',
-        timeComparison,
-        formDataKeys: Object.keys(formData),
-        hasTimeCompare: 'time_compare' in formData,
-        timeCompareValue: formData.time_compare,
-      });
-    }
-    
-    console.log('BigNumberTotal buildQuery - Final queries array summary:', {
-      totalQueries: queries.length,
-      queryTypes: queries.map((q, i) => ({
-        index: i,
-        type: i === 0 ? 'Current Period' : 'Comparison Period',
-        hasTimeRange: !!q.time_range,
-        hasSince: !!q.since,
-        hasUntil: !!q.until,
-        hasFilters: !!q.filters && q.filters.length > 0,
-        hasMetrics: !!q.metrics && q.metrics.length > 0,
-        metrics: q.metrics,
-        timeRange: q.time_range,
-        since: q.since,
-        until: q.until,
-      })),
-    });
-    return queries;
+    // Use the proper Superset single-query approach for time comparison
+    // This ensures that formData.time_compare is preserved and passed to transformProps
+    return [
+      {
+        ...baseQueryObject,
+        // Add time_offsets for time comparison - this is what Superset expects
+        ...(formData.time_compare || 
+            (formData.extra_form_data?.custom_form_data as any)?.time_compare || 
+            (formData.extra_form_data as any)?.time_compare) && 
+            (formData.time_compare || 
+             (formData.extra_form_data?.custom_form_data as any)?.time_compare || 
+             (formData.extra_form_data as any)?.time_compare) !== 'NoComparison' ? {
+          time_offsets: (() => {
+            const timeCompare = formData.time_compare || 
+                               (formData.extra_form_data?.custom_form_data as any)?.time_compare || 
+                               (formData.extra_form_data as any)?.time_compare;
+            
+            // Convert string time comparison to array format for transformProps
+            if (timeCompare && timeCompare !== 'NoComparison') {
+              if (timeCompare === 'inherit') {
+                // Enhanced inherit logic: detect actual time period and apply same offset
+                const timeRange = formData.time_range;
+                const since = formData.since;
+                const until = formData.until;
+                
+                console.log('BigNumberTotal buildQuery - Inherit logic analysis:', {
+                  timeRange,
+                  since,
+                  until,
+                  hasTimeRange: !!timeRange,
+                  hasSinceUntil: !!(since && until)
+                });
+
+                if (timeRange && typeof timeRange === 'string') {
+                  // Parse time range string to detect period
+                  const period = detectTimePeriod(timeRange);
+                  if (period) {
+                    console.log('BigNumberTotal buildQuery - Detected period from timeRange:', period);
+                    return [period];
+                  }
+                }
+                
+                if (since && until) {
+                  // Calculate period from since/until dates
+                  const period = calculatePeriodFromDates(since, until);
+                  if (period) {
+                    console.log('BigNumberTotal buildQuery - Calculated period from dates:', period);
+                    return [period];
+                  }
+                }
+                
+                // Fallback to default
+                console.log('BigNumberTotal buildQuery - Using fallback period: 1 day ago');
+                return ['1 day ago'];
+              } else if (timeCompare === 'custom') {
+                // For custom, use the time_compare_value
+                const customValue = formData.time_compare_value || 
+                                  (formData.extra_form_data?.custom_form_data as any)?.time_compare_value ||
+                                  (formData.extra_form_data as any)?.time_compare_value;
+                return customValue ? [customValue] : [];
+              } else {
+                // For direct string values like "1 day ago", "1 week ago", etc.
+                return Array.isArray(timeCompare) ? timeCompare : [timeCompare];
+              }
+            }
+            return [];
+          })(),
+        } : {},
+      },
+    ];
   };
 
   const result = buildQueryContext(formData, buildQuery);
   console.log('BigNumberTotal buildQuery - Final result from buildQueryContext:', {
     result,
     hasQueries: !!result.queries,
-    queriesLength: result.queries?.length || 0,
-    queriesSummary: result.queries?.map((q, i) => ({
-      index: i,
-      type: i === 0 ? 'Current Period' : 'Comparison Period',
-      metrics: q.metrics,
-      timeRange: q.time_range,
-      since: q.since,
-      until: q.until,
-      filters: q.filters,
-      extras: q.extras,
-    })) || [],
+    queriesLength: result.queries?.length,
     formData: result.form_data,
-    datasource: result.datasource,
-    resultFormat: result.result_format,
-    resultType: result.result_type,
+    timeCompare: result.form_data?.time_compare,
   });
-  
+
   return result;
+}
+
+/**
+ * Detect time period from time range string
+ * Examples: "Last 7 days" -> "7 days ago", "Last 1 month" -> "1 month ago"
+ */
+function detectTimePeriod(timeRange: string): string | null {
+  const lowerTimeRange = timeRange.toLowerCase();
+  
+  // Match patterns like "Last X days", "Last X weeks", "Last X months", etc.
+  const patterns = [
+    { regex: /last\s+(\d+)\s+days?/i, unit: 'days' },
+    { regex: /last\s+(\d+)\s+weeks?/i, unit: 'weeks' },
+    { regex: /last\s+(\d+)\s+months?/i, unit: 'months' },
+    { regex: /last\s+(\d+)\s+years?/i, unit: 'years' },
+    { regex: /last\s+(\d+)\s+hours?/i, unit: 'hours' },
+  ];
+  
+  for (const pattern of patterns) {
+    const match = timeRange.match(pattern.regex);
+    if (match) {
+      const value = parseInt(match[1], 10);
+      // Handle singular vs plural
+      const unit = value === 1 ? pattern.unit.replace(/s$/, '') : pattern.unit;
+      return `${value} ${unit} ago`;
+    }
+  }
+  
+  // Handle special cases
+  if (lowerTimeRange.includes('today')) return '1 day ago';
+  if (lowerTimeRange.includes('yesterday')) return '2 days ago';
+  if (lowerTimeRange.includes('this week')) return '1 week ago';
+  if (lowerTimeRange.includes('this month')) return '1 month ago';
+  if (lowerTimeRange.includes('this year')) return '1 year ago';
+  
+  return null;
+}
+
+/**
+ * Calculate time period from since/until dates
+ * Returns the period in a format like "4 days ago", "1 week ago", etc.
+ */
+function calculatePeriodFromDates(since: string, until: string): string | null {
+  try {
+    const sinceDate = new Date(since);
+    const untilDate = new Date(until);
+    
+    if (isNaN(sinceDate.getTime()) || isNaN(untilDate.getTime())) {
+      return null;
+    }
+    
+    const diffMs = untilDate.getTime() - sinceDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
+    
+    if (diffDays <= 0) return null;
+    
+    // Convert to appropriate unit
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) {
+      const weeks = Math.ceil(diffDays / 7);
+      return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    }
+    if (diffDays < 365) {
+      const months = Math.ceil(diffDays / 30);
+      return months === 1 ? '1 month ago' : `${months} months ago`;
+    }
+    
+    const years = Math.ceil(diffDays / 365);
+    return years === 1 ? '1 year ago' : `${years} years ago`;
+  } catch (error) {
+    console.error('Error calculating period from dates:', error);
+    return null;
+  }
 }
