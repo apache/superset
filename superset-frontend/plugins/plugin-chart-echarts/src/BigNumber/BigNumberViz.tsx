@@ -66,13 +66,14 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       allPropKeys: Object.keys(this.props),
       propsCount: Object.keys(this.props).length,
     });
-    
+
     console.log('🔢 Big Number Data:', {
       bigNumber: this.props.bigNumber,
       bigNumberType: typeof this.props.bigNumber,
-      hasBigNumber: this.props.bigNumber !== undefined && this.props.bigNumber !== null,
+      hasBigNumber:
+        this.props.bigNumber !== undefined && this.props.bigNumber !== null,
     });
-    
+
     console.log('📊 Comparison Data Arrival Check:', {
       percentageChange: this.props.percentageChange,
       percentageChangeType: typeof this.props.percentageChange,
@@ -81,29 +82,39 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       comparisonIndicatorType: typeof this.props.comparisonIndicator,
       hasComparisonIndicator: this.props.comparisonIndicator !== undefined,
       previousPeriodValue: (this.props as any).previousPeriodValue,
-      hasPreviousPeriodValue: (this.props as any).previousPeriodValue !== undefined,
+      hasPreviousPeriodValue:
+        (this.props as any).previousPeriodValue !== undefined,
     });
-    
+
     console.log('📋 Form Data Check:', {
       hasFormData: !!this.props.formData,
       formDataKeys: this.props.formData ? Object.keys(this.props.formData) : [],
       timeCompare: this.props.formData?.time_compare,
       extraFormData: this.props.formData?.extra_form_data,
-      extraFormDataKeys: this.props.formData?.extra_form_data ? Object.keys(this.props.formData.extra_form_data) : [],
-      extraTimeCompare: (this.props.formData?.extra_form_data as any)?.time_compare,
+      extraFormDataKeys: this.props.formData?.extra_form_data
+        ? Object.keys(this.props.formData.extra_form_data)
+        : [],
+      extraTimeCompare: (this.props.formData?.extra_form_data as any)
+        ?.time_compare,
       customFormData: this.props.formData?.extra_form_data?.custom_form_data,
-      customTimeCompare: (this.props.formData?.extra_form_data?.custom_form_data as any)?.time_compare,
+      customTimeCompare: (
+        this.props.formData?.extra_form_data?.custom_form_data as any
+      )?.time_compare,
     });
-    
+
     console.log('🎯 Comparison Ready Status:', {
-      hasAllRequiredData: this.props.percentageChange !== undefined && this.props.comparisonIndicator !== undefined,
-      shouldRenderIndicator: this.props.percentageChange !== undefined && this.props.comparisonIndicator !== undefined,
+      hasAllRequiredData:
+        this.props.percentageChange !== undefined &&
+        this.props.comparisonIndicator !== undefined,
+      shouldRenderIndicator:
+        this.props.percentageChange !== undefined &&
+        this.props.comparisonIndicator !== undefined,
       missingData: {
         percentageChange: this.props.percentageChange === undefined,
         comparisonIndicator: this.props.comparisonIndicator === undefined,
-      }
+      },
     });
-    
+
     console.groupEnd();
   }
 
@@ -113,19 +124,21 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       percentageChange: this.props.percentageChange,
       comparisonIndicator: this.props.comparisonIndicator,
     };
-    
+
     const prevComparison = {
       percentageChange: prevProps.percentageChange,
       comparisonIndicator: prevProps.comparisonIndicator,
     };
-    
+
     if (JSON.stringify(currentComparison) !== JSON.stringify(prevComparison)) {
       console.group('🔄 BigNumberViz componentDidUpdate - PROPS CHANGED');
       console.log('Previous comparison props:', prevComparison);
       console.log('New comparison props:', currentComparison);
       console.log('Change detected:', {
-        percentageChangeChanged: this.props.percentageChange !== prevProps.percentageChange,
-        comparisonIndicatorChanged: this.props.comparisonIndicator !== prevProps.comparisonIndicator,
+        percentageChangeChanged:
+          this.props.percentageChange !== prevProps.percentageChange,
+        comparisonIndicatorChanged:
+          this.props.comparisonIndicator !== prevProps.comparisonIndicator,
       });
       console.groupEnd();
     }
@@ -202,10 +215,17 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   }
 
   renderComparisonIndicator() {
-    const { percentageChange, comparisonIndicator, formData, comparisonPeriodText: propComparisonPeriodText } = this.props;
-    
+    const {
+      percentageChange,
+      comparisonIndicator,
+      formData,
+      comparisonPeriodText: propComparisonPeriodText,
+    } = this.props;
+
     // Comprehensive debug logging
-    console.group('🔍 BigNumberViz renderComparisonIndicator - COMPREHENSIVE DEBUG');
+    console.group(
+      '🔍 BigNumberViz renderComparisonIndicator - COMPREHENSIVE DEBUG',
+    );
     console.log('📊 Comparison Data:', {
       percentageChange,
       comparisonIndicator,
@@ -213,18 +233,21 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       percentageChangeType: typeof percentageChange,
       comparisonIndicatorType: typeof comparisonIndicator,
     });
-    
+
     console.log('📋 FormData Analysis:', {
       hasFormData: !!formData,
       formDataKeys: formData ? Object.keys(formData) : [],
       timeCompare: formData?.time_compare,
       extraFormData: formData?.extra_form_data,
-      extraFormDataKeys: formData?.extra_form_data ? Object.keys(formData.extra_form_data) : [],
+      extraFormDataKeys: formData?.extra_form_data
+        ? Object.keys(formData.extra_form_data)
+        : [],
       extraTimeCompare: (formData?.extra_form_data as any)?.time_compare,
       customFormData: formData?.extra_form_data?.custom_form_data,
-      customTimeCompare: (formData?.extra_form_data?.custom_form_data as any)?.time_compare,
+      customTimeCompare: (formData?.extra_form_data?.custom_form_data as any)
+        ?.time_compare,
     });
-    
+
     console.log('🎯 All Props Analysis:', {
       allPropKeys: Object.keys(this.props),
       bigNumber: this.props.bigNumber,
@@ -232,25 +255,31 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       hasPercentageChange: 'percentageChange' in this.props,
       hasComparisonIndicator: 'comparisonIndicator' in this.props,
     });
-    
+
     if (percentageChange === undefined || comparisonIndicator === undefined) {
-      console.error('❌ BigNumberViz: Not rendering comparison indicator - missing required data');
-      console.log('Missing data details:', { 
-        percentageChange: percentageChange === undefined ? 'UNDEFINED' : percentageChange,
-        comparisonIndicator: comparisonIndicator === undefined ? 'UNDEFINED' : comparisonIndicator 
+      console.error(
+        '❌ BigNumberViz: Not rendering comparison indicator - missing required data',
+      );
+      console.log('Missing data details:', {
+        percentageChange:
+          percentageChange === undefined ? 'UNDEFINED' : percentageChange,
+        comparisonIndicator:
+          comparisonIndicator === undefined ? 'UNDEFINED' : comparisonIndicator,
       });
       console.groupEnd();
       return null;
     }
-    
+
     console.log('✅ All required data present - proceeding with rendering');
     console.groupEnd();
 
-    const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_SIGNED_1_POINT);
+    const formatPercentChange = getNumberFormatter(
+      NumberFormats.PERCENT_SIGNED_1_POINT,
+    );
 
     let indicatorColor: string;
     let arrowIcon: string;
-    
+
     switch (comparisonIndicator) {
       case 'positive':
         indicatorColor = '#28a745'; // green
@@ -270,10 +299,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
     // Use prop comparison period text if provided, otherwise generate from formData
     let comparisonPeriodText = propComparisonPeriodText;
-    
+
     if (!comparisonPeriodText) {
       const timeCompare = (formData?.extra_form_data as any)?.time_compare;
-      
+
       if (timeCompare === 'inherit') {
         comparisonPeriodText = t('vs previous period');
       } else if (timeCompare) {
@@ -286,33 +315,22 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         className="comparison-indicator"
         style={{
           position: 'absolute',
-          top: '15px',
-          right: '15px',
+          top: '8px', // Small top margin for better spacing
+          right: '10%', // Responsive positioning - 10% from right edge
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          fontSize: '14px',
-          fontWeight: '600',
+          gap: '3px',
+          fontSize: 'clamp(10px, 2.5vw, 14px)', // Responsive font size
+          fontWeight: '500',
           color: indicatorColor,
-          backgroundColor: indicatorColor === '#28a745' ? '#ecfdf5' : 
-                          indicatorColor === '#dc3545' ? '#fef2f2' : '#f9fafb',
-          padding: '8px 12px',
-          borderRadius: '6px',
-          border: `1px solid ${indicatorColor === '#28a745' ? '#a7f3d0' : 
-                              indicatorColor === '#dc3545' ? '#fecaca' : '#e5e7eb'}`,
           cursor: 'help',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          animation: 'fadeInScale 0.5s ease-out',
+          zIndex: 10, // Ensure it's above other elements
+          whiteSpace: 'nowrap', // Prevent text wrapping on small screens
         }}
         title={comparisonPeriodText}
       >
-        <span style={{ fontSize: '16px' }}>{arrowIcon}</span>
-        <span>{formatPercentChange(percentageChange * 100)}</span>
-        {comparisonPeriodText && (
-          <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-            vs {comparisonPeriodText}
-          </span>
-        )}
+        <span style={{ fontSize: 'inherit' }}>{arrowIcon}</span>
+        <span>{formatPercentChange(percentageChange)}</span>
       </div>
     );
 
@@ -320,11 +338,11 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       elementCreated: true,
       indicatorColor,
       arrowIcon,
-      formattedPercentage: formatPercentChange(percentageChange * 100),
+      formattedPercentage: formatPercentChange(percentageChange),
       comparisonPeriodText,
       elementHTML: comparisonElement,
     });
-    
+
     return comparisonElement;
   }
 
@@ -490,11 +508,13 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       className,
       componentType: showTrendLine ? 'with-trendline' : 'no-trendline',
     });
-    
+
     console.log('🎯 Comparison Render Check:', {
       percentageChange: this.props.percentageChange,
       comparisonIndicator: this.props.comparisonIndicator,
-      willRenderComparison: this.props.percentageChange !== undefined && this.props.comparisonIndicator !== undefined,
+      willRenderComparison:
+        this.props.percentageChange !== undefined &&
+        this.props.comparisonIndicator !== undefined,
       comparisonMethod: 'renderComparisonIndicator()',
     });
     console.groupEnd();

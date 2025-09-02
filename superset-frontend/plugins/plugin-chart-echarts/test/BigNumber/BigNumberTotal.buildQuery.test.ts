@@ -99,7 +99,9 @@ describe('BigNumberTotal buildQuery with Time Comparison', () => {
       };
       const result = buildQuery(formData);
       expect(result.queries).toHaveLength(1);
-      expect(result.queries[0]).toHaveProperty('time_offsets', ['2 months ago']);
+      expect(result.queries[0]).toHaveProperty('time_offsets', [
+        '2 months ago',
+      ]);
     });
 
     it('should calculate period from since/until dates - 4 days', () => {
