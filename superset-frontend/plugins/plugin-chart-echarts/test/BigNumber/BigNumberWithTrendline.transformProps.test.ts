@@ -282,6 +282,72 @@ describe('BigNumberWithTrendline transformProps with Time Comparison', () => {
     });
   });
 
+  describe('Time Comparison - Zero Value Handling', () => {
+    it('should handle zero current and zero previous as neutral', () => {
+      const props = generateProps(
+        [{ value: 0 }], // current period
+        [{ value: 0 }], // previous period
+        { extra_form_data: { time_compare: '1 day ago' } },
+      );
+      const result = transformProps(props);
+
+      expect(result).toMatchObject({
+        bigNumber: 0,
+        previousPeriodValue: 0,
+        percentageChange: 0, // Both zero = no change
+        comparisonIndicator: 'neutral',
+      });
+    });
+
+    it('should handle zero previous with positive current as 100% increase', () => {
+      const props = generateProps(
+        [{ value: 1000 }], // current period
+        [{ value: 0 }], // previous period
+        { extra_form_data: { time_compare: '1 day ago' } },
+      );
+      const result = transformProps(props);
+
+      expect(result).toMatchObject({
+        bigNumber: 1000,
+        previousPeriodValue: 0,
+        percentageChange: 1, // Treated as 100% increase
+        comparisonIndicator: 'positive',
+      });
+    });
+
+    it('should handle zero previous with negative current as -100% decrease', () => {
+      const props = generateProps(
+        [{ value: -1000 }], // current period
+        [{ value: 0 }], // previous period
+        { extra_form_data: { time_compare: '1 day ago' } },
+      );
+      const result = transformProps(props);
+
+      expect(result).toMatchObject({
+        bigNumber: -1000,
+        previousPeriodValue: 0,
+        percentageChange: -1, // Treated as -100% decrease
+        comparisonIndicator: 'negative',
+      });
+    });
+
+    it('should handle zero current with positive previous as -100% decrease (complete loss)', () => {
+      const props = generateProps(
+        [{ value: 0 }], // current period
+        [{ value: 102942 }], // previous period
+        { extra_form_data: { time_compare: '1 day ago' } },
+      );
+      const result = transformProps(props);
+
+      expect(result).toMatchObject({
+        bigNumber: 0,
+        previousPeriodValue: 102942,
+        percentageChange: -1, // -100% decrease (complete loss)
+        comparisonIndicator: 'negative',
+      });
+    });
+  });
+
   describe('Time Comparison - Edge Cases', () => {
     it('should handle zero previous period value', () => {
       const props = generateProps(
@@ -294,8 +360,8 @@ describe('BigNumberWithTrendline transformProps with Time Comparison', () => {
       expect(result).toMatchObject({
         bigNumber: 1000,
         previousPeriodValue: 0,
-        percentageChange: undefined,
-        comparisonIndicator: undefined,
+        percentageChange: 1, // Treated as 100% increase (0 to 1000)
+        comparisonIndicator: 'positive',
       });
     });
 

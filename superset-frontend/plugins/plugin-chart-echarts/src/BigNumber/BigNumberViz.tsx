@@ -310,27 +310,75 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       }
     }
 
+    // Generate a cleaner tooltip text with specific date ranges when possible
+    let tooltipText = 'Period-over-period comparison';
+    if (comparisonPeriodText) {
+      // Remove 'vs' prefix if present since we'll add 'Compared to'
+      const cleanText = comparisonPeriodText.replace(/^vs\s+/, '');
+      
+      // Handle special cases for better user experience
+      if (cleanText === 'inherit' || cleanText === 'previous period') {
+        // For inherit mode, try to show specific date range if available
+        const timeRange = formData?.time_range;
+        const since = formData?.since;
+        const until = formData?.until;
+        
+        if (since && until) {
+          // Format the actual date range for inherit mode
+          const currentStart = new Date(since).toLocaleDateString();
+          const currentEnd = new Date(until).toLocaleDateString();
+          
+          // Calculate previous period dates
+          const currentStartDate = new Date(since);
+          const currentEndDate = new Date(until);
+          const duration = currentEndDate.getTime() - currentStartDate.getTime();
+          
+          const previousStartDate = new Date(currentStartDate.getTime() - duration);
+          const previousEndDate = new Date(currentEndDate.getTime() - duration);
+          
+          const previousStart = previousStartDate.toLocaleDateString();
+          const previousEnd = previousEndDate.toLocaleDateString();
+          
+          tooltipText = `Compared to ${previousStart} - ${previousEnd}`;
+        } else if (timeRange && typeof timeRange === 'string') {
+          // Use time range string to generate more specific text
+          tooltipText = `Compared to previous ${timeRange.toLowerCase().replace('last ', '')}`;
+        } else {
+          tooltipText = 'Compared to previous period';
+        }
+      } else if (cleanText === 'custom_range') {
+        tooltipText = 'Compared to custom date range';
+      } else {
+        tooltipText = `Compared to ${cleanText}`;
+      }
+    }
+
     const comparisonElement = (
       <div
         className="comparison-indicator"
         style={{
           position: 'absolute',
-          top: '8px', // Small top margin for better spacing
-          right: '10%', // Responsive positioning - 10% from right edge
+          top: '-35px', // Position above chart to appear in header area
+          right: '60px', // Position left of controls menu
           display: 'flex',
           alignItems: 'center',
           gap: '3px',
-          fontSize: 'clamp(10px, 2.5vw, 14px)', // Responsive font size
+          fontSize: 'clamp(8px, 2.0vw, 14px)', // Responsive font size
           fontWeight: '500',
           color: indicatorColor,
           cursor: 'help',
           zIndex: 10, // Ensure it's above other elements
           whiteSpace: 'nowrap', // Prevent text wrapping on small screens
         }}
-        title={comparisonPeriodText}
+        title={tooltipText}
       >
         <span style={{ fontSize: 'inherit' }}>{arrowIcon}</span>
-        <span>{formatPercentChange(percentageChange)}</span>
+        <span>
+          {Number.isNaN(percentageChange) || percentageChange === undefined 
+            ? '0%' 
+            : formatPercentChange(percentageChange)
+          }
+        </span>
       </div>
     );
 
