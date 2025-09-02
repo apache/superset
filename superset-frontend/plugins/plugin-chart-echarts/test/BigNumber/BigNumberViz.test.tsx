@@ -345,8 +345,8 @@ describe('BigNumberViz with Time Comparison', () => {
       const indicator = screen.getByText('↗').closest('div');
       expect(indicator).toHaveStyle({
         position: 'absolute',
-        top: '8px',
-        right: '8px',
+        top: '15px',
+        right: '15px',
       });
     });
 
@@ -406,8 +406,8 @@ describe('BigNumberViz with Time Comparison', () => {
         display: 'flex',
         alignItems: 'center',
         gap: '4px',
-        fontSize: '12px',
-        fontWeight: 'bold',
+        fontSize: '14px',
+        fontWeight: '600',
       });
     });
   });
