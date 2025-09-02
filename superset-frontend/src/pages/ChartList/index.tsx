@@ -34,11 +34,8 @@ import {
   createFetchRelated,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
-import {
-  useChartEditModal,
-  useFavoriteStatus,
-  useListViewResource,
-} from 'src/views/CRUD/hooks';
+import { useChartEditModal, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useGetCharts, useGetApiV1ChartInfo } from '@superset-ui/core/api';
 import handleResourceExport from 'src/utils/export';
 import {
   ConfirmStatusChange,
@@ -171,24 +168,64 @@ function ChartList(props: ChartListProps) {
 
   const history = useHistory();
 
-  const {
-    state: {
-      loading,
-      resourceCount: chartCount,
-      resourceCollection: charts,
-      bulkSelectEnabled,
-    },
-    setResourceCollection: setCharts,
-    hasPerm,
-    fetchData,
-    toggleBulkSelect,
-    refreshData,
-  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+  // 🚀 ORVAL: Pure TanStack Query implementation with local pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [sortColumn, setSortColumn] = useState('changed_on_delta_humanized');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [bulkSelectEnabled, setBulkSelectEnabled] = useState(false);
+
+  const orvalQuery = useGetCharts({
+    page: currentPage,
+    page_size: PAGE_SIZE,
+    order_column: sortColumn,
+    order_direction: sortOrder,
+  });
+
+  // Fetch permissions for UI controls
+  const permissionsQuery = useGetApiV1ChartInfo({
+    q: { keys: ['permissions'] },
+  });
+
+  // Extract chart data with proper typing
+  const charts = (orvalQuery.data?.result || []) as Chart[];
+  const chartCount = orvalQuery.data?.count || 0;
+  const loading = orvalQuery.isLoading;
+
+  // Simple handlers for ListView compatibility
+  const fetchData = useCallback((params?: any) => {
+    if (params?.pageIndex !== undefined) {
+      setCurrentPage(params.pageIndex);
+    }
+    if (params?.sortBy) {
+      setSortColumn(params.sortBy[0]?.id || 'changed_on_delta_humanized');
+      setSortOrder(params.sortBy[0]?.desc ? 'desc' : 'asc');
+    }
+  }, []);
+
+  const refreshData = useCallback(() => {
+    orvalQuery.refetch();
+  }, [orvalQuery]);
+
+  const toggleBulkSelect = useCallback(() => {
+    setBulkSelectEnabled(!bulkSelectEnabled);
+  }, [bulkSelectEnabled]);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+
+  // Restore hasPerm logic from permissions API
+  const permissions = permissionsQuery.data?.permissions || [];
+  const hasPerm = useCallback(
+    (perm: string) => Boolean(permissions.find(p => p === perm)),
+    [permissions],
+  );
+
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_export');
   const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -196,12 +233,17 @@ function ChartList(props: ChartListProps) {
     chartIds,
     addDangerToast,
   );
+
+  // 🚀 ORVAL: Simplified chart edit modal - no manual state management needed!
+  // TanStack Query handles cache updates automatically via optimistic updates
   const {
     sliceCurrentlyEditing,
     handleChartUpdated,
     openChartEditModal,
     closeChartEditModal,
-  } = useChartEditModal(setCharts, charts);
+  } = useChartEditModal(() => {
+    // No-op: TanStack Query handles cache automatically
+  }, charts);
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
@@ -236,10 +278,6 @@ function ChartList(props: ChartListProps) {
     addSuccessToast(t('Chart imported'));
   };
 
-  const canCreate = hasPerm('can_write');
-  const canEdit = hasPerm('can_write');
-  const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
@@ -809,6 +847,7 @@ function ChartList(props: ChartListProps) {
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
+
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}

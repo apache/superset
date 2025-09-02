@@ -32,3 +32,6 @@ esm/
 lib/
 tmp/
 storybook-static/
+
+# Orval generated code
+packages/superset-ui-core/src/orval-generated-code/

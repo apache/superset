@@ -45,12 +45,14 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import { useUpdateChart, type ChartUpdatePayload } from '@superset-ui/core/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
   onHide: () => void;
-  onSave: (chart: Chart) => void;
+  onSave: (chart: Chart) => void; // Legacy callback - kept for compatibility but not used
   permissionsError?: string;
   existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
@@ -64,6 +66,21 @@ function PropertiesModal({
   addSuccessToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
+
+  // 🚀 ORVAL POC: TanStack Query mutation hook with cache invalidation
+  const queryClient = useQueryClient();
+  const updateChartMutation = useUpdateChart({
+    mutation: {
+      onSuccess: () => {
+        // Invalidate all chart queries to refresh the list
+        queryClient.invalidateQueries({
+          predicate: query =>
+            Array.isArray(query.queryKey) &&
+            query.queryKey[0] === '/api/v1/chart/',
+        });
+      },
+    },
+  });
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
@@ -205,6 +222,7 @@ function PropertiesModal({
     [],
   );
 
+  // 🚀 ORVAL: Replace SupersetClient.put with TanStack Query mutation
   const onSubmit = async () => {
     // Run validation first
     if (!validateAll()) {
@@ -212,14 +230,16 @@ function PropertiesModal({
     }
 
     setSubmitting(true);
-    const payload: { [key: string]: any } = {
-      slice_name: name || null,
-      description: description || null,
-      cache_timeout: cacheTimeout ? Number(cacheTimeout) : null,
-      certified_by: certifiedBy || null,
+    const payload: ChartUpdatePayload = {
+      slice_name: name || undefined,
+      description: description || undefined,
+      cache_timeout: cacheTimeout ? Number(cacheTimeout) : undefined,
+      certified_by: certifiedBy || undefined,
       certification_details:
-        certifiedBy && certificationDetails ? certificationDetails : null,
+        certifiedBy && certificationDetails ? certificationDetails : undefined,
     };
+
+    // Add owners if selected
     if (selectedOwners) {
       payload.owners = (
         selectedOwners as {
@@ -228,25 +248,23 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
+
+    // Add tags if tagging system is enabled
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-      payload.tags = tags.map(tag => tag.id);
+      payload.tags = tags
+        .map(tag => tag.id)
+        .filter((id): id is number => id !== undefined);
     }
 
     try {
-      const res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      // Type-safe mutation with automatic optimistic updates and cache management!
+      await updateChartMutation.mutateAsync({
+        pk: slice.slice_id,
+        data: payload,
       });
-      // update the redux state
-      const updatedChart = {
-        ...payload,
-        ...res.json.result,
-        tags,
-        id: slice.slice_id,
-        owners: selectedOwners,
-      };
-      onSave(updatedChart);
+
+      // Success! TanStack Query has already updated the cache optimistically
+      // and will sync with server data in the background
       addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {

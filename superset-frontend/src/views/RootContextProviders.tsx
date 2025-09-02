@@ -21,6 +21,7 @@ import { Route } from 'react-router-dom';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -36,6 +37,16 @@ const { common } = getBootstrapData();
 const themeController = new ThemeController();
 const extensionsRegistry = getExtensionsRegistry();
 
+// Create QueryClient for TanStack Query (orval-generated hooks)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 export const RootContextProviders: React.FC = ({ children }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
@@ -44,28 +55,30 @@ export const RootContextProviders: React.FC = ({ children }) => {
   return (
     <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
-        <DndProvider backend={HTML5Backend}>
-          <FlashProvider messages={common.flash_messages}>
-            <EmbeddedUiConfigProvider>
-              <DynamicPluginProvider>
-                <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  stringifyOptions={{ encode: false }}
-                >
-                  <ExtensionsProvider>
-                    {RootContextProviderExtension ? (
-                      <RootContextProviderExtension>
-                        {children}
-                      </RootContextProviderExtension>
-                    ) : (
-                      children
-                    )}
-                  </ExtensionsProvider>
-                </QueryParamProvider>
-              </DynamicPluginProvider>
-            </EmbeddedUiConfigProvider>
-          </FlashProvider>
-        </DndProvider>
+        <QueryClientProvider client={queryClient}>
+          <DndProvider backend={HTML5Backend}>
+            <FlashProvider messages={common.flash_messages}>
+              <EmbeddedUiConfigProvider>
+                <DynamicPluginProvider>
+                  <QueryParamProvider
+                    ReactRouterRoute={Route}
+                    stringifyOptions={{ encode: false }}
+                  >
+                    <ExtensionsProvider>
+                      {RootContextProviderExtension ? (
+                        <RootContextProviderExtension>
+                          {children}
+                        </RootContextProviderExtension>
+                      ) : (
+                        children
+                      )}
+                    </ExtensionsProvider>
+                  </QueryParamProvider>
+                </DynamicPluginProvider>
+              </EmbeddedUiConfigProvider>
+            </FlashProvider>
+          </DndProvider>
+        </QueryClientProvider>
       </ReduxProvider>
     </SupersetThemeProvider>
   );

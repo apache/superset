@@ -74,9 +74,8 @@ def sync_tags() -> None:
 def update_api_docs() -> None:
     """Regenerate the openapi.json file in docs"""
     superset_dir = os.path.abspath(os.path.dirname(__file__))
-    openapi_json = os.path.join(
-        superset_dir, "..", "..", "docs", "static", "resources", "openapi.json"
-    )
+    # Generate to a location that exists in Docker container
+    openapi_json = os.path.join(superset_dir, "..", "static", "openapi.json")
     api_version = "v1"
 
     version_found = False

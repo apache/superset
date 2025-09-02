@@ -71,6 +71,10 @@
     "tdd": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --watch",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80% --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
+    "openapi:extract": "cp ../superset/static/openapi.json ./openapi-raw.json",
+    "openapi:normalize": "node scripts/normalize-openapi.js openapi-raw.json openapi-normalized.json",
+    "orval:generate": "orval --config orval.config.ts",
+    "orval:regenerate-client": "npm run openapi:extract && npm run openapi:normalize && npm run orval:generate",
     "type": "tsc --noEmit",
     "update-maps": "cd plugins/legacy-plugin-chart-country-map/scripts && jupyter nbconvert --to notebook --execute --inplace --allow-errors --ExecutePreprocessor.timeout=1200 'Country Map GeoJSON Generator.ipynb'",
     "validate-release": "../RELEASING/validate_this_release.sh"
@@ -222,6 +226,9 @@
     "@babel/runtime-corejs3": "^7.28.2",
     "@babel/types": "^7.26.9",
     "@cypress/react": "^8.0.2",
+    "@deck.gl/extensions": "^9.1.14",
+    "@deck.gl/mesh-layers": "^9.1.14",
+    "@deck.gl/widgets": "^9.1.14",
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.13.0",
     "@hot-loader/react-dom": "^17.0.2",
@@ -279,6 +286,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
+    "currencyformatter.js": "^2.2.0",
     "eslint": "^8.56.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
@@ -302,6 +310,7 @@
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
     "fetch-mock": "^11.1.5",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
+    "global-box": "^2.0.2",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.3",
     "imports-loader": "^5.0.0",
@@ -313,6 +322,8 @@
     "lerna": "^8.2.1",
     "mini-css-extract-plugin": "^2.9.0",
     "open-cli": "^8.0.0",
+    "openapi3-ts": "^4.5.0",
+    "orval": "^7.11.2",
     "po2json": "^0.4.5",
     "prettier": "3.6.2",
     "prettier-plugin-packagejson": "^2.5.3",
@@ -341,6 +352,7 @@
     "webpack-visualizer-plugin2": "^1.2.0"
   },
   "peerDependencies": {
+    "@tanstack/react-query": "^4.40.1",
     "ace-builds": "^1.41.0",
     "core-js": "^3.38.1",
     "handlebars": "^4.7.8",
@@ -357,7 +369,8 @@
     "puppeteer": "^22.4.1",
     "underscore": "^1.13.7",
     "jspdf": "^3.0.1",
-    "nwsapi": "^2.2.13"
+    "nwsapi": "^2.2.13",
+    "query-string": "^6.14.1"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
