@@ -97,28 +97,7 @@ export default function transformProps(
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
 
-  // Handle comparison data if available and time comparison is enabled
-  let previousPeriodValue: number | null = null;
-  let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
-
-  const timeCompare = formData.time_compare || 
-                     (formData.extra_form_data?.custom_form_data as any)?.time_compare || 
-                     (formData.extra_form_data as any)?.time_compare;
-    
-  // Debug logging
-  console.log('BigNumberWithTrendline transformProps - Debug Info:', {
-    queriesDataLength: queriesData.length,
-    timeCompare,
-    extraFormData: formData.extra_form_data,
-    customFormData: formData.extra_form_data?.custom_form_data,
-    hasComparisonData: queriesData.length > 1,
-    comparisonDataExists: queriesData.length > 1 ? !!queriesData[1] : false,
-    comparisonDataStructure: queriesData.length > 1 ? queriesData[1] : null,
-    currentDataStructure: queriesData[0],
-    metricName,
-    xAxisLabel,
-  });
-
+  // Process the main data first
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
   const metricColtype =
     metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
@@ -158,68 +137,121 @@ export default function transformProps(
     trendLineData = showTrendLine ? sortedData : undefined;
   }
 
-  // Now process comparison data after bigNumber is declared
-  if (queriesData.length > 1 && timeCompare && timeCompare !== 'NoComparison') {
-    console.log('BigNumberWithTrendline transformProps - Processing comparison data...');
-    
-    const comparisonData = queriesData[1];
-    console.log('BigNumberWithTrendline transformProps - Comparison data details:', {
-      comparisonData,
-      hasData: !!comparisonData.data,
-      dataLength: comparisonData.data?.length || 0,
-      firstRow: comparisonData.data?.[0],
-      metricValue: comparisonData.data?.[0]?.[metricName],
+  // Handle comparison data if available and time comparison is enabled
+  let previousPeriodValue: number | null = null;
+  let comparisonIndicator: 'positive' | 'negative' | 'neutral' | undefined;
+
+  const timeCompare = formData.time_compare ||
+                     (formData.extra_form_data?.custom_form_data as any)?.time_compare ||
+                     (formData.extra_form_data as any)?.time_compare;
+
+  // Debug logging
+  console.log('BigNumberWithTrendline transformProps - Debug Info:', {
+    queriesDataLength: queriesData.length,
+    timeCompare,
+    extraFormData: formData.extra_form_data,
+    customFormData: formData.extra_form_data?.custom_form_data,
+    hasComparisonData: queriesData.length > 1,
+    comparisonDataExists: queriesData.length > 1 ? !!queriesData[1] : false,
+    comparisonDataStructure: queriesData.length > 1 ? queriesData[1] : null,
+    currentDataStructure: queriesData[0],
+    metricName,
+    bigNumber,
+    xAxisLabel,
+  });
+
+  if (queriesData.length > 1) {
+    console.log('BigNumberWithTrendline transformProps - Comparison Period Data Analysis:', {
+      hasData: !!queriesData[1].data,
+      dataLength: queriesData[1].data?.length || 0,
+      dataType: typeof queriesData[1].data,
+      isArray: Array.isArray(queriesData[1].data),
+      firstRow: queriesData[1].data?.[0],
+      allRows: queriesData[1].data,
+      colnames: queriesData[1].colnames,
+      coltypes: queriesData[1].coltypes,
+      hasMetricColumn: queriesData[1].colnames?.includes(metricName),
+      metricColumnIndex: queriesData[1].colnames?.indexOf(metricName),
+      metricColumnType: queriesData[1].coltypes?.[queriesData[1].colnames?.indexOf(metricName) || -1] || null,
     });
+  }
+
+  // With single-query approach, we need to look for time-offset data in the same result
+  if (queriesData.length > 0 && timeCompare && timeCompare !== 'NoComparison') {
+    console.log('BigNumberWithTrendline transformProps - Processing time comparison data...');
+
+    const queryData = queriesData[0].data;
+    const queryColnames = queriesData[0].colnames || [];
     
-    if (comparisonData.data && comparisonData.data.length > 0) {
-      const rawValue = comparisonData.data[0][metricName];
-      console.log('BigNumberWithTrendline transformProps - Raw comparison value:', rawValue);
-      
-      if (rawValue !== null && rawValue !== undefined && typeof rawValue === 'number') {
-        previousPeriodValue = parseMetricValue(rawValue);
-        console.log('BigNumberWithTrendline transformProps - Parsed previousPeriodValue:', previousPeriodValue);
+    // Look for columns with time offset suffixes (e.g., "metric__1 day ago")
+    const timeOffsetColumns = queryColnames.filter((col: string) => 
+      col.includes('__') && col !== metricName
+    );
 
-        if (bigNumber !== null && previousPeriodValue !== null && previousPeriodValue !== 0) {
-          const calculatedPercentageChange = (bigNumber - previousPeriodValue) / Math.abs(previousPeriodValue);
-          percentageChange = calculatedPercentageChange;
-          console.log('BigNumberWithTrendline transformProps - Percentage change calculation:', {
-            bigNumber,
-            previousPeriodValue,
-            difference: bigNumber - previousPeriodValue,
-            absolutePrevious: Math.abs(previousPeriodValue),
-            percentageChange: calculatedPercentageChange,
-          });
+    console.log('BigNumberWithTrendline transformProps - Time offset columns found:', {
+      timeOffsetColumns,
+      metricName,
+      allColumns: queryColnames
+    });
 
-          if (calculatedPercentageChange > 0) {
-            comparisonIndicator = 'positive';
-          } else if (calculatedPercentageChange < 0) {
-            comparisonIndicator = 'negative';
+    if (timeOffsetColumns.length > 0 && queryData && queryData.length > 0) {
+      // Find the first time offset column that contains data
+      for (const offsetCol of timeOffsetColumns) {
+        const rawValue = queryData[0][offsetCol];
+        console.log('BigNumberWithTrendline transformProps - Processing offset column:', {
+          offsetCol,
+          rawValue,
+          rawValueType: typeof rawValue
+        });
+
+        if (rawValue !== null && rawValue !== undefined && typeof rawValue === 'number') {
+          previousPeriodValue = parseMetricValue(rawValue);
+          console.log('BigNumberWithTrendline transformProps - Parsed previousPeriodValue:', previousPeriodValue);
+
+          if (bigNumber !== null && previousPeriodValue !== null && previousPeriodValue !== 0) {
+            const bigNumberValue = bigNumber as number;
+            const calculatedPercentageChange = (bigNumberValue - previousPeriodValue) / Math.abs(previousPeriodValue);
+            percentageChange = calculatedPercentageChange;
+            console.log('BigNumberWithTrendline transformProps - Percentage change calculation:', {
+              bigNumber,
+              previousPeriodValue,
+              difference: bigNumberValue - previousPeriodValue,
+              absolutePrevious: Math.abs(previousPeriodValue),
+              percentageChange: calculatedPercentageChange,
+            });
+
+            if (calculatedPercentageChange > 0) {
+              comparisonIndicator = 'positive';
+            } else if (calculatedPercentageChange < 0) {
+              comparisonIndicator = 'negative';
+            } else {
+              comparisonIndicator = 'neutral';
+            }
+            console.log('BigNumberWithTrendline transformProps - Comparison indicator set to:', comparisonIndicator);
+            break; // Found valid comparison data, exit loop
           } else {
-            comparisonIndicator = 'neutral';
+            console.log('BigNumberWithTrendline transformProps - Cannot calculate percentage change:', {
+              bigNumber,
+              previousPeriodValue,
+              reason: bigNumber === null ? 'bigNumber is null' :
+                      previousPeriodValue === null ? 'previousPeriodValue is null' :
+                      previousPeriodValue === 0 ? 'previousPeriodValue is 0' : 'unknown'
+            });
           }
-          console.log('BigNumberWithTrendline transformProps - Comparison indicator set to:', comparisonIndicator);
         } else {
-          console.log('BigNumberWithTrendline transformProps - Cannot calculate percentage change:', {
-            bigNumber,
-            previousPeriodValue,
-            reason: bigNumber === null ? 'bigNumber is null' : 
-                    previousPeriodValue === null ? 'previousPeriodValue is null' : 
-                    previousPeriodValue === 0 ? 'previousPeriodValue is 0' : 'unknown'
+          console.log('BigNumberWithTrendline transformProps - Raw comparison value is not a valid number:', {
+            rawValue,
+            type: typeof rawValue
           });
         }
-      } else {
-        console.log('BigNumberWithTrendline transformProps - Raw comparison value is not a valid number:', {
-          rawValue,
-          type: typeof rawValue
-        });
       }
     } else {
-      console.log('BigNumberWithTrendline transformProps - No comparison data available');
+      console.log('BigNumberWithTrendline transformProps - No time offset columns or data available');
     }
   } else {
     console.log('BigNumberWithTrendline transformProps - Skipping comparison processing:', {
-      reason: queriesData.length <= 1 ? 'No comparison data' : 
-              !timeCompare ? 'No time comparison' : 
+      reason: queriesData.length === 0 ? 'No query data' :
+              !timeCompare ? 'No time comparison' :
               timeCompare === 'NoComparison' ? 'NoComparison selected' : 'unknown'
     });
   }
