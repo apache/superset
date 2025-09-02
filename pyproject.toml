@@ -35,7 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    # no bounds for apache-superset-core until a stable version
+    # no bounds for apache-superset-core until we have a stable version
     "apache-superset-core",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
