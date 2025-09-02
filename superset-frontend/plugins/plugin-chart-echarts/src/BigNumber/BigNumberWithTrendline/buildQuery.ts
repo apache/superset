@@ -136,6 +136,16 @@ export default function buildQuery(formData: QueryFormData) {
         const comparisonQuery = {
           ...baseQueryObject,
           ...comparisonFormData,
+          // Ensure critical fields are preserved
+          datasource: baseQueryObject.datasource,
+          metrics: baseQueryObject.metrics,
+          filters: baseQueryObject.filters,
+          adhoc_filters: baseQueryObject.adhoc_filters,
+          // Preserve form data structure
+          form_data: {
+            ...baseQueryObject.form_data,
+            ...comparisonFormData,
+          },
           columns: [
             ...(isXAxisSet(formData)
               ? ensureIsArray(getXAxisColumn(formData))
