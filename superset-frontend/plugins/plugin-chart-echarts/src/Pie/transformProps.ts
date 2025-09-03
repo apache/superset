@@ -29,6 +29,11 @@ import {
   tooltipHtml,
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
+import { 
+  allocateEnhancedColors,
+  ColorAllocationOptions,
+  getColorAllocationSummary,
+} from '../../../../src/utils/enhancedColorUtils';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { PieSeriesOption } from 'echarts/charts';
@@ -205,36 +210,53 @@ export default function transformProps(
 
   let totalValue = 0;
 
-  // Calculate value range for sequential coloring
-  let minValue = 0;
-  let maxValue = 0;
-  let sequentialColorScale: ((value: number) => string) | null = null;
+  // Enhanced color allocation with theme integration and collision avoidance
+  const values = data.map(datum => {
+    const value = datum[metricLabel];
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') return parseFloat(value) || 0;
+    return 0;
+  });
 
-  if (valueBasedColors && data.length > 0) {
-    const values = data.map(datum => {
-      const value = datum[metricLabel];
-      if (typeof value === 'number') return value;
-      if (typeof value === 'string') return parseFloat(value) || 0;
-      return 0;
-    });
-    
-    minValue = Math.min(...values);
-    maxValue = Math.max(...values);
-    
-    // Create sequential color scale
-    const sequentialScheme = getSequentialSchemeRegistry().get(sequentialColorScheme || 'superset_seq_1');
-    if (sequentialScheme && maxValue > minValue) {
-      const colors = sequentialScheme.getColors(10);
-      // Create a linear scale from min to max values mapped to the color array
-      sequentialColorScale = (value: number) => {
-        const normalizedValue = (value - minValue) / (maxValue - minValue);
-        const colorIndex = Math.floor(normalizedValue * (colors.length - 1));
-        return colors[Math.min(colorIndex, colors.length - 1)];
-      };
-    }
+  const names = data.map(datum =>
+    extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping,
+      timeFormatter: getTimeFormatter(dateFormat),
+    }),
+  );
+
+  // Use enhanced color allocation
+  const colorAllocationOptions: ColorAllocationOptions = {
+    theme,
+    sectionCount: data.length,
+    useValueBasedColors: valueBasedColors || false,
+    values: valueBasedColors ? values : undefined,
+    colorScheme: valueBasedColors ? sequentialColorScheme : colorScheme,
+    avoidCollisions: true, // Always avoid color collisions
+  };
+
+  const colorAllocation = allocateEnhancedColors(colorAllocationOptions);
+  
+  // Log color allocation summary for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Pie Chart Color Allocation:', getColorAllocationSummary(colorAllocation));
   }
 
-  const transformedData: PieSeriesOption[] = data.map(datum => {
+  // Create color function that ensures unique colors
+  const getColorForSection = (sectionName: string, index: number): string => {
+    if (valueBasedColors) {
+      // For value-based colors, use the allocated colors based on value order
+      return colorAllocation.colors[index] || colorAllocation.colors[0];
+    } else {
+      // For categorical colors, try to use consistent colors for same names
+      const colorIndex = names.indexOf(sectionName);
+      return colorAllocation.colors[colorIndex] || colorAllocation.colors[index % colorAllocation.colors.length];
+    }
+  };
+
+  const transformedData: PieSeriesOption[] = data.map((datum, index) => {
     const name = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
@@ -252,13 +274,8 @@ export default function transformProps(
       totalValue += convertInteger(value);
     }
 
-    // Determine color based on whether value-based colors are enabled
-    let itemColor: string;
-    if (valueBasedColors && sequentialColorScale) {
-      itemColor = sequentialColorScale(numericValue);
-    } else {
-      itemColor = colorFn(name, sliceId);
-    }
+    // Use enhanced color allocation - ensures no two sections get same color
+    const itemColor = getColorForSection(name, index);
 
     return {
       value,
