@@ -253,7 +253,10 @@ class Chart extends PureComponent<ChartProps, {}> {
           data-test="chart-container"
           height={height}
         >
-          <Loading />
+          <Loading
+            size={this.props.dashboardId ? 's' : 'm'}
+            muted={!!this.props.dashboardId}
+          />
         </Styles>
       );
     }
@@ -278,7 +281,11 @@ class Chart extends PureComponent<ChartProps, {}> {
 
     return (
       <LoadingDiv>
-        <Loading position="inline-centered" />
+        <Loading
+          position="inline-centered"
+          size={this.props.dashboardId ? 's' : 'm'}
+          muted={!!this.props.dashboardId}
+        />
         <MessageSpan>{message}</MessageSpan>
       </LoadingDiv>
     );
@@ -296,7 +303,10 @@ class Chart extends PureComponent<ChartProps, {}> {
             data-test={this.props.vizType}
           />
         ) : (
-          <Loading />
+          <Loading
+            size={this.props.dashboardId ? 's' : 'm'}
+            muted={!!this.props.dashboardId}
+          />
         )}
       </div>
     );
