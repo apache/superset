@@ -844,7 +844,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       contentType === ContentType.Chart && !isReport;
 
     if (currentAlert?.extra?.dashboard) {
-      currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
+      // Filter out empty native filters (where both filter name and values are empty/null)
+      const validNativeFilters = nativeFilterData.filter(filter => {
+        const hasFilterName = filter.filterName && filter.filterName.trim() !== '';
+        const hasFilterValues = filter.filterValues && filter.filterValues.length > 0;
+        // Keep filter if it has either a name or values (or both)
+        return hasFilterName || hasFilterValues;
+      });
+      
+      currentAlert.extra.dashboard.nativeFilters = validNativeFilters.map(
         ({
           columnName,
           columnLabel,
