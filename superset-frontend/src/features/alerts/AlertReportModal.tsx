@@ -2421,16 +2421,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ))}
                               <div className="filters-add-container">
                                 {filterNativeFilterOptions().length > 0 && (
-                                  <Button
+                                  <a
                                     className="filters-add-btn"
-                                    type="link"
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => {
                                       handleAddFilterField();
                                       add();
                                     }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        handleAddFilterField();
+                                        add();
+                                      }
+                                    }}
                                   >
                                     + {t('Apply another dashboard filter')}
-                                  </Button>
+                                  </a>
                                 )}
                               </div>
                             </div>
