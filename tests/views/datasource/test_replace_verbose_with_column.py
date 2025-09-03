@@ -67,7 +67,7 @@ def test_replace_verbose_with_column_missing_col_key(caplog):
     filters = [{"op": "=="}]  # missing "col"
     with caplog.at_level("WARNING"):
         replace_verbose_with_column(filters, columns)
-    assert "Filter missing 'col' key" in caplog.text
+    assert "Filter missing 'col' key:" in caplog.text
     # filter should remain unchanged
     assert filters == [{"op": "=="}]
 
