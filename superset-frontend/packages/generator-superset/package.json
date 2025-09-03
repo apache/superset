@@ -34,7 +34,7 @@
     "yosay": "^3.0.0"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "fs-extra": "^11.3.0",
     "jest": "^30.0.5",
     "yeoman-test": "^10.1.1"
