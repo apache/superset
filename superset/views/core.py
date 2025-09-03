@@ -579,11 +579,8 @@ class Superset(BaseSupersetView):
         else:
             title = _("Explore")
 
-        return self.render_template(
-            "superset/spa.html",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
-            ),
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_data,
             entry="explore",
             title=title,
             standalone_mode=standalone_mode,
@@ -824,17 +821,13 @@ class Superset(BaseSupersetView):
             ),
         )
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
+        bootstrap_payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_payload,
             title=dashboard.dashboard_title,  # dashboard title is always visible
-            bootstrap_data=json.dumps(
-                {
-                    "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(),
-                },
-                default=json.pessimistic_json_iso_dttm_ser,
-            ),
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
@@ -937,13 +930,7 @@ class Superset(BaseSupersetView):
             "common": common_bootstrap_payload(),
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
-        )
+        return self.render_app_template(extra_bootstrap_data=payload)
 
     @has_access
     @event_logger.log_this

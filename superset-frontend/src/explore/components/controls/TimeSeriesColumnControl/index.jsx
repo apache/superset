@@ -28,6 +28,7 @@ import {
   Select,
 } from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -369,11 +370,21 @@ export default class TimeSeriesColumnControl extends Component {
           open={this.state.popoverVisible}
           onOpenChange={this.onPopoverVisibleChange}
         >
-          <InfoTooltip
-            icon="edit"
-            className="text-primary"
-            label="edit-ts-column"
-          />
+          <span
+            css={theme => ({
+              display: 'inline-block',
+              cursor: 'pointer',
+              '& svg path': {
+                fill: theme.colorIcon,
+                transition: `fill ${theme.motionDurationMid} ease-out`,
+              },
+              '&:hover svg path': {
+                fill: theme.colorPrimary,
+              },
+            })}
+          >
+            <Icons.EditOutlined iconSize="s" />
+          </span>
         </ControlPopover>
       </span>
     );

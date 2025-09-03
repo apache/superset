@@ -29,7 +29,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
-import { legendSection } from '../controls';
+import { legendSection, legendSortControl } from '../controls';
 
 const {
   donut,
@@ -119,6 +119,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
+        [legendSortControl],
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [

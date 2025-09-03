@@ -126,6 +126,8 @@ services:
       POSTGRES_DB: superset_light
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
+      GITHUB_SHA: ${GITHUB_SHA:-}
 
   superset-init-light:
     build:
