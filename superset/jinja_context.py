@@ -999,12 +999,18 @@ def dataset_macro(
     the underlying dataset.
     """
     # pylint: disable=import-outside-toplevel
+    import sqlglot
     from superset.daos.dataset import DatasetDAO
-
+    from superset.daos.database import DatabaseDAO
+    
     dataset = DatasetDAO.find_by_id(dataset_id)
     if not dataset:
         raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
 
+    # Get database to determine dialect
+    database = DatabaseDAO.find_by_id(dataset.database_id)
+    dialect = database.sqlalchemy_dialect.lower() if database else "generic"
+    
     columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
     query_obj = {
@@ -1017,11 +1023,17 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    # Check database type to determine whether to use AS keyword
-    database_type = dataset.database.backend.lower()
-    if database_type == 'oracle':
-        return f"(\n{sql}\n) dataset_{dataset_id}"
-    else:
+    
+    # Use sqlglot to generate SQL with correct alias based on dialect
+    try:
+        # Parse the SQL
+        parsed = sqlglot.parse_one(sql)
+        # Create a subquery with alias
+        subquery = parsed.subquery(alias=f"dataset_{dataset_id}")
+        # Generate SQL with correct dialect
+        return subquery.sql(dialect=dialect)
+    except Exception as e:
+        # Fallback to original method if sqlglot fails
         return f"(\n{sql}\n) AS dataset_{dataset_id}"
 
 
