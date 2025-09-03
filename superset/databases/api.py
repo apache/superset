@@ -727,7 +727,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 database,
                 catalogs,
             )
-            return self.response(200, result=list(catalogs))
+            default_catalog = database.get_default_catalog()
+            return self.response(200, result=list(catalogs), default=default_catalog)
         except OperationalError:
             return self.response(
                 500,
@@ -796,9 +797,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalog,
                 schemas,
             )
+            default_schema = database.get_default_schema(catalog)
             if params.get("upload_allowed"):
                 if not database.allow_file_upload:
-                    return self.response(200, result=[])
+                    return self.response(200, result=[], default=default_schema)
                 if allowed_schemas := database.get_schema_access_for_file_upload():
                     # some databases might return the list of schemas in uppercase,
                     # while the list of allowed schemas is manually inputted so
@@ -811,8 +813,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                             for schema in schemas
                             if schema.lower() in allowed_schemas
                         ],
+                        default=default_schema,
                     )
-            return self.response(200, result=list(schemas))
+            return self.response(200, result=list(schemas), default=default_schema)
         except OperationalError:
             return self.response(
                 500, message="There was an error connecting to the database"
