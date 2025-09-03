@@ -1892,6 +1892,55 @@ class SqlaTable(
         return list(set(extra_cache_keys))
 
     @property
+    def default_chart_metadata(self) -> dict[str, Any]:
+        """Get chart defaults from the extra JSON field."""
+        try:
+            extra_dict = json.loads(self.extra or "{}")
+            return extra_dict.get("default_chart_metadata", {})
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    @property
+    def default_metric(self) -> str | None:
+        """Get the default metric name for chart creation."""
+        return self.default_chart_metadata.get("default_metric")
+
+    @property
+    def default_dimension(self) -> str | None:
+        """Get the default dimension/groupby column for chart creation."""
+        return self.default_chart_metadata.get("default_dimension")
+
+    @property
+    def default_time_grain(self) -> str | None:
+        """Get the default time grain for chart creation."""
+        return self.default_chart_metadata.get("default_time_grain")
+
+    @property
+    def default_time_range(self) -> str | None:
+        """Get the default time range for chart creation."""
+        return self.default_chart_metadata.get("default_time_range")
+
+    @property
+    def default_row_limit(self) -> int | None:
+        """Get the default row limit for chart creation."""
+        return self.default_chart_metadata.get("default_row_limit")
+
+    @property
+    def default_temporal_column(self) -> str | None:
+        """Get the default temporal column for chart creation."""
+        return self.default_chart_metadata.get("default_temporal_column")
+
+    def set_default_chart_metadata(self, metadata: dict[str, Any]) -> None:
+        """Set chart defaults in the extra JSON field."""
+        try:
+            extra_dict = json.loads(self.extra or "{}")
+        except (json.JSONDecodeError, TypeError):
+            extra_dict = {}
+
+        extra_dict["default_chart_metadata"] = metadata
+        self.extra = json.dumps(extra_dict)
+
+    @property
     def quote_identifier(self) -> Callable[[str], str]:
         return self.database.quote_identifier
 

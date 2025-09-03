@@ -18,11 +18,9 @@
  */
 import rison from 'rison';
 import { isEmpty } from 'lodash';
-import {
-  SupersetClient,
-  getClientErrorObject,
-  ensureIsArray,
-} from '@superset-ui/core';
+import { SupersetClient } from '../connection';
+import { getClientErrorObject } from '../query';
+import { ensureIsArray } from '../utils';
 
 export const SEPARATOR = ' : ';
 
