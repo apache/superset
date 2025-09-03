@@ -10,7 +10,9 @@
     "baseUrl": ".",
     "module": "esnext",
     "moduleResolution": "node",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "target": "es2015",
+    "esModuleInterop": true
   },
   "include": ["src/**/*.ts*"],
   "exclude": ["lib"]
