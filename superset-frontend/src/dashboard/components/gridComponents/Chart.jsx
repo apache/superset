@@ -39,7 +39,7 @@ import { URL_PARAMS } from 'src/constants';
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
 import { slicePropShape, chartPropShape } from '../../util/propShapes';
-import { getBigNumberComparisonData } from '../../util/getBigNumberComparisonData';
+// import { getBigNumberComparisonData } from '../../util/getBigNumberComparisonData';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -435,7 +435,7 @@ class Chart extends Component {
       queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
     const initialValues = {};
 
-    // Extract comparison data for BigNumber charts
+    // Extract comparison data for BigNumber charts (inline implementation)
     console.group('📊 Chart Component - BigNumber Comparison Data Extraction');
     console.log('🔍 Input data for comparison extraction:', {
       sliceVizType: slice?.viz_type,
@@ -446,10 +446,60 @@ class Chart extends Component {
       chartStatus,
     });
 
-    const bigNumberComparisonData = getBigNumberComparisonData(
-      queriesResponse,
-      formData,
-    );
+    let bigNumberComparisonData = null;
+
+    // Simplified inline comparison data extraction
+    if (queriesResponse && queriesResponse.length > 0 && formData) {
+      const { data = [], colnames = [] } = queriesResponse[0];
+      const vizType = formData?.viz_type;
+      
+      if (data.length > 0 && vizType && vizType.includes('big_number')) {
+        // Check for time offset columns
+        const hasTimeOffsetColumns = colnames?.some(
+          (col) => col.includes('__') && col !== formData.metric
+        );
+        
+        if (hasTimeOffsetColumns) {
+          const metricName = formData.metric || 'value';
+          const currentValue = data[0][metricName];
+          
+          // Find previous period value
+          let previousPeriodValue = null;
+          for (const col of colnames) {
+            if (col.includes('__') && col !== metricName) {
+              const rawValue = data[0][col];
+              if (rawValue !== null && rawValue !== undefined) {
+                previousPeriodValue = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
+                break;
+              }
+            }
+          }
+          
+          if (currentValue !== null && previousPeriodValue !== null && !isNaN(previousPeriodValue)) {
+            let percentageChange = 0;
+            let comparisonIndicator = 'neutral';
+            
+            if (previousPeriodValue === 0) {
+              percentageChange = currentValue > 0 ? 1 : currentValue < 0 ? -1 : 0;
+              comparisonIndicator = currentValue > 0 ? 'positive' : currentValue < 0 ? 'negative' : 'neutral';
+            } else if (currentValue === 0) {
+              percentageChange = -1;
+              comparisonIndicator = 'negative';
+            } else {
+              percentageChange = (currentValue - previousPeriodValue) / Math.abs(previousPeriodValue);
+              comparisonIndicator = percentageChange > 0 ? 'positive' : percentageChange < 0 ? 'negative' : 'neutral';
+            }
+            
+            bigNumberComparisonData = {
+              percentageChange,
+              comparisonIndicator,
+              previousPeriodValue,
+              currentValue,
+            };
+          }
+        }
+      }
+    }
 
     console.log('📈 Comparison data extraction result:', {
       bigNumberComparisonData,
