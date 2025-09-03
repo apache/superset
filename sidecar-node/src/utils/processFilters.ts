@@ -40,7 +40,7 @@ export default function processFilters(
   formData: FilterProcessorInput,
 ): FilterProcessorResult {
   const { filters = [], adhoc_filters = [], extras = {} } = formData;
-  
+
   // Convert adhoc filters to simple filters where possible
   const processedFilters: QueryObjectFilterClause[] = [...filters];
   const processedExtras: QueryObjectExtras = { ...extras };

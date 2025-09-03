@@ -33,13 +33,13 @@ interface BuildQueryObjectResponse {
 
 /**
  * POST /api/v1/query-object
- * 
+ *
  * Build a QueryObject from form_data
- * 
+ *
  * Request body:
  * - form_data: The form data from Superset frontend
  * - query_fields: Optional query field aliases for visualization-specific mappings
- * 
+ *
  * Response:
  * - query_object: The computed QueryObject
  * - error: Error message if processing failed
@@ -77,7 +77,7 @@ router.post('/api/v1/query-object', (req: Request, res: Response) => {
 
 /**
  * GET /health
- * 
+ *
  * Health check endpoint
  */
 router.get('/health', (req: Request, res: Response) => {

@@ -69,7 +69,7 @@ export default function buildQueryObject<T extends QueryFormData>(
 
   const numericRowLimit = Number(row_limit);
   const numericRowOffset = Number(row_offset);
-  
+
   const { metrics, columns, orderby } = extractQueryFields(
     residualFormData,
     queryFields,
@@ -84,9 +84,9 @@ export default function buildQueryObject<T extends QueryFormData>(
     filters: [...extraFilters, ...appendFilters],
     adhoc_filters: [...(formData.adhoc_filters || []), ...appendAdhocFilters],
   };
-  
+
   const extrasAndfilters = processFilters(filterFormData);
-  
+
   const normalizeSeriesLimitMetric = (metric: any) => {
     if (isQueryFormMetric(metric)) {
       return metric;

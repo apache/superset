@@ -43,7 +43,7 @@ class QuerySidecarException(SupersetException):
 class QuerySidecarClient:
     """
     Client for communicating with the Node.js query sidecar service.
-    
+
     This client transforms form_data into QueryObject format using the same
     logic as the frontend, ensuring consistency and eliminating staleness.
     """
@@ -51,7 +51,7 @@ class QuerySidecarClient:
     def __init__(self, base_url: Optional[str] = None, timeout: int = 10) -> None:
         """
         Initialize the query sidecar client.
-        
+
         Args:
             base_url: Base URL of the sidecar service. If None, reads from config.
             timeout: Request timeout in seconds.
@@ -61,28 +61,29 @@ class QuerySidecarClient:
         )
         self._timeout = timeout
         self._session = requests.Session()
-        
+
         # Set default headers
-        self._session.headers.update({
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        })
+        self._session.headers.update(
+            {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+        )
 
     def build_query_object(
-        self, 
-        form_data: Dict[str, Any], 
-        query_fields: Optional[Dict[str, str]] = None
+        self, form_data: Dict[str, Any], query_fields: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """
         Build a QueryObject from form_data using the sidecar service.
-        
+
         Args:
             form_data: The form data from Superset frontend/chart configuration
-            query_fields: Optional query field aliases for visualization-specific mappings
-            
+            query_fields: Optional query field aliases for visualization-specific
+                mappings
+
         Returns:
             Dict containing the QueryObject data
-            
+
         Raises:
             QuerySidecarException: If the service is unavailable or returns an error
         """
@@ -103,19 +104,15 @@ class QuerySidecarClient:
 
         try:
             logger.debug("Calling sidecar service at %s", url)
-            response = self._session.post(
-                url, 
-                json=payload, 
-                timeout=self._timeout
-            )
+            response = self._session.post(url, json=payload, timeout=self._timeout)
             response.raise_for_status()
-            
+
             data = response.json()
             if "error" in data:
                 raise QuerySidecarException(f"Sidecar service error: {data['error']}")
-                
+
             return data["query_object"]
-            
+
         except requests.exceptions.Timeout as ex:
             logger.error("Timeout calling query sidecar service")
             raise QuerySidecarException(
@@ -124,13 +121,15 @@ class QuerySidecarClient:
         except requests.exceptions.ConnectionError as ex:
             logger.error("Connection error calling query sidecar service")
             raise QuerySidecarException(
-                "Unable to connect to query sidecar service. Please check service availability."
+                "Unable to connect to query sidecar service. "
+                "Please check service availability."
             ) from ex
         except requests.exceptions.HTTPError as ex:
             logger.error("HTTP error calling query sidecar service: %s", ex)
             if ex.response.status_code >= 500:
                 raise QuerySidecarException(
-                    "Query sidecar service is experiencing issues. Please try again later."
+                    "Query sidecar service is experiencing issues. "
+                    "Please try again later."
                 ) from ex
             else:
                 try:
@@ -138,7 +137,9 @@ class QuerySidecarClient:
                     error_message = error_data.get("error", str(ex))
                 except (ValueError, KeyError):
                     error_message = str(ex)
-                raise QuerySidecarException(f"Query sidecar service error: {error_message}") from ex
+                raise QuerySidecarException(
+                    f"Query sidecar service error: {error_message}"
+                ) from ex
         except Exception as ex:
             logger.error("Unexpected error calling query sidecar service: %s", ex)
             raise QuerySidecarException(
@@ -153,29 +154,30 @@ class QuerySidecarClient:
     ) -> QueryObject:
         """
         Create a QueryObject instance from form_data using the sidecar service.
-        
+
         This is a convenience method that returns a QueryObject instance
         rather than raw dictionary data.
-        
+
         Args:
             form_data: The form data from Superset frontend/chart configuration
-            query_fields: Optional query field aliases for visualization-specific mappings
+            query_fields: Optional query field aliases for visualization-specific
+                mappings
             datasource: Optional datasource instance to attach to the QueryObject
-            
+
         Returns:
             QueryObject instance
-            
+
         Raises:
             QuerySidecarException: If the service is unavailable or returns an error
         """
         query_data = self.build_query_object(form_data, query_fields)
-        
+
         # Create QueryObject instance from the returned data
         # Convert the dictionary to QueryObject constructor parameters
         query_object = QueryObject(
             datasource=datasource,
             columns=query_data.get("columns"),
-            metrics=query_data.get("metrics"), 
+            metrics=query_data.get("metrics"),
             filters=query_data.get("filters", []),
             granularity=query_data.get("granularity"),
             extras=query_data.get("extras", {}),
@@ -189,13 +191,13 @@ class QuerySidecarClient:
             order_desc=query_data.get("order_desc", True),
             time_range=query_data.get("time_range"),
         )
-        
+
         return query_object
 
     def health_check(self) -> bool:
         """
         Check if the sidecar service is healthy.
-        
+
         Returns:
             True if service is healthy, False otherwise
         """
@@ -203,10 +205,10 @@ class QuerySidecarClient:
             url = urljoin(self._base_url, "/health")
             response = self._session.get(url, timeout=5)
             response.raise_for_status()
-            
+
             data = response.json()
             return data.get("status") == "healthy"
-            
+
         except Exception as ex:
             logger.warning("Query sidecar health check failed: %s", ex)
             return False
@@ -219,15 +221,15 @@ _sidecar_client: Optional[QuerySidecarClient] = None
 def get_query_sidecar_client() -> QuerySidecarClient:
     """
     Get the global query sidecar client instance.
-    
+
     Returns:
         QuerySidecarClient instance
     """
     global _sidecar_client
-    
+
     if _sidecar_client is None:
         _sidecar_client = QuerySidecarClient()
-    
+
     return _sidecar_client
 
 
@@ -237,18 +239,21 @@ def build_query_object_from_form_data(
     datasource: Optional[Any] = None,
 ) -> QueryObject:
     """
-    Convenience function to build a QueryObject from form_data using the sidecar service.
-    
+    Convenience function to build a QueryObject from form_data using the sidecar
+    service.
+
     Args:
         form_data: The form data from Superset frontend/chart configuration
         query_fields: Optional query field aliases for visualization-specific mappings
         datasource: Optional datasource instance to attach to the QueryObject
-        
+
     Returns:
         QueryObject instance
-        
+
     Raises:
         QuerySidecarException: If the service is unavailable or returns an error
     """
     client = get_query_sidecar_client()
-    return client.create_query_object_from_form_data(form_data, query_fields, datasource)
+    return client.create_query_object_from_form_data(
+        form_data, query_fields, datasource
+    )

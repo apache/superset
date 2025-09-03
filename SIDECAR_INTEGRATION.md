@@ -11,7 +11,7 @@ Previously, Superset stored QueryObjects in the database after chart visualizati
 The Query Sidecar Service provides a Node.js service that computes QueryObjects from `form_data` on-demand using the same logic as the frontend, ensuring:
 
 - **No stale data**: QueryObjects are computed fresh every time
-- **Consistency**: Uses identical logic to the Superset frontend 
+- **Consistency**: Uses identical logic to the Superset frontend
 - **Backward compatibility**: Falls back to legacy screenshot method if sidecar is unavailable
 
 ## Architecture
@@ -20,14 +20,14 @@ The Query Sidecar Service provides a Node.js service that computes QueryObjects 
 graph TB
     A[Superset Frontend] --> B[form_data]
     B --> C[Chart Database Record]
-    
+
     D[Alerts & Reports] --> E{Sidecar Available?}
     E -->|Yes| F[Query Sidecar Service]
     E -->|No| G[Legacy Screenshot Method]
-    
+
     F --> H[buildQueryObject.ts Logic]
     H --> I[Fresh QueryObject]
-    
+
     C --> F
     I --> J[Chart Data API]
     G --> J
@@ -126,7 +126,7 @@ curl -X POST http://localhost:3001/api/v1/query-object \
   -H "Content-Type: application/json" \
   -d '{
     "form_data": {
-      "datasource": "1__table", 
+      "datasource": "1__table",
       "viz_type": "table",
       "metrics": ["count"],
       "columns": ["name"]
@@ -145,7 +145,7 @@ Transforms `form_data` into a QueryObject.
 {
   "form_data": {
     "datasource": "1__table",
-    "viz_type": "table", 
+    "viz_type": "table",
     "metrics": ["count"],
     "columns": ["name"],
     "time_range": "No filter"

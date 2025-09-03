@@ -47,7 +47,7 @@ QUERY_SIDECAR_TIMEOUT = 10
 #     environment:
 #       - NODE_ENV=production
 #       - SUPERSET_ORIGINS=http://localhost:8088
-#   
+#
 #   superset:
 #     # ... your superset config
 #     environment:

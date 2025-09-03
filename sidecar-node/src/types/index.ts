@@ -41,7 +41,7 @@ export interface AdhocMetric {
 
 export type QueryFormMetric = SavedMetric | AdhocMetric | string;
 
-// Column types  
+// Column types
 export interface PhysicalColumn {
   column_name: string;
   type?: string;
@@ -58,8 +58,8 @@ export interface AdhocColumn {
 export type QueryFormColumn = PhysicalColumn | AdhocColumn | string;
 
 // Filter types
-export type BinaryOperator = 
-  | '==' | '!=' | '>' | '<' | '>=' | '<=' 
+export type BinaryOperator =
+  | '==' | '!=' | '>' | '<' | '>=' | '<='
   | 'LIKE' | 'ILIKE' | 'REGEX' | 'NOT REGEX';
 
 export type SetOperator = 'IN' | 'NOT IN';
@@ -204,7 +204,7 @@ export function isAdhocMetric(metric: any): metric is AdhocMetric {
 }
 
 export function isQueryFormMetric(metric: any): metric is QueryFormMetric {
-  return typeof metric === 'string' || isAdhocMetric(metric) || 
+  return typeof metric === 'string' || isAdhocMetric(metric) ||
     (metric && typeof metric === 'object' && 'metric_name' in metric);
 }
 

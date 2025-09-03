@@ -435,7 +435,7 @@ class BaseReportState:
     def _ensure_query_context_available(self) -> None:
         """
         Ensure query context is available for the chart.
-        
+
         First attempts to generate query context using the sidecar service
         from the chart's form_data. If that fails, falls back to the
         screenshot method for backward compatibility.
@@ -448,51 +448,55 @@ class BaseReportState:
             except QuerySidecarException as ex:
                 logger.warning(
                     "Failed to generate query context via sidecar service: %s. "
-                    "Falling back to screenshot method.", 
-                    str(ex)
+                    "Falling back to screenshot method.",
+                    str(ex),
                 )
-        
+
         # Fallback to legacy screenshot method
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context_legacy()
 
+    @transaction()
     def _generate_query_context_via_sidecar(self) -> None:
         """
         Generate and save query context using the sidecar service.
-        
+
         This method uses the chart's form_data to generate a fresh
         QueryObject via the sidecar service, eliminating staleness issues.
         """
         if not self._report_schedule.chart:
             raise QuerySidecarException("No chart associated with report schedule")
-            
+
         try:
             # Get the chart's form_data
             form_data = self._report_schedule.chart.form_data
-            
+
             # Use sidecar service to generate QueryObject
             sidecar_client = get_query_sidecar_client()
             query_object_data = sidecar_client.build_query_object(form_data)
-            
+
             # Convert to JSON and save as query_context
-            query_context = json.dumps({
-                "queries": [query_object_data],
-                "form_data": form_data,
-                "result_format": "json",
-                "result_type": "full",
-            })
-            
+            query_context = json.dumps(
+                {
+                    "queries": [query_object_data],
+                    "form_data": form_data,
+                    "result_format": "json",
+                    "result_type": "full",
+                }
+            )
+
             # Update the chart's query_context in the database
             self._report_schedule.chart.query_context = query_context
             from superset import db
-            db.session.commit()
-            
+
+            db.session.add(self._report_schedule.chart)
+
             logger.info(
                 "Successfully generated query context via sidecar for chart %s",
-                self._report_schedule.chart.id
+                self._report_schedule.chart.id,
             )
-            
+
         except Exception as ex:
             raise QuerySidecarException(
                 f"Failed to generate query context via sidecar: {ex}"

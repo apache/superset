@@ -17,10 +17,11 @@
 
 """Tests for sidecar integration in report execution."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-from uuid import uuid4
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
+import pytest
 
 from superset.commands.report.execute import BaseReportState
 from superset.reports.models import ReportSchedule
@@ -33,7 +34,9 @@ class TestReportExecutionSidecar:
     @patch("superset.commands.report.execute.app")
     @patch("superset.commands.report.execute.get_query_sidecar_client")
     @patch("superset.commands.report.execute.db")
-    def test_generate_query_context_via_sidecar_success(self, mock_db, mock_get_client, mock_app):
+    def test_generate_query_context_via_sidecar_success(
+        self, mock_db, mock_get_client, mock_app
+    ):
         """Test successful query context generation via sidecar."""
         # Setup mocks
         mock_app.config.get.return_value = True  # QUERY_SIDECAR_ENABLED
@@ -52,7 +55,7 @@ class TestReportExecutionSidecar:
             "datasource": "1__table",
             "viz_type": "table",
             "metrics": ["count"],
-            "columns": ["name"]
+            "columns": ["name"],
         }
         mock_chart.query_context = None
 
@@ -60,18 +63,16 @@ class TestReportExecutionSidecar:
         mock_report_schedule.chart = mock_chart
 
         # Create BaseReportState instance
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
         # Test the method
         report_state._generate_query_context_via_sidecar()
 
         # Verify sidecar was called with correct form_data
-        mock_sidecar_client.build_query_object.assert_called_once_with(mock_chart.form_data)
-        
+        mock_sidecar_client.build_query_object.assert_called_once_with(
+            mock_chart.form_data
+        )
+
         # Verify query_context was updated
         assert mock_chart.query_context is not None
         mock_db.session.commit.assert_called_once()
@@ -80,22 +81,22 @@ class TestReportExecutionSidecar:
     def test_generate_query_context_via_sidecar_no_chart(self, mock_app):
         """Test error when no chart is associated with report schedule."""
         mock_app.config.get.return_value = True  # QUERY_SIDECAR_ENABLED
-        
+
         mock_report_schedule = MagicMock(spec=ReportSchedule)
         mock_report_schedule.chart = None
 
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
-        with pytest.raises(QuerySidecarException, match="No chart associated with report schedule"):
+        with pytest.raises(
+            QuerySidecarException, match="No chart associated with report schedule"
+        ):
             report_state._generate_query_context_via_sidecar()
 
     @patch("superset.commands.report.execute.app")
     @patch("superset.commands.report.execute.get_query_sidecar_client")
-    def test_generate_query_context_via_sidecar_client_error(self, mock_get_client, mock_app):
+    def test_generate_query_context_via_sidecar_client_error(
+        self, mock_get_client, mock_app
+    ):
         """Test handling of sidecar client errors."""
         mock_app.config.get.return_value = True  # QUERY_SIDECAR_ENABLED
         mock_sidecar_client = MagicMock()
@@ -107,36 +108,40 @@ class TestReportExecutionSidecar:
         mock_report_schedule = MagicMock(spec=ReportSchedule)
         mock_report_schedule.chart = mock_chart
 
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
-        with pytest.raises(QuerySidecarException, match="Failed to generate query context via sidecar"):
+        with pytest.raises(
+            QuerySidecarException, match="Failed to generate query context via sidecar"
+        ):
             report_state._generate_query_context_via_sidecar()
 
     @patch("superset.commands.report.execute.app")
-    @patch("superset.commands.report.execute.BaseReportState._generate_query_context_via_sidecar")
-    def test_ensure_query_context_available_sidecar_enabled(self, mock_generate_sidecar, mock_app):
+    @patch(
+        "superset.commands.report.execute.BaseReportState._generate_query_context_via_sidecar"
+    )
+    def test_ensure_query_context_available_sidecar_enabled(
+        self, mock_generate_sidecar, mock_app
+    ):
         """Test _ensure_query_context_available when sidecar is enabled."""
         mock_app.config.get.return_value = True  # QUERY_SIDECAR_ENABLED
 
         mock_report_schedule = MagicMock(spec=ReportSchedule)
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
         report_state._ensure_query_context_available()
 
         mock_generate_sidecar.assert_called_once()
 
     @patch("superset.commands.report.execute.app")
-    @patch("superset.commands.report.execute.BaseReportState._generate_query_context_via_sidecar")
-    @patch("superset.commands.report.execute.BaseReportState._update_query_context_legacy")
-    def test_ensure_query_context_available_fallback(self, mock_legacy, mock_generate_sidecar, mock_app):
+    @patch(
+        "superset.commands.report.execute.BaseReportState._generate_query_context_via_sidecar"
+    )
+    @patch(
+        "superset.commands.report.execute.BaseReportState._update_query_context_legacy"
+    )
+    def test_ensure_query_context_available_fallback(
+        self, mock_legacy, mock_generate_sidecar, mock_app
+    ):
         """Test fallback to legacy method when sidecar fails."""
         mock_app.config.get.return_value = True  # QUERY_SIDECAR_ENABLED
         mock_generate_sidecar.side_effect = QuerySidecarException("Sidecar failed")
@@ -146,11 +151,7 @@ class TestReportExecutionSidecar:
         mock_report_schedule = MagicMock(spec=ReportSchedule)
         mock_report_schedule.chart = mock_chart
 
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
         report_state._ensure_query_context_available()
 
@@ -158,8 +159,12 @@ class TestReportExecutionSidecar:
         mock_legacy.assert_called_once()
 
     @patch("superset.commands.report.execute.app")
-    @patch("superset.commands.report.execute.BaseReportState._update_query_context_legacy")
-    def test_ensure_query_context_available_sidecar_disabled(self, mock_legacy, mock_app):
+    @patch(
+        "superset.commands.report.execute.BaseReportState._update_query_context_legacy"
+    )
+    def test_ensure_query_context_available_sidecar_disabled(
+        self, mock_legacy, mock_app
+    ):
         """Test _ensure_query_context_available when sidecar is disabled."""
         mock_app.config.get.return_value = False  # QUERY_SIDECAR_ENABLED = False
 
@@ -168,11 +173,7 @@ class TestReportExecutionSidecar:
         mock_report_schedule = MagicMock(spec=ReportSchedule)
         mock_report_schedule.chart = mock_chart
 
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
         report_state._ensure_query_context_available()
 
@@ -188,11 +189,7 @@ class TestReportExecutionSidecar:
         mock_report_schedule = MagicMock(spec=ReportSchedule)
         mock_report_schedule.chart = mock_chart
 
-        report_state = BaseReportState(
-            mock_report_schedule, 
-            datetime.utcnow(), 
-            uuid4()
-        )
+        report_state = BaseReportState(mock_report_schedule, datetime.utcnow(), uuid4())
 
         # Should not raise any errors or call legacy method
         report_state._ensure_query_context_available()

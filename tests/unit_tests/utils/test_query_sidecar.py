@@ -15,14 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from superset.utils.query_sidecar import (
+    build_query_object_from_form_data,
     QuerySidecarClient,
     QuerySidecarException,
-    build_query_object_from_form_data,
 )
 
 
@@ -55,7 +56,7 @@ class TestQuerySidecarClient:
                 "metrics": ["count"],
                 "columns": ["name"],
                 "filters": [],
-                "extras": {}
+                "extras": {},
             }
         }
         mock_session.post.return_value = mock_response
@@ -65,7 +66,7 @@ class TestQuerySidecarClient:
             "datasource": "1__table",
             "viz_type": "table",
             "metrics": ["count"],
-            "columns": ["name"]
+            "columns": ["name"],
         }
 
         result = client.build_query_object(form_data)
@@ -77,7 +78,7 @@ class TestQuerySidecarClient:
     def test_build_query_object_missing_form_data(self):
         """Test error when form_data is missing."""
         client = QuerySidecarClient("http://test:3001")
-        
+
         with pytest.raises(QuerySidecarException, match="form_data is required"):
             client.build_query_object(None)
 
@@ -85,8 +86,10 @@ class TestQuerySidecarClient:
         """Test error when form_data is missing required fields."""
         client = QuerySidecarClient("http://test:3001")
         form_data = {"viz_type": "table"}  # Missing datasource
-        
-        with pytest.raises(QuerySidecarException, match="must include datasource and viz_type"):
+
+        with pytest.raises(
+            QuerySidecarException, match="must include datasource and viz_type"
+        ):
             client.build_query_object(form_data)
 
     @patch("superset.utils.query_sidecar.requests.Session")
@@ -104,7 +107,9 @@ class TestQuerySidecarClient:
             "viz_type": "table",
         }
 
-        with pytest.raises(QuerySidecarException, match="Sidecar service error: Service error"):
+        with pytest.raises(
+            QuerySidecarException, match="Sidecar service error: Service error"
+        ):
             client.build_query_object(form_data)
 
     @patch("superset.utils.query_sidecar.requests.Session")
@@ -120,7 +125,9 @@ class TestQuerySidecarClient:
             "viz_type": "table",
         }
 
-        with pytest.raises(QuerySidecarException, match="Query sidecar service timeout"):
+        with pytest.raises(
+            QuerySidecarException, match="Query sidecar service timeout"
+        ):
             client.build_query_object(form_data)
 
     @patch("superset.utils.query_sidecar.requests.Session")
@@ -136,7 +143,9 @@ class TestQuerySidecarClient:
             "viz_type": "table",
         }
 
-        with pytest.raises(QuerySidecarException, match="Unable to connect to query sidecar service"):
+        with pytest.raises(
+            QuerySidecarException, match="Unable to connect to query sidecar service"
+        ):
             client.build_query_object(form_data)
 
     @patch("superset.utils.query_sidecar.requests.Session")
@@ -157,7 +166,9 @@ class TestQuerySidecarClient:
             "viz_type": "table",
         }
 
-        with pytest.raises(QuerySidecarException, match="Query sidecar service is experiencing issues"):
+        with pytest.raises(
+            QuerySidecarException, match="Query sidecar service is experiencing issues"
+        ):
             client.build_query_object(form_data)
 
     @patch("superset.utils.query_sidecar.requests.Session")
@@ -182,7 +193,7 @@ class TestQuerySidecarClient:
             "datasource": "1__table",
             "viz_type": "table",
             "metrics": ["count"],
-            "columns": ["name"]
+            "columns": ["name"],
         }
 
         query_object = client.create_query_object_from_form_data(form_data)
@@ -226,9 +237,9 @@ class TestModuleFunctions:
         mock_client.create_query_object_from_form_data.return_value = mock_query_object
 
         form_data = {"datasource": "1__table", "viz_type": "table"}
-        
+
         result = build_query_object_from_form_data(form_data)
-        
+
         assert result == mock_query_object
         mock_client.create_query_object_from_form_data.assert_called_once_with(
             form_data, None, None
