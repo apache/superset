@@ -24,6 +24,7 @@ export enum DrillByType {
 }
 
 export type Dataset = {
+  id?: number;
   changed_by?: {
     first_name: string;
     last_name: string;

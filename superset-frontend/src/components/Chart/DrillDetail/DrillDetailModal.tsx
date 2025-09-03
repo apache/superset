@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useContext, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useContext, useMemo } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -40,23 +39,25 @@ import DrillDetailPane from './DrillDetailPane';
 interface ModalFooterProps {
   canExplore: boolean;
   closeModal?: () => void;
-  exploreChart: () => void;
+  showEditButton: boolean;
+  exploreUrl: string;
 }
 
 const ModalFooter = ({
   canExplore,
   closeModal,
-  exploreChart,
+  showEditButton,
+  exploreUrl,
 }: ModalFooterProps) => {
   const theme = useTheme();
 
   return (
     <>
-      {!isEmbedded() && (
+      {!isEmbedded() && showEditButton && (
         <Button
           buttonStyle="secondary"
           buttonSize="small"
-          onClick={exploreChart}
+          href={canExplore ? exploreUrl : undefined}
           disabled={!canExplore}
           tooltip={
             !canExplore
@@ -100,7 +101,6 @@ export default function DrillDetailModal({
   dataset,
 }: DrillDetailModalProps) {
   const theme = useTheme();
-  const history = useHistory();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -110,23 +110,35 @@ export default function DrillDetailModal({
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
+  // Determine if we should show the Edit Chart button
+  const showEditButton = Boolean(dataset?.drill_through_chart_id);
+
   const exploreUrl = useMemo(() => {
-    // Use drill-through chart ID if configured, otherwise use original chart
-    const targetChartId = dataset?.drill_through_chart_id || chartId;
+    // Only compute URL when modal is open and drill-through chart exists
+    if (!showModal || !dataset?.drill_through_chart_id || !dataset?.id) {
+      return '';
+    }
+
+    // Construct datasource string in the format expected by getExploreUrl
+    const datasource = `${dataset.id}__table`;
+
     return getExploreUrl({
       formData: {
-        slice_id: targetChartId,
+        slice_id: dataset.drill_through_chart_id,
+        datasource,
       },
       endpointType: 'base',
+      curUrl: null, // Explicitly prevent inheriting current dashboard URL
       requestParams: dashboardPageId
         ? { dashboard_page_id: dashboardPageId }
         : {},
     });
-  }, [chartId, dashboardPageId, dataset?.drill_through_chart_id]);
-
-  const exploreChart = useCallback(() => {
-    history.push(exploreUrl);
-  }, [exploreUrl, history]);
+  }, [
+    showModal,
+    dashboardPageId,
+    dataset?.drill_through_chart_id,
+    dataset?.id,
+  ]);
 
   return (
     <Modal
@@ -141,7 +153,11 @@ export default function DrillDetailModal({
       name={t('Drill to detail: %s', chartName)}
       title={t('Drill to detail: %s', chartName)}
       footer={
-        <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
+        <ModalFooter
+          canExplore={canExplore}
+          showEditButton={showEditButton}
+          exploreUrl={exploreUrl || ''}
+        />
       }
       responsive
       resizable

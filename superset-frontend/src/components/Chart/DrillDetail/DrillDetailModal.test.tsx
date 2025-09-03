@@ -51,7 +51,10 @@ const drillToDetailModalState = {
   },
 };
 
-const renderModal = async (overrideState: Record<string, any> = {}) => {
+const renderModal = async (
+  overrideState: Record<string, any> = {},
+  dataset?: any,
+) => {
   const DrillDetailModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
     return (
@@ -65,6 +68,7 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
           initialFilters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
+          dataset={dataset}
         />
       </>
     );
@@ -88,11 +92,21 @@ test('should render the title', async () => {
   expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
-test('should render the button', async () => {
+test('should not render Edit chart button when no drill-through chart is configured', async () => {
   await renderModal();
   expect(
-    screen.getByRole('button', { name: 'Edit chart' }),
-  ).toBeInTheDocument();
+    screen.queryByRole('button', { name: 'Edit chart' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
+});
+
+test('should render Edit chart link when drill-through chart is configured', async () => {
+  const datasetWithDrillThrough = {
+    drill_through_chart_id: 123,
+    id: 456, // Required for URL generation
+  };
+  await renderModal({}, datasetWithDrillThrough);
+  expect(screen.getByRole('link', { name: 'Edit chart' })).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
 });
 
@@ -103,20 +117,35 @@ test('should close the modal', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-test('should forward to Explore', async () => {
-  await renderModal();
-  userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
-  expect(mockHistoryPush).toHaveBeenCalledWith(
-    `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
+test('should have correct href for drill-through chart', async () => {
+  const drillThroughChartId = 123;
+  const datasetId = 456;
+  const datasetWithDrillThrough = {
+    drill_through_chart_id: drillThroughChartId,
+    id: datasetId,
+  };
+  await renderModal({}, datasetWithDrillThrough);
+  const editLink = screen.getByRole('link', { name: 'Edit chart' });
+  expect(editLink).toHaveAttribute(
+    'href',
+    `/explore/?dashboard_page_id=&slice_id=${drillThroughChartId}`,
   );
+  expect(editLink).not.toHaveAttribute('target'); // We removed target="_blank"
 });
 
 test('should render "Edit chart" as disabled without can_explore permission', async () => {
-  await renderModal({
-    user: {
-      ...drillToDetailModalState.user,
-      roles: { Admin: [['invalid_permission', 'Superset']] },
+  const datasetWithDrillThrough = {
+    drill_through_chart_id: 123,
+    id: 456, // Required for URL generation
+  };
+  await renderModal(
+    {
+      user: {
+        ...drillToDetailModalState.user,
+        roles: { Admin: [['invalid_permission', 'Superset']] },
+      },
     },
-  });
+    datasetWithDrillThrough,
+  );
   expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
 });
