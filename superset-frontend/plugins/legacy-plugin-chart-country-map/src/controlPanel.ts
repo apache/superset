@@ -24,6 +24,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
+import { ColorBy } from './utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -68,7 +69,25 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'color_by',
+            config: {
+              type: 'RadioButtonControl',
+              label: t('Color by'),
+              default: ColorBy.Metric,
+              options: [
+                [ColorBy.Metric, t('Metric')],
+                [ColorBy.Region, t('Region')],
+              ],
+              description: t(
+                'Choose whether a region should be shaded by the metric value, or assigned a color based on a categorical color palette',
+              ),
+            },
+          },
+        ],
         ['linear_color_scheme'],
+        ['color_scheme'],
       ],
     },
   ],
@@ -84,7 +103,15 @@ const config: ControlPanelConfig = {
       description: t('Metric to display bottom title'),
     },
     linear_color_scheme: {
+      label: t('Region Color Scheme'),
       renderTrigger: false,
+      visibility: ({ controls }) =>
+        Boolean(controls?.color_by.value === ColorBy.Metric),
+    },
+    color_scheme: {
+      label: t('Region Color Scheme'),
+      visibility: ({ controls }) =>
+        Boolean(controls?.color_by.value === ColorBy.Region),
     },
   },
   formDataOverrides: formData => ({

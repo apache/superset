@@ -27,6 +27,7 @@ import {
   ValueFormatter,
   getValueFormatter,
   tooltipHtml,
+  getSequentialSchemeRegistry,
 } from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -159,6 +160,8 @@ export default function transformProps(
     sliceId,
     showTotal,
     roseType,
+    valueBasedColors,
+    sequentialColorScheme,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
@@ -202,6 +205,35 @@ export default function transformProps(
 
   let totalValue = 0;
 
+  // Calculate value range for sequential coloring
+  let minValue = 0;
+  let maxValue = 0;
+  let sequentialColorScale: ((value: number) => string) | null = null;
+
+  if (valueBasedColors && data.length > 0) {
+    const values = data.map(datum => {
+      const value = datum[metricLabel];
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') return parseFloat(value) || 0;
+      return 0;
+    });
+    
+    minValue = Math.min(...values);
+    maxValue = Math.max(...values);
+    
+    // Create sequential color scale
+    const sequentialScheme = getSequentialSchemeRegistry().get(sequentialColorScheme || 'superset_seq_1');
+    if (sequentialScheme && maxValue > minValue) {
+      const colors = sequentialScheme.getColors(10);
+      // Create a linear scale from min to max values mapped to the color array
+      sequentialColorScale = (value: number) => {
+        const normalizedValue = (value - minValue) / (maxValue - minValue);
+        const colorIndex = Math.floor(normalizedValue * (colors.length - 1));
+        return colors[Math.min(colorIndex, colors.length - 1)];
+      };
+    }
+  }
+
   const transformedData: PieSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({
       datum,
@@ -213,16 +245,26 @@ export default function transformProps(
     const isFiltered =
       filterState.selectedValues && !filterState.selectedValues.includes(name);
     const value = datum[metricLabel];
+    const numericValue = typeof value === 'number' ? value : 
+                        typeof value === 'string' ? parseFloat(value) || 0 : 0;
 
     if (typeof value === 'number' || typeof value === 'string') {
       totalValue += convertInteger(value);
+    }
+
+    // Determine color based on whether value-based colors are enabled
+    let itemColor: string;
+    if (valueBasedColors && sequentialColorScale) {
+      itemColor = sequentialColorScale(numericValue);
+    } else {
+      itemColor = colorFn(name, sliceId);
     }
 
     return {
       value,
       name,
       itemStyle: {
-        color: colorFn(name, sliceId),
+        color: itemColor,
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
