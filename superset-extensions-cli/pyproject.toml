@@ -17,7 +17,7 @@
 
 [project]
 name = "apache-superset-extensions-cli"
-version = "0.0.1rc1"
+version = "0.0.1rc2"
 description = "Official command-line interface for building, bundling, and managing Apache Superset extensions"
 readme = "README.md"
 authors = [
@@ -71,8 +71,14 @@ requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["superset_extensions_cli"]
 package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+superset_extensions_cli = ["templates/**/*"]
 
 [project.scripts]
 superset-extensions = "superset_extensions_cli.cli:app"
