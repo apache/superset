@@ -422,7 +422,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(
       {
         ...entry,
-        id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
       },
       colorScale,
       colorScaleKey,
@@ -488,7 +488,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(
       {
         ...entry,
-        id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
       },
 
       colorScale,
@@ -721,7 +721,7 @@ export default function transformProps(
             extractForecastSeriesContext((entry.name || '') as string).type ===
             ForecastSeriesEnum.Observation,
         )
-        .map(entry => entry.id || entry.name || '')
+        .map(entry => entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers)),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
