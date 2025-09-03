@@ -73,6 +73,7 @@ ibm-db2.svg
 postgresql.svg
 snowflake.svg
 ydb.svg
+loading.svg
 
 # docs-related
 erd.puml

@@ -223,7 +223,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
             <div css={{ height }}>
-              <Loading />
+              <Loading size="s" muted />
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>

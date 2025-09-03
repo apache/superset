@@ -59,10 +59,10 @@ from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
-from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.utils.version import get_dev_env_label
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +179,7 @@ SUPERSET_CLIENT_RETRY_JITTER_MAX = 1000  # Maximum random jitter in milliseconds
 SUPERSET_CLIENT_RETRY_STATUS_CODES = [502, 503, 504]
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
-DEFAULT_TIME_FILTER = NO_TIME_RANGE
+DEFAULT_TIME_FILTER = utils.NO_TIME_RANGE
 
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
@@ -287,7 +287,7 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = parse_boolean_string(os.environ.get("FLASK_DEBUG"))
+DEBUG = utils.parse_boolean_string(os.environ.get("FLASK_DEBUG"))
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -654,7 +654,7 @@ SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
-        k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
+        k[len("SUPERSET_FEATURE_") :]: utils.parse_boolean_string(v)
         for k, v in os.environ.items()
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }
@@ -663,7 +663,7 @@ DEFAULT_FEATURE_FLAGS.update(
 
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
-USER_AGENT_FUNC: Callable[[Database, QuerySource | None], str] | None = None
+USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = None
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
@@ -2087,6 +2087,8 @@ ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501
+
+
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",
     "values": {
@@ -2095,8 +2097,8 @@ ENVIRONMENT_TAG_CONFIG = {
             "text": "flask-debug",
         },
         "development": {
-            "color": "error",
-            "text": "Development",
+            "color": "processing",
+            "text": get_dev_env_label(),
         },
         "production": {
             "color": "",

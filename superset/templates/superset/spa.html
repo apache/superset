@@ -70,21 +70,34 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
-        <img
-          src="{{ assets_prefix }}/static/assets/images/loading.gif"
-          style="
-            width: 50px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-          "
-        />
+        {% set tokens = theme_tokens | default({}) %}
+        {% set spinner_style = "width: 70px; height: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
+
+        {% if spinner_svg %}
+          <!-- Inline SVG: Either custom theme SVG or default spinner -->
+          <div style="{{ spinner_style }}">
+            {{ spinner_svg | safe }}
+          </div>
+        {% elif tokens.get('brandSpinnerUrl') %}
+          <!-- Custom URL from theme -->
+          <img
+            src="{{ tokens.brandSpinnerUrl }}"
+            alt="Loading..."
+            style="{{ spinner_style }}"
+          />
+        {% else %}
+          <!-- Fallback: This should rarely happen with new logic -->
+          <div style="{{ spinner_style }}">
+            Loading...
+          </div>
+        {% endif %}
       </div>
     {% endblock %}
 
     {% block tail_js %}
-      {{ js_bundle(assets_prefix, entry) }}
+      {% if entry %}
+        {{ js_bundle(assets_prefix, entry) }}
+      {% endif %}
     {% endblock %}
 
     <script nonce="{{ macros.get_nonce() }}">

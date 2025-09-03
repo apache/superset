@@ -123,6 +123,10 @@ export interface SupersetSpecificTokens {
   brandLogoMargin: string;
   brandLogoHref: string;
   brandLogoHeight: string;
+
+  // Spinner-related
+  brandSpinnerUrl?: string;
+  brandSpinnerSvg?: string;
 }
 
 /**
