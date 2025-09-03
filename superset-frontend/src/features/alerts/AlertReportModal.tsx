@@ -342,6 +342,10 @@ export const StyledInputContainer = styled.div`
         .control-label {
           flex: 1;
           margin-bottom: ${theme.sizeUnit * 2}px;
+
+          .label-with-tooltip {
+            margin-right: ${theme.sizeUnit * 2}px;
+          }
         }
       }
 
@@ -2361,7 +2365,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 <div className="filters-container" key={key}>
                                   <div className="filters-dash-container">
                                     <div className="control-label">
-                                      <span>
+                                      <span className="label-with-tooltip">
                                         {t('Dashboard Filter')}
                                       </span>
                                       <InfoTooltip
