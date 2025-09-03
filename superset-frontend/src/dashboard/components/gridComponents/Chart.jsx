@@ -39,6 +39,7 @@ import { URL_PARAMS } from 'src/constants';
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
 import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import { getBigNumberComparisonData } from '../../util/getBigNumberComparisonData';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -434,6 +435,29 @@ class Chart extends Component {
       queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
     const initialValues = {};
 
+    // Extract comparison data for BigNumber charts
+    console.group('📊 Chart Component - BigNumber Comparison Data Extraction');
+    console.log('🔍 Input data for comparison extraction:', {
+      sliceVizType: slice?.viz_type,
+      hasQueriesResponse: !!queriesResponse,
+      queriesResponseLength: queriesResponse?.length || 0,
+      hasFormData: !!formData,
+      formDataVizType: formData?.viz_type,
+      chartStatus,
+    });
+
+    const bigNumberComparisonData = getBigNumberComparisonData(
+      queriesResponse,
+      formData,
+    );
+
+    console.log('📈 Comparison data extraction result:', {
+      bigNumberComparisonData,
+      hasBigNumberComparisonData: !!bigNumberComparisonData,
+      willPassToSliceHeader: true,
+    });
+    console.groupEnd();
+
     return (
       <SliceContainer
         className="chart-slice"
@@ -477,6 +501,7 @@ class Chart extends Component {
           formData={formData}
           width={width}
           height={this.getHeaderHeight()}
+          bigNumberComparisonData={bigNumberComparisonData}
         />
 
         {/*

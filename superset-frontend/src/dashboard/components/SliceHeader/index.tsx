@@ -23,6 +23,8 @@ import {
   styled,
   t,
   keyframes,
+  getNumberFormatter,
+  NumberFormats,
 } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
@@ -37,6 +39,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { BigNumberComparisonData } from 'src/dashboard/util/getBigNumberComparisonData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -52,6 +55,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  bigNumberComparisonData?: BigNumberComparisonData | null;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -61,6 +65,29 @@ const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
     cursor: default;
     color: ${theme.colors.primary.base};
     line-height: 1.8;
+  `}
+`;
+
+const ComparisonIndicator = styled.div<{
+  indicatorColor: string;
+}>`
+  ${({ theme, indicatorColor }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.gridUnit}px;
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.medium};
+    color: ${indicatorColor};
+    background-color: ${theme.colors.grayscale.light5};
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 1.5}px;
+    border-radius: ${theme.borderRadius}px;
+    border: 1px solid ${theme.colors.grayscale.light2};
+    cursor: help;
+    white-space: nowrap;
+    
+    &:hover {
+      background-color: ${theme.colors.grayscale.light4};
+    }
   `}
 `;
 
@@ -182,6 +209,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   formData,
   width,
   height,
+  bigNumberComparisonData,
 }) => {
   const SliceHeaderExtension = extensionsRegistry.get('dashboard.slice.header');
   const uiConfig = useUiConfig();
@@ -214,6 +242,76 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   }, [sliceName, width, height, canExplore]);
 
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
+
+  // Render comparison indicator for BigNumber charts
+  const renderComparisonIndicator = () => {
+    console.group('🎯 SliceHeader renderComparisonIndicator - DEBUG');
+    console.log('📊 BigNumber Comparison Data:', {
+      bigNumberComparisonData,
+      hasBigNumberComparisonData: !!bigNumberComparisonData,
+      sliceVizType: slice?.viz_type,
+      chartStatus,
+    });
+
+    if (!bigNumberComparisonData) {
+      console.log('❌ No comparison data available - not rendering indicator');
+      console.groupEnd();
+      return null;
+    }
+
+    const { percentageChange, comparisonIndicator } = bigNumberComparisonData;
+    console.log('✅ Rendering comparison indicator:', {
+      percentageChange,
+      comparisonIndicator,
+      percentageChangeType: typeof percentageChange,
+      comparisonIndicatorType: typeof comparisonIndicator,
+    });
+    const formatPercentChange = getNumberFormatter(
+      NumberFormats.PERCENT_SIGNED_1_POINT,
+    );
+
+    let indicatorColor: string;
+    let arrowIcon: string;
+
+    switch (comparisonIndicator) {
+      case 'positive':
+        indicatorColor = '#28a745'; // green
+        arrowIcon = '↗';
+        break;
+      case 'negative':
+        indicatorColor = '#dc3545'; // red
+        arrowIcon = '↘';
+        break;
+      case 'neutral':
+        indicatorColor = '#ffc107'; // orange
+        arrowIcon = '−';
+        break;
+      default:
+        return null;
+    }
+
+    const tooltipText = t('Period-over-period comparison');
+    const formattedPercentage = Number.isNaN(percentageChange) || percentageChange === undefined
+      ? '0%'
+      : formatPercentChange(percentageChange);
+
+    console.log('🎨 Creating comparison indicator element:', {
+      indicatorColor,
+      arrowIcon,
+      formattedPercentage,
+      tooltipText,
+    });
+    console.groupEnd();
+
+    return (
+      <Tooltip title={tooltipText} placement="top">
+        <ComparisonIndicator indicatorColor={indicatorColor}>
+          <span>{arrowIcon}</span>
+          <span>{formattedPercentage}</span>
+        </ComparisonIndicator>
+      </Tooltip>
+    );
+  };
 
   if (chartStatus === 'loading') {
     return (
@@ -326,6 +424,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 dashboardId={dashboardId}
               />
             )}
+            {renderComparisonIndicator()}
             {crossFilterValue && (
               <Tooltip
                 placement="top"
