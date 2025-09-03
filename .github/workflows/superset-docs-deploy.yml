@@ -41,7 +41,7 @@ jobs:
           node-version-file: './docs/.nvmrc'
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '21'
