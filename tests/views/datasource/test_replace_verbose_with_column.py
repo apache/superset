@@ -61,7 +61,7 @@ columns = [
         # Column verbose_name and column_name match, should be replaced
         ([{"col": "Column 2"}], [{"col": "col2"}]),
         # Using custom attribute names
-        ([{"col": "Column 2"}], [{"col": "col2"}]),
+        ([{"col": "Column 3"}], [{"col": "col3"}]),
     ],
 )
 def test_replace_verbose_with_column(filters, expected):
