@@ -89,6 +89,7 @@ from superset.dashboards.schemas import (
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
+    DashboardScreenshotPostSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -100,6 +101,7 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -190,6 +192,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "id",
+        "uuid",
         "published",
         "status",
         "slug",
@@ -250,6 +253,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "dashboard_title",
         "id",
+        "uuid",
         "owners",
         "published",
         "roles",
@@ -312,6 +316,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
+        DashboardScreenshotPostSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -1199,8 +1204,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # fetch the dashboard screenshot using the current user and cache if set
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
-            image = cache_payload.get_image()
-            if not image:
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
                 return self.response_404()
             if download_format == "pdf":
                 pdf_img = image.getvalue()
@@ -1324,8 +1330,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             )
 
         self.incr_stats("from_cache", self.thumbnail.__name__)
+        try:
+            image = cache_payload.get_image()
+        except ScreenshotImageNotAvailableException:
+            return self.response_404()
         return Response(
-            FileWrapper(cache_payload.get_image()),
+            FileWrapper(image),
             mimetype="image/png",
             direct_passthrough=True,
         )

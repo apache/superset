@@ -238,6 +238,7 @@ class DashboardGetResponseSchema(Schema):
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    uuid = fields.UUID(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
@@ -365,6 +366,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DashboardCopySchema(Schema):
@@ -431,6 +433,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
+    uuid = fields.UUID(allow_none=True)
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
@@ -497,6 +500,8 @@ class ImportV1DashboardSchema(Schema):
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
+    theme_uuid = fields.UUID(allow_none=True)
+    theme_id = fields.Integer(allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

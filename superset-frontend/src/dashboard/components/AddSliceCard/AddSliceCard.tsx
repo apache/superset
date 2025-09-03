@@ -96,7 +96,7 @@ const MetadataItem: FC<{
     <span
       css={(theme: Theme) => css`
         margin-right: ${theme.sizeUnit * 4}px;
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
       `}
     >
       {label}
@@ -214,7 +214,7 @@ const AddSliceCard: FC<{
           color: ${theme.colorText};
 
           &:hover {
-            //background: ${theme.colors.grayscale.light4};
+            //background: ${theme.colorFillTertiary};
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};

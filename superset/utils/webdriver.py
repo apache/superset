@@ -38,17 +38,19 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
 
-from superset import feature_flag_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
+from superset.utils.screenshot_utils import take_tiled_screenshot
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from flask_appbuilder.security.sqla.models import User
 
-if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+try:
     from playwright.sync_api import (
         BrowserContext,
         Error as PlaywrightError,
@@ -57,6 +59,16 @@ if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
         sync_playwright,
         TimeoutError as PlaywrightTimeout,
     )
+except ImportError:
+    from typing import Any
+
+    # Define dummy classes when playwright is not available
+    BrowserContext = Any
+    PlaywrightError = Exception
+    PlaywrightTimeout = Exception
+    Locator = Any
+    Page = Any
+    sync_playwright = None
 
 
 class DashboardStandaloneMode(Enum):
@@ -231,7 +243,54 @@ class WebDriverPlaywright(WebDriverProxy):
                             url,
                             unexpected_errors,
                         )
-                img = element.screenshot()
+                # Detect large dashboards and use tiled screenshots if enabled
+                tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
+
+                if tiled_enabled:
+                    chart_count = page.evaluate(
+                        'document.querySelectorAll(".chart-container").length'
+                    )
+                    dashboard_height = page.evaluate(
+                        f'document.querySelector(".{element_name}").scrollHeight || 0'
+                    )
+                    chart_threshold = app.config.get(
+                        "SCREENSHOT_TILED_CHART_THRESHOLD", 20
+                    )
+                    height_threshold = app.config.get(
+                        "SCREENSHOT_TILED_HEIGHT_THRESHOLD", 5000
+                    )
+                    viewport_height = app.config.get(
+                        "SCREENSHOT_TILED_VIEWPORT_HEIGHT", self._window[1]
+                    )
+
+                    # Use tiled screenshots for large dashboards
+                    use_tiled = (
+                        chart_count >= chart_threshold
+                        or dashboard_height > height_threshold
+                    )
+
+                    if use_tiled:
+                        logger.info(
+                            (
+                                f"Large dashboard detected: {chart_count} charts, "
+                                f"{dashboard_height}px height. Using tiled screenshots."
+                            )
+                        )
+                        img = take_tiled_screenshot(
+                            page, element_name, viewport_height=viewport_height
+                        )
+                        if img is None:
+                            logger.warning(
+                                (
+                                    "Tiled screenshot failed, "
+                                    "falling back to standard screenshot"
+                                )
+                            )
+                            img = element.screenshot()
+                    else:
+                        img = element.screenshot()
+                else:
+                    img = element.screenshot()
             except PlaywrightTimeout:
                 # raise again for the finally block, but handled above
                 pass

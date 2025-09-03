@@ -21,7 +21,7 @@ import {
   colorSchemeDark,
   colorSchemeLight,
   themeQuartz,
-} from 'ag-grid-community';
+} from '@superset-ui/core/components/ThemedAgGridReact';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import tinycolor from 'tinycolor2';
 

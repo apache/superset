@@ -74,7 +74,7 @@ class TestExportChartsCommand(SupersetTestCase):
         expected = [
             "metadata.yaml",
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_chart.table.id}.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())
@@ -313,7 +313,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing chart"
+        assert str(excinfo.value).startswith("Error importing chart")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Slice."]}
         }
@@ -326,7 +326,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing chart"
+        assert str(excinfo.value).startswith("Error importing chart")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],

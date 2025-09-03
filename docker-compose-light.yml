@@ -17,16 +17,47 @@
 
 # -----------------------------------------------------------------------
 # Lightweight docker-compose for running multiple Superset instances
-# This includes only essential services: database, Redis, and Superset app
+# This includes only essential services: database and Superset app (no Redis)
 #
-# IMPORTANT: To run multiple instances in parallel:
+# RUNNING SUPERSET:
+# 1. Start services: docker-compose -f docker-compose-light.yml up
+# 2. Access at: http://localhost:9001 (or NODE_PORT if specified)
+#
+# RUNNING MULTIPLE INSTANCES:
 # - Use different project names: docker-compose -p project1 -f docker-compose-light.yml up
 # - Use different NODE_PORT values: NODE_PORT=9002 docker-compose -p project2 -f docker-compose-light.yml up
 # - Volumes are isolated by project name (e.g., project1_db_home_light, project2_db_home_light)
 # - Database name is intentionally different (superset_light) to prevent accidental cross-connections
 #
-# For verbose logging during development:
-# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
+# RUNNING TESTS WITH PYTEST:
+# Tests run in an isolated environment with a separate test database.
+# The pytest-runner service automatically creates and initializes the test database on first use.
+#
+# Basic usage:
+#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest tests/unit_tests/
+#
+# Run specific test file:
+#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest tests/unit_tests/test_foo.py
+#
+# Run with pytest options:
+#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest -v -s -x tests/
+#
+# Force reload test database and run tests (when tests are failing due to bad state):
+#   docker-compose -f docker-compose-light.yml run --rm -e FORCE_RELOAD=true pytest-runner pytest tests/
+#
+# Run any command in test environment:
+#   docker-compose -f docker-compose-light.yml run --rm pytest-runner bash
+#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest --collect-only
+#
+# For parallel test execution with different projects:
+#   docker-compose -p project1 -f docker-compose-light.yml run --rm pytest-runner pytest tests/
+#
+# DEVELOPMENT TIPS:
+# - First test run takes ~20-30 seconds (database creation + initialization)
+# - Subsequent runs are fast (~2-3 seconds startup)
+# - Use FORCE_RELOAD=true when you need a clean test database
+# - Tests use SimpleCache instead of Redis (no Redis required)
+# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed logs
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
 x-superset-volumes: &superset-volumes
@@ -40,12 +71,13 @@ x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-bookworm
+    - apache/superset-cache:3.10-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
+    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   db-light:
@@ -56,13 +88,12 @@ services:
         required: false
     image: postgres:16
     restart: unless-stopped
-    # No host port mapping - only accessible within Docker network
     volumes:
       - db_home_light:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     environment:
-      # Override database name to avoid conflicts
       POSTGRES_DB: superset_light
+    command: postgres -c max_connections=200
 
   superset-light:
     env_file:
@@ -74,7 +105,6 @@ services:
       <<: *common-build
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
-    # No host port mapping - accessed via webpack dev server proxy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -83,15 +113,10 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      # Override DB connection for light service
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      EXAMPLES_HOST: db-light
-      EXAMPLES_DB: superset_light
-      EXAMPLES_USER: superset
-      EXAMPLES_PASSWORD: superset
-      # Use light-specific config that disables Redis
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
 
   superset-init-light:
@@ -103,21 +128,16 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    user: *superset-user
     depends_on:
       db-light:
         condition: service_started
-    user: *superset-user
     volumes: *superset-volumes
     environment:
-      # Override DB connection for light service
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      EXAMPLES_HOST: db-light
-      EXAMPLES_DB: superset_light
-      EXAMPLES_USER: superset
-      EXAMPLES_PASSWORD: superset
-      # Use light-specific config that disables Redis
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
@@ -149,6 +169,31 @@ services:
       - path: docker/.env-local # optional override
         required: false
     volumes: *superset-volumes
+
+  pytest-runner:
+    build:
+      <<: *common-build
+    entrypoint: ["/app/docker/docker-pytest-entrypoint.sh"]
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    profiles:
+      - test  # Only starts when --profile test is used
+    depends_on:
+      db-light:
+        condition: service_started
+    user: *superset-user
+    volumes: *superset-volumes
+    environment:
+      DATABASE_HOST: db-light
+      DATABASE_DB: test
+      POSTGRES_DB: test
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@db-light:5432/test
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      SUPERSET_CONFIG: superset_test_config_light
+      PYTHONPATH: /app/pythonpath:/app/docker/pythonpath_dev:/app
 
 volumes:
   superset_home_light:

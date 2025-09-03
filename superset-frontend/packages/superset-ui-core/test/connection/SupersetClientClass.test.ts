@@ -658,26 +658,36 @@ describe('SupersetClientClass', () => {
       jest.restoreAllMocks();
     });
 
-    it('makes postForm request', async () => {
-      await client.postForm(mockPostFormUrl, {});
+    it.each(['', '/prefix'])(
+      "makes postForm request when appRoot is '%s'",
+      async appRoot => {
+        if (appRoot !== '') {
+          client = new SupersetClientClass({ protocol, host, appRoot });
+          authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+          await client.init();
+        }
+        await client.postForm(mockPostFormEndpoint, {});
 
-      const hiddenForm = createElement.mock.results[0].value;
-      const csrfTokenInput = createElement.mock.results[1].value;
+        const hiddenForm = createElement.mock.results[0].value;
+        const csrfTokenInput = createElement.mock.results[1].value;
 
-      expect(createElement.mock.calls).toHaveLength(2);
+        expect(createElement.mock.calls).toHaveLength(2);
 
-      expect(hiddenForm.action).toBe(mockPostFormUrl);
-      expect(hiddenForm.method).toBe('POST');
-      expect(hiddenForm.target).toBe('_blank');
+        expect(hiddenForm.action).toBe(
+          `${protocol}//${host}${appRoot}${mockPostFormEndpoint}`,
+        );
+        expect(hiddenForm.method).toBe('POST');
+        expect(hiddenForm.target).toBe('_blank');
 
-      expect(csrfTokenInput.type).toBe('hidden');
-      expect(csrfTokenInput.name).toBe('csrf_token');
-      expect(csrfTokenInput.value).toBe(1234);
+        expect(csrfTokenInput.type).toBe('hidden');
+        expect(csrfTokenInput.name).toBe('csrf_token');
+        expect(csrfTokenInput.value).toBe(1234);
 
-      expect(appendChild.mock.calls).toHaveLength(1);
-      expect(removeChild.mock.calls).toHaveLength(1);
-      expect(authSpy).toHaveBeenCalledTimes(1);
-    });
+        expect(appendChild.mock.calls).toHaveLength(1);
+        expect(removeChild.mock.calls).toHaveLength(1);
+        expect(authSpy).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });

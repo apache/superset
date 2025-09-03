@@ -53,7 +53,6 @@ import {
   InfoTooltip,
   Input,
   InputNumber,
-  Modal,
   Select,
   Switch,
   TreeSelect,
@@ -90,8 +89,7 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { _isColumnsSortingCoupledToGroup } from 'ag-grid-community';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { useOpenerRef } from 'src/hooks/useOpenerRef';
-import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import { StandardModal, ModalFormField } from 'src/components/Modal';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -223,18 +221,9 @@ const noMarginBottom = css`
   margin-bottom: 0;
 `;
 
-/*
-Height of modal body defined here, total width defined at component invocation as antd prop.
- */
-const StyledModal = styled(Modal)`
-  .ant-modal-body {
-    height: 720px;
-  }
-
-  .control-label {
-    margin-top: ${({ theme }) => theme.sizeUnit}px;
-  }
-
+// StyledModal replaced with StandardModal from shared components
+// Additional styles for inline containers
+const AdditionalStyles = css`
   .inline-container {
     display: flex;
     flex-direction: row;
@@ -264,20 +253,12 @@ const StyledSwitchContainer = styled.div`
   }
 `;
 
+// Temporary: keeping StyledInputContainer for gradual migration to ModalFormField
 export const StyledInputContainer = styled.div`
   ${({ theme }) => css`
     flex: 1;
     margin-top: 0px;
     margin-bottom: ${theme.sizeUnit * 4}px;
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type='number'] {
-      -moz-appearance: textfield;
-    }
 
     .helper {
       display: block;
@@ -292,21 +273,18 @@ export const StyledInputContainer = styled.div`
       color: ${theme.colorError};
     }
 
+    .control-label {
+      margin-bottom: ${theme.sizeUnit * 2}px;
+      color: ${theme.colorText};
+      font-size: ${theme.fontSize}px;
+    }
+
     .input-container {
       display: flex;
       align-items: center;
 
       > div {
         width: 100%;
-      }
-
-      label {
-        display: flex;
-        margin-right: ${theme.sizeUnit * 2}px;
-      }
-
-      i {
-        margin: 0 ${theme.sizeUnit}px;
       }
     }
 
@@ -384,7 +362,7 @@ export const StyledInputContainer = styled.div`
       .filters-trashcan {
         width: ${theme.sizeUnit * 10}px;
         display: 'flex';
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorIcon};
       }
       .filters-add-container {
         flex: '.25';
@@ -392,7 +370,7 @@ export const StyledInputContainer = styled.div`
 
         .filters-add-btn {
           padding: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorTextTertiary};
+          color: ${theme.colorWhite};
         }
       }
     }
@@ -494,7 +472,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const theme = useTheme();
-  const openerRef = useOpenerRef(show);
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -1985,16 +1962,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     switch (true) {
       case isEditMode && isReport:
-        titleText = t('Edit Report');
+        titleText = t('Edit report');
         break;
       case isEditMode:
-        titleText = t('Edit Alert');
+        titleText = t('Edit alert');
         break;
       case isReport:
-        titleText = t('Add Report');
+        titleText = t('Add report');
         break;
       default:
-        titleText = t('Add Alert');
+        titleText = t('Add alert');
         break;
     }
 
@@ -2006,54 +1983,45 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   return (
-    <StyledModal
-      className="no-content-padding"
-      responsive
-      disablePrimaryButton={disableSave}
-      primaryTooltipMessage={errorTooltipMessage}
-      onHandledPrimaryAction={onSave}
-      onHide={hide}
-      primaryButtonName={isEditMode ? t('Save') : t('Add')}
+    <StandardModal
       show={show}
-      width="500px"
-      centered
-      openerRef={openerRef}
-      title={
-        <ModalTitleWithIcon
-          isEditMode={isEditMode}
-          title={getTitleText()}
-          data-test="alert-report-modal-title"
-        />
-      }
+      onHide={hide}
+      onSave={onSave}
+      saveDisabled={disableSave}
+      saveText={isEditMode ? t('Save') : t('Add')}
+      errorTooltip={errorTooltipMessage}
+      title={getTitleText()}
+      isEditMode={isEditMode}
+      width={500}
+      wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
-      <Collapse
-        expandIconPosition="end"
-        defaultActiveKey="general"
-        accordion
-        modalMode
-        items={[
-          {
-            key: 'general',
-            label: (
-              <CollapseLabelInModal
-                title={TRANSLATIONS.GENERAL_TITLE}
-                subtitle={t(
-                  'Set up basic details, such as name and description.',
-                )}
-                validateCheckStatus={
-                  !validationStatus[Sections.General].hasErrors
-                }
-                testId="general-information-panel"
-              />
-            ),
-            children: (
-              <div className="header-section">
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {isReport ? t('Report name') : t('Alert name')}
-                    <span className="required">*</span>
-                  </div>
-                  <div className="input-container">
+      <div css={AdditionalStyles}>
+        <Collapse
+          expandIconPosition="end"
+          defaultActiveKey="general"
+          accordion
+          modalMode
+          items={[
+            {
+              key: 'general',
+              label: (
+                <CollapseLabelInModal
+                  title={TRANSLATIONS.GENERAL_TITLE}
+                  subtitle={t(
+                    'Set up basic details, such as name and description.',
+                  )}
+                  validateCheckStatus={
+                    !validationStatus[Sections.General].hasErrors
+                  }
+                  testId="general-information-panel"
+                />
+              ),
+              children: (
+                <div className="header-section">
+                  <ModalFormField
+                    label={isReport ? t('Report name') : t('Alert name')}
+                    required
+                  >
                     <Input
                       name="name"
                       placeholder={
@@ -2064,14 +2032,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       value={currentAlert ? currentAlert.name : ''}
                       onChange={onInputChange}
                     />
-                  </div>
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Owners')}
-                    <span className="required">*</span>
-                  </div>
-                  <div data-test="owners-select" className="input-container">
+                  </ModalFormField>
+                  <ModalFormField label={t('Owners')} required>
                     <AsyncSelect
                       ariaLabel={t('Owners')}
                       allowClear
@@ -2086,12 +2048,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       }
                       options={loadOwnerOptions}
                       onChange={onOwnersChange}
+                      data-test="owners-select"
                     />
-                  </div>
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">{t('Description')}</div>
-                  <div className="input-container">
+                  </ModalFormField>
+                  <ModalFormField label={t('Description')}>
                     <Input
                       name="description"
                       value={currentAlert ? currentAlert.description || '' : ''}
@@ -2101,527 +2061,535 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       )}
                       onChange={onInputChange}
                     />
-                  </div>
-                </StyledInputContainer>
-                <StyledSwitchContainer>
-                  <Switch
-                    checked={currentAlert ? currentAlert.active : false}
-                    defaultChecked
-                    onChange={onActiveSwitch}
-                  />
-                  <div className="switch-label">
-                    {isReport ? t('Report is active') : t('Alert is active')}
-                  </div>
-                </StyledSwitchContainer>
-              </div>
-            ),
-          },
-          ...(!isReport
-            ? [
-                {
-                  key: 'condition',
-                  label: (
-                    <CollapseLabelInModal
-                      title={TRANSLATIONS.ALERT_CONDITION_TITLE}
-                      subtitle={t(
-                        'Define the database, SQL query, and triggering conditions for alert.',
-                      )}
-                      validateCheckStatus={
-                        !validationStatus[Sections.Alert].hasErrors
-                      }
-                      testId="alert-condition-panel"
+                  </ModalFormField>
+                  <StyledSwitchContainer>
+                    <Switch
+                      checked={currentAlert ? currentAlert.active : false}
+                      defaultChecked
+                      onChange={onActiveSwitch}
                     />
-                  ),
-                  children: (
-                    <div>
-                      <StyledInputContainer>
-                        <div className="control-label">
-                          {t('Database')}
-                          <span className="required">*</span>
-                        </div>
-                        <div className="input-container">
-                          <AsyncSelect
-                            ariaLabel={t('Database')}
-                            name="source"
-                            placeholder={t('Select database')}
-                            value={
-                              currentAlert?.database?.label &&
-                              currentAlert?.database?.value
-                                ? {
-                                    value: currentAlert.database.value,
-                                    label: currentAlert.database.label,
-                                  }
-                                : undefined
-                            }
-                            options={loadSourceOptions}
-                            onChange={onSourceChange}
-                          />
-                        </div>
-                      </StyledInputContainer>
-                      <StyledInputContainer>
-                        <div className="control-label">
-                          {t('SQL Query')}
-                          <InfoTooltip
-                            tooltip={t(
-                              'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
-                            )}
-                          />
-                          <span className="required">*</span>
-                        </div>
-                        <TextAreaControl
-                          name="sql"
-                          language="sql"
-                          offerEditInModal={false}
-                          minLines={15}
-                          maxLines={15}
-                          onChange={onSQLChange}
-                          readOnly={false}
-                          initialValue={resource?.sql}
-                          key={currentAlert?.id}
-                        />
-                      </StyledInputContainer>
-                      <div
-                        className="inline-container wrap"
-                        css={css`
-                          gap: ${theme.sizeUnit}px;
-                        `}
-                      >
-                        <StyledInputContainer css={noMarginBottom}>
-                          <div className="control-label" css={inputSpacer}>
-                            {t('Trigger Alert If...')}
+                    <div className="switch-label">
+                      {isReport ? t('Report is active') : t('Alert is active')}
+                    </div>
+                  </StyledSwitchContainer>
+                </div>
+              ),
+            },
+            ...(isReport
+              ? []
+              : [
+                  {
+                    key: 'condition',
+                    label: (
+                      <CollapseLabelInModal
+                        title={TRANSLATIONS.ALERT_CONDITION_TITLE}
+                        subtitle={t(
+                          'Define the database, SQL query, and triggering conditions for alert.',
+                        )}
+                        validateCheckStatus={
+                          !validationStatus[Sections.Alert].hasErrors
+                        }
+                        testId="alert-condition-panel"
+                      />
+                    ),
+                    children: (
+                      <div>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('Database')}
                             <span className="required">*</span>
                           </div>
                           <div className="input-container">
-                            <Select
-                              ariaLabel={t('Condition')}
-                              onChange={onConditionChange}
-                              placeholder={t('Condition')}
+                            <AsyncSelect
+                              ariaLabel={t('Database')}
+                              name="source"
+                              placeholder={t('Select database')}
                               value={
-                                currentAlert?.validator_config_json?.op ||
-                                undefined
+                                currentAlert?.database?.label &&
+                                currentAlert?.database?.value
+                                  ? {
+                                      value: currentAlert.database.value,
+                                      label: currentAlert.database.label,
+                                    }
+                                  : undefined
                               }
-                              options={CONDITIONS}
+                              options={loadSourceOptions}
+                              onChange={onSourceChange}
                             />
                           </div>
                         </StyledInputContainer>
-                        <StyledInputContainer css={noMarginBottom}>
+                        <StyledInputContainer>
                           <div className="control-label">
-                            {t('Value')}{' '}
-                            {!conditionNotNull && (
-                              <span className="required">*</span>
-                            )}
-                          </div>
-                          <div className="input-container">
-                            <InputNumber
-                              disabled={conditionNotNull}
-                              type="number"
-                              name="threshold"
-                              value={
-                                currentAlert?.validator_config_json
-                                  ?.threshold !== undefined && !conditionNotNull
-                                  ? currentAlert.validator_config_json.threshold
-                                  : ''
-                              }
-                              min={0}
-                              placeholder={t('Value')}
-                              onChange={onThresholdChange}
+                            {t('SQL Query')}
+                            <InfoTooltip
+                              tooltip={t(
+                                'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
+                              )}
                             />
+                            <span className="required">*</span>
                           </div>
+                          <TextAreaControl
+                            name="sql"
+                            language="sql"
+                            offerEditInModal={false}
+                            minLines={15}
+                            maxLines={15}
+                            onChange={onSQLChange}
+                            readOnly={false}
+                            initialValue={resource?.sql}
+                            key={currentAlert?.id}
+                          />
                         </StyledInputContainer>
-                      </div>
-                    </div>
-                  ),
-                },
-              ]
-            : []),
-          {
-            key: 'contents',
-            label: (
-              <CollapseLabelInModal
-                title={
-                  isReport
-                    ? TRANSLATIONS.REPORT_CONTENTS_TITLE
-                    : TRANSLATIONS.ALERT_CONTENTS_TITLE
-                }
-                subtitle={t('Customize data source, filters, and layout.')}
-                validateCheckStatus={
-                  !validationStatus[Sections.Content].hasErrors
-                }
-                testId="contents-panel"
-              />
-            ),
-            children: (
-              <>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Content type')}
-                    <span className="required">*</span>
-                  </div>
-                  <Select
-                    ariaLabel={t('Select content type')}
-                    onChange={onContentTypeChange}
-                    value={contentType}
-                    options={CONTENT_TYPE_OPTIONS}
-                    placeholder={t('Select content type')}
-                  />
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  {contentType === ContentType.Chart ? (
-                    <>
-                      <div className="control-label">
-                        {t('Select chart')}
-                        <span className="required">*</span>
-                      </div>
-                      <AsyncSelect
-                        ariaLabel={t('Chart')}
-                        name="chart"
-                        value={
-                          currentAlert?.chart?.label &&
-                          currentAlert?.chart?.value
-                            ? {
-                                value: currentAlert.chart.value,
-                                label: currentAlert.chart.label,
-                              }
-                            : undefined
-                        }
-                        options={loadChartOptions}
-                        onChange={onChartChange}
-                        placeholder={t('Select chart to use')}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <div className="control-label">
-                        {t('Select dashboard')}
-                        <span className="required">*</span>
-                      </div>
-                      <AsyncSelect
-                        ariaLabel={t('Dashboard')}
-                        name="dashboard"
-                        value={
-                          currentAlert?.dashboard?.label &&
-                          currentAlert?.dashboard?.value
-                            ? {
-                                value: currentAlert.dashboard.value,
-                                label: currentAlert.dashboard.label,
-                              }
-                            : undefined
-                        }
-                        options={loadDashboardOptions}
-                        onChange={onDashboardChange}
-                        placeholder={t('Select dashboard to use')}
-                      />
-                    </>
-                  )}
-                </StyledInputContainer>
-                <StyledInputContainer
-                  css={
-                    ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
-                    noMarginBottom
-                  }
-                >
-                  {formatOptionEnabled && (
-                    <>
-                      <div className="control-label">
-                        {t('Content format')}
-                        <span className="required">*</span>
-                      </div>
-                      <Select
-                        ariaLabel={t('Select format')}
-                        onChange={onFormatChange}
-                        value={reportFormat}
-                        options={
-                          contentType === ContentType.Dashboard
-                            ? ['pdf', 'png'].map(
-                                key =>
-                                  FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                              )
-                            : /* If chart is of text based viz type: show text
-                  format option */
-                              TEXT_BASED_VISUALIZATION_TYPES.includes(
-                                  chartVizType,
-                                )
-                              ? Object.values(FORMAT_OPTIONS)
-                              : ['pdf', 'png', 'csv'].map(
-                                  key =>
-                                    FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                                )
-                        }
-                        placeholder={t('Select format')}
-                      />
-                    </>
-                  )}
-                </StyledInputContainer>
-                {filtersEnabled && contentType === ContentType.Dashboard && (
-                  <StyledInputContainer>
-                    <div>
-                      <div className="control-label">{t('Select tab')}</div>
-                      <StyledTreeSelect
-                        disabled={tabOptions?.length === 0}
-                        treeData={tabOptions}
-                        value={currentAlert?.extra?.dashboard?.anchor}
-                        onSelect={updateAnchorState}
-                        placeholder={t('Select a tab')}
-                      />
-                    </div>
-                    <AntdForm
-                      className="filters"
-                      name="form"
-                      autoComplete="off"
-                    >
-                      <AntdForm.List
-                        name="filters"
-                        initialValue={nativeFilterData} // only show one filter field on create
-                      >
-                        {(fields, { add, remove }) => (
-                          <div>
-                            {fields.map(({ key, name: idx }) => (
-                              <div className="filters-container" key={key}>
-                                <div className="filters-dash-container">
-                                  <div className="control-label">
-                                    <span>{t('Select Dashboard Filter')}</span>
-                                    <InfoTooltip
-                                      tooltip={t(
-                                        'Choose from existing dashboard filters and select a value to refine your report results.',
-                                      )}
-                                    />
-                                  </div>
-                                  <Select
-                                    disabled={
-                                      nativeFilterOptions?.length < 1 &&
-                                      !nativeFilterData[idx]?.filterName
-                                    }
-                                    ariaLabel={t('Select Filter')}
-                                    placeholder={t('Select Filter')}
-                                    value={nativeFilterData[idx]?.filterName}
-                                    options={filterNativeFilterOptions()}
-                                    onChange={value =>
-                                      onChangeDashboardFilter(
-                                        idx,
-                                        String(value),
-                                      )
-                                    }
-                                    onClear={() => {
-                                      // reset filter values on filter clear
-                                      nativeFilterData[idx].columnName = '';
-                                      nativeFilterData[idx].filterName = '';
-                                      nativeFilterData[idx].filterValues = [];
-                                    }}
-                                    css={css`
-                                      flex: 1;
-                                    `}
-                                    oneLine
-                                    allowClear
-                                  />
-                                </div>
-                                <div className="filters-dashvalue-container">
-                                  <div className="control-label">
-                                    {t('Value')}
-                                  </div>
-                                  {renderFilterValueSelect(
-                                    nativeFilterData[idx],
-                                    idx,
-                                  )}
-                                </div>
-                                {(idx !== 0 || isEditMode) && (
-                                  <div className="filters-delete">
-                                    <Icons.DeleteOutlined
-                                      iconSize="xl"
-                                      className="filters-trashcan"
-                                      onClick={() => {
-                                        handleRemoveFilterField(idx);
-                                        remove(idx);
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                            <div className="filters-add-container">
-                              {filterNativeFilterOptions().length > 0 && (
-                                <Button
-                                  className="filters-add-btn"
-                                  type="link"
-                                  onClick={() => {
-                                    handleAddFilterField();
-                                    add();
-                                  }}
-                                >
-                                  + {t('Apply another dashboard filter')}
-                                </Button>
+                        <div
+                          className="inline-container wrap"
+                          css={css`
+                            gap: ${theme.sizeUnit}px;
+                          `}
+                        >
+                          <StyledInputContainer css={noMarginBottom}>
+                            <div className="control-label" css={inputSpacer}>
+                              {t('Trigger Alert If...')}
+                              <span className="required">*</span>
+                            </div>
+                            <div className="input-container">
+                              <Select
+                                ariaLabel={t('Condition')}
+                                onChange={onConditionChange}
+                                placeholder={t('Condition')}
+                                value={
+                                  currentAlert?.validator_config_json?.op ||
+                                  undefined
+                                }
+                                options={CONDITIONS}
+                              />
+                            </div>
+                          </StyledInputContainer>
+                          <StyledInputContainer css={noMarginBottom}>
+                            <div className="control-label">
+                              {t('Value')}{' '}
+                              {!conditionNotNull && (
+                                <span className="required">*</span>
                               )}
                             </div>
-                          </div>
-                        )}
-                      </AntdForm.List>
-                    </AntdForm>
+                            <div className="input-container">
+                              <InputNumber
+                                disabled={conditionNotNull}
+                                type="number"
+                                name="threshold"
+                                value={
+                                  currentAlert?.validator_config_json
+                                    ?.threshold !== undefined &&
+                                  !conditionNotNull
+                                    ? currentAlert.validator_config_json
+                                        .threshold
+                                    : ''
+                                }
+                                min={0}
+                                placeholder={t('Value')}
+                                onChange={onThresholdChange}
+                              />
+                            </div>
+                          </StyledInputContainer>
+                        </div>
+                      </div>
+                    ),
+                  },
+                ]),
+            {
+              key: 'contents',
+              label: (
+                <CollapseLabelInModal
+                  title={
+                    isReport
+                      ? TRANSLATIONS.REPORT_CONTENTS_TITLE
+                      : TRANSLATIONS.ALERT_CONTENTS_TITLE
+                  }
+                  subtitle={t('Customize data source, filters, and layout.')}
+                  validateCheckStatus={
+                    !validationStatus[Sections.Content].hasErrors
+                  }
+                  testId="contents-panel"
+                />
+              ),
+              children: (
+                <>
+                  <StyledInputContainer>
+                    <div className="control-label">
+                      {t('Content type')}
+                      <span className="required">*</span>
+                    </div>
+                    <Select
+                      ariaLabel={t('Select content type')}
+                      onChange={onContentTypeChange}
+                      value={contentType}
+                      options={CONTENT_TYPE_OPTIONS}
+                      placeholder={t('Select content type')}
+                    />
                   </StyledInputContainer>
-                )}
-                {isScreenshot && (
+                  <StyledInputContainer>
+                    {contentType === ContentType.Chart ? (
+                      <>
+                        <div className="control-label">
+                          {t('Select chart')}
+                          <span className="required">*</span>
+                        </div>
+                        <AsyncSelect
+                          ariaLabel={t('Chart')}
+                          name="chart"
+                          value={
+                            currentAlert?.chart?.label &&
+                            currentAlert?.chart?.value
+                              ? {
+                                  value: currentAlert.chart.value,
+                                  label: currentAlert.chart.label,
+                                }
+                              : undefined
+                          }
+                          options={loadChartOptions}
+                          onChange={onChartChange}
+                          placeholder={t('Select chart to use')}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <div className="control-label">
+                          {t('Select dashboard')}
+                          <span className="required">*</span>
+                        </div>
+                        <AsyncSelect
+                          ariaLabel={t('Dashboard')}
+                          name="dashboard"
+                          value={
+                            currentAlert?.dashboard?.label &&
+                            currentAlert?.dashboard?.value
+                              ? {
+                                  value: currentAlert.dashboard.value,
+                                  label: currentAlert.dashboard.label,
+                                }
+                              : undefined
+                          }
+                          options={loadDashboardOptions}
+                          onChange={onDashboardChange}
+                          placeholder={t('Select dashboard to use')}
+                        />
+                      </>
+                    )}
+                  </StyledInputContainer>
                   <StyledInputContainer
                     css={
-                      !isReport &&
-                      contentType === ContentType.Chart &&
+                      ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
                       noMarginBottom
                     }
                   >
-                    <div className="control-label">{t('Screenshot width')}</div>
+                    {formatOptionEnabled && (
+                      <>
+                        <div className="control-label">
+                          {t('Content format')}
+                          <span className="required">*</span>
+                        </div>
+                        <Select
+                          ariaLabel={t('Select format')}
+                          onChange={onFormatChange}
+                          value={reportFormat}
+                          options={
+                            contentType === ContentType.Dashboard
+                              ? ['pdf', 'png'].map(
+                                  key =>
+                                    FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                                )
+                              : /* If chart is of text based viz type: show text
+                  format option */
+                                TEXT_BASED_VISUALIZATION_TYPES.includes(
+                                    chartVizType,
+                                  )
+                                ? Object.values(FORMAT_OPTIONS)
+                                : ['pdf', 'png', 'csv'].map(
+                                    key =>
+                                      FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                                  )
+                          }
+                          placeholder={t('Select format')}
+                        />
+                      </>
+                    )}
+                  </StyledInputContainer>
+                  {tabsEnabled && contentType === ContentType.Dashboard && (
+                    <StyledInputContainer>
+                      <>
+                        <div className="control-label">{t('Select tab')}</div>
+                        <StyledTreeSelect
+                          disabled={tabOptions?.length === 0}
+                          treeData={tabOptions}
+                          value={currentAlert?.extra?.dashboard?.anchor}
+                          onSelect={updateAnchorState}
+                          placeholder={t('Select a tab')}
+                        />
+                      </>
+                    </StyledInputContainer>
+                  )}
+                  {filtersEnabled && contentType === ContentType.Dashboard && (
+                    <StyledInputContainer>
+                      <AntdForm
+                        className="filters"
+                        name="form"
+                        autoComplete="off"
+                      >
+                        <AntdForm.List
+                          name="filters"
+                          initialValue={nativeFilterData} // only show one filter field on create
+                        >
+                          {(fields, { add, remove }) => (
+                            <div>
+                              {fields.map(({ key, name: idx }) => (
+                                <div className="filters-container" key={key}>
+                                  <div className="filters-dash-container">
+                                    <div className="control-label">
+                                      <span>{t('Select Dashboard Filter')}</span>
+                                      <InfoTooltip
+                                        tooltip={t(
+                                          'Choose from existing dashboard filters and select a value to refine your report results.',
+                                        )}
+                                      />
+                                    </div>
+                                    <Select
+                                      disabled={
+                                        nativeFilterOptions?.length < 1 &&
+                                        !nativeFilterData[idx]?.filterName
+                                      }
+                                      ariaLabel={t('Select Filter')}
+                                      placeholder={t('Select Filter')}
+                                      value={nativeFilterData[idx]?.filterName}
+                                      options={filterNativeFilterOptions()}
+                                      onChange={value =>
+                                        onChangeDashboardFilter(
+                                          idx,
+                                          String(value),
+                                        )
+                                      }
+                                      onClear={() => {
+                                        // reset filter values on filter clear
+                                        nativeFilterData[idx].columnName = '';
+                                        nativeFilterData[idx].filterName = '';
+                                        nativeFilterData[idx].filterValues = [];
+                                      }}
+                                      css={css`
+                                        flex: 1;
+                                      `}
+                                      oneLine
+                                      allowClear
+                                    />
+                                  </div>
+                                  <div className="filters-dashvalue-container">
+                                    <div className="control-label">
+                                      {t('Value')}
+                                    </div>
+                                    {renderFilterValueSelect(
+                                      nativeFilterData[idx],
+                                      idx,
+                                    )}
+                                  </div>
+                                  {(idx !== 0 || isEditMode) && (
+                                    <div className="filters-delete">
+                                      <Icons.DeleteOutlined
+                                        iconSize="xl"
+                                        className="filters-trashcan"
+                                        onClick={() => {
+                                          handleRemoveFilterField(idx);
+                                          remove(idx);
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              <div className="filters-add-container">
+                                {filterNativeFilterOptions().length > 0 && (
+                                  <Button
+                                    className="filters-add-btn"
+                                    type="link"
+                                    onClick={() => {
+                                      handleAddFilterField();
+                                      add();
+                                    }}
+                                  >
+                                    + {t('Apply another dashboard filter')}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </AntdForm.List>
+                      </AntdForm>
+                    </StyledInputContainer>
+                  )}
+                  {isScreenshot && (
+                    <StyledInputContainer
+                      css={
+                        !isReport &&
+                        contentType === ContentType.Chart &&
+                        noMarginBottom
+                      }
+                    >
+                      <div className="control-label">
+                        {t('Screenshot width')}
+                      </div>
+                      <div className="input-container">
+                        <InputNumber
+                          type="number"
+                          name="custom_width"
+                          value={currentAlert?.custom_width || undefined}
+                          min={600}
+                          max={2400}
+                          placeholder={t('Input custom width in pixels')}
+                          onChange={onCustomWidthChange}
+                        />
+                      </div>
+                    </StyledInputContainer>
+                  )}
+                  {(isReport || contentType === ContentType.Dashboard) && (
+                    <div className="inline-container">
+                      <Checkbox
+                        data-test="bypass-cache"
+                        checked={forceScreenshot}
+                        onChange={onForceScreenshotChange}
+                      >
+                        {t('Ignore cache when generating report')}
+                      </Checkbox>
+                    </div>
+                  )}
+                </>
+              ),
+            },
+            {
+              key: 'schedule',
+              label: (
+                <CollapseLabelInModal
+                  title={TRANSLATIONS.SCHEDULE_TITLE}
+                  subtitle={t(
+                    'Define delivery schedule, timezone, and frequency settings.',
+                  )}
+                  validateCheckStatus={
+                    !validationStatus[Sections.Schedule].hasErrors
+                  }
+                  testId="schedule-panel"
+                />
+              ),
+              children: (
+                <>
+                  <AlertReportCronScheduler
+                    value={currentAlert?.crontab || ''}
+                    onChange={newVal => updateAlertState('crontab', newVal)}
+                  />
+                  <StyledInputContainer>
+                    <div className="control-label">
+                      {t('Timezone')} <span className="required">*</span>
+                    </div>
+                    <TimezoneSelector
+                      onTimezoneChange={onTimezoneChange}
+                      timezone={currentAlert?.timezone}
+                      minWidth="100%"
+                    />
+                  </StyledInputContainer>
+                  <StyledInputContainer>
+                    <div className="control-label">
+                      {t('Log retention')}
+                      <span className="required">*</span>
+                    </div>
                     <div className="input-container">
-                      <InputNumber
-                        type="number"
-                        name="custom_width"
-                        value={currentAlert?.custom_width || undefined}
-                        min={600}
-                        max={2400}
-                        placeholder={t('Input custom width in pixels')}
-                        onChange={onCustomWidthChange}
+                      <Select
+                        ariaLabel={t('Log retention')}
+                        placeholder={t('Log retention')}
+                        onChange={onLogRetentionChange}
+                        value={currentAlert?.log_retention}
+                        options={RETENTION_OPTIONS}
+                        sortComparator={propertyComparator('value')}
                       />
                     </div>
                   </StyledInputContainer>
-                )}
-                {(isReport || contentType === ContentType.Dashboard) && (
-                  <div className="inline-container">
-                    <Checkbox
-                      data-test="bypass-cache"
-                      checked={forceScreenshot}
-                      onChange={onForceScreenshotChange}
-                    >
-                      {t('Ignore cache when generating report')}
-                    </Checkbox>
-                  </div>
-                )}
-              </>
-            ),
-          },
-          {
-            key: 'schedule',
-            label: (
-              <CollapseLabelInModal
-                title={TRANSLATIONS.SCHEDULE_TITLE}
-                subtitle={t(
-                  'Define delivery schedule, timezone, and frequency settings.',
-                )}
-                validateCheckStatus={
-                  !validationStatus[Sections.Schedule].hasErrors
-                }
-                testId="schedule-panel"
-              />
-            ),
-            children: (
-              <>
-                <AlertReportCronScheduler
-                  value={currentAlert?.crontab || ''}
-                  onChange={newVal => updateAlertState('crontab', newVal)}
+                  <StyledInputContainer css={noMarginBottom}>
+                    {isReport ? (
+                      <>
+                        <div className="control-label">
+                          {t('Working timeout')}
+                          <span className="required">*</span>
+                        </div>
+                        <div className="input-container">
+                          <NumberInput
+                            min={1}
+                            name="working_timeout"
+                            value={currentAlert?.working_timeout || ''}
+                            placeholder={t('Time in seconds')}
+                            onChange={onTimeoutVerifyChange}
+                            timeUnit={t('seconds')}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="control-label">{t('Grace period')}</div>
+                        <div className="input-container">
+                          <NumberInput
+                            min={1}
+                            name="grace_period"
+                            value={currentAlert?.grace_period || ''}
+                            placeholder={t('Time in seconds')}
+                            onChange={onTimeoutVerifyChange}
+                            timeUnit={t('seconds')}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </StyledInputContainer>
+                </>
+              ),
+            },
+            {
+              key: 'notification',
+              label: (
+                <CollapseLabelInModal
+                  title={TRANSLATIONS.NOTIFICATION_TITLE}
+                  subtitle={t('Choose notification method and recipients.')}
+                  validateCheckStatus={
+                    !validationStatus[Sections.Notification].hasErrors
+                  }
+                  testId="notification-method-panel"
                 />
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Timezone')} <span className="required">*</span>
-                  </div>
-                  <TimezoneSelector
-                    onTimezoneChange={onTimezoneChange}
-                    timezone={currentAlert?.timezone}
-                    minWidth="100%"
-                  />
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Log retention')}
-                    <span className="required">*</span>
-                  </div>
-                  <div className="input-container">
-                    <Select
-                      ariaLabel={t('Log retention')}
-                      placeholder={t('Log retention')}
-                      onChange={onLogRetentionChange}
-                      value={currentAlert?.log_retention}
-                      options={RETENTION_OPTIONS}
-                      sortComparator={propertyComparator('value')}
-                    />
-                  </div>
-                </StyledInputContainer>
-                <StyledInputContainer css={noMarginBottom}>
-                  {isReport ? (
-                    <>
-                      <div className="control-label">
-                        {t('Working timeout')}
-                        <span className="required">*</span>
-                      </div>
-                      <div className="input-container">
-                        <NumberInput
-                          min={1}
-                          name="working_timeout"
-                          value={currentAlert?.working_timeout || ''}
-                          placeholder={t('Time in seconds')}
-                          onChange={onTimeoutVerifyChange}
-                          timeUnit={t('seconds')}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="control-label">{t('Grace period')}</div>
-                      <div className="input-container">
-                        <NumberInput
-                          min={1}
-                          name="grace_period"
-                          value={currentAlert?.grace_period || ''}
-                          placeholder={t('Time in seconds')}
-                          onChange={onTimeoutVerifyChange}
-                          timeUnit={t('seconds')}
-                        />
-                      </div>
-                    </>
-                  )}
-                </StyledInputContainer>
-              </>
-            ),
-          },
-          {
-            key: 'notification',
-            label: (
-              <CollapseLabelInModal
-                title={TRANSLATIONS.NOTIFICATION_TITLE}
-                subtitle={t('Choose notification method and recipients.')}
-                validateCheckStatus={
-                  !validationStatus[Sections.Notification].hasErrors
-                }
-                testId="notification-method-panel"
-              />
-            ),
-            children: (
-              <>
-                {notificationSettings.map((notificationSetting, i) => (
-                  <StyledNotificationMethodWrapper>
-                    <NotificationMethod
-                      setting={notificationSetting}
-                      index={i}
-                      key={`NotificationMethod-${i}`}
-                      onUpdate={updateNotificationSetting}
-                      onRemove={removeNotificationSetting}
-                      onInputChange={onInputChange}
-                      email_subject={currentAlert?.email_subject || ''}
-                      defaultSubject={emailSubject || ''}
-                      setErrorSubject={handleErrorUpdate}
-                    />
-                  </StyledNotificationMethodWrapper>
-                ))}
-                {
-                  // Prohibit 'add notification method' button if only one present
-                  allowedNotificationMethodsCount >
-                    notificationSettings.length && (
-                    <NotificationMethodAdd
-                      data-test="notification-add"
-                      status={notificationAddState}
-                      onClick={onNotificationAdd}
-                    />
-                  )
-                }
-              </>
-            ),
-          },
-        ]}
-      />
-    </StyledModal>
+              ),
+              children: (
+                <>
+                  {notificationSettings.map((notificationSetting, i) => (
+                    <StyledNotificationMethodWrapper>
+                      <NotificationMethod
+                        setting={notificationSetting}
+                        index={i}
+                        key={`NotificationMethod-${i}`}
+                        onUpdate={updateNotificationSetting}
+                        onRemove={removeNotificationSetting}
+                        onInputChange={onInputChange}
+                        email_subject={currentAlert?.email_subject || ''}
+                        defaultSubject={emailSubject || ''}
+                        setErrorSubject={handleErrorUpdate}
+                      />
+                    </StyledNotificationMethodWrapper>
+                  ))}
+                  {
+                    // Prohibit 'add notification method' button if only one present
+                    allowedNotificationMethodsCount >
+                      notificationSettings.length && (
+                      <NotificationMethodAdd
+                        data-test="notification-add"
+                        status={notificationAddState}
+                        onClick={onNotificationAdd}
+                      />
+                    )
+                  }
+                </>
+              ),
+            },
+          ]}
+        />
+      </div>
+    </StandardModal>
   );
 };
 

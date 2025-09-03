@@ -71,7 +71,7 @@ const ScopingTitle = ({
     >
       {label}
       <Icons.DeleteOutlined
-        iconColor={theme.colors.grayscale.light3}
+        iconColor={theme.colorIcon}
         iconSize="xl"
         onClick={(event: React.MouseEvent<HTMLElement>) => {
           event.stopPropagation();
@@ -150,7 +150,7 @@ export const ChartsScopingListPanel = ({
         css={css`
           width: 100%;
           height: 1px;
-          background-color: ${theme.colors.grayscale.light3};
+          background-color: ${theme.colorSplit};
           margin: ${theme.sizeUnit * 3}px 0;
         `}
       />

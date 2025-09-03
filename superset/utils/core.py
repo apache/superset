@@ -161,6 +161,15 @@ class AdhocMetricExpressionType(StrEnum):
     SQL = "SQL"
 
 
+class SqlExpressionType(StrEnum):
+    """Types of SQL expressions that can be validated."""
+
+    COLUMN = "column"
+    METRIC = "metric"
+    WHERE = "where"
+    HAVING = "having"
+
+
 class AnnotationType(StrEnum):
     FORMULA = "FORMULA"
     INTERVAL = "INTERVAL"
@@ -209,7 +218,7 @@ class HeaderDataType(TypedDict):
 
 class DatasourceDict(TypedDict):
     type: str  # todo(hugh): update this to be DatasourceType
-    id: int
+    id: int | str
 
 
 class AdhocFilterClause(TypedDict, total=False):

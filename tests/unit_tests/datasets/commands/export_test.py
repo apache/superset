@@ -132,6 +132,10 @@ def test_export(session: Session) -> None:
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
+    # Add the table to the session and flush to get an ID
+    db.session.add(sqla_table)
+    db.session.flush()
+
     export = [
         (file[0], file[1]())
         for file in list(
@@ -148,7 +152,7 @@ def test_export(session: Session) -> None:
 
     assert export == [
         (
-            "datasets/my_database/my_table.yaml",
+            f"datasets/my_database/my_table_{sqla_table.id}.yaml",
             f"""table_name: my_table
 main_dttm_col: ds
 description: This is the description
