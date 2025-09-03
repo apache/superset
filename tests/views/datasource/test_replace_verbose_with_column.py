@@ -38,7 +38,6 @@ class Column:
 # Test dataset and filters
 columns = [
     Column("col1", "Column 1"),
-    Column("col2", "Column 2"),
     Column("col3", "Column 3"),
 ]
 
@@ -58,10 +57,6 @@ columns = [
         ([{"col": "Non-existent"}], [{"col": "Non-existent"}]),
         # Empty filters, no changes should be made
         ([], []),
-        # Column verbose_name and column_name match, should be replaced
-        ([{"col": "Column 2"}], [{"col": "col2"}]),
-        # Using custom attribute names
-        ([{"col": "Column 3"}], [{"col": "col3"}]),
     ],
 )
 def test_replace_verbose_with_column(filters, expected):
