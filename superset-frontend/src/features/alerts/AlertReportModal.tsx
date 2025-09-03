@@ -356,7 +356,8 @@ export const StyledInputContainer = styled.div`
 
       .filters-delete {
         display: flex;
-        margin-top: ${theme.sizeUnit * 6}px;
+        margin-top: ${theme.sizeUnit * 8}px;
+        margin-left: ${theme.sizeUnit * 4}px;
       }
 
       .filters-trashcan {
