@@ -83,6 +83,10 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
+  rotateValue: number;
+  rotateValueB: number;
+  distanceValue: number;
+  distanceValueB: number;
   stack: StackType;
   stackB: StackType;
   yAxisIndex?: number;
@@ -126,6 +130,10 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   seriesTypeB: TIMESERIES_DEFAULTS.seriesType,
   showValue: TIMESERIES_DEFAULTS.showValue,
   showValueB: TIMESERIES_DEFAULTS.showValue,
+  rotateValue: TIMESERIES_DEFAULTS.rotateValue,
+  rotateValueB: TIMESERIES_DEFAULTS.rotateValue,
+  distanceValue: TIMESERIES_DEFAULTS.distanceValue,
+  distanceValueB: TIMESERIES_DEFAULTS.distanceValue,
   stack: TIMESERIES_DEFAULTS.stack,
   stackB: TIMESERIES_DEFAULTS.stack,
   yAxisIndex: 0,
