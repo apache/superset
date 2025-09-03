@@ -49,7 +49,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: steps.check.outputs.superset-extensions-cli
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
           flags: superset-extensions-cli
