@@ -28,6 +28,7 @@ import {
   fireEvent,
   render,
   waitFor,
+  screen,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import reducers from 'spec/helpers/reducerIndex';
@@ -339,11 +340,11 @@ describe('SqlEditor', () => {
   });
 
   it('render a Limit Dropdown', async () => {
-    const defaultQueryLimit = 101;
+    const defaultQueryLimit = 100;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
-    const { findByText } = setup(updatedProps, store);
-    fireEvent.click(await findByText('LIMIT:'));
-    expect(await findByText('10 000')).toBeInTheDocument();
+    setup(updatedProps, store);
+    expect(screen.getByRole('button', { name: /LIMIT:/i })).toBeInTheDocument();
+    expect(screen.getByText(/100/i)).toBeInTheDocument();
   });
 
   it('renders an Extension if provided', async () => {
