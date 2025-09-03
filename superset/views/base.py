@@ -386,11 +386,16 @@ def get_default_spinner_svg() -> str | None:
         str | None: SVG content as string, or None if file not found
     """
     try:
-        # Path to shared static assets SVG file
+        # Path to frontend source SVG file (used by both frontend and backend)
         svg_path = os.path.join(
             os.path.dirname(__file__),
             "..",
-            "static",
+            "..",
+            "superset-frontend",
+            "packages",
+            "superset-ui-core",
+            "src",
+            "components",
             "assets",
             "images",
             "loading.svg",

@@ -82,6 +82,8 @@ def get_dev_env_label() -> str:
         return f"{branch}@{sha}"
     elif sha:
         return f"@{sha}"
+    elif branch:
+        return branch
     else:
         return ""
 
