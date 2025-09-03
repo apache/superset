@@ -31,7 +31,7 @@ afterAll(() => {
 
 test('should render children', () => {
   const { getByTestId } = render(
-    <DashboardWrapper>
+    <DashboardWrapper dashboardFiltersOpen={false}>
       <div data-test="mock-children" />
     </DashboardWrapper>,
     { useRedux: true, useDnd: true },
@@ -50,7 +50,7 @@ test('should update the style on dragging state', async () => {
     index: 0,
   };
   const { container, getByText } = render(
-    <DashboardWrapper>
+    <DashboardWrapper dashboardFiltersOpen={false}>
       <OptionControlLabel
         {...defaultProps}
         index={1}

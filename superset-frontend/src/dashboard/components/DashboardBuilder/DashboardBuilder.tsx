@@ -80,6 +80,7 @@ import DashboardWrapper from './DashboardWrapper';
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
+  background-color: ${({ theme }) => theme.colorBgContainer};
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
@@ -275,6 +276,7 @@ const StyledDashboardContent = styled.div<{
   marginLeft: number;
 }>`
   ${({ theme, editMode, marginLeft }) => css`
+    background-color: ${theme.colorBgLayout};
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -286,14 +288,16 @@ const StyledDashboardContent = styled.div<{
       padding-left: 0;
     }
 
+    .grid-container .ant-tabs-nav {
+      padding-left: 0 !important;
+    }
+
     .grid-container {
       /* without this, the grid will not get smaller upon toggling the builder panel on */
       width: 0;
       flex: 1;
       position: relative;
-      margin-top: ${theme.sizeUnit * 4}px;
-      margin-right: ${theme.sizeUnit * 8}px;
-      margin-bottom: ${theme.sizeUnit * 4}px;
+      margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
       ${editMode &&
@@ -557,13 +561,10 @@ const DashboardBuilder = () => {
     ],
   );
 
-  const dashboardContentMarginLeft =
-    !dashboardFiltersOpen &&
-    !editMode &&
-    nativeFiltersEnabled &&
-    filterBarOrientation !== FilterBarOrientation.Horizontal
-      ? 0
-      : theme.sizeUnit * 8;
+  const dashboardContentMarginLeft = useMemo(
+    () => (!editMode ? theme.sizeUnit * 4 : theme.sizeUnit * 8),
+    [editMode, theme.sizeUnit],
+  );
 
   const renderChild = useCallback(
     adjustedWidth => {
@@ -603,7 +604,7 @@ const DashboardBuilder = () => {
   );
 
   return (
-    <DashboardWrapper>
+    <DashboardWrapper dashboardFiltersOpen={dashboardFiltersOpen}>
       {showFilterBar &&
         filterBarOrientation === FilterBarOrientation.Vertical && (
           <>
