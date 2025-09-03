@@ -2360,7 +2360,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                   <div className="filters-dash-container">
                                     <div className="control-label">
                                       <span>
-                                        {t('Select Dashboard Filter')}
+                                        {t('Dashboard Filter')}
                                       </span>
                                       <InfoTooltip
                                         tooltip={t(
