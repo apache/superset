@@ -66,5 +66,5 @@ def test_replace_verbose_with_column(filters, expected):
     # Run the replacement function
     replace_verbose_with_column(filters_copy, columns)
 
-    # Assert that the replaced filters match the expected result.
+    # Assert that the replaced filters match the expected result
     assert filters_copy == expected
