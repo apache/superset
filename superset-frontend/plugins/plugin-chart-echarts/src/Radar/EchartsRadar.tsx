@@ -33,7 +33,7 @@ export default function EchartsRadar(props: RadarChartTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
-      vizType={formData.viz_type}
+      vizType={formData.vizType}
     />
   );
 }

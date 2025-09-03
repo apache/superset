@@ -34,7 +34,7 @@ export default function EchartsFunnel(props: FunnelChartTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
-      vizType={formData.viz_type}
+      vizType={formData.vizType}
     />
   );
 }

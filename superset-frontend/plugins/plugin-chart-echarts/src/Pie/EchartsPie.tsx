@@ -34,7 +34,7 @@ export default function EchartsPie(props: PieChartTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
-      vizType={formData.viz_type}
+      vizType={formData.vizType}
     />
   );
 }

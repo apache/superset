@@ -236,14 +236,19 @@ function Echart(
         return echartsTheme;
       };
 
+      const baseTheme = getEchartsTheme(echartOptions);
+      const globalOverrides = theme.echartsOptionsOverrides || {};
+      const chartOverrides = vizType
+        ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
+        : {};
+
       const themedEchartOptions = mergeReplaceArrays(
-        getEchartsTheme(echartOptions),
+        baseTheme,
         echartOptions,
-        theme.echartsOptionsOverrides || {},
-        vizType
-          ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
-          : {},
+        globalOverrides,
+        chartOverrides,
       );
+
       chartRef.current?.setOption(themedEchartOptions, true);
     }
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
