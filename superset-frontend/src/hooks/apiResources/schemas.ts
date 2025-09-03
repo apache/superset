@@ -27,11 +27,20 @@ export type SchemaOption = {
   title: string;
 };
 
+export type SchemaResponse = {
+  result: SchemaOption[];
+  default: string | null;
+};
+
 export type FetchSchemasQueryParams = {
   dbId?: string | number;
   catalog?: string;
   forceRefresh: boolean;
-  onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: SchemaOption[],
+    isRefetched: boolean,
+    defaultValue?: string | null,
+  ) => void;
   onError?: (error: ClientErrorObject) => void;
 };
 
@@ -39,7 +48,7 @@ type Params = Omit<FetchSchemasQueryParams, 'forceRefresh'>;
 
 const schemaApi = api.injectEndpoints({
   endpoints: builder => ({
-    schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
+    schemas: builder.query<SchemaResponse, FetchSchemasQueryParams>({
       providesTags: [{ type: 'Schemas', id: 'LIST' }],
       query: ({ dbId, catalog, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/schemas/`,
@@ -48,12 +57,14 @@ const schemaApi = api.injectEndpoints({
           force: forceRefresh,
           ...(catalog !== undefined && { catalog }),
         },
-        transformResponse: ({ json }: JsonResponse) =>
-          json.result.sort().map((value: string) => ({
+        transformResponse: ({ json }: JsonResponse) => ({
+          result: json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
+          default: json.default,
+        }),
       }),
       serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,
@@ -98,7 +109,11 @@ export function useSchemas(options: Params) {
         trigger({ dbId, catalog, forceRefresh }).then(
           ({ isSuccess, isError, data }) => {
             if (isSuccess) {
-              onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
+              onSuccess?.(
+                data?.result || EMPTY_SCHEMAS,
+                forceRefresh,
+                data?.default,
+              );
             }
             if (isError) {
               onError?.(result.error as ClientErrorObject);

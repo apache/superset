@@ -163,11 +163,13 @@ const fakeDatabaseApiResultInReverseOrder = {
 const fakeSchemaApiResult = {
   count: 2,
   result: ['information_schema', 'public'],
+  default: 'public',
 };
 
 const fakeCatalogApiResult = {
   count: 0,
   result: [],
+  default: null,
 };
 
 const fakeFunctionNamesApiResult = {
@@ -381,4 +383,144 @@ test('Sends the correct schema when changing the schema', async () => {
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
   expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
+});
+
+test('Should auto-select default schema on load', async () => {
+  const props = createProps();
+  // Remove initial schema to test auto-selection
+  const propsWithoutSchema = { ...props, schema: undefined };
+
+  render(<DatabaseSelector {...propsWithoutSchema} />, {
+    useRedux: true,
+    store,
+  });
+
+  // Wait for the default schema to be auto-selected
+  await waitFor(() => {
+    expect(props.onSchemaChange).toHaveBeenCalledWith('public');
+  });
+});
+
+test('Should auto-select default catalog for multi-catalog databases', async () => {
+  const multiCatalogApiResult = {
+    count: 2,
+    result: ['catalog1', 'catalog2'],
+    default: 'catalog1',
+  };
+
+  fetchMock.get(catalogApiRoute, multiCatalogApiResult, {
+    overwriteRoutes: true,
+  });
+
+  const props = createProps();
+  const multiCatalogDb = {
+    ...props.db!,
+    allow_multi_catalog: true,
+  };
+  const multiCatalogProps = {
+    ...props,
+    db: multiCatalogDb,
+    catalog: undefined,
+    onCatalogChange: jest.fn(),
+  };
+
+  render(<DatabaseSelector {...multiCatalogProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  // Wait for the default catalog to be auto-selected
+  await waitFor(() => {
+    expect(multiCatalogProps.onCatalogChange).toHaveBeenCalledWith('catalog1');
+  });
+});
+
+test('Should disable schema dropdown while catalogs are loading', async () => {
+  const props = createProps();
+  const multiCatalogDb = {
+    ...props.db!,
+    allow_multi_catalog: true,
+  };
+  const multiCatalogProps = {
+    ...props,
+    db: multiCatalogDb,
+    catalog: undefined,
+  };
+
+  // Mock a delayed catalog response
+  fetchMock.get(
+    catalogApiRoute,
+    new Promise(resolve =>
+      setTimeout(
+        () =>
+          resolve({
+            count: 1,
+            result: ['default_catalog'],
+            default: 'default_catalog',
+          }),
+        100,
+      ),
+    ),
+    { overwriteRoutes: true },
+  );
+
+  render(<DatabaseSelector {...multiCatalogProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  // Initially, schema dropdown should be disabled while catalogs load
+  const schemaSelect = screen.getByRole('combobox', {
+    name: /select schema or type to search schemas/i,
+  });
+
+  expect(schemaSelect).toBeDisabled();
+
+  // Wait for catalogs to load and schema dropdown to be enabled
+  await waitFor(
+    () => {
+      expect(schemaSelect).toBeEnabled();
+    },
+    { timeout: 200 },
+  );
+});
+
+test('Should not fetch schemas until catalog is selected for multi-catalog databases', async () => {
+  const props = createProps();
+  const multiCatalogDb = {
+    ...props.db!,
+    allow_multi_catalog: true,
+  };
+  const multiCatalogProps = {
+    ...props,
+    db: multiCatalogDb,
+    catalog: undefined,
+  };
+
+  render(<DatabaseSelector {...multiCatalogProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  // Initially, schemas should not be fetched
+  expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
+
+  // Wait a bit to ensure schemas are still not fetched
+  await new Promise(resolve => setTimeout(resolve, 100));
+  expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
+});
+
+test('Should fetch schemas immediately for non-catalog databases', async () => {
+  const props = createProps();
+  // Non-catalog database (allow_multi_catalog is not set)
+
+  render(<DatabaseSelector {...props} />, {
+    useRedux: true,
+    store,
+  });
+
+  // Schemas should be fetched immediately for non-catalog databases
+  await waitFor(() => {
+    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
+  });
 });
