@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode, useEffect, useState } from 'react';
+import { FC, PropsWithChildren, useEffect, useState } from 'react';
 
 import { css, styled } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -26,8 +26,8 @@ import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
 import { debounce } from 'lodash';
 
-const StyledDiv = styled.div<{ dashboardFiltersOpen: boolean }>`
-  ${({ theme, dashboardFiltersOpen }) => css`
+const StyledDiv = styled.div`
+  ${({ theme }) => css`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
@@ -84,12 +84,6 @@ const StyledDiv = styled.div<{ dashboardFiltersOpen: boolean }>`
       background: transparent;
     }
 
-    .dashboard-component-tabs .ant-tabs-nav {
-      padding-left: ${dashboardFiltersOpen
-        ? '0 !important'
-        : `${theme.sizeUnit * 2}px`};
-    }
-
     /* push Chart actions to upper right */
     .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
     .dragdroppable .dashboard-component-header .hover-menu--top {
@@ -119,12 +113,7 @@ const StyledDiv = styled.div<{ dashboardFiltersOpen: boolean }>`
   `}
 `;
 
-type Props = {
-  children: ReactNode;
-  dashboardFiltersOpen: boolean;
-};
-
-const DashboardWrapper: FC<Props> = ({ children, dashboardFiltersOpen }) => {
+const DashboardWrapper: FC<PropsWithChildren<{}>> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
@@ -159,7 +148,6 @@ const DashboardWrapper: FC<Props> = ({ children, dashboardFiltersOpen }) => {
 
   return (
     <StyledDiv
-      dashboardFiltersOpen={dashboardFiltersOpen}
       className={classNames({
         'dragdroppable--dragging': editMode && isDragged,
       })}

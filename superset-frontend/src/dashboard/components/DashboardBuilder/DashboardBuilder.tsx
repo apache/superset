@@ -288,10 +288,6 @@ const StyledDashboardContent = styled.div<{
       padding-left: 0;
     }
 
-    .grid-container .ant-tabs-nav {
-      padding-left: 0 !important;
-    }
-
     .grid-container {
       /* without this, the grid will not get smaller upon toggling the builder panel on */
       width: 0;
@@ -561,10 +557,9 @@ const DashboardBuilder = () => {
     ],
   );
 
-  const dashboardContentMarginLeft = useMemo(
-    () => (!editMode ? theme.sizeUnit * 4 : theme.sizeUnit * 8),
-    [editMode, theme.sizeUnit],
-  );
+  const dashboardContentMarginLeft = !editMode
+    ? theme.sizeUnit * 4
+    : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
     adjustedWidth => {
@@ -604,7 +599,7 @@ const DashboardBuilder = () => {
   );
 
   return (
-    <DashboardWrapper dashboardFiltersOpen={dashboardFiltersOpen}>
+    <DashboardWrapper>
       {showFilterBar &&
         filterBarOrientation === FilterBarOrientation.Vertical && (
           <>
