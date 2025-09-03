@@ -341,6 +341,7 @@ export const StyledInputContainer = styled.div`
 
         .control-label {
           flex: 1;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
 
