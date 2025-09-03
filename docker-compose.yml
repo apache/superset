@@ -92,11 +92,6 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    environment:
-      # GitHub Actions environment variables for version/branch info
-      - GITHUB_SHA=${GITHUB_SHA:-}
-      - GITHUB_REF_NAME=${GITHUB_REF_NAME:-}
-      - GITHUB_HEAD_REF=${GITHUB_HEAD_REF:-}
     build:
       <<: *common-build
     container_name: superset_app
@@ -159,11 +154,6 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    environment:
-      # GitHub Actions environment variables for version/branch info
-      - GITHUB_SHA=${GITHUB_SHA:-}
-      - GITHUB_REF_NAME=${GITHUB_REF_NAME:-}
-      - GITHUB_HEAD_REF=${GITHUB_HEAD_REF:-}
     depends_on:
       db:
         condition: service_started
@@ -217,10 +207,6 @@ services:
         required: false
     environment:
       CELERYD_CONCURRENCY: 2
-      # GitHub Actions environment variables for version/branch info
-      GITHUB_SHA: ${GITHUB_SHA:-}
-      GITHUB_REF_NAME: ${GITHUB_REF_NAME:-}
-      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -245,11 +231,6 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    environment:
-      # GitHub Actions environment variables for version/branch info
-      - GITHUB_SHA=${GITHUB_SHA:-}
-      - GITHUB_REF_NAME=${GITHUB_REF_NAME:-}
-      - GITHUB_HEAD_REF=${GITHUB_HEAD_REF:-}
     restart: unless-stopped
     depends_on:
       - superset-worker
@@ -277,10 +258,6 @@ services:
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
       CELERYD_CONCURRENCY: 8
-      # GitHub Actions environment variables for version/branch info
-      GITHUB_SHA: ${GITHUB_SHA:-}
-      GITHUB_REF_NAME: ${GITHUB_REF_NAME:-}
-      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
     network_mode: host
     depends_on:
       superset-init:

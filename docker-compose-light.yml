@@ -71,12 +71,13 @@ x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-bookworm
+    - apache/superset-cache:3.10-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
+    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   db-light:
@@ -91,9 +92,7 @@ services:
       - db_home_light:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     environment:
-      # Override database name to avoid conflicts
       POSTGRES_DB: superset_light
-    # Increase max connections for test runs
     command: postgres -c max_connections=200
 
   superset-light:
@@ -106,7 +105,6 @@ services:
       <<: *common-build
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
-    # No host port mapping - accessed via webpack dev server proxy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -115,19 +113,10 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      # Override DB connection for light service
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      EXAMPLES_HOST: db-light
-      EXAMPLES_DB: superset_light
-      # GitHub Actions environment variables for version/branch info
-      GITHUB_SHA: ${GITHUB_SHA:-}
-      GITHUB_REF_NAME: ${GITHUB_REF_NAME:-}
-      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
-      EXAMPLES_USER: superset
-      EXAMPLES_PASSWORD: superset
-      # Use light-specific config that disables Redis
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
 
   superset-init-light:
@@ -139,21 +128,16 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    user: *superset-user
     depends_on:
       db-light:
         condition: service_started
-    user: *superset-user
     volumes: *superset-volumes
     environment:
-      # Override DB connection for light service
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      EXAMPLES_HOST: db-light
-      EXAMPLES_DB: superset_light
-      EXAMPLES_USER: superset
-      EXAMPLES_PASSWORD: superset
-      # Use light-specific config that disables Redis
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
@@ -203,15 +187,12 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      # Test-specific database configuration
       DATABASE_HOST: db-light
       DATABASE_DB: test
       POSTGRES_DB: test
-      # Point to test database
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@db-light:5432/test
-      # Use the light test config that doesn't require Redis
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG: superset_test_config_light
-      # Python path includes test directory
       PYTHONPATH: /app/pythonpath:/app/docker/pythonpath_dev:/app
 
 volumes:

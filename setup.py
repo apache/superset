@@ -30,12 +30,10 @@ with open(PACKAGE_JSON) as package_file:
 
 def get_git_sha() -> str:
     try:
-        # Try git command first (works in normal development)
         output = subprocess.check_output(["git", "rev-parse", "HEAD"])  # noqa: S603, S607
         return output.decode().strip()
     except Exception:  # pylint: disable=broad-except
-        # Fallback to GitHub Actions environment variable
-        return os.environ.get("GITHUB_SHA", "")
+        return ""
 
 
 GIT_SHA = get_git_sha()
