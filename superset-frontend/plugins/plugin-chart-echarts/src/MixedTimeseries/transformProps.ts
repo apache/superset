@@ -723,7 +723,7 @@ export default function transformProps(
             extractForecastSeriesContext((entry.name || '') as string).type ===
             ForecastSeriesEnum.Observation,
         )
-        .map(entry => entry.name || '')
+        .map(entry => entry.id || entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers)),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
