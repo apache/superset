@@ -45,7 +45,6 @@ import Owner from 'src/types/Owner';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
   AsyncSelect,
-  Button,
   Checkbox,
   Collapse,
   CollapseLabelInModal,
@@ -2435,7 +2434,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                       handleAddFilterField();
                                       add();
                                     }}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={e => {
                                       if (e.key === 'Enter' || e.key === ' ') {
                                         handleAddFilterField();
                                         add();
