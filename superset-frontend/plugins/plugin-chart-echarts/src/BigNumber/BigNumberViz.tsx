@@ -26,7 +26,6 @@ import {
   BRAND_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
-  NumberFormats,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -214,111 +213,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderComparisonIndicator() {
-    // Render comparison indicator for BigNumber charts in explore mode
-    const { percentageChange, comparisonIndicator, previousPeriodValue } = this.props;
-    
-    console.group('🎯 BigNumberViz renderComparisonIndicator - DEBUG');
-    console.log('📊 Comparison Data Check:', {
-      percentageChange,
-      comparisonIndicator,
-      previousPeriodValue,
-      hasPercentageChange: percentageChange !== undefined,
-      hasComparisonIndicator: comparisonIndicator !== undefined,
-      hasPreviousPeriodValue: previousPeriodValue !== undefined && previousPeriodValue !== null,
-    });
-
-    // Only render if we have valid comparison data
-    if (
-      percentageChange === undefined || 
-      comparisonIndicator === undefined || 
-      previousPeriodValue === undefined || 
-      previousPeriodValue === null
-    ) {
-      console.log('❌ Missing comparison data - not rendering indicator');
-      console.groupEnd();
-      return null;
-    }
-
-    // Import necessary styling utilities
-    const indicatorStyle = {
-      position: 'absolute' as const,
-      top: '16px',
-      right: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      fontSize: '12px',
-      fontWeight: 600,
-      padding: '4px 8px',
-      borderRadius: '4px',
-      border: '1px solid',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      backdropFilter: 'blur(4px)',
-      zIndex: 10,
-      whiteSpace: 'nowrap' as const,
-    };
-
-    let indicatorColor: string;
-    let arrowIcon: string;
-    let borderColor: string;
-
-    switch (comparisonIndicator) {
-      case 'positive':
-        indicatorColor = '#28a745'; // green
-        borderColor = '#28a745';
-        arrowIcon = '↗';
-        break;
-      case 'negative':
-        indicatorColor = '#dc3545'; // red
-        borderColor = '#dc3545';
-        arrowIcon = '↘';
-        break;
-      case 'neutral':
-        indicatorColor = '#ffc107'; // orange
-        borderColor = '#ffc107';
-        arrowIcon = '−';
-        break;
-      default:
-        console.log('❌ Invalid comparison indicator:', comparisonIndicator);
-        console.groupEnd();
-        return null;
-    }
-
-    // Format percentage change
-    const formatPercent = (value: number) => {
-      const formatted = (value * 100).toFixed(1);
-      return value >= 0 ? `+${formatted}%` : `${formatted}%`;
-    };
-
-    const formattedPercentage = Number.isNaN(percentageChange) 
-      ? '0.0%' 
-      : formatPercent(percentageChange);
-
-    console.log('✅ Rendering comparison indicator:', {
-      indicatorColor,
-      arrowIcon,
-      formattedPercentage,
-      borderColor,
-    });
-    console.groupEnd();
-
-    return (
-      <div 
-        className="comparison-indicator"
-        style={{
-          ...indicatorStyle,
-          color: indicatorColor,
-          borderColor: borderColor,
-        }}
-        title={`Period-over-period comparison: ${formattedPercentage}`}
-      >
-        <span style={{ fontSize: '14px' }}>{arrowIcon}</span>
-        <span>{formattedPercentage}</span>
-      </div>
-    );
-  }
-
   renderHeader(maxHeight: number) {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
@@ -473,39 +367,12 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     } = this.props;
     const className = this.getClassName();
 
-    // Log render attempts
-    console.group('🎨 BigNumberViz render - RENDER ATTEMPT');
-    console.log('🖼️ Render Context:', {
-      showTrendLine,
-      height,
-      className,
-      componentType: showTrendLine ? 'with-trendline' : 'no-trendline',
-    });
-
-    console.log('🎯 Comparison Render Check:', {
-      percentageChange: this.props.percentageChange,
-      comparisonIndicator: this.props.comparisonIndicator,
-      willRenderComparison:
-        this.props.percentageChange !== undefined &&
-        this.props.comparisonIndicator !== undefined,
-      comparisonMethod: 'renderComparisonIndicator()',
-    });
-    console.groupEnd();
-
     if (showTrendLine) {
       const chartHeight = Math.floor(PROPORTION.TRENDLINE * height);
       const allTextHeight = height - chartHeight;
 
-      const comparisonIndicator = this.renderComparisonIndicator();
-      console.log('📊 Trendline render - Comparison indicator result:', {
-        comparisonIndicator,
-        isNull: comparisonIndicator === null,
-        hasContent: !!comparisonIndicator,
-      });
-
       return (
         <div className={className} style={{ position: 'relative' }}>
-          {comparisonIndicator}
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
             {this.renderKicker(
@@ -527,16 +394,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       );
     }
 
-    const comparisonIndicator = this.renderComparisonIndicator();
-    console.log('📊 No-trendline render - Comparison indicator result:', {
-      comparisonIndicator,
-      isNull: comparisonIndicator === null,
-      hasContent: !!comparisonIndicator,
-    });
-
     return (
       <div className={className} style={{ height, position: 'relative' }}>
-        {comparisonIndicator}
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}

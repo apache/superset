@@ -328,9 +328,15 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     }
 
     const tooltipText = t('Period-over-period comparison');
-    const formattedPercentage = Number.isNaN(percentageChange) || percentageChange === undefined
-      ? '0%'
-      : formatPercentChange(percentageChange);
+    let formattedPercentage: string;
+    if (Number.isNaN(percentageChange) || percentageChange === undefined) {
+      formattedPercentage = '0%';
+    } else if (percentageChange === 0) {
+      // For zero percentage, don't show any sign
+      formattedPercentage = '0%';
+    } else {
+      formattedPercentage = formatPercentChange(percentageChange);
+    }
 
     // console.log('🎨 Creating comparison indicator element:', {
     //   indicatorColor,
