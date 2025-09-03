@@ -22,7 +22,7 @@ import { AntdIconType, BaseIconProps, CustomIconType, IconType } from './types';
 
 const genAriaLabel = (fileName: string) => {
   const name = fileName.replace(/_/g, '-'); // Replace underscores with dashes
-  const words = name.split(/(?=[A-Z])/).filter(word => word.length > 0); // Split at uppercase letters and filter out empty strings
+  const words = name.split(/(?<=[a-z])(?=[A-Z])/); // Split at lowercase-to-uppercase transitions
 
   if (words.length === 2) {
     return words[0].toLowerCase();

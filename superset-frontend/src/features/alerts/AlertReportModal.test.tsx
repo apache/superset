@@ -46,7 +46,7 @@ const generateMockPayload = (dashboard = true) => {
     crontab: '0 0 * * *',
     custom_width: null,
     database: {
-      label: 'examples',
+      database_name: 'examples',
       id: 1,
       value: 1,
     },
@@ -93,7 +93,8 @@ const generateMockPayload = (dashboard = true) => {
     ...mockPayload,
     chart: {
       id: 1,
-      label: 'Test Chart',
+      slice_name: 'test chart',
+      viz_type: 'table',
       value: 1,
     },
   };
@@ -156,7 +157,6 @@ const validAlert: AlertObject = {
   database: {
     id: 1,
     value: 1,
-    label: 'test_db',
     database_name: 'test_db',
   } as any,
   sql: 'SELECT COUNT(*) FROM test_table',
