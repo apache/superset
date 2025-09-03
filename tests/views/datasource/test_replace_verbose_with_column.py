@@ -14,15 +14,6 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing,
-#  software distributed under the License is distributed on an
-#  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-#  KIND, either express or implied.  See the License for the
-#  specific language governing permissions and limitations
-#  under the License.
 
 import pytest
 
@@ -35,6 +26,13 @@ class Column:
         self.verbose_name = verbose_name
 
 
+class IncompleteColumn:
+    """A column missing required attributes."""
+
+    def __init__(self, only_name):
+        self.only_name = only_name
+
+
 # Test dataset and filters
 columns = [
     Column("col1", "Column 1"),
@@ -42,7 +40,6 @@ columns = [
 ]
 
 
-# Test the replacement function
 @pytest.mark.parametrize(
     "filters, expected",
     [
@@ -60,11 +57,27 @@ columns = [
     ],
 )
 def test_replace_verbose_with_column(filters, expected):
-    # Copy input data to avoid modifying the original
     filters_copy = [dict(f) for f in filters]
-
-    # Run the replacement function
     replace_verbose_with_column(filters_copy, columns)
-
-    # Assert that the replaced filters match the expected result
     assert filters_copy == expected
+
+
+def test_replace_verbose_with_column_missing_col_key(caplog):
+    """Filter dict missing 'col' should trigger a warning and be skipped."""
+    filters = [{"op": "=="}]  # missing "col"
+    with caplog.at_level("WARNING"):
+        replace_verbose_with_column(filters, columns)
+    assert "Filter missing 'col' key" in caplog.text
+    # filter should remain unchanged
+    assert filters == [{"op": "=="}]
+
+
+def test_replace_verbose_with_column_missing_column_attrs(caplog):
+    """Column missing expected attributes should trigger a warning."""
+    filters = [{"col": "whatever"}]
+    bad_columns = [IncompleteColumn("broken")]
+    with caplog.at_level("WARNING"):
+        replace_verbose_with_column(filters, bad_columns)
+    assert "missing expected attributes" in caplog.text
+    # filter should remain unchanged
+    assert filters == [{"col": "whatever"}]

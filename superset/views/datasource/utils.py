@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any, Iterable, Optional
 
 from flask import current_app as app
@@ -26,6 +27,8 @@ from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
+
+logger = logging.getLogger(__name__)
 
 
 def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, int]:
@@ -61,14 +64,26 @@ def replace_verbose_with_column(
         column_attr: Attribute name for actual column name.
     """
     for f in filters:
-        match = next(
-            (
-                getattr(col, column_attr)
-                for col in columns
-                if getattr(col, verbose_attr) == f["col"]
-            ),
-            None,
-        )
+        col_value = f.get("col")
+        if col_value is None:
+            logger.warning("Filter missing 'col' key: %s", f)
+            continue
+
+        match = None
+        for col in columns:
+            if not hasattr(col, verbose_attr) or not hasattr(col, column_attr):
+                logger.warning(
+                    "Column object %s missing expected attributes '%s' or '%s'",
+                    col,
+                    verbose_attr,
+                    column_attr,
+                )
+                continue
+
+            if getattr(col, verbose_attr) == col_value:
+                match = getattr(col, column_attr)
+                break
+
         if match:
             f["col"] = match
 
