@@ -79,7 +79,7 @@ const ComparisonIndicator = styled.div<{
   indicatorColor: string;
 }>`
   ${({ theme, indicatorColor }) => `
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center;
     gap: ${theme.gridUnit / 2}px;
     font-size: ${theme.typography.sizes.s}px;
@@ -87,6 +87,7 @@ const ComparisonIndicator = styled.div<{
     color: ${indicatorColor} !important;
     cursor: help;
     white-space: nowrap;
+    position: relative;
     
     /* Aggressively remove ALL possible borders and backgrounds */
     background: none !important;
@@ -123,6 +124,12 @@ const ComparisonIndicator = styled.div<{
       padding: 0 !important;
       box-shadow: none !important;
       outline: none !important;
+    }
+    
+    /* Prevent tooltip-induced layout shifts */
+    &.ant-tooltip-open {
+      display: inline-flex !important;
+      position: relative !important;
     }
   `}
 `;
@@ -357,6 +364,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             backgroundColor: 'transparent !important',
             padding: '0 !important',
             boxShadow: 'none !important',
+            position: 'relative !important',
+            display: 'inline-flex !important',
           }}
         >
           <span>{arrowIcon}</span>

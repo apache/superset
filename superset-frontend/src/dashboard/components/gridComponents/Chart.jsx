@@ -518,17 +518,22 @@ class Chart extends Component {
             previousValueValid: previousPeriodValue !== null && !isNaN(previousPeriodValue),
           });
           
-          if (currentValue !== null && previousPeriodValue !== null && !isNaN(previousPeriodValue) && !isNaN(currentValue)) {
+          if (previousPeriodValue !== null && !isNaN(previousPeriodValue)) {
             let percentageChange = 0;
             let comparisonIndicator = 'neutral';
             
             if (previousPeriodValue === 0) {
-              percentageChange = currentValue > 0 ? 1 : currentValue < 0 ? -1 : 0;
-              comparisonIndicator = currentValue > 0 ? 'positive' : currentValue < 0 ? 'negative' : 'neutral';
-            } else if (currentValue === 0) {
-              percentageChange = -1;
+              if (currentValue === null || currentValue === 0) {
+                percentageChange = 0;
+                comparisonIndicator = 'neutral';
+              } else {
+                percentageChange = currentValue > 0 ? 1 : -1;
+                comparisonIndicator = currentValue > 0 ? 'positive' : 'negative';
+              }
+            } else if (currentValue === null || currentValue === 0) {
+              percentageChange = -1; // -100% change (complete loss)
               comparisonIndicator = 'negative';
-            } else {
+            } else if (!isNaN(currentValue)) {
               percentageChange = (currentValue - previousPeriodValue) / Math.abs(previousPeriodValue);
               comparisonIndicator = percentageChange > 0 ? 'positive' : percentageChange < 0 ? 'negative' : 'neutral';
             }
@@ -536,7 +541,7 @@ class Chart extends Component {
             console.log('🧮 Chart.jsx - Final calculation:', {
               currentValue,
               previousPeriodValue,
-              difference: currentValue - previousPeriodValue,
+              difference: (currentValue || 0) - previousPeriodValue,
               percentageChange,
               comparisonIndicator,
               isNaN: isNaN(percentageChange),
@@ -546,7 +551,7 @@ class Chart extends Component {
               percentageChange,
               comparisonIndicator,
               previousPeriodValue,
-              currentValue,
+              currentValue: currentValue || 0, // Use 0 if currentValue is null
             };
           }
         }
