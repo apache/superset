@@ -48,10 +48,7 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
         {title}{' '}
         {validateCheckStatus !== undefined &&
           (validateCheckStatus ? (
-            <Icons.CheckCircleOutlined
-              iconColor={theme.colorSuccess}
-              aria-label="check-circle"
-            />
+            <Icons.CheckCircleOutlined iconColor={theme.colorSuccess} />
           ) : (
             <span
               css={css`
