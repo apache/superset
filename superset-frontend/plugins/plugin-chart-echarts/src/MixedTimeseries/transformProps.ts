@@ -422,6 +422,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(
       {
         ...entry,
+        id: `${displayName || ''}`,
         name: `${displayName || ''}`,
       },
       colorScale,
@@ -488,6 +489,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(
       {
         ...entry,
+        id: `${displayName || ''}`,
         name: `${displayName || ''}`,
       },
 
