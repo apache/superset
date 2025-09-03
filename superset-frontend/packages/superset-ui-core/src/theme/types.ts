@@ -130,6 +130,10 @@ export interface SupersetSpecificTokens {
    * Defaults to colorPrimaryBgHover if not specified.
    */
   colorEditorSelection?: string;
+
+  // Spinner-related
+  brandSpinnerUrl?: string;
+  brandSpinnerSvg?: string;
 }
 
 /**

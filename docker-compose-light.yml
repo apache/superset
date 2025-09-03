@@ -125,6 +125,8 @@ services:
       EXAMPLES_PASSWORD: superset
       # Use light-specific config that disables Redis
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
+      GITHUB_SHA: ${GITHUB_SHA:-}
 
   superset-init-light:
     build:

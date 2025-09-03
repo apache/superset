@@ -23,6 +23,7 @@ from superset.themes.utils import (
     _is_valid_algorithm,
     _is_valid_theme_mode,
     is_valid_theme,
+    sanitize_theme_tokens,
 )
 
 
@@ -75,3 +76,40 @@ def test_is_valid_algorithm(algorithm, expected):
 )
 def test_is_valid_theme(theme, expected):
     assert is_valid_theme(theme) is expected
+
+
+def test_sanitize_theme_tokens_with_svg():
+    """Test that theme tokens with SVG content get sanitized."""
+    theme_config = {
+        "token": {
+            "brandSpinnerSvg": (
+                '<svg><script>alert("xss")</script><rect width="10"/></svg>'
+            ),
+            "colorPrimary": "#ff0000",
+        }
+    }
+    result = sanitize_theme_tokens(theme_config)
+
+    assert "script" not in result["token"]["brandSpinnerSvg"].lower()
+    assert result["token"]["colorPrimary"] == "#ff0000"  # Other tokens unchanged
+
+
+def test_sanitize_theme_tokens_with_url():
+    """Test that theme tokens with URL get sanitized."""
+    theme_config = {
+        "token": {
+            "brandSpinnerUrl": "javascript:alert('xss')",
+            "colorPrimary": "#ff0000",
+        }
+    }
+    result = sanitize_theme_tokens(theme_config)
+
+    assert result["token"]["brandSpinnerUrl"] == ""  # Blocked
+    assert result["token"]["colorPrimary"] == "#ff0000"  # Unchanged
+
+
+def test_sanitize_theme_tokens_no_spinner_tokens():
+    """Test that themes without spinner tokens are unchanged."""
+    theme_config = {"token": {"colorPrimary": "#ff0000", "fontFamily": "Arial"}}
+    result = sanitize_theme_tokens(theme_config)
+    assert result == theme_config

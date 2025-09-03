@@ -367,7 +367,7 @@ const FilterValue: FC<FilterControlProps> = ({
       overflow={overflow}
     >
       {isLoading ? (
-        <Loading position="inline-centered" />
+        <Loading position="inline-centered" size="s" muted />
       ) : (
         <SuperChart
           height={HEIGHT}
