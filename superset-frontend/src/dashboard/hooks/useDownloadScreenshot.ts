@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { last } from 'lodash';
+import contentDisposition from 'content-disposition';
 import {
   logging,
   t,
@@ -100,23 +101,29 @@ export const useDownloadScreenshot = (
         })
           .then((response: Response) => {
             const disposition = response.headers.get('Content-Disposition');
-            let filename = `screenshot.${format}`; // default filename
+            let fileName = `screenshot.${format}`; // default filename
 
-            if (disposition && disposition.includes('filename=')) {
-              const filenameRegex = /filename="([^"]+)"/;
-              const matches = filenameRegex.exec(disposition);
-              if (matches && matches[1]) {
-                filename = matches[1];
+            if (disposition) {
+              try {
+                const parsed = contentDisposition.parse(disposition);
+                if (parsed?.parameters?.filename) {
+                  fileName = parsed.parameters.filename;
+                }
+              } catch (error) {
+                console.warn(
+                  'Failed to parse Content-Disposition header:',
+                  error,
+                );
               }
             }
 
-            return response.blob().then(blob => ({ blob, filename }));
+            return response.blob().then(blob => ({ blob, fileName }));
           })
-          .then(({ blob, filename }) => {
+          .then(({ blob, fileName }) => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
