@@ -31,7 +31,7 @@
     "@types/eslint__js": "^8.42.3",
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^29.5.14",
-    "@types/jsonwebtoken": "^9.0.9",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.2.0",
     "@types/uuid": "^10.0.0",
