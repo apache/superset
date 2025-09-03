@@ -55,7 +55,7 @@ def replace_verbose_with_column(
 ) -> None:
     """
     Replace filter 'col' values that match column verbose_name with the column_name.
-    Operates in-place on the filters list.
+    Operates in-place on the filters list
 
     Args:
         filters: List of filter dicts, each must have 'col' key.
