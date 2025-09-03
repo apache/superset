@@ -39,7 +39,14 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { BigNumberComparisonData } from 'src/dashboard/util/getBigNumberComparisonData';
+
+// Inline type definition to avoid import issues
+interface BigNumberComparisonData {
+  percentageChange: number;
+  comparisonIndicator: 'positive' | 'negative' | 'neutral';
+  previousPeriodValue: number;
+  currentValue: number;
+}
 
 const extensionsRegistry = getExtensionsRegistry();
 
