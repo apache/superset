@@ -215,9 +215,108 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   }
 
   renderComparisonIndicator() {
-    // Comparison indicator is now handled by SliceHeader
-    // This method is kept for backward compatibility but returns null
-    return null;
+    // Render comparison indicator for BigNumber charts in explore mode
+    const { percentageChange, comparisonIndicator, previousPeriodValue } = this.props;
+    
+    console.group('🎯 BigNumberViz renderComparisonIndicator - DEBUG');
+    console.log('📊 Comparison Data Check:', {
+      percentageChange,
+      comparisonIndicator,
+      previousPeriodValue,
+      hasPercentageChange: percentageChange !== undefined,
+      hasComparisonIndicator: comparisonIndicator !== undefined,
+      hasPreviousPeriodValue: previousPeriodValue !== undefined && previousPeriodValue !== null,
+    });
+
+    // Only render if we have valid comparison data
+    if (
+      percentageChange === undefined || 
+      comparisonIndicator === undefined || 
+      previousPeriodValue === undefined || 
+      previousPeriodValue === null
+    ) {
+      console.log('❌ Missing comparison data - not rendering indicator');
+      console.groupEnd();
+      return null;
+    }
+
+    // Import necessary styling utilities
+    const indicatorStyle = {
+      position: 'absolute' as const,
+      top: '16px',
+      right: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      fontSize: '12px',
+      fontWeight: 600,
+      padding: '4px 8px',
+      borderRadius: '4px',
+      border: '1px solid',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backdropFilter: 'blur(4px)',
+      zIndex: 10,
+      whiteSpace: 'nowrap' as const,
+    };
+
+    let indicatorColor: string;
+    let arrowIcon: string;
+    let borderColor: string;
+
+    switch (comparisonIndicator) {
+      case 'positive':
+        indicatorColor = '#28a745'; // green
+        borderColor = '#28a745';
+        arrowIcon = '↗';
+        break;
+      case 'negative':
+        indicatorColor = '#dc3545'; // red
+        borderColor = '#dc3545';
+        arrowIcon = '↘';
+        break;
+      case 'neutral':
+        indicatorColor = '#ffc107'; // orange
+        borderColor = '#ffc107';
+        arrowIcon = '−';
+        break;
+      default:
+        console.log('❌ Invalid comparison indicator:', comparisonIndicator);
+        console.groupEnd();
+        return null;
+    }
+
+    // Format percentage change
+    const formatPercent = (value: number) => {
+      const formatted = (value * 100).toFixed(1);
+      return value >= 0 ? `+${formatted}%` : `${formatted}%`;
+    };
+
+    const formattedPercentage = Number.isNaN(percentageChange) 
+      ? '0.0%' 
+      : formatPercent(percentageChange);
+
+    console.log('✅ Rendering comparison indicator:', {
+      indicatorColor,
+      arrowIcon,
+      formattedPercentage,
+      borderColor,
+    });
+    console.groupEnd();
+
+    return (
+      <div 
+        className="comparison-indicator"
+        style={{
+          ...indicatorStyle,
+          color: indicatorColor,
+          borderColor: borderColor,
+        }}
+        title={`Period-over-period comparison: ${formattedPercentage}`}
+      >
+        <span style={{ fontSize: '14px' }}>{arrowIcon}</span>
+        <span>{formattedPercentage}</span>
+      </div>
+    );
   }
 
   renderHeader(maxHeight: number) {

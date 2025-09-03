@@ -79,21 +79,50 @@ const ComparisonIndicator = styled.div<{
   indicatorColor: string;
 }>`
   ${({ theme, indicatorColor }) => `
-    display: flex;
+    display: flex !important;
     align-items: center;
-    gap: ${theme.gridUnit}px;
+    gap: ${theme.gridUnit / 2}px;
     font-size: ${theme.typography.sizes.s}px;
     font-weight: ${theme.typography.weights.medium};
-    color: ${indicatorColor};
-    background-color: ${theme.colors.grayscale.light5};
-    padding: ${theme.gridUnit}px ${theme.gridUnit * 1.5}px;
-    border-radius: ${theme.borderRadius}px;
-    border: 1px solid ${theme.colors.grayscale.light2};
+    color: ${indicatorColor} !important;
     cursor: help;
     white-space: nowrap;
     
-    &:hover {
-      background-color: ${theme.colors.grayscale.light4};
+    /* Aggressively remove ALL possible borders and backgrounds */
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    
+    /* Override specific gray border that's being applied */
+    border: 0px solid transparent !important;
+    
+    /* Target any child elements that might have borders */
+    * {
+      border: none !important;
+      background: none !important;
+      box-shadow: none !important;
+    }
+    
+    /* Target the specific class to ensure override */
+    &.superset-comparison-indicator-no-border {
+      border: 0 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      outline: none !important;
     }
   `}
 `;
@@ -252,27 +281,28 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 
   // Render comparison indicator for BigNumber charts
   const renderComparisonIndicator = () => {
-    console.group('🎯 SliceHeader renderComparisonIndicator - DEBUG');
-    console.log('📊 BigNumber Comparison Data:', {
-      bigNumberComparisonData,
-      hasBigNumberComparisonData: !!bigNumberComparisonData,
-      sliceVizType: slice?.viz_type,
-      chartStatus,
-    });
+    // console.group('🎯 SliceHeader renderComparisonIndicator - DEBUG');
+    // console.log('📊 BigNumber Comparison Data:', {
+    //   bigNumberComparisonData,
+    //   hasBigNumberComparisonData: !!bigNumberComparisonData,
+    //   sliceVizType: slice?.viz_type,
+    //   chartStatus,
+    //   editMode,
+    // });
 
     if (!bigNumberComparisonData) {
-      console.log('❌ No comparison data available - not rendering indicator');
-      console.groupEnd();
+      // console.log('❌ No comparison data available - not rendering indicator');
+      // console.groupEnd();
       return null;
     }
 
     const { percentageChange, comparisonIndicator } = bigNumberComparisonData;
-    console.log('✅ Rendering comparison indicator:', {
-      percentageChange,
-      comparisonIndicator,
-      percentageChangeType: typeof percentageChange,
-      comparisonIndicatorType: typeof comparisonIndicator,
-    });
+    // console.log('✅ Rendering comparison indicator:', {
+    //   percentageChange,
+    //   comparisonIndicator,
+    //   percentageChangeType: typeof percentageChange,
+    //   comparisonIndicatorType: typeof comparisonIndicator,
+    // });
     const formatPercentChange = getNumberFormatter(
       NumberFormats.PERCENT_SIGNED_1_POINT,
     );
@@ -302,17 +332,27 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       ? '0%'
       : formatPercentChange(percentageChange);
 
-    console.log('🎨 Creating comparison indicator element:', {
-      indicatorColor,
-      arrowIcon,
-      formattedPercentage,
-      tooltipText,
-    });
-    console.groupEnd();
+    // console.log('🎨 Creating comparison indicator element:', {
+    //   indicatorColor,
+    //   arrowIcon,
+    //   formattedPercentage,
+    //   tooltipText,
+    // });
+    // console.groupEnd();
 
     return (
       <Tooltip title={tooltipText} placement="top">
-        <ComparisonIndicator indicatorColor={indicatorColor}>
+        <ComparisonIndicator
+          indicatorColor={indicatorColor}
+          className="superset-comparison-indicator-no-border"
+          style={{
+            border: 'none !important',
+            background: 'transparent !important',
+            backgroundColor: 'transparent !important',
+            padding: '0 !important',
+            boxShadow: 'none !important',
+          }}
+        >
           <span>{arrowIcon}</span>
           <span>{formattedPercentage}</span>
         </ComparisonIndicator>

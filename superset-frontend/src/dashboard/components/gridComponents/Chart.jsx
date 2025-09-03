@@ -39,6 +39,7 @@ import { URL_PARAMS } from 'src/constants';
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
 import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import { getMetricLabel } from '@superset-ui/core';
 // import { getBigNumberComparisonData } from '../../util/getBigNumberComparisonData';
 
 const propTypes = {
@@ -460,22 +461,64 @@ class Chart extends Component {
         );
         
         if (hasTimeOffsetColumns) {
-          const metricName = formData.metric || 'value';
-          const currentValue = data[0][metricName];
+          // Use EXACT same logic as BigNumber transformProps
+          const metric = formData.metric || 'value';
+          const metricName = getMetricLabel(metric);
           
-          // Find previous period value
+          // Use parseMetricValue like BigNumber transformProps does
+          const parseMetricValue = (metricValue) => {
+            if (typeof metricValue === 'string') {
+              // Handle string dates/numbers
+              const parsed = parseFloat(metricValue);
+              return isNaN(parsed) ? null : parsed;
+            }
+            return metricValue;
+          };
+          
+          // Extract current value EXACTLY like BigNumber transformProps (line 64)
+          const currentValue = data.length === 0 ? null : parseMetricValue(data[0][metricName]);
+          
+          console.log('🔧 Chart.jsx - Metric Resolution:', {
+            rawMetric: formData.metric,
+            rawMetricType: typeof formData.metric,
+            resolvedMetricName: metricName,
+            currentValue,
+            currentValueType: typeof currentValue,
+            availableColumns: colnames,
+            firstRowData: data[0],
+            allDataKeys: Object.keys(data[0]),
+            dataKeyValues: Object.entries(data[0]),
+          });
+          
+          // Find previous period value EXACTLY like BigNumber transformProps does
           let previousPeriodValue = null;
           for (const col of colnames) {
             if (col.includes('__') && col !== metricName) {
               const rawValue = data[0][col];
+              console.log('🔍 Checking time offset column:', {
+                col,
+                rawValue,
+                rawValueType: typeof rawValue,
+                isNull: rawValue === null,
+                isUndefined: rawValue === undefined,
+              });
               if (rawValue !== null && rawValue !== undefined) {
-                previousPeriodValue = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
+                // Use parseMetricValue like BigNumber transformProps does (line 236)
+                previousPeriodValue = parseMetricValue(rawValue);
+                console.log('✅ Found previousPeriodValue:', previousPeriodValue);
                 break;
               }
             }
           }
           
-          if (currentValue !== null && previousPeriodValue !== null && !isNaN(previousPeriodValue)) {
+          console.log('📊 Values before calculation:', {
+            currentValue,
+            previousPeriodValue,
+            currentValueValid: currentValue !== null && !isNaN(currentValue),
+            previousValueValid: previousPeriodValue !== null && !isNaN(previousPeriodValue),
+          });
+          
+          if (currentValue !== null && previousPeriodValue !== null && !isNaN(previousPeriodValue) && !isNaN(currentValue)) {
             let percentageChange = 0;
             let comparisonIndicator = 'neutral';
             
@@ -489,6 +532,15 @@ class Chart extends Component {
               percentageChange = (currentValue - previousPeriodValue) / Math.abs(previousPeriodValue);
               comparisonIndicator = percentageChange > 0 ? 'positive' : percentageChange < 0 ? 'negative' : 'neutral';
             }
+            
+            console.log('🧮 Chart.jsx - Final calculation:', {
+              currentValue,
+              previousPeriodValue,
+              difference: currentValue - previousPeriodValue,
+              percentageChange,
+              comparisonIndicator,
+              isNaN: isNaN(percentageChange),
+            });
             
             bigNumberComparisonData = {
               percentageChange,
