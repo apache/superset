@@ -1047,6 +1047,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           if (isEditMode && nativeFilters.all) {
             // update options for all filters
             addNativeFilterOptions(nativeFilters.all);
+            // Also set the available filter options for the add button
+            setNativeFilterOptions(
+              nativeFilters.all.map((filter: any) => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
           }
           const anchor = currentAlert?.extra?.dashboard?.anchor;
           if (anchor) {
@@ -2344,7 +2351,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 <div className="filters-container" key={key}>
                                   <div className="filters-dash-container">
                                     <div className="control-label">
-                                      <span>{t('Select Dashboard Filter')}</span>
+                                      <span>
+                                        {t('Select Dashboard Filter')}
+                                      </span>
                                       <InfoTooltip
                                         tooltip={t(
                                           'Choose from existing dashboard filters and select a value to refine your report results.',
