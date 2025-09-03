@@ -27,8 +27,10 @@ import { ChartSource } from 'src/types/ChartSource';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
-  SuperChart: ({ formData }) => (
-    <div data-test="mock-super-chart">{JSON.stringify(formData)}</div>
+  SuperChart: ({ postTransformProps = x => x, ...props }) => (
+    <div data-test="mock-super-chart">
+      {JSON.stringify(postTransformProps(props).formData)}
+    </div>
   ),
 }));
 
@@ -90,4 +92,21 @@ test('should not render chart context menu if the context menu is suppressed for
     <ChartRenderer {...requiredProps} vizType="chart_without_context_menu" />,
   );
   expect(queryByTestId('mock-chart-context-menu')).not.toBeInTheDocument();
+});
+
+test('should detect changes in postTransformProps', () => {
+  const postTransformProps = jest.fn(x => x);
+  const initialProps = {
+    ...requiredProps,
+    queriesResponse: [{ data: 'initial' }],
+    chartStatus: 'success',
+  };
+  const { rerender } = render(<ChartRenderer {...initialProps} />);
+  const updatedProps = {
+    ...initialProps,
+    postTransformProps,
+  };
+  expect(postTransformProps).toHaveBeenCalledTimes(0);
+  rerender(<ChartRenderer {...updatedProps} />);
+  expect(postTransformProps).toHaveBeenCalledTimes(1);
 });

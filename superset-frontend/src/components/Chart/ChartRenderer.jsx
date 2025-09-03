@@ -167,7 +167,8 @@ class ChartRenderer extends Component {
         nextProps.formData.subcategories !==
           this.props.formData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
-        nextProps.emitCrossFilters !== this.props.emitCrossFilters
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
+        nextProps.postTransformProps !== this.props.postTransformProps
       );
     }
     return false;
