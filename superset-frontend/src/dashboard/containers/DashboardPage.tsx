@@ -60,6 +60,14 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import {
+  parseRisonFilters,
+  risonToAdhocFilters,
+  getRisonFilterParam,
+  prettifyRisonFilterUrl,
+  injectRisonFiltersIntelligently,
+  updateUrlWithUnmatchedFilters,
+} from '../util/risonFilters';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -184,6 +192,60 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
       if (isOldRison) {
         dataMask = isOldRison;
+      }
+
+      // Parse Rison URL filters with intelligent native filter injection
+      const risonFilterParam = getRisonFilterParam();
+      if (risonFilterParam) {
+        const risonFilters = parseRisonFilters(risonFilterParam);
+        if (risonFilters.length > 0) {
+          // Try to intelligently inject into native filters first
+          const nativeFilters =
+            dashboard?.metadata?.native_filter_configuration || {};
+          const injectionResult = injectRisonFiltersIntelligently(
+            risonFilters,
+            nativeFilters,
+            dataMask,
+          );
+
+          // Use the updated dataMask with native filter injections
+          dataMask = injectionResult.updatedDataMask;
+
+          // For any unmatched filters, fall back to the old brute-force approach
+          if (injectionResult.unmatchedFilters.length > 0) {
+            const unmatchedAdhocFilters = risonToAdhocFilters(
+              injectionResult.unmatchedFilters,
+            );
+
+            // Store unmatched Rison filters in a virtual filter state
+            const risonDataMask = {
+              __rison_filters__: {
+                filterState: { value: unmatchedAdhocFilters },
+                ownState: {},
+              },
+            };
+
+            // Merge with existing dataMask
+            dataMask = { ...dataMask, ...risonDataMask };
+          }
+
+          // Clean up URL: remove matched filters, keep only unmatched ones
+          // This prevents duplication between native filter bar and URL filters section
+          const matchedCount =
+            risonFilters.length - injectionResult.unmatchedFilters.length;
+          if (matchedCount > 0) {
+            setTimeout(
+              () =>
+                updateUrlWithUnmatchedFilters(injectionResult.unmatchedFilters),
+              100,
+            );
+          }
+
+          // Only prettify URL if we have unmatched filters (brute-force case)
+          if (injectionResult.unmatchedFilters.length > 0) {
+            setTimeout(() => prettifyRisonFilterUrl(), 150);
+          }
+        }
       }
 
       if (readyToRender) {

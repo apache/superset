@@ -34,6 +34,11 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import { isEqual } from 'lodash';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
+import {
+  getRisonFilterParam,
+  parseRisonFilters,
+  risonToAdhocFilters,
+} from '../risonFilters';
 
 interface CachedFormData {
   extra_form_data?: JsonObject;
@@ -205,6 +210,44 @@ export default function getFormDataWithExtraFilters({
     }
   }
 
+  // Check for Rison filters in URL and add to adhoc_filters
+  // Only add Rison filters if we're in dashboard context (not explore)
+  // In explore context, Chart/index.tsx handles Rison filters to avoid duplication
+  const risonFilterParam = getRisonFilterParam();
+  let risonAdhocFilters: any[] = [];
+
+  // Check if we're in explore context by looking at the URL path
+  const isExploreContext = window.location.pathname.includes('/explore');
+
+  // Only process Rison filters if we're NOT in explore context
+  // This avoids duplication since Chart/index.tsx handles them in explore
+  if (!isExploreContext && risonFilterParam) {
+    const risonFilters = parseRisonFilters(risonFilterParam);
+    if (risonFilters.length > 0) {
+      risonAdhocFilters = risonToAdhocFilters(risonFilters);
+    }
+  }
+
+  // Also check if Rison filters were stored in dataMask from DashboardPage
+  const risonDataMaskFilters =
+    // eslint-disable-next-line no-underscore-dangle
+    (dataMask as any)?.__rison_filters__?.filterState?.value || [];
+  if (risonDataMaskFilters.length > 0 && risonAdhocFilters.length === 0) {
+    risonAdhocFilters = risonDataMaskFilters;
+  }
+
+  // Deduplicate Rison filters before adding them
+  let finalAdhocFilters = chart.form_data?.adhoc_filters || [];
+  if (risonAdhocFilters.length > 0) {
+    // Remove any existing Rison filters from the form data
+    const nonRisonFilters = finalAdhocFilters.filter(
+      // eslint-disable-next-line no-underscore-dangle
+      (f: any) => !f.__superset_rison_filter__,
+    );
+    // Add the new Rison filters
+    finalAdhocFilters = [...nonRisonFilters, ...risonAdhocFilters];
+  }
+
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
     chart_id: chart.id,
@@ -216,6 +259,10 @@ export default function getFormDataWithExtraFilters({
       own_color_scheme: ownColorScheme,
     }),
     extra_filters: getEffectiveExtraFilters(filters),
+    // Use the deduplicated adhoc_filters
+    ...(finalAdhocFilters.length > 0 && {
+      adhoc_filters: finalAdhocFilters,
+    }),
     ...extraData,
     ...extraControls,
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),

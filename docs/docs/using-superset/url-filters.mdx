@@ -1,0 +1,283 @@
+---
+title: URL Filters
+hide_title: false
+sidebar_position: 4
+version: 1
+---
+
+# URL Filters
+
+Apply filters to dashboards and charts directly through the URL using a simple, human-readable syntax.
+
+Superset URL filters use [Rison](https://github.com/Nanonid/rison), a data serialization format that's JSON-compatible but optimized for URLs - it's expressive, compact, and looks as great as URLs can look without all the percent-encoding clutter.
+
+## Why URL Filters?
+
+URL filters allow you to:
+- Share specific views of data with colleagues
+- Bookmark frequently used filter combinations
+- Create dynamic links in external applications
+- Override saved dashboard states temporarily
+- Build data-driven workflows
+
+## Quick Start
+
+Add the `f` parameter to any dashboard or explore URL:
+
+```
+/dashboard/123?f=(country:USA)
+/explore?f=(year:2024)
+```
+
+## Basic Syntax
+
+### Single Filter
+
+Filter by a single value:
+
+```
+f=(country:USA)
+```
+
+### Multiple Filters (AND)
+
+Combine multiple filters with commas (AND logic):
+
+```
+f=(country:USA,year:2024)
+f=(status:active,department:Sales,region:North)
+```
+
+### Lists (IN Operator)
+
+Use `!()` to filter by multiple values (OR within the field):
+
+```
+f=(country:!(USA,Canada))              # country IN ('USA', 'Canada')
+f=(status:!(active,pending,review))    # status IN ('active', 'pending', 'review')
+```
+
+## Logical Operators
+
+### NOT Operator
+
+Exclude specific values:
+
+```
+f=(NOT:(country:USA))                  # country != 'USA'
+f=(NOT:(status:deleted))               # status != 'deleted'
+```
+
+Exclude multiple values (NOT IN):
+
+```
+f=(NOT:(country:!(USA,Canada)))        # country NOT IN ('USA', 'Canada')
+f=(NOT:(type:!(test,demo)))            # type NOT IN ('test', 'demo')
+```
+
+### OR Operator
+
+Create OR conditions across different fields:
+
+```
+f=(OR:!(status:urgent,priority:high))  # status = 'urgent' OR priority = 'high'
+f=(OR:!(region:Europe,country:USA))    # region = 'Europe' OR country = 'USA'
+```
+
+## Comparison Operators
+
+### Numeric Comparisons
+
+Use comparison operators for numeric fields:
+
+```
+f=(sales:(gt:100000))                  # sales > 100000
+f=(age:(gte:18))                       # age >= 18
+f=(temperature:(lt:32))                # temperature < 32
+f=(price:(lte:1000))                   # price <= 1000
+```
+
+### Range Queries (BETWEEN)
+
+Filter values within a range:
+
+```
+f=(date:(between:!(2024-01-01,2024-12-31)))    # Full year 2024
+f=(age:(between:!(25,65)))                     # Age 25 to 65 inclusive
+f=(revenue:(between:!(10000,50000)))           # Revenue range
+```
+
+### Text Matching (LIKE)
+
+Use SQL LIKE patterns for text fields:
+
+```
+f=(name:(like:'John%'))                # Names starting with John
+f=(email:(like:'%@company.com'))       # Company emails
+f=(description:(like:'%urgent%'))      # Contains 'urgent'
+```
+
+## Complex Examples
+
+### E-commerce Dashboard
+
+Show high-value orders from North America, excluding test accounts:
+
+```
+f=(region:!(USA,Canada,Mexico),amount:(gt:1000),NOT:(account_type:test))
+```
+
+### Sales Analytics
+
+Q4 data for either VIP customers or high revenue:
+
+```
+f=(quarter:Q4,OR:!(customer_type:VIP,revenue:(gt:100000)))
+```
+
+### User Activity
+
+Active users in specific departments, excluding contractors:
+
+```
+f=(status:active,department:!(Engineering,Sales),NOT:(employee_type:contractor))
+```
+
+## Integration with Existing Features
+
+### With Permalinks
+
+Override saved permalink state:
+
+```
+/dashboard/permalink/xyz789?f=(region:Europe)
+```
+
+The filter will override the region saved in the permalink while preserving other settings.
+
+### With Form Data Keys
+
+Apply filters on top of cached explore state:
+
+```
+/explore?form_data_key=abc123&f=(metric:(gt:baseline))
+```
+
+### With Embedded Dashboards
+
+Filter embedded dashboards:
+
+```
+/dashboard/42/embedded?f=(client:ACME)
+```
+
+## Combining Everything
+
+Here's a complex real-world example that combines multiple features:
+
+```
+f=(
+  year:2024,
+  quarter:!(Q3,Q4),
+  region:!(North,South),
+  NOT:(status:!(cancelled,refunded)),
+  revenue:(gt:50000),
+  OR:!(priority:urgent,escalated:!t)
+)
+```
+
+This filters for:
+- Year 2024
+- Q3 or Q4
+- North or South regions
+- Excluding cancelled or refunded orders
+- Revenue greater than $50,000
+- And either urgent priority OR escalated flag is true
+
+## Tips and Best Practices
+
+### Keep It Simple
+Start with basic filters and add complexity only when needed:
+- ✅ Good: `f=(country:USA,year:2024)`
+- ❌ Avoid: Complex nested logic when native filters would be clearer
+
+### Use Lists for Same-Field OR
+Instead of complex OR operators, use lists when filtering one field:
+- ✅ Better: `f=(status:!(active,pending,review))`
+- ❌ Avoid: `f=(OR:!(status:active,OR:!(status:pending,status:review)))`
+
+### Quote Strings with Special Characters
+Use single quotes for strings containing spaces or special characters:
+- `f=(city:'New York')`
+- `f=(name:'O''Brien')`  # Escape single quotes by doubling
+
+### Date Formats
+Use ISO 8601 format for dates:
+- `f=(date:2024-01-15)`
+- `f=(created:(between:!(2024-01-01,2024-12-31)))`
+
+## Limitations
+
+- **Complex Boolean Logic**: For nested AND/OR combinations beyond what's shown here, use Superset's native filters
+- **Column Names**: Must not conflict with reserved operators (OR, NOT)
+- **URL Length**: Browsers have URL length limits; for very complex filters, use native filters
+- **Special Characters**: Some characters may need URL encoding
+
+## API Reference
+
+### Logical Operators
+| Operator | Syntax | Description |
+|----------|--------|-------------|
+| AND | `,` (comma) | Default between conditions |
+| OR | `OR:!(...)` | Explicit OR across conditions |
+| NOT | `NOT:(...)` | Negation |
+
+### Comparison Operators
+| Operator | Syntax | Example |
+|----------|--------|---------|
+| Equals | `:` | `country:USA` |
+| IN | `:!(...)` | `country:!(USA,Canada)` |
+| Greater Than | `(gt:n)` | `sales:(gt:1000)` |
+| Greater Than or Equal | `(gte:n)` | `age:(gte:18)` |
+| Less Than | `(lt:n)` | `temp:(lt:32)` |
+| Less Than or Equal | `(lte:n)` | `price:(lte:100)` |
+| BETWEEN | `(between:!(a,b))` | `date:(between:!(2024-01-01,2024-12-31))` |
+| LIKE | `(like:pattern)` | `name:(like:'%smith%')` |
+
+### Data Types
+| Type | Example | Notes |
+|------|---------|-------|
+| String | `USA` or `'North America'` | Use quotes for spaces/special chars |
+| Number | `42` or `3.14` | No quotes needed |
+| Boolean | `!t` or `!f` | Rison boolean syntax |
+| Null | `!n` | Rison null syntax |
+| Array | `!(val1,val2)` | For IN operations |
+
+## Troubleshooting
+
+### Filters Not Working?
+1. Check that you're using the `f=()` wrapper
+2. Verify column names match exactly (case-sensitive)
+3. Ensure proper Rison syntax (especially for arrays and objects)
+4. Check browser console for error messages
+
+### URL Too Long?
+If your filter URL becomes too long (browsers typically limit URLs to ~2000 characters):
+1. Use dashboard native filters for complex logic
+2. Use the Superset Permalink API to store complex filter state and reference it with a key
+3. Create a permalink with base filters, then add `f` parameter for variations
+4. Consider splitting filters across multiple parameters (future feature)
+
+### Special Characters Issues?
+- **Spaces in values**: Use single quotes around the entire value
+  - Example: `f=(region:'North America')` for filtering on "North America"
+  - Example: `f=(city:'Los Angeles')` for filtering on "Los Angeles"
+- **Single quotes in values**: Double them for escaping
+  - Example: `f=(name:'O''Brien')` for filtering on "O'Brien"
+- **URL encoding**: The browser handles this automatically
+  - Spaces become `%20`, special chars are encoded as needed
+  - You type: `f=(region:'North America')`
+  - Browser sends: `f=(region:'North%20America')`
+- **Multiple words**: Always quote multi-word values
+  - Correct: `f=(status:'In Progress')`
+  - Wrong: `f=(status:In Progress)` (will cause parse error)
