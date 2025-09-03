@@ -96,10 +96,7 @@ function SearchFilter(
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
         prefix={
-          <Icons.SearchOutlined
-            iconColor={theme.colors.grayscale.light1}
-            iconSize="l"
-          />
+          <Icons.SearchOutlined iconColor={theme.colorIcon} iconSize="l" />
         }
       />
     </FilterContainer>

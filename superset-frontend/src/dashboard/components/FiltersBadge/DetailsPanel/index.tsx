@@ -20,7 +20,7 @@ import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
 
 import { useSelector } from 'react-redux';
 import { t, useTheme } from '@superset-ui/core';
-import { Popover } from '@superset-ui/core/components';
+import { List, Popover } from '@superset-ui/core/components';
 import {
   FiltersContainer,
   FiltersDetailsContainer,
@@ -158,14 +158,19 @@ const DetailsPanelPopover = ({
               {t('Applied filters (%d)', appliedIndicators.length)}
             </SectionName>
             <FiltersContainer>
-              {appliedIndicators.map(indicator => (
-                <FilterIndicator
-                  ref={el => indicatorRefs.current.push(el)}
-                  key={indicatorKey(indicator)}
-                  indicator={indicator}
-                  onClick={onHighlightFilterSource}
-                />
-              ))}
+              <List
+                dataSource={appliedIndicators}
+                renderItem={indicator => (
+                  <List.Item>
+                    <FilterIndicator
+                      ref={el => indicatorRefs.current.push(el)}
+                      key={indicatorKey(indicator)}
+                      indicator={indicator}
+                      onClick={onHighlightFilterSource}
+                    />
+                  </List.Item>
+                )}
+              />
             </FiltersContainer>
           </div>
         ) : null}
@@ -175,7 +180,7 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      color={`${theme.colors.grayscale.dark2}cc`}
+      color={`${theme.colorBgElevated}cc`}
       content={content}
       open={popoverVisible}
       onOpenChange={handleVisibility}

@@ -35,10 +35,13 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
-from sqlalchemy import inspect
+from superset_core import api as core_api
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.core.api.types.models import HostModelsApi
+from superset.core.api.types.query import HostQueryApi
+from superset.core.api.types.rest_api import HostRestApi
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -63,7 +66,6 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
-from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
@@ -81,11 +83,35 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app = app
         self.config = app.config
         self.manifest: dict[Any, Any] = {}
+        self._db_uri_cache: str | None = None  # Cache for valid database URIs
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
+
+    @property
+    def database_uri(self) -> str:
+        """Lazy property for database URI to avoid early config access issues"""
+        # If we have a cached valid value, return it
+        if self._db_uri_cache is not None:
+            return self._db_uri_cache
+
+        # Try to get the URI from config
+        uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
+
+        # Check if this is a fallback value that indicates config isn't ready
+        if uri and not any(
+            fallback in uri.lower()
+            for fallback in ["nouser", "nopassword", "nohost", "nodb"]
+        ):
+            # Valid URI - cache it and return
+            self._db_uri_cache = uri
+            return uri
+
+        # Return the fallback value without caching
+        # This allows retry on next access when config might be ready
+        return uri
 
     def pre_init(self) -> None:
         """
@@ -149,6 +175,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -246,6 +273,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
+
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            from superset.extensions.api import ExtensionsRestApi
+
+            appbuilder.add_api(ExtensionsRestApi)
+
         #
         # Setup regular views
         #
@@ -368,6 +401,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
         )
 
+        appbuilder.add_view(
+            ExtensionsView,
+            "Extensions",
+            label=_("Extensions"),
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ENABLE_EXTENSIONS"
+            ),
+        )
+
         #
         # Setup views with no menu
         #
@@ -478,31 +522,41 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
-    def _init_database_dependent_features(self) -> None:
-        """
-        Initialize features that require database tables to exist.
-        This is called during app initialization but checks table existence
-        to handle cases where the app starts before database migration.
-        """
-        inspector = inspect(db.engine)
+    def init_core_api(self) -> None:
+        global core_api
 
-        # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
-        if not inspector.has_table("dashboards"):
-            logger.debug(
-                "Superset tables not yet created. Skipping database-dependent "
-                "initialization. These features will be initialized after migration."
-            )
+        core_api.models = HostModelsApi()
+        core_api.rest_api = HostRestApi()
+        core_api.query = HostQueryApi()
+
+    def init_extensions(self) -> None:
+        from superset.extensions.utils import (
+            eager_import,
+            get_extensions,
+            install_in_memory_importer,
+        )
+
+        try:
+            extensions = get_extensions()
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
+            # If the db hasn't been initialized yet, an exception will be raised.
+            # It's fine to ignore this, as in this case there are no extensions
+            # present yet.
             return
 
-        # Register SQLA event listeners for tagging system
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
+        for extension in extensions.values():
+            if backend_files := extension.backend:
+                install_in_memory_importer(backend_files)
 
-        # Seed system themes from configuration
-        from superset.commands.theme.seed import SeedSystemThemesCommand
+            backend = extension.manifest.get("backend")
 
-        if inspector.has_table("themes"):
-            SeedSystemThemesCommand().run()
+            if backend and (entrypoints := backend.get("entryPoints")):
+                for entrypoint in entrypoints:
+                    try:
+                        eager_import(entrypoint)
+                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
+                        # Surface exceptions during initialization of extensions
+                        print(ex)
 
     def init_app_in_ctx(self) -> None:
         """
@@ -521,10 +575,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
-        # Initialize database-dependent features only if database is ready
-        self._init_database_dependent_features()
+        # Sync configuration to database (themes, etc.)
+        # This can be called separately in multi-tenant environments
+        self.superset_app.sync_config_to_db()
 
         self.init_views()
+
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_core_api()
+            self.init_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
@@ -600,7 +659,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 # Simple connection test
                 db.engine.execute("SELECT 1")
         except Exception:
-            db_uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
+            db_uri = self.database_uri
             safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
             print(
                 f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"
@@ -651,9 +710,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         set_isolation_level_to = None
 
         if not isolation_level:
-            backend = make_url_safe(
-                self.config["SQLALCHEMY_DATABASE_URI"]
-            ).get_backend_name()
+            backend = make_url_safe(self.database_uri).get_backend_name()
             if backend in ("mysql", "postgresql"):
                 set_isolation_level_to = "READ COMMITTED"
 

@@ -91,7 +91,7 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIcon};
 
     .disabled {
       svg,
@@ -102,12 +102,12 @@ const Actions = styled.div`
           }
         }
       }
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
       .ant-menu-item:hover {
         cursor: default;
       }
       &::after {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextDisabled};
       }
     }
   `}
@@ -348,7 +348,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxl',
         id: 'table_name',
       },
       {

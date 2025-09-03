@@ -17,13 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, styled, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -93,10 +87,9 @@ export const DataTablesPane = ({
   chartStatus,
   ownState,
   errorMessage,
-  actions,
+  setForceQuery,
   canDownload,
 }: DataTablesPaneProps) => {
-  const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
     results: false,
@@ -189,7 +182,7 @@ export const DataTablesPane = ({
         )}
       </TableControlsWrapper>
     );
-  }, [handleCollapseChange, panelOpen, theme.colors.grayscale.base]);
+  }, [handleCollapseChange, panelOpen]);
 
   const queryResultsPanes = useResultsPane({
     errorMessage,
@@ -197,7 +190,7 @@ export const DataTablesPane = ({
     queryForce,
     ownState,
     isRequest: isRequest.results,
-    actions,
+    setForceQuery,
     isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
   }).map((pane, idx) => ({
@@ -217,7 +210,7 @@ export const DataTablesPane = ({
             datasource={datasource}
             queryForce={queryForce}
             isRequest={isRequest.samples}
-            actions={actions}
+            setForceQuery={setForceQuery}
             isVisible={ResultTypes.Samples === activeTabKey}
             canDownload={canDownload}
           />

@@ -243,6 +243,10 @@ export default function transformProps(
   const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
   const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
 
+  const dataTypes = getColtypesMapping(queriesData[0]);
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
@@ -250,6 +254,7 @@ export default function transformProps(
     sortSeriesAscending,
     stack,
     totalStackedValues,
+    xAxisType,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
   const {
@@ -267,11 +272,8 @@ export default function transformProps(
     sortSeriesAscending: sortSeriesAscendingB,
     stack: Boolean(stackB),
     totalStackedValues: totalStackedValuesB,
+    xAxisType,
   });
-
-  const dataTypes = getColtypesMapping(queriesData[0]);
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
@@ -450,6 +452,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesA,
         thresholdValues,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -516,6 +519,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesB,
         thresholdValues: thresholdValuesB,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -718,7 +722,7 @@ export default function transformProps(
             ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.id || entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers, annotationData)),
+        .concat(extractAnnotationLabels(annotationLayers)),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {

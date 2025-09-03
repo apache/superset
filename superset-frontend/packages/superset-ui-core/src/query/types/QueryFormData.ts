@@ -204,6 +204,8 @@ export interface SqlaFormData extends BaseFormData {
 
 export type QueryFormData = SqlaFormData;
 
+export type LatestQueryFormData = Partial<QueryFormData>;
+
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------

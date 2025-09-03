@@ -115,7 +115,7 @@ export interface Dashboard {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -346,7 +346,6 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
-        size: 'xxl',
         id: 'dashboard_title',
       },
       {
@@ -361,6 +360,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'published',
         size: 'sm',
         id: 'published',
+        className: 'no-ellipsis',
       },
       {
         Cell: ({
@@ -387,7 +387,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
       },
@@ -400,7 +399,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
-        size: 'xl',
         id: 'owners',
       },
       {
@@ -414,7 +412,6 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
         id: 'changed_on_delta_humanized',
       },
       {
