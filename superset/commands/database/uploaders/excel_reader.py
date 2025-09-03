@@ -72,7 +72,7 @@ class ExcelReader(BaseDataReader):
             "na_values": self._options.get("null_values")
             if self._options.get("null_values")  # None if an empty list
             else None,
-            "parse_dates": self._options.get("column_dates"),
+            "parse_dates": self._options.get("column_dates") or False,
             "skiprows": self._options.get("skip_rows", 0),
             "sheet_name": self._options.get("sheet_name", 0),
             "nrows": self._options.get("rows_to_read"),
