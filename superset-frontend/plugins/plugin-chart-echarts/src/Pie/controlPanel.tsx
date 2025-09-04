@@ -41,8 +41,6 @@ const {
   numberFormat,
   showLabels,
   roseType,
-  valueBasedColors,
-  sequentialColorScheme,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -71,44 +69,6 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        [
-          {
-            name: 'value_based_colors',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Value-based Colors'),
-              default: valueBasedColors,
-              renderTrigger: true,
-              description: t(
-                'Use color intensity based on values instead of categorical colors. Larger values get darker colors.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'sequential_color_scheme',
-            config: {
-              type: 'SelectControl',
-              label: t('Sequential Color Scheme'),
-              default: sequentialColorScheme,
-              renderTrigger: true,
-              choices: [
-                ['superset_seq_1', t('Superset Sequential #1')],
-                ['superset_seq_2', t('Superset Sequential #2')],
-                ['blues', t('Blues')],
-                ['greens', t('Greens')],
-                ['oranges', t('Oranges')],
-                ['purples', t('Purples')],
-                ['dark_blue', t('Dark Blues')],
-                ['echarts_gradient', t('ECharts Gradient')],
-              ],
-              description: t('Color scheme for value-based coloring'),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls?.value_based_colors?.value),
-            },
-          },
-        ],
         [
           {
             name: 'show_labels_threshold',

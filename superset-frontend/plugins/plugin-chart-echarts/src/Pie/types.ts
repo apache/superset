@@ -47,8 +47,6 @@ export type EchartsPieFormData = QueryFormData &
     dateFormat: string;
     showLabelsThreshold: number;
     roseType: 'radius' | 'area' | null;
-    valueBasedColors: boolean;
-    sequentialColorScheme?: string;
   };
 
 export enum EchartsPieLabelType {
@@ -84,8 +82,6 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   showLabelsThreshold: 5,
   dateFormat: 'smart_date',
   roseType: null,
-  valueBasedColors: false,
-  sequentialColorScheme: 'superset_seq_1',
 };
 
 export type PieChartTransformedProps =
