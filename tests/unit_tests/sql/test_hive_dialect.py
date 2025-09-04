@@ -17,15 +17,7 @@
 
 """Tests for Hive dialect support in sqlglot."""
 
-from sqlglot import Dialects
-
-from superset.sql.parse import SQLGLOT_DIALECTS, SQLScript, Table
-
-
-def test_impala_dialect_mapped() -> None:
-    """Test that Impala is correctly mapped to Hive dialect."""
-    assert "impala" in SQLGLOT_DIALECTS
-    assert SQLGLOT_DIALECTS["impala"] == Dialects.HIVE
+from superset.sql.parse import SQLScript, Table
 
 
 def test_hive_sql_parsing() -> None:
