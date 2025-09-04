@@ -423,6 +423,7 @@ export default function transformProps(
       {
         ...entry,
         id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
       },
       colorScale,
       colorScaleKey,
@@ -489,6 +490,7 @@ export default function transformProps(
       {
         ...entry,
         id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
       },
 
       colorScale,
