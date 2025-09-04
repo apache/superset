@@ -17,12 +17,25 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { postFormData, putFormData } from './formData';
+import { postFormData, putFormData, generateExploreUrl } from './formData';
+import { mountExploreUrl } from './index';
 
 jest.mock('@superset-ui/core', () => ({
   SupersetClient: {
     post: jest.fn(),
     put: jest.fn(),
+  },
+}));
+
+jest.mock('./index', () => ({
+  mountExploreUrl: jest.fn(),
+}));
+
+jest.mock('src/constants', () => ({
+  URL_PARAMS: {
+    formDataKey: {
+      name: 'form_data_key',
+    },
   },
 }));
 
@@ -94,5 +107,111 @@ test('postFormData without optional params should work', async () => {
       datasource_type: 'table',
       form_data: JSON.stringify({ foo: 'bar' }),
     },
+  });
+});
+
+describe('generateExploreUrl', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should generate explore URL without optional parameters', async () => {
+    const mockKey = 'test-key-123';
+    const mockBaseUrl = '/explore/?form_data_key=test-key-123';
+
+    (SupersetClient.post as jest.Mock).mockResolvedValue({
+      json: { key: mockKey },
+    });
+    (mountExploreUrl as jest.Mock).mockReturnValue(mockBaseUrl);
+
+    const result = await generateExploreUrl(1, 'table', { viz_type: 'table' });
+
+    expect(SupersetClient.post).toHaveBeenCalledWith({
+      endpoint: 'api/v1/explore/form_data',
+      jsonPayload: {
+        datasource_id: 1,
+        datasource_type: 'table',
+        form_data: JSON.stringify({ viz_type: 'table' }),
+      },
+    });
+
+    expect(mountExploreUrl).toHaveBeenCalledWith(null, {
+      form_data_key: mockKey,
+    });
+
+    expect(result).toBe(mockBaseUrl);
+  });
+
+  test('should generate explore URL with all optional parameters', async () => {
+    const mockKey = 'test-key-456';
+    const mockBaseUrl = '/explore/?form_data_key=test-key-456';
+    const mockFinalUrl =
+      '/explore/?form_data_key=test-key-456&dashboard_page_id=dashboard-123';
+
+    (SupersetClient.post as jest.Mock).mockResolvedValue({
+      json: { key: mockKey },
+    });
+    (mountExploreUrl as jest.Mock).mockReturnValue(mockBaseUrl);
+
+    const result = await generateExploreUrl(
+      2,
+      'table',
+      { viz_type: 'table', slice_id: 42 },
+      {
+        chartId: 42,
+        tabId: 'tab-1',
+        dashboardPageId: 'dashboard-123',
+      },
+    );
+
+    expect(SupersetClient.post).toHaveBeenCalledWith({
+      endpoint: 'api/v1/explore/form_data?tab_id=tab-1',
+      jsonPayload: {
+        datasource_id: 2,
+        datasource_type: 'table',
+        form_data: JSON.stringify({ viz_type: 'table', slice_id: 42 }),
+        chart_id: 42,
+      },
+    });
+
+    expect(mountExploreUrl).toHaveBeenCalledWith(null, {
+      form_data_key: mockKey,
+    });
+
+    expect(result).toBe(mockFinalUrl);
+  });
+
+  test('should handle dashboard_page_id with existing query parameters', async () => {
+    const mockKey = 'test-key-789';
+    const mockBaseUrl = '/explore/?form_data_key=test-key-789&standalone=1';
+
+    (SupersetClient.post as jest.Mock).mockResolvedValue({
+      json: { key: mockKey },
+    });
+    (mountExploreUrl as jest.Mock).mockReturnValue(mockBaseUrl);
+
+    const result = await generateExploreUrl(
+      3,
+      'query',
+      { viz_type: 'table' },
+      {
+        dashboardPageId: 'dashboard-456',
+      },
+    );
+
+    const expectedUrl =
+      '/explore/?form_data_key=test-key-789&standalone=1&dashboard_page_id=dashboard-456';
+    expect(result).toBe(expectedUrl);
+  });
+
+  test('should propagate errors from postFormData', async () => {
+    const mockError = new Error('Network error');
+    (SupersetClient.post as jest.Mock).mockRejectedValue(mockError);
+
+    await expect(
+      generateExploreUrl(1, 'table', { viz_type: 'table' }),
+    ).rejects.toThrow('Network error');
+
+    expect(mountExploreUrl).not.toHaveBeenCalled();
   });
 });

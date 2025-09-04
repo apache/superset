@@ -43,7 +43,7 @@ import {
 } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { postFormData } from 'src/explore/exploreUtils/formData';
+import { generateExploreUrl } from 'src/explore/exploreUtils/formData';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -96,11 +96,12 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   useEffect(() => {
     // short circuit if the user is embedded as explore is not available
     if (isEmbedded()) return;
-    postFormData(Number(datasource_id), datasource_type, formData, 0)
-      .then(key => {
-        setUrl(
-          `/explore/?form_data_key=${key}&dashboard_page_id=${dashboardPageId}`,
-        );
+    generateExploreUrl(Number(datasource_id), datasource_type, formData, {
+      chartId: 0,
+      dashboardPageId,
+    })
+      .then(url => {
+        setUrl(url);
       })
       .catch(() => {
         addDangerToast(t('Failed to generate chart edit URL'));

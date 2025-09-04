@@ -35,9 +35,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
-import { postFormData } from 'src/explore/exploreUtils/formData';
-import { mountExploreUrl } from 'src/explore/exploreUtils';
-import { URL_PARAMS } from 'src/constants';
+import { generateExploreUrl } from 'src/explore/exploreUtils/formData';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 
@@ -171,24 +169,18 @@ export default function DrillDetailModal({
     setIsGeneratingUrl(true);
 
     try {
-      const key = await postFormData(
+      const url = await generateExploreUrl(
         dataset.id, // datasourceId
         'table', // datasourceType
         drillThroughFormData, // our perfectly crafted formData with dashboard context + drill-down filters
-        dataset.drill_through_chart_id, // chartId
+        {
+          chartId: dataset.drill_through_chart_id,
+          dashboardPageId,
+        },
       );
 
-      const baseUrl = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      });
-
-      // Add dashboard_page_id if available
-      const finalUrl = dashboardPageId
-        ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}dashboard_page_id=${dashboardPageId}`
-        : baseUrl;
-
       // Navigate to the explore page
-      window.location.href = finalUrl;
+      window.location.href = url;
     } catch (error) {
       console.error('Failed to generate chart explore URL:', error);
       addDangerToast(t('Failed to generate chart explore URL'));
