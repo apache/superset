@@ -141,34 +141,45 @@ def test_validate_folders(mocker: MockerFixture) -> None:
     """
     Test the folder validation.
     """
-    metrics = [mocker.MagicMock(metric_name="metric1", uuid="uuid1")]
+    from uuid import UUID
+
+    metric_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    column_uuid1 = UUID("22222222-2222-2222-2222-222222222222")
+    column_uuid2 = UUID("33333333-3333-3333-3333-333333333333")
+    folder_uuid = UUID("44444444-4444-4444-4444-444444444444")
+
+    metrics = [mocker.MagicMock(metric_name="metric1", uuid=metric_uuid)]
     columns = [
-        mocker.MagicMock(column_name="column1", uuid="uuid2"),
-        mocker.MagicMock(column_name="column2", uuid="uuid3"),
+        mocker.MagicMock(column_name="column1", uuid=column_uuid1),
+        mocker.MagicMock(column_name="column2", uuid=column_uuid2),
     ]
 
-    validate_folders(folders=[], metrics=metrics, columns=columns)
+    # Create valid UUIDs set from metrics and columns
+    valid_uuids = {metric.uuid for metric in metrics} | {
+        column.uuid for column in columns
+    }
+    validate_folders(folders=[], valid_uuids=valid_uuids)
 
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid4",
+                "uuid": str(folder_uuid),
                 "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
-                        "uuid": "uuid1",
+                        "uuid": str(metric_uuid),
                         "type": "metric",
                         "name": "metric1",
                     },
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(column_uuid1),
                         "type": "column",
                         "name": "column1",
                     },
                     {
-                        "uuid": "uuid3",
+                        "uuid": str(column_uuid2),
                         "type": "column",
                         "name": "column2",
                     },
@@ -176,7 +187,7 @@ def test_validate_folders(mocker: MockerFixture) -> None:
             },
         ],
     )
-    validate_folders(folders=folders, metrics=metrics, columns=columns)
+    validate_folders(folders=folders, valid_uuids=valid_uuids)
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
@@ -184,21 +195,26 @@ def test_validate_folders_cycle(mocker: MockerFixture) -> None:
     """
     Test that we can detect cycles in the folder structure.
     """
+    from uuid import UUID
+
+    folder_uuid1 = UUID("11111111-1111-1111-1111-111111111111")
+    folder_uuid2 = UUID("22222222-2222-2222-2222-222222222222")
+
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(folder_uuid1),
                 "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(folder_uuid2),
                         "type": "folder",
                         "name": "My other folder",
                         "children": [
                             {
-                                "uuid": "uuid1",
+                                "uuid": str(folder_uuid1),
                                 "type": "folder",
                                 "name": "My folder",
                                 "children": [],
@@ -211,8 +227,10 @@ def test_validate_folders_cycle(mocker: MockerFixture) -> None:
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=[], columns=[])
-    assert str(excinfo.value) == "Cycle detected: uuid1 appears in its ancestry"
+        validate_folders(folders=folders, valid_uuids=set())
+    assert (
+        str(excinfo.value) == f"Cycle detected: {folder_uuid1} appears in its ancestry"
+    )
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
@@ -220,16 +238,21 @@ def test_validate_folders_inter_cycle(mocker: MockerFixture) -> None:
     """
     Test that we can detect cycles between folders.
     """
+    from uuid import UUID
+
+    folder_uuid1 = UUID("11111111-1111-1111-1111-111111111111")
+    folder_uuid2 = UUID("22222222-2222-2222-2222-222222222222")
+
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(folder_uuid1),
                 "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(folder_uuid2),
                         "type": "folder",
                         "name": "My other folder",
                         "children": [],
@@ -237,12 +260,12 @@ def test_validate_folders_inter_cycle(mocker: MockerFixture) -> None:
                 ],
             },
             {
-                "uuid": "uuid2",
+                "uuid": str(folder_uuid2),
                 "type": "folder",
                 "name": "My other folder",
                 "children": [
                     {
-                        "uuid": "uuid1",
+                        "uuid": str(folder_uuid1),
                         "type": "folder",
                         "name": "My folder",
                         "children": [],
@@ -253,8 +276,8 @@ def test_validate_folders_inter_cycle(mocker: MockerFixture) -> None:
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=[], columns=[])
-    assert str(excinfo.value) == "Duplicate UUID in folder structure: uuid2"
+        validate_folders(folders=folders, valid_uuids=set())
+    assert str(excinfo.value) == f"Duplicate UUID in folder structure: {folder_uuid2}"
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
@@ -262,29 +285,33 @@ def test_validate_folders_duplicates(mocker: MockerFixture) -> None:
     """
     Test that metrics and columns belong to a single folder.
     """
-    metrics = [mocker.MagicMock(metric_name="count", uuid="uuid2")]
+    from uuid import UUID
+
+    metric_uuid = UUID("22222222-2222-2222-2222-222222222222")
+    folder_uuid1 = UUID("11111111-1111-1111-1111-111111111111")
+    metrics = [mocker.MagicMock(metric_name="count", uuid=metric_uuid)]
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(folder_uuid1),
                 "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(metric_uuid),
                         "type": "metric",
                         "name": "count",
                     },
                 ],
             },
             {
-                "uuid": "uuid2",
+                "uuid": str(metric_uuid),
                 "type": "folder",
                 "name": "My other folder",
                 "children": [
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(metric_uuid),
                         "type": "metric",
                         "name": "count",
                     },
@@ -294,8 +321,10 @@ def test_validate_folders_duplicates(mocker: MockerFixture) -> None:
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=metrics, columns=[])
-    assert str(excinfo.value) == "Duplicate UUID in folder structure: uuid2"
+        validate_folders(
+            folders=folders, valid_uuids={metric.uuid for metric in metrics}
+        )
+    assert str(excinfo.value) == f"Duplicate UUID in folder structure: {metric_uuid}"
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
@@ -303,16 +332,23 @@ def test_validate_folders_duplicate_name_not_siblings(mocker: MockerFixture) -> 
     """
     Duplicate folder names are allowed if folders are not siblings.
     """
+    from uuid import UUID
+
+    uuid1 = UUID("11111111-1111-1111-1111-111111111111")
+    uuid2 = UUID("22222222-2222-2222-2222-222222222222")
+    uuid3 = UUID("33333333-3333-3333-3333-333333333333")
+    uuid4 = UUID("44444444-4444-4444-4444-444444444444")
+
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(uuid1),
                 "type": "folder",
                 "name": "Sales",
                 "children": [
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(uuid2),
                         "type": "folder",
                         "name": "Core",
                         "children": [],
@@ -320,12 +356,12 @@ def test_validate_folders_duplicate_name_not_siblings(mocker: MockerFixture) -> 
                 ],
             },
             {
-                "uuid": "uuid3",
+                "uuid": str(uuid3),
                 "type": "folder",
                 "name": "Engineering",
                 "children": [
                     {
-                        "uuid": "uuid4",
+                        "uuid": str(uuid4),
                         "type": "folder",
                         "name": "Core",
                         "children": [],
@@ -335,7 +371,7 @@ def test_validate_folders_duplicate_name_not_siblings(mocker: MockerFixture) -> 
         ],
     )
 
-    validate_folders(folders=folders, metrics=[], columns=[])
+    validate_folders(folders=folders, valid_uuids=set())
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
@@ -343,16 +379,23 @@ def test_validate_folders_duplicate_name_siblings(mocker: MockerFixture) -> None
     """
     Duplicate folder names are not allowed if folders are siblings.
     """
+    from uuid import UUID
+
+    uuid1 = UUID("11111111-1111-1111-1111-111111111111")
+    uuid2 = UUID("22222222-2222-2222-2222-222222222222")
+    uuid3 = UUID("33333333-3333-3333-3333-333333333333")
+    uuid4 = UUID("44444444-4444-4444-4444-444444444444")
+
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(uuid1),
                 "type": "folder",
                 "name": "Sales",
                 "children": [
                     {
-                        "uuid": "uuid2",
+                        "uuid": str(uuid2),
                         "type": "folder",
                         "name": "Core",
                         "children": [],
@@ -360,12 +403,12 @@ def test_validate_folders_duplicate_name_siblings(mocker: MockerFixture) -> None
                 ],
             },
             {
-                "uuid": "uuid3",
+                "uuid": str(uuid3),
                 "type": "folder",
                 "name": "Sales",
                 "children": [
                     {
-                        "uuid": "uuid4",
+                        "uuid": str(uuid4),
                         "type": "folder",
                         "name": "Other",
                         "children": [],
@@ -376,7 +419,7 @@ def test_validate_folders_duplicate_name_siblings(mocker: MockerFixture) -> None
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=[], columns=[])
+        validate_folders(folders=folders, valid_uuids=set())
     assert str(excinfo.value) == "Duplicate folder name: Sales"
 
 
@@ -385,11 +428,16 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     """
     Test that we can detect reserved folder names.
     """
+    from uuid import UUID
+
+    uuid1 = UUID("11111111-1111-1111-1111-111111111111")
+    uuid2 = UUID("22222222-2222-2222-2222-222222222222")
+
     folders_with_metrics = cast(
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(uuid1),
                 "type": "folder",
                 "name": "Metrics",
                 "children": [],
@@ -400,7 +448,7 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
         list[FolderSchema],
         [
             {
-                "uuid": "uuid1",
+                "uuid": str(uuid2),
                 "type": "folder",
                 "name": "Columns",
                 "children": [],
@@ -409,11 +457,11 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders_with_metrics, metrics=[], columns=[])
+        validate_folders(folders=folders_with_metrics, valid_uuids=set())
     assert str(excinfo.value) == "Folder cannot have name 'Metrics'"
 
     with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders_with_columns, metrics=[], columns=[])
+        validate_folders(folders=folders_with_columns, valid_uuids=set())
     assert str(excinfo.value) == "Folder cannot have name 'Columns'"
 
 
@@ -442,3 +490,375 @@ def test_validate_folders_invalid_uuid(mocker: MockerFixture) -> None:
 
     with pytest.raises(ValidationError):
         FolderSchema(many=True).load(folders)
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_with_new_metrics_only_uses_new_uuids(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that when new metrics are provided, validation uses only the new metric UUIDs.
+    """
+    from uuid import UUID
+
+    # Mock existing metrics on the model
+    existing_metric_uuid = UUID("11111111-2222-3333-4444-555555555555")
+    existing_metrics = [mocker.MagicMock(uuid=existing_metric_uuid)]
+
+    # New metrics in the payload
+    new_metric_uuid = UUID("99999999-8888-7777-6666-555555555555")
+    new_metrics = [{"uuid": str(new_metric_uuid), "metric_name": "new_metric"}]
+
+    # Folder referencing the new metric (should work)
+    folder_uuid_1 = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    folders_with_new = [
+        {
+            "uuid": str(folder_uuid_1),
+            "type": "folder",
+            "name": "Test Folder",
+            "children": [
+                {
+                    "uuid": str(new_metric_uuid),
+                    "type": "metric",
+                    "name": "new_metric",
+                }
+            ],
+        }
+    ]
+
+    # Create mock model with existing metrics
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = existing_metrics
+    mock_model.columns = []
+
+    # Test with new metrics - should work
+    command = UpdateDatasetCommand(
+        1, {"metrics": new_metrics, "folders": folders_with_new}
+    )
+    command._model = mock_model
+
+    # This should not raise an error
+    try:
+        command._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should not have raised an error: {e}")
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_no_new_metrics_uses_existing(mocker: MockerFixture) -> None:
+    """
+    Test that when no new metrics are provided, existing metrics are used.
+    """
+    from uuid import UUID
+
+    # Mock existing metrics on the model
+    existing_metric_uuid = UUID("11111111-2222-3333-4444-555555555555")
+    existing_metrics = [mocker.MagicMock(uuid=existing_metric_uuid)]
+
+    # Folder referencing the existing metric
+    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    folders = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Test Folder",
+            "children": [
+                {
+                    "uuid": str(existing_metric_uuid),
+                    "type": "metric",
+                    "name": "existing_metric",
+                }
+            ],
+        }
+    ]
+
+    # Create mock model
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = existing_metrics
+    mock_model.columns = []
+
+    # Test without providing new metrics - should use existing ones
+    command = UpdateDatasetCommand(1, {"folders": folders})  # No metrics key
+    command._model = mock_model
+
+    # This should not raise an error since existing metrics are used
+    try:
+        command._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should not have raised an error: {e}")
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_mixed_metrics_and_columns(mocker: MockerFixture) -> None:
+    """
+    Test validation with both new metrics and new columns.
+    """
+    from uuid import UUID
+
+    # Mock existing data
+    existing_metric_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    existing_column_uuid = UUID("22222222-2222-2222-2222-222222222222")
+    existing_metrics = [mocker.MagicMock(uuid=existing_metric_uuid)]
+    existing_columns = [mocker.MagicMock(uuid=existing_column_uuid)]
+
+    # New data in payload
+    new_metric_uuid = UUID("99999999-9999-9999-9999-999999999999")
+    new_column_uuid = UUID("88888888-8888-8888-8888-888888888888")
+    new_metrics = [{"uuid": str(new_metric_uuid), "metric_name": "new_metric"}]
+    new_columns = [{"uuid": str(new_column_uuid), "column_name": "new_column"}]
+
+    # Folders referencing the new data
+    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    folders = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Mixed Folder",
+            "children": [
+                {
+                    "uuid": str(new_metric_uuid),
+                    "type": "metric",
+                    "name": "new_metric",
+                },
+                {
+                    "uuid": str(new_column_uuid),
+                    "type": "column",
+                    "name": "new_column",
+                },
+            ],
+        }
+    ]
+
+    # Create mock model
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = existing_metrics
+    mock_model.columns = existing_columns
+
+    # Test with both new metrics and columns
+    command = UpdateDatasetCommand(
+        1, {"metrics": new_metrics, "columns": new_columns, "folders": folders}
+    )
+    command._model = mock_model
+
+    # Should work since folders reference the new UUIDs
+    try:
+        command._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should not have raised an error: {e}")
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_partial_override(mocker: MockerFixture) -> None:
+    """
+    Test that providing only new metrics uses new metrics + existing columns,
+    and vice versa.
+    """
+    from uuid import UUID
+
+    # Mock existing data
+    existing_metric_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    existing_column_uuid = UUID("22222222-2222-2222-2222-222222222222")
+    existing_metrics = [mocker.MagicMock(uuid=existing_metric_uuid)]
+    existing_columns = [mocker.MagicMock(uuid=existing_column_uuid)]
+
+    # Only new metrics, no new columns
+    new_metric_uuid = UUID("99999999-9999-9999-9999-999999999999")
+    new_metrics = [{"uuid": str(new_metric_uuid), "metric_name": "new_metric"}]
+
+    # Folders referencing new metric + existing column
+    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    folders = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Partial Override Folder",
+            "children": [
+                {
+                    "uuid": str(new_metric_uuid),
+                    "type": "metric",
+                    "name": "new_metric",
+                },
+                {
+                    "uuid": str(existing_column_uuid),
+                    "type": "column",
+                    "name": "existing_column",
+                },
+            ],
+        }
+    ]
+
+    # Create mock model
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = existing_metrics
+    mock_model.columns = existing_columns
+
+    # Test with only new metrics (columns should use existing)
+    command = UpdateDatasetCommand(
+        1,
+        {
+            "metrics": new_metrics,  # Override metrics
+            # No columns key - should use existing columns
+            "folders": folders,
+        },
+    )
+    command._model = mock_model
+
+    # Should work: new metric + existing column
+    try:
+        command._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should not have raised an error: {e}")
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_invalid_uuid_format(mocker: MockerFixture) -> None:
+    """
+    Test that invalid UUID formats are caught properly.
+    """
+    from uuid import UUID
+
+    # Folder with invalid UUID format
+    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    folders = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Test Folder",
+            "children": [
+                {
+                    "uuid": "not-a-valid-uuid-format",  # Invalid UUID
+                    "type": "metric",
+                    "name": "bad_metric",
+                }
+            ],
+        }
+    ]
+
+    # Create mock model
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = []
+    mock_model.columns = []
+
+    command = UpdateDatasetCommand(1, {"folders": folders})
+    command._model = mock_model
+
+    # The invalid UUID should cause a ValueError to be raised during validation
+    with pytest.raises((ValueError, ValidationError)) as exc_info:
+        command._validate_semantics([])
+
+    # Should be a ValueError about badly formed UUID
+    assert "badly formed hexadecimal UUID string" in str(exc_info.value)
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_uuid_types_enforced(mocker: MockerFixture) -> None:
+    """
+    Test that the new implementation enforces proper UUID types.
+    """
+    from uuid import UUID
+
+    # Valid UUID for folders
+    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    metric_uuid = UUID("bbbbbbbb-cccc-dddd-eeee-ffffffffffff")
+
+    # Test with proper UUID - should work
+    folders = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Test Folder",
+            "children": [
+                {
+                    "uuid": str(metric_uuid),
+                    "type": "metric",
+                    "name": "test_metric",
+                }
+            ],
+        }
+    ]
+
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = [mocker.MagicMock(uuid=metric_uuid)]
+    mock_model.columns = []
+
+    command = UpdateDatasetCommand(1, {"folders": folders})
+    command._model = mock_model
+
+    # Should work with proper UUIDs
+    try:
+        command._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should not have raised an error with proper UUIDs: {e}")
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_metrics_vs_columns_behavior(mocker: MockerFixture) -> None:
+    """
+    Test the specific behavior when providing metrics vs columns in payload.
+    """
+    from uuid import UUID
+
+    # UUIDs
+    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    existing_metric_uuid = UUID("11111111-1111-1111-1111-111111111111")
+    existing_column_uuid = UUID("22222222-2222-2222-2222-222222222222")
+    new_metric_uuid = UUID("33333333-3333-3333-3333-333333333333")
+
+    # Mock model
+    mock_model = mocker.MagicMock()
+    mock_model.metrics = [mocker.MagicMock(uuid=existing_metric_uuid)]
+    mock_model.columns = [mocker.MagicMock(uuid=existing_column_uuid)]
+
+    # Test 1: No new metrics/columns provided - should use existing ones
+    folders_existing = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Test Folder",
+            "children": [
+                {
+                    "uuid": str(existing_metric_uuid),
+                    "type": "metric",
+                    "name": "existing_metric",
+                },
+                {
+                    "uuid": str(existing_column_uuid),
+                    "type": "column",
+                    "name": "existing_column",
+                },
+            ],
+        }
+    ]
+
+    command1 = UpdateDatasetCommand(1, {"folders": folders_existing})
+    command1._model = mock_model
+
+    try:
+        command1._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should work with existing UUIDs when no new metrics/columns: {e}")
+
+    # Test 2: New metrics provided - test behavior
+    new_metrics = [{"uuid": str(new_metric_uuid), "metric_name": "new_metric"}]
+    folders_new = [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Test Folder",
+            "children": [
+                {
+                    "uuid": str(new_metric_uuid),
+                    "type": "metric",
+                    "name": "new_metric",
+                }
+            ],
+        }
+    ]
+
+    command2 = UpdateDatasetCommand(1, {"metrics": new_metrics, "folders": folders_new})
+    command2._model = mock_model
+
+    try:
+        command2._validate_semantics([])
+    except Exception as e:
+        pytest.fail(f"Should work with new metric UUIDs when new metrics provided: {e}")
