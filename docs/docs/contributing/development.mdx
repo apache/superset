@@ -377,24 +377,35 @@ $ make pre-commit
 
 For a streamlined setup that includes the MCP (Model Context Protocol) service for AI-powered features:
 
+##### Option 1: Docker with MCP Service (Recommended)
+
 ```bash
-# Complete setup including MCP service (interactive)
-$ make mcp-setup
+# Start Superset and MCP service with docker-compose-light
+$ docker-compose -f docker-compose-light.yml --profile mcp up -d
 
-# This command will:
-# - Create a virtual environment
-# - Install all dependencies
-# - Set up configuration file
-# - Initialize the database
-# - Create admin user (admin/admin)
-# - Optionally load example datasets
-# - Configure MCP service
+# Initialize Superset (first time only)
+$ docker exec -it superset_superset-light_1 superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
 
-# After setup, start the services:
-$ make flask-app    # Terminal 1: Backend
-$ make node-app     # Terminal 2: Frontend
-$ make mcp-run      # Terminal 3: MCP service (optional)
+$ docker exec -it superset_superset-light_1 superset db upgrade
+$ docker exec -it superset_superset-light_1 superset init
 ```
+
+The Docker setup automatically:
+- Sets up PostgreSQL database
+- Builds and runs Superset containers
+- Starts the MCP service (with `--profile mcp`)
+- Handles all networking and dependencies
+
+Superset frontend will be available at http://localhost:9001.
+
+##### Option 2: Manual Setup
+
+For manual setup instructions without Docker, see the [MCP Service Documentation](/docs/configuration/mcp-service#option-2-manual-setup).
 
 The MCP service provides AI-powered capabilities including natural language chart generation.
 See the [MCP Service Documentation](/docs/configuration/mcp-service) for more details.
