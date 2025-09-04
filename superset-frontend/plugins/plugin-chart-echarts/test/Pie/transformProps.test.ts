@@ -446,7 +446,7 @@ describe('Other category', () => {
   });
 });
 
-describe('Sort Legend', () => {
+describe('legend sorting', () => {
   const defaultFormData: SqlaFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',

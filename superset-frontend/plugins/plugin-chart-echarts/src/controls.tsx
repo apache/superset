@@ -121,6 +121,7 @@ export const legendSection: ControlSetRow[] = [
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
+  [legendSortControl],
 ];
 
 export const showValueControl: ControlSetItem = {

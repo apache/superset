@@ -149,6 +149,7 @@ export default function transformProps(
     legendOrientation,
     legendType,
     legendMargin,
+    legendSort,
     logAxis,
     markerEnabled,
     markerSize,
@@ -646,7 +647,10 @@ export default function transformProps(
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data: legendData as string[],
+      data: legendData.sort((a: string, b: string) => {
+        if (!legendSort) return 0;
+        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      }) as string[],
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {

@@ -42,54 +42,56 @@ interface RadarSeriesData {
   name: string;
 }
 
-describe('Radar transformProps', () => {
-  const formData: Partial<EchartsRadarFormData> = {
-    colorScheme: 'supersetColors',
-    datasource: '3__table',
-    granularity_sqla: 'ds',
-    columnConfig: {
-      'MAX(na_sales)': {
-        radarMetricMaxValue: null,
-        radarMetricMinValue: 0,
-      },
-      'SUM(eu_sales)': {
-        radarMetricMaxValue: 5000,
-      },
+const formData: Partial<EchartsRadarFormData> = {
+  colorScheme: 'supersetColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  columnConfig: {
+    'MAX(na_sales)': {
+      radarMetricMaxValue: null,
+      radarMetricMinValue: 0,
     },
-    groupby: [],
-    metrics: [
-      'MAX(na_sales)',
-      'SUM(jp_sales)',
-      'SUM(other_sales)',
-      'SUM(eu_sales)',
-    ],
-    viz_type: 'radar',
-    numberFormat: 'SMART_NUMBER',
-    dateFormat: 'smart_date',
-    showLegend: true,
-    showLabels: true,
-    isCircle: false,
-  };
+    'SUM(eu_sales)': {
+      radarMetricMaxValue: 5000,
+    },
+  },
+  groupby: [],
+  metrics: [
+    'MAX(na_sales)',
+    'SUM(jp_sales)',
+    'SUM(other_sales)',
+    'SUM(eu_sales)',
+  ],
+  viz_type: 'radar',
+  numberFormat: 'SMART_NUMBER',
+  dateFormat: 'smart_date',
+  showLegend: true,
+  showLabels: true,
+  isCircle: false,
+};
 
-  const chartProps = new ChartProps({
-    formData,
-    width: 800,
-    height: 600,
-    queriesData: [
+const queriesData = [
+  {
+    data: [
       {
-        data: [
-          {
-            'MAX(na_sales)': 41.49,
-            'SUM(jp_sales)': 1290.99,
-            'SUM(other_sales)': 797.73,
-            'SUM(eu_sales)': 2434.13,
-          },
-        ],
+        'MAX(na_sales)': 41.49,
+        'SUM(jp_sales)': 1290.99,
+        'SUM(other_sales)': 797.73,
+        'SUM(eu_sales)': 2434.13,
       },
     ],
-    theme: supersetTheme,
-  });
+  },
+];
 
+const chartProps = new ChartProps({
+  formData,
+  width: 800,
+  height: 600,
+  queriesData,
+  theme: supersetTheme,
+});
+
+describe('Radar transformProps', () => {
   it('should transform chart props for normalized radar chart & normalize all metrics except the ones with custom min & max', () => {
     const transformedProps = transformProps(
       chartProps as EchartsRadarChartProps,
@@ -122,6 +124,80 @@ describe('Radar transformProps', () => {
         max: 5000,
         min: 0,
       },
+    ]);
+  });
+});
+
+describe('legend sorting', () => {
+  const legendSortData = [
+    {
+      data: [
+        {
+          name: 'Sylvester sales',
+          'SUM(jp_sales)': 1290.99,
+          'SUM(other_sales)': 797.73,
+          'SUM(eu_sales)': 2434.13,
+        },
+        {
+          name: 'Arnold sales',
+          'SUM(jp_sales)': 290.99,
+          'SUM(other_sales)': 627.73,
+          'SUM(eu_sales)': 434.13,
+        },
+        {
+          name: 'Mark sales',
+          'SUM(jp_sales)': 2290.99,
+          'SUM(other_sales)': 1297.73,
+          'SUM(eu_sales)': 934.13,
+        },
+      ],
+    },
+  ];
+  const createChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['name'],
+        metrics: ['SUM(jp_sales)', 'SUM(other_sales)', 'SUM(eu_sales)'],
+        ...overrides,
+      },
+      queriesData: legendSortData,
+    });
+
+  it('preserves original data order when no sort specified', () => {
+    const props = createChartProps({ legendSort: null });
+    const result = transformProps(props as EchartsRadarChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual([
+      'Sylvester sales',
+      'Arnold sales',
+      'Mark sales',
+    ]);
+  });
+
+  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+    const props = createChartProps({ legendSort: 'asc' });
+    const result = transformProps(props as EchartsRadarChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual([
+      'Arnold sales',
+      'Mark sales',
+      'Sylvester sales',
+    ]);
+  });
+
+  it('sorts alphabetically descending when legendSort is "desc"', () => {
+    const props = createChartProps({ legendSort: 'desc' });
+    const result = transformProps(props as EchartsRadarChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual([
+      'Sylvester sales',
+      'Mark sales',
+      'Arnold sales',
     ]);
   });
 });
