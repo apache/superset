@@ -29,7 +29,7 @@ import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError
-from jinja2.exceptions import SecurityError, UndefinedError
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
