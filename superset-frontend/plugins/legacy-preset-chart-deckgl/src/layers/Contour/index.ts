@@ -17,10 +17,11 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
-import transformProps from '../../transformProps';
-import controlPanel from './controlPanel';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.png';
+import buildQuery from './buildQuery';
+import transformProps from './transformProps';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Map'),
@@ -31,7 +32,6 @@ const metadata = new ChartMetadata({
   exampleGallery: [{ url: example }],
   name: t('deck.gl Contour'),
   thumbnail,
-  useLegacyApi: true,
   tags: [t('deckGL'), t('Spatial'), t('Comparison')],
   behaviors: [Behavior.InteractiveChart],
 });
@@ -39,6 +39,7 @@ const metadata = new ChartMetadata({
 export default class ContourChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      buildQuery,
       loadChart: () => import('./Contour'),
       controlPanel,
       metadata,

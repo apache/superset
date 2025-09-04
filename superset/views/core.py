@@ -169,7 +169,9 @@ class Superset(BaseSupersetView):
             return json_error_response(payload=payload, status=400)
         return self.json_response(
             {
-                "data": payload["df"].to_dict("records"),
+                "data": payload["df"].to_dict("records")
+                if payload["df"] is not None
+                else [],
                 "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
                 "rowcount": payload.get("rowcount"),
