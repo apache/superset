@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -25,7 +25,6 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { getExploreUrl } from 'src/explore/exploreUtils';
 import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -36,6 +35,9 @@ import { findPermission } from 'src/utils/findPermission';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { URL_PARAMS } from 'src/constants';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 
@@ -43,14 +45,16 @@ interface ModalFooterProps {
   canExplore: boolean;
   closeModal?: () => void;
   showEditButton: boolean;
-  exploreUrl: string;
+  onExploreClick?: (event: React.MouseEvent) => void;
+  isGeneratingUrl: boolean;
 }
 
 const ModalFooter = ({
   canExplore,
   closeModal,
   showEditButton,
-  exploreUrl,
+  onExploreClick,
+  isGeneratingUrl,
 }: ModalFooterProps) => {
   const theme = useTheme();
 
@@ -60,8 +64,9 @@ const ModalFooter = ({
         <Button
           buttonStyle="secondary"
           buttonSize="small"
-          href={canExplore ? exploreUrl : undefined}
-          disabled={!canExplore}
+          onClick={canExplore ? onExploreClick : undefined}
+          disabled={!canExplore || isGeneratingUrl}
+          loading={isGeneratingUrl}
           tooltip={
             !canExplore
               ? t('You do not have sufficient permissions to explore the chart')
@@ -106,7 +111,7 @@ export default function DrillDetailModal({
   const theme = useTheme();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { addDangerToast } = useToasts();
-  const [exploreUrl, setExploreUrl] = useState('');
+  const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
 
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -137,54 +142,59 @@ export default function DrillDetailModal({
       viz_type: 'table', // Default viz type
     };
 
-    // Use the proper dashboard context mixing function
+    // Use the enhanced dashboard context function that handles drill-to-detail filters
     return getFormDataWithDashboardContext(
       drillThroughBaseFormData,
       dashboardContextFormData,
+      undefined, // saveAction
+      initialFilters, // drillToDetailFilters - drill-down filters from context menu
     );
-  }, [dataset?.drill_through_chart_id, dataset?.id, dashboardContextFormData]);
+  }, [
+    dataset?.drill_through_chart_id,
+    dataset?.id,
+    dashboardContextFormData,
+    initialFilters,
+  ]);
 
-  // Generate simple explore URL for the drill-through chart
-  useEffect(() => {
-    // Early return if not ready to generate URL
-    if (isEmbedded() || !showModal || !dataset?.drill_through_chart_id) {
-      setExploreUrl('');
+  // Handle explore button click - generate URL and navigate
+  const handleExploreClick = async (event: React.MouseEvent) => {
+    event.preventDefault();
+
+    if (
+      !dataset?.drill_through_chart_id ||
+      !drillThroughFormData ||
+      !dataset?.id
+    ) {
       return;
     }
 
-    try {
-      // Simple formData with just the drill-through chart ID and datasource
-      const simpleFormData = {
-        slice_id: dataset.drill_through_chart_id,
-        datasource: `${dataset.id}__table`,
-        viz_type: 'table', // Default to table for now
-      };
+    setIsGeneratingUrl(true);
 
-      const url = getExploreUrl({
-        formData: simpleFormData,
-        method: 'GET',
-        endpointType: 'base',
+    try {
+      const key = await postFormData(
+        dataset.id, // datasourceId
+        'table', // datasourceType
+        drillThroughFormData, // our perfectly crafted formData with dashboard context + drill-down filters
+        dataset.drill_through_chart_id, // chartId
+      );
+
+      const baseUrl = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
       });
 
-      if (url) {
-        // Add dashboard_page_id if available
-        const finalUrl = dashboardPageId
-          ? `${url}${url.includes('?') ? '&' : '?'}dashboard_page_id=${dashboardPageId}`
-          : url;
-        setExploreUrl(finalUrl);
-      } else {
-        setExploreUrl('');
-      }
+      // Add dashboard_page_id if available
+      const finalUrl = dashboardPageId
+        ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}dashboard_page_id=${dashboardPageId}`
+        : baseUrl;
+
+      // Navigate to the explore page
+      window.location.href = finalUrl;
     } catch (error) {
+      console.error('Failed to generate chart explore URL:', error);
       addDangerToast(t('Failed to generate chart explore URL'));
+      setIsGeneratingUrl(false);
     }
-  }, [
-    showModal,
-    dashboardPageId,
-    dataset?.drill_through_chart_id,
-    dataset?.id,
-    addDangerToast,
-  ]);
+  };
 
   return (
     <Modal
@@ -202,7 +212,8 @@ export default function DrillDetailModal({
         <ModalFooter
           canExplore={canExplore}
           showEditButton={showEditButton}
-          exploreUrl={exploreUrl || ''}
+          onExploreClick={handleExploreClick}
+          isGeneratingUrl={isGeneratingUrl}
         />
       }
       responsive
