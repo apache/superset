@@ -62,32 +62,31 @@ const BulkCertifyModal: FC<BulkCertifyModalProps> = ({
       return;
     }
 
-    Promise.all(
-      selected.map(item => {
-        const url = `/api/v1/${resourceName}/${item.id}`;
-        const payload = {
-          certified_by: certifiedBy,
-          certification_details: certificationDetails,
-        };
+    try {
+      await Promise.all(
+        selected.map(item => {
+          const url = `/api/v1/${resourceName}/${item.id}`;
+          const payload = {
+            certified_by: certifiedBy,
+            certification_details: certificationDetails,
+          };
 
-        return SupersetClient.put({
-          url,
-          headers: { 'Content-Type': 'application/json' },
-          jsonPayload: payload,
-        });
-      }),
-    )
-      .then(() => {
-        addSuccessToast(t('Successfully certified %s', resourceLabelPlural));
-      })
-      .catch(() => {
-        addDangerToast(t('Failed to certify %s', resourceLabelPlural));
-      });
-
-    refreshData();
-    onHide();
-    setCertifiedBy('');
-    setCertificationDetails('');
+          return SupersetClient.put({
+            url,
+            headers: { 'Content-Type': 'application/json' },
+            jsonPayload: payload,
+          });
+        }),
+      );
+      
+      addSuccessToast(t('Successfully certified %s', resourceLabelPlural));
+      refreshData();
+      onHide();
+      setCertifiedBy('');
+      setCertificationDetails('');
+    } catch (error) {
+      addDangerToast(t('Failed to certify %s', resourceLabelPlural));
+    }
   };
 
   return (
