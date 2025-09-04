@@ -160,7 +160,7 @@ export default function Login() {
         {(authType === AuthType.AuthDB || authType === AuthType.AuthLDAP) && (
           <Flex justify="center" vertical gap="middle">
             <Typography.Text type="secondary">
-              {t('Enter your login and password below:')}
+              {t('Enter your login and password belowx:')}
             </Typography.Text>
             <Form
               layout="vertical"
