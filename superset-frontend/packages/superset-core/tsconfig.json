@@ -11,7 +11,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "target": "es2015",
+    "target": "es2020",
     "esModuleInterop": true
   },
   "include": ["src/**/*.ts*"],
