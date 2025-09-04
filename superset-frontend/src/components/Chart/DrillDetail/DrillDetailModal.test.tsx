@@ -92,21 +92,21 @@ test('should render the title', async () => {
   expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
-test('should not render Edit chart button when no drill-through chart is configured', async () => {
+test('should not render Explore button when no drill-through chart is configured', async () => {
   await renderModal();
   expect(
-    screen.queryByRole('button', { name: 'Edit chart' }),
+    screen.queryByRole('button', { name: 'Explore' }),
   ).not.toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
 });
 
-test('should render Edit chart link when drill-through chart is configured', async () => {
+test('should render Explore button when drill-through chart is configured', async () => {
   const datasetWithDrillThrough = {
     drill_through_chart_id: 123,
     id: 456, // Required for URL generation
   };
   await renderModal({}, datasetWithDrillThrough);
-  expect(screen.getByRole('link', { name: 'Edit chart' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Explore' })).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
 });
 
@@ -117,23 +117,7 @@ test('should close the modal', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-test('should have correct href for drill-through chart', async () => {
-  const drillThroughChartId = 123;
-  const datasetId = 456;
-  const datasetWithDrillThrough = {
-    drill_through_chart_id: drillThroughChartId,
-    id: datasetId,
-  };
-  await renderModal({}, datasetWithDrillThrough);
-  const editLink = screen.getByRole('link', { name: 'Edit chart' });
-  expect(editLink).toHaveAttribute(
-    'href',
-    `/explore/?dashboard_page_id=&slice_id=${drillThroughChartId}`,
-  );
-  expect(editLink).not.toHaveAttribute('target'); // We removed target="_blank"
-});
-
-test('should render "Edit chart" as disabled without can_explore permission', async () => {
+test('should render "Explore" as disabled without can_explore permission', async () => {
   const datasetWithDrillThrough = {
     drill_through_chart_id: 123,
     id: 456, // Required for URL generation
@@ -147,5 +131,5 @@ test('should render "Edit chart" as disabled without can_explore permission', as
     },
     datasetWithDrillThrough,
   );
-  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Explore' })).toBeDisabled();
 });
