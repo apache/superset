@@ -76,7 +76,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # 3. Install dependencies
-pip install -e .
+pip install -e .[development,fastmcp]
 cd superset-frontend && npm ci && npm run build && cd ..
 
 # 4. Initialize database
