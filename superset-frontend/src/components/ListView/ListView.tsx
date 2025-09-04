@@ -299,7 +299,8 @@ export function ListView<T extends object = any>({
 
   const bulkActions = [...initialBulkActions];
   if (enableBulkTag) {
-    bulkActions.splice(1, 0, {
+    const insertIndex = bulkActions.length > 0 ? 1 : 0;
+    bulkActions.splice(insertIndex, 0, {
       key: 'tag',
       name: t('Add Tag'),
       type: 'secondary',
@@ -384,6 +385,8 @@ export function ListView<T extends object = any>({
   };
 
   const handleBulkActionClick = async () => {
+    if (!firstAction) return;
+    
     setIsBulkActionLoading(true);
     try {
       await firstAction.onSelect(selectedFlatRows.map(r => r.original));
