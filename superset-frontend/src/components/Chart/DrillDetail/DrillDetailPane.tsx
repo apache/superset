@@ -31,7 +31,6 @@ import {
   css,
   ensureIsArray,
   GenericDataType,
-  getColumnLabel,
   JsonObject,
   QueryFormData,
   StatefulChart,
@@ -51,7 +50,6 @@ import Table, {
 import { RootState } from 'src/dashboard/types';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
 import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
@@ -84,10 +82,12 @@ export default function DrillDetailPane({
   formData,
   initialFilters,
   dataset,
+  drillThroughFormData,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
   dataset?: Dataset;
+  drillThroughFormData?: QueryFormData | null;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -120,11 +120,6 @@ export default function DrillDetailPane({
   const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
     dataset,
   });
-
-  // Get dashboard context for StatefulChart
-  const dashboardContext = useDashboardFormData(
-    dataset?.drill_through_chart_id,
-  );
 
   // Get page of results
   const resultsPage = useMemo(() => {
@@ -302,24 +297,12 @@ export default function DrillDetailPane({
   let tableContent = null;
 
   // If a drill-through chart is configured, use it instead of the table
-  if (dataset?.drill_through_chart_id) {
-    // Convert filters to adhoc filter format for StatefulChart
-    const adhocFilters = filters.map(filter => ({
-      clause: 'WHERE' as const,
-      subject: getColumnLabel(filter.col),
-      operator: filter.op,
-      comparator: filter.formattedVal ?? String(filter.val),
-      expressionType: 'SIMPLE' as const,
-    }));
-
+  if (dataset?.drill_through_chart_id && drillThroughFormData) {
     tableContent = (
       <Flex vertical style={{ height: '100%' }}>
         <StatefulChart
           chartId={dataset.drill_through_chart_id}
-          formDataOverrides={{
-            ...dashboardContext,
-            adhoc_filters: adhocFilters,
-          }}
+          formDataOverrides={drillThroughFormData}
           height="100%"
           width="100%"
           showLoading

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -33,6 +33,9 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Slice } from 'src/types/Chart';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 
@@ -61,11 +64,11 @@ const ModalFooter = ({
           disabled={!canExplore}
           tooltip={
             !canExplore
-              ? t('You do not have sufficient permissions to edit the chart')
+              ? t('You do not have sufficient permissions to explore the chart')
               : undefined
           }
         >
-          {t('Edit chart')}
+          {t('Explore')}
         </Button>
       )}
       <Button
@@ -102,6 +105,9 @@ export default function DrillDetailModal({
 }: DrillDetailModalProps) {
   const theme = useTheme();
   const dashboardPageId = useContext(DashboardPageIdContext);
+  const { addDangerToast } = useToasts();
+  const [exploreUrl, setExploreUrl] = useState('');
+
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
       state.sliceEntities?.slices?.[chartId] || {},
@@ -110,34 +116,74 @@ export default function DrillDetailModal({
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
-  // Determine if we should show the Edit Chart button
+  // Determine if we should show the Explore button
   const showEditButton = Boolean(dataset?.drill_through_chart_id);
 
-  const exploreUrl = useMemo(() => {
-    // Only compute URL when modal is open and drill-through chart exists
-    if (!showModal || !dataset?.drill_through_chart_id || !dataset?.id) {
-      return '';
+  // Get dashboard context for the drill-through chart using the proper hook
+  const dashboardContextFormData = useDashboardFormData(
+    dataset?.drill_through_chart_id,
+  );
+
+  // Generate formData for drill-through chart using proper dashboard context resolution
+  const drillThroughFormData = useMemo(() => {
+    if (!dataset?.drill_through_chart_id || !dataset?.id) {
+      return null;
     }
 
-    // Construct datasource string in the format expected by getExploreUrl
-    const datasource = `${dataset.id}__table`;
+    // Create base formData for the drill-through chart
+    const drillThroughBaseFormData = {
+      slice_id: dataset.drill_through_chart_id,
+      datasource: `${dataset.id}__table`,
+      viz_type: 'table', // Default viz type
+    };
 
-    return getExploreUrl({
-      formData: {
+    // Use the proper dashboard context mixing function
+    return getFormDataWithDashboardContext(
+      drillThroughBaseFormData,
+      dashboardContextFormData,
+    );
+  }, [dataset?.drill_through_chart_id, dataset?.id, dashboardContextFormData]);
+
+  // Generate simple explore URL for the drill-through chart
+  useEffect(() => {
+    // Early return if not ready to generate URL
+    if (isEmbedded() || !showModal || !dataset?.drill_through_chart_id) {
+      setExploreUrl('');
+      return;
+    }
+
+    try {
+      // Simple formData with just the drill-through chart ID and datasource
+      const simpleFormData = {
         slice_id: dataset.drill_through_chart_id,
-        datasource,
-      },
-      endpointType: 'base',
-      curUrl: null, // Explicitly prevent inheriting current dashboard URL
-      requestParams: dashboardPageId
-        ? { dashboard_page_id: dashboardPageId }
-        : {},
-    });
+        datasource: `${dataset.id}__table`,
+        viz_type: 'table', // Default to table for now
+      };
+
+      const url = getExploreUrl({
+        formData: simpleFormData,
+        method: 'GET',
+        endpointType: 'base',
+      });
+
+      if (url) {
+        // Add dashboard_page_id if available
+        const finalUrl = dashboardPageId
+          ? `${url}${url.includes('?') ? '&' : '?'}dashboard_page_id=${dashboardPageId}`
+          : url;
+        setExploreUrl(finalUrl);
+      } else {
+        setExploreUrl('');
+      }
+    } catch (error) {
+      addDangerToast(t('Failed to generate chart explore URL'));
+    }
   }, [
     showModal,
     dashboardPageId,
     dataset?.drill_through_chart_id,
     dataset?.id,
+    addDangerToast,
   ]);
 
   return (
@@ -177,6 +223,7 @@ export default function DrillDetailModal({
         formData={formData}
         initialFilters={initialFilters}
         dataset={dataset}
+        drillThroughFormData={drillThroughFormData}
       />
     </Modal>
   );
