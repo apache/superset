@@ -21,7 +21,7 @@ import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import Modal from 'src/components/Modal';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 export interface CssEditorProps {
@@ -37,6 +37,8 @@ export type CssEditorState = {
     css: string;
     label: string;
   }>;
+  showModal: boolean;
+  isFullscreen: boolean;
 };
 const StyledWrapper = styled.div`
   ${({ theme }) => `
@@ -56,6 +58,118 @@ const StyledWrapper = styled.div`
   `}
 `;
 
+const MacOSTitleBar = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #f0f0f0 0%, #e8e8e8 100%);
+    border-bottom: 1px solid #d0d0d0;
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    height: 28px;
+    position: relative;
+    
+    .traffic-lights {
+      display: flex;
+      gap: ${theme.gridUnit}px;
+      
+      .traffic-light {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        position: relative;
+        
+        &.close {
+          background: #ff5f56;
+          &:hover {
+            background: #ff3b30;
+          }
+          &::before {
+            content: '×';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #8b0000;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1;
+          }
+        }
+        
+        &.fullscreen {
+          background: #28ca42;
+          &:hover {
+            background: #1fb835;
+          }
+          &::before {
+            content: '⤢';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #006400;
+            font-size: 8px;
+            font-weight: bold;
+            line-height: 1;
+          }
+        }
+      }
+    }
+    
+    .title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      margin: 0;
+    }
+  `}
+`;
+
+const StyledModal = styled(Modal)<{ isFullscreen?: boolean }>`
+  ${({ isFullscreen }) =>
+    isFullscreen &&
+    `
+    .ant-modal {
+      max-width: 70vw !important;
+      width: 70vw !important;
+      height: 70vh !important;
+      top: 15vh !important;
+      padding-bottom: 0 !important;
+    }
+    
+    .ant-modal-content {
+      height: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    
+    .ant-modal-body {
+      flex: 1 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+  `}
+
+  .ant-modal-header {
+    display: none !important;
+  }
+
+  .ant-modal-close {
+    display: none !important;
+  }
+
+  .ant-modal-footer {
+    display: none !important;
+  }
+`;
+
 class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   static defaultProps: Partial<CssEditorProps> = {
     initialCss: '',
@@ -66,9 +180,14 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
     super(props);
     this.state = {
       css: props.initialCss,
+      showModal: false,
+      isFullscreen: false,
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);
+    this.openModal = this.openModal.bind(this);
+    this.closeModal = this.closeModal.bind(this);
+    this.toggleFullscreen = this.toggleFullscreen.bind(this);
   }
 
   componentDidMount() {
@@ -104,6 +223,18 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
     this.changeCss(keyAsString);
   }
 
+  openModal() {
+    this.setState({ showModal: true });
+  }
+
+  closeModal() {
+    this.setState({ showModal: false, isFullscreen: false });
+  }
+
+  toggleFullscreen() {
+    this.setState(prevState => ({ isFullscreen: !prevState.isFullscreen }));
+  }
+
   renderTemplateSelector() {
     if (this.state.templates) {
       const menu = (
@@ -124,29 +255,65 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
 
   render() {
     return (
-      <ModalTrigger
-        triggerNode={this.props.triggerNode}
-        modalTitle={t('CSS')}
-        modalBody={
-          <StyledWrapper>
+      <>
+        <span
+          onClick={this.openModal}
+          role="button"
+          tabIndex={0}
+          style={{ cursor: 'pointer' }}
+        >
+          {this.props.triggerNode}
+        </span>
+        <StyledModal
+          show={this.state.showModal}
+          onHide={this.closeModal}
+          title=""
+          isFullscreen={this.state.isFullscreen}
+          width={this.state.isFullscreen ? '70vw' : '600px'}
+          height={this.state.isFullscreen ? '70vh' : 'auto'}
+          destroyOnClose={false}
+          maskClosable={false}
+        >
+          <MacOSTitleBar>
+            <div className="traffic-lights">
+              <button
+                className="traffic-light close"
+                onClick={this.closeModal}
+                aria-label="Close"
+              />
+              <button
+                className="traffic-light fullscreen"
+                onClick={this.toggleFullscreen}
+                aria-label={
+                  this.state.isFullscreen
+                    ? 'Exit fullscreen'
+                    : 'Enter fullscreen'
+                }
+              />
+            </div>
+            <h4 className="title">{t('CSS Editor')}</h4>
+          </MacOSTitleBar>
+          <StyledWrapper
+            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+          >
             <div className="css-editor-header">
               <h5>{t('Live CSS editor')}</h5>
               {this.renderTemplateSelector()}
             </div>
             <AceCssEditor
               className="css-editor"
-              minLines={12}
-              maxLines={30}
+              minLines={this.state.isFullscreen ? 25 : 12}
+              maxLines={this.state.isFullscreen ? 50 : 30}
               onChange={this.changeCss}
-              height="200px"
+              height={this.state.isFullscreen ? 'calc(100% - 60px)' : '200px'}
               width="100%"
               editorProps={{ $blockScrolling: true }}
               enableLiveAutocompletion
               value={this.state.css || ''}
             />
           </StyledWrapper>
-        }
-      />
+        </StyledModal>
+      </>
     );
   }
 }
