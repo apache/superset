@@ -67,7 +67,7 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
 
   const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({
-    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    defaultBreakpointsColor: fd.default_breakpoint_color,
     colorBreakpoints: fd.color_breakpoints,
     fixedColor: fd.color_picker,
     colorSchemeType,
