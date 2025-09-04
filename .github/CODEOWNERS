@@ -2,7 +2,7 @@
 
 # https://github.com/apache/superset/issues/13351
 
-/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho
+/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho @sadpandajoe
 
 # Notify some committers of changes in the components
 
@@ -30,3 +30,13 @@
 
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
+
+# Notify PMC members of changes to extension-related files
+
+/superset-core/ @michael-s-molina @villebro
+/superset-extensions-cli/ @michael-s-molina @villebro
+/superset/core/ @michael-s-molina @villebro
+/superset/extensions/ @michael-s-molina @villebro
+/superset-frontend/src/packages/superset-core/ @michael-s-molina @villebro
+/superset-frontend/src/core/ @michael-s-molina @villebro
+/superset-frontend/src/extensions/ @michael-s-molina @villebro

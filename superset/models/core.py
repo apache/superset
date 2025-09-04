@@ -30,13 +30,13 @@ from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import g
+from flask import current_app as app, g, has_app_context
 from flask_appbuilder import Model
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
@@ -61,7 +61,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db, db_engine_specs, is_feature_enabled
+from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -90,18 +90,12 @@ from superset.utils.oauth2 import (
     OAuth2ClientConfigSchema,
 )
 
-config = app.config
-custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
-stats_logger = config["STATS_LOGGER"]
-log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.sql_lab import Query
-
-DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
@@ -119,6 +113,25 @@ class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
     css = Column(utils.MediumText(), default="")
+
+
+class Theme(AuditMixinNullable, ImportExportMixin, Model):
+    """Themes for dashboards"""
+
+    __tablename__ = "themes"
+    __table_args__ = (
+        sqla.Index("idx_theme_is_system_default", "is_system_default"),
+        sqla.Index("idx_theme_is_system_dark", "is_system_dark"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    theme_name = Column(String(250))
+    json_data = Column(utils.MediumText(), default="")
+    is_system = Column(Boolean, default=False, nullable=False)
+    is_system_default = Column(Boolean, default=False, nullable=False)
+    is_system_dark = Column(Boolean, default=False, nullable=False)
+
+    export_fields = ["theme_name", "json_data"]
 
 
 class ConfigurationMethod(StrEnum):
@@ -383,6 +396,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
         conn = make_url_safe(uri.strip())
+        custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
@@ -452,7 +466,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     ssh_context,
                 )
 
-            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
                     yield self._get_sqla_engine(
@@ -521,7 +535,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         self.update_params_from_encrypted_extra(engine_kwargs)
 
-        if DB_CONNECTION_MUTATOR:
+        if DB_CONNECTION_MUTATOR := app.config["DB_CONNECTION_MUTATOR"]:  # noqa: N806
             source = source or get_query_source_from_request()
 
             sqlalchemy_url, engine_kwargs = DB_CONNECTION_MUTATOR(
@@ -593,7 +607,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
-    def get_default_schema_for_query(self, query: Query) -> str | None:
+    def get_default_schema_for_query(
+        self, query: Query, template_params: Optional[dict[str, Any]] = None
+    ) -> str | None:
         """
         Return the default schema for a given query.
 
@@ -607,7 +623,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         default schema is defined in the SQLAlchemy URI; and in others the default schema
         might be determined by the database itself (like `public` for Postgres).
         """  # noqa: E501
-        return self.db_engine_spec.get_default_schema_for_query(self, query)
+        return self.db_engine_spec.get_default_schema_for_query(
+            self, query, template_params
+        )
 
     @staticmethod
     def post_process_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -642,14 +660,105 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
           on the group of queries as a whole. Here the called passes the context
           as to whether the SQL is split or already.
         """  # noqa: E501
-        sql_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
+        sql_mutator = app.config["SQL_QUERY_MUTATOR"]
+        if sql_mutator and (is_split == app.config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
                 sql_,
                 security_manager=security_manager,
                 database=self,
             )
         return sql_
+
+    def _execute_sql_with_mutation_and_logging(
+        self,
+        sql: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+        fetch_last_result: bool = False,
+    ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
+        """
+        Internal method to execute SQL with mutation and logging.
+
+        :param sql: SQL query to execute
+        :param catalog: Optional catalog name
+        :param schema: Optional schema name
+        :param fetch_last_result: Whether to fetch results from last statement
+        :return: Tuple of (cursor, rows, description) where rows and description
+        are None if not fetching.
+        """
+        script = SQLScript(sql, self.db_engine_spec.engine)
+
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+            engine_url = engine.url
+
+        log_query = app.config["QUERY_LOGGER"]
+
+        def _log_query(sql_: str) -> None:
+            if log_query:
+                log_query(
+                    engine_url,
+                    sql_,
+                    schema,
+                    __name__,
+                    security_manager,
+                )
+
+        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
+            cursor = conn.cursor()
+            rows = None
+            description = None
+
+            for i, statement in enumerate(script.statements):
+                sql_ = self.mutate_sql_based_on_config(
+                    statement.format(),
+                    is_split=True,
+                )
+                _log_query(sql_)
+
+                with event_logger.log_context(
+                    action="execute_sql",
+                    database=self,
+                    object_ref=__name__,
+                ):
+                    self.db_engine_spec.execute(cursor, sql_, self)
+
+                # Fetch results from last statement if requested
+                if fetch_last_result and i == len(script.statements) - 1:
+                    # Capture cursor.description while it's still valid
+                    description = cursor.description
+                    rows = self.db_engine_spec.fetch_data(cursor)
+                else:
+                    # Consume results without storing
+                    cursor.fetchall()
+
+            return cursor, rows, description
+
+    def execute_sql_statements(
+        self,
+        sql: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> None:
+        """
+        Execute SQL statements with proper logging and mutation.
+
+        This method handles:
+        - SQL mutation based on config (SQL_QUERY_MUTATOR)
+        - Query logging (QUERY_LOGGER)
+        - Event logging for execution
+        - Runtime error detection
+
+        This is useful for validation queries where we just need to check
+        if the SQL executes without errors.
+
+        :param sql: SQL query to execute
+        :param catalog: Optional catalog name
+        :param schema: Optional schema name
+        :raises: Any database execution errors will be propagated
+        """
+        self._execute_sql_with_mutation_and_logging(
+            sql, catalog, schema, fetch_last_result=False
+        )
 
     def get_df(
         self,
@@ -658,44 +767,18 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        script = SQLScript(sql, self.db_engine_spec.engine)
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-            engine_url = engine.url
+        cursor, rows, description = self._execute_sql_with_mutation_and_logging(
+            sql, catalog, schema, fetch_last_result=True
+        )
 
-        def _log_query(sql: str) -> None:
-            if log_query:
-                log_query(
-                    engine_url,
-                    sql,
-                    schema,
-                    __name__,
-                    security_manager,
-                )
+        df = None
+        if rows is not None:
+            df = self.load_into_dataframe(description, rows)
 
-        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            cursor = conn.cursor()
-            df = None
-            for i, statement in enumerate(script.statements):
-                sql_ = self.mutate_sql_based_on_config(
-                    statement.format(),
-                    is_split=True,
-                )
-                _log_query(sql_)
-                with event_logger.log_context(
-                    action="execute_sql",
-                    database=self,
-                    object_ref=__name__,
-                ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+        if mutator:
+            df = mutator(df)
 
-                rows = self.fetch_rows(cursor, i == len(script.statements) - 1)
-                if rows is not None:
-                    df = self.load_into_dataframe(cursor.description, rows)
-
-            if mutator:
-                df = mutator(df)
-
-            return self.post_process_df(df)
+        return self.post_process_df(df)
 
     @event_logger.log_this
     def fetch_rows(self, cursor: Any, last: bool) -> list[tuple[Any, ...]] | None:
@@ -777,6 +860,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         return script.format()
 
+    def get_column_description_limit_size(self) -> int:
+        return self.db_engine_spec.get_column_description_limit_size()
+
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
@@ -847,6 +933,44 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 }
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+    @cache_util.memoized_func(
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:materialized_view_list",
+        cache=cache_manager.cache,
+    )
+    def get_all_materialized_view_names_in_schema(
+        self,
+        catalog: str | None,
+        schema: str,
+    ) -> set[Table]:
+        """Get all materialized views in the specified schema.
+
+        Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param catalog: optional catalog name
+        :param schema: schema name
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :return: set of materialized views
+        """
+        try:
+            with self.get_inspector(catalog=catalog, schema=schema) as inspector:
+                return {
+                    Table(view, schema, catalog)
+                    for view in self.db_engine_spec.get_materialized_view_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+        return set()
 
     @contextmanager
     def get_inspector(
@@ -1038,7 +1162,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             allowed_databases = literal_eval(allowed_databases)
 
         if hasattr(g, "user"):
-            extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
+            extra_allowed_databases = app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
             )
             allowed_databases += extra_allowed_databases
@@ -1052,8 +1176,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
-        if custom_password_store:
-            conn = conn.set(password=custom_password_store(conn))
+        if has_app_context():
+            if custom_password_store := app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
+                conn = conn.set(password=custom_password_store(conn))
+            else:
+                conn = conn.set(password=self.password)
         else:
             conn = conn.set(password=self.password)
         return str(conn)

@@ -129,7 +129,6 @@ describe('Charts list', () => {
       cy.getBySel('bulk-select-action').should('not.exist');
     });
   });
-
   describe('card mode', () => {
     before(() => {
       visitChartList();
@@ -156,7 +155,6 @@ describe('Charts list', () => {
       cy.getBySel('bulk-select-copy').contains('0 Selected');
       cy.getBySel('bulk-select-action').should('not.exist');
     });
-
     it('should preserve other filters when sorting', () => {
       cy.getBySel('styled-card').should('have.length', 25);
       setFilter('Type', 'Big Number');

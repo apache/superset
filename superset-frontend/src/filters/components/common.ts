@@ -37,10 +37,21 @@ export const StatusMessage = styled.div<{
   status?: 'error' | 'warning' | 'info' | 'help';
   centerText?: boolean;
 }>`
-  color: ${({ theme, status = 'error' }) =>
-    status === 'help'
-      ? theme.colors.grayscale.light1
-      : theme.colors[status]?.base};
+  color: ${({ theme, status = 'error' }) => {
+    if (status === 'help') {
+      return theme.colorTextSecondary;
+    }
+    switch (status) {
+      case 'error':
+        return theme.colorError;
+      case 'warning':
+        return theme.colorWarning;
+      case 'info':
+        return theme.colorInfo;
+      default:
+        return theme.colorError;
+    }
+  }};
   text-align: ${({ centerText }) => (centerText ? 'center' : 'left')};
   width: 100%;
 `;

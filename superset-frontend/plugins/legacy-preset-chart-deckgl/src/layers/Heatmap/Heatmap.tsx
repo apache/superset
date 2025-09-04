@@ -17,13 +17,14 @@
  * under the License.
  */
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
-import { Position, Color } from '@deck.gl/core';
+import { Position } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
-import { commonLayerProps } from '../common';
+import { isPointInBonds } from '../../utilities/utils';
+import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { hexToRGB } from '../../utils/colors';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -63,10 +64,15 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
   const colorScale = getSequentialSchemeRegistry()
     ?.get(colorScheme)
     ?.createLinearScale([0, 6]);
-  const colorRange = colorScale
-    ?.range()
-    ?.map(color => hexToRGB(color))
-    ?.reverse() as Color[];
+
+  const colorSchemeType = fd.color_scheme_type;
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    colorBreakpoints: fd.color_breakpoints,
+    fixedColor: fd.color_picker,
+    colorSchemeType,
+    colorScale,
+  })?.reverse();
 
   return new HeatmapLayer({
     id: `heatmap-layer-${fd.slice_id}` as const,
@@ -94,4 +100,49 @@ export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
+  formData,
+  filterState,
+  payload,
+}) => {
+  const fd = formData;
+  const {
+    intensity = 1,
+    radius_pixels: radiusPixels = 30,
+    aggregation = 'SUM',
+    js_data_mutator: jsFnMutator,
+  } = fd;
+  let data = payload.data.features;
+
+  if (jsFnMutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutatorFunction(data);
+  }
+
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  return new HeatmapLayer({
+    id: `heatmap-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    intensity,
+    radiusPixels,
+    colorRange: [
+      [
+        HIGHLIGHT_COLOR_ARRAY[0],
+        HIGHLIGHT_COLOR_ARRAY[1],
+        HIGHLIGHT_COLOR_ARRAY[2],
+        55,
+      ],
+      HIGHLIGHT_COLOR_ARRAY,
+    ],
+    aggregation: aggregation.toUpperCase(),
+    getPosition: (d: { position: Position; weight: number }) => d.position,
+    getWeight: (d: { position: number[]; weight: number }) =>
+      d.weight ? d.weight : 1,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

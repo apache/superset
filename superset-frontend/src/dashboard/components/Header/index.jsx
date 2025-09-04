@@ -47,12 +47,14 @@ import { safeStringify } from 'src/utils/safeStringify';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
   DASHBOARD_HEADER_ID,
 } from 'src/dashboard/util/constants';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
@@ -87,7 +89,6 @@ import {
   setMaxUndoHistoryExceeded,
   setRefreshFrequency,
   setUnsavedChanges,
-  updateCss,
 } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
 import { dashboardInfoChanged } from '../../actions/dashboardInfo';
@@ -129,18 +130,18 @@ const StyledUndoRedoButton = styled(Button)`
 `;
 
 const undoRedoStyle = theme => css`
-  color: ${theme.colors.grayscale.light1};
+  color: ${theme.colorIcon};
   &:hover {
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIconHover};
   }
 `;
 
 const undoRedoEmphasized = theme => css`
-  color: ${theme.colors.grayscale.base};
+  color: ${theme.colorIcon};
 `;
 
 const undoRedoDisabled = theme => css`
-  color: ${theme.colors.grayscale.light2};
+  color: ${theme.colorTextDisabled};
 `;
 
 const saveBtnStyle = theme => css`
@@ -170,6 +171,7 @@ const Header = () => {
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
+  const [showingRefreshModal, setShowingRefreshModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const [showingReportModal, setShowingReportModal] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
@@ -200,7 +202,7 @@ const Header = () => {
       refreshFrequency: state.dashboardState.refreshFrequency,
       shouldPersistRefreshFrequency:
         !!state.dashboardState.shouldPersistRefreshFrequency,
-      customCss: state.dashboardState.css,
+      customCss: state.dashboardInfo.css,
       colorNamespace: state.dashboardState.colorNamespace,
       colorScheme: state.dashboardState.colorScheme,
       isStarred: !!state.dashboardState.isStarred,
@@ -241,7 +243,6 @@ const Header = () => {
           savePublished,
           fetchCharts,
           updateDashboardTitle,
-          updateCss,
           onChange,
           onSave: saveDashboardRequest,
           setMaxUndoHistoryExceeded,
@@ -323,6 +324,13 @@ const Header = () => {
   useEffect(() => {
     startPeriodicRender(refreshFrequency * 1000);
   }, [refreshFrequency, startPeriodicRender]);
+
+  // Ensure theme changes are tracked as unsaved changes
+  useEffect(() => {
+    if (editMode && dashboardInfo.theme !== undefined) {
+      boundActionCreators.setUnsavedChanges(true);
+    }
+  }, [dashboardInfo.theme, editMode, boundActionCreators]);
 
   useEffect(() => {
     if (UNDO_LIMIT - undoLength <= 0 && !didNotifyMaxUndoHistoryToast) {
@@ -415,6 +423,10 @@ const Header = () => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      tags: (dashboardInfo.tags || []).filter(
+        item => item.type === TagTypeEnum.Custom || !item.type,
+      ),
+      theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -459,6 +471,7 @@ const Header = () => {
     dashboardInfo.metadata,
     dashboardInfo.owners,
     dashboardInfo.roles,
+    dashboardInfo.tags,
     dashboardTitle,
     layout,
     refreshFrequency,
@@ -482,6 +495,12 @@ const Header = () => {
 
   const hidePropertiesModal = useCallback(() => {
     setShowingPropertiesModal(false);
+  }, []);
+  const showRefreshModal = useCallback(() => {
+    setShowingRefreshModal(true);
+  }, []);
+  const hideRefreshModal = useCallback(() => {
+    setShowingRefreshModal(false);
   }, []);
 
   const showEmbedModal = useCallback(() => {
@@ -509,11 +528,6 @@ const Header = () => {
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
-  const refreshLimit =
-    dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-  const refreshWarning =
-    dashboardInfo.common?.conf
-      ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
   const isEmbedded = !dashboardInfo?.userId;
 
   const handleOnPropertiesChange = useCallback(
@@ -525,9 +539,23 @@ const Header = () => {
         certification_details: updates.certificationDetails,
         owners: updates.owners,
         roles: updates.roles,
+        tags: updates.tags,
+        theme_id: updates.themeId,
+        css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);
-      boundActionCreators.dashboardTitleChanged(updates.title);
+
+      if (updates.title && dashboardTitle !== updates.title) {
+        boundActionCreators.updateDashboardTitle(updates.title);
+        boundActionCreators.onChange();
+      }
+    },
+    [boundActionCreators, dashboardTitle],
+  );
+
+  const handleRefreshChange = useCallback(
+    (refreshFrequency, editMode) => {
+      boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
     },
     [boundActionCreators],
   );
@@ -611,7 +639,9 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={undoLength < 1}
-                      onClick={undoLength && boundActionCreators.onUndo}
+                      onClick={
+                        undoLength > 0 ? boundActionCreators.onUndo : undefined
+                      }
                     >
                       <Icons.Undo
                         css={[
@@ -631,7 +661,9 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={redoLength < 1}
-                      onClick={redoLength && boundActionCreators.onRedo}
+                      onClick={
+                        redoLength > 0 ? boundActionCreators.onRedo : undefined
+                      }
                     >
                       <Icons.Redo
                         css={[
@@ -733,13 +765,9 @@ const Header = () => {
     colorNamespace,
     colorScheme,
     onSave: boundActionCreators.onSave,
-    onChange: boundActionCreators.onChange,
     forceRefreshAllCharts: forceRefresh,
-    startPeriodicRender,
     refreshFrequency,
     shouldPersistRefreshFrequency,
-    setRefreshFrequency: boundActionCreators.setRefreshFrequency,
-    updateCss: boundActionCreators.updateCss,
     editMode,
     hasUnsavedChanges,
     userCanEdit,
@@ -749,10 +777,9 @@ const Header = () => {
     isLoading,
     showReportModal,
     showPropertiesModal,
+    showRefreshModal,
     setCurrentReportDeleting,
     manageEmbedded: showEmbedModal,
-    refreshLimit,
-    refreshWarning,
     lastModifiedTime: actualLastModifiedTime,
     logEvent: boundActionCreators.logEvent,
   });
@@ -787,6 +814,23 @@ const Header = () => {
           colorScheme={colorScheme}
           onSubmit={handleOnPropertiesChange}
           onlyApply
+        />
+      )}
+      {showingRefreshModal && (
+        <RefreshIntervalModal
+          show={showingRefreshModal}
+          onHide={hideRefreshModal}
+          refreshFrequency={refreshFrequency}
+          onChange={handleRefreshChange}
+          editMode={editMode}
+          refreshLimit={
+            dashboardInfo.common?.conf
+              ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
+          }
+          refreshWarning={
+            dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_WARNING_MESSAGE
+          }
+          addSuccessToast={boundActionCreators.addSuccessToast}
         />
       )}
 

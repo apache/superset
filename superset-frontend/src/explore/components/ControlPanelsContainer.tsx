@@ -41,6 +41,8 @@ import {
   JsonValue,
   NO_TIME_RANGE,
   usePrevious,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -53,13 +55,13 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
-import { rgba } from 'emotion-rgba';
 import { kebabCase, isEqual } from 'lodash';
 
 import {
   Collapse,
   Modal,
   Loading,
+  Label,
   Tooltip,
 } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
@@ -82,6 +84,7 @@ const { confirm } = Modal;
 const TABS_KEYS = {
   DATA: 'DATA',
   CUSTOMIZE: 'CUSTOMIZE',
+  MATRIXIFY: 'MATRIXIFY',
 };
 
 export type ControlPanelsContainerProps = {
@@ -118,16 +121,11 @@ const iconStyles = css`
 
 const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   display: flex;
-  position: sticky;
-  bottom: 0;
   flex-direction: column;
   align-items: center;
   padding: ${theme.sizeUnit * 4}px;
-  z-index: 999;
-  background: linear-gradient(
-    ${rgba(theme.colorBgBase, 0)},
-    ${theme.colorBgBase} 35%
-  );
+  background: ${theme.colorBgContainer};
+  flex-shrink: 0;
 
   & > button {
     min-width: 156px;
@@ -138,14 +136,18 @@ const Styles = styled.div`
   position: relative;
   height: 100%;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 
   // Resizable add overflow-y: auto as a style to this div
   // To override it, we need to use !important
   overflow: visible !important;
+
   #controlSections {
-    height: 100%;
-    overflow: visible;
+    flex: 1;
+    overflow: auto;
   }
+
   .tab-content {
     overflow: auto;
     flex: 1 1 100%;
@@ -188,11 +190,19 @@ function getState(
 ) {
   const querySections: ControlPanelSectionConfig[] = [];
   const customizeSections: ControlPanelSectionConfig[] = [];
+  const matrixifySections: ControlPanelSectionConfig[] = [];
+  let matrixifyEnableControl: ControlPanelSectionConfig | null = null;
 
   getSectionsToRender(vizType, datasourceType).forEach(section => {
-    // if at least one control in the section is not `renderTrigger`
-    // or asks to be displayed at the Data tab
-    if (
+    if (!section) return;
+    if (section.tabOverride === 'matrixify') {
+      // Separate the enable control from other sections
+      if (section.label === t('Enable Matrixify')) {
+        matrixifyEnableControl = section;
+      } else {
+        matrixifySections.push(section);
+      }
+    } else if (
       section.tabOverride === 'data' ||
       section.controlSetRows.some(rows =>
         rows.some(
@@ -207,10 +217,11 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else if (section.controlSetRows.length > 0) {
+    } else if (section.controlSetRows && section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
+
   const expandedQuerySections: string[] = sectionsToExpand(
     querySections,
     datasource,
@@ -219,11 +230,19 @@ function getState(
     customizeSections,
     datasource,
   );
+  const expandedMatrixifySections: string[] = sectionsToExpand(
+    matrixifySections,
+    datasource,
+  );
+
   return {
     expandedQuerySections,
     expandedCustomizeSections,
+    expandedMatrixifySections,
     querySections,
     customizeSections,
+    matrixifySections,
+    matrixifyEnableControl,
   };
 }
 
@@ -371,8 +390,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const {
     expandedQuerySections,
     expandedCustomizeSections,
+    expandedMatrixifySections,
     querySections,
     customizeSections,
+    matrixifySections,
+    matrixifyEnableControl,
   } = useMemo(
     () =>
       getState(
@@ -576,7 +598,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
           </Tooltip>
         )}
       </span>
@@ -701,7 +723,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.CloseCircleOutlined
+              <Icons.InfoCircleOutlined
+                data-test="query-error-tooltip-trigger"
                 iconColor={theme.colorErrorText}
                 iconSize="s"
               />
@@ -723,6 +746,30 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }
 
   const showCustomizeTab = customizeSections.length > 0;
+  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+
+  // Create Matrixify tab label with Beta tag
+  const matrixifyTabLabel = (
+    <>
+      {t('Matrixify')}{' '}
+      <Tooltip
+        title={t(
+          'This feature is experimental and may change or have limitations',
+        )}
+        placement="top"
+      >
+        <Label
+          type="info"
+          css={css`
+            margin-left: ${theme.sizeUnit}px;
+            font-size: ${theme.fontSizeSM}px;
+          `}
+        >
+          {t('beta')}
+        </Label>
+      </Tooltip>
+    </>
+  );
 
   return (
     <Styles ref={containerRef}>
@@ -762,6 +809,55 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         ...customizeSections.map(renderControlPanelSection),
                       ]}
                     />
+                  ),
+                },
+              ]
+            : []),
+          ...(showMatrixifyTab
+            ? [
+                {
+                  key: TABS_KEYS.MATRIXIFY,
+                  label: matrixifyTabLabel,
+                  children: (
+                    <>
+                      {/* Render Enable Matrixify control outside collapsible sections */}
+                      {matrixifyEnableControl &&
+                        (
+                          matrixifyEnableControl as ControlPanelSectionConfig
+                        ).controlSetRows.map(
+                          (controlSetRow: CustomControlItem[], i: number) => (
+                            <div
+                              key={`matrixify-enable-${i}`}
+                              css={css`
+                                padding: ${theme.sizeUnit * 4}px;
+                                border-bottom: 1px solid ${theme.colorBorder};
+                              `}
+                            >
+                              {controlSetRow.map(
+                                (control: CustomControlItem, j: number) => {
+                                  if (!control || typeof control === 'string') {
+                                    return null;
+                                  }
+                                  return (
+                                    <div key={`control-${i}-${j}`}>
+                                      {renderControl(control)}
+                                    </div>
+                                  );
+                                },
+                              )}
+                            </div>
+                          ),
+                        )}
+                      <Collapse
+                        defaultActiveKey={expandedMatrixifySections}
+                        expandIconPosition="right"
+                        ghost
+                        bordered
+                        items={[
+                          ...matrixifySections.map(renderControlPanelSection),
+                        ]}
+                      />
+                    </>
                   ),
                 },
               ]

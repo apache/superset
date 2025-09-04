@@ -21,6 +21,10 @@ import os
 import sys
 from typing import cast, Iterable, Optional
 
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+
 if sys.version_info >= (3, 11):
     from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 else:
@@ -29,10 +33,12 @@ else:
     if TYPE_CHECKING:
         from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
-
-from flask import Flask
+from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
+from superset.extensions.local_extensions_watcher import (
+    start_local_extensions_watcher_thread,
+)
 from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
@@ -68,6 +74,10 @@ def create_app(
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
 
+        # Set up LOCAL_EXTENSIONS file watcher when in debug mode
+        if app.debug:
+            start_local_extensions_watcher_thread(app)
+
         return app
 
     # Make sure that bootstrap errors ALWAYS get logged
@@ -77,7 +87,96 @@ def create_app(
 
 
 class SupersetApp(Flask):
-    pass
+    def send_static_file(self, filename: str) -> Response:
+        """Override to prevent webpack hot-update 404s from spamming logs.
+
+        Webpack HMR can create race conditions where the browser requests
+        hot-update files that no longer exist. Return 204 instead of 404
+        for these files to keep logs clean.
+        """
+        if ".hot-update." in filename:
+            # First try to serve it normally - it might exist
+            try:
+                return super().send_static_file(filename)
+            except NotFound:
+                logger.debug(
+                    "Webpack hot-update file not found (likely HMR "
+                    f"race condition): {filename}"
+                )
+                return Response("", status=204)  # No Content
+        return super().send_static_file(filename)
+
+    def _is_database_up_to_date(self) -> bool:
+        """
+        Check if database migrations are up to date.
+        Returns False if there are pending migrations or unable to determine.
+        """
+        try:
+            # Import here to avoid circular import issues
+            from superset.extensions import db
+
+            # Get current revision from database
+            with db.engine.connect() as connection:
+                context = MigrationContext.configure(connection)
+                current_rev = context.get_current_revision()
+
+            # Get head revision from migration files
+            alembic_cfg = Config()
+            alembic_cfg.set_main_option("script_location", "superset:migrations")
+            script = ScriptDirectory.from_config(alembic_cfg)
+            head_rev = script.get_current_head()
+
+            # Database is up-to-date if current revision matches head
+            is_current = current_rev == head_rev
+            if not is_current:
+                logger.debug(
+                    "Pending migrations. Current: %s, Head: %s",
+                    current_rev,
+                    head_rev,
+                )
+            return is_current
+        except Exception as e:
+            logger.debug("Could not check migration status: %s", e)
+            return False
+
+    def sync_config_to_db(self) -> None:
+        """
+        Synchronize configuration to database.
+        This method handles database-dependent features that need to be synced
+        after the app is initialized and database connection is available.
+
+        This is separated from app initialization to support multi-tenant
+        environments where database connection might not be available during
+        app startup.
+        """
+        try:
+            # Import here to avoid circular import issues
+            from superset.extensions import feature_flag_manager
+
+            # Check if database is up-to-date with migrations
+            if not self._is_database_up_to_date():
+                logger.info("Pending database migrations: run 'superset db upgrade'")
+                return
+
+            logger.info("Syncing configuration to database...")
+
+            # Register SQLA event listeners for tagging system
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                from superset.tags.core import register_sqla_event_listeners
+
+                register_sqla_event_listeners()
+
+            # Seed system themes from configuration
+            from superset.commands.theme.seed import SeedSystemThemesCommand
+
+            SeedSystemThemesCommand().run()
+
+            logger.info("Configuration sync to database completed successfully")
+
+        except Exception as e:
+            logger.error("Failed to sync configuration to database: %s", e)
+            # Don't raise the exception to avoid breaking app startup
+            # in multi-tenant environments
 
 
 class AppRootMiddleware:

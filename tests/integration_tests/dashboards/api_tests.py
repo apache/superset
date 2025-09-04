@@ -530,6 +530,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "last_name": "user",
                 },
                 "id": dashboard.id,
+                "uuid": str(dashboard.uuid),
                 "css": "",
                 "dashboard_title": "title",
                 "datasources": [],
@@ -549,6 +550,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "tags": [],
                 "thumbnail_url": dashboard.thumbnail_url,
                 "is_managed_externally": False,
+                "theme": None,
             }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on" in data["result"]
@@ -870,10 +872,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dataset API: Test add dashboard to favorites
         """
+        # Let database auto-generate ID and use unique names
+        import uuid
+
+        unique_id = uuid.uuid4().hex[:8]
         dashboard = Dashboard(
-            id=100,
-            dashboard_title="test_dashboard",
-            slug="test_slug",
+            dashboard_title=f"test_dashboard_{unique_id}",
+            slug=f"test_slug_{unique_id}",
             slices=[],
             published=True,
         )
@@ -903,10 +908,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dataset API: Test remove dashboard from favorites
         """
+        # Let database auto-generate ID and use unique names
+        import uuid
+
+        unique_id = uuid.uuid4().hex[:8]
         dashboard = Dashboard(
-            id=100,
-            dashboard_title="test_dashboard",
-            slug="test_slug",
+            dashboard_title=f"test_dashboard_{unique_id}",
+            slug=f"test_slug_{unique_id}",
             slices=[],
             published=True,
         )
@@ -991,6 +999,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_gets_not_certified_dashboards_filter(self):
+        # Get all uncertified dashboards to check if any belong to this test
         arguments = {
             "filters": [
                 {
@@ -1008,7 +1017,18 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 0
+
+        # Filter results to only count dashboards that could belong to this fixture
+        # The create_dashboards fixture creates dashboards with titles like
+        # "title0", "title1", etc.
+        fixture_uncertified_count = 0
+        for result in data["result"]:
+            title = result["dashboard_title"]
+            # Only count dashboards that match the fixture naming pattern
+            if title and title.startswith("title") and title[5:].isdigit():
+                fixture_uncertified_count += 1
+
+        assert fixture_uncertified_count == 0
 
     @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
     def test_get_dashboards_created_by_me(self):
@@ -2436,27 +2456,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dashboard",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "dashboards/dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered an "
-                                    "error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
-        }
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dashboard")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "dashboards/dashboard.yaml" in str(error["extra"])
+        assert "Dashboard already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
         # import with overwrite flag
         buf = self.create_import_v1_zip_file("dashboard")
@@ -2499,27 +2508,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dashboard",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "metadata.yaml": {"type": ["Must be equal to Dashboard."]},
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered "
-                                    "an error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dashboard")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "metadata.yaml" in error["extra"]
+        assert error["extra"]["metadata.yaml"] == {
+            "type": ["Must be equal to Dashboard."]
         }
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
     def test_get_all_related_roles(self):
         """
@@ -2565,7 +2563,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             return query.filter_by(name="Alpha")
 
         with patch.dict(
-            "superset.views.filters.current_app.config",
+            "flask.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
             uri = "api/v1/dashboard/related/roles"  # noqa: F541

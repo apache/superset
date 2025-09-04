@@ -20,34 +20,31 @@ import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 
 import {
   Input,
-  Modal,
   AsyncSelect,
-  Button,
-  Form,
-  Row,
-  Col,
-  FormItem,
-  Typography,
+  Modal,
+  Collapse,
+  CollapseLabelInModal,
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import {
   t,
   SupersetClient,
-  styled,
   isFeatureEnabled,
   FeatureFlag,
   getClientErrorObject,
   ensureIsArray,
-  useTheme,
-  css,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
-import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
+import {
+  StandardModal,
+  ModalFormField,
+  useModalValidation,
+} from 'src/components/Modal';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -59,10 +56,6 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0;
-`;
-
 function PropertiesModal({
   slice,
   onHide,
@@ -70,16 +63,67 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
-  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
+  const [description, setDescription] = useState(slice.description || '');
+  const [cacheTimeout, setCacheTimeout] = useState(
+    slice.cache_timeout != null ? String(slice.cache_timeout) : '',
+  );
+  const [certifiedBy, setCertifiedBy] = useState(slice.certified_by || '');
+  const [certificationDetails, setCertificationDetails] = useState(
+    slice.certified_by && slice.certification_details
+      ? slice.certification_details
+      : '',
+  );
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
     null,
   );
-
   const [tags, setTags] = useState<TagType[]>([]);
+
+  // Validation setup
+  const modalSections = useMemo(
+    () => [
+      {
+        key: 'general',
+        name: t('General settings'),
+        validator: () => {
+          const errors = [];
+          if (!name || name.trim().length === 0) {
+            errors.push(t('Chart name is required'));
+          }
+          return errors;
+        },
+      },
+      {
+        key: 'configuration',
+        name: t('Configuration'),
+        validator: () => {
+          const errors = [];
+          if (cacheTimeout && Number.isNaN(Number(cacheTimeout))) {
+            errors.push(t('Cache timeout must be a number'));
+          }
+          return errors;
+        },
+      },
+      {
+        key: 'advanced',
+        name: t('Advanced'),
+        validator: () => [],
+      },
+    ],
+    [name, cacheTimeout],
+  );
+
+  const {
+    validationStatus,
+    validateAll,
+    validateSection,
+    errorTooltip,
+    hasErrors,
+  } = useModalValidation({
+    sections: modalSections,
+  });
 
   const tagsAsSelectValues = useMemo(() => {
     const selectTags = tags.map((tag: { id: number; name: string }) => ({
@@ -101,11 +145,21 @@ function PropertiesModal({
     });
   }
 
-  const fetchChartOwners = useCallback(
-    async function fetchChartOwners() {
+  const fetchChartProperties = useCallback(
+    async function fetchChartProperties() {
+      const queryParams = rison.encode({
+        select_columns: [
+          'owners.id',
+          'owners.first_name',
+          'owners.last_name',
+          'tags.id',
+          'tags.name',
+          'tags.type',
+        ],
+      });
       try {
         const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
         });
         const chart = response.json.result;
         setSelectedOwners(
@@ -114,6 +168,12 @@ function PropertiesModal({
             label: `${owner.first_name} ${owner.last_name}`,
           })),
         );
+        if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+          const customTags = chart.tags?.filter(
+            (tag: TagType) => tag.type === TagTypeEnum.Custom,
+          );
+          setTags(customTags);
+        }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);
@@ -145,23 +205,17 @@ function PropertiesModal({
     [],
   );
 
-  const onSubmit = async (values: {
-    certified_by?: string;
-    certification_details?: string;
-    description?: string;
-    cache_timeout?: number;
-  }) => {
+  const onSubmit = async () => {
+    // Run validation first
+    if (!validateAll()) {
+      return;
+    }
+
     setSubmitting(true);
-    const {
-      certified_by: certifiedBy,
-      certification_details: certificationDetails,
-      description,
-      cache_timeout: cacheTimeout,
-    } = values;
     const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
-      cache_timeout: cacheTimeout || null,
+      cache_timeout: cacheTimeout ? Number(cacheTimeout) : null,
       certified_by: certifiedBy || null,
       certification_details:
         certifiedBy && certificationDetails ? certificationDetails : null,
@@ -206,32 +260,23 @@ function PropertiesModal({
 
   // get the owners of this slice
   useEffect(() => {
-    fetchChartOwners();
-  }, [fetchChartOwners]);
+    fetchChartProperties();
+  }, [slice.slice_id]);
 
   // update name after it's changed in another modal
   useEffect(() => {
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
 
+  // Validate general section when name changes
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
-    try {
-      fetchTags(
-        {
-          objectType: OBJECT_TYPES.CHART,
-          objectId: slice.slice_id,
-          includeTypes: false,
-        },
-        (tags: TagType[]) => setTags(tags),
-        error => {
-          showError(error);
-        },
-      );
-    } catch (error) {
-      showError(error);
-    }
-  }, [slice.slice_id]);
+    validateSection('general');
+  }, [name, validateSection]);
+
+  // Validate configuration section when cache timeout changes
+  useEffect(() => {
+    validateSection('configuration');
+  }, [cacheTimeout, validateSection]);
 
   const handleChangeTags = (tags: { label: string; value: number }[]) => {
     const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
@@ -246,174 +291,196 @@ function PropertiesModal({
   };
 
   return (
-    <Modal
+    <StandardModal
       show={show}
       onHide={onHide}
-      title={
-        <span>
-          <Icons.EditOutlined
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-            data-test="edit-alt"
-          />
-          {t('Edit Chart Properties')}
-        </span>
+      onSave={onSubmit}
+      title={t('Chart properties')}
+      isEditMode
+      saveDisabled={
+        submitting || !name || slice.is_managed_externally || hasErrors
       }
-      footer={
-        <>
-          <Button
-            data-test="properties-modal-cancel-button"
-            htmlType="button"
-            buttonSize="small"
-            onClick={onHide}
-            buttonStyle="secondary"
-            cta
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            data-test="properties-modal-save-button"
-            htmlType="submit"
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={form.submit}
-            disabled={submitting || !name || slice.is_managed_externally}
-            tooltip={
-              slice.is_managed_externally
-                ? t(
-                    "This chart is managed externally, and can't be edited in Superset",
-                  )
-                : ''
-            }
-            cta
-          >
-            {t('Save')}
-          </Button>
-        </>
+      errorTooltip={
+        slice.is_managed_externally
+          ? t(
+              "This chart is managed externally, and can't be edited in Superset",
+            )
+          : errorTooltip
       }
-      responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <Form
-        form={form}
-        onFinish={onSubmit}
-        layout="vertical"
-        initialValues={{
-          name: slice.slice_name || '',
-          description: slice.description || '',
-          cache_timeout: slice.cache_timeout != null ? slice.cache_timeout : '',
-          certified_by: slice.certified_by || '',
-          certification_details:
-            slice.certified_by && slice.certification_details
-              ? slice.certification_details
-              : '',
-        }}
-      >
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <Typography.Title level={3}>
-              {t('Basic information')}
-            </Typography.Title>
-            <FormItem label={t('Name')} required>
-              <Input
-                aria-label={t('Name')}
-                name="name"
-                data-test="properties-modal-name-input"
-                type="text"
-                value={name}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setName(event.target.value ?? '')
-                }
+      <Collapse
+        expandIconPosition="end"
+        defaultActiveKey="general"
+        accordion
+        modalMode
+        items={[
+          {
+            key: 'general',
+            label: (
+              <CollapseLabelInModal
+                title={t('General settings')}
+                subtitle={t('Basic information about the chart')}
+                validateCheckStatus={!validationStatus.general?.hasErrors}
+                testId="general-section"
               />
-            </FormItem>
-            <FormItem
-              extra={t(
-                'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
-              )}
-            >
-              <StyledFormItem label={t('Description')} name="description">
-                <Input.TextArea rows={3} style={{ maxWidth: '100%' }} />
-              </StyledFormItem>
-            </FormItem>
-            <Typography.Title level={3}>{t('Certification')}</Typography.Title>
-            <FormItem
-              extra={t('Person or group that has certified this chart.')}
-            >
-              <StyledFormItem label={t('Certified by')} name="certified_by">
-                <Input aria-label={t('Certified by')} />
-              </StyledFormItem>
-            </FormItem>
-            <FormItem
-              extra={t(
-                'Any additional detail to show in the certification tooltip.',
-              )}
-            >
-              <StyledFormItem
-                label={t('Certification details')}
-                name="certification_details"
-              >
-                <Input aria-label={t('Certification details')} />
-              </StyledFormItem>
-            </FormItem>
-          </Col>
-          <Col xs={24} md={12}>
-            <Typography.Title level={3}>{t('Configuration')}</Typography.Title>
-            <FormItem
-              extra={t(
-                "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
-              )}
-            >
-              <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
-                <Input aria-label="Cache timeout" />
-              </StyledFormItem>
-            </FormItem>
-            <Typography.Title level={3} style={{ marginTop: '1em' }}>
-              {t('Access')}
-            </Typography.Title>
-            <FormItem
-              label={ownersLabel}
-              extra={t(
-                'A list of users who can alter the chart. Searchable by name or username.',
-              )}
-            >
-              <AsyncSelect
-                ariaLabel={ownersLabel}
-                mode="multiple"
-                name="owners"
-                value={selectedOwners || []}
-                onChange={setSelectedOwners}
-                options={loadOptions}
-                disabled={!selectedOwners}
-                allowClear
-              />
-            </FormItem>
-            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
-              <Typography.Title level={3} css={{ marginTop: '1em' }}>
-                {t('Tags')}
-              </Typography.Title>
-            )}
-            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
-              <FormItem
-                extra={t(
-                  'A list of tags that have been applied to this chart.',
+            ),
+            children: (
+              <>
+                <ModalFormField
+                  label={t('Name')}
+                  required
+                  error={
+                    validationStatus.general?.hasErrors && !name
+                      ? t('Chart name is required')
+                      : undefined
+                  }
+                >
+                  <Input
+                    aria-label={t('Name')}
+                    data-test="properties-modal-name-input"
+                    type="text"
+                    value={name}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setName(event.target.value ?? '')
+                    }
+                  />
+                </ModalFormField>
+                <ModalFormField
+                  label={t('Description')}
+                  helperText={t(
+                    'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
+                  )}
+                >
+                  <Input.TextArea
+                    rows={3}
+                    value={description}
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                      setDescription(event.target.value ?? '')
+                    }
+                  />
+                </ModalFormField>
+                <ModalFormField
+                  label={t('Owners')}
+                  helperText={t(
+                    'A list of users who can alter the chart. Searchable by name or username.',
+                  )}
+                >
+                  <AsyncSelect
+                    ariaLabel={ownersLabel}
+                    mode="multiple"
+                    name="owners"
+                    value={selectedOwners || []}
+                    onChange={setSelectedOwners}
+                    options={loadOptions}
+                    disabled={!selectedOwners}
+                    allowClear
+                  />
+                </ModalFormField>
+                {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+                  <ModalFormField
+                    label={t('Tags')}
+                    helperText={t(
+                      'A list of tags that have been applied to this chart.',
+                    )}
+                    bottomSpacing={false}
+                  >
+                    <AsyncSelect
+                      ariaLabel="Tags"
+                      mode="multiple"
+                      value={tagsAsSelectValues}
+                      options={loadTags}
+                      onChange={handleChangeTags}
+                      onClear={handleClearTags}
+                      allowClear
+                    />
+                  </ModalFormField>
                 )}
+              </>
+            ),
+          },
+          {
+            key: 'configuration',
+            label: (
+              <CollapseLabelInModal
+                title={t('Configuration')}
+                subtitle={t('Configure caching and performance settings')}
+                validateCheckStatus={!validationStatus.configuration?.hasErrors}
+                testId="configuration-section"
+              />
+            ),
+            children: (
+              <ModalFormField
+                label={t('Cache timeout')}
+                helperText={t(
+                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
+                )}
+                error={
+                  validationStatus.configuration?.hasErrors &&
+                  cacheTimeout &&
+                  Number.isNaN(Number(cacheTimeout))
+                    ? t('Cache timeout must be a number')
+                    : undefined
+                }
+                bottomSpacing={false}
               >
-                <AsyncSelect
-                  ariaLabel="Tags"
-                  mode="multiple"
-                  value={tagsAsSelectValues}
-                  options={loadTags}
-                  onChange={handleChangeTags}
-                  onClear={handleClearTags}
-                  allowClear
+                <Input
+                  aria-label="Cache timeout"
+                  value={cacheTimeout}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setCacheTimeout(event.target.value ?? '')
+                  }
                 />
-              </FormItem>
-            )}
-          </Col>
-        </Row>
-      </Form>
-    </Modal>
+              </ModalFormField>
+            ),
+          },
+          {
+            key: 'advanced',
+            label: (
+              <CollapseLabelInModal
+                title={t('Advanced')}
+                subtitle={t('Certification and additional settings')}
+                validateCheckStatus={!validationStatus.advanced?.hasErrors}
+                testId="advanced-section"
+              />
+            ),
+            children: (
+              <>
+                <ModalFormField
+                  label={t('Certified by')}
+                  helperText={t(
+                    'Person or group that has certified this chart.',
+                  )}
+                >
+                  <Input
+                    aria-label={t('Certified by')}
+                    value={certifiedBy}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setCertifiedBy(event.target.value ?? '')
+                    }
+                  />
+                </ModalFormField>
+                <ModalFormField
+                  label={t('Certification details')}
+                  helperText={t(
+                    'Any additional detail to show in the certification tooltip.',
+                  )}
+                  bottomSpacing={false}
+                >
+                  <Input
+                    aria-label={t('Certification details')}
+                    value={certificationDetails}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setCertificationDetails(event.target.value ?? '')
+                    }
+                  />
+                </ModalFormField>
+              </>
+            ),
+          },
+        ]}
+      />
+    </StandardModal>
   );
 }
 

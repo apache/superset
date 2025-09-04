@@ -1,4 +1,10 @@
-name: Cleanup ephemeral envs (PR close)
+name: Cleanup ephemeral envs (PR close) [DEPRECATED]
+
+# ⚠️  DEPRECATION NOTICE ⚠️
+# This workflow is deprecated and will be removed in a future version.
+# The new Superset Showtime workflow handles cleanup automatically.
+# See .github/workflows/showtime.yml and showtime-cleanup.yml for replacements.
+# Migration guide: https://github.com/mistercrunch/superset-showtime
 
 on:
   pull_request_target:
@@ -71,5 +77,5 @@ jobs:
               issue_number: ${{ github.event.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Ephemeral environment shutdown and build artifacts deleted.'
+              body: '⚠️ **DEPRECATED WORKFLOW** - Ephemeral environment shutdown and build artifacts deleted. Please migrate to the new Superset Showtime system for future PRs.'
             })

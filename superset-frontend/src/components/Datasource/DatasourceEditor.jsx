@@ -717,7 +717,9 @@ class DatasourceEditor extends PureComponent {
   }
 
   onDatasourceTypeChange(datasourceType) {
-    this.setState({ datasourceType });
+    // Call onChange after setting datasourceType to ensure
+    // SQL is cleared when switching to a physical dataset
+    this.setState({ datasourceType }, this.onChange);
   }
 
   setColumns(obj) {
@@ -1127,34 +1129,21 @@ class DatasourceEditor extends PureComponent {
   }
 
   renderSqlErrorMessage = () => (
-    <>
-      <span
-        css={theme => css`
-          font-size: ${theme.fontSizeSM}px;
-        `}
-      >
-        {this.props.database?.error && t('Error executing query. ')}
-      </span>
+    <span
+      css={theme => css`
+        font-size: ${theme.fontSizeSM}px;
+        color: ${theme.colorErrorText};
+      `}
+    >
+      {this.props.database?.error && t('Error executing query. ')}
       {this.renderOpenInSqlLabLink(true)}
-      <span
-        css={theme => css`
-          font-size: ${theme.fontSizeSM}px;
-          margin-right: ${theme.sizeUnit}px;
-        `}
-      >
-        {t(' to check for details.')}
-      </span>
-    </>
+      {t(' to check for details.')}
+    </span>
   );
 
   renderSourceFieldset() {
     const { datasource } = this.state;
-    const floatingButtonCss = css`
-      align-self: flex-end;
-      height: 24px;
-      padding-left: 6px;
-      padding-right: 6px;
-    `;
+
     return (
       <div>
         <EditLockContainer>
@@ -1295,7 +1284,7 @@ class DatasourceEditor extends PureComponent {
                       ) : (
                         <TextAreaControl
                           css={theme => css`
-                            margin-top: ${theme.sizeUnit * 2}px;
+                            margin-top: ${theme.sizeUnit * 3}px;
                           `}
                           hotkeys={[
                             {
@@ -1326,41 +1315,24 @@ class DatasourceEditor extends PureComponent {
                           display: flex;
                         `}
                       >
-                        {this.props.database?.error &&
-                          this.renderSqlErrorMessage()}
                         <Button
                           disabled={this.props.database?.isLoading}
                           tooltip={t('Open SQL Lab in a new tab')}
-                          css={floatingButtonCss}
-                          size="small"
+                          buttonStyle="secondary"
                           onClick={() => {
                             this.openOnSqlLab();
                           }}
-                        >
-                          <Icons.ExportOutlined
-                            iconSize="s"
-                            css={theme => ({
-                              color: theme.colorPrimaryBg,
-                            })}
-                          />
-                        </Button>
+                          icon={<Icons.ExportOutlined iconSize="s" />}
+                        />
                         <Button
                           disabled={this.props.database?.isLoading}
                           tooltip={t('Run query')}
-                          css={floatingButtonCss}
-                          size="small"
                           buttonStyle="primary"
                           onClick={() => {
                             this.onQueryRun();
                           }}
-                        >
-                          <Icons.CaretRightFilled
-                            iconSize="s"
-                            css={theme => ({
-                              color: theme.colorIcon,
-                            })}
-                          />
-                        </Button>
+                          icon={<Icons.CaretRightFilled iconSize="s" />}
+                        />
                       </div>
                     }
                   />
@@ -1368,7 +1340,7 @@ class DatasourceEditor extends PureComponent {
                     <>
                       <div
                         css={theme => css`
-                          margin-bottom: ${theme.sizeUnit * 4}px;
+                          margin-bottom: ${theme.sizeUnit}px;
                         `}
                       >
                         <span
@@ -1405,6 +1377,7 @@ class DatasourceEditor extends PureComponent {
                       />
                     </>
                   )}
+                  {this.props.database?.error && this.renderSqlErrorMessage()}
                 </>
               )}
             </div>

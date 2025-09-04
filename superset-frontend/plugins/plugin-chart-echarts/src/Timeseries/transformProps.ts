@@ -233,6 +233,8 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -247,6 +249,7 @@ export default function transformProps(
       sortSeriesAscending,
       xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
       xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisType,
     },
   );
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
@@ -259,9 +262,6 @@ export default function transformProps(
     rawSeries.map(series => series.name as string),
   );
   const isAreaExpand = stack === StackControlsValue.Expand;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
@@ -331,6 +331,7 @@ export default function transformProps(
         lineStyle,
         timeCompare: array,
         timeShiftColor,
+        theme,
       },
     );
     if (transformedSeries) {
@@ -493,7 +494,7 @@ export default function transformProps(
         ForecastSeriesEnum.Observation,
     )
     .map(entry => entry.name || '')
-    .concat(extractAnnotationLabels(annotationLayers, annotationData));
+    .concat(extractAnnotationLabels(annotationLayers));
 
   let xAxis: any = {
     type: xAxisType,

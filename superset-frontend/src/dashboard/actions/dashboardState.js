@@ -24,6 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getLabelsColorMap,
+  logging,
   SupersetClient,
   t,
   getClientErrorObject,
@@ -179,11 +180,6 @@ export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };
 }
 
-export const UPDATE_CSS = 'UPDATE_CSS';
-export function updateCss(css) {
-  return { type: UPDATE_CSS, css };
-}
-
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';
 export function setEditMode(editMode) {
   return { type: SET_EDIT_MODE, editMode };
@@ -294,6 +290,7 @@ export function saveDashboardRequest(data, id, saveType) {
       owners,
       roles,
       slug,
+      tags,
     } = data;
 
     const hasId = item => item.id !== undefined;
@@ -315,6 +312,9 @@ export function saveDashboardRequest(data, id, saveType) {
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
+      tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
+        ? undefined
+        : ensureIsArray(tags || []).map(r => (hasId(r) ? r.id : r)),
       metadata: {
         ...data.metadata,
         color_namespace: getColorNamespace(data.metadata?.color_namespace),
@@ -391,12 +391,16 @@ export function saveDashboardRequest(data, id, saveType) {
         SupersetClient.get({
           endpoint: `/api/v1/dashboard/${id}/datasets`,
           headers: { 'Content-Type': 'application/json' },
-        }).then(({ json }) => {
-          const datasources = json?.result ?? [];
-          if (datasources.length) {
-            dispatch(setDatasources(datasources));
-          }
-        });
+        })
+          .then(({ json }) => {
+            const datasources = json?.result ?? [];
+            if (datasources.length) {
+              dispatch(setDatasources(datasources));
+            }
+          })
+          .catch(error => {
+            logging.error('Error fetching dashboard datasets:', error);
+          });
       }
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
@@ -445,6 +449,8 @@ export function saveDashboardRequest(data, id, saveType) {
               slug: cleanedData.slug,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
+              tags: cleanedData.tags || [],
+              theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({
                 ...(cleanedData?.metadata || {}),
                 default_filters: safeStringify(serializedFilters),
@@ -882,7 +888,7 @@ export const applyDashboardLabelsColorOnLoad = metadata => async dispatch => {
       dispatch(setDashboardLabelsColorMapSync());
     }
   } catch (e) {
-    console.error('Failed to update dashboard color on load:', e);
+    logging.error('Failed to update dashboard color on load:', e);
   }
 };
 
@@ -1049,6 +1055,6 @@ export const updateDashboardLabelsColor = renderedChartIds => (_, getState) => {
     // re-apply the color map first to get fresh maps accordingly
     applyColors(metadata, shouldGoFresh, shouldMerge);
   } catch (e) {
-    console.error('Failed to update colors for new charts and labels:', e);
+    logging.error('Failed to update colors for new charts and labels:', e);
   }
 };

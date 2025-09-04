@@ -450,12 +450,35 @@ class TestSqlLabApi(SupersetTestCase):
         db.session.add(query_obj)
         db.session.commit()
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        # Include multilingual data
+        get_df_mock.return_value = pd.DataFrame(
+            {
+                "foo": [1, 2],
+                "مرحبا": ["أ", "ب"],
+                "姓名": ["张", "李"],
+            }
+        )
 
         resp = self.get_resp("/api/v1/sqllab/export/test/")
-        data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
-        assert list(expected_data) == list(data)
+        # Check for UTF-8 BOM
+        assert resp.startswith("\ufeff"), "Missing UTF-8 BOM at beginning of CSV"
+
+        # Parse CSV
+        reader = csv.reader(io.StringIO(resp))
+        data = list(reader)
+
+        # Strip BOM from the first cell of the header
+        if data and data[0]:
+            data[0][0] = data[0][0].lstrip("\ufeff")
+
+        # Expected header and rows
+        expected_data = [
+            ["foo", "مرحبا", "姓名"],
+            ["1", "أ", "张"],
+            ["2", "ب", "李"],
+        ]
+
+        assert data == expected_data, f"CSV data mismatch. Got: {data}"
         db.session.delete(query_obj)
         db.session.commit()

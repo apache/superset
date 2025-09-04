@@ -54,10 +54,12 @@ const renderDisabledSaveButton = () => (
 );
 
 const renderOverlay = () => (
-  <Menu>
-    <Menu.Item>{t('Settings')}</Menu.Item>
-    <Menu.Item>{t('Delete')}</Menu.Item>
-  </Menu>
+  <Menu
+    items={[
+      { key: 'settings', label: t('Settings') },
+      { key: 'delete', label: t('Delete') },
+    ]}
+  />
 );
 
 export default function Header({

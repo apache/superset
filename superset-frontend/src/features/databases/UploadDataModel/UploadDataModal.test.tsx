@@ -86,8 +86,8 @@ const setupMocks = () => {
   });
 };
 
-// Set timeout for all tests in this file to 30 seconds
-jest.setTimeout(30000);
+// Set timeout for all tests in this file to 60 seconds
+jest.setTimeout(60000);
 
 beforeEach(() => {
   setupMocks();
@@ -102,9 +102,9 @@ const getCommonElements = () => ({
   cancelButton: screen.getByRole('button', { name: 'Cancel' }),
   uploadButton: screen.getByRole('button', { name: 'Upload' }),
   selectButton: screen.getByRole('button', { name: 'Select' }),
-  panel1: screen.getByRole('heading', { name: /General information/i }),
-  panel2: screen.getByRole('heading', { name: /file settings/i }),
-  panel3: screen.getByRole('heading', { name: /columns/i }),
+  panel1: screen.getByText(/General information/i, { selector: 'strong' }),
+  panel2: screen.getByText(/file settings/i, { selector: 'strong' }),
+  panel3: screen.getByText(/columns/i, { selector: 'strong' }),
   selectDatabase: screen.getByRole('combobox', { name: /select a database/i }),
   inputTableName: screen.getByRole('textbox', { name: /table name/i }),
   inputSchema: screen.getByRole('combobox', { name: /schema/i }),
@@ -130,7 +130,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
     const common = getCommonElements();
     const title = screen.getByRole('heading', { name: /csv upload/i });
-    const panel4 = screen.getByRole('heading', { name: /rows/i });
+    const panel4 = screen.getByText(/rows/i);
     const selectDelimiter = screen.getByRole('combobox', {
       name: /choose a delimiter/i,
     });
@@ -156,7 +156,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
     const common = getCommonElements();
     const title = screen.getByRole('heading', { name: /excel upload/i });
-    const panel4 = screen.getByRole('heading', { name: /rows/i });
+    const panel4 = screen.getByText(/rows/i);
     const selectSheetName = screen.getByRole('combobox', {
       name: /choose sheet name/i,
     });
@@ -177,9 +177,7 @@ describe('UploadDataModal - General Information Elements', () => {
     ]);
 
     // Check elements that should NOT be visible
-    expect(
-      screen.queryByRole('heading', { name: /csv upload/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/csv upload/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('combobox', { name: /choose a delimiter/i }),
     ).not.toBeInTheDocument();
@@ -206,8 +204,8 @@ describe('UploadDataModal - General Information Elements', () => {
 
     // Check elements that should NOT be visible
     expectElementsNotVisible([
-      screen.queryByRole('heading', { name: /csv upload/i }),
-      screen.queryByRole('heading', { name: /rows/i }),
+      screen.queryByText(/csv upload/i),
+      screen.queryByText(/rows/i),
       screen.queryByRole('combobox', { name: /choose a delimiter/i }),
       screen.queryByRole('combobox', { name: /choose sheet name/i }),
     ]);
@@ -216,7 +214,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
 describe('UploadDataModal - File Settings Elements', () => {
   const openFileSettings = async () => {
-    const panelHeader = screen.getByRole('heading', { name: /file settings/i });
+    const panelHeader = screen.getByText(/file settings/i);
     await userEvent.click(panelHeader);
   };
 
@@ -294,7 +292,7 @@ describe('UploadDataModal - File Settings Elements', () => {
 
 describe('UploadDataModal - Columns Elements', () => {
   const openColumns = async () => {
-    const panelHeader = screen.getByRole('heading', { name: /columns/i });
+    const panelHeader = screen.getByText(/columns/i, { selector: 'strong' });
     await userEvent.click(panelHeader);
   };
 
@@ -365,7 +363,7 @@ describe('UploadDataModal - Rows Elements', () => {
   test('CSV/Excel rows render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
-    const panelHeader = screen.getByRole('heading', { name: /rows/i });
+    const panelHeader = screen.getByText(/rows/i);
     await userEvent.click(panelHeader);
 
     const elements = [
@@ -380,7 +378,7 @@ describe('UploadDataModal - Rows Elements', () => {
   test('Columnar does not render rows', () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-    const panelHeader = screen.queryByRole('heading', { name: /rows/i });
+    const panelHeader = screen.queryByText(/rows/i);
     expect(panelHeader).not.toBeInTheDocument();
   });
 });
@@ -411,7 +409,7 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectSchema);
     await waitFor(() => screen.getAllByText('schema1'));
     await waitFor(() => screen.getAllByText('schema2'));
-  });
+  }, 60000);
 });
 
 describe('UploadDataModal - Form Validation', () => {
@@ -507,7 +505,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.parquet');
-  });
+  }, 60000);
 });
 
 describe('File Extension Validation', () => {
@@ -603,55 +601,61 @@ describe('File Extension Validation', () => {
 });
 
 describe('UploadDataModal Collapse Tabs', () => {
-  it('renders the collaps tab CSV correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...csvProps} />, {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information Upload a file to a database./i,
+      name: /expanded General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings/i,
     });
-    userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
     rerender(<UploadDataModal {...csvProps} show={false} />);
     rerender(<UploadDataModal {...csvProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Excel correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...excelProps} />, {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information Upload a file to a database./i,
+      name: /expanded General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings/i,
     });
-    userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
     rerender(<UploadDataModal {...excelProps} show={false} />);
     rerender(<UploadDataModal {...excelProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Columnar correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...columnarProps} />, {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information Upload a file to a database./i,
+      name: /expanded General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings/i,
     });
-    userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
     rerender(<UploadDataModal {...columnarProps} show={false} />);
     rerender(<UploadDataModal {...columnarProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');

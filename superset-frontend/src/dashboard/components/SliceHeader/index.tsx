@@ -59,6 +59,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  exportPivotExcel?: (arg0: string) => void;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -167,6 +168,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
+      exportPivotExcel = () => ({}),
     },
     ref,
   ) => {
@@ -235,20 +237,23 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
-            <EditableTitle
-              title={
-                sliceName ||
-                (editMode
-                  ? '---' // this makes an empty title clickable
-                  : '')
-              }
-              canEdit={editMode}
-              onSaveTitle={updateSliceName}
-              showTooltip={false}
-              renderLink={
-                canExplore && exploreUrl ? renderExploreLink : undefined
-              }
-            />
+            {/* this div ensures the hover event triggers correctly and prevents flickering */}
+            <div>
+              <EditableTitle
+                title={
+                  sliceName ||
+                  (editMode
+                    ? '---' // this makes an empty title clickable
+                    : '')
+                }
+                canEdit={editMode}
+                onSaveTitle={updateSliceName}
+                showTooltip={false}
+                renderLink={
+                  canExplore && exploreUrl ? renderExploreLink : undefined
+                }
+              />
+            </div>
           </Tooltip>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
@@ -344,6 +349,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  exportPivotExcel={exportPivotExcel}
                 />
               )}
             </>

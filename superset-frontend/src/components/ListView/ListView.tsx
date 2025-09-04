@@ -29,6 +29,7 @@ import {
   EmptyState,
   DropdownButton,
   Menu,
+  Loading,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
@@ -46,6 +47,7 @@ import { ListViewError, useListViewState } from './utils';
 const ListViewStyles = styled.div`
   ${({ theme }) => `
     text-align: center;
+    background-color: ${theme.colorBgLayout};
 
     .superset-list-view {
       text-align: left;
@@ -88,8 +90,18 @@ const ListViewStyles = styled.div`
 
     .row-count-container {
       margin-top: ${theme.sizeUnit * 2}px;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorText};
     }
+  `}
+`;
+
+const FullPageLoadingWrapper = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: ${theme.sizeUnit * 16}px;
   `}
 `;
 
@@ -170,7 +182,7 @@ const ViewModeContainer = styled.div`
     }
 
     .active {
-      background-color: ${theme.colors.grayscale.base};
+      background-color: ${theme.colorText};
 
       svg {
         color: ${theme.colorBgLayout};
@@ -481,28 +493,36 @@ export function ListView<T extends object = any>({
             />
           )}
           {viewMode === 'table' && (
-            <TableCollection
-              getTableProps={getTableProps}
-              getTableBodyProps={getTableBodyProps}
-              prepareRow={prepareRow}
-              headerGroups={headerGroups}
-              setSortBy={setSortBy}
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              highlightRowId={highlightRowId}
-              columnsForWrapText={columnsForWrapText}
-              bulkSelectEnabled={bulkSelectEnabled}
-              selectedFlatRows={selectedFlatRows}
-              toggleRowSelected={(rowId, value) => {
-                const row = rows.find(r => r.id === rowId);
-                if (row) {
-                  prepareRow(row);
-                  row.toggleRowSelected(value);
-                }
-              }}
-              toggleAllRowsSelected={toggleAllRowsSelected}
-            />
+            <>
+              {loading && rows.length === 0 ? (
+                <FullPageLoadingWrapper>
+                  <Loading />
+                </FullPageLoadingWrapper>
+              ) : (
+                <TableCollection
+                  getTableProps={getTableProps}
+                  getTableBodyProps={getTableBodyProps}
+                  prepareRow={prepareRow}
+                  headerGroups={headerGroups}
+                  setSortBy={setSortBy}
+                  rows={rows}
+                  columns={columns}
+                  loading={loading && rows.length > 0}
+                  highlightRowId={highlightRowId}
+                  columnsForWrapText={columnsForWrapText}
+                  bulkSelectEnabled={bulkSelectEnabled}
+                  selectedFlatRows={selectedFlatRows}
+                  toggleRowSelected={(rowId, value) => {
+                    const row = rows.find(r => r.id === rowId);
+                    if (row) {
+                      prepareRow(row);
+                      row.toggleRowSelected(value);
+                    }
+                  }}
+                  toggleAllRowsSelected={toggleAllRowsSelected}
+                />
+              )}
+            </>
           )}
           {!loading && rows.length === 0 && (
             <EmptyWrapper className={viewMode} data-test="empty-state">

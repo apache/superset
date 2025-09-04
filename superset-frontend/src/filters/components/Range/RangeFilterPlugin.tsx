@@ -25,6 +25,7 @@ import {
   styled,
   useTheme,
   t,
+  css,
 } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -54,7 +55,7 @@ const Wrapper = styled.div`
   justify-content: space-between;
   width: 100%;
 
-  .antd5-input-number {
+  .ant-input-number {
     min-width: 80px;
     position: relative;
   }
@@ -70,7 +71,7 @@ const SliderWrapper = styled.div`
 const TooltipContainer = styled.div`
   ${({ theme }) => `
     position: absolute;
-    top: -${theme.sizeUnit * 10}px;
+    top: -${theme.sizeUnit * 6}px;
     right: 0px;
     z-index: 100;
     display: flex;
@@ -85,40 +86,38 @@ const TooltipContainer = styled.div`
 const HorizontalLayout = styled.div`
   ${({ theme }) => `
     display: flex;
-    flex-direction: column;
     gap: ${theme.sizeUnit * 4}px;
     width: 100%;
+    align-items: center;
 
-    .controls-container {
+    .slider-wrapper {
       display: flex;
       align-items: center;
-      gap: ${theme.sizeUnit * 4}px;
-      width: 100%;
-
-      .slider-wrapper {
-        display: flex;
-        align-items: center;
-        flex: 2;
-      }
-
-      .slider-container {
-        flex: 1;
-        min-width: 180px;
-      }
-
-      .inputs-container {
-        min-width: 160px;
-        max-width: 200px;
-      }
-
+      flex: 2;
     }
 
-    .message-container {
-      width: 100%;
-      text-align: center;
-      padding-top: ${theme.sizeUnit * 2}px;
+    .slider-container {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .inputs-container {
+      min-width: 160px;
+      max-width: 200px;
     }
   `}
+`;
+
+const FocusContainer = styled.div`
+  ${({ theme }) => `
+  border-radius: ${theme.borderRadius}px;
+  transition: box-shadow ${theme.motionDurationMid} ease-in-out;
+  &:focus {
+    box-shadow: 0 0 0 2px ${theme.colorPrimary};
+  }
+  &:focus-visible {
+    outline: none;
+  }`}
 `;
 
 const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
@@ -508,11 +507,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       <Tooltip title={message} placement="top">
         <Icons.InfoCircleOutlined
           iconSize="m"
-          iconColor={
-            status === 'error'
-              ? theme.colors.error.base
-              : theme.colors.grayscale.base
-          }
+          iconColor={status === 'error' ? theme.colorError : theme.colorIcon}
           className="tooltip-icon"
         />
       </Tooltip>
@@ -583,7 +578,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const renderInputs = () => (
     <Wrapper
       tabIndex={-1}
-      ref={inputRef}
       onFocus={setFocusedFilter}
       onBlur={unsetFocusedFilter}
       onMouseEnter={setHoveredFilter}
@@ -631,8 +625,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <FormItem aria-labelledby={`filter-name-${formData.nativeFilterId}`}>
           {filterBarOrientation === FilterBarOrientation.Horizontal &&
           !isOverflowingFilterBar ? (
-            <HorizontalLayout>
-              <div className="controls-container">
+            <FocusContainer ref={inputRef} tabIndex={-1}>
+              <HorizontalLayout>
                 <InfoTooltip />
                 {(rangeDisplayMode === RangeDisplayMode.Slider ||
                   rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
@@ -644,8 +638,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                   rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
                   <div className="inputs-container">{renderInputs()}</div>
                 )}
-              </div>
-            </HorizontalLayout>
+              </HorizontalLayout>
+            </FocusContainer>
           ) : (
             <>
               <div style={{ position: 'relative' }}>
@@ -654,12 +648,21 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                     <InfoTooltip />
                   </TooltipContainer>
                 )}
-                {(rangeDisplayMode === RangeDisplayMode.Slider ||
-                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
-                  renderSlider()}
-                {(rangeDisplayMode === RangeDisplayMode.Input ||
-                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
-                  renderInputs()}
+                <FocusContainer
+                  ref={inputRef}
+                  tabIndex={-1}
+                  css={css`
+                    padding-top: 1px;
+                    margin-top: -1px;
+                  `}
+                >
+                  {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                    rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                    renderSlider()}
+                  {(rangeDisplayMode === RangeDisplayMode.Input ||
+                    rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                    renderInputs()}
+                </FocusContainer>
 
                 <MessageDisplay />
               </div>

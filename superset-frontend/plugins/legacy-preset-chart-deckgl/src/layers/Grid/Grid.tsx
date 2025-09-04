@@ -16,15 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
 import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
-import { commonLayerProps, getAggFunc } from '../common';
+import {
+  commonLayerProps,
+  getAggFunc,
+  getColorForBreakpoints,
+  getColorRange,
+} from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -55,9 +60,70 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-  const colorRange = colorScale
-    .range()
-    .map(color => hexToRGB(color)) as Color[];
+  let data = payload.data.features;
+
+  if (fd.js_data_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+
+  const colorBreakpoints = fd.color_breakpoints;
+
+  const colorSchemeType = fd.color_scheme_type;
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    colorSchemeType,
+    colorScale,
+    colorBreakpoints,
+    fixedColor: fd.color_picker,
+  });
+
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+
+  const colorAggFunc =
+    colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
+      ? (p: number[]) => getColorForBreakpoints(aggFunc, p, colorBreakpoints)
+      : aggFunc;
+
+  return new GridLayer({
+    id: `grid-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}`,
+    data,
+    cellSize: fd.grid_size,
+    extruded: fd.extruded,
+    colorDomain:
+      colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints && colorRange
+        ? [0, colorRange.length]
+        : undefined,
+    colorRange,
+    outline: false,
+    // @ts-ignore
+    getElevationValue: aggFunc,
+    // @ts-ignore
+    getColorValue: colorAggFunc,
+    ...commonLayerProps({
+      formData: fd,
+      setDataMask,
+      setTooltip,
+      setTooltipContent,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
+    opacity: filterState?.value ? 0.1 : 1,
+  });
+};
+
+export function getPoints(data: JsonObject[]) {
+  return data.map(d => d.position);
+}
+
+export const getHighlightLayer: GetLayerType<GridLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
@@ -68,31 +134,27 @@ export const getLayer: GetLayerType<GridLayer> = function ({
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 
+  const selectedPointsSet = new Set(
+    filterState?.value?.map((sp: [number, number]) => `${sp[0]},${sp[1]}`),
+  );
+
+  const colorAggFunc = (p: JsonObject) =>
+    selectedPointsSet.has(`${p.position[0]},${p.position[1]}`) ? 1 : 0;
+
   return new GridLayer({
-    id: `grid-layer-${fd.slice_id}` as const,
+    id: `grid-highlight-layer-${fd.slice_id}-${JSON.stringify(filterState?.value)}`,
     data,
     cellSize: fd.grid_size,
     extruded: fd.extruded,
-    colorRange,
+    colorDomain: [0, 1],
+    colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
+    colorAggregation: 'MAX',
     outline: false,
     // @ts-ignore
     getElevationValue: aggFunc,
-    // @ts-ignore
-    getColorValue: aggFunc,
-    ...commonLayerProps({
-      formData: fd,
-      setDataMask,
-      setTooltip,
-      setTooltipContent,
-      filterState,
-      onContextMenu,
-      emitCrossFilters,
-    }),
+    getColorWeight: colorAggFunc,
+    opacity: 1,
   });
 };
 
-export function getPoints(data: JsonObject[]) {
-  return data.map(d => d.position);
-}
-
-export default createDeckGLComponent(getLayer, getPoints);
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

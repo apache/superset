@@ -40,6 +40,7 @@ export type EchartsPieFormData = QueryFormData &
     labelType: EchartsPieLabelType;
     labelTemplate: string | null;
     labelsOutside: boolean;
+    legendSort: 'asc' | 'desc' | null;
     metric?: string;
     outerRadius: number;
     showLabels: boolean;

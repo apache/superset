@@ -52,7 +52,9 @@ interface TableCollectionProps<T extends object> {
 const StyledTable = styled(Table)`
   ${({ theme }) => `
     th.ant-column-cell {
-      min-width: fit-content;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .actions {
       opacity: 0;
@@ -80,10 +82,10 @@ const StyledTable = styled(Table)`
       }
     }
     .ant-table-cell {
+      max-width: 320px;
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
-      max-width: 320px;
       line-height: 1;
       vertical-align: middle;
       padding-left: ${theme.sizeUnit * 4}px;
@@ -91,6 +93,11 @@ const StyledTable = styled(Table)`
     }
     .ant-table-placeholder .ant-table-cell {
       border-bottom: 0;
+    }
+
+    // Hotfix - antd doesn't apply background color to overflowing cells
+    & table {
+      background-color: ${theme.colorBgContainer};
     }
   `}
 `;
