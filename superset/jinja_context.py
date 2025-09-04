@@ -768,6 +768,10 @@ class BaseTemplateProcessor:
             raise SupersetTemplateException(
                 "Infinite recursion detected in template"
             ) from ex
+        except Exception as ex:
+            if "undefined" in str(ex).lower():
+                return sql
+            raise
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
