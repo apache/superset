@@ -450,13 +450,14 @@ class Chart extends Component {
     let bigNumberComparisonData = null;
 
     // Simplified inline comparison data extraction
-    if (queriesResponse && queriesResponse.length > 0 && formData) {
-      const { data = [], colnames = [] } = queriesResponse[0];
+    if (queriesResponse && queriesResponse.length > 0 && formData && queriesResponse[0]) {
+      const queryResult = queriesResponse[0];
+      const { data = [], colnames = [] } = queryResult;
       const vizType = formData?.viz_type;
       
-      if (data.length > 0 && vizType && vizType.includes('big_number')) {
+      if (data && data.length > 0 && vizType && vizType.includes('big_number')) {
         // Check for time offset columns
-        const hasTimeOffsetColumns = colnames?.some(
+        const hasTimeOffsetColumns = colnames && colnames.length > 0 && colnames.some(
           (col) => col.includes('__') && col !== formData.metric
         );
         
@@ -476,7 +477,9 @@ class Chart extends Component {
           };
           
           // Extract current value EXACTLY like BigNumber transformProps (line 64)
-          const currentValue = data.length === 0 ? null : parseMetricValue(data[0][metricName]);
+          const currentValue = (!data || data.length === 0 || !data[0]) 
+            ? null 
+            : parseMetricValue(data[0][metricName]);
           
           console.log('🔧 Chart.jsx - Metric Resolution:', {
             rawMetric: formData.metric,
@@ -486,15 +489,16 @@ class Chart extends Component {
             currentValueType: typeof currentValue,
             availableColumns: colnames,
             firstRowData: data[0],
-            allDataKeys: Object.keys(data[0]),
-            dataKeyValues: Object.entries(data[0]),
+            allDataKeys: data[0] ? Object.keys(data[0]) : [],
+            dataKeyValues: data[0] ? Object.entries(data[0]) : [],
           });
           
           // Find previous period value EXACTLY like BigNumber transformProps does
           let previousPeriodValue = null;
-          for (const col of colnames) {
-            if (col.includes('__') && col !== metricName) {
-              const rawValue = data[0][col];
+          if (data[0]) {
+            for (const col of colnames) {
+              if (col.includes('__') && col !== metricName) {
+                const rawValue = data[0][col];
               console.log('🔍 Checking time offset column:', {
                 col,
                 rawValue,
