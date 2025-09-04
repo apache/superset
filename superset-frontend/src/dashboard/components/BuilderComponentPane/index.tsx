@@ -117,6 +117,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => {
                     .getAll()
                     .map(({ key: componentKey, metadata }) => (
                       <NewDynamicComponent
+                        key={componentKey}
                         metadata={metadata}
                         componentKey={componentKey}
                       />

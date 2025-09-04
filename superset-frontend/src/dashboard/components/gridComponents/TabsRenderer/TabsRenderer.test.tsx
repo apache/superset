@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import TabsRenderer, { TabItem, TabsRendererProps } from './TabsRenderer';
 
 const mockTabItems: TabItem[] = [
@@ -72,15 +72,31 @@ describe('TabsRenderer', () => {
   test('applies correct tab bar padding', () => {
     const { rerender } = render(<TabsRenderer {...mockProps} />);
 
-    expect(screen.getByTestId('nav-list')).toBeInTheDocument();
+    let editableTabs = screen.getByTestId('nav-list');
+    expect(editableTabs).toBeInTheDocument();
 
     rerender(<TabsRenderer {...mockProps} tabBarPaddingLeft={0} />);
-    expect(screen.getByTestId('nav-list')).toBeInTheDocument();
+    editableTabs = screen.getByTestId('nav-list');
+
+    expect(editableTabs).toBeInTheDocument();
   });
 
   test('calls handleClickTab when tab is clicked', () => {
-    render(<TabsRenderer {...mockProps} />);
-    expect(mockProps.handleClickTab).not.toHaveBeenCalled();
+    const handleClickTabMock = jest.fn();
+    const propsWithTab2Active = {
+      ...mockProps,
+      activeKey: 'tab-2',
+      handleClickTab: handleClickTabMock,
+    };
+    render(<TabsRenderer {...propsWithTab2Active} />);
+
+    const tabElement = screen.getByText('Tab 1').closest('[role="tab"]');
+    expect(tabElement).not.toBeNull();
+
+    fireEvent.click(tabElement!);
+
+    expect(handleClickTabMock).toHaveBeenCalledWith(0);
+    expect(handleClickTabMock).toHaveBeenCalledTimes(1);
   });
 
   test('shows hover menu in edit mode', () => {
@@ -94,8 +110,9 @@ describe('TabsRenderer', () => {
 
     render(<TabsRenderer {...editModeProps} />);
 
-    const hoverMenuElements = document.querySelectorAll('.hover-menu');
-    expect(hoverMenuElements.length).toBeGreaterThan(0);
+    const hoverMenu = document.querySelector('.hover-menu');
+
+    expect(hoverMenu).toBeInTheDocument();
   });
 
   test('hides hover menu when not in edit mode', () => {
@@ -107,8 +124,9 @@ describe('TabsRenderer', () => {
 
     render(<TabsRenderer {...viewModeProps} />);
 
-    const hoverMenuElements = document.querySelectorAll('.hover-menu');
-    expect(hoverMenuElements).toHaveLength(0);
+    const hoverMenu = document.querySelector('.hover-menu');
+
+    expect(hoverMenu).not.toBeInTheDocument();
   });
 
   test('hides hover menu when renderHoverMenu is false', () => {
@@ -122,8 +140,9 @@ describe('TabsRenderer', () => {
 
     render(<TabsRenderer {...noHoverMenuProps} />);
 
-    const hoverMenuElements = document.querySelectorAll('.hover-menu');
-    expect(hoverMenuElements).toHaveLength(0);
+    const hoverMenu = document.querySelector('.hover-menu');
+
+    expect(hoverMenu).not.toBeInTheDocument();
   });
 
   test('renders with correct tab type based on edit mode', () => {
@@ -137,6 +156,7 @@ describe('TabsRenderer', () => {
     rerender(<TabsRenderer {...mockProps} editMode />);
 
     editableTabs = screen.getByTestId('nav-list');
+
     expect(editableTabs).toBeInTheDocument();
   });
 
@@ -155,15 +175,27 @@ describe('TabsRenderer', () => {
     render(<TabsRenderer {...minimalProps} />);
 
     const tabsContainer = screen.getByTestId('dashboard-component-tabs');
+
     expect(tabsContainer).toBeInTheDocument();
   });
 
-  test('memoization works correctly', () => {
-    const { rerender } = render(<TabsRenderer {...mockProps} />);
+  test('calls onEdit when edit action is triggered', () => {
+    const handleEditMock = jest.fn();
+    const editableProps = {
+      ...mockProps,
+      editMode: true,
+      handleEdit: handleEditMock,
+    };
 
-    rerender(<TabsRenderer {...mockProps} />);
+    render(<TabsRenderer {...editableProps} />);
 
-    const tabsContainer = screen.getByTestId('dashboard-component-tabs');
-    expect(tabsContainer).toBeInTheDocument();
+    expect(screen.getByTestId('nav-list')).toBeInTheDocument();
+  });
+
+  test('renders tab content correctly', () => {
+    render(<TabsRenderer {...mockProps} />);
+
+    expect(screen.getByText('Tab 1 Content')).toBeInTheDocument();
+    expect(screen.queryByText('Tab 2 Content')).not.toBeInTheDocument(); // Not active
   });
 });

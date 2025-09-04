@@ -102,7 +102,8 @@ const TabsRenderer = memo<TabsRendererProps>(
         activeKey={activeKey}
         onChange={key => {
           if (typeof key === 'string') {
-            handleClickTab(tabIds.indexOf(key));
+            const tabIndex = tabIds.indexOf(key);
+            if (tabIndex !== -1) handleClickTab(tabIndex);
           }
         }}
         onEdit={handleEdit}
