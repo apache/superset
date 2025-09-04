@@ -199,7 +199,12 @@ describe('ListView', () => {
     const bulkActionButton = within(
       screen.getByTestId('bulk-select-controls'),
     ).getByTestId('bulk-select-action');
+    
+    // Click and wait for async operation to complete
     await userEvent.click(bulkActionButton);
+    
+    // Wait for the async handleBulkActionClick to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(mockedProps.bulkActions[0].onSelect).toHaveBeenCalledWith([
       {
