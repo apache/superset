@@ -41,7 +41,8 @@ def _get_base_host(base_url: Optional[str]) -> Optional[str]:
     base_parsed = urlparse(base_url)
     base_host = base_parsed.netloc if base_parsed.netloc else base_parsed.path
 
-    if not base_host:
+    # Validate that the base URL has a proper scheme and host
+    if not base_host or not base_parsed.scheme:
         logger.warning("Invalid base URL configured, skipping link processing")
         return None
 
