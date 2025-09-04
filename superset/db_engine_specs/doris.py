@@ -193,12 +193,12 @@ class DorisEngineSpec(MySQLEngineSpec):
         (
             re.compile(r"^datetime.*", re.IGNORECASE),
             types.DATETIME(),
-            GenericDataType.STRING,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.DATE(),
-            GenericDataType.STRING,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^text.*", re.IGNORECASE),
