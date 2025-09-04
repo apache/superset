@@ -499,18 +499,19 @@ class Chart extends Component {
             for (const col of colnames) {
               if (col.includes('__') && col !== metricName) {
                 const rawValue = data[0][col];
-              console.log('🔍 Checking time offset column:', {
-                col,
-                rawValue,
-                rawValueType: typeof rawValue,
-                isNull: rawValue === null,
-                isUndefined: rawValue === undefined,
-              });
-              if (rawValue !== null && rawValue !== undefined) {
-                // Use parseMetricValue like BigNumber transformProps does (line 236)
-                previousPeriodValue = parseMetricValue(rawValue);
-                console.log('✅ Found previousPeriodValue:', previousPeriodValue);
-                break;
+                console.log('🔍 Checking time offset column:', {
+                  col,
+                  rawValue,
+                  rawValueType: typeof rawValue,
+                  isNull: rawValue === null,
+                  isUndefined: rawValue === undefined,
+                });
+                if (rawValue !== null && rawValue !== undefined) {
+                  // Use parseMetricValue like BigNumber transformProps does (line 236)
+                  previousPeriodValue = parseMetricValue(rawValue);
+                  console.log('✅ Found previousPeriodValue:', previousPeriodValue);
+                  break;
+                }
               }
             }
           }
