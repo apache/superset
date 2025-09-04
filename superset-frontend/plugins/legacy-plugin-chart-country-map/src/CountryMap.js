@@ -26,7 +26,6 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 import countries, { countryOptions } from './countries';
-import { ColorBy } from './utils';
 
 const propTypes = {
   data: PropTypes.arrayOf(
@@ -42,7 +41,6 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
-  colorBy: PropTypes.string,
 };
 
 const maps = {};
@@ -56,33 +54,23 @@ function CountryMap(element, props) {
     linearColorScheme,
     numberFormat,
     colorScheme,
-    colorBy,
     sliceId,
   } = props;
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
-  
-  let colorFn;
-  if (colorBy === ColorBy.Region) {
-    // Use categorical colors based on region names
-    const colorScale = CategoricalColorNamespace.getScale(colorScheme);
-    const colorMap = {};
-    data.forEach(d => {
-      colorMap[d.country_id] = colorScale(d.country_id, sliceId);
-    });
-    colorFn = d => colorMap[d.properties.ISO] || 'none';
-  } else {
-    // Use sequential colors based on metric values (default)
-    const linearColorScale = getSequentialSchemeRegistry()
-      .get(linearColorScheme)
-      .createLinearScale(d3Extent(data, v => v.metric));
-    const colorMap = {};
-    data.forEach(d => {
-      colorMap[d.country_id] = linearColorScale(d.metric);
-    });
-    colorFn = d => colorMap[d.properties.ISO] || 'none';
-  }
+  const linearColorScale = getSequentialSchemeRegistry()
+    .get(linearColorScheme)
+    .createLinearScale(d3Extent(data, v => v.metric));
+  const colorScale = CategoricalColorNamespace.getScale(colorScheme);
+
+  const colorMap = {};
+  data.forEach(d => {
+    colorMap[d.country_id] = colorScheme
+      ? colorScale(d.country_id, sliceId)
+      : linearColorScale(d.metric);
+  });
+  const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
   const div = d3.select(container);
