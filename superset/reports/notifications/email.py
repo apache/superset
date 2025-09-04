@@ -34,6 +34,7 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
+from superset.utils.link_redirect import process_html_links
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             tags=ALLOWED_TAGS,
             attributes=ALLOWED_ATTRIBUTES,
         )
+
+        # Process links to add redirect for external URLs
+        description = process_html_links(description)
 
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:

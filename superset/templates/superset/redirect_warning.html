@@ -1,0 +1,159 @@
+{#
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with this work
+  for additional information regarding copyright ownership. The ASF licenses this
+  file to you under the Apache License, Version 2.0 (the "License"); you may not
+  use this file except in compliance with the License. You may obtain a copy of
+  the License at http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software distributed
+  under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  CONDITIONS OF ANY KIND, either express or implied. See the License for the
+  specific language governing permissions and limitations under the License.
+#}
+
+<!DOCTYPE html>
+<html>
+  {% import 'appbuilder/general/lib.html' as lib %}
+  {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
+  {% import "superset/macros.html" as macros %}
+  {% set favicons = appbuilder.app.config['FAVICONS'] %}
+
+  <head>
+    <title>External Link - Apache Superset</title>
+
+    {% block head_css %}
+      {% for favicon in favicons %}
+        <link
+          rel="{{ favicon.rel if favicon.rel else 'icon' }}"
+          type="{{ favicon.type if favicon.type else 'image/png' }}"
+          {% if favicon.sizes %}sizes="{{ favicon.sizes }}"{% endif %}
+          href="{{ '' if favicon.href.startswith('http') else assets_prefix }}{{ favicon.href }}"
+        />
+      {% endfor %}
+
+      <style nonce="{{ macros.get_nonce() }}">
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background-color: #f7f7f7;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+        }
+        .redirect-container {
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          max-width: 600px;
+          padding: 40px;
+          margin: 20px;
+        }
+        .warning-icon {
+          display: inline-block;
+          width: 48px;
+          height: 48px;
+          margin-bottom: 20px;
+        }
+        .warning-icon svg {
+          width: 100%;
+          height: 100%;
+          fill: #ff9800;
+        }
+        h1 {
+          color: #333;
+          font-size: 24px;
+          margin: 0 0 20px 0;
+          font-weight: 600;
+        }
+        .warning-message {
+          color: #666;
+          line-height: 1.6;
+          margin-bottom: 20px;
+        }
+        .url-display {
+          background: #f5f5f5;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          padding: 12px;
+          margin: 20px 0;
+          word-break: break-all;
+          font-family: monospace;
+          font-size: 14px;
+          color: #555;
+        }
+        .button-group {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          margin-top: 30px;
+        }
+        .btn {
+          padding: 10px 20px;
+          border-radius: 4px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+        }
+        .btn-primary {
+          background: #1890ff;
+          color: white;
+        }
+        .btn-primary:hover {
+          background: #40a9ff;
+        }
+        .btn-secondary {
+          background: #f5f5f5;
+          color: #666;
+          border: 1px solid #d9d9d9;
+        }
+        .btn-secondary:hover {
+          background: #e6e6e6;
+          color: #333;
+        }
+        .disclaimer {
+          font-size: 12px;
+          color: #999;
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid #f0f0f0;
+        }
+      </style>
+    {% endblock %}
+
+    {{ js_bundle(assets_prefix, 'theme') }}
+  </head>
+
+  <body>
+    <div class="redirect-container">
+      <div class="warning-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+        </svg>
+      </div>
+
+      <h1>You are leaving Apache Superset</h1>
+
+      <div class="warning-message">
+        This link is sending you outside of Superset to an external website.
+        Please be careful when entering personal information or credentials on external sites.
+      </div>
+
+      <div class="url-display">{{ target_url }}</div>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" onclick="window.history.back();">Go Back</button>
+        <a href="{{ target_url }}" class="btn btn-primary" rel="noopener noreferrer">Continue to External Site</a>
+      </div>
+
+      <div class="disclaimer">
+        Apache Superset is not responsible for the content or privacy practices of external websites.
+      </div>
+    </div>
+  </body>
+</html>
