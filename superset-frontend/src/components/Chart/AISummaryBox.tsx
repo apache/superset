@@ -53,7 +53,6 @@ const Border = styled('div')`
   box-shadow: none;
 `;
 
-// background: ${({ theme }) => rgba(theme.colors.grayscale.light5, 0.25)};
 const Container = styled('div')<{ hasActionButton: boolean }>`
   border-radius: 9px;
   color: inherit;
@@ -71,6 +70,7 @@ const Container = styled('div')<{ hasActionButton: boolean }>`
   column-gap: 8px;
   user-select: none;
 `;
+
 const SkeletonLine = styled('div')`
   height: 12px;
   width: 100%;
@@ -430,15 +430,30 @@ export default function AISummaryBox({
 
   if (loading) {
     return (
-      <Border ref={borderRef}>
-        <Container hasActionButton={false}>
-          <div style={{ gridColumn: 1, alignSelf: 'start' }}>
+      <Border
+        ref={borderRef}
+        className="ai-summary-box ai-summary-box__border ai-summary-box--state-loading"
+      >
+        <Container
+          hasActionButton={false}
+          className="ai-summary-box__container"
+        >
+          <div
+            className="ai-summary-box__icon"
+            style={{ gridColumn: 1, alignSelf: 'start' }}
+          >
             <AIGlyph width={14} height={14} aria-label="AI" />
           </div>
-          <div style={{ gridColumn: 2 }}>
-            <SkeletonLine />
-            <SkeletonLine style={{ width: '92%' }} />
-            <div style={{ height: 8 }} />
+          <div className="ai-summary-box__skeleton" style={{ gridColumn: 2 }}>
+            <SkeletonLine className="ai-summary-box__skeleton-line" />
+            <SkeletonLine
+              className="ai-summary-box__skeleton-line"
+              style={{ width: '92%' }}
+            />
+            <div
+              className="ai-summary-box__skeleton-spacer"
+              style={{ height: 8 }}
+            />
           </div>
         </Container>
       </Border>
@@ -448,14 +463,25 @@ export default function AISummaryBox({
   if (!shouldShow) return null;
 
   return (
-    <Border ref={borderRef}>
-      <Container hasActionButton={false}>
-        <div style={{ gridColumn: 1, alignSelf: 'start' }}>
+    <Border
+      ref={borderRef}
+      className={`ai-summary-box ai-summary-box__border ${
+        expanded ? 'ai-summary-box--expanded' : 'ai-summary-box--collapsed'
+      }`}
+    >
+      <Container hasActionButton={false} className="ai-summary-box__container">
+        <div
+          className="ai-summary-box__icon"
+          style={{ gridColumn: 1, alignSelf: 'start' }}
+        >
           <AIGlyph width={14} height={14} aria-label="AI" />
         </div>
-        <TextWrapper ref={textWrapperRef}>
+        <TextWrapper
+          ref={textWrapperRef}
+          className="ai-summary-box__text-wrapper"
+        >
           {expanded ? (
-            <FullText>
+            <FullText className="ai-summary-box__full-text">
               {fullText}{' '}
               <ToggleLink
                 role="button"
@@ -466,13 +492,14 @@ export default function AISummaryBox({
                 }}
                 aria-label="view less"
                 title="view less"
+                className="ai-summary-box__toggle-link ai-summary-box__toggle-link--less"
               >
                 view less
               </ToggleLink>
             </FullText>
           ) : (
             <>
-              <CollapsedLine>
+              <CollapsedLine className="ai-summary-box__collapsed-line">
                 {collapsedText}
                 {needsMore ? (
                   <>
@@ -488,13 +515,17 @@ export default function AISummaryBox({
                       }}
                       aria-label="view more"
                       title="view more"
+                      className="ai-summary-box__toggle-link ai-summary-box__toggle-link--more"
                     >
                       view more
                     </ToggleLink>
                   </>
                 ) : null}
               </CollapsedLine>
-              <HiddenMeasure ref={measureRef} />
+              <HiddenMeasure
+                ref={measureRef}
+                className="ai-summary-box__hidden-measure"
+              />
             </>
           )}
         </TextWrapper>
