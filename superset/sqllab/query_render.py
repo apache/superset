@@ -76,7 +76,11 @@ class SqlQueryRenderImpl(SqlQueryRender):
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
             original_sql = execution_context.query.sql.strip().strip(";")
             if rendered_query == original_sql:
-                return
+                import re
+
+                function_pattern = r"\{\{\s*(ref|source|var|env_var)\s*\("
+                if re.search(function_pattern, original_sql, re.IGNORECASE):
+                    return
 
             syntax_tree = sql_template_processor.env.parse(rendered_query)
             undefined_parameters = find_undeclared_variables(syntax_tree)
