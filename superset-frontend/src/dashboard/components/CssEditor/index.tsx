@@ -59,6 +59,7 @@ const StyledWrapper = styled.div`
       font-size: 10px !important;
       border-radius: 8px !important;
       height: 26px !important;
+      background-color: ${theme.colors.grayscale.light4} !important;
     }
   `}
 `;
@@ -142,9 +143,9 @@ const StyledModal = styled(Modal)<{ isFullscreen?: boolean }>`
     isFullscreen &&
     `
     .ant-modal {
-      max-width: 70vw !important;
-      width: 70vw !important;
-      height: 70vh !important;
+      max-width: 75vw !important;
+      width: 75vw !important;
+      height: 75vh !important;
       top: 15vh !important;
       padding-bottom: 0 !important;
     }
