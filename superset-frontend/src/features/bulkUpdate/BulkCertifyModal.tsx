@@ -78,7 +78,7 @@ const BulkCertifyModal: FC<BulkCertifyModalProps> = ({
           });
         }),
       );
-      
+
       addSuccessToast(t('Successfully certified %s', resourceLabelPlural));
       refreshData();
       onHide();

@@ -280,7 +280,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => { },
+  disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
@@ -386,7 +386,7 @@ export function ListView<T extends object = any>({
 
   const handleBulkActionClick = async () => {
     if (!firstAction) return;
-    
+
     setIsBulkActionLoading(true);
     try {
       await firstAction.onSelect(selectedFlatRows.map(r => r.original));
@@ -398,7 +398,9 @@ export function ListView<T extends object = any>({
   const dropdownMenu = (
     <Menu onClick={handleMenuClick}>
       {dropdownActions.map(action => (
-        <Menu.Item key={action.key}>{action.name}</Menu.Item>
+        <Menu.Item key={action.key} data-test="bulk-select-action">
+          {action.name}
+        </Menu.Item>
       ))}
     </Menu>
   );
@@ -474,6 +476,7 @@ export function ListView<T extends object = any>({
                             onClick={handleBulkActionClick}
                             loading={isBulkActionLoading}
                             type="primary"
+                            data-test="bulk-select-action"
                           >
                             {firstAction.name}
                           </DropdownButton>
