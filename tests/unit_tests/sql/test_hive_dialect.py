@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for Impala dialect support in sqlglot."""
+"""Tests for Hive dialect support in sqlglot."""
 
 from sqlglot import Dialects
 
@@ -28,22 +28,22 @@ def test_impala_dialect_mapped() -> None:
     assert SQLGLOT_DIALECTS["impala"] == Dialects.HIVE
 
 
-def test_impala_sql_parsing() -> None:
-    """Test that Impala SQL can be parsed without errors."""
+def test_hive_sql_parsing() -> None:
+    """Test that Hive SQL can be parsed without errors."""
     # Simple SELECT statement
     sql = "SELECT * FROM my_table"
-    script = SQLScript(sql, "impala")
+    script = SQLScript(sql, "hive")
     assert len(script.statements) == 1
     assert not script.has_mutation()
 
-    # JOIN statement (common in Impala)
+    # JOIN statement (common in Hive)
     sql = """
     SELECT t1.col1, t2.col2
     FROM table1 t1
     JOIN table2 t2 ON t1.id = t2.id
     WHERE t1.status = 'active'
     """
-    script = SQLScript(sql, "impala")
+    script = SQLScript(sql, "hive")
     assert len(script.statements) == 1
     assert not script.has_mutation()
 
@@ -53,21 +53,21 @@ def test_impala_sql_parsing() -> None:
     assert Table("table2") in tables
 
 
-def test_impala_insert_statement() -> None:
-    """Test that Impala INSERT statements are detected as mutations."""
+def test_hive_insert_statement() -> None:
+    """Test that Hive INSERT statements are detected as mutations."""
     sql = "INSERT INTO my_table VALUES (1, 'test')"
-    script = SQLScript(sql, "impala")
+    script = SQLScript(sql, "hive")
     assert script.has_mutation()
 
 
-def test_impala_create_table() -> None:
-    """Test that Impala CREATE TABLE statements work."""
+def test_hive_create_table() -> None:
+    """Test that Hive CREATE TABLE statements work."""
     sql = """
     CREATE TABLE IF NOT EXISTS my_table (
         id INT,
         name STRING
     ) STORED AS PARQUET
     """
-    script = SQLScript(sql, "impala")
+    script = SQLScript(sql, "hive")
     assert len(script.statements) == 1
     assert script.has_mutation()
