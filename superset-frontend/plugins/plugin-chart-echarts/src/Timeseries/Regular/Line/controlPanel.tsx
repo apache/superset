@@ -27,7 +27,6 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { EchartsTimeseriesSeriesType } from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
@@ -52,7 +51,6 @@ const {
   minorSplitLine,
   opacity,
   rowLimit,
-  seriesType,
   truncateYAxis,
   yAxisBounds,
 } = DEFAULT_FORM_DATA;
