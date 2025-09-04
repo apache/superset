@@ -222,3 +222,48 @@ class TestRedirectView(SupersetTestCase):
         # The full URL with fragment should be displayed
         assert response.status_code == 200
         assert url_with_fragment.encode() in response.data
+
+    def test_redirect_blocks_dangerous_schemes(self):
+        """Test that dangerous URL schemes are blocked"""
+        self.login(username="admin")
+
+        dangerous_urls = [
+            "javascript:alert('XSS')",
+            "data:text/html,<script>alert('XSS')</script>",
+            "vbscript:msgbox('XSS')",
+            "file:///etc/passwd",
+        ]
+
+        for dangerous_url in dangerous_urls:
+            encoded_url = quote(dangerous_url, safe="")
+            response = self.client.get(f"/redirect/?url={encoded_url}")
+
+            # Should return 400 for dangerous schemes
+            assert response.status_code == 400
+
+    def test_redirect_whitespace_url_parameter(self):
+        """Test redirect endpoint with whitespace-only URL parameter"""
+        self.login(username="admin")
+
+        response = self.client.get("/redirect/?url=   ")
+
+        # Should return 400 Bad Request
+        assert response.status_code == 400
+
+    def test_redirect_case_insensitive_dangerous_schemes(self):
+        """Test that scheme detection is case-insensitive"""
+        self.login(username="admin")
+
+        dangerous_urls = [
+            "JAVASCRIPT:alert('XSS')",
+            "Data:text/html,<script>alert('XSS')</script>",
+            "VBScript:msgbox('XSS')",
+            "FILE:///etc/passwd",
+        ]
+
+        for dangerous_url in dangerous_urls:
+            encoded_url = quote(dangerous_url, safe="")
+            response = self.client.get(f"/redirect/?url={encoded_url}")
+
+            # Should return 400 for dangerous schemes regardless of case
+            assert response.status_code == 400

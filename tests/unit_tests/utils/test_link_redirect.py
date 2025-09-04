@@ -230,3 +230,73 @@ def test_is_safe_redirect_url_with_custom_base(app):
 
         # Other URLs should not be safe
         assert not is_safe_redirect_url("https://external.com/page", base_url)
+
+
+def test_process_html_links_no_base_url_configured(app):
+    """Test behavior when no base URL is configured"""
+    app.config["WEBDRIVER_BASEURL"] = ""
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = ""
+
+    with app.app_context():
+        html = '<a href="https://external.com">External</a>'
+        result = process_html_links(html)
+
+        # Should return unchanged HTML when no base URL configured
+        assert result == html
+
+
+def test_process_html_links_whitespace_only_content(app):
+    """Test processing whitespace-only content"""
+    with app.app_context():
+        assert process_html_links("   ") == "   "
+        assert process_html_links("\n\t  \n") == "\n\t  \n"
+
+
+def test_process_html_links_empty_href_values(app):
+    """Test handling of empty href values"""
+    with app.app_context():
+        html = '<a href="">Empty href</a><a href="  ">Whitespace href</a>'
+        result = process_html_links(html)
+
+        # Should not modify empty or whitespace-only hrefs
+        assert 'href=""' in result
+        assert 'href="  "' in result
+        assert "/redirect?" not in result
+
+
+def test_is_safe_redirect_url_case_insensitive(app):
+    """Test that host comparison is case-insensitive"""
+    with app.app_context():
+        # Should be safe regardless of case
+        assert is_safe_redirect_url("http://SUPERSET.EXAMPLE.COM/dashboard")
+        assert is_safe_redirect_url("http://Superset.Example.Com/chart")
+
+
+def test_is_safe_redirect_url_relative_urls(app):
+    """Test that relative URLs are considered safe"""
+    with app.app_context():
+        assert is_safe_redirect_url("/dashboard/1")
+        assert is_safe_redirect_url("../chart/list")
+        assert is_safe_redirect_url("page.html")
+
+
+def test_is_safe_redirect_url_no_base_configured(app):
+    """Test behavior when no base URL is configured"""
+    app.config["WEBDRIVER_BASEURL"] = ""
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = ""
+
+    with app.app_context():
+        # Should return False when no base URL is configured
+        assert not is_safe_redirect_url("https://external.com")
+
+
+def test_process_html_links_invalid_base_url(app):
+    """Test behavior with invalid base URL"""
+    app.config["WEBDRIVER_BASEURL"] = "not-a-valid-url"
+
+    with app.app_context():
+        html = '<a href="https://external.com">External</a>'
+        result = process_html_links(html)
+
+        # Should return unchanged HTML when base URL is invalid
+        assert result == html

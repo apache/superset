@@ -13,14 +13,16 @@
 #}
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
   {% import 'appbuilder/general/lib.html' as lib %}
   {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
   {% import "superset/macros.html" as macros %}
   {% set favicons = appbuilder.app.config['FAVICONS'] %}
 
   <head>
-    <title>External Link - Apache Superset</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>External Link Warning - Apache Superset</title>
 
     {% block head_css %}
       {% for favicon in favicons %}
@@ -48,8 +50,20 @@
           border-radius: 8px;
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
           max-width: 600px;
+          width: 90%;
           padding: 40px;
           margin: 20px;
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0,0,0,0);
+          white-space: nowrap;
+          border: 0;
         }
         .warning-icon {
           display: inline-block;
@@ -107,6 +121,11 @@
         .btn-primary:hover {
           background: #40a9ff;
         }
+        .btn-primary:focus {
+          background: #40a9ff;
+          outline: 2px solid #1890ff;
+          outline-offset: 2px;
+        }
         .btn-secondary {
           background: #f5f5f5;
           color: #666;
@@ -115,6 +134,12 @@
         .btn-secondary:hover {
           background: #e6e6e6;
           color: #333;
+        }
+        .btn-secondary:focus {
+          background: #e6e6e6;
+          color: #333;
+          outline: 2px solid #666;
+          outline-offset: 2px;
         }
         .disclaimer {
           font-size: 12px;
@@ -130,25 +155,31 @@
   </head>
 
   <body>
-    <div class="redirect-container">
-      <div class="warning-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <main class="redirect-container" role="main">
+      <div class="warning-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
         </svg>
       </div>
 
-      <h1>You are leaving Apache Superset</h1>
+      <h1 id="warning-title">You are leaving Apache Superset</h1>
 
-      <div class="warning-message">
+      <div class="warning-message" role="alert" aria-labelledby="warning-title">
         This link is sending you outside of Superset to an external website.
         Please be careful when entering personal information or credentials on external sites.
       </div>
 
-      <div class="url-display">{{ target_url }}</div>
+      <div class="url-display" role="group" aria-label="Destination URL">
+        <span class="sr-only">Destination URL: </span>{{ target_url }}
+      </div>
 
       <div class="button-group">
-        <button class="btn btn-secondary" onclick="window.history.back();">Go Back</button>
-        <a href="{{ target_url }}" class="btn btn-primary" rel="noopener noreferrer">Continue to External Site</a>
+        <button class="btn btn-secondary" onclick="window.history.back();" aria-describedby="warning-title">
+          Go Back
+        </button>
+        <a href="{{ target_url }}" class="btn btn-primary" rel="noopener noreferrer" aria-describedby="warning-title">
+          Continue to External Site
+        </a>
       </div>
 
       <div class="disclaimer">

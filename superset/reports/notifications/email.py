@@ -148,6 +148,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 tags=TABLE_TAGS,
                 attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
+            # Process table data for external links as well
+            html_table = process_html_links(html_table)
         else:
             html_table = ""
 

@@ -46,21 +46,33 @@ class RedirectView(SupersetModelView):
         # Get the target URL from query parameters
         target_url = request.args.get("url", "")
 
-        if not target_url:
+        if not target_url or not target_url.strip():
             logger.warning("Redirect requested without URL parameter")
             abort(400, description="Missing URL parameter")
 
         # Decode the URL
         try:
-            target_url = unquote(target_url)
+            target_url = unquote(target_url).strip()
         except Exception as ex:
-            logger.error(f"Failed to decode URL: {str(ex)}")
+            logger.error("Failed to decode URL parameter: %s", str(ex))
             abort(400, description="Invalid URL parameter")
+
+        # Additional validation - prevent certain dangerous schemes
+        target_url_lower = target_url.lower()
+        if target_url_lower.startswith(("javascript:", "data:", "vbscript:", "file:")):
+            logger.warning(
+                "Blocked potentially dangerous URL scheme: %s", target_url[:50]
+            )
+            abort(400, description="Invalid URL scheme")
 
         # Check if this is actually an external URL
         if is_safe_redirect_url(target_url):
             # If it's a safe/internal URL, redirect directly
+            logger.info("Redirecting to internal URL: %s", target_url)
             return redirect(target_url)
+
+        # Log external redirect attempt for monitoring
+        logger.info("Showing warning for external URL: %s", target_url)
 
         # Otherwise, show the warning page
         return self.render_template(
