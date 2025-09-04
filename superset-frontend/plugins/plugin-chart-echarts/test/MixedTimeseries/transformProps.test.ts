@@ -137,6 +137,24 @@ it('should transform chart props for viz with showQueryIdentifiers=false', () =>
   expect(seriesIds).not.toContain('sum__num (Query A), boy');
   expect(seriesIds).not.toContain('sum__num (Query B), girl');
   expect(seriesIds).not.toContain('sum__num (Query B), boy');
+
+  // Check that series name include query identifiers
+  const seriesName = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.name,
+  );
+  expect(seriesName).toContain('sum__num, girl');
+  expect(seriesName).toContain('sum__num, boy');
+  expect(seriesName).not.toContain('sum__num (Query A), girl');
+  expect(seriesName).not.toContain('sum__num (Query A), boy');
+  expect(seriesName).not.toContain('sum__num (Query B), girl');
+  expect(seriesName).not.toContain('sum__num (Query B), boy');
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num, girl',
+    'sum__num, boy',
+    'sum__num, girl',
+    'sum__num, boy',
+  ]);
 });
 
 it('should transform chart props for viz with showQueryIdentifiers=true', () => {
@@ -160,4 +178,22 @@ it('should transform chart props for viz with showQueryIdentifiers=true', () => 
   expect(seriesIds).toContain('sum__num (Query B), boy');
   expect(seriesIds).not.toContain('sum__num, girl');
   expect(seriesIds).not.toContain('sum__num, boy');
+
+  // Check that series name include query identifiers
+  const seriesName = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.name,
+  );
+  expect(seriesName).toContain('sum__num (Query A), girl');
+  expect(seriesName).toContain('sum__num (Query A), boy');
+  expect(seriesName).toContain('sum__num (Query B), girl');
+  expect(seriesName).toContain('sum__num (Query B), boy');
+  expect(seriesName).not.toContain('sum__num, girl');
+  expect(seriesName).not.toContain('sum__num, boy');
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num (Query A), girl',
+    'sum__num (Query A), boy',
+    'sum__num (Query B), girl',
+    'sum__num (Query B), boy',
+  ]);
 });
