@@ -247,13 +247,18 @@ ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 
 # Show visual indicators for external links in emails (default: True)
 ALERT_REPORTS_EXTERNAL_LINK_INDICATOR = True
+
+# Custom URL for external redirect warning page (optional)
+# If not set, uses the built-in Superset redirect warning page
+# Example: REDIRECT_URL_PAGE = "https://mycompany.com/external-link-warning"
+REDIRECT_URL_PAGE = None
 ```
 
 #### How it Works
 
 1. **HTML Processing**: When generating alert/report emails, Superset scans HTML content for external links
 2. **Link Replacement**: External links (those not pointing to your Superset instance) are replaced with redirect URLs
-3. **Warning Page**: Users who click external links see a warning page before being redirected
+3. **Warning Page**: Users who click external links see a warning page before being redirected. By default, this uses Superset's built-in warning page, but you can customize this by setting `REDIRECT_URL_PAGE` to your own URL
 4. **Internal Links**: Links pointing to your Superset instance are not modified
 
 #### Security Features

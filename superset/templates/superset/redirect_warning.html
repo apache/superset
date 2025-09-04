@@ -269,7 +269,7 @@
   const MAX_TRUSTED_URLS = 100; // Limit to prevent abuse
 
   // The target URL
-  const targetUrl = '{{ target_url|safe }}';
+  const targetUrl = {{ target_url|tojson }};
 
   // Normalize URL for comparison (remove trailing slashes, fragment)
   function normalizeUrl(url) {

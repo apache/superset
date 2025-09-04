@@ -20,7 +20,7 @@ from typing import Any, Optional
 from urllib.parse import quote, urlparse
 
 from bs4 import BeautifulSoup
-from flask import current_app
+from flask import current_app, url_for
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,17 @@ def _process_link_element(link: Any, base_host: str) -> None:
 
         # If the hosts don't match, it's an external link
         if link_host and link_host != base_host:
-            # Create the redirect URL
-            redirect_url = f"/redirect?url={quote(original_url, safe='')}"
+            # use custom redirect URL if configured, otherwise internal
+            if custom_redirect_page := current_app.config.get("REDIRECT_URL_PAGE"):
+                redirect_url = (
+                    f"{custom_redirect_page}?url={quote(original_url, safe='')}"
+                )
+            else:
+                redirect_url = url_for(
+                    "RedirectView.redirect_warning",
+                    url=original_url,
+                    _external=True,
+                )
             link["href"] = redirect_url
 
             # Optionally add a visual indicator

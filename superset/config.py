@@ -2055,6 +2055,11 @@ PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 # ]
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 
+# Optional custom URL for external redirect warning page.
+# If not set, will use the built-in redirect warning page.
+# Example: REDIRECT_URL_PAGE = "https://mycompany.com/external-link-warning"
+REDIRECT_URL_PAGE: str | None = None
+
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
