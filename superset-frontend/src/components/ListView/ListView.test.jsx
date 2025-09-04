@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within } from 'spec/helpers/testing-library';
+import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import thunk from 'redux-thunk';
@@ -199,21 +199,24 @@ describe('ListView', () => {
     const bulkActionButton = within(
       screen.getByTestId('bulk-select-controls'),
     ).getByTestId('bulk-select-action');
-    
-    // Click and wait for async operation to complete
-    await userEvent.click(bulkActionButton);
-    
-    // Wait for the async handleBulkActionClick to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
 
-    expect(mockedProps.bulkActions[0].onSelect).toHaveBeenCalledWith([
-      {
-        age: 10,
-        id: 1,
-        name: 'data 1',
-        time: '2020-11-18T07:53:45.354Z',
+    // Click the bulk action button
+    await userEvent.click(bulkActionButton);
+
+    // Wait for the async handleBulkActionClick to complete and mock to be called
+    await waitFor(
+      () => {
+        expect(mockedProps.bulkActions[0].onSelect).toHaveBeenCalledWith([
+          {
+            age: 10,
+            id: 1,
+            name: 'data 1',
+            time: '2020-11-18T07:53:45.354Z',
+          },
+        ]);
       },
-    ]);
+      { timeout: 1000 },
+    );
   });
 
   // Update UI filters test to use more specific selector
