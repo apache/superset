@@ -55,6 +55,11 @@ const StyledWrapper = styled.div`
     .css-editor {
       border: 1px solid ${theme.colors.grayscale.light1};
     }
+    .load-css-template-btn {
+      font-size: 10px !important;
+      border-radius: 8px !important;
+      height: 26px !important;
+    }
   `}
 `;
 
@@ -101,6 +106,7 @@ const MacOSTitleBar = styled.div`
         
         &.fullscreen {
           background: #28ca42;
+          padding: 0 !important;
           &:hover {
             background: #1fb835;
           }
@@ -246,7 +252,9 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
       );
       return (
         <AntdDropdown overlay={menu} placement="bottomRight">
-          <Button>{t('Load a CSS template')}</Button>
+          <Button className="load-css-template-btn">
+            {t('Load a CSS template')}
+          </Button>
         </AntdDropdown>
       );
     }
@@ -292,13 +300,13 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
               />
             </div>
             <h4 className="title">{t('CSS Editor')}</h4>
+            {this.renderTemplateSelector()}
           </MacOSTitleBar>
           <StyledWrapper
             style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
           >
             <div className="css-editor-header">
               <h5>{t('Live CSS editor')}</h5>
-              {this.renderTemplateSelector()}
             </div>
             <AceCssEditor
               className="css-editor"
