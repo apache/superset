@@ -25,18 +25,17 @@ from flask_appbuilder.security.decorators import has_access
 from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
 from superset.utils.link_redirect import is_safe_redirect_url
-from superset.views.base import SupersetModelView
+from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
 
 
-class RedirectView(SupersetModelView):
+class RedirectView(BaseSupersetView):
     """
     View for handling external link redirects with warning page
     """
 
     route_base = "/redirect"
-    class_permission_name = "RedirectView"
 
     @expose("/")
     @has_access
