@@ -18,6 +18,15 @@
 {% block head_css %}
   {{ super() }}
   <style nonce="{{ macros.get_nonce() }}">
+    /* Reset body/html backgrounds for proper theming */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: var(--colors-grayscale-light4, #f7f7f7);
+    }
+
+    /* Light mode defaults */
     .redirect-warning-page {
       min-height: 100vh;
       display: flex;
@@ -115,6 +124,114 @@
       border-radius: var(--border-radius-sm, 4px);
       text-align: left;
     }
+    .trust-section {
+      margin-top: var(--gridunit-6, 24px);
+      margin-bottom: var(--gridunit-2, 8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--gridunit-2, 8px);
+    }
+    .trust-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .trust-label {
+      font-size: var(--font-size-s, 14px);
+      color: var(--colors-text, #666666);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Dark mode overrides */
+    @media (prefers-color-scheme: dark) {
+      html, body {
+        background-color: var(--colors-grayscale-dark2, #1a1a1a);
+      }
+      .redirect-warning-page {
+        background-color: var(--colors-grayscale-dark2, #1a1a1a);
+      }
+      .warning-container {
+        background: var(--colors-grayscale-dark1, #2e2e2e);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+      .warning-title {
+        color: var(--colors-grayscale-light1, #ffffff);
+      }
+      .warning-text {
+        color: var(--colors-grayscale-light2, #b3b3b3);
+      }
+      .url-display {
+        background-color: var(--colors-grayscale-dark3, #1a1a1a);
+        border: 1px solid var(--colors-grayscale-dark1, #404040);
+        color: var(--colors-grayscale-light1, #ffffff);
+      }
+      .disclaimer {
+        background-color: rgba(24, 144, 255, 0.1);
+        border-left-color: var(--colors-info-dark1, #0e5eb8);
+        color: var(--colors-grayscale-light2, #b3b3b3);
+      }
+      .trust-label {
+        color: var(--colors-grayscale-light2, #b3b3b3);
+      }
+      .btn-secondary {
+        background-color: var(--colors-grayscale-dark1, #404040);
+        border: 1px solid var(--colors-grayscale-base, #666666);
+      }
+      .btn-secondary:hover {
+        background-color: var(--colors-grayscale-base, #666666);
+      }
+    }
+
+    /* Explicit dark mode class support (for Superset's theme toggle) */
+    body.dark,
+    html[data-theme="dark"],
+    body[data-theme="dark"] {
+      background-color: var(--colors-grayscale-dark2, #1a1a1a);
+    }
+    body.dark .redirect-warning-page,
+    [data-theme="dark"] .redirect-warning-page {
+      background-color: var(--colors-grayscale-dark2, #1a1a1a);
+    }
+    body.dark .warning-container,
+    [data-theme="dark"] .warning-container {
+      background: var(--colors-grayscale-dark1, #2e2e2e);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    body.dark .warning-title,
+    [data-theme="dark"] .warning-title {
+      color: var(--colors-grayscale-light1, #ffffff);
+    }
+    body.dark .warning-text,
+    [data-theme="dark"] .warning-text {
+      color: var(--colors-grayscale-light2, #b3b3b3);
+    }
+    body.dark .url-display,
+    [data-theme="dark"] .url-display {
+      background-color: var(--colors-grayscale-dark3, #1a1a1a);
+      border: 1px solid var(--colors-grayscale-dark1, #404040);
+      color: var(--colors-grayscale-light1, #ffffff);
+    }
+    body.dark .disclaimer,
+    [data-theme="dark"] .disclaimer {
+      background-color: rgba(24, 144, 255, 0.1);
+      border-left-color: var(--colors-info-dark1, #0e5eb8);
+      color: var(--colors-grayscale-light2, #b3b3b3);
+    }
+    body.dark .trust-label,
+    [data-theme="dark"] .trust-label {
+      color: var(--colors-grayscale-light2, #b3b3b3);
+    }
+    body.dark .btn-secondary,
+    [data-theme="dark"] .btn-secondary {
+      background-color: var(--colors-grayscale-dark1, #404040);
+      border: 1px solid var(--colors-grayscale-base, #666666);
+    }
+    body.dark .btn-secondary:hover,
+    [data-theme="dark"] .btn-secondary:hover {
+      background-color: var(--colors-grayscale-base, #666666);
+    }
   </style>
 {% endblock %}
 
@@ -127,9 +244,14 @@
     <div class="url-display">{{ target_url }}</div>
     <p class="warning-text">Please verify this is a trusted destination before continuing.</p>
 
+    <div class="trust-section">
+      <input type="checkbox" id="trustUrl" class="trust-checkbox">
+      <label for="trustUrl" class="trust-label">Trust this exact URL and don't ask again</label>
+    </div>
+
     <div class="button-group">
       <a href="/" class="warning-btn btn-secondary">Return to Superset</a>
-      <a href="{{ target_url }}" class="warning-btn btn-primary" target="_blank" rel="noopener noreferrer">
+      <a href="{{ target_url }}" id="continueBtn" class="warning-btn btn-primary" target="_blank" rel="noopener noreferrer">
         Continue to External Site
       </a>
     </div>
@@ -140,4 +262,99 @@
     </div>
   </div>
 </div>
+
+<script nonce="{{ macros.get_nonce() }}">
+(function() {
+  const TRUSTED_URLS_KEY = 'superset_trusted_urls';
+  const MAX_TRUSTED_URLS = 100; // Limit to prevent abuse
+
+  // The target URL
+  const targetUrl = '{{ target_url|safe }}';
+
+  // Normalize URL for comparison (remove trailing slashes, fragment)
+  function normalizeUrl(url) {
+    try {
+      const parsed = new URL(url);
+      // Remove fragment and trailing slash from pathname
+      let normalized = parsed.origin + parsed.pathname.replace(/\/$/, '') + parsed.search;
+      return normalized;
+    } catch (e) {
+      return url;
+    }
+  }
+
+  // Load trusted URLs from localStorage
+  function getTrustedUrls() {
+    try {
+      const stored = localStorage.getItem(TRUSTED_URLS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error('Error loading trusted URLs:', e);
+      return [];
+    }
+  }
+
+  // Save trusted URLs to localStorage and cookie
+  function saveTrustedUrls(urls) {
+    try {
+      // Keep only the most recent URLs if we hit the limit
+      if (urls.length > MAX_TRUSTED_URLS) {
+        urls = urls.slice(-MAX_TRUSTED_URLS);
+      }
+      localStorage.setItem(TRUSTED_URLS_KEY, JSON.stringify(urls));
+
+      // Also save to cookie for server-side checking
+      // Set cookie with 30-day expiry, SameSite=Strict for security
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 30);
+      document.cookie = `superset_trusted_urls=${encodeURIComponent(JSON.stringify(urls))}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`;
+    } catch (e) {
+      console.error('Error saving trusted URLs:', e);
+    }
+  }
+
+  // Check if URL is already trusted
+  function isUrlTrusted(url) {
+    const normalizedUrl = normalizeUrl(url);
+    const trustedUrls = getTrustedUrls();
+    return trustedUrls.some(trusted => normalizeUrl(trusted) === normalizedUrl);
+  }
+
+  // Add URL to trusted list
+  function trustUrl(url) {
+    const normalizedUrl = normalizeUrl(url);
+    const trustedUrls = getTrustedUrls();
+    const normalizedTrusted = trustedUrls.map(u => normalizeUrl(u));
+
+    if (!normalizedTrusted.includes(normalizedUrl)) {
+      trustedUrls.push(url);
+      saveTrustedUrls(trustedUrls);
+    }
+  }
+
+  // Check if this URL is already trusted and redirect immediately
+  if (targetUrl && isUrlTrusted(targetUrl)) {
+    window.location.href = targetUrl;
+    return;
+  }
+
+  // Handle continue button click
+  const continueBtn = document.getElementById('continueBtn');
+  const trustCheckbox = document.getElementById('trustUrl');
+
+  if (continueBtn && trustCheckbox) {
+    continueBtn.addEventListener('click', function(e) {
+      if (trustCheckbox.checked && targetUrl) {
+        e.preventDefault();
+        trustUrl(targetUrl);
+        // Small delay to ensure localStorage is updated
+        setTimeout(() => {
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+          window.location.href = '/';
+        }, 100);
+      }
+    });
+  }
+})();
+</script>
 {% endblock %}

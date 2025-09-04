@@ -16,14 +16,14 @@
 # under the License.
 
 import logging
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 
 from flask import abort, redirect, request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access
 
-from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.link_redirect import is_safe_redirect_url
 from superset.views.base import BaseSupersetView
 
@@ -43,10 +43,6 @@ class RedirectView(BaseSupersetView):
         """
         Show a warning page before redirecting to an external URL
         """
-        # Check if ALERT_REPORTS feature is enabled
-        if not is_feature_enabled("ALERT_REPORTS"):
-            abort(404, description="Feature not enabled")
-
         # Get the target URL from query parameters
         target_url = request.args.get("url", "")
 
@@ -74,6 +70,32 @@ class RedirectView(BaseSupersetView):
             # If it's a safe/internal URL, redirect directly
             logger.info("Redirecting to internal URL: %s", target_url)
             return redirect(target_url)
+
+        # Check if URL is in trusted URLs cookie
+        try:
+            trusted_urls_cookie = request.cookies.get("superset_trusted_urls", "[]")
+            trusted_urls = json.loads(trusted_urls_cookie)
+
+            # Normalize URL for comparison (remove trailing slashes and fragments)
+            def normalize_url(url: str) -> str:
+                parsed = urlparse(url)
+                # Remove fragment and trailing slash from path
+                path = parsed.path.rstrip("/") if parsed.path else ""
+                normalized = f"{parsed.scheme}://{parsed.netloc}{path}"
+                if parsed.query:
+                    normalized += f"?{parsed.query}"
+                return normalized
+
+            normalized_target = normalize_url(target_url)
+
+            # Check if this exact URL is trusted
+            for trusted_url in trusted_urls:
+                if normalize_url(trusted_url) == normalized_target:
+                    logger.info("Redirecting to trusted URL: %s", target_url)
+                    return redirect(target_url)
+        except Exception as ex:
+            # If cookie parsing fails, continue to warning page
+            logger.debug("Failed to parse trusted URLs cookie: %s", str(ex))
 
         # Log external redirect attempt for monitoring
         logger.info("Showing warning for external URL: %s", target_url)
