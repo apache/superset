@@ -300,3 +300,29 @@ def test_process_html_links_invalid_base_url(app):
 
         # Should return unchanged HTML when base URL is invalid
         assert result == html
+
+
+def test_process_html_links_feature_disabled(app):
+    """Test behavior when feature is disabled"""
+    app.config["ALERT_REPORTS_ENABLE_LINK_REDIRECT"] = False
+
+    with app.app_context():
+        html = '<a href="https://external.com">External</a>'
+        result = process_html_links(html)
+
+        # Should return unchanged HTML when feature is disabled
+        assert result == html
+
+
+def test_process_html_links_large_html(app):
+    """Test processing very large HTML content"""
+    with app.app_context():
+        # Create large HTML content
+        large_html = (
+            "<div>" + '<a href="https://external.com">External</a>' * 1000 + "</div>"
+        )
+        result = process_html_links(large_html)
+
+        # Should still process correctly
+        assert "/redirect?" in result
+        assert result.count("/redirect?") == 1000  # All links should be processed

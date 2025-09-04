@@ -22,6 +22,7 @@ from flask import abort, redirect, request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access
 
+from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
 from superset.utils.link_redirect import is_safe_redirect_url
 from superset.views.base import SupersetModelView
@@ -43,6 +44,10 @@ class RedirectView(SupersetModelView):
         """
         Show a warning page before redirecting to an external URL
         """
+        # Check if ALERT_REPORTS feature is enabled
+        if not is_feature_enabled("ALERT_REPORTS"):
+            abort(404, description="Feature not enabled")
+
         # Get the target URL from query parameters
         target_url = request.args.get("url", "")
 

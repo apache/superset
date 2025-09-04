@@ -267,3 +267,16 @@ class TestRedirectView(SupersetTestCase):
 
             # Should return 400 for dangerous schemes regardless of case
             assert response.status_code == 400
+
+    @with_config({"ALERT_REPORTS": False})
+    def test_redirect_feature_flag_disabled(self):
+        """Test that redirect endpoint returns 404 when ALERT_REPORTS is disabled"""
+        self.login(username="admin")
+
+        external_url = "https://external.com"
+        encoded_url = quote(external_url, safe="")
+
+        response = self.client.get(f"/redirect/?url={encoded_url}")
+
+        # Should return 404 when feature is disabled
+        assert response.status_code == 404
