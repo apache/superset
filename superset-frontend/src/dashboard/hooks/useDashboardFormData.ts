@@ -22,6 +22,7 @@ import { useSelector } from 'react-redux';
 import { RootState, DashboardContextFormData } from '../types';
 import { getExtraFormData } from '../components/nativeFilters/utils';
 import { getAllActiveFilters } from '../util/activeAllDashboardFilters';
+import { getFilterIdsAppliedOnChart } from '../util/getFilterIdsAppliedOnChart';
 
 /**
  * Hook that provides dashboard context as formatted formData for charts.
@@ -78,9 +79,10 @@ export const useDashboardFormData = (
     });
 
     // Find which filters apply to this specific chart
-    const filterIdsAppliedOnChart = Object.entries(activeFilters)
-      .filter(([, activeFilter]) => activeFilter.scope.includes(chartId))
-      .map(([filterId]) => filterId);
+    const filterIdsAppliedOnChart = getFilterIdsAppliedOnChart(
+      activeFilters,
+      chartId,
+    );
 
     // If no filters apply, return just the base context
     if (filterIdsAppliedOnChart.length === 0) {

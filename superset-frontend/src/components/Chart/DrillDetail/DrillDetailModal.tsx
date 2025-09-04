@@ -119,33 +119,27 @@ export default function DrillDetailModal({
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
-  // Determine if we should show the Explore button
   const showEditButton = Boolean(dataset?.drill_through_chart_id);
-
-  // Get dashboard context for the drill-through chart using the proper hook
   const dashboardContextFormData = useDashboardFormData(
     dataset?.drill_through_chart_id,
   );
 
-  // Generate formData for drill-through chart using proper dashboard context resolution
   const drillThroughFormData = useMemo(() => {
     if (!dataset?.drill_through_chart_id || !dataset?.id) {
       return null;
     }
 
-    // Create base formData for the drill-through chart
     const drillThroughBaseFormData = {
       slice_id: dataset.drill_through_chart_id,
       datasource: `${dataset.id}__table`,
-      viz_type: 'table', // Default viz type
+      viz_type: 'table',
     };
 
-    // Use the enhanced dashboard context function that handles drill-to-detail filters
     return getFormDataWithDashboardContext(
       drillThroughBaseFormData,
       dashboardContextFormData,
-      undefined, // saveAction
-      initialFilters, // drillToDetailFilters - drill-down filters from context menu
+      undefined,
+      initialFilters,
     );
   }, [
     dataset?.drill_through_chart_id,
@@ -153,8 +147,6 @@ export default function DrillDetailModal({
     dashboardContextFormData,
     initialFilters,
   ]);
-
-  // Handle explore button click - generate URL and navigate
   const handleExploreClick = async (event: React.MouseEvent) => {
     event.preventDefault();
 
@@ -170,16 +162,15 @@ export default function DrillDetailModal({
 
     try {
       const url = await generateExploreUrl(
-        dataset.id, // datasourceId
-        'table', // datasourceType
-        drillThroughFormData, // our perfectly crafted formData with dashboard context + drill-down filters
+        dataset.id,
+        'table',
+        drillThroughFormData,
         {
           chartId: dataset.drill_through_chart_id,
           dashboardPageId,
         },
       );
 
-      // Navigate to the explore page
       window.location.href = url;
     } catch (error) {
       console.error('Failed to generate chart explore URL:', error);
