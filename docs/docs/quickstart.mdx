@@ -69,37 +69,44 @@ You can use the same environment more than once, as Superset will persist data l
 processes by running Docker Compose `stop` command. By doing so, you can avoid data corruption and/or loss of data.
 :::
 
-## Alternative: Local Development with MCP Service
+## Alternative: Setup with MCP Service (AI-Powered Features)
 
-If you prefer to run Superset directly on your machine (without Docker) and want to include the MCP (Model Context Protocol) service for AI-powered features, you can use our streamlined setup:
+To enable AI-powered features through the MCP (Model Context Protocol) service, you can use Docker with the MCP profile:
+
+### Option 1: Docker with MCP Service (Recommended)
 
 ```bash
 # Clone the repository
 $ git clone https://github.com/apache/superset
 $ cd superset
 
-# Run the interactive MCP setup
-$ make mcp-setup
+# Start Superset and MCP service with docker-compose-light
+$ docker-compose -f docker-compose-light.yml --profile mcp up -d
 
-# Start the services
-$ make flask-app    # Terminal 1: Backend
-$ make node-app     # Terminal 2: Frontend
-$ make mcp-run      # Terminal 3: MCP service (optional)
+# Initialize Superset (first time only)
+$ docker exec -it superset_superset-light_1 superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
+
+$ docker exec -it superset_superset-light_1 superset db upgrade
+$ docker exec -it superset_superset-light_1 superset init
 ```
 
-The `make mcp-setup` command provides an interactive setup that:
-- Creates a Python virtual environment
-- Installs all dependencies
-- Configures Superset with secure defaults
-- Initializes the database
-- Creates an admin user (admin/admin)
-- Optionally configures AI features via MCP
+The Docker setup automatically:
+- Sets up PostgreSQL database
+- Builds and runs Superset containers
+- Starts the MCP service (with `--profile mcp`)
+- Handles all networking and dependencies
+- Provides hot-reload for development
 
-This approach is ideal for:
-- Local development without Docker overhead
-- Contributing to Superset
-- Testing AI-powered features
-- Custom development workflows
+Superset frontend will be available at http://localhost:9001 (login: admin/admin)
+
+### Option 2: Manual Setup (Without Docker)
+
+For manual setup instructions without Docker, see the [MCP Service Documentation](/docs/configuration/mcp-service#option-2-manual-setup)
 
 For more details, see the [MCP Service Documentation](/docs/configuration/mcp-service) and [Development Setup](/docs/contributing/development).
 
