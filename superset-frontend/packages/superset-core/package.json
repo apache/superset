@@ -1,12 +1,11 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc2",
+  "version": "0.0.1-rc3",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
-  "module": "esm/index.js",
+  "types": "lib/index.d.ts",
   "files": [
-    "esm",
     "lib"
   ],
   "author": "",
@@ -19,14 +18,15 @@
     "@babel/preset-typescript": "^7.26.0",
     "@types/react": "^17.0.83",
     "install": "^0.13.0",
-    "npm": "^11.1.0"
+    "npm": "^11.1.0",
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "antd": "^5.24.6",
     "react": "^17.0.2"
   },
   "scripts": {
-    "build": "babel src --out-dir lib --extensions \".ts,.tsx\"",
+    "build": "babel src --out-dir lib --extensions \".ts,.tsx\" && tsc --emitDeclarationOnly",
     "type": "tsc --noEmit"
   },
   "publishConfig": {
