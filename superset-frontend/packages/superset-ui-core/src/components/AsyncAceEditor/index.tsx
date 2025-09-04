@@ -393,10 +393,7 @@ export const FullSQLEditor = AsyncAceEditor(
   },
 );
 
-export const MarkdownEditor = AsyncAceEditor([
-  'mode/markdown',
-  'theme/textmate',
-]);
+export const MarkdownEditor = AsyncAceEditor(['mode/markdown', 'theme/github']);
 
 export const TextAreaEditor = AsyncAceEditor([
   'mode/markdown',
