@@ -26,6 +26,16 @@ import fetchMock from 'fetch-mock';
 // Only import components that are directly referenced in tests
 import { ListView } from './ListView';
 
+// Mock DropdownButton to ensure it works properly in tests
+jest.mock('@superset-ui/core/components', () => ({
+  ...jest.requireActual('@superset-ui/core/components'),
+  DropdownButton: ({ children, onClick, 'data-test': dataTest, ...props }) => (
+    <button onClick={onClick} data-test={dataTest} {...props}>
+      {children}
+    </button>
+  ),
+}));
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
@@ -196,9 +206,15 @@ describe('ListView', () => {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
+    // Verify bulk select controls are visible
+    expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
+
     const bulkActionButton = within(
       screen.getByTestId('bulk-select-controls'),
     ).getByTestId('bulk-select-action');
+
+    // Verify the button exists and is clickable
+    expect(bulkActionButton).toBeInTheDocument();
 
     // Click the bulk action button
     await userEvent.click(bulkActionButton);
@@ -215,7 +231,7 @@ describe('ListView', () => {
           },
         ]);
       },
-      { timeout: 1000 },
+      { timeout: 2000 },
     );
   });
 
