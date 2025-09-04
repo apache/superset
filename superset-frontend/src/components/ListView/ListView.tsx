@@ -111,7 +111,7 @@ const BulkSelectWrapper = styled(Alert)`
     margin-bottom: 0;
     color: ${theme.colorText};
     background-color: ${theme.colorPrimaryBg};
-    
+
     .ant-alert-message {
       display: flex;
       align-items: center;
