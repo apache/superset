@@ -99,6 +99,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
+  legendSort: 'asc' | 'desc' | null;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
