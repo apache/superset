@@ -696,6 +696,8 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
+        from jinja2 import UndefinedError
+
         try:
             template = self.env.from_string(sql)
         except (
@@ -767,6 +769,8 @@ class BaseTemplateProcessor:
             raise SupersetTemplateException(
                 "Infinite recursion detected in template"
             ) from ex
+        except UndefinedError:
+            return sql
         except Exception as ex:
             if "undefined" in str(ex).lower():
                 return sql
