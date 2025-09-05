@@ -571,12 +571,7 @@ const RightMenu = ({
     if (!navbarRight.user_is_anonymous && showActionDropdown) {
       items.push({
         key: 'new-dropdown',
-        label: (
-          <Icons.PlusOutlined
-            iconColor={theme.colorPrimary}
-            data-test="new-dropdown-icon"
-          />
-        ),
+        label: <Icons.PlusOutlined data-test="new-dropdown-icon" />,
         className: 'submenu-with-caret',
         icon: <Icons.CaretDownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
