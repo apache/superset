@@ -91,9 +91,12 @@ export function useListViewResource<D extends object = any>(
     bulkSelectEnabled: false,
   });
 
-  function updateState(update: Partial<ListViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<ListViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   function toggleBulkSelect() {
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
@@ -121,7 +124,7 @@ export function useListViewResource<D extends object = any>(
         ),
       ),
     );
-  }, []);
+  }, [handleErrorMsg, infoEnable, resource, resourceLabel, updateState]);
 
   function hasPerm(perm: string) {
     if (!state.permissions.length) {
@@ -162,17 +165,28 @@ export function useListViewResource<D extends object = any>(
               : value,
         }));
 
-      const queryParams = rison.encode_uri({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+      const queryParams: Record<string, any> = {
         page: pageIndex,
         page_size: pageSize,
-        ...(filterExps.length ? { filters: filterExps } : {}),
-        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
-      });
+      };
+
+      if (sortBy && sortBy.length > 0 && sortBy[0].id !== undefined) {
+        queryParams.order_column = sortBy[0].id;
+        queryParams.order_direction = sortBy[0].desc ? 'desc' : 'asc';
+      }
+
+      if (filterExps.length) {
+        queryParams.filters = filterExps;
+      }
+
+      if (selectColumns?.length) {
+        queryParams.select_columns = selectColumns;
+      }
+
+      const encodedParams = rison.encode_uri(queryParams);
 
       return SupersetClient.get({
-        endpoint: `/api/v1/${resource}/?q=${queryParams}`,
+        endpoint: `/api/v1/${resource}/?q=${encodedParams}`,
       })
         .then(
           ({ json = {} }) => {
@@ -196,7 +210,14 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters],
+    [
+      baseFilters,
+      handleErrorMsg,
+      resource,
+      resourceLabel,
+      selectColumns,
+      updateState,
+    ],
   );
 
   return {
@@ -245,9 +266,12 @@ export function useSingleViewResource<D extends object = any>(
     error: null,
   });
 
-  function updateState(update: Partial<SingleViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<SingleViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   const fetchResource = useCallback(
     (resourceID: number) => {
@@ -288,7 +312,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [updateState, resourceName, path_suffix, handleErrorMsg, resourceLabel],
   );
 
   const createResource = useCallback(
@@ -332,7 +356,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [updateState, resourceName, handleErrorMsg, resourceLabel],
   );
 
   const updateResource = useCallback(
@@ -381,7 +405,7 @@ export function useSingleViewResource<D extends object = any>(
           }
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [resourceName, updateState, handleErrorMsg, resourceLabel],
   );
 
   const clearError = () =>
@@ -553,7 +577,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [],
+    [handleErrorMsg, resourceLabel, resourceName],
   );
 
   return { state, importResource };
@@ -639,7 +663,7 @@ export function useFavoriteStatus(
         ),
       );
     },
-    [type],
+    [handleErrorMsg, type],
   );
 
   return [saveFaveStar, favoriteStatus] as const;

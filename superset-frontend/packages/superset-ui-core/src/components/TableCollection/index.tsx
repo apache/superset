@@ -47,6 +47,11 @@ interface TableCollectionProps<T extends object> {
   toggleAllRowsSelected?: (value?: boolean) => void;
   sticky?: boolean;
   size?: TableSize;
+  usePagination?: boolean;
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  onPageChange?: (page: number, pageSize: number) => void;
 }
 
 const StyledTable = styled(Table)`
@@ -56,6 +61,7 @@ const StyledTable = styled(Table)`
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -72,15 +78,18 @@ const StyledTable = styled(Table)`
         }
       }
     }
+
     .ant-table-column-title {
       line-height: initial;
     }
+
     .ant-table-row:hover {
       .actions {
         opacity: 1;
         transition: opacity ease-in ${theme.motionDurationMid};
       }
     }
+
     .ant-table-cell {
       max-width: 320px;
       font-feature-settings: 'tnum' 1;
@@ -91,8 +100,23 @@ const StyledTable = styled(Table)`
       padding-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
     }
+
     .ant-table-placeholder .ant-table-cell {
       border-bottom: 0;
+    }
+
+    &.ant-table-wrapper .ant-table-pagination.ant-pagination {
+      display: flex;
+      justify-content: center;
+      margin: ${theme.sizeUnit * 4}px 0 ${theme.sizeUnit * 14}px 0;
+      position: relative;
+
+      .ant-pagination-total-text {
+        color: ${theme.colorTextBase};
+        margin-inline-end: 0;
+        position: absolute;
+        top: ${theme.sizeUnit * 12}px;
+      }
     }
 
     // Hotfix - antd doesn't apply background color to overflowing cells
@@ -116,6 +140,11 @@ function TableCollection<T extends object>({
   prepareRow,
   sticky,
   size = TableSize.Middle,
+  usePagination = false,
+  pageIndex = 0,
+  pageSize = 25,
+  totalCount = 0,
+  onPageChange,
 }: TableCollectionProps<T>) {
   const mappedColumns = mapColumns<T>(
     columns,
@@ -147,6 +176,27 @@ function TableCollection<T extends object>({
     toggleRowSelected,
     toggleAllRowsSelected,
   ]);
+
+  const paginationConfig = useMemo(() => {
+    if (!usePagination) return false;
+
+    return {
+      current: pageIndex + 1,
+      pageSize,
+      total: totalCount,
+      size: 'default' as const,
+      showSizeChanger: false,
+      showQuickJumper: false,
+      align: 'center' as const,
+      showTotal: (total: number, range: [number, number]) =>
+        `${range[0]}-${range[1]} of ${total}`,
+      onChange: (page: number, size: number) => {
+        const validPage = Math.max(0, (page || 1) - 1);
+        const validSize = size || pageSize;
+        onPageChange?.(validPage, validSize);
+      },
+    };
+  }, [usePagination, pageIndex, pageSize, totalCount, onPageChange]);
   return (
     <StyledTable
       loading={loading}
@@ -155,7 +205,7 @@ function TableCollection<T extends object>({
       data={mappedRows}
       size={size}
       data-test="listview-table"
-      pagination={false}
+      pagination={paginationConfig}
       tableLayout="auto"
       rowKey="rowId"
       rowSelection={rowSelection}
