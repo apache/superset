@@ -218,7 +218,6 @@ msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
 msgstr[0] "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
-msgstr[1] "用 %(firstSuggestions)s 或者 %(lastSuggestion)s 来代替 %(undefinedParameter)s 吗？"
 
 #, python-format
 msgid ""
@@ -441,7 +440,7 @@ msgid "10 minute"
 msgstr "10分钟"
 
 msgid "10/90 percentiles"
-msgstr "10/90 百分位"
+msgstr "10/90 百分位数"
 
 msgid "10000"
 msgstr ""
@@ -6825,7 +6824,7 @@ msgid "New tab (Ctrl + t)"
 msgstr "新建标签页 (Ctrl + t)"
 
 msgid "Next"
-msgstr "下一步"
+msgstr "下一个"
 
 msgid "Nightingale"
 msgstr "南丁格尔"
