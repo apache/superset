@@ -129,6 +129,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    legendState,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -157,6 +158,7 @@ export default function transformProps(
     timeShiftColor,
     contributionMode,
     legendOrientation,
+    legendMargin,
     legendType,
     legendSort,
     logAxis,
@@ -553,7 +555,7 @@ export default function transformProps(
     legendOrientation,
     addYAxisTitleOffset,
     zoomable,
-    null,
+    legendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
     convertInteger(yAxisTitleMargin),
@@ -716,6 +718,8 @@ export default function transformProps(
         showLegend,
         theme,
         zoomable,
+        legendState,
+        chartPadding,
       ),
       // @ts-ignore
       data: series
