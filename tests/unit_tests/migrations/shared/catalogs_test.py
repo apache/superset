@@ -361,6 +361,11 @@ def test_upgrade_catalog_perms_graceful(
     def get_all_schema_names_mock(catalog=None):
         raise Exception("Failed to connect to the database")
 
+    mocker.patch.object(
+        database,
+        "get_all_schema_names",
+        side_effect=get_all_schema_names_mock,
+    )
     mocker.patch("superset.migrations.shared.catalogs.op", session)
 
     database = Database(
