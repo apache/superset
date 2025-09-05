@@ -26,7 +26,7 @@
   "dependencies": {
     "@types/react-redux": "^7.1.34",
     "d3-array": "^1.2.0",
-    "dayjs": "^1.11.13",
+    "dayjs": "^1.11.18",
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
