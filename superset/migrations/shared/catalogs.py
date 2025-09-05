@@ -51,6 +51,7 @@ class Database(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     sqlalchemy_uri = sa.Column(sa.String(1024))
     encrypted_extra = sa.Column(sa.Text)
+    database_name = sa.Column(sa.String(250))
 
     @property
     def db_engine_spec(self) -> Type[Any]:
@@ -65,6 +66,49 @@ class Database(Base):
     def get_default_catalog(self) -> str | None:
         """Get default catalog using the engine spec."""
         return self.db_engine_spec.get_default_catalog(self)
+
+    def is_oauth2_enabled(self) -> bool:
+        """Check if OAuth2 is enabled for this database."""
+        from superset.utils import json
+
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        return bool(encrypted_extra.get("oauth2_client_info"))
+
+    def get_inspector(self, catalog: str | None = None) -> Any:
+        """Get a database inspector for introspection."""
+        from sqlalchemy import create_engine, inspect
+
+        # Create an engine from the URI
+        engine = create_engine(self.sqlalchemy_uri)
+        if catalog and hasattr(engine, "execution_options"):
+            engine = engine.execution_options(catalog=catalog)
+        return inspect(engine)
+
+    def get_all_schema_names(self, catalog: str | None = None) -> list[str]:
+        """
+        Get all schema names for this database.
+
+        Uses SQLAlchemy inspector to get schema names directly.
+        """
+        try:
+            with self.get_inspector(catalog=catalog) as inspector:
+                return self.db_engine_spec.get_schema_names(inspector)
+        except Exception as ex:
+            # Convert any exception to GenericDBException for consistent handling
+            raise GenericDBException(str(ex)) from ex
+
+    def get_all_catalog_names(self) -> list[str]:
+        """
+        Get all catalog names for this database.
+
+        Uses SQLAlchemy inspector to get catalog names directly.
+        """
+        try:
+            with self.get_inspector() as inspector:
+                return self.db_engine_spec.get_catalog_names(self, inspector)
+        except Exception as ex:
+            # Convert any exception to GenericDBException for consistent handling
+            raise GenericDBException(str(ex)) from ex
 
 
 class SqlaTable(Base):
