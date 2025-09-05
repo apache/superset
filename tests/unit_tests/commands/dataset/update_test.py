@@ -711,46 +711,6 @@ def test_validate_folders_partial_override(mocker: MockerFixture) -> None:
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
-def test_validate_folders_invalid_uuid_format(mocker: MockerFixture) -> None:
-    """
-    Test that invalid UUID formats are caught properly.
-    """
-    from uuid import UUID
-
-    # Folder with invalid UUID format
-    folder_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
-    folders = [
-        {
-            "uuid": str(folder_uuid),
-            "type": "folder",
-            "name": "Test Folder",
-            "children": [
-                {
-                    "uuid": "not-a-valid-uuid-format",  # Invalid UUID
-                    "type": "metric",
-                    "name": "bad_metric",
-                }
-            ],
-        }
-    ]
-
-    # Create mock model
-    mock_model = mocker.MagicMock()
-    mock_model.metrics = []
-    mock_model.columns = []
-
-    command = UpdateDatasetCommand(1, {"folders": folders})
-    command._model = mock_model
-
-    # The invalid UUID should cause a ValueError to be raised during validation
-    with pytest.raises((ValueError, ValidationError)) as exc_info:
-        command._validate_semantics([])
-
-    # Should be a ValueError about badly formed UUID
-    assert "badly formed hexadecimal UUID string" in str(exc_info.value)
-
-
-@with_feature_flags(DATASET_FOLDERS=True)
 def test_validate_folders_uuid_types_enforced(mocker: MockerFixture) -> None:
     """
     Test that the new implementation enforces proper UUID types.

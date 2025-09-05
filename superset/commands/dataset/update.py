@@ -178,13 +178,19 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if folders := self._properties.get("folders"):
             valid_uuids: set[UUID] = set()
             if metrics:
-                valid_uuids.update(UUID(metric["uuid"]) for metric in metrics)
+                valid_uuids.update(
+                    UUID(metric["uuid"]) for metric in metrics if "uuid" in metric
+                )
             else:
                 valid_uuids.update(metric.uuid for metric in self._model.metrics)
+
             if columns:
-                valid_uuids.update(UUID(column["uuid"]) for column in columns)
+                valid_uuids.update(
+                    UUID(column["uuid"]) for column in columns if "uuid" in column
+                )
             else:
                 valid_uuids.update(column.uuid for column in self._model.columns)
+
             try:
                 validate_folders(folders, valid_uuids)
             except ValidationError as ex:
@@ -266,7 +272,7 @@ def validate_folders(  # noqa: C901
     seen_fqns = set()  # fully qualified folder names
     while queue:
         obj, path = queue.pop(0)
-        uuid, name = UUID(obj["uuid"]), obj.get("name")
+        uuid, name = obj["uuid"], obj.get("name")
 
         if uuid in path:
             raise ValidationError(f"Cycle detected: {uuid} appears in its ancestry")
