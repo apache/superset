@@ -48,86 +48,353 @@ describe('getColorBreakpointsBuckets', () => {
 describe('getBreakPoints', () => {
   const accessor = (d: any) => d.value;
 
-  it('ensures max value is included in breakpoints (issue with 38.7)', () => {
-    const features = [
-      { value: 3.2 },
-      { value: 10.5 },
-      { value: 17.8 },
-      { value: 24.1 },
-      { value: 31.4 },
-      { value: 38.7 },
-    ];
+  describe('automatic breakpoint generation', () => {
+    it('generates correct number of breakpoints for given buckets', () => {
+      const features = [
+        { value: 0 },
+        { value: 50 },
+        { value: 100 },
+      ];
 
-    const breakPoints = getBreakPoints(
-      { break_points: [], num_buckets: '5' },
-      features,
-      accessor,
-    );
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
 
-    // The last breakpoint should be >= 38.7 to include the max value
-    const lastBreakpoint = parseFloat(breakPoints[breakPoints.length - 1]);
-    expect(lastBreakpoint).toBeGreaterThanOrEqual(38.7);
-    expect(breakPoints.length).toBe(6); // 5 buckets = 6 breakpoints
+      expect(breakPoints).toHaveLength(6); // n buckets = n+1 breakpoints
+      expect(breakPoints.every(bp => typeof bp === 'string')).toBe(true);
+    });
 
-    // First breakpoint should include the min value
-    const firstBreakpoint = parseFloat(breakPoints[0]);
-    expect(firstBreakpoint).toBeLessThanOrEqual(3.2);
+    it('ensures data range is fully covered', () => {
+      // Test various data ranges to ensure min/max are always included
+      const testCases = [
+        { data: [0, 100], buckets: 5 },
+        { data: [0.1, 99.9], buckets: 4 },
+        { data: [-50, 50], buckets: 10 },
+        { data: [3.2, 38.7], buckets: 5 }, // Original bug case
+        { data: [0.0001, 0.0009], buckets: 3 }, // Very small numbers
+        { data: [1000000, 9000000], buckets: 8 }, // Large numbers
+      ];
+
+      testCases.forEach(({ data, buckets }) => {
+        const [min, max] = data;
+        const features = [{ value: min }, { value: max }];
+
+        const breakPoints = getBreakPoints(
+          { break_points: [], num_buckets: String(buckets) },
+          features,
+          accessor,
+        );
+
+        const firstBp = parseFloat(breakPoints[0]);
+        const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
+
+        // Critical: min and max must be within the breakpoint range
+        expect(firstBp).toBeLessThanOrEqual(min);
+        expect(lastBp).toBeGreaterThanOrEqual(max);
+        expect(breakPoints).toHaveLength(buckets + 1);
+      });
+    });
+
+    it('handles uniform distribution correctly', () => {
+      const features = [
+        { value: 0 },
+        { value: 25 },
+        { value: 50 },
+        { value: 75 },
+        { value: 100 },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '4' },
+        features,
+        accessor,
+      );
+
+      // Check that breakpoints are evenly spaced
+      const numericBreakPoints = breakPoints.map(parseFloat);
+      const deltas = [];
+      for (let i = 1; i < numericBreakPoints.length; i++) {
+        deltas.push(numericBreakPoints[i] - numericBreakPoints[i - 1]);
+      }
+
+      // All deltas should be approximately equal
+      const avgDelta = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+      deltas.forEach(delta => {
+        expect(delta).toBeCloseTo(avgDelta, 1);
+      });
+    });
+
+    it('handles single value datasets', () => {
+      const features = [
+        { value: 42 },
+        { value: 42 },
+        { value: 42 },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
+
+      const firstBp = parseFloat(breakPoints[0]);
+      const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
+
+      expect(firstBp).toBeLessThanOrEqual(42);
+      expect(lastBp).toBeGreaterThanOrEqual(42);
+    });
+
+    it('preserves appropriate precision for different scales', () => {
+      const testCases = [
+        { data: [0, 1], expectedMaxPrecision: 1 }, // 0.0, 0.2, 0.4...
+        { data: [0, 0.1], expectedMaxPrecision: 2 }, // 0.00, 0.02...
+        { data: [0, 0.01], expectedMaxPrecision: 3 }, // 0.000, 0.002...
+        { data: [0, 1000], expectedMaxPrecision: 0 }, // 0, 200, 400...
+      ];
+
+      testCases.forEach(({ data, expectedMaxPrecision }) => {
+        const [min, max] = data;
+        const features = [{ value: min }, { value: max }];
+
+        const breakPoints = getBreakPoints(
+          { break_points: [], num_buckets: '5' },
+          features,
+          accessor,
+        );
+
+        breakPoints.forEach(bp => {
+          const decimalPlaces = (bp.split('.')[1] || '').length;
+          expect(decimalPlaces).toBeLessThanOrEqual(expectedMaxPrecision);
+        });
+      });
+    });
+
+    it('handles negative values correctly', () => {
+      const features = [
+        { value: -100 },
+        { value: -50 },
+        { value: 0 },
+        { value: 50 },
+        { value: 100 },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
+
+      const numericBreakPoints = breakPoints.map(parseFloat);
+      expect(numericBreakPoints[0]).toBeLessThanOrEqual(-100);
+      expect(numericBreakPoints[numericBreakPoints.length - 1]).toBeGreaterThanOrEqual(100);
+
+      // Verify ascending order
+      for (let i = 1; i < numericBreakPoints.length; i++) {
+        expect(numericBreakPoints[i]).toBeGreaterThan(numericBreakPoints[i - 1]);
+      }
+    });
+
+    it('handles mixed integer and decimal values', () => {
+      const features = [
+        { value: 1 },
+        { value: 2.5 },
+        { value: 3.7 },
+        { value: 5 },
+        { value: 8.2 },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '4' },
+        features,
+        accessor,
+      );
+
+      const firstBp = parseFloat(breakPoints[0]);
+      const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
+
+      expect(firstBp).toBeLessThanOrEqual(1);
+      expect(lastBp).toBeGreaterThanOrEqual(8.2);
+    });
   });
 
-  it('handles precise decimal values correctly', () => {
-    const features = [
-      { value: 0.1 },
-      { value: 0.5 },
-      { value: 0.9 },
-      { value: 1.3 },
-      { value: 1.7 },
-    ];
+  describe('custom breakpoints', () => {
+    it('uses custom breakpoints when provided', () => {
+      const features = [{ value: 5 }, { value: 15 }, { value: 25 }];
+      const customBreakPoints = ['0', '10', '20', '30', '40'];
 
-    const breakPoints = getBreakPoints(
-      { break_points: [], num_buckets: '4' },
-      features,
-      accessor,
-    );
+      const breakPoints = getBreakPoints(
+        { break_points: customBreakPoints, num_buckets: '' },
+        features,
+        accessor,
+      );
 
-    const firstBreakpoint = parseFloat(breakPoints[0]);
-    const lastBreakpoint = parseFloat(breakPoints[breakPoints.length - 1]);
+      expect(breakPoints).toEqual(['0', '10', '20', '30', '40']);
+    });
 
-    expect(firstBreakpoint).toBeLessThanOrEqual(0.1);
-    expect(lastBreakpoint).toBeGreaterThanOrEqual(1.7);
+    it('sorts custom breakpoints in ascending order', () => {
+      const features = [{ value: 5 }];
+      const customBreakPoints = ['30', '10', '0', '20'];
+
+      const breakPoints = getBreakPoints(
+        { break_points: customBreakPoints, num_buckets: '' },
+        features,
+        accessor,
+      );
+
+      expect(breakPoints).toEqual(['0', '10', '20', '30']);
+    });
+
+    it('ignores num_buckets when custom breakpoints are provided', () => {
+      const features = [{ value: 5 }];
+      const customBreakPoints = ['0', '50', '100'];
+
+      const breakPoints = getBreakPoints(
+        { break_points: customBreakPoints, num_buckets: '10' }, // num_buckets should be ignored
+        features,
+        accessor,
+      );
+
+      expect(breakPoints).toEqual(['0', '50', '100']);
+      expect(breakPoints).toHaveLength(3); // not 11
+    });
   });
 
-  it('uses custom break points when provided', () => {
-    const features = [{ value: 5 }, { value: 15 }, { value: 25 }];
-    const customBreakPoints = ['0', '10', '20', '30'];
+  describe('edge cases and error handling', () => {
+    it('returns empty array when features are undefined', () => {
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        undefined as any,
+        accessor,
+      );
 
-    const breakPoints = getBreakPoints(
-      { break_points: customBreakPoints, num_buckets: '' },
-      features,
-      accessor,
-    );
+      expect(breakPoints).toEqual([]);
+    });
 
-    expect(breakPoints).toEqual(['0', '10', '20', '30']);
+    it('returns empty array when features is null', () => {
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        null as any,
+        accessor,
+      );
+
+      expect(breakPoints).toEqual([]);
+    });
+
+    it('returns empty array when all values are undefined', () => {
+      const features = [
+        { value: undefined },
+        { value: undefined },
+        { value: undefined },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
+
+      expect(breakPoints).toEqual([]);
+    });
+
+    it('handles empty features array', () => {
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        [],
+        accessor,
+      );
+
+      expect(breakPoints).toEqual([]);
+    });
+
+    it('handles string values that can be parsed as numbers', () => {
+      const features = [
+        { value: '10.5' },
+        { value: '20.3' },
+        { value: '30.7' },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '3' },
+        features,
+        (d: any) => (typeof d.value === 'string' ? parseFloat(d.value) : d.value),
+      );
+
+      const firstBp = parseFloat(breakPoints[0]);
+      const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
+
+      expect(firstBp).toBeLessThanOrEqual(10.5);
+      expect(lastBp).toBeGreaterThanOrEqual(30.7);
+    });
+
+    it('uses default number of buckets when not specified', () => {
+      const features = [{ value: 0 }, { value: 100 }];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '' },
+        features,
+        accessor,
+      );
+
+      // Should use DEFAULT_NUM_BUCKETS (10)
+      expect(breakPoints).toHaveLength(11); // 10 buckets = 11 breakpoints
+    });
+
+    it('handles Infinity and -Infinity values', () => {
+      const features = [
+        { value: -Infinity },
+        { value: 0 },
+        { value: Infinity },
+      ];
+
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
+
+      // Should handle gracefully, even if results are unusual
+      expect(Array.isArray(breakPoints)).toBe(true);
+    });
   });
 
-  it('returns empty array when features are undefined', () => {
-    const breakPoints = getBreakPoints(
-      { break_points: [], num_buckets: '5' },
-      undefined as any,
-      accessor,
-    );
+  describe('breakpoint boundaries validation', () => {
+    it('ensures no data points fall outside breakpoint range', () => {
+      // Generate random test data
+      const generateRandomData = (count: number, min: number, max: number) => {
+        const data = [];
+        for (let i = 0; i < count; i++) {
+          data.push({ value: Math.random() * (max - min) + min });
+        }
+        return data;
+      };
 
-    expect(breakPoints).toEqual([]);
-  });
+      // Test with various random datasets
+      for (let i = 0; i < 10; i++) {
+        const features = generateRandomData(20, -1000, 1000);
+        const minValue = Math.min(...features.map(f => f.value));
+        const maxValue = Math.max(...features.map(f => f.value));
 
-  it('returns empty array when extent values are undefined', () => {
-    const features = [{ value: undefined }, { value: undefined }];
+        const breakPoints = getBreakPoints(
+          { break_points: [], num_buckets: '5' },
+          features,
+          accessor,
+        );
 
-    const breakPoints = getBreakPoints(
-      { break_points: [], num_buckets: '5' },
-      features,
-      accessor,
-    );
+        const firstBp = parseFloat(breakPoints[0]);
+        const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
 
-    expect(breakPoints).toEqual([]);
+        // Every data point should fall within the breakpoint range
+        features.forEach(feature => {
+          expect(feature.value).toBeGreaterThanOrEqual(firstBp);
+          expect(feature.value).toBeLessThanOrEqual(lastBp);
+        });
+
+        // The range should be as tight as possible while including all data
+        expect(firstBp).toBeLessThanOrEqual(minValue);
+        expect(lastBp).toBeGreaterThanOrEqual(maxValue);
+      }
+    });
   });
 });
