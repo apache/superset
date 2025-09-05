@@ -16,5 +16,5 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,druid,duckdb,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+-e .[development,bigquery,druid,duckdb,gevent,gsheets,mysql,postgres,presto,prophet,pydantic,trino,thumbnails]
 -e ./superset-extensions-cli[test]
