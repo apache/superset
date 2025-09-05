@@ -450,12 +450,11 @@ class TestSqlaTableModel(SupersetTestCase):
         spec.allows_joins = inner_join
 
         # Use database-specific string concatenation syntax
-        database = self.get_database_by_id(tbl.database_id)
-        if database.backend == "mysql":
-            arbitrary_gby = "CONCAT(state, gender, '_test')"
-        else:
-            # Use PostgreSQL/SQLite style for other databases
-            arbitrary_gby = "state || gender || '_test'"
+        arbitrary_gby = (
+            "CONCAT(state, gender, '_test')"
+            if get_example_database().backend == "mysql"
+            else "state || gender || '_test'"
+        )
 
         arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
