@@ -361,11 +361,6 @@ def test_upgrade_catalog_perms_graceful(
     def get_all_schema_names_mock(catalog=None):
         raise Exception("Failed to connect to the database")
 
-    mocker.patch.object(
-        database,
-        "get_all_schema_names",
-        side_effect=get_all_schema_names_mock,
-    )
     mocker.patch("superset.migrations.shared.catalogs.op", session)
 
     database = Database(
@@ -375,6 +370,12 @@ def test_upgrade_catalog_perms_graceful(
     database.database_name = "my_db"
     session.add(database)
     session.commit()
+
+    mocker.patch.object(
+        database,
+        "get_all_schema_names",
+        side_effect=get_all_schema_names_mock,
+    )
 
     # Create initial permissions for testing
     db_perm = ViewMenu(name="[my_db].(id:1)")
@@ -688,12 +689,12 @@ def test_upgrade_catalog_perms_simplified_migration(
         TableSchema,
         TabState,
     )
+    from superset.migrations.shared.security_converge import Base as SecurityBase
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)
-    Permission.metadata.create_all(engine)
-    PermissionView.metadata.create_all(engine)
-    ViewMenu.metadata.create_all(engine)
+
+    SecurityBase.metadata.create_all(engine)
 
     mocker.patch("superset.migrations.shared.catalogs.op")
     db = mocker.patch("superset.migrations.shared.catalogs.db")
