@@ -61,20 +61,26 @@ jobs:
             console.log(`📊 Permission level for ${actor}: ${permission.permission}`);
             const authorized = ['write', 'admin'].includes(permission.permission);
 
-            if (!authorized) {
-              console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
-              core.setOutput('authorized', 'false');
-              return;
-            }
-
-            console.log(`✅ Authorized maintainer: ${actor}`);
-            core.setOutput('authorized', 'true');
-
-            // If this is a synchronize event, check if Showtime is active and set blocked label
+            // Handle synchronize events
             if (context.eventName === 'pull_request_target' && context.payload.action === 'synchronize') {
-              console.log(`🔒 Synchronize event detected - checking if Showtime is active`);
+              if (!authorized) {
+                console.log(`🚨 Unauthorized user ${actor} pushed code - setting blocked label and bailing`);
 
-              // Check if PR has any circus tent labels (Showtime is in use)
+                // Set blocked label for security
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  labels: ['🎪 🔒 showtime-blocked']
+                });
+
+                core.setOutput('authorized', 'false');
+                return;
+              }
+
+              console.log(`✅ Authorized maintainer ${actor} - checking if Showtime is active`);
+
+              // Check if PR has any circus tent labels (Showtime is active)
               const { data: issue } = await github.rest.issues.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -84,19 +90,22 @@ jobs:
               const hasCircusLabels = issue.labels.some(label => label.name.startsWith('🎪 '));
 
               if (hasCircusLabels) {
-                console.log(`🎪 Circus labels found - setting blocked label to prevent auto-deployment`);
-
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.pull_request.number,
-                  labels: ['🎪 🔒 showtime-blocked']
-                });
-
-                console.log(`✅ Blocked label set - Showtime will detect and skip operations`);
+                console.log(`🎪 Circus labels found - Showtime is active, proceeding with workflow`);
+                core.setOutput('authorized', 'true');
               } else {
-                console.log(`ℹ️ No circus labels found - Showtime not in use, skipping block`);
+                console.log(`ℹ️ No circus labels found - Showtime not active, skipping workflow`);
+                core.setOutput('authorized', 'false');
               }
+            } else {
+              // Non-synchronize events - check authorization normally
+              if (!authorized) {
+                console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
+                core.setOutput('authorized', 'false');
+                return;
+              }
+
+              console.log(`✅ Authorized maintainer: ${actor}`);
+              core.setOutput('authorized', 'true');
             }
 
       - name: Install Superset Showtime

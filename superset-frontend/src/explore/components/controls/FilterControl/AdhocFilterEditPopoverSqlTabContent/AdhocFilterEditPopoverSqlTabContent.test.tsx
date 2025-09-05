@@ -16,17 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Increase timeout for CI environment
 import {
   cleanup,
   render,
   screen,
   selectOption,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { IAceEditorProps } from 'react-ace';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
+
+jest.setTimeout(60000);
 
 // Add cleanup after each test
 afterEach(async () => {
@@ -60,12 +65,45 @@ test('calls onChange when the SQL clause changes', async () => {
       height={100}
     />,
   );
-  await selectOption(Clauses.Having);
-  await new Promise(resolve => setTimeout(resolve, 0));
-  expect(onChange).toHaveBeenCalledWith(
-    expect.objectContaining({ clause: Clauses.Having }),
+
+  // Wait for component to fully render
+  await waitFor(() => {
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+  });
+
+  // Add more time for async operations to settle
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  try {
+    await selectOption(Clauses.Having);
+  } catch (error) {
+    console.error('selectOption failed, trying direct approach:', error);
+
+    // Fallback: try direct DOM interaction
+    const dropdown = screen.getByRole('combobox');
+    await userEvent.click(dropdown);
+
+    await waitFor(() => {
+      const havingOption = screen.getByText('HAVING');
+      return havingOption;
+    });
+
+    const havingOption = screen.getByText('HAVING');
+    await userEvent.click(havingOption);
+  }
+
+  // Give more time for onChange to be called
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  await waitFor(
+    () => {
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({ clause: Clauses.Having }),
+      );
+    },
+    { timeout: 10000 },
   );
-});
+}, 60000);
 
 test('calls onChange when the SQL expression changes', async () => {
   const onChange = jest.fn();

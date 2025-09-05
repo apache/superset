@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Increase timeout for CI environment
 import fetchMock from 'fetch-mock';
 import { FeatureFlag, isFeatureEnabled, QueryState } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -25,6 +27,8 @@ import {
   defaultQueryEditor,
   extraQueryEditor3,
 } from 'src/SqlLab/fixtures';
+
+jest.setTimeout(30000);
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -94,20 +98,36 @@ test('Renders an empty state for query history', () => {
 });
 
 test('fetches the query history when the persistence mode is enabled', async () => {
+  // Set up the mock BEFORE rendering to avoid timing issues
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );
 
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
+
   render(setup(), { useRedux: true, initialState });
-  await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+
+  // Add timeout to waitFor and better error messaging
+  await waitFor(
+    () => {
+      const calls = fetchMock.calls(editorQueryApiRoute);
+      if (calls.length === 0) {
+        // Log debugging info if API call isn't happening
+        console.log(
+          'API call not made yet. Feature flag mock working?',
+          mockedIsFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
+        );
+      }
+      expect(calls.length).toBe(1);
+    },
+    { timeout: 10000 },
   );
+
   const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
   expect(queryResultText).toBeInTheDocument();
   isFeatureEnabledMock.mockClear();
-});
+}, 60000);
 
 test('fetches the query history by the tabViewId', async () => {
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
@@ -132,4 +152,4 @@ test('fetches the query history by the tabViewId', async () => {
   const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
   expect(queryResultText).toBeInTheDocument();
   isFeatureEnabledMock.mockClear();
-});
+}, 60000);

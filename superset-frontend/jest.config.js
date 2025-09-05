@@ -34,7 +34,7 @@ module.exports = {
     // mapping @apache-superset/core to local package
     '^@apache-superset/core$': '<rootDir>/packages/superset-core/src',
   },
-  testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
+  testEnvironment: 'jest-fixed-jsdom',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],

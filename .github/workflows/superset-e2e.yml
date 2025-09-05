@@ -112,21 +112,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: './superset-frontend/.nvmrc'
-      - name: Install npm dependencies
+      - name: Setup Frontend Environment with builds
         if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
+        uses: ./.github/actions/setup-frontend/
         with:
-          run: npm-install
-      - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: build-instrumented-assets
-      - name: Install cypress
-        if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: cypress-install
+          build-instrumented: 'true'
+          install-cypress: 'true'
       - name: Run Cypress
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies

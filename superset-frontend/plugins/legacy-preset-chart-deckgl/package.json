@@ -26,23 +26,25 @@
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.1.14",
     "@deck.gl/core": "^9.1.14",
+    "@deck.gl/extensions": "^9.1.14",
     "@deck.gl/geo-layers": "^9.1.13",
     "@deck.gl/layers": "^9.1.13",
+    "@deck.gl/mesh-layers": "^9.1.14",
     "@deck.gl/react": "^9.1.14",
+    "@deck.gl/widgets": "^9.1.14",
     "@luma.gl/constants": "^9.1.9",
     "@luma.gl/core": "^9.1.9",
     "@luma.gl/engine": "^9.1.9",
     "@luma.gl/shadertools": "^9.1.9",
     "@luma.gl/webgl": "^9.1.9",
-    "@mapbox/tiny-sdf": "^2.0.6",
     "@mapbox/geojson-extent": "^1.0.1",
+    "@mapbox/tiny-sdf": "^2.0.6",
     "@math.gl/web-mercator": "^4.1.0",
     "@types/d3-array": "^2.0.0",
     "@types/geojson": "^7946.0.16",
     "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",
-    "d3-color": "^1.4.1",
-    "d3-scale": "^3.0.0",
+    "d3-scale": "^4.0.2",
     "lodash": "^4.17.21",
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
@@ -63,7 +65,8 @@
     "mapbox-gl": "*",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-map-gl": "^6.1.19"
+    "react-map-gl": "^6.1.19",
+    "tinycolor2": "*"
   },
   "publishConfig": {
     "access": "public"

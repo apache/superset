@@ -32,3 +32,20 @@ expect.extend(matchers);
 
 // Allow JSX tests to have React import readily available
 global.React = React;
+
+// Note: SupersetClient configuration, browser API polyfills, and mocks
+// are handled by the shim.tsx import above
+
+// =============================================================================
+// BROWSER API POLYFILLS FOR JEST ENVIRONMENT
+// =============================================================================
+//
+// Using 'jest-fixed-jsdom' instead of 'jest-environment-jsdom' to fix missing browser APIs.
+//
+// ISSUE: npm v11 upgrade caused modern packages to require browser APIs unavailable in Node.js:
+// - TextEncoder/TextDecoder (jspdf 3.x), structuredClone (geostyler), matchMedia (Ant Design)
+//
+// SOLUTION: jest-fixed-jsdom provides comprehensive browser API polyfills while preserving Node.js globals.
+// See: https://github.com/mswjs/jest-fixed-jsdom
+//
+// Configured in jest.config.js → testEnvironment: 'jest-fixed-jsdom'

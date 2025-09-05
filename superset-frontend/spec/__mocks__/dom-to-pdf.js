@@ -16,17 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import tinycolor from 'tinycolor2';
 
-// eslint-disable-next-line import/prefer-default-export
-export function hexToRGB(
-  hex: string | undefined,
-  alpha = 255,
-): [number, number, number, number] {
-  if (!hex) {
-    return [0, 0, 0, alpha];
-  }
-  const { r, g, b } = tinycolor(hex).toRgb();
+// Mock dom-to-pdf module for Jest tests
+// The real module requires TextEncoder which isn't available in Node.js test environment
+const domToPdf = jest.fn(() => Promise.resolve());
 
-  return [r, g, b, alpha];
-}
+export default domToPdf;

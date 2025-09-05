@@ -66,23 +66,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: './superset-frontend/.nvmrc'
-      - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+      - name: Setup Frontend Environment with builds and Cypress
+        uses: ./.github/actions/setup-frontend/
         with:
-          run: npm-install
-      - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: build-instrumented-assets
+          build-instrumented: 'true'
+          install-cypress: 'true'
       - name: Setup Postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
-      - name: Install cypress
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: cypress-install
       - name: Run Cypress
         uses: ./.github/actions/cached-dependencies
         env:
