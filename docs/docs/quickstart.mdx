@@ -80,19 +80,20 @@ To enable AI-powered features through the MCP (Model Context Protocol) service, 
 $ git clone https://github.com/apache/superset
 $ cd superset
 
-# Start Superset and MCP service with docker-compose-light
+# Build and start Superset and MCP service with docker-compose-light
+$ docker-compose -f docker-compose-light.yml --profile mcp build
 $ docker-compose -f docker-compose-light.yml --profile mcp up -d
 
 # Initialize Superset (first time only)
-$ docker exec -it superset_superset-light_1 superset fab create-admin \
+$ docker exec -it superset-superset-light-1 superset fab create-admin \
   --username admin \
   --firstname Admin \
   --lastname Admin \
   --email admin@localhost \
   --password admin
 
-$ docker exec -it superset_superset-light_1 superset db upgrade
-$ docker exec -it superset_superset-light_1 superset init
+$ docker exec -it superset-superset-light-1 superset db upgrade
+$ docker exec -it superset-superset-light-1 superset init
 ```
 
 The Docker setup automatically:

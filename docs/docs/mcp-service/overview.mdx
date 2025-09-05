@@ -99,8 +99,13 @@ graph TB
 # Clone and install Superset
 git clone https://github.com/apache/superset.git
 cd superset
-make venv && source venv/bin/activate
-make install
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .[development,fastmcp]
+
+# Initialize database
+superset db upgrade
+superset init
 
 # Start Superset
 superset run -p 8088 --with-threads --reload --debugger
@@ -113,13 +118,8 @@ superset mcp run --port 5008 --debug
 ### Connect to Claude Desktop
 
 :::note
-The MCP service runs on HTTP and requires a proxy for Claude Desktop integration.
+The MCP service runs on HTTP/SSE and requires a proxy script for Claude Desktop integration when not using HTTPS.
 :::
-
-```bash
-# Install FastMCP proxy
-pip install fastmcp
-```
 
 Configure Claude Desktop (`~/.config/Claude/claude_desktop_config.json`):
 
