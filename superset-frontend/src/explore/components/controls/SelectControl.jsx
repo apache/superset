@@ -167,12 +167,12 @@ export default class SelectControl extends PureComponent {
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  componentDidUpdate(prevProps) {
     if (
-      !isEqualArray(nextProps.choices, this.props.choices) ||
-      !isEqualArray(nextProps.options, this.props.options)
+      !isEqualArray(this.props.choices, prevProps.choices) ||
+      !isEqualArray(this.props.options, prevProps.options)
     ) {
-      const options = this.getOptions(nextProps);
+      const options = this.getOptions(this.props);
       this.setState({ options });
     }
   }
