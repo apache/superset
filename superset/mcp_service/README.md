@@ -14,8 +14,6 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 - **2 Prompts** - Guided workflows for onboarding and chart creation
 - **2 Resources** - Real-time instance metadata and visualization templates for enhanced LLM context
 
-**✅ Phase 1 Complete - Production Ready. Core functionality stable, authentication production-ready, comprehensive testing coverage, optimized dashboard layouts, automated test framework.**
-
 ## 🚀 Quickstart
 
 ### Option 1: Docker Setup (Recommended) 🎯
@@ -30,18 +28,19 @@ git clone https://github.com/apache/superset.git
 cd superset
 
 # 2. Start Superset and MCP service with docker-compose-light
+docker-compose -f docker-compose-light.yml --profile mcp build
 docker-compose -f docker-compose-light.yml --profile mcp up -d
 
 # 3. Initialize Superset (first time only)
-docker exec -it superset_superset-light_1 superset fab create-admin \
+docker exec -it superset-superset-light-1 superset fab create-admin \
   --username admin \
   --firstname Admin \
   --lastname Admin \
   --email admin@localhost \
   --password admin
 
-docker exec -it superset_superset-light_1 superset db upgrade
-docker exec -it superset_superset-light_1 superset init
+docker exec -it superset-superset-light-1 superset db upgrade
+docker exec -it superset-superset-light-1 superset init
 ```
 
 **That's it!** ✨
@@ -116,12 +115,28 @@ Add this to your Claude Desktop config file:
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
+Since claude desktop doesnt like non https mcp servers you can use this proxy:
+```json
+{
+  "mcpServers": {
+    "Superset MCP Proxy": {
+      "command": "/<superset folder>/superset/mcp_service/run_proxy.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+For https urls
+
 ```json
 {
   "mcpServers": {
     "superset": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-axios", "http://localhost:5008/mcp"],
+      "args": ["-y", "@modelcontextprotocol/server-stdio-http",
+   "https://superset.mcp.com/mcp/"],
+
       "env": {}
     }
   }
@@ -200,15 +215,10 @@ docker-compose -f docker-compose-light.yml ps
 
 # Check MCP service logs
 docker-compose -f docker-compose-light.yml logs superset-mcp-light
-
-# Test MCP service directly
-curl http://localhost:5008/health
 ```
 
 For manual setup:
 ```bash
-# Check if MCP service is responding
-curl http://localhost:5008/health
 
 # Check Superset is running
 curl http://localhost:8088/health
