@@ -27,62 +27,65 @@ import { EchartsBubbleChartProps } from 'plugins/plugin-chart-echarts/src/Bubble
 
 import transformProps, { formatTooltip } from '../../src/Bubble/transformProps';
 
-describe('Bubble transformProps', () => {
-  const defaultFormData: SqlaFormData = {
-    datasource: '1__table',
-    viz_type: 'echarts_bubble',
-    entity: 'customer_name',
-    x: 'count',
-    y: {
-      aggregate: 'sum',
-      column: {
-        column_name: 'price_each',
-      },
-      expressionType: 'simple',
-      label: 'SUM(price_each)',
+const defaultFormData: SqlaFormData = {
+  datasource: '1__table',
+  viz_type: 'echarts_bubble',
+  entity: 'customer_name',
+  x: 'count',
+  y: {
+    aggregate: 'sum',
+    column: {
+      column_name: 'price_each',
     },
-    size: {
-      aggregate: 'sum',
-      column: {
-        column_name: 'sales',
-      },
-      expressionType: 'simple',
-      label: 'SUM(sales)',
+    expressionType: 'simple',
+    label: 'SUM(price_each)',
+  },
+  size: {
+    aggregate: 'sum',
+    column: {
+      column_name: 'sales',
     },
-    xAxisBounds: [null, null],
-    yAxisBounds: [null, null],
-  };
-  const chartConfig: ChartPropsConfig = {
-    formData: defaultFormData,
-    height: 800,
-    width: 800,
-    queriesData: [
+    expressionType: 'simple',
+    label: 'SUM(sales)',
+  },
+  xAxisBounds: [null, null],
+  yAxisBounds: [null, null],
+};
+
+const queriesData = [
+  {
+    data: [
       {
-        data: [
-          {
-            customer_name: 'AV Stores, Co.',
-            count: 10,
-            'SUM(price_each)': 20,
-            'SUM(sales)': 30,
-          },
-          {
-            customer_name: 'Alpha Cognac',
-            count: 40,
-            'SUM(price_each)': 50,
-            'SUM(sales)': 60,
-          },
-          {
-            customer_name: 'Amica Models & Co.',
-            count: 70,
-            'SUM(price_each)': 80,
-            'SUM(sales)': 90,
-          },
-        ],
+        customer_name: 'AV Stores, Co.',
+        count: 10,
+        'SUM(price_each)': 20,
+        'SUM(sales)': 30,
+      },
+      {
+        customer_name: 'Alpha Cognac',
+        count: 40,
+        'SUM(price_each)': 50,
+        'SUM(sales)': 60,
+      },
+      {
+        customer_name: 'Amica Models & Co.',
+        count: 70,
+        'SUM(price_each)': 80,
+        'SUM(sales)': 90,
       },
     ],
-    theme: supersetTheme,
-  };
+  },
+];
 
+const chartConfig: ChartPropsConfig = {
+  formData: defaultFormData,
+  height: 800,
+  width: 800,
+  queriesData,
+  theme: supersetTheme,
+};
+
+describe('Bubble transformProps', () => {
   it('Should transform props for viz', () => {
     const chartProps = new ChartProps(chartConfig);
     expect(transformProps(chartProps as EchartsBubbleChartProps)).toEqual(
@@ -199,5 +202,51 @@ describe('Bubble formatTooltip', () => {
     expect(html).toContain('$10,000.00');
     expect(html).toContain('$25,000.00');
     expect(html).toContain('300.0%');
+  });
+});
+
+describe('legend sorting', () => {
+  const createChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartConfig,
+      formData: {
+        ...defaultFormData,
+        ...overrides,
+      },
+    });
+  it('preserves original data order when no sort specified', () => {
+    const props = createChartProps({ legendSort: null });
+    const result = transformProps(props as EchartsBubbleChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual([
+      'AV Stores, Co.',
+      'Alpha Cognac',
+      'Amica Models & Co.',
+    ]);
+  });
+
+  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+    const props = createChartProps({ legendSort: 'asc' });
+    const result = transformProps(props as EchartsBubbleChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual([
+      'Alpha Cognac',
+      'Amica Models & Co.',
+      'AV Stores, Co.',
+    ]);
+  });
+
+  it('sorts alphabetically descending when legendSort is "desc"', () => {
+    const props = createChartProps({ legendSort: 'desc' });
+    const result = transformProps(props as EchartsBubbleChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual([
+      'AV Stores, Co.',
+      'Amica Models & Co.',
+      'Alpha Cognac',
+    ]);
   });
 });

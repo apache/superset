@@ -158,6 +158,7 @@ export default function transformProps(
     contributionMode,
     legendOrientation,
     legendType,
+    legendSort,
     logAxis,
     logAxisSecondary,
     markerEnabled,
@@ -423,6 +424,7 @@ export default function transformProps(
       {
         ...entry,
         id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
       },
       colorScale,
       colorScaleKey,
@@ -489,6 +491,7 @@ export default function transformProps(
       {
         ...entry,
         id: `${displayName || ''}`,
+        name: `${displayName || ''}`,
       },
 
       colorScale,
@@ -722,7 +725,11 @@ export default function transformProps(
             ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.id || entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers)),
+        .concat(extractAnnotationLabels(annotationLayers))
+        .sort((a: string, b: string) => {
+          if (!legendSort) return 0;
+          return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+        }),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
