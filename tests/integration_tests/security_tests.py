@@ -113,7 +113,33 @@ def delete_schema_perm(view_menu_name: str) -> None:
 class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
+    def _cleanup_test_databases(self, *db_names):
+        """Helper to clean up test databases from previous failed tests."""
+        for db_name in db_names:
+            existing_db = (
+                db.session.query(Database).filter_by(database_name=db_name).first()
+            )
+            if existing_db:
+                try:
+                    db.session.delete(existing_db)
+                except Exception:
+                    db.session.rollback()
+                    existing_db = (
+                        db.session.query(Database)
+                        .filter_by(database_name=db_name)
+                        .first()
+                    )
+                    if existing_db:
+                        db.session.delete(existing_db)
+        db.session.commit()
+
     def setUp(self):
+        # Ensure the session is in a good state before setup
+        try:
+            db.session.rollback()
+        except Exception:  # noqa: S110
+            pass  # Ignore rollback errors in setup
+
         schema = get_example_default_schema()
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
         db.session.commit()
@@ -123,6 +149,12 @@ class TestRolePermission(SupersetTestCase):
             .filter_by(table_name="wb_health_population", schema=schema)
             .first()
         )
+
+        if not ds:
+            # If the table doesn't exist, skip this test setup
+            # This can happen if the example data isn't loaded
+            return
+
         ds.schema = "temp_schema"
         ds.schema_perm = ds.get_schema_perm()
 
@@ -136,31 +168,47 @@ class TestRolePermission(SupersetTestCase):
             s.schema_perm = ds.schema_perm
         create_schema_perm("[examples].[temp_schema]")
         gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        if gamma_user:
+            gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         db.session.commit()
 
     def tearDown(self):
-        ds = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema="temp_schema")
-            .first()
-        )
-        schema_perm = ds.schema_perm
-        ds.schema = get_example_default_schema()
-        ds.schema_perm = None
-        ds_slices = (
-            db.session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = None
+        # Ensure the session is in a good state before teardown
+        try:
+            db.session.rollback()
+        except Exception:  # noqa: S110
+            pass  # Ignore rollback errors in teardown
 
-        delete_schema_perm(schema_perm)
-        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        db.session.commit()
-        super().tearDown()
+        try:
+            ds = (
+                db.session.query(SqlaTable)
+                .filter_by(table_name="wb_health_population", schema="temp_schema")
+                .first()
+            )
+            if ds:
+                schema_perm = ds.schema_perm
+                ds.schema = get_example_default_schema()
+                ds.schema_perm = None
+                ds_slices = (
+                    db.session.query(Slice)
+                    .filter_by(datasource_type=DatasourceType.TABLE)
+                    .filter_by(datasource_id=ds.id)
+                    .all()
+                )
+                for s in ds_slices:
+                    s.schema_perm = None
+
+                delete_schema_perm(schema_perm)
+
+            role = security_manager.find_role(SCHEMA_ACCESS_ROLE)
+            if role:
+                db.session.delete(role)
+            db.session.commit()
+        except Exception:
+            # If cleanup fails, ensure we rollback
+            db.session.rollback()
+        finally:
+            super().tearDown()
 
     def test_after_insert_dataset(self):
         security_manager.on_view_menu_after_insert = Mock()
@@ -316,6 +364,9 @@ class TestRolePermission(SupersetTestCase):
     def test_after_update_database__perm_database_access(self):
         security_manager.on_view_menu_after_update = Mock()
 
+        # Clean up any leftover databases from previous failed tests
+        self._cleanup_test_databases("tmp_db1", "tmp_db2")
+
         tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
         db.session.add(tmp_db1)
         db.session.commit()
@@ -358,6 +409,9 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_after_update_database_rollback(self):
+        # Clean up any leftover databases from previous failed tests
+        self._cleanup_test_databases("tmp_db1", "tmp_db2")
+
         tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
         db.session.add(tmp_db1)
         db.session.commit()
@@ -871,6 +925,9 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_after_update_dataset__db_changes(self):
+        # Clean up any leftover databases from previous failed tests
+        self._cleanup_test_databases("tmp_db1", "tmp_db2")
+
         tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
         tmp_db2 = Database(database_name="tmp_db2", sqlalchemy_uri="sqlite://")
         db.session.add(tmp_db1)
