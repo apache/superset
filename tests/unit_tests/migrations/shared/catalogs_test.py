@@ -731,6 +731,7 @@ def test_upgrade_catalog_perms_simplified_migration(
     database_access = Permission(name="database_access")
     datasource_access = Permission(name="datasource_access")
     schema_access = Permission(name="schema_access")
+    catalog_access = Permission(name="catalog_access")
 
     session.add_all(
         [
@@ -740,6 +741,7 @@ def test_upgrade_catalog_perms_simplified_migration(
             database_access,
             datasource_access,
             schema_access,
+            catalog_access,
         ]
     )
     session.commit()
