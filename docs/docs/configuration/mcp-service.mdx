@@ -30,18 +30,19 @@ git clone https://github.com/apache/superset.git
 cd superset
 
 # 2. Start Superset and MCP service with docker-compose-light
+docker-compose -f docker-compose-light.yml --profile mcp build
 docker-compose -f docker-compose-light.yml --profile mcp up -d
 
 # 3. Initialize Superset (first time only)
-docker exec -it superset_superset-light_1 superset fab create-admin \
+docker exec -it superset-superset-light-1 superset fab create-admin \
   --username admin \
   --firstname Admin \
   --lastname Admin \
   --email admin@localhost \
   --password admin
 
-docker exec -it superset_superset-light_1 superset db upgrade
-docker exec -it superset_superset-light_1 superset init
+docker exec -it superset-superset-light-1 superset db upgrade
+docker exec -it superset-superset-light-1 superset init
 ```
 
 **That's it!** ✨
@@ -56,6 +57,12 @@ docker exec -it superset_superset-light_1 superset init
 - Handles all networking and dependencies
 - Provides hot-reload for development
 
+**Note:** If you encounter initialization errors about missing example data, create `docker/.env-local` with:
+```bash
+# Disable loading examples to avoid initialization errors
+SUPERSET_LOAD_EXAMPLES=no
+```
+
 #### Customizing ports:
 ```bash
 # Use different ports if defaults are in use
@@ -64,7 +71,7 @@ NODE_PORT=9002 MCP_PORT=5009 docker-compose -f docker-compose-light.yml --profil
 
 ### Option 2: Manual Setup
 
-If you prefer manual control or the make commands don't work:
+If Docker is not available, you can set up manually:
 
 <details>
 <summary>Click to expand manual setup instructions</summary>
@@ -74,12 +81,13 @@ If you prefer manual control or the make commands don't work:
 git clone https://github.com/apache/superset.git
 cd superset
 
-# 2. Set up Python environment
-make venv
+# 2. Set up Python environment (Python 3.10 or 3.11 required)
+python3 -m venv venv
 source venv/bin/activate
 
 # 3. Install dependencies
-make install
+pip install -e .[development,fastmcp]
+cd superset-frontend && npm ci && npm run build && cd ..
 
 # 4. Initialize database
 superset db upgrade
@@ -96,10 +104,15 @@ superset fab create-admin \
 # 6. Start Superset (in one terminal)
 superset run -p 8088 --with-threads --reload --debugger
 
-# 7. Start MCP service (in another terminal)
+# 7. Start frontend (in another terminal)
+cd superset-frontend && npm run dev
+
+# 8. Start MCP service (in another terminal, optional)
 source venv/bin/activate
 superset mcp run --port 5008 --debug
 ```
+
+Access Superset at http://localhost:8088 (login: admin/admin)
 
 </details>
 
@@ -115,12 +128,27 @@ Add this to your Claude Desktop config file:
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
+Since claude desktop doesnt like non https mcp servers you can use this proxy:
+```json
+{
+  "mcpServers": {
+    "Superset MCP Proxy": {
+      "command": "/<superset folder>/superset/mcp_service/run_proxy.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+For https urls
+
 ```json
 {
   "mcpServers": {
     "superset": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-axios", "http://localhost:5008/mcp"],
+      "args": ["-y", "@modelcontextprotocol/server-stdio-http",
+   "https://superset.mcp.com/mcp/"],
       "env": {}
     }
   }
