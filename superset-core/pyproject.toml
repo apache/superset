@@ -42,7 +42,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "flask-appbuilder==5.0.0a11",
+    "flask-appbuilder==5.0.0a12",
 ]
 
 [project.urls]
