@@ -507,6 +507,7 @@ export default function transformProps(
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
+      showMaxLabel: true,
     },
     minorTick: { show: minorTicks },
     minInterval:
