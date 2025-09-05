@@ -25,18 +25,24 @@ The Model Context Protocol (MCP) is an open standard that allows AI assistants t
 ### Installation
 
 :::note
-The MCP service is included with Superset development setup. FastMCP dependencies are installed automatically with `make install`.
+The MCP service is included with Superset development setup. FastMCP dependencies are installed with `pip install -e .[development,fastmcp]`.
 :::
 
 ```bash
 # Using Docker Compose (recommended)
-docker-compose -f docker-compose-light.yml --profile mcp up
+docker-compose -f docker-compose-light.yml --profile mcp build
+docker-compose -f docker-compose-light.yml --profile mcp up -d
 
 # Or manually with development setup
 git clone https://github.com/apache/superset.git
 cd superset
-make venv && source venv/bin/activate
-make install
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .[development,fastmcp]
+
+# Initialize database
+superset db upgrade
+superset init
 
 # Start Superset
 superset run -p 8088 --with-threads --reload --debugger

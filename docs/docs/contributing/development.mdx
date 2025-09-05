@@ -380,19 +380,26 @@ For a streamlined setup that includes the MCP (Model Context Protocol) service f
 ##### Option 1: Docker with MCP Service (Recommended)
 
 ```bash
-# Start Superset and MCP service with docker-compose-light
+# Build and start Superset and MCP service with docker-compose-light
+$ docker-compose -f docker-compose-light.yml --profile mcp build
 $ docker-compose -f docker-compose-light.yml --profile mcp up -d
 
 # Initialize Superset (first time only)
-$ docker exec -it superset_superset-light_1 superset fab create-admin \
+$ docker exec -it superset-superset-light-1 superset fab create-admin \
   --username admin \
   --firstname Admin \
   --lastname Admin \
   --email admin@localhost \
   --password admin
 
-$ docker exec -it superset_superset-light_1 superset db upgrade
-$ docker exec -it superset_superset-light_1 superset init
+$ docker exec -it superset-superset-light-1 superset db upgrade
+$ docker exec -it superset-superset-light-1 superset init
+```
+
+**Note:** If you encounter initialization errors about missing example data, create `docker/.env-local` with:
+```bash
+# Disable loading examples to avoid initialization errors
+SUPERSET_LOAD_EXAMPLES=no
 ```
 
 The Docker setup automatically:
