@@ -72,7 +72,9 @@ describe('getBreakPoints', () => {
         { data: [0, 100], buckets: 5 },
         { data: [0.1, 99.9], buckets: 4 },
         { data: [-50, 50], buckets: 10 },
-        { data: [3.2, 38.7], buckets: 5 }, // Original bug case
+        { data: [3.2, 38.7], buckets: 5 }, // Original max bug case
+        { data: [3.14, 100], buckets: 5 }, // Min rounding bug case (3.14 -> 3)
+        { data: [2.345, 10], buckets: 4 }, // Min rounding bug case (2.345 -> 2.35)
         { data: [0.0001, 0.0009], buckets: 3 }, // Very small numbers
         { data: [1000000, 9000000], buckets: 8 }, // Large numbers
       ];
@@ -216,6 +218,35 @@ describe('getBreakPoints', () => {
 
       expect(firstBp).toBeLessThanOrEqual(1);
       expect(lastBp).toBeGreaterThanOrEqual(8.2);
+    });
+
+    it('prevents minimum value exclusion due to rounding', () => {
+      // Specific test for the minimum value rounding bug
+      // When minValue.toFixed(precision) rounds UP, it can exclude the minimum value
+      
+      const problematicCases = [
+        { minValue: 3.14, maxValue: 100, buckets: 5 }, // 3.14 rounds to 3 at precision 0
+        { minValue: 2.345, maxValue: 10, buckets: 4 }, // 2.345 rounds to 2.35 at precision 2
+        { minValue: 1.67, maxValue: 5, buckets: 3 }, // 1.67 rounds to 2 at precision 0
+      ];
+
+      problematicCases.forEach(({ minValue, maxValue, buckets }) => {
+        const features = [{ value: minValue }, { value: maxValue }];
+        
+        const breakPoints = getBreakPoints(
+          { break_points: [], num_buckets: String(buckets) },
+          features,
+          accessor,
+        );
+
+        const firstBp = parseFloat(breakPoints[0]);
+        
+        // Critical: The first breakpoint must NOT exclude the minimum value
+        expect(firstBp).toBeLessThanOrEqual(minValue);
+        
+        // The minimum value should be >= first breakpoint (not excluded)
+        expect(minValue).toBeGreaterThanOrEqual(firstBp);
+      });
     });
   });
 

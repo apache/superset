@@ -91,7 +91,6 @@ export function getBreakPoints(
           return rounded > minValue
             ? (minValue - Math.pow(10, -precision)).toFixed(precision)
             : minValue.toFixed(precision);
-          return minValue.toFixed(precision);
         }
         // For the last breakpoint, ensure it includes the max value
         if (i === numBuckets) {
