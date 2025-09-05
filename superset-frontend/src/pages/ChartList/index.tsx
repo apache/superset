@@ -365,7 +365,6 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        size: 'xxl',
         id: 'slice_name',
       },
       {
@@ -376,7 +375,6 @@ function ChartList(props: ChartListProps) {
         }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Type'),
         accessor: 'viz_type',
-        size: 'lg',
         id: 'viz_type',
       },
       {
@@ -387,18 +385,25 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => (
-          <Tooltip title={dsNameTxt} placement="top">
-            {/* dsNameTxt can be undefined, schema.name or just name */}
-            <GenericLink to={dsUrl}>
-              {dsNameTxt ? dsNameTxt.split('.')[1] || dsNameTxt : ''}
-            </GenericLink>
-          </Tooltip>
-        ),
+        }: any) => {
+          // Extract dataset name from datasource_name_text
+          // Format can be "schema.name" or just "name"
+          const displayName = dsNameTxt
+            ? dsNameTxt.includes('.')
+              ? dsNameTxt.split('.').slice(1).join('.') // Handle names with dots
+              : dsNameTxt // No schema, use the full name
+            : '';
+
+          return (
+            <Tooltip title={dsNameTxt} placement="top">
+              <GenericLink to={dsUrl}>{displayName}</GenericLink>
+            </Tooltip>
+          );
+        },
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'lg',
+        size: 'xl',
         id: 'datasource_id',
       },
       {
@@ -433,7 +438,6 @@ function ChartList(props: ChartListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
       },
@@ -546,6 +550,7 @@ function ChartList(props: ChartListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        size: 'lg',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },

@@ -227,6 +227,8 @@ def import_dashboard(  # noqa: C901
     if "metadata" in config and "show_native_filters" in config["metadata"]:
         del config["metadata"]["show_native_filters"]
 
+    # Note: theme_id handling moved to higher level import logic
+
     for key, new_name in JSON_KEYS.items():
         if config.get(key) is not None:
             value = config.pop(key)

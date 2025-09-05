@@ -113,6 +113,7 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
+from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -1204,6 +1205,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
                 return self.response_404()
+
+            filename = get_filename(
+                dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
+            )
             if download_format == "pdf":
                 pdf_img = image.getvalue()
                 # Convert the screenshot to PDF
@@ -1212,13 +1217,18 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 return Response(
                     pdf_data,
                     mimetype="application/pdf",
-                    headers={"Content-Disposition": "inline; filename=dashboard.pdf"},
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}.pdf"'
+                    },
                     direct_passthrough=True,
                 )
             if download_format == "png":
                 return Response(
                     FileWrapper(image),
                     mimetype="image/png",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}.png"'
+                    },
                     direct_passthrough=True,
                 )
         return self.response_404()

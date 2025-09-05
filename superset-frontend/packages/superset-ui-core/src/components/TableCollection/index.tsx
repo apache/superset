@@ -82,6 +82,7 @@ const StyledTable = styled(Table)`
       }
     }
     .ant-table-cell {
+      max-width: 320px;
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
@@ -92,6 +93,11 @@ const StyledTable = styled(Table)`
     }
     .ant-table-placeholder .ant-table-cell {
       border-bottom: 0;
+    }
+
+    // Hotfix - antd doesn't apply background color to overflowing cells
+    & table {
+      background-color: ${theme.colorBgContainer};
     }
   `}
 `;
@@ -150,7 +156,7 @@ function TableCollection<T extends object>({
       size={size}
       data-test="listview-table"
       pagination={false}
-      tableLayout="fixed"
+      tableLayout="auto"
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}
