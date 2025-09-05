@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getColorBreakpointsBuckets } from './utils';
+import { getColorBreakpointsBuckets, getBreakPoints } from './utils';
 import { ColorBreakpointType } from './types';
 
 describe('getColorBreakpointsBuckets', () => {
@@ -42,5 +42,92 @@ describe('getColorBreakpointsBuckets', () => {
   it('returns empty object if color_breakpoints is missing', () => {
     const result = getColorBreakpointsBuckets({} as any);
     expect(result).toEqual({});
+  });
+});
+
+describe('getBreakPoints', () => {
+  const accessor = (d: any) => d.value;
+
+  it('ensures max value is included in breakpoints (issue with 38.7)', () => {
+    const features = [
+      { value: 3.2 },
+      { value: 10.5 },
+      { value: 17.8 },
+      { value: 24.1 },
+      { value: 31.4 },
+      { value: 38.7 },
+    ];
+
+    const breakPoints = getBreakPoints(
+      { break_points: [], num_buckets: '5' },
+      features,
+      accessor,
+    );
+
+    // The last breakpoint should be >= 38.7 to include the max value
+    const lastBreakpoint = parseFloat(breakPoints[breakPoints.length - 1]);
+    expect(lastBreakpoint).toBeGreaterThanOrEqual(38.7);
+    expect(breakPoints.length).toBe(6); // 5 buckets = 6 breakpoints
+
+    // First breakpoint should include the min value
+    const firstBreakpoint = parseFloat(breakPoints[0]);
+    expect(firstBreakpoint).toBeLessThanOrEqual(3.2);
+  });
+
+  it('handles precise decimal values correctly', () => {
+    const features = [
+      { value: 0.1 },
+      { value: 0.5 },
+      { value: 0.9 },
+      { value: 1.3 },
+      { value: 1.7 },
+    ];
+
+    const breakPoints = getBreakPoints(
+      { break_points: [], num_buckets: '4' },
+      features,
+      accessor,
+    );
+
+    const firstBreakpoint = parseFloat(breakPoints[0]);
+    const lastBreakpoint = parseFloat(breakPoints[breakPoints.length - 1]);
+
+    expect(firstBreakpoint).toBeLessThanOrEqual(0.1);
+    expect(lastBreakpoint).toBeGreaterThanOrEqual(1.7);
+  });
+
+  it('uses custom break points when provided', () => {
+    const features = [{ value: 5 }, { value: 15 }, { value: 25 }];
+    const customBreakPoints = ['0', '10', '20', '30'];
+
+    const breakPoints = getBreakPoints(
+      { break_points: customBreakPoints, num_buckets: '' },
+      features,
+      accessor,
+    );
+
+    expect(breakPoints).toEqual(['0', '10', '20', '30']);
+  });
+
+  it('returns empty array when features are undefined', () => {
+    const breakPoints = getBreakPoints(
+      { break_points: [], num_buckets: '5' },
+      undefined as any,
+      accessor,
+    );
+
+    expect(breakPoints).toEqual([]);
+  });
+
+  it('returns empty array when extent values are undefined', () => {
+    const features = [{ value: undefined }, { value: undefined }];
+
+    const breakPoints = getBreakPoints(
+      { break_points: [], num_buckets: '5' },
+      features,
+      accessor,
+    );
+
+    expect(breakPoints).toEqual([]);
   });
 });
