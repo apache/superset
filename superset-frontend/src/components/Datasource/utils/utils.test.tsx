@@ -18,7 +18,7 @@
  */
 
 import { tn } from '@superset-ui/core';
-import { updateColumns } from './utils';
+import { updateColumns } from '.';
 
 describe('updateColumns', () => {
   let addSuccessToast: jest.Mock;
