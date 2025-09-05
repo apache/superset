@@ -86,6 +86,11 @@ export function getBreakPoints(
         const value = minValue + i * delta;
         // For the first breakpoint, use the actual min value
         if (i === 0) {
+          const rounded = parseFloat(minValue.toFixed(precision));
+          // Ensure first breakpoint is <= minValue to include all data points
+          return rounded > minValue
+            ? (minValue - Math.pow(10, -precision)).toFixed(precision)
+            : minValue.toFixed(precision);
           return minValue.toFixed(precision);
         }
         // For the last breakpoint, ensure it includes the max value
