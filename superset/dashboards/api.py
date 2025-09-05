@@ -1207,7 +1207,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
 
             filename = get_filename(
-                dashboard.dashboard_title, dashboard.id, skip_id=True
+                dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
             )
             if download_format == "pdf":
                 pdf_img = image.getvalue()
