@@ -1268,8 +1268,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
-    None | (Callable[[Database, models.User, str, str], str])
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
+    Callable[[Database, models.User, str, str], str]
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -1327,6 +1327,12 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
 READ_CSV_CHUNK_SIZE = 1000
+
+# Maximum number of detailed errors to display in CSV upload error messages
+# When there are more errors than this limit, the system will show the first
+# CSV_UPLOAD_MAX_ERRORS_DISPLAYED errors with details and indicate how many
+# additional errors exist (e.g., "and 5 more error(s)")
+CSV_UPLOAD_MAX_ERRORS_DISPLAYED = 3
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
