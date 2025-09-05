@@ -66,6 +66,19 @@ class SqlQueryRenderImpl(SqlQueryRender):
         except TemplateError as ex:
             self._raise_template_exception(ex, execution_context)
             return "NOT_REACHABLE_CODE"
+        except Exception as ex:
+            from superset.jinja_context import UndefinedTemplateFunctionException
+
+            if isinstance(ex, UndefinedTemplateFunctionException):
+                return query_model.sql.strip().strip(";")
+            raise
+
+    def _strip_sql_comments(self, sql: str) -> str:
+        import re
+
+        sql = re.sub(r"/\*.*?\*/", "", sql, flags=re.DOTALL)
+        sql = re.sub(r"--[^\n\r]*", "", sql)
+        return sql
 
     def _validate(
         self,
@@ -74,15 +87,8 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            original_sql = execution_context.query.sql.strip().strip(";")
-            if rendered_query == original_sql:
-                import re
-
-                function_pattern = r"\{\{\s*(ref|source|var|env_var)\s*\("
-                if re.search(function_pattern, original_sql, re.IGNORECASE):
-                    return
-
-            syntax_tree = sql_template_processor.env.parse(rendered_query)
+            sql_for_validation = self._strip_sql_comments(rendered_query)
+            syntax_tree = sql_template_processor.env.parse(sql_for_validation)
             undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
