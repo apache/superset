@@ -10,6 +10,7 @@
   "exclude": ["lib", "test"],
   "references": [
     { "path": "../../packages/superset-ui-core" },
-    { "path": "../../packages/superset-ui-chart-controls" }
+    { "path": "../../packages/superset-ui-chart-controls" },
+    { "path": "./plugins/legacy-plugin-chart-calendar/tsconfig.json" }
   ]
 }
