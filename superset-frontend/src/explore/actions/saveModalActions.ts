@@ -235,16 +235,26 @@ export const updateSlice =
       title: string;
       new?: boolean;
     },
+    dashboardExploreSliceId?: number | null,
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
     const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
     const formData = getState().explore?.form_data;
+
+    // Use dashboardExploreSliceId for overwriting when provided (portable explore editing)
+    const targetSliceId = dashboardExploreSliceId ?? sliceId;
+
+    // Update form_data slice_id to target slice for proper overwrite
+    const updatedFormData = dashboardExploreSliceId
+      ? { ...formData, slice_id: dashboardExploreSliceId }
+      : formData;
+
     try {
       const response = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${sliceId}`,
+        endpoint: `/api/v1/chart/${targetSliceId}`,
         jsonPayload: await getSlicePayload(
           sliceName,
-          formData,
+          updatedFormData,
           dashboards,
           owners as [],
           formDataFromSlice,
@@ -268,9 +278,15 @@ export const createSlice =
       title: string;
       new?: boolean;
     },
+    formDataFromProps?: any,
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const formData = getState().explore?.form_data;
+    let formData;
+    if (formDataFromProps) {
+      formData = formDataFromProps;
+    } else {
+      formData = getState().explore?.form_data;
+    }
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,

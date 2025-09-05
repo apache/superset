@@ -292,3 +292,20 @@ export const redoLayoutAction = setUnsavedChangesAfterAction(
 
 // Update component parents list ----------------------------------------------
 export const UPDATE_COMPONENTS_PARENTS_LIST = 'UPDATE_COMPONENTS_PARENTS_LIST';
+
+export function updateEasyChartMeta(componentId, chartId) {
+  return (dispatch, getState) => {
+    const { dashboardLayout } = getState();
+    dispatch(
+      updateComponents({
+        [componentId]: {
+          ...dashboardLayout.present[componentId],
+          meta: {
+            ...(dashboardLayout.present[componentId]?.meta || {}),
+            chartId,
+          },
+        },
+      }),
+    );
+  };
+}

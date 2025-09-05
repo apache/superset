@@ -65,6 +65,8 @@ interface SaveModalProps extends RouteComponentProps {
   dashboardId: '' | number | null;
   isVisible: boolean;
   dispatch: Dispatch;
+  isPortableExplore?: boolean;
+  onSaveComplete?: (chartId: number) => void;
 }
 
 type SaveModalState = {
@@ -201,16 +203,47 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         });
       }
 
-      //  Get chart dashboards
+      const formData = this.props.form_data || {};
+      delete formData.url_params;
+
+      // For portable explore (AddChartModal), skip all dashboard operations
+      if (this.props.isPortableExplore) {
+        // Sets the form data without dashboard information
+        this.props.actions.setFormData({ ...formData });
+
+        //  Update or create slice without dashboard associations
+        let value: { id: number };
+        if (this.state.action === 'overwrite') {
+          value = await this.props.actions.updateSlice(
+            this.props.slice,
+            this.state.newSliceName,
+            [], // No dashboard associations for portable explore
+            null, // No dashboard info
+          );
+        } else {
+          value = await this.props.actions.createSlice(
+            this.state.newSliceName,
+            [], // No dashboard associations for portable explore
+            null, // No dashboard info
+          );
+        }
+
+        // Call the callback and close modal
+        if (this.props.onSaveComplete && value?.id) {
+          this.props.onSaveComplete(value.id);
+        }
+        this.setState({ isLoading: false });
+        this.onHide();
+        return;
+      }
+
+      //  Get chart dashboards (only for regular explore, not portable)
       let sliceDashboards: number[] = [];
       if (this.props.slice && this.state.action === 'overwrite') {
         sliceDashboards = await this.props.actions.getSliceDashboards(
           this.props.slice,
         );
       }
-
-      const formData = this.props.form_data || {};
-      delete formData.url_params;
 
       let dashboard: DashboardGetResponse | null = null;
       if (this.state.dashboard) {
@@ -385,27 +418,29 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             />
           </FormItem>
         )}
-        <FormItem
-          label={t('Add to dashboard')}
-          data-test="save-chart-modal-select-dashboard-form"
-        >
-          <AsyncSelect
-            allowClear
-            allowNewOptions
-            ariaLabel={t('Select a dashboard')}
-            options={this.loadDashboards}
-            onChange={this.onDashboardChange}
-            value={this.state.dashboard}
-            placeholder={
-              <div>
-                <b>{t('Select')}</b>
-                {t(' a dashboard OR ')}
-                <b>{t('create')}</b>
-                {t(' a new one')}
-              </div>
-            }
-          />
-        </FormItem>
+        {!this.props.isPortableExplore && (
+          <FormItem
+            label={t('Add to dashboard')}
+            data-test="save-chart-modal-select-dashboard-form"
+          >
+            <AsyncSelect
+              allowClear
+              allowNewOptions
+              ariaLabel={t('Select a dashboard')}
+              options={this.loadDashboards}
+              onChange={this.onDashboardChange}
+              value={this.state.dashboard}
+              placeholder={
+                <div>
+                  <b>{t('Select')}</b>
+                  {t(' a dashboard OR ')}
+                  <b>{t('create')}</b>
+                  {t(' a new one')}
+                </div>
+              }
+            />
+          </FormItem>
+        )}
         {info && <Alert type="info" message={info} closable={false} />}
         {this.props.alert && (
           <Alert
@@ -450,19 +485,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       >
         {t('Cancel')}
       </Button>
-      <Button
-        id="btn_modal_save_goto_dash"
-        buttonSize="small"
-        disabled={
-          !this.state.newSliceName ||
-          !this.state.dashboard ||
-          (this.props.datasource?.type !== DatasourceType.Table &&
-            !this.state.datasetName)
-        }
-        onClick={() => this.saveOrOverwrite(true)}
-      >
-        {t('Save & go to dashboard')}
-      </Button>
+      {!this.props.isPortableExplore && (
+        <Button
+          id="btn_modal_save_goto_dash"
+          buttonSize="small"
+          disabled={
+            !this.state.newSliceName ||
+            !this.state.dashboard ||
+            (this.props.datasource?.type !== DatasourceType.Table &&
+              !this.state.datasetName)
+          }
+          onClick={() => this.saveOrOverwrite(true)}
+        >
+          {t('Save & go to dashboard')}
+        </Button>
+      )}
       <Button
         id="btn_modal_save"
         buttonSize="small"
@@ -513,6 +550,7 @@ interface StateProps {
   dashboards: any;
   alert: any;
   isVisible: boolean;
+  isPortableExplore: boolean;
 }
 
 function mapStateToProps({
@@ -527,6 +565,7 @@ function mapStateToProps({
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
+    isPortableExplore: explore.isPortableExplore || false,
   };
 }
 

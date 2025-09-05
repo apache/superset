@@ -41,6 +41,7 @@ import {
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
   ROW_TYPE,
+  EASY_CHART_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
@@ -79,6 +80,9 @@ export const hydrateDashboard =
     const chartIdToLayoutId = {};
     Object.values(layout).forEach(layoutComponent => {
       if (layoutComponent.type === CHART_TYPE) {
+        chartIdToLayoutId[layoutComponent.meta.chartId] = layoutComponent.id;
+      }
+      if (layoutComponent.type === EASY_CHART_TYPE) {
         chartIdToLayoutId[layoutComponent.meta.chartId] = layoutComponent.id;
       }
     });
@@ -309,6 +313,8 @@ export const hydrateDashboard =
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
+          isDashboardExploreOpen: false,
+          dashboardExploreSliceId: null,
         },
         dashboardLayout,
       },

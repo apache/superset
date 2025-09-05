@@ -747,7 +747,7 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
-      {props.isSaveModalVisible && (
+      {props.isSaveModalVisible && !props.exploreState?.isPortableExplore && (
         <SaveModal
           addDangerToast={props.addDangerToast}
           actions={props.actions}

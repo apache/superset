@@ -37,7 +37,7 @@ export function getDatasourceParameter(
 }
 
 export const ADD_SLICES = 'ADD_SLICES';
-function addSlices(slices: { [id: number]: Slice }) {
+export function addSlices(slices: { [id: number]: Slice }) {
   return { type: ADD_SLICES, payload: { slices } };
 }
 

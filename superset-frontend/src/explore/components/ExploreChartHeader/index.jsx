@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import {
   Tooltip,
@@ -94,6 +94,9 @@ export const ExploreChartHeader = ({
   isSaveModalVisible,
 }) => {
   const dispatch = useDispatch();
+  const isPortableExplore = useSelector(
+    state => state.explore?.isPortableExplore || false,
+  );
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -213,7 +216,7 @@ export const ExploreChartHeader = ({
     handleSaveAndCloseModal,
     triggerManualSave,
   } = useUnsavedChangesPrompt({
-    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
+    hasUnsavedChanges: !isPortableExplore && Object.keys(formDiffs).length > 0,
     onSave: () => dispatch(setSaveChartModalVisibility(true)),
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
@@ -273,27 +276,29 @@ export const ExploreChartHeader = ({
           </div>
         }
         rightPanelAdditionalItems={
-          <Tooltip
-            title={
-              saveDisabled
-                ? t('Add required control values to save chart')
-                : null
-            }
-          >
-            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <div>
-              <Button
-                buttonStyle="secondary"
-                onClick={showModal}
-                disabled={saveDisabled}
-                data-test="query-save-button"
-                css={saveButtonStyles}
-                icon={<Icons.SaveOutlined />}
-              >
-                {t('Save')}
-              </Button>
-            </div>
-          </Tooltip>
+          !isPortableExplore && (
+            <Tooltip
+              title={
+                saveDisabled
+                  ? t('Add required control values to save chart')
+                  : null
+              }
+            >
+              {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+              <div>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={showModal}
+                  disabled={saveDisabled}
+                  data-test="query-save-button"
+                  css={saveButtonStyles}
+                  icon={<Icons.SaveOutlined />}
+                >
+                  {t('Save')}
+                </Button>
+              </div>
+            </Tooltip>
+          )
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
@@ -337,14 +342,16 @@ export const ExploreChartHeader = ({
         />
       )}
 
-      <UnsavedChangesModal
-        title={t('Save changes to your chart?')}
-        body={t("If you don't save, changes will be lost.")}
-        showModal={showUnsavedChangesModal}
-        onHide={() => setShowUnsavedChangesModal(false)}
-        onConfirmNavigation={handleConfirmNavigation}
-        handleSave={handleSaveAndCloseModal}
-      />
+      {!isPortableExplore && (
+        <UnsavedChangesModal
+          title={t('Save changes to your chart?')}
+          body={t("If you don't save, changes will be lost.")}
+          showModal={showUnsavedChangesModal}
+          onHide={() => setShowUnsavedChangesModal(false)}
+          onConfirmNavigation={handleConfirmNavigation}
+          handleSave={handleSaveAndCloseModal}
+        />
+      )}
     </>
   );
 };
