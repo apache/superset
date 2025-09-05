@@ -385,15 +385,25 @@ MCP_FALLBACK_USER = "admin"
 
 ### Manual Testing
 
-```bash
-# Test with curl
-curl -X POST http://localhost:5008/call_tool \
-  -H "Authorization: Bearer $TEST_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "get_superset_instance_info",
-    "arguments": {"include_statistics": true}
-  }'
+```python
+# Test with MCP client (MCP uses SSE/JSON-RPC, not REST)
+# Example using Python MCP SDK
+from mcp import ClientSession
+import httpx
+
+async def test_mcp_auth():
+    headers = {"Authorization": f"Bearer {TEST_TOKEN}"}
+    async with httpx.AsyncClient(headers=headers) as client:
+        async with ClientSession(
+            httpx_client=client,
+            base_url="http://localhost:5008/mcp"
+        ) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "get_superset_instance_info",
+                {"include_statistics": True}
+            )
+            print(result)
 ```
 
 ## Troubleshooting

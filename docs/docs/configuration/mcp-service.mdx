@@ -228,18 +228,15 @@ docker-compose -f docker-compose-light.yml ps
 
 # Check MCP service logs
 docker-compose -f docker-compose-light.yml logs superset-mcp-light
-
-# Test MCP service directly
-curl http://localhost:5008/health
 ```
 
 ### For manual setup:
 ```bash
-# Check if MCP service is responding
-curl http://localhost:5008/health
-
-# Check Superset is running
+# Check if Superset is running
 curl http://localhost:8088/health
+
+# Check MCP service process (it uses SSE, not regular HTTP)
+ps aux | grep "superset mcp run"
 ```
 
 Then in Claude Desktop, try:
@@ -462,21 +459,20 @@ The MCP service supports configuration through environment variables:
 # Check service status and logs
 docker-compose -f docker-compose-light.yml ps
 docker-compose -f docker-compose-light.yml logs superset-mcp-light
-
-# Test MCP endpoint
-curl http://localhost:5008/health
 ```
 
 #### Manual Setup
 ```bash
-# Check if services are running
-curl http://localhost:5008/health
+# Check if Superset is running
 curl http://localhost:8088/health
+
+# Check MCP service process
+ps aux | grep "superset mcp run"
 ```
 
 This will verify:
-- MCP service is responding
 - Superset backend is accessible
+- MCP service process is running
 - Database connection is working
 
 ## Development
@@ -488,11 +484,6 @@ superset/
 ├── mcp_service/
 │   ├── server.py              # Main MCP server
 │   ├── run_mcp_server.py      # Server runner script
-│   ├── scripts/               # Shell scripts for MCP operations
-│   │   ├── setup.sh           # MCP setup script
-│   │   ├── run.sh             # MCP runner with Superset check
-│   │   ├── check.sh           # Health check script
-│   │   └── stop.sh            # Stop background processes
 │   ├── chart/                 # Chart generation tools
 │   ├── dashboard/             # Dashboard management tools
 │   ├── dataset/               # Dataset tools
