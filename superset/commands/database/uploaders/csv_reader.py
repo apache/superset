@@ -19,7 +19,7 @@ from importlib import util
 from typing import Any, Optional
 
 import pandas as pd
-from flask import app, current_app
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from werkzeug.datastructures import FileStorage
 
@@ -138,7 +138,8 @@ class CSVReader(BaseDataReader):
         :param df: DataFrame containing the data
         :param column: Name of the column to check for invalid values
 
-        :return: Boolean Series indicating which rows have invalid values for numeric conversion
+        :return: Boolean Series indicating which rows have invalid
+        values for numeric conversion
         """
         converted = pd.to_numeric(df[column], errors="coerce")
         return converted.isna() & df[column].notna()
@@ -158,7 +159,8 @@ class CSVReader(BaseDataReader):
         :param column: Name of the column to check for invalid values
         :param dtype: Target data type for conversion (e.g., 'string', 'category')
 
-        :return: Boolean Series indicating which rows have invalid values for the target type
+        :return: Boolean Series indicating which rows have
+        invalid values for the target type
         """
         invalid_mask = pd.Series([False] * len(df), index=df.index)
         for idx, value in df[column].items():
@@ -205,7 +207,8 @@ class CSVReader(BaseDataReader):
             invalid_value = df.loc[idx, column]
             line_number = idx + kwargs.get("header", 0) + 2
             error_details.append(
-                f"  • Line {line_number}: '{invalid_value}' cannot be converted to {dtype}"
+                f"  • Line {line_number}: '{invalid_value}' cannot be converted to "
+                f"{dtype}"
             )
 
         return error_details, total_errors
@@ -242,7 +245,10 @@ class CSVReader(BaseDataReader):
         )
 
         if error_details:
-            base_msg = f"Cannot convert column '{column}' to {dtype}. Found {total_errors} error(s):"
+            base_msg = (
+                f"Cannot convert column '{column}' to {dtype}. "
+                f"Found {total_errors} error(s):"
+            )
             detailed_errors = "\n".join(error_details)
 
             if total_errors > max_displayed_errors:
@@ -263,15 +269,16 @@ class CSVReader(BaseDataReader):
 
         Attempts to convert a column to the target data type with enhanced error
         handling. For numeric types, uses pandas to_numeric for better performance
-        and error detection. If conversion fails, provides detailed error messages
-        including specific invalid values and their line numbers.
+        and error detection. If conversion fails, provides detailed
+        error messages including specific invalid values and their line numbers.
 
         :param df: DataFrame to modify (modified in-place)
         :param column: Name of the column to cast
         :param dtype: Target data type (e.g., 'int64', 'float64', 'string')
         :param kwargs: Additional parameters including header row information
 
-        :raises DatabaseUploadFailed: If type conversion fails, with detailed error message
+        :raises DatabaseUploadFailed: If type conversion fails,
+        with detailed error message
         """
         numeric_types = {"int64", "int32", "float64", "float32"}
 
@@ -303,7 +310,8 @@ class CSVReader(BaseDataReader):
         df: pd.DataFrame, types: dict[str, str], kwargs: dict[str, Any]
     ) -> pd.DataFrame:
         """
-        Cast DataFrame columns to specified types with detailed error reporting.
+        Cast DataFrame columns to specified types with detailed
+        error reporting.
 
         :param df: DataFrame to cast
         :param types: Dictionary mapping column names to target types

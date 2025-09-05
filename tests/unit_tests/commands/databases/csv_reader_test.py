@@ -684,6 +684,7 @@ def test_csv_reader_error_detection_with_header_row():
 
 def test_csv_reader_error_detection_first_row_error():
     """Test error detection when the first data row has the error."""
+
     csv_data = [
         ["Name", "Age", "City"],
         ["name1", "not_a_number", "city1"],
@@ -741,6 +742,7 @@ def test_csv_reader_error_detection_mixed_valid_invalid():
     assert "Cannot convert column 'Score' to float64" in error_msg
     assert "Found 1 error(s):" in error_msg
     assert "Line 5: 'eighty-five' cannot be converted to float64" in error_msg
+
 
 def test_csv_reader_error_detection_multiple_invalid_values():
     """Test error detection with multiple invalid values showing first 3 + count."""
@@ -801,7 +803,6 @@ def test_csv_reader_error_detection_non_numeric_types():
 
 
 def test_csv_reader_error_detection_with_null_values():
-
     csv_data = [
         ["Name", "Age", "City"],
         ["name1", "25", "city1"],
@@ -814,7 +815,6 @@ def test_csv_reader_error_detection_with_null_values():
     with pytest.raises(DatabaseUploadFailed) as ex:
         csv_reader.file_to_dataframe(create_csv_file(csv_data))
 
-
     error_msg = str(ex.value)
     assert "Cannot convert column 'Age' to int64" in error_msg
     assert "Found 1 error(s):" in error_msg
@@ -822,7 +822,6 @@ def test_csv_reader_error_detection_with_null_values():
 
 
 def test_csv_reader_successful_numeric_conversion():
-
     csv_data = [
         ["Name", "Age", "Score", "ID"],
         ["name1", "25", "95.5", "1001"],
@@ -852,7 +851,6 @@ def test_csv_reader_successful_numeric_conversion():
 
 
 def test_csv_reader_error_detection_improvements_summary():
-
     csv_data_with_custom_header = [
         ["metadata_row", "skip", "this"],
         ["Name", "Age", "Score"],
