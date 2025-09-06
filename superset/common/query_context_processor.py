@@ -1001,6 +1001,7 @@ class QueryContextProcessor:
                 result = csv.df_to_escaped_csv(
                     df, index=include_index, **current_app.config["CSV_EXPORT"]
                 )
+                result = result.encode(current_app.config["CSV_EXPORT"].get("encoding", "utf-8"))
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
                 result = excel.df_to_excel(df, **current_app.config["EXCEL_EXPORT"])
