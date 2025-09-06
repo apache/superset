@@ -626,6 +626,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
     # Enable Matrixify feature for matrix-style chart layouts
     "MATRIXIFY": False,
+    # Memory leak prevention: validate join keys to prevent cartesian product explosions
+    # Disable if time series queries with legitimate duplicate keys are failing
+    "MEMORY_LEAK_JOIN_VALIDATION": True,
 }
 
 # ------------------------------

@@ -24,6 +24,7 @@ import pytest
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
+from tests.integration_tests.conftest import with_feature_flags
 
 
 @pytest.fixture
@@ -750,3 +751,34 @@ class TestMemoryLeakFixes:
 
                     # Verify result is returned
                     assert result is not None
+
+    @with_feature_flags(MEMORY_LEAK_JOIN_VALIDATION=True)
+    def test_join_validation_with_feature_flag_enabled(self):
+        """Test that join validation runs when feature flag is enabled."""
+        processor = QueryContextProcessor(MagicMock())
+
+        # Create DataFrames with duplicate keys that should trigger validation
+        left_df = pd.DataFrame({"category": ["A", "A"], "value": [1, 2]})
+        right_df = pd.DataFrame({"category": ["A", "A"], "other_value": [10, 20]})
+
+        # Should call validation and raise error due to duplicates
+        from superset.exceptions import QueryObjectValidationError
+
+        with pytest.raises(QueryObjectValidationError):
+            processor._perform_join(left_df, right_df, ["category"], "test_offset")
+
+    @with_feature_flags(MEMORY_LEAK_JOIN_VALIDATION=False)
+    def test_join_validation_with_feature_flag_disabled(self):
+        """Test that join validation is skipped when feature flag is disabled."""
+        processor = QueryContextProcessor(MagicMock())
+
+        # Create DataFrames with duplicate keys that would normally trigger validation
+        left_df = pd.DataFrame({"category": ["A", "A"], "value": [1, 2]})
+        right_df = pd.DataFrame({"category": ["A", "A"], "other_value": [10, 20]})
+
+        # Should NOT raise error because validation is disabled
+        # (This will create a cartesian product, but validation is bypassed)
+        result = processor._perform_join(left_df, right_df, ["category"], "test_offset")
+
+        # Verify the join was performed (cartesian product: 2x2 = 4 rows)
+        assert len(result) == 4

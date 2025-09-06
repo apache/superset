@@ -889,10 +889,11 @@ class QueryContextProcessor:
     ) -> pd.DataFrame:
         """Perform join with memory safety validation."""
         if actual_join_keys:
-            # Validate join keys to prevent cartesian products
-            self._validate_join_keys_for_memory_safety(
-                df, offset_df, actual_join_keys, offset_name
-            )
+            # Validate join keys to prevent cartesian products (if feature enabled)
+            if feature_flag_manager.is_feature_enabled("MEMORY_LEAK_JOIN_VALIDATION"):
+                self._validate_join_keys_for_memory_safety(
+                    df, offset_df, actual_join_keys, offset_name
+                )
 
             return dataframe_utils.left_join_df(
                 left_df=df,
