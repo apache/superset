@@ -95,10 +95,22 @@ export function getBreakPoints(
         // For the last breakpoint, ensure it includes the max value
         if (i === numBuckets) {
           // Use the actual max value or slightly higher if needed for rounding
-          const rounded = parseFloat(value.toFixed(precision));
-          return rounded >= maxValue
-            ? rounded.toFixed(precision)
-            : maxValue.toFixed(precision);
+          const calculatedValue = parseFloat(value.toFixed(precision));
+          const roundedMaxValue = parseFloat(maxValue.toFixed(precision));
+          
+          // If the calculated value from the delta is >= maxValue, use it
+          if (calculatedValue >= maxValue) {
+            return calculatedValue.toFixed(precision);
+          }
+          
+          // If maxValue.toFixed(precision) rounds down and excludes maxValue,
+          // we need to adjust it upward
+          if (roundedMaxValue < maxValue) {
+            return (maxValue + Math.pow(10, -precision)).toFixed(precision);
+          }
+          
+          // Otherwise, use the rounded max value
+          return maxValue.toFixed(precision);
         }
         return value.toFixed(precision);
       });

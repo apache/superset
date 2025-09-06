@@ -248,6 +248,35 @@ describe('getBreakPoints', () => {
         expect(minValue).toBeGreaterThanOrEqual(firstBp);
       });
     });
+
+    it('prevents maximum value exclusion due to rounding', () => {
+      // Specific test for the maximum value rounding bug
+      // When maxValue.toFixed(precision) rounds DOWN, it can exclude the maximum value
+      
+      const problematicCases = [
+        { minValue: 1, maxValue: 8.2, buckets: 4 }, // 8.2 might round to 8 at precision 0
+        { minValue: 0, maxValue: 38.7, buckets: 5 }, // 38.7 original bug case
+        { minValue: 5, maxValue: 15.67, buckets: 3 }, // 15.67 might round down
+      ];
+
+      problematicCases.forEach(({ minValue, maxValue, buckets }) => {
+        const features = [{ value: minValue }, { value: maxValue }];
+        
+        const breakPoints = getBreakPoints(
+          { break_points: [], num_buckets: String(buckets) },
+          features,
+          accessor,
+        );
+
+        const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
+        
+        // Critical: The last breakpoint must NOT exclude the maximum value
+        expect(lastBp).toBeGreaterThanOrEqual(maxValue);
+        
+        // The maximum value should be <= last breakpoint (not excluded)
+        expect(maxValue).toBeLessThanOrEqual(lastBp);
+      });
+    });
   });
 
   describe('custom breakpoints', () => {
