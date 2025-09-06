@@ -467,12 +467,23 @@ class QueryContextProcessor:
         This method handles both relative time offsets (e.g., "1 week ago") and
         absolute date range offsets (e.g., "2015-01-03 : 2015-01-04").
         """
+        import gc
+
         query_context = self._query_context
-        # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
         queries: list[str] = []
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
+
+        # Track memory usage for monitoring
+        initial_memory = None
+        try:
+            import psutil
+
+            process = psutil.Process()
+            initial_memory = process.memory_info().rss / 1024 / 1024
+        except ImportError:
+            pass
 
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
         if not outer_from_dttm or not outer_to_dttm:
@@ -729,6 +740,21 @@ class QueryContextProcessor:
                 join_keys,
             )
 
+        # Memory cleanup: clear DataFrame references and force garbage collection
+        if initial_memory is not None:
+            try:
+                final_memory = process.memory_info().rss / 1024 / 1024
+                memory_growth = final_memory - initial_memory
+                logger.info(
+                    f"Time offset processing: {memory_growth:+.1f}MB, "
+                    f"{len(offset_dfs)} offsets"
+                )
+            except Exception:  # noqa: S110
+                pass
+
+        offset_dfs.clear()
+        gc.collect()
+
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
     def _get_temporal_column_for_filter(  # noqa: C901
@@ -855,10 +881,19 @@ class QueryContextProcessor:
             return offset_df, join_keys
 
     def _perform_join(
-        self, df: pd.DataFrame, offset_df: pd.DataFrame, actual_join_keys: list[str]
+        self,
+        df: pd.DataFrame,
+        offset_df: pd.DataFrame,
+        actual_join_keys: list[str],
+        offset_name: str = "unknown",
     ) -> pd.DataFrame:
-        """Perform the appropriate join operation."""
+        """Perform join with memory safety validation."""
         if actual_join_keys:
+            # Validate join keys to prevent cartesian products
+            self._validate_join_keys_for_memory_safety(
+                df, offset_df, actual_join_keys, offset_name
+            )
+
             return dataframe_utils.left_join_df(
                 left_df=df,
                 right_df=offset_df,
@@ -883,6 +918,34 @@ class QueryContextProcessor:
                 columns=[f"{temp_key}{R_SUFFIX}"], inplace=True, errors="ignore"
             )
             return result_df
+
+    def _validate_join_keys_for_memory_safety(
+        self,
+        left_df: pd.DataFrame,
+        right_df: pd.DataFrame,
+        join_keys: list[str],
+        offset_name: str,
+    ) -> None:
+        """
+        Prevent memory explosions by ensuring unique join keys.
+
+        Time offset joins should have 1:1 key relationships to avoid cartesian products.
+        """
+        if not join_keys:
+            return
+
+        left_duplicates = left_df[join_keys].duplicated().sum()
+        right_duplicates = right_df[join_keys].duplicated().sum()
+
+        if left_duplicates > 0 or right_duplicates > 0:
+            raise QueryObjectValidationError(
+                _(
+                    f"Time offset join failed: duplicate keys detected in "
+                    f"'{offset_name}'. Left: {left_duplicates}, "
+                    f"Right: {right_duplicates} "
+                    f"duplicates. This would cause memory explosion."
+                )
+            )
 
     def join_offset_dfs(
         self,
@@ -925,7 +988,7 @@ class QueryContextProcessor:
                 join_column_producer,
             )
 
-            df = self._perform_join(df, offset_df, actual_join_keys)
+            df = self._perform_join(df, offset_df, actual_join_keys, offset)
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
             )

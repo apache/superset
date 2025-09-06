@@ -46,9 +46,102 @@ class QueryCacheManager:
     Class for manage query-cache getting and setting
     """
 
+    # Maximum cache memory usage in MB to prevent OOM
+    DEFAULT_MAX_CACHE_MEMORY_MB = 1024
+
     @property
     def stats_logger(self) -> BaseStatsLogger:
         return current_app.config["STATS_LOGGER"]
+
+    @staticmethod
+    def _get_dataframe_memory_mb(df: DataFrame) -> float:
+        """Get DataFrame memory usage in MB"""
+        try:
+            return df.memory_usage(deep=True).sum() / 1024 / 1024
+        except Exception:
+            return 0.0
+
+    @staticmethod
+    def _get_cache_memory_usage(region: CacheRegion = CacheRegion.DATA) -> float:
+        """
+        MEMORY LEAK FIX: Calculate total cache memory usage for DataFrames.
+
+        This helps prevent cache from consuming all available memory.
+        """
+        try:
+            cache = _cache[region]
+            total_memory = 0.0
+
+            # Iterate through cache and sum DataFrame memory usage
+            for key in cache.cache._cache.keys():  # Access underlying cache dict
+                try:
+                    value = cache.get(key)
+                    if value and isinstance(value, dict) and "df" in value:
+                        df = value["df"]
+                        if isinstance(df, DataFrame):
+                            total_memory += QueryCacheManager._get_dataframe_memory_mb(
+                                df
+                            )
+                except Exception:  # noqa: S112
+                    continue
+
+            return total_memory
+        except Exception as ex:
+            logger.warning(f"Error calculating cache memory usage: {ex}")
+            return 0.0
+
+    @staticmethod
+    def _evict_largest_cache_entries(
+        region: CacheRegion = CacheRegion.DATA, target_reduction_mb: float = 200
+    ) -> int:
+        """
+        MEMORY LEAK FIX: Evict largest cache entries to free memory.
+
+        Returns number of entries evicted.
+        """
+        try:
+            cache = _cache[region]
+            entries_with_sizes = []
+
+            # Get all cache entries with their DataFrame sizes
+            for key in list(cache.cache._cache.keys()):
+                try:
+                    value = cache.get(key)
+                    if value and isinstance(value, dict) and "df" in value:
+                        df = value["df"]
+                        if isinstance(df, DataFrame):
+                            size_mb = QueryCacheManager._get_dataframe_memory_mb(df)
+                            entries_with_sizes.append((key, size_mb))
+                except Exception:  # noqa: S112
+                    continue
+
+            # Sort by size descending (largest first)
+            entries_with_sizes.sort(key=lambda x: x[1], reverse=True)
+
+            # Evict largest entries until we hit target reduction
+            evicted = 0
+            total_freed = 0.0
+
+            for key, size_mb in entries_with_sizes:
+                if total_freed >= target_reduction_mb:
+                    break
+
+                try:
+                    cache.delete(key)
+                    evicted += 1
+                    total_freed += size_mb
+                    logger.debug(f"Evicted cache entry {key}: {size_mb:.2f}MB")
+                except Exception:  # noqa: S112
+                    continue
+
+            logger.info(
+                f"Cache eviction: removed {evicted} entries, freed {total_freed:.2f}MB"
+            )
+            return evicted
+
+        except Exception as ex:
+            logger.error(f"Error during cache eviction: {ex}")
+            return 0
 
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(
@@ -98,6 +191,24 @@ class QueryCacheManager:
         """
         Set dataframe of query-result to specific cache region
         """
+        # Check cache size before adding new entries
+        max_cache_memory = current_app.config.get(
+            "QUERY_CACHE_MAX_MEMORY_MB", self.DEFAULT_MAX_CACHE_MEMORY_MB
+        )
+
+        if key and query_result.df is not None and not query_result.df.empty:
+            new_df_size = self._get_dataframe_memory_mb(query_result.df)
+            current_cache_size = self._get_cache_memory_usage(region)
+
+            if current_cache_size + new_df_size > max_cache_memory:
+                logger.info(
+                    f"Cache limit exceeded ({current_cache_size:.0f}MB), "
+                    f"evicting entries"
+                )
+                self._evict_largest_cache_entries(
+                    region, target_reduction_mb=new_df_size + 100
+                )
+
         try:
             self.status = query_result.status
             self.query = query_result.query

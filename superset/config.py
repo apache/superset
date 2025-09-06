@@ -900,6 +900,10 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
+# Maximum memory usage (in MB) for DataFrame cache to prevent OOM
+# Set based on available worker memory (recommended: 25-50% of worker memory)
+QUERY_CACHE_MAX_MEMORY_MB = 1024  # 1GB default
+
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
 # required for Superset to operate correctly, but can be replaced by any

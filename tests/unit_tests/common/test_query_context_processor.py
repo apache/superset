@@ -624,3 +624,129 @@ def test_processing_time_offsets_date_range_enabled(processor):
                                 assert isinstance(result["df"], pd.DataFrame)
                                 assert isinstance(result["queries"], list)
                                 assert isinstance(result["cache_keys"], list)
+
+
+class TestMemoryLeakFixes:
+    """Test the memory leak fixes in QueryContextProcessor."""
+
+    def test_validate_join_keys_for_memory_safety_with_unique_keys(self):
+        """Test that validation passes with unique join keys."""
+        processor = QueryContextProcessor(MagicMock())
+
+        # Create DataFrames with unique join keys
+        left_df = pd.DataFrame({"category": ["A", "B", "C"], "value": [1, 2, 3]})
+        right_df = pd.DataFrame(
+            {"category": ["A", "B", "C"], "other_value": [10, 20, 30]}
+        )
+
+        # Should not raise any exception
+        processor._validate_join_keys_for_memory_safety(
+            left_df, right_df, ["category"], "test_offset"
+        )
+
+    def test_validate_join_keys_for_memory_safety_with_duplicate_keys(self):
+        """Test that validation fails with duplicate join keys."""
+        from superset.exceptions import QueryObjectValidationError
+
+        processor = QueryContextProcessor(MagicMock())
+
+        # Create DataFrames with duplicate join keys (cartesian product risk)
+        left_df = pd.DataFrame(
+            {
+                "category": ["A", "A", "B", "B"],  # Duplicates
+                "value": [1, 2, 3, 4],
+            }
+        )
+        right_df = pd.DataFrame(
+            {
+                "category": ["A", "A", "B"],  # Duplicates
+                "other_value": [10, 20, 30],
+            }
+        )
+
+        # Should raise QueryObjectValidationError
+        with pytest.raises(QueryObjectValidationError) as exc_info:
+            processor._validate_join_keys_for_memory_safety(
+                left_df, right_df, ["category"], "test_offset"
+            )
+
+        assert "duplicate keys detected" in str(exc_info.value)
+        assert "test_offset" in str(exc_info.value)
+
+    def test_validate_join_keys_for_memory_safety_with_empty_join_keys(self):
+        """Test that validation passes when no join keys specified."""
+        processor = QueryContextProcessor(MagicMock())
+
+        left_df = pd.DataFrame({"value": [1, 2, 3]})
+        right_df = pd.DataFrame({"other_value": [10, 20, 30]})
+
+        # Should not raise any exception with empty join keys
+        processor._validate_join_keys_for_memory_safety(
+            left_df, right_df, [], "test_offset"
+        )
+
+    def test_validate_join_keys_for_memory_safety_with_no_duplicates_message(self):
+        """Test error message format for duplicate keys."""
+        from superset.exceptions import QueryObjectValidationError
+
+        processor = QueryContextProcessor(MagicMock())
+
+        left_df = pd.DataFrame(
+            {
+                "category": ["A", "A"],  # 1 duplicate
+                "value": [1, 2],
+            }
+        )
+        right_df = pd.DataFrame(
+            {
+                "category": ["B", "B", "B"],  # 2 duplicates
+                "other_value": [10, 20, 30],
+            }
+        )
+
+        with pytest.raises(QueryObjectValidationError) as exc_info:
+            processor._validate_join_keys_for_memory_safety(
+                left_df, right_df, ["category"], "weekly_offset"
+            )
+
+        error_msg = str(exc_info.value)
+        assert "weekly_offset" in error_msg
+        assert "Left: 1" in error_msg  # 1 duplicate
+        assert "Right: 2" in error_msg  # 2 duplicates
+        assert "memory explosion" in error_msg
+
+    @patch("gc.collect")
+    def test_processing_time_offsets_calls_garbage_collection(self, mock_gc_collect):
+        """Test that garbage collection is called after processing time offsets."""
+        # Create a minimal mock setup
+        mock_query_context = MagicMock()
+        mock_query_context.datasource = MagicMock()
+
+        processor = QueryContextProcessor(mock_query_context)
+
+        # Mock the query object
+        query_object = MagicMock()
+        query_object.time_offsets = []  # Empty to avoid complex mocking
+
+        # Mock external dependencies to focus on GC testing
+        with patch(
+            "superset.common.query_context_processor.get_since_until_from_query_object"
+        ) as mock_get_since_until:
+            mock_get_since_until.return_value = ("2024-01-01", "2024-02-01")
+
+            with patch.object(processor, "get_time_grain", return_value="P1D"):
+                with patch(
+                    "superset.common.query_context_processor.get_metric_names",
+                    return_value=["count"],
+                ):
+                    # Create test DataFrame
+                    test_df = pd.DataFrame({"count": [1, 2, 3]})
+
+                    # Call the method
+                    result = processor.processing_time_offsets(test_df, query_object)
+
+                    # Verify garbage collection was called
+                    mock_gc_collect.assert_called_once()
+
+                    # Verify result is returned
+                    assert result is not None
