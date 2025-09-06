@@ -34,6 +34,7 @@ class NotificationContent:
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
     embedded_data: Optional[pd.DataFrame] = None
+    report_format: Optional[str] = None
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods
