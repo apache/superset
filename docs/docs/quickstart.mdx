@@ -69,6 +69,48 @@ You can use the same environment more than once, as Superset will persist data l
 processes by running Docker Compose `stop` command. By doing so, you can avoid data corruption and/or loss of data.
 :::
 
+## Alternative: Setup with MCP Service (AI-Powered Features)
+
+To enable AI-powered features through the MCP (Model Context Protocol) service, you can use Docker with the MCP profile:
+
+### Option 1: Docker with MCP Service (Recommended)
+
+```bash
+# Clone the repository
+$ git clone https://github.com/apache/superset
+$ cd superset
+
+# Build and start Superset and MCP service with docker-compose-light
+$ docker-compose -f docker-compose-light.yml --profile mcp build
+$ docker-compose -f docker-compose-light.yml --profile mcp up -d
+
+# Initialize Superset (first time only)
+$ docker exec -it superset-superset-light-1 superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
+
+$ docker exec -it superset-superset-light-1 superset db upgrade
+$ docker exec -it superset-superset-light-1 superset init
+```
+
+The Docker setup automatically:
+- Sets up PostgreSQL database
+- Builds and runs Superset containers
+- Starts the MCP service (with `--profile mcp`)
+- Handles all networking and dependencies
+- Provides hot-reload for development
+
+Superset frontend will be available at http://localhost:9001 (login: admin/admin)
+
+### Option 2: Manual Setup (Without Docker)
+
+For manual setup instructions without Docker, see the [MCP Service Documentation](/docs/configuration/mcp-service#option-2-manual-setup)
+
+For more details, see the [MCP Service Documentation](/docs/configuration/mcp-service) and [Development Setup](/docs/contributing/development).
+
 ## What's next?
 
 From this point on, you can head on to:

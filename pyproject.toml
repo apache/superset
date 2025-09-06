@@ -138,6 +138,7 @@ solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.9, <0.3.0"]
 exasol = ["sqlalchemy-exasol >= 2.4.0, <3.0"]
 excel = ["xlrd>=1.2.0, <1.3"]
+fastmcp = ["fastmcp>=2.8.1"]
 firebird = ["sqlalchemy-firebird>=0.7.0, <0.8"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=23.9.1"]
@@ -210,6 +211,7 @@ development = [
     "pyinstrument>=4.0.2,<5",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
+    "pytest-asyncio", # need this due to not using latest pytest
     "pytest-cov",
     "pytest-mock",
     "python-ldap>=3.4.4",

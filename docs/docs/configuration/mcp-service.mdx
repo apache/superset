@@ -1,0 +1,510 @@
+---
+title: MCP Service
+sidebar_position: 12
+version: 1
+---
+
+# MCP Service
+
+The Model Context Protocol (MCP) service provides AI-powered capabilities for Apache Superset, enabling natural language interactions for chart generation, data exploration, and dashboard creation.
+
+## Overview
+
+The MCP service integrates with AI models (currently supporting Anthropic's Claude) to provide:
+- Natural language chart generation
+- Intelligent data exploration
+- Automated dashboard creation
+- Context-aware data analysis
+
+## Quick Start
+
+### Option 1: Docker Setup (Recommended) 🎯
+
+The fastest way to get everything running with Docker:
+
+**Prerequisites:** Docker and Docker Compose installed
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/apache/superset.git
+cd superset
+
+# 2. Start Superset and MCP service with docker-compose-light
+docker-compose -f docker-compose-light.yml --profile mcp build
+docker-compose -f docker-compose-light.yml --profile mcp up -d
+
+# 3. Initialize Superset (first time only)
+docker exec -it superset-superset-light-1 superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
+
+docker exec -it superset-superset-light-1 superset db upgrade
+docker exec -it superset-superset-light-1 superset init
+```
+
+**That's it!** ✨
+- Superset frontend is running at http://localhost:9001 (login: admin/admin)
+- MCP service is running on port 5008
+- Now configure Claude Desktop (see next section)
+
+#### What Docker Compose does:
+- Sets up PostgreSQL database
+- Builds and runs Superset containers
+- Starts the MCP service (with `--profile mcp`)
+- Handles all networking and dependencies
+- Provides hot-reload for development
+
+**Note:** If you encounter initialization errors about missing example data, create `docker/.env-local` with:
+```bash
+# Disable loading examples to avoid initialization errors
+SUPERSET_LOAD_EXAMPLES=no
+```
+
+#### Customizing ports:
+```bash
+# Use different ports if defaults are in use
+NODE_PORT=9002 MCP_PORT=5009 docker-compose -f docker-compose-light.yml --profile mcp up -d
+```
+
+### Option 2: Manual Setup
+
+If Docker is not available, you can set up manually:
+
+<details>
+<summary>Click to expand manual setup instructions</summary>
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/apache/superset.git
+cd superset
+
+# 2. Set up Python environment (Python 3.10 or 3.11 required)
+python3 -m venv venv
+source venv/bin/activate
+
+# 3. Install dependencies
+pip install -e .[development,fastmcp]
+cd superset-frontend && npm ci && npm run build && cd ..
+
+# 4. Initialize database
+superset db upgrade
+superset init
+
+# 5. Create admin user
+superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
+
+# 6. Start Superset (in one terminal)
+superset run -p 8088 --with-threads --reload --debugger
+
+# 7. Start frontend (in another terminal)
+cd superset-frontend && npm run dev
+
+# 8. Start MCP service (in another terminal, optional)
+source venv/bin/activate
+superset mcp run --port 5008 --debug
+```
+
+Access Superset at http://localhost:8088 (login: admin/admin)
+
+</details>
+
+## Connect Claude Desktop
+
+### For Docker Setup
+
+Since the MCP service runs inside Docker on port 5008, you need to connect Claude Desktop to the HTTP endpoint:
+
+Add this to your Claude Desktop config file:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+Since claude desktop doesnt like non https mcp servers you can use this proxy:
+```json
+{
+  "mcpServers": {
+    "Superset MCP Proxy": {
+      "command": "/<superset folder>/superset/mcp_service/run_proxy.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+For https urls
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-stdio-http",
+   "https://superset.mcp.com/mcp/"],
+      "env": {}
+    }
+  }
+}
+```
+
+Then restart Claude Desktop. That's it! ✨
+
+### For Local Setup (Manual)
+
+If running MCP locally (not in Docker), use the direct connection:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "npx",
+      "args": ["/path/to/your/superset/superset/mcp_service"],
+      "env": {
+        "PYTHONPATH": "/path/to/your/superset"
+      }
+    }
+  }
+}
+```
+
+**Important:** Replace `/path/to/your/superset` with your actual path!
+
+### Alternative Connection Methods
+
+<details>
+<summary>Direct STDIO with npx</summary>
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "npx",
+      "args": ["/absolute/path/to/your/superset/superset/mcp_service", "--stdio"],
+      "env": {}
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary>Direct STDIO with Python</summary>
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "/absolute/path/to/your/superset/venv/bin/python",
+      "args": ["-m", "superset.mcp_service"],
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/your/superset"
+      }
+    }
+  }
+}
+```
+</details>
+
+### Claude Desktop Config Location
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+## Verify the Connection
+
+### For Docker setup:
+```bash
+# Check if services are running
+docker-compose -f docker-compose-light.yml ps
+
+# Check MCP service logs
+docker-compose -f docker-compose-light.yml logs superset-mcp-light
+```
+
+### For manual setup:
+```bash
+# Check if Superset is running
+curl http://localhost:8088/health
+
+# Check MCP service process (it uses SSE, not regular HTTP)
+ps aux | grep "superset mcp run"
+```
+
+Then in Claude Desktop, try:
+- "List all dashboards in Superset"
+- "Show me the available datasets"
+- "Get superset instance info"
+
+## Available Docker Commands
+
+| Command | Description |
+|---------|-------------|
+| `docker-compose -f docker-compose-light.yml --profile mcp up -d` | Start Superset + MCP service |
+| `docker-compose -f docker-compose-light.yml down` | Stop all services |
+| `docker-compose -f docker-compose-light.yml logs -f` | View logs |
+| `docker-compose -f docker-compose-light.yml ps` | Check service status |
+| `docker exec -it superset_superset-light_1 bash` | Shell into Superset container |
+
+## Configuration
+
+### Basic Configuration
+
+The MCP service configuration is stored in `superset_config.py`:
+
+```python
+# MCP Service Configuration
+MCP_ADMIN_USERNAME = 'admin'
+MCP_DEV_USERNAME = 'admin'
+SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
+
+# Anthropic API Configuration (optional)
+ANTHROPIC_API_KEY = 'your-api-key-here'
+```
+
+### Advanced Configuration
+
+You can also configure the MCP service using environment variables:
+
+```bash
+export ANTHROPIC_API_KEY="your-api-key-here"
+export MCP_HOST="127.0.0.1"
+export MCP_PORT="5008"
+```
+
+### CSRF Configuration
+
+If you encounter login loops, you may need to disable CSRF protection for local development:
+
+```python
+# In superset_config.py
+WTF_CSRF_ENABLED = False  # Only for local development!
+```
+
+## CLI Commands
+
+The MCP service provides several CLI commands:
+
+### Setup Command
+
+```bash
+superset mcp setup [OPTIONS]
+
+Options:
+  --force           Force setup even if configuration exists
+  --skip-config     Skip configuration file setup
+  --skip-examples   Skip loading example datasets
+  --api-key TEXT    Anthropic API key for MCP service
+  --help            Show this message and exit
+```
+
+Examples:
+
+```bash
+# Interactive setup
+superset mcp setup
+
+# Non-interactive with API key
+superset mcp setup --api-key "your-api-key" --skip-examples
+
+# Force reconfiguration
+superset mcp setup --force
+```
+
+### Run Command
+
+```bash
+superset mcp run [OPTIONS]
+
+Options:
+  --host TEXT       Host to bind to  [default: 127.0.0.1]
+  --port INTEGER    Port to bind to  [default: 5008]
+  --debug           Enable debug mode
+  --sql-debug       Enable SQL query logging
+  --help            Show this message and exit
+```
+
+Examples:
+
+```bash
+# Run with default settings
+superset mcp run
+
+# Run with debug mode
+superset mcp run --debug
+
+# Run on different port
+superset mcp run --port 6000
+```
+
+### Running with npx
+
+You can also run the MCP service using npx for simpler execution:
+
+```bash
+# Run in HTTP mode (default)
+npx /path/to/superset/superset/mcp_service
+
+# Run in STDIO mode for Claude Desktop
+npx /path/to/superset/superset/mcp_service --stdio
+
+# Run with custom port
+npx /path/to/superset/superset/mcp_service --port 6000 --debug
+
+# Show help
+npx /path/to/superset/superset/mcp_service --help
+```
+
+## Using the MCP Service
+
+### Deployment Options
+
+The MCP service can be deployed in several ways:
+
+1. **Smithery**: Managed MCP server platform
+2. **Local Installation**: Run directly on your machine with full control
+3. **GitHub Codespaces**: Cloud development environment with pre-configured setup
+
+### Transport Modes
+
+The MCP service supports two transport modes:
+
+1. **HTTP Transport** (Default): Runs as an HTTP server on port 5008, suitable for production and remote access
+2. **STDIO Transport**: Uses standard input/output for direct Claude Desktop integration
+
+## Available Tools
+
+The MCP service provides numerous tools for interacting with Superset:
+
+#### Chart Management
+- `generate_chart` - Create charts using natural language
+- `list_charts` - List existing charts
+- `get_chart_info` - Get chart details
+- `get_chart_preview` - Generate chart previews
+- `update_chart` - Update existing charts
+
+#### Dataset Management
+- `list_datasets` - List available datasets
+- `get_dataset_info` - Get dataset schema and metadata
+
+#### Dashboard Management
+- `generate_dashboard` - Create dashboards from charts
+- `list_dashboards` - List existing dashboards
+- `add_chart_to_existing_dashboard` - Add charts to dashboards
+
+#### SQL Lab Integration
+- `execute_sql` - Execute SQL queries
+- `open_sql_lab_with_context` - Open SQL Lab with pre-filled query
+
+## Environment Variables
+
+The MCP service supports configuration through environment variables:
+
+- `FASTMCP_TRANSPORT`: Transport mode ("http" or "stdio", default: "http")
+- `MCP_DEBUG`: Enable debug output ("1" to enable)
+- `SUPERSET_CONFIG_PATH`: Path to superset_config.py
+- `PYTHONPATH`: Python path including Superset root
+- `MCP_HOST`: Host for HTTP transport (default: "127.0.0.1")
+- `MCP_PORT`: Port for HTTP transport (default: 5008)
+- `ANTHROPIC_API_KEY`: API key for Claude integration
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Login Loop**: If you can't login due to CSRF errors:
+   ```python
+   # In superset_config.py
+   WTF_CSRF_ENABLED = False
+   ```
+
+2. **Database Not Initialized**: Run:
+   ```bash
+   superset db upgrade
+   superset init
+   ```
+
+3. **Missing Dependencies**: Ensure you're in the virtual environment:
+   ```bash
+   source venv/bin/activate  # or . venv/bin/activate
+   ```
+
+4. **Port Already in Use**: Change the MCP service port:
+   ```bash
+   superset mcp run --port 6000
+   ```
+
+5. **STDIO Transport Issues**:
+   - **Non-JSON output**: Ensure you're running via `python -m superset.mcp_service`
+   - **Initialization errors**: Client must send `notifications/initialized` after receiving initialize response
+   - **Database errors**: Verify `superset_config.py` is accessible and database is initialized
+
+6. **HTTP Transport Issues**:
+   - **Proxy not working**: Check proxy script has correct virtual environment path
+   - **Connection refused**: Ensure MCP service is running on correct port
+   - **Claude Desktop logs**: Check `~/Library/Logs/Claude/mcp-server-*.log`
+
+### Checking MCP Service Health
+
+#### Docker Setup
+```bash
+# Check service status and logs
+docker-compose -f docker-compose-light.yml ps
+docker-compose -f docker-compose-light.yml logs superset-mcp-light
+```
+
+#### Manual Setup
+```bash
+# Check if Superset is running
+curl http://localhost:8088/health
+
+# Check MCP service process
+ps aux | grep "superset mcp run"
+```
+
+This will verify:
+- Superset backend is accessible
+- MCP service process is running
+- Database connection is working
+
+## Development
+
+### Project Structure
+
+```
+superset/
+├── mcp_service/
+│   ├── server.py              # Main MCP server
+│   ├── run_mcp_server.py      # Server runner script
+│   ├── chart/                 # Chart generation tools
+│   ├── dashboard/             # Dashboard management tools
+│   ├── dataset/               # Dataset tools
+│   └── sql_lab/               # SQL Lab integration
+└── cli/
+    └── mcp.py                 # CLI commands
+```
+
+### Adding New Tools
+
+To add new MCP tools, create a new module in the appropriate directory and register it with the MCP server.
+
+## Security Considerations
+
+1. **API Keys**: Store API keys securely and never commit them to version control
+2. **CSRF Protection**: Only disable for local development, never in production
+3. **Database Access**: The MCP service uses the same security context as the logged-in user
+4. **Network Security**: By default, the MCP service only binds to localhost
+
+## Next Steps
+
+- Explore the [MCP Protocol Documentation](https://modelcontextprotocol.io/docs)
+- Check out example use cases in the test files
+- Join the Superset community to share your MCP experiences

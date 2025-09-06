@@ -373,6 +373,50 @@ $ make superset
 $ make pre-commit
 ```
 
+#### Quick Setup with MCP Service
+
+For a streamlined setup that includes the MCP (Model Context Protocol) service for AI-powered features:
+
+##### Option 1: Docker with MCP Service (Recommended)
+
+```bash
+# Build and start Superset and MCP service with docker-compose-light
+$ docker-compose -f docker-compose-light.yml --profile mcp build
+$ docker-compose -f docker-compose-light.yml --profile mcp up -d
+
+# Initialize Superset (first time only)
+$ docker exec -it superset-superset-light-1 superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname Admin \
+  --email admin@localhost \
+  --password admin
+
+$ docker exec -it superset-superset-light-1 superset db upgrade
+$ docker exec -it superset-superset-light-1 superset init
+```
+
+**Note:** If you encounter initialization errors about missing example data, create `docker/.env-local` with:
+```bash
+# Disable loading examples to avoid initialization errors
+SUPERSET_LOAD_EXAMPLES=no
+```
+
+The Docker setup automatically:
+- Sets up PostgreSQL database
+- Builds and runs Superset containers
+- Starts the MCP service (with `--profile mcp`)
+- Handles all networking and dependencies
+
+Superset frontend will be available at http://localhost:9001.
+
+##### Option 2: Manual Setup
+
+For manual setup instructions without Docker, see the [MCP Service Documentation](/docs/configuration/mcp-service#option-2-manual-setup).
+
+The MCP service provides AI-powered capabilities including natural language chart generation.
+See the [MCP Service Documentation](/docs/configuration/mcp-service) for more details.
+
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
 via `.flaskenv`, however, if needed, it should be set to `superset.app:create_app()`**
 
