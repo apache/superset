@@ -238,23 +238,20 @@ export function DatabaseSelector({
     }
   }
 
+  const shouldFetchSchemas =
+    currentDb?.value &&
+    (!showCatalogSelector || (currentCatalog && currentCatalog.value));
+
   const {
     currentData: schemaData,
     isFetching: loadingSchemas,
     refetch: refetchSchemas,
   } = useSchemas({
-    dbId: currentDb?.value,
+    dbId: shouldFetchSchemas ? currentDb?.value : undefined,
     catalog: currentCatalog?.value,
-    onSuccess: (schemas, isFetched) => {
+    onSuccess: (schemas, isFetched, defaultValue) => {
       setErrorPayload(null);
-      if (schemas.length === 1) {
-        changeSchema(schemas[0]);
-      } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
-      ) {
-        changeSchema(undefined);
-      }
-
+      autoSelectSchema(schemas, defaultValue);
       if (isFetched) {
         addSuccessToast('List refreshed');
       }
@@ -268,11 +265,13 @@ export function DatabaseSelector({
     },
   });
 
-  const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
+  const schemaOptions = schemaData?.result || EMPTY_SCHEMA_OPTIONS;
 
   function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
     setCurrentSchema(undefined);
+    // Clear schema ref so auto-selection works for the new catalog
+    schemaRef.current = undefined;
     if (onCatalogChange && catalog?.value !== catalogRef.current) {
       onCatalogChange(catalog?.value);
     }
@@ -284,20 +283,9 @@ export function DatabaseSelector({
     refetch: refetchCatalogs,
   } = useCatalogs({
     dbId: showCatalogSelector ? currentDb?.value : undefined,
-    onSuccess: (catalogs, isFetched) => {
+    onSuccess: (catalogs, isFetched, defaultValue) => {
       setErrorPayload(null);
-      if (!showCatalogSelector) {
-        changeCatalog(null);
-      } else if (catalogs.length === 1) {
-        changeCatalog(catalogs[0]);
-      } else if (
-        !catalogs.find(
-          catalogOption => catalogRef.current === catalogOption.value,
-        )
-      ) {
-        changeCatalog(undefined);
-      }
-
+      autoSelectCatalog(catalogs, defaultValue);
       if (showCatalogSelector && isFetched) {
         addSuccessToast('List refreshed');
       }
@@ -313,7 +301,72 @@ export function DatabaseSelector({
     },
   });
 
-  const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+  const catalogOptions = catalogData?.result || EMPTY_CATALOG_OPTIONS;
+
+  // Centralized auto-selection logic
+  const autoSelectCatalog = useCallback(
+    (catalogs: CatalogOption[], defaultValue?: string | null) => {
+      if (!showCatalogSelector) {
+        changeCatalog(null);
+      } else if (defaultValue && !catalogRef.current) {
+        const defaultCatalog = catalogs.find(
+          catalog => catalog.value === defaultValue,
+        );
+        if (defaultCatalog) {
+          changeCatalog(defaultCatalog);
+        }
+      } else if (catalogs.length === 1) {
+        changeCatalog(catalogs[0]);
+      } else if (
+        !catalogs.find(
+          catalogOption => catalogRef.current === catalogOption.value,
+        )
+      ) {
+        changeCatalog(undefined);
+      }
+    },
+    [showCatalogSelector, catalogRef],
+  );
+
+  const autoSelectSchema = useCallback(
+    (schemas: SchemaOption[], defaultValue?: string | null) => {
+      if (defaultValue && !schemaRef.current) {
+        const defaultSchema = schemas.find(
+          schema => schema.value === defaultValue,
+        );
+        if (defaultSchema) {
+          changeSchema(defaultSchema);
+        }
+      } else if (schemas.length === 1) {
+        changeSchema(schemas[0]);
+      } else if (
+        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+      ) {
+        changeSchema(undefined);
+      }
+    },
+    [schemaRef],
+  );
+
+  // For non-catalog databases, set catalog to null immediately
+  useEffect(() => {
+    if (currentDb && !showCatalogSelector) {
+      setCurrentCatalog(null);
+    }
+  }, [currentDb?.id, showCatalogSelector]);
+
+  // Auto-select when data becomes available (handles both fresh data and cached data)
+  useEffect(() => {
+    if (catalogData?.result) {
+      autoSelectCatalog(catalogData.result, catalogData.default);
+    }
+  }, [catalogData?.result, catalogData?.default, autoSelectCatalog]);
+
+  useEffect(() => {
+    if (schemaData?.result) {
+      autoSelectSchema(schemaData.result, schemaData.default);
+    }
+  }, [schemaData?.result, schemaData?.default, autoSelectSchema]);
 
   function changeDatabase(
     value: { label: string; value: number },
@@ -325,6 +378,9 @@ export function DatabaseSelector({
     setCurrentDb(databaseWithId);
     setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
+    // Clear refs so auto-selection works when switching back to a database
+    catalogRef.current = undefined;
+    schemaRef.current = undefined;
     if (onDbChange) {
       onDbChange(databaseWithId);
     }
@@ -402,7 +458,11 @@ export function DatabaseSelector({
     return renderSelectRow(
       <Select
         ariaLabel={t('Select schema or type to search schemas')}
-        disabled={!currentDb || readOnly}
+        disabled={
+          !currentDb ||
+          readOnly ||
+          (showCatalogSelector && (loadingCatalogs || !currentCatalog))
+        }
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         loading={loadingSchemas}
