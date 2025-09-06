@@ -18,13 +18,13 @@
  */
 import sinon from 'sinon';
 
-import Divider from 'src/dashboard/components/gridComponents/Divider';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
   DIVIDER_TYPE,
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { screen, render, userEvent } from 'spec/helpers/testing-library';
+import Divider from './Divider';
 
 describe('Divider', () => {
   const props = {

@@ -29,14 +29,18 @@ export interface TabsProps extends AntdTabsProps {
 const StyledTabs = ({
   animated = false,
   allowOverflow = true,
+  tabBarStyle,
   ...props
 }: TabsProps) => {
   const theme = useTheme();
+  const defaultTabBarStyle = { paddingLeft: theme.sizeUnit * 4 };
+  const mergedStyle = { ...defaultTabBarStyle, ...tabBarStyle };
+
   return (
     <AntdTabs
       animated={animated}
       {...props}
-      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
+      tabBarStyle={mergedStyle}
       css={theme => css`
         overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
