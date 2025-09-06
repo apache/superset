@@ -220,17 +220,18 @@ describe('getBreakPoints', () => {
       expect(lastBp).toBeGreaterThanOrEqual(8.2);
     });
 
-    it('prevents minimum value exclusion due to rounding', () => {
-      // Specific test for the minimum value rounding bug
-      // When minValue.toFixed(precision) rounds UP, it can exclude the minimum value
+    it('uses floor/ceil for boundary breakpoints to ensure inclusion', () => {
+      // Test that Math.floor and Math.ceil are used for boundaries
+      // This ensures all data points fall within the breakpoint range
       
-      const problematicCases = [
-        { minValue: 3.14, maxValue: 100, buckets: 5 }, // 3.14 rounds to 3 at precision 0
-        { minValue: 2.345, maxValue: 10, buckets: 4 }, // 2.345 rounds to 2.35 at precision 2
-        { minValue: 1.67, maxValue: 5, buckets: 3 }, // 1.67 rounds to 2 at precision 0
+      const testCases = [
+        { minValue: 3.14, maxValue: 100, buckets: 5 },
+        { minValue: 2.345, maxValue: 10.678, buckets: 4 },
+        { minValue: 1.67, maxValue: 5.33, buckets: 3 },
+        { minValue: 0.123, maxValue: 0.987, buckets: 5 },
       ];
 
-      problematicCases.forEach(({ minValue, maxValue, buckets }) => {
+      testCases.forEach(({ minValue, maxValue, buckets }) => {
         const features = [{ value: minValue }, { value: maxValue }];
         
         const breakPoints = getBreakPoints(
@@ -240,42 +241,74 @@ describe('getBreakPoints', () => {
         );
 
         const firstBp = parseFloat(breakPoints[0]);
+        const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
         
-        // Critical: The first breakpoint must NOT exclude the minimum value
+        // First breakpoint should be floored (always <= minValue)
         expect(firstBp).toBeLessThanOrEqual(minValue);
         
-        // The minimum value should be >= first breakpoint (not excluded)
+        // Last breakpoint should be ceiled (always >= maxValue)
+        expect(lastBp).toBeGreaterThanOrEqual(maxValue);
+        
+        // All values should be within range
         expect(minValue).toBeGreaterThanOrEqual(firstBp);
+        expect(maxValue).toBeLessThanOrEqual(lastBp);
       });
     });
 
-    it('prevents maximum value exclusion due to rounding', () => {
-      // Specific test for the maximum value rounding bug
-      // When maxValue.toFixed(precision) rounds DOWN, it can exclude the maximum value
+    it('prevents minimum value exclusion edge case', () => {
+      // Specific edge case test for minimum value exclusion
+      // Tests the exact scenario where rounding would exclude the min value
       
-      const problematicCases = [
-        { minValue: 1, maxValue: 8.2, buckets: 4 }, // 8.2 might round to 8 at precision 0
-        { minValue: 0, maxValue: 38.7, buckets: 5 }, // 38.7 original bug case
-        { minValue: 5, maxValue: 15.67, buckets: 3 }, // 15.67 might round down
+      const features = [
+        { value: 3.14 }, // This would round to 3 at precision 0
+        { value: 50 },
+        { value: 100 },
       ];
+      
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
 
-      problematicCases.forEach(({ minValue, maxValue, buckets }) => {
-        const features = [{ value: minValue }, { value: maxValue }];
-        
-        const breakPoints = getBreakPoints(
-          { break_points: [], num_buckets: String(buckets) },
-          features,
-          accessor,
-        );
+      const firstBp = parseFloat(breakPoints[0]);
+      
+      // The first breakpoint must be <= 3.14 (floor behavior)
+      expect(firstBp).toBeLessThanOrEqual(3.14);
+      
+      // Verify that 3.14 is not excluded
+      expect(3.14).toBeGreaterThanOrEqual(firstBp);
+      
+      // The first breakpoint should be a clean floor value
+      expect(breakPoints[0]).toMatch(/^3(\.0+)?$/);
+    });
 
-        const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
-        
-        // Critical: The last breakpoint must NOT exclude the maximum value
-        expect(lastBp).toBeGreaterThanOrEqual(maxValue);
-        
-        // The maximum value should be <= last breakpoint (not excluded)
-        expect(maxValue).toBeLessThanOrEqual(lastBp);
-      });
+    it('prevents maximum value exclusion edge case', () => {
+      // Specific edge case test for maximum value exclusion
+      // Tests the exact scenario where rounding would exclude the max value
+      
+      const features = [
+        { value: 0 },
+        { value: 20 },
+        { value: 38.7 }, // Original bug case
+      ];
+      
+      const breakPoints = getBreakPoints(
+        { break_points: [], num_buckets: '5' },
+        features,
+        accessor,
+      );
+
+      const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
+      
+      // The last breakpoint must be >= 38.7 (ceil behavior)
+      expect(lastBp).toBeGreaterThanOrEqual(38.7);
+      
+      // Verify that 38.7 is not excluded
+      expect(38.7).toBeLessThanOrEqual(lastBp);
+      
+      // The last breakpoint should be a clean ceil value
+      expect(breakPoints[breakPoints.length - 1]).toMatch(/^39(\.0+)?$/);
     });
   });
 

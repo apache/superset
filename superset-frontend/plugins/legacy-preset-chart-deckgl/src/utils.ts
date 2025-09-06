@@ -84,34 +84,20 @@ export function getBreakPoints(
       .fill(0)
       .map((_, i) => {
         const value = minValue + i * delta;
-        // For the first breakpoint, use the actual min value
+        
+        // For the first breakpoint, floor to ensure minimum is included
         if (i === 0) {
-          const rounded = parseFloat(minValue.toFixed(precision));
-          // Ensure first breakpoint is <= minValue to include all data points
-          return rounded > minValue
-            ? (minValue - Math.pow(10, -precision)).toFixed(precision)
-            : minValue.toFixed(precision);
+          const scale = Math.pow(10, precision);
+          return (Math.floor(minValue * scale) / scale).toFixed(precision);
         }
-        // For the last breakpoint, ensure it includes the max value
+        
+        // For the last breakpoint, ceil to ensure maximum is included
         if (i === numBuckets) {
-          // Use the actual max value or slightly higher if needed for rounding
-          const calculatedValue = parseFloat(value.toFixed(precision));
-          const roundedMaxValue = parseFloat(maxValue.toFixed(precision));
-          
-          // If the calculated value from the delta is >= maxValue, use it
-          if (calculatedValue >= maxValue) {
-            return calculatedValue.toFixed(precision);
-          }
-          
-          // If maxValue.toFixed(precision) rounds down and excludes maxValue,
-          // we need to adjust it upward
-          if (roundedMaxValue < maxValue) {
-            return (maxValue + Math.pow(10, -precision)).toFixed(precision);
-          }
-          
-          // Otherwise, use the rounded max value
-          return maxValue.toFixed(precision);
+          const scale = Math.pow(10, precision);
+          return (Math.ceil(maxValue * scale) / scale).toFixed(precision);
         }
+        
+        // For middle breakpoints, use standard rounding
         return value.toFixed(precision);
       });
 
