@@ -18,25 +18,22 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, usePrevious, css } from '@superset-ui/core';
+import { t, usePrevious, useTheme, styled } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { LineEditableTabs } from '@superset-ui/core/components/Tabs';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from '@superset-ui/core/components';
 import { DROP_LEFT, DROP_RIGHT } from 'src/dashboard/util/getDropPosition';
-import { Draggable } from '../dnd/DragDroppable';
-import DragHandle from '../dnd/DragHandle';
-import DashboardComponent from '../../containers/DashboardComponent';
-import DeleteComponentButton from '../DeleteComponentButton';
-import HoverMenu from '../menu/HoverMenu';
-import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
-import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
-import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
-import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID } from '../../util/constants';
-import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TABS_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { Draggable } from '../../dnd/DragDroppable';
+import DashboardComponent from '../../../containers/DashboardComponent';
+import findTabIndexByComponentId from '../../../util/findTabIndexByComponentId';
+import getDirectPathToTabIndex from '../../../util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from '../../../util/getLeafComponentIdFromPath';
+import { componentShape } from '../../../util/propShapes';
+import { NEW_TAB_ID } from '../../../util/constants';
+import { RENDER_TAB, RENDER_TAB_CONTENT } from '../Tab';
+import { TABS_TYPE, TAB_TYPE } from '../../../util/componentTypes';
+import TabsRenderer from '../TabsRenderer';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -76,34 +73,6 @@ const defaultProps = {
   onResizeStop() {},
 };
 
-const StyledTabsContainer = styled.div`
-  ${({ theme }) => css`
-    width: 100%;
-    background-color: ${theme.colorBgBase};
-
-    .dashboard-component-tabs-content {
-      min-height: ${theme.sizeUnit * 12}px;
-      margin-top: ${theme.sizeUnit / 4}px;
-      position: relative;
-    }
-
-    .ant-tabs {
-      overflow: visible;
-
-      .ant-tabs-nav-wrap {
-        min-height: ${theme.sizeUnit * 12.5}px;
-      }
-
-      .ant-tabs-content-holder {
-        overflow: visible;
-      }
-    }
-
-    div .ant-tabs-tab-btn {
-      text-transform: none;
-    }
-  `}
-`;
 const DropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colorPrimary};
   width: 5px;
@@ -124,10 +93,15 @@ const CloseIconWithDropIndicator = props => (
 );
 
 const Tabs = props => {
+  const theme = useTheme();
+
   const nativeFilters = useSelector(state => state.nativeFilters);
   const activeTabs = useSelector(state => state.dashboardState.activeTabs);
   const directPathToChild = useSelector(
     state => state.dashboardState.directPathToChild,
+  );
+  const nativeFiltersBarOpen = useSelector(
+    state => state.dashboardState.nativeFiltersBarOpen ?? false,
   );
 
   const { tabIndex: initTabIndex, activeKey: initActiveKey } = useMemo(() => {
@@ -378,6 +352,13 @@ const Tabs = props => {
 
   const { children: tabIds } = tabsComponent;
 
+  const tabBarPaddingLeft =
+    renderTabContent === false
+      ? nativeFiltersBarOpen
+        ? 0
+        : theme.sizeUnit * 4
+      : 0;
+
   const showDropIndicators = useCallback(
     currentDropTabIndex =>
       currentDropTabIndex === dragOverTabIndex && {
@@ -392,16 +373,21 @@ const Tabs = props => {
     [draggingTabId],
   );
 
-  let tabsToHighlight;
-  const highlightedFilterId =
-    nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
-  if (highlightedFilterId) {
-    tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
-  }
+  // Extract tab highlighting logic into a hook
+  const useTabHighlighting = useCallback(() => {
+    const highlightedFilterId =
+      nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+    return highlightedFilterId
+      ? nativeFilters.filters[highlightedFilterId]?.tabsInScope
+      : undefined;
+  }, [nativeFilters]);
 
-  const renderChild = useCallback(
-    ({ dragSourceRef: tabsDragSourceRef }) => {
-      const tabItems = tabIds.map((tabId, tabIndex) => ({
+  const tabsToHighlight = useTabHighlighting();
+
+  // Extract tab items creation logic into a memoized value (not a hook inside hook)
+  const tabItems = useMemo(
+    () =>
+      tabIds.map((tabId, tabIndex) => ({
         key: tabId,
         label: removeDraggedTab(tabId) ? (
           <></>
@@ -456,51 +442,20 @@ const Tabs = props => {
             }
           />
         ),
-      }));
-
-      return (
-        <StyledTabsContainer
-          className="dashboard-component dashboard-component-tabs"
-          data-test="dashboard-component-tabs"
-        >
-          {editMode && renderHoverMenu && (
-            <HoverMenu innerRef={tabsDragSourceRef} position="left">
-              <DragHandle position="left" />
-              <DeleteComponentButton onDelete={handleDeleteComponent} />
-            </HoverMenu>
-          )}
-
-          <LineEditableTabs
-            id={tabsComponent.id}
-            activeKey={activeKey}
-            onChange={key => {
-              handleClickTab(tabIds.indexOf(key));
-            }}
-            onEdit={handleEdit}
-            data-test="nav-list"
-            type={editMode ? 'editable-card' : 'card'}
-            items={tabItems} // Pass the dynamically generated items array
-          />
-        </StyledTabsContainer>
-      );
-    },
+      })),
     [
-      editMode,
-      renderHoverMenu,
-      handleDeleteComponent,
-      tabsComponent.id,
-      activeKey,
-      handleEdit,
       tabIds,
-      handleClickTab,
       removeDraggedTab,
       showDropIndicators,
+      tabsComponent.id,
       depth,
       availableColumnCount,
       columnWidth,
       handleDropOnTab,
       handleGetDropPosition,
       handleDragggingTab,
+      handleClickTab,
+      activeKey,
       tabsToHighlight,
       renderTabContent,
       onResizeStart,
@@ -508,6 +463,36 @@ const Tabs = props => {
       onResizeStop,
       selectedTabIndex,
       isCurrentTabVisible,
+    ],
+  );
+
+  const renderChild = useCallback(
+    ({ dragSourceRef: tabsDragSourceRef }) => (
+      <TabsRenderer
+        tabItems={tabItems}
+        editMode={editMode}
+        renderHoverMenu={renderHoverMenu}
+        tabsDragSourceRef={tabsDragSourceRef}
+        handleDeleteComponent={handleDeleteComponent}
+        tabsComponent={tabsComponent}
+        activeKey={activeKey}
+        tabIds={tabIds}
+        handleClickTab={handleClickTab}
+        handleEdit={handleEdit}
+        tabBarPaddingLeft={tabBarPaddingLeft}
+      />
+    ),
+    [
+      tabItems,
+      editMode,
+      renderHoverMenu,
+      handleDeleteComponent,
+      tabsComponent,
+      activeKey,
+      tabIds,
+      handleClickTab,
+      handleEdit,
+      tabBarPaddingLeft,
     ],
   );
 

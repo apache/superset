@@ -20,28 +20,11 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import IconButton from 'src/dashboard/components/IconButton';
-import Row from 'src/dashboard/components/gridComponents/Row';
-import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
-
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(() => true),
-  FeatureFlag: {
-    DashboardVirtualization: 'DASHBOARD_VIRTUALIZATION',
-  },
-}));
-
-jest.mock('src/utils/isBot', () => ({
-  isCurrentUserBot: jest.fn(() => false),
-}));
-
-jest.mock('src/dashboard/util/isEmbedded', () => ({
-  isEmbedded: jest.fn(() => false),
-}));
+import Column from './Column';
 
 jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({ children }) => (
@@ -62,13 +45,11 @@ jest.mock(
       </div>
     ),
 );
-
 jest.mock(
   'src/dashboard/components/menu/WithPopoverMenu',
   () =>
     ({ children }) => <div data-test="mock-with-popover-menu">{children}</div>,
 );
-
 jest.mock(
   'src/dashboard/components/DeleteComponentButton',
   () =>
@@ -83,16 +64,20 @@ jest.mock(
     ),
 );
 
-const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };
+const columnWithoutChildren = {
+  ...mockLayout.present.COLUMN_ID,
+  children: [],
+};
 const props = {
-  id: 'ROW_ID',
-  parentId: DASHBOARD_GRID_ID,
-  component: mockLayout.present.ROW_ID,
-  parentComponent: mockLayout.present[DASHBOARD_GRID_ID],
+  id: 'COLUMN_ID',
+  parentId: 'ROW_ID',
+  component: mockLayout.present.COLUMN_ID,
+  parentComponent: mockLayout.present.ROW_ID,
   index: 0,
   depth: 2,
   editMode: false,
   availableColumnCount: 12,
+  minColumnWidth: 2,
   columnWidth: 50,
   occupiedColumnCount: 6,
   onResizeStart() {},
@@ -109,8 +94,7 @@ function setup(overrideProps) {
   const mockStore = getMockStore({
     ...initialState,
   });
-
-  return render(<Row {...props} {...overrideProps} />, {
+  return render(<Column {...props} {...overrideProps} />, {
     store: mockStore,
     useDnd: true,
     useRouter: true,
@@ -118,18 +102,16 @@ function setup(overrideProps) {
 }
 
 test('should render a Draggable', () => {
-  // don't count child DragDroppables
   const { getByTestId, queryByTestId } = setup({
-    component: rowWithoutChildren,
+    component: columnWithoutChildren,
   });
-
   expect(getByTestId('mock-draggable')).toBeInTheDocument();
   expect(queryByTestId('mock-droppable')).not.toBeInTheDocument();
 });
 
 test('should skip rendering HoverMenu and DeleteComponentButton when not in editMode', () => {
   const { container, queryByTestId } = setup({
-    component: rowWithoutChildren,
+    component: columnWithoutChildren,
   });
   expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
   expect(queryByTestId('mock-delete-component-button')).not.toBeInTheDocument();
@@ -137,13 +119,20 @@ test('should skip rendering HoverMenu and DeleteComponentButton when not in edit
 
 test('should render a WithPopoverMenu', () => {
   // don't count child DragDroppables
-  const { getByTestId } = setup({ component: rowWithoutChildren });
+  const { getByTestId } = setup({ component: columnWithoutChildren });
   expect(getByTestId('mock-with-popover-menu')).toBeInTheDocument();
 });
 
+test('should render a ResizableContainer', () => {
+  // don't count child DragDroppables
+  const { container } = setup({ component: columnWithoutChildren });
+  expect(container.querySelector('.resizable-container')).toBeInTheDocument();
+});
+
 test('should render a HoverMenu in editMode', () => {
+  // we cannot set props on the Row because of the WithDragDropContext wrapper
   const { container, getAllByTestId, getByTestId } = setup({
-    component: rowWithoutChildren,
+    component: columnWithoutChildren,
     editMode: true,
   });
   expect(container.querySelector('.hover-menu')).toBeInTheDocument();
@@ -159,19 +148,20 @@ test('should render a HoverMenu in editMode', () => {
 });
 
 test('should render a DeleteComponentButton in editMode', () => {
+  // we cannot set props on the Row because of the WithDragDropContext wrapper
   const { getByTestId } = setup({
-    component: rowWithoutChildren,
+    component: columnWithoutChildren,
     editMode: true,
   });
   expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
 });
 
 test.skip('should render a BackgroundStyleDropdown when focused', () => {
-  let wrapper = setup({ component: rowWithoutChildren });
+  let wrapper = setup({ component: columnWithoutChildren });
   expect(wrapper.find(BackgroundStyleDropdown)).toBeFalsy();
 
   // we cannot set props on the Row because of the WithDragDropContext wrapper
-  wrapper = setup({ component: rowWithoutChildren, editMode: true });
+  wrapper = setup({ component: columnWithoutChildren, editMode: true });
   wrapper
     .find(IconButton)
     .at(1) // first one is delete button
@@ -187,11 +177,29 @@ test('should call deleteComponent when deleted', () => {
   expect(deleteComponent).toHaveBeenCalledTimes(1);
 });
 
-test('should pass appropriate availableColumnCount to children', () => {
+test('should pass its own width as availableColumnCount to children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveTextContent(
-    props.availableColumnCount - props.occupiedColumnCount,
+    props.component.meta.width,
   );
+});
+
+test.skip('should pass appropriate dimensions to ResizableContainer', () => {
+  const { container } = setup({ component: columnWithoutChildren });
+  const columnWidth = columnWithoutChildren.meta.width;
+
+  expect(container.querySelector('.resizable-container')).toEqual({
+    columnWidth,
+  });
+  // const resizableProps = wrapper.find(ResizableContainer).props();
+  // expect(resizableProps.adjustableWidth).toBe(true);
+  // expect(resizableProps.adjustableHeight).toBe(false);
+  // expect(resizableProps.widthStep).toBe(props.columnWidth);
+  // expect(resizableProps.widthMultiple).toBe(columnWidth);
+  // expect(resizableProps.minWidthMultiple).toBe(props.minColumnWidth);
+  // expect(resizableProps.maxWidthMultiple).toBe(
+  //   props.availableColumnCount + columnWidth,
+  // );
 });
 
 test('should increment the depth of its children', () => {
@@ -200,78 +208,4 @@ test('should increment the depth of its children', () => {
     'depth',
     `${props.depth + 1}`,
   );
-});
-
-describe('visibility handling for intersection observers', () => {
-  const mockIntersectionObserver = jest.fn();
-  const mockObserve = jest.fn();
-  const mockDisconnect = jest.fn();
-
-  beforeAll(() => {
-    mockIntersectionObserver.mockReturnValue({
-      observe: mockObserve,
-      unobserve: jest.fn(),
-      disconnect: mockDisconnect,
-    });
-    window.IntersectionObserver = mockIntersectionObserver;
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  afterAll(() => {
-    delete window.IntersectionObserver;
-  });
-
-  test('should handle visibility prop changes without crashing', () => {
-    const { rerender } = setup({ isComponentVisible: true });
-
-    expect(setup).not.toThrow();
-
-    expect(() => {
-      rerender(<Row {...props} isComponentVisible={false} />);
-    }).not.toThrow();
-
-    expect(() => {
-      rerender(<Row {...props} isComponentVisible />);
-    }).not.toThrow();
-  });
-
-  test('should create intersection observers when feature is enabled', () => {
-    setup({ isComponentVisible: true });
-
-    expect(mockIntersectionObserver).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({ rootMargin: expect.any(String) }),
-    );
-  });
-
-  test('should not create intersection observers when feature is disabled', () => {
-    const coreMock = jest.requireMock('@superset-ui/core');
-    coreMock.isFeatureEnabled.mockReturnValue(false);
-
-    jest.clearAllMocks();
-    setup({ isComponentVisible: true });
-
-    expect(mockIntersectionObserver).not.toHaveBeenCalled();
-
-    coreMock.isFeatureEnabled.mockReturnValue(true);
-  });
-
-  test('intersection observer callbacks handle entries without errors', () => {
-    const callback = ([entry]) => {
-      if (entry.isIntersecting) return true;
-
-      return false;
-    };
-
-    const intersectingEntry = { isIntersecting: true };
-    expect(() => callback([intersectingEntry])).not.toThrow();
-    expect(callback([intersectingEntry])).toBe(true);
-
-    const nonIntersectingEntry = { isIntersecting: false };
-    expect(() => callback([nonIntersectingEntry])).not.toThrow();
-    expect(callback([nonIntersectingEntry])).toBe(false);
-  });
 });

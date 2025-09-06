@@ -18,9 +18,9 @@
  */
 import { Provider } from 'react-redux';
 import { act, render, screen, fireEvent } from 'spec/helpers/testing-library';
-import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
+import MarkdownConnected from './Markdown';
 
 describe('Markdown', () => {
   const props = {

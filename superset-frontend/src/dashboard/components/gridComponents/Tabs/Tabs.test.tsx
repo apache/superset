@@ -59,9 +59,10 @@ jest.mock('src/dashboard/util/getLeafComponentIdFromPath', () => jest.fn());
 
 jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: jest.fn(props => {
+    const mockElement = { tagName: 'DIV', dataset: {} };
     const childProps = props.editMode
       ? {
-          dragSourceRef: props.dragSourceRef,
+          dragSourceRef: { current: mockElement },
           dropIndicatorProps: props.dropIndicatorProps,
         }
       : {};
@@ -133,6 +134,36 @@ test('Should render editMode:true', () => {
   expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
   expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
+});
+
+test('Should render HoverMenu in editMode', () => {
+  const props = createProps();
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  // HoverMenu is rendered inside TabsRenderer when editMode is true
+  expect(container.querySelector('.hover-menu')).toBeInTheDocument();
+});
+
+test('Should not render HoverMenu when not in editMode', () => {
+  const props = createProps();
+  props.editMode = false;
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
+});
+
+test('Should not render HoverMenu when renderHoverMenu is false', () => {
+  const props = createProps();
+  props.renderHoverMenu = false;
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
 });
 
 test('Should render editMode:false', () => {

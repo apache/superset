@@ -29,7 +29,7 @@ import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 
 import Tab from './Tab';
-import Markdown from './Markdown';
+import Markdown from '../Markdown';
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(() => <div data-test="DashboardComponent" />),

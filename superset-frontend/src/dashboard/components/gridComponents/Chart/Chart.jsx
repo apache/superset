@@ -39,26 +39,26 @@ import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
-import SliceHeader from '../SliceHeader';
-import MissingChart from '../MissingChart';
+import SliceHeader from '../../SliceHeader';
+import MissingChart from '../../MissingChart';
 import {
   addDangerToast,
   addSuccessToast,
-} from '../../../components/MessageToasts/actions';
+} from '../../../../components/MessageToasts/actions';
 import {
   setFocusedFilterField,
   toggleExpandSlice,
   unsetFocusedFilterField,
-} from '../../actions/dashboardState';
-import { changeFilter } from '../../actions/dashboardFilters';
-import { refreshChart } from '../../../components/Chart/chartAction';
-import { logEvent } from '../../../logger/actions';
+} from '../../../actions/dashboardState';
+import { changeFilter } from '../../../actions/dashboardFilters';
+import { refreshChart } from '../../../../components/Chart/chartAction';
+import { logEvent } from '../../../../logger/actions';
 import {
   getActiveFilters,
   getAppliedFilterValues,
-} from '../../util/activeDashboardFilters';
-import getFormDataWithExtraFilters from '../../util/charts/getFormDataWithExtraFilters';
-import { PLACEHOLDER_DATASOURCE } from '../../constants';
+} from '../../../util/activeDashboardFilters';
+import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExtraFilters';
+import { PLACEHOLDER_DATASOURCE } from '../../../constants';
 
 const propTypes = {
   id: PropTypes.number.isRequired,

@@ -53,7 +53,7 @@ import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
-import { useDebouncedEffect } from '../../../explore/exploreUtils';
+import { useDebouncedEffect } from '../../../../explore/exploreUtils';
 
 const propTypes = {
   id: PropTypes.string.isRequired,

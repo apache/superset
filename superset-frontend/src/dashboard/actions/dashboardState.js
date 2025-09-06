@@ -80,6 +80,11 @@ import {
   getDynamicLabelsColors,
 } from '../../utils/colorScheme';
 
+export const TOGGLE_NATIVE_FILTERS_BAR = 'TOGGLE_NATIVE_FILTERS_BAR';
+export function toggleNativeFiltersBar(isOpen) {
+  return { type: TOGGLE_NATIVE_FILTERS_BAR, isOpen };
+}
+
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
   return { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges } };

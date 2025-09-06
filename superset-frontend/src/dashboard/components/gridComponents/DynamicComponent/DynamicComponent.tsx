@@ -22,40 +22,40 @@ import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
 import { shallowEqual, useSelector } from 'react-redux';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
-import { Draggable } from '../dnd/DragDroppable';
-import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
-import ResizableContainer from '../resizable/ResizableContainer';
+import { Draggable } from '../../dnd/DragDroppable';
+import { COLUMN_TYPE, ROW_TYPE } from '../../../util/componentTypes';
+import WithPopoverMenu from '../../menu/WithPopoverMenu';
+import ResizableContainer from '../../resizable/ResizableContainer';
 import {
   BACKGROUND_TRANSPARENT,
   GRID_BASE_UNIT,
   GRID_MIN_COLUMN_COUNT,
-} from '../../util/constants';
-import HoverMenu from '../menu/HoverMenu';
-import DeleteComponentButton from '../DeleteComponentButton';
-import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
-import dashboardComponents from '../../../visualizations/presets/dashboardComponents';
-import { RootState } from '../../types';
+} from '../../../util/constants';
+import HoverMenu from '../../menu/HoverMenu';
+import DeleteComponentButton from '../../DeleteComponentButton';
+import BackgroundStyleDropdown from '../../menu/BackgroundStyleDropdown';
+import dashboardComponents from '../../../../visualizations/presets/dashboardComponents';
+import { RootState } from '../../../types';
 
-type FilterSummaryType = {
+type DynamicComponentProps = {
   component: JsonObject;
   parentComponent: JsonObject;
   index: number;
   depth: number;
-  handleComponentDrop: (...args: any[]) => any;
+  handleComponentDrop: (dropResult: unknown) => void;
   editMode: boolean;
   columnWidth: number;
   availableColumnCount: number;
   onResizeStart: ResizeStartCallback;
   onResizeStop: ResizeCallback;
   onResize: ResizeCallback;
-  deleteComponent: Function;
-  updateComponents: Function;
-  parentId: number;
-  id: number;
+  deleteComponent: (id: string, parentId: string) => void;
+  updateComponents: (updates: Record<string, JsonObject>) => void;
+  parentId: string;
+  id: string;
 };
 
-const DynamicComponent: FC<FilterSummaryType> = ({
+const DynamicComponent: FC<DynamicComponentProps> = ({
   component,
   parentComponent,
   index,

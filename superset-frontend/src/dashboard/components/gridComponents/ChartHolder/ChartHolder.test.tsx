@@ -35,9 +35,13 @@ import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { initialState } from 'src/SqlLab/fixtures';
 import { SET_DIRECT_PATH } from 'src/dashboard/actions/dashboardState';
-import { CHART_TYPE, COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
+import {
+  CHART_TYPE,
+  COLUMN_TYPE,
+  ROW_TYPE,
+} from '../../../util/componentTypes';
 import ChartHolder, { CHART_MARGIN } from './ChartHolder';
-import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
+import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../../util/constants';
 
 const DEFAULT_HEADER_HEIGHT = 22;
 

@@ -27,6 +27,7 @@ import {
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
+  TOGGLE_NATIVE_FILTERS_BAR,
   UNSET_FOCUSED_FILTER_FIELD,
 } from 'src/dashboard/actions/dashboardState';
 
@@ -196,5 +197,21 @@ describe('dashboardState reducer', () => {
       chartId: 2,
       column: 'column_2',
     });
+  });
+
+  it('should toggle native filters bar', () => {
+    expect(
+      dashboardStateReducer(
+        { nativeFiltersBarOpen: false },
+        { type: TOGGLE_NATIVE_FILTERS_BAR, isOpen: true },
+      ),
+    ).toEqual({ nativeFiltersBarOpen: true });
+
+    expect(
+      dashboardStateReducer(
+        { nativeFiltersBarOpen: true },
+        { type: TOGGLE_NATIVE_FILTERS_BAR, isOpen: false },
+      ),
+    ).toEqual({ nativeFiltersBarOpen: false });
   });
 });
