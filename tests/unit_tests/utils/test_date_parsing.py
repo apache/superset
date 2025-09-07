@@ -117,6 +117,27 @@ def test_epoch_format():
     assert df["epoch"].iloc[0] == pd.Timestamp("2023-01-01")
 
 
+def test_epoch_format_invalid_values(caplog):
+    """Test epoch format with invalid values triggers warning."""
+    # Test with non-numeric values that can't be converted to epoch
+    df = pd.DataFrame({"epoch": ["not_a_number", "invalid", "abc"]})
+    date_cols = (DateColumn(col_label="epoch", timestamp_format="epoch_s"),)
+
+    # Clear any existing log records
+    caplog.clear()
+
+    # Run the function - should log a warning
+    with caplog.at_level("WARNING"):
+        normalize_dttm_col(df, date_cols)
+
+    # Verify warning was logged
+    assert "Unable to convert column epoch to datetime, ignoring" in caplog.text
+
+    # The column should remain unchanged when conversion fails
+    assert df["epoch"].dtype == object
+    assert df["epoch"].iloc[0] == "not_a_number"
+
+
 @pytest.mark.parametrize(
     "data,expected_format",
     [
