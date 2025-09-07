@@ -35,6 +35,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for charts
+CHART_CUSTOM_FIELDS = {
+    "tags": ["eq", "in_", "like"],
+    "owner": ["eq", "in_"],
+    "viz_type": ["eq", "in_", "like"],
+    "datasource_name": ["eq", "in_", "like"],
+}
+
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
@@ -43,14 +51,7 @@ class ChartDAO(BaseDAO[Slice]):
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         filterable = super().get_filterable_columns_and_operators()
         # Add custom fields for charts
-        filterable.update(
-            {
-                "tags": ["eq", "in_", "like"],
-                "owner": ["eq", "in_"],
-                "viz_type": ["eq", "in_", "like"],
-                "datasource_name": ["eq", "in_", "like"],
-            }
-        )
+        filterable.update(CHART_CUSTOM_FIELDS)
         return filterable
 
     @staticmethod

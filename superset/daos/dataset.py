@@ -35,6 +35,12 @@ from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for datasets
+DATASET_CUSTOM_FIELDS = {
+    "tags": ["eq", "in_", "like"],
+    "owner": ["eq", "in_"],
+}
+
 
 class DatasetDAO(BaseDAO[SqlaTable]):
     """
@@ -362,12 +368,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         filterable = super().get_filterable_columns_and_operators()
         # Add custom fields
-        filterable.update(
-            {
-                "tags": ["eq", "in_", "like"],
-                "owner": ["eq", "in_"],
-            }
-        )
+        filterable.update(DATASET_CUSTOM_FIELDS)
         return filterable
 
 
