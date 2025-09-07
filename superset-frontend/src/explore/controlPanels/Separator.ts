@@ -17,9 +17,13 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
+import type {
+  ControlPanelConfig,
+  ControlPanelState,
+} from '@superset-ui/chart-controls';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Code'),
@@ -45,12 +49,15 @@ export default {
               type: 'TextAreaControl',
               label: t('Code'),
               description: t('Put your code here'),
-              mapStateToProps: state => ({
-                language:
-                  state.controls && state.controls.markup_type
-                    ? state.controls.markup_type.value
-                    : 'markdown',
-              }),
+              mapStateToProps: (state: Partial<ControlPanelState>) => {
+                const languageValue = state.controls?.markup_type?.value;
+                return {
+                  language:
+                    typeof languageValue === 'string'
+                      ? languageValue
+                      : 'markdown',
+                };
+              },
               default: '',
             },
           },
@@ -74,3 +81,5 @@ export default {
     },
   },
 };
+
+export default config;
