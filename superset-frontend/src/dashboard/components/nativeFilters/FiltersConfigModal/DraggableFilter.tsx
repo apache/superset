@@ -17,8 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { useRef, FC } from 'react';
-import React from 'react';
+import React, { useRef, FC } from 'react';
 import {
   DragSourceMonitor,
   DropTargetMonitor,

@@ -52,7 +52,9 @@ import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const extensionsRegistry = getExtensionsRegistry();
-const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({ children }) => <>{children}</>;
+const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => <>{children}</>;
 
 interface ExploreChartHeaderProps {
   children?: React.ReactNode;
@@ -168,7 +170,9 @@ const ExploreChartPanel = ({
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
 
-  const ChartHeaderExtension = (extensionsRegistry.get('explore.chart.header') ?? DefaultHeader) as React.FC<ExploreChartHeaderProps>;
+  const ChartHeaderExtension = (extensionsRegistry.get(
+    'explore.chart.header',
+  ) ?? DefaultHeader) as React.FC<ExploreChartHeaderProps>;
   const [splitSizes, setSplitSizes] = useState<PanelSizes>(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES

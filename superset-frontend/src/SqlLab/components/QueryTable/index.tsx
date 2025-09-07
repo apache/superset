@@ -47,7 +47,15 @@ import { StaticPosition, StyledTooltip } from './styles';
 interface QueryTableQuery
   extends Omit<
     QueryResponse,
-    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started' | 'user' | 'db' | 'querylink'
+    | 'state'
+    | 'sql'
+    | 'progress'
+    | 'results'
+    | 'duration'
+    | 'started'
+    | 'user'
+    | 'db'
+    | 'querylink'
   > {
   state?: Record<string, any>;
   sql?: ReactNode;

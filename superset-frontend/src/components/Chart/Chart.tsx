@@ -203,16 +203,13 @@ class Chart extends PureComponent<ChartProps, {}> {
     );
   }
 
-  handleRenderContainerFailure(
-    error: Error,
-    info: ErrorInfo,
-  ) {
+  handleRenderContainerFailure(error: Error, info: ErrorInfo) {
     const { actions, chartId } = this.props;
     logging.warn(error);
     actions.chartRenderingFailed(
       error.toString(),
       chartId,
-      info ? info.componentStack ?? null : null,
+      info ? (info.componentStack ?? null) : null,
     );
 
     actions.logEvent(LOG_ACTIONS_RENDER_CHART, {

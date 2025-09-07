@@ -198,39 +198,41 @@ function RoleListEditModal({
       bodyStyle={{ height: '400px' }}
       requiredFields={['roleName']}
     >
-      {((form: FormInstance) => {
-        formRef.current = form;
+      {
+        ((form: FormInstance) => {
+          formRef.current = form;
 
-        return (
-          <Tabs
-            activeKey={activeTabKey}
-            onChange={activeKey => setActiveTabKey(activeKey)}
-          >
-            <Tabs.TabPane
-              tab={roleTabs.edit.name}
-              key={roleTabs.edit.key}
-              forceRender
+          return (
+            <Tabs
+              activeKey={activeTabKey}
+              onChange={activeKey => setActiveTabKey(activeKey)}
             >
-              <>
-                <RoleNameField />
-                <PermissionsField permissions={permissions} />
-                <UsersField
-                  addDangerToast={addDangerToast}
-                  loading={loadingRoleUsers}
+              <Tabs.TabPane
+                tab={roleTabs.edit.name}
+                key={roleTabs.edit.key}
+                forceRender
+              >
+                <>
+                  <RoleNameField />
+                  <PermissionsField permissions={permissions} />
+                  <UsersField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRoleUsers}
+                  />
+                  <GroupsField groups={groups} />
+                </>
+              </Tabs.TabPane>
+              <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
+                <TableView
+                  columns={userColumns}
+                  data={roleUsers}
+                  emptyWrapperType={EmptyWrapperType.Small}
                 />
-                <GroupsField groups={groups} />
-              </>
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
-              <TableView
-                columns={userColumns}
-                data={roleUsers}
-                emptyWrapperType={EmptyWrapperType.Small}
-              />
-            </Tabs.TabPane>
-          </Tabs>
-        );
-      }) as any}
+              </Tabs.TabPane>
+            </Tabs>
+          );
+        }) as any
+      }
     </FormModal>
   );
 }

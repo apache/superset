@@ -133,7 +133,11 @@ export function UnwrappedDragDroppable(props) {
   const [dropIndicator, setDropIndicator] = useState(null);
   const [mounted, setMounted] = useState(false);
 
-  const [{ isDragging, dragComponentType, dragComponentId }, dragSourceRef, dragPreviewRef] = useDrag({
+  const [
+    { isDragging, dragComponentType, dragComponentId },
+    dragSourceRef,
+    dragPreviewRef,
+  ] = useDrag({
     type: 'DRAG_DROPPABLE',
     canDrag: () => !disableDragDrop,
     item: () => ({
@@ -144,7 +148,7 @@ export function UnwrappedDragDroppable(props) {
       parentId: parentComponent.id,
       parentType: parentComponent.type,
     }),
-    collect: (monitor) => ({
+    collect: monitor => ({
       isDragging: monitor.isDragging(),
       dragComponentType: monitor.getItem()?.type,
       dragComponentId: monitor.getItem()?.id,
@@ -158,7 +162,10 @@ export function UnwrappedDragDroppable(props) {
       if (mounted) {
         // Import and call handleHover logic
         const handleHover = require('./handleHover').default;
-        handleHover({ ...props, component }, monitor, { mounted: true, setState: setDropIndicator });
+        handleHover({ ...props, component }, monitor, {
+          mounted: true,
+          setState: setDropIndicator,
+        });
       }
     },
     drop: (item, monitor) => {
@@ -169,17 +176,17 @@ export function UnwrappedDragDroppable(props) {
       }
       return undefined;
     },
-    collect: (monitor) => ({
+    collect: monitor => ({
       isDraggingOver: monitor.isOver(),
       isDraggingOverShallow: monitor.isOver({ shallow: true }),
     }),
   });
 
-  const setRef = (element) => {
+  const setRef = element => {
     ref.current = element;
     droppableRef(element);
     dragSourceRef(element);
-    
+
     if (useEmptyDragPreview) {
       dragPreviewRef(getEmptyImage(), {
         captureDraggingState: true,
@@ -199,7 +206,13 @@ export function UnwrappedDragDroppable(props) {
     if (onDropIndicatorChange && isTabsType) {
       onDropIndicatorChange({ dropIndicator, isDraggingOver, index });
     }
-  }, [dropIndicator, isDraggingOver, index, onDropIndicatorChange, component.type]);
+  }, [
+    dropIndicator,
+    isDraggingOver,
+    index,
+    onDropIndicatorChange,
+    component.type,
+  ]);
 
   useEffect(() => {
     if (dragComponentId) {

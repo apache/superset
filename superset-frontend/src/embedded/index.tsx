@@ -37,13 +37,13 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { createRoot } from 'react-dom/client';
 import {
   EmbeddedContextProviders,
   getThemeController,
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
-import { createRoot } from 'react-dom/client';
 
 setupPlugins();
 

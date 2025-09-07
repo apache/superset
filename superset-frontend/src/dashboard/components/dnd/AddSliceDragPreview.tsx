@@ -46,11 +46,13 @@ const staticCardStyles: React.CSSProperties = {
 const AddSliceDragPreview: React.FC<AddSliceDragPreviewProps> = ({
   slices,
 }) => {
-  const { dragItem, isDragging, currentOffset } = useDragLayer((monitor: any) => ({
-    dragItem: monitor.getItem() as DragItem | null,
-    currentOffset: monitor.getSourceClientOffset(),
-    isDragging: monitor.isDragging(),
-  }));
+  const { dragItem, isDragging, currentOffset } = useDragLayer(
+    (monitor: any) => ({
+      dragItem: monitor.getItem() as DragItem | null,
+      currentOffset: monitor.getSourceClientOffset(),
+      isDragging: monitor.isDragging(),
+    }),
+  );
   if (!isDragging || !currentOffset || !dragItem || !slices) return null;
 
   const slice = slices[dragItem.index];

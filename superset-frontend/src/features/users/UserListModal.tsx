@@ -133,142 +133,146 @@ function UserListModal({
       requiredFields={requiredFields}
       initialValues={initialValues}
     >
-      {((form: FormInstance) => (
-        <>
-          <FormItem
-            name="first_name"
-            label={t('First name')}
-            rules={[{ required: true, message: t('First name is required') }]}
-          >
-            <Input
+      {
+        ((form: FormInstance) => (
+          <>
+            <FormItem
               name="first_name"
-              placeholder={t("Enter the user's first name")}
-            />
-          </FormItem>
-          <FormItem
-            name="last_name"
-            label={t('Last name')}
-            rules={[{ required: true, message: t('Last name is required') }]}
-          >
-            <Input
+              label={t('First name')}
+              rules={[{ required: true, message: t('First name is required') }]}
+            >
+              <Input
+                name="first_name"
+                placeholder={t("Enter the user's first name")}
+              />
+            </FormItem>
+            <FormItem
               name="last_name"
-              placeholder={t("Enter the user's last name")}
-            />
-          </FormItem>
-          <FormItem
-            name="username"
-            label={t('Username')}
-            rules={[{ required: true, message: t('Username is required') }]}
-          >
-            <Input
+              label={t('Last name')}
+              rules={[{ required: true, message: t('Last name is required') }]}
+            >
+              <Input
+                name="last_name"
+                placeholder={t("Enter the user's last name")}
+              />
+            </FormItem>
+            <FormItem
               name="username"
-              placeholder={t("Enter the user's username")}
-            />
-          </FormItem>
-          <FormItem
-            name="active"
-            label={t('Is active?')}
-            valuePropName="checked"
-          >
-            <Checkbox
-              onChange={checked => {
-                form.setFieldsValue({ isActive: checked });
-              }}
-            />
-          </FormItem>
-          <FormItem
-            name="email"
-            label={t('Email')}
-            rules={[
-              { required: true, message: t('Email is required') },
-              {
-                type: 'email',
-                message: t('Please enter a valid email address'),
-              },
-            ]}
-          >
-            <Input name="email" placeholder={t("Enter the user's email")} />
-          </FormItem>
-          <FormItem
-            name="roles"
-            label={t('Roles')}
-            dependencies={['groups']}
-            rules={[atLeastOneRoleOrGroup('groups')]}
-          >
-            <Select
+              label={t('Username')}
+              rules={[{ required: true, message: t('Username is required') }]}
+            >
+              <Input
+                name="username"
+                placeholder={t("Enter the user's username")}
+              />
+            </FormItem>
+            <FormItem
+              name="active"
+              label={t('Is active?')}
+              valuePropName="checked"
+            >
+              <Checkbox
+                onChange={checked => {
+                  form.setFieldsValue({ isActive: checked });
+                }}
+              />
+            </FormItem>
+            <FormItem
+              name="email"
+              label={t('Email')}
+              rules={[
+                { required: true, message: t('Email is required') },
+                {
+                  type: 'email',
+                  message: t('Please enter a valid email address'),
+                },
+              ]}
+            >
+              <Input name="email" placeholder={t("Enter the user's email")} />
+            </FormItem>
+            <FormItem
               name="roles"
-              mode="multiple"
-              placeholder={t('Select roles')}
-              options={roles.map(role => ({
-                value: role.id,
-                label: role.name,
-              }))}
-              getPopupContainer={trigger =>
-                trigger.closest('.ant-modal-content')
-              }
-            />
-          </FormItem>
-          <FormItem
-            name="groups"
-            label={t('Groups')}
-            dependencies={['roles']}
-            rules={[atLeastOneRoleOrGroup('roles')]}
-          >
-            <Select
+              label={t('Roles')}
+              dependencies={['groups']}
+              rules={[atLeastOneRoleOrGroup('groups')]}
+            >
+              <Select
+                name="roles"
+                mode="multiple"
+                placeholder={t('Select roles')}
+                options={roles.map(role => ({
+                  value: role.id,
+                  label: role.name,
+                }))}
+                getPopupContainer={trigger =>
+                  trigger.closest('.ant-modal-content')
+                }
+              />
+            </FormItem>
+            <FormItem
               name="groups"
-              mode="multiple"
-              placeholder={t('Select groups')}
-              options={groups.map(group => ({
-                value: group.id,
-                label: group.name,
-              }))}
-              getPopupContainer={trigger =>
-                trigger.closest('.ant-modal-content')
-              }
-            />
-          </FormItem>
-          {!isEditMode && (
-            <>
-              <FormItem
-                name="password"
-                label={t('Password')}
-                rules={[{ required: true, message: t('Password is required') }]}
-              >
-                <Input.Password
+              label={t('Groups')}
+              dependencies={['roles']}
+              rules={[atLeastOneRoleOrGroup('roles')]}
+            >
+              <Select
+                name="groups"
+                mode="multiple"
+                placeholder={t('Select groups')}
+                options={groups.map(group => ({
+                  value: group.id,
+                  label: group.name,
+                }))}
+                getPopupContainer={trigger =>
+                  trigger.closest('.ant-modal-content')
+                }
+              />
+            </FormItem>
+            {!isEditMode && (
+              <>
+                <FormItem
                   name="password"
-                  placeholder="Enter the user's password"
-                />
-              </FormItem>
-              <FormItem
-                name="confirmPassword"
-                label={t('Confirm Password')}
-                dependencies={['password']}
-                rules={[
-                  {
-                    required: true,
-                    message: t('Please confirm your password'),
-                  },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(
-                        new Error(t('Passwords do not match!')),
-                      );
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
+                  label={t('Password')}
+                  rules={[
+                    { required: true, message: t('Password is required') },
+                  ]}
+                >
+                  <Input.Password
+                    name="password"
+                    placeholder="Enter the user's password"
+                  />
+                </FormItem>
+                <FormItem
                   name="confirmPassword"
-                  placeholder={t("Confirm the user's password")}
-                />
-              </FormItem>
-            </>
-          )}
-        </>
-      )) as any}
+                  label={t('Confirm Password')}
+                  dependencies={['password']}
+                  rules={[
+                    {
+                      required: true,
+                      message: t('Please confirm your password'),
+                    },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('password') === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error(t('Passwords do not match!')),
+                        );
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password
+                    name="confirmPassword"
+                    placeholder={t("Confirm the user's password")}
+                  />
+                </FormItem>
+              </>
+            )}
+          </>
+        )) as any
+      }
     </FormModal>
   );
 }

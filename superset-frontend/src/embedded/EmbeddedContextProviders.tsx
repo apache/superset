@@ -59,7 +59,9 @@ export const getThemeController = (): ThemeController => themeController;
 const { common } = getBootstrapData();
 const extensionsRegistry = getExtensionsRegistry();
 
-export const EmbeddedContextProviders: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+export const EmbeddedContextProviders: React.FC<{
+  children?: React.ReactNode;
+}> = ({ children }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );

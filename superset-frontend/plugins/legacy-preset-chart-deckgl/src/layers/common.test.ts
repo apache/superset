@@ -99,9 +99,9 @@ describe('getAggFunc', () => {
 
 describe('commonLayerProps', () => {
   const mockSetTooltip = jest.fn();
-  const mockSetTooltipContent = jest.fn().mockReturnValue(
-    (o: JsonObject) => `Tooltip for ${o}` as React.ReactNode,
-  );
+  const mockSetTooltipContent = jest
+    .fn()
+    .mockReturnValue((o: JsonObject) => `Tooltip for ${o}` as React.ReactNode);
   const mockOnSelect = jest.fn();
 
   it('returns correct props when js_tooltip is provided', () => {
