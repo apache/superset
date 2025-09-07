@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 
-export default PropTypes.shape({
-  column_name: PropTypes.string.isRequired,
-  type: PropTypes.string,
-});
+export type { AggregateOption } from './types';
+
+// For backward compatibility with PropTypes usage
+export { AggregateOption as default } from './types';

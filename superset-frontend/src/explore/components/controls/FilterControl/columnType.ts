@@ -16,22 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { Clauses, ExpressionTypes } from './types';
+import { Column } from '@superset-ui/core';
 
-export default PropTypes.oneOfType([
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([ExpressionTypes.Simple]).isRequired,
-    clause: PropTypes.oneOf([Clauses.Having, Clauses.Where]).isRequired,
-    subject: PropTypes.string.isRequired,
-    comparator: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.arrayOf(PropTypes.string),
-    ]).isRequired,
-  }),
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([ExpressionTypes.Sql]).isRequired,
-    clause: PropTypes.oneOf([Clauses.Where, Clauses.Having]).isRequired,
-    sqlExpression: PropTypes.string.isRequired,
-  }),
-]);
+export type ColumnType = Pick<Column, 'column_name' | 'type'>;
+
+export default ColumnType;

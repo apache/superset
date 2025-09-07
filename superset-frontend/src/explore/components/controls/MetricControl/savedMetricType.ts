@@ -16,8 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-
-export default PropTypes.shape({
-  aggregate_name: PropTypes.string.isRequired,
-});
+export { savedMetricType } from './types';

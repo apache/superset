@@ -19,7 +19,7 @@
 import { initFeatureFlags } from '@superset-ui/core';
 import getBootstrapData from './getBootstrapData';
 
-function getDomainsConfig() {
+function getDomainsConfig(): string[] {
   const appContainer = document.getElementById('app');
   if (!appContainer) {
     return [];
@@ -42,13 +42,15 @@ function getDomainsConfig() {
   initFeatureFlags(bootstrapData.common.feature_flags);
 
   if (bootstrapData?.common?.conf?.SUPERSET_WEBSERVER_DOMAINS) {
-    bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS.forEach(hostName => {
+    const domains = bootstrapData.common.conf
+      .SUPERSET_WEBSERVER_DOMAINS as string[];
+    domains.forEach((hostName: string) => {
       availableDomains.add(hostName);
     });
   }
   return Array.from(availableDomains);
 }
 
-export const availableDomains = getDomainsConfig();
+export const availableDomains: string[] = getDomainsConfig();
 
-export const allowCrossDomain = availableDomains.length > 1;
+export const allowCrossDomain: boolean = availableDomains.length > 1;

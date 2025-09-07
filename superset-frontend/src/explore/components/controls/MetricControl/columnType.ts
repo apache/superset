@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
+import { Column } from '@superset-ui/core';
 
-export default PropTypes.shape({
-  column_name: PropTypes.string.isRequired,
-  type: PropTypes.string,
-});
+export type ColumnType = Pick<Column, 'column_name' | 'type'>;
+
+export default ColumnType;
