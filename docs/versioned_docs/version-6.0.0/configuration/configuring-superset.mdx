@@ -393,37 +393,48 @@ class OIDCSecurityManager(SupersetSecurityManager):
             self.oid = OpenIDConnect(self.appbuilder.get_app)
         self.authoidview = AuthOIDCView
 
+
 class AuthOIDCView(AuthOIDView):
 
-    @expose('/login/', methods=['GET', 'POST'])
+    @expose("/login/", methods=["GET", "POST"])
     def login(self, flag=True):
         sm = self.appbuilder.sm
         oidc = sm.oid
 
         @self.appbuilder.sm.oid.require_login
         def handle_login():
-            user = sm.auth_user_oid(oidc.user_getfield('email'))
+            user = sm.auth_user_oid(oidc.user_getfield("email"))
 
             if user is None:
-                info = oidc.user_getinfo(['preferred_username', 'given_name', 'family_name', 'email'])
-                user = sm.add_user(info.get('preferred_username'), info.get('given_name'), info.get('family_name'),
-                                   info.get('email'), sm.find_role('Gamma'))
+                info = oidc.user_getinfo(
+                    ["preferred_username", "given_name", "family_name", "email"]
+                )
+                user = sm.add_user(
+                    info.get("preferred_username"),
+                    info.get("given_name"),
+                    info.get("family_name"),
+                    info.get("email"),
+                    sm.find_role("Gamma"),
+                )
 
             login_user(user, remember=False)
             return redirect(self.appbuilder.get_url_for_index)
 
         return handle_login()
 
-    @expose('/logout/', methods=['GET', 'POST'])
+    @expose("/logout/", methods=["GET", "POST"])
     def logout(self):
         oidc = self.appbuilder.sm.oid
 
         oidc.logout()
         super(AuthOIDCView, self).logout()
-        redirect_url = request.url_root.strip('/') + self.appbuilder.get_url_for_login
+        redirect_url = request.url_root.strip("/") + self.appbuilder.get_url_for_login
 
         return redirect(
-            oidc.client_secrets.get('issuer') + '/protocol/openid-connect/logout?redirect_uri=' + quote(redirect_url))
+            oidc.client_secrets.get("issuer")
+            + "/protocol/openid-connect/logout?redirect_uri="
+            + quote(redirect_url)
+        )
 ```
 
 Then add to your `superset_config.py` file:
@@ -455,7 +466,7 @@ Store your client-specific OpenID information in a file called `client_secret.js
     "<myOpenIDProvider>": {
         "issuer": "https://<myKeycloakDomain>/realms/<myRealm>",
         "auth_uri": "https://<myKeycloakDomain>/realms/<myRealm>/protocol/openid-connect/auth",
-        "client_id": "https://<myKeycloakDomain>",
+        "client_id": "<myClientId>",
         "client_secret": "<myClientSecret>",
         "redirect_uris": [
             "https://<SupersetWebserver>/oauth-authorized/<myOpenIDProvider>"
