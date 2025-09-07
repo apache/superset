@@ -31,6 +31,7 @@ from typing import (
     TypeVar,
 )
 
+import sqlalchemy as sa
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -38,6 +39,7 @@ from flask_sqlalchemy import BaseQuery
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
 
@@ -93,6 +95,48 @@ class ColumnOperatorEnum(str, Enum):
         if not op_func:
             raise ValueError(f"Unsupported operator: {self}")
         return op_func(column, value)
+
+
+# Map SQLAlchemy types to supported operators
+TYPE_OPERATOR_MAP = {
+    "string": [
+        "eq",
+        "ne",
+        "sw",
+        "ew",
+        "in_",
+        "nin",
+        "like",
+        "ilike",
+        "is_null",
+        "is_not_null",
+    ],
+    "boolean": ["eq", "ne", "is_null", "is_not_null"],
+    "number": [
+        "eq",
+        "ne",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in_",
+        "nin",
+        "is_null",
+        "is_not_null",
+    ],
+    "datetime": [
+        "eq",
+        "ne",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in_",
+        "nin",
+        "is_null",
+        "is_not_null",
+    ],
+}
 
 
 class ColumnOperator(BaseModel):
@@ -455,7 +499,6 @@ class BaseDAO(Generic[T]):
         filter options. Custom fields supported by the DAO but not present on the model
         should be documented here.
         """
-        from sqlalchemy.ext.hybrid import hybrid_property
 
         mapper = inspect(cls.model_cls)
         columns = {c.key: c for c in mapper.columns}
@@ -468,64 +511,23 @@ class BaseDAO(Generic[T]):
         # You may add custom fields here, e.g.:
         # custom_fields = {"tags": ["eq", "in_", "like"], ...}
         custom_fields: Dict[str, List[str]] = {}
-        # Map SQLAlchemy types to supported operators
-        type_operator_map = {
-            "string": [
-                "eq",
-                "ne",
-                "sw",
-                "ew",
-                "in_",
-                "nin",
-                "like",
-                "ilike",
-                "is_null",
-                "is_not_null",
-            ],
-            "boolean": ["eq", "ne", "is_null", "is_not_null"],
-            "number": [
-                "eq",
-                "ne",
-                "gt",
-                "gte",
-                "lt",
-                "lte",
-                "in_",
-                "nin",
-                "is_null",
-                "is_not_null",
-            ],
-            "datetime": [
-                "eq",
-                "ne",
-                "gt",
-                "gte",
-                "lt",
-                "lte",
-                "in_",
-                "nin",
-                "is_null",
-                "is_not_null",
-            ],
-        }
-        import sqlalchemy as sa
 
         filterable = {}
         for name, col in columns.items():
             if isinstance(col.type, (sa.String, sa.Text)):
-                filterable[name] = type_operator_map["string"]
+                filterable[name] = TYPE_OPERATOR_MAP["string"]
             elif isinstance(col.type, (sa.Boolean,)):
-                filterable[name] = type_operator_map["boolean"]
+                filterable[name] = TYPE_OPERATOR_MAP["boolean"]
             elif isinstance(col.type, (sa.Integer, sa.Float, sa.Numeric)):
-                filterable[name] = type_operator_map["number"]
+                filterable[name] = TYPE_OPERATOR_MAP["number"]
             elif isinstance(col.type, (sa.DateTime, sa.Date, sa.Time)):
-                filterable[name] = type_operator_map["datetime"]
+                filterable[name] = TYPE_OPERATOR_MAP["datetime"]
             else:
                 # Fallback to eq/ne/null
                 filterable[name] = ["eq", "ne", "is_null", "is_not_null"]
         # Add hybrid properties as string fields by default
         for name in hybrids:
-            filterable[name] = type_operator_map["string"]
+            filterable[name] = TYPE_OPERATOR_MAP["string"]
         # Add custom fields
         filterable.update(custom_fields)
         return filterable
