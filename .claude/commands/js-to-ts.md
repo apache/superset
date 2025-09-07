@@ -8,6 +8,7 @@ Atomically migrate a core JS/JSX file to TypeScript along with all related tests
 ```
 - `<core-filename>` - Path to CORE file relative to `superset-frontend/` (e.g., `src/utils/common.js`, `src/middleware/loggerMiddleware.js`)
 - **CORE FILES ONLY**: No test files, mock files - agent will find and migrate related files automatically
+- **Task Title**: Use core filename as task title (e.g., "DebouncedMessageQueue.js migration")
 
 ---
 
@@ -54,13 +55,19 @@ find "$dirname" -name "${basename}.mock.js"
 
 **Migration Requirement:** All discovered related files MUST be migrated together as one atomic unit.
 
+**Test File Creation:** If NO test files exist for the core file, CREATE a minimal test file using the following pattern:
+- Location: Same directory as core file
+- Name: `{basename}.test.ts` (e.g., `DebouncedMessageQueue.test.ts`)
+- Content: Basic test structure importing and testing the main functionality
+- Use proper TypeScript types in test file
+
 ### Success Report Format
 ```
 SUCCESS: Atomic Migration of {core-filename}
 
 ## Files Migrated (Atomic Unit)
 - Core: {core-filename} → {core-filename.ts/tsx}
-- Tests: {list-of-test-files} → {list-of-test-files.ts/tsx}
+- Tests: {list-of-test-files} → {list-of-test-files.ts/tsx} OR "CREATED: {basename}.test.ts"
 - Mocks: {list-of-mock-files} → {list-of-mock-files.ts}
 - Type files modified: {list-of-type-files}
 
@@ -123,6 +130,11 @@ DEPENDENCY_BLOCK: Cannot migrate {filename}
 ---
 
 ## Coordinator Actions
+
+### Task Creation (Coordinator)
+When triggering the `/js-to-ts` command:
+- **Task Title**: Use the core filename as the task title (e.g., "DebouncedMessageQueue.js migration", "hostNamesConfig.js migration")
+- **Task Description**: Include the full relative path to help agent locate the file
 
 ### Global Integration (Coordinator Only)
 When agents report `SUCCESS`:
