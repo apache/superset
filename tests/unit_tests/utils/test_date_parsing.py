@@ -26,7 +26,8 @@ from typing import Any, List, Tuple
 import pandas as pd
 import pytest
 
-from superset.utils.core import DateColumn, detect_datetime_format, normalize_dttm_col
+from superset.utils.core import DateColumn, normalize_dttm_col
+from superset.utils.pandas import detect_datetime_format
 
 
 class DateParsingTester:
