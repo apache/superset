@@ -49,6 +49,7 @@ import {
   SET_DASHBOARD_LABELS_COLORMAP_SYNCED,
   SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE,
   SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED,
+  TOGGLE_NATIVE_FILTERS_BAR,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -265,6 +266,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         datasetsStatus: action.status,
+      };
+    },
+    [TOGGLE_NATIVE_FILTERS_BAR]() {
+      return {
+        ...state,
+        nativeFiltersBarOpen: action.isOpen,
       };
     },
   };
