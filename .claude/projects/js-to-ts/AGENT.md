@@ -1,6 +1,10 @@
-# TypeScript Migration Guide for Apache Superset
+# JavaScript to TypeScript Migration Agent Guide
 
-Comprehensive reference for converting JavaScript/JSX files to TypeScript/TSX in Apache Superset frontend.
+**Complete technical reference for converting JavaScript/JSX files to TypeScript/TSX in Apache Superset frontend.**
+
+**Agent Role:** Atomic migration unit - migrate the core file + ALL related tests/mocks as one cohesive unit. Use `git mv` to preserve history, NO `git commit`. NO global import changes. Report results upon completion.
+
+---
 
 ## 🎯 Migration Principles
 
@@ -11,14 +15,52 @@ Comprehensive reference for converting JavaScript/JSX files to TypeScript/TSX in
 5. **Strategic placement** - File types for maximum discoverability
 6. **Surgical improvements** - Enhance existing types during migration
 
-## ⚛️ Atomic Migration Strategy
+---
 
-**Unit of Work**: Each migration includes:
-- **1 core file** (production code)
-- **All related test files** (*.test.js/jsx, *.spec.js/jsx)
-- **All related mock files** (__mocks__/, *.mock.js)
+## Step 0: Dependency Check (MANDATORY)
 
-**Type Consistency**: Tests and mocks must use the same types as the core file to prevent type fragmentation.
+**Command:**
+```bash
+grep -E "from '\.\./.*\.jsx?'|from '\./.*\.jsx?'|from 'src/.*\.jsx?'" superset-frontend/{filename}
+```
+
+**Decision:**
+- ✅ No matches → Proceed with atomic migration (core + tests + mocks)
+- ❌ Matches found → EXIT with dependency report (see format below)
+
+---
+
+## Step 1: Identify Related Files (REQUIRED)
+
+**Atomic Migration Scope:**
+For core file `src/utils/example.js`, also migrate:
+- `src/utils/example.test.js` / `src/utils/example.test.jsx`
+- `src/utils/example.spec.js` / `src/utils/example.spec.jsx`
+- `src/utils/__mocks__/example.js`
+- Any other related test/mock files found by pattern matching
+
+**Find all related test and mock files:**
+```bash
+# Pattern-based search for related files
+basename=$(basename {filename} .js)
+dirname=$(dirname superset-frontend/{filename})
+
+# Find test files
+find "$dirname" -name "${basename}.test.js" -o -name "${basename}.test.jsx"
+find "$dirname" -name "${basename}.spec.js" -o -name "${basename}.spec.jsx"
+
+# Find mock files  
+find "$dirname" -name "__mocks__/${basename}.js"
+find "$dirname" -name "${basename}.mock.js"
+```
+
+**Migration Requirement:** All discovered related files MUST be migrated together as one atomic unit.
+
+**Test File Creation:** If NO test files exist for the core file, CREATE a minimal test file using the following pattern:
+- Location: Same directory as core file
+- Name: `{basename}.test.ts` (e.g., `DebouncedMessageQueue.test.ts`)
+- Content: Basic test structure importing and testing the main functionality
+- Use proper TypeScript types in test file
 
 ---
 
@@ -156,21 +198,14 @@ interface DatabaseSelectProps extends Omit<SelectProps, 'value' | 'onChange'> {
 
 ## 📋 Migration Recipe
 
-### Step 0: Dependency Check (MANDATORY)
+### Step 2: File Conversion
 ```bash
-grep -E "from '\.\./.*\.jsx?'|from '\./.*\.jsx?'|from 'src/.*\.jsx?'" [target-file]
-```
-- No matches → Proceed  
-- Matches found → Report dependencies and exit
-
-### Step 1: File Conversion (Agent-Safe)
-```bash
-# Create TypeScript file alongside original (coordinator handles git mv)
-cp component.js component.ts    # Agent creates, coordinator moves
-cp Component.jsx Component.tsx
+# Use git mv to preserve history
+git mv component.js component.ts
+git mv Component.jsx Component.tsx
 ```
 
-### Step 2: Import & Type Setup
+### Step 3: Import & Type Setup
 ```typescript
 // Import order (enforced by linting)
 import React, { FC, ReactNode } from 'react';
@@ -179,7 +214,7 @@ import { Dataset } from '@superset-ui/chart-controls';
 import type { Dashboard } from 'src/types/Dashboard';
 ```
 
-### Step 3: Function & Component Typing
+### Step 4: Function & Component Typing
 ```typescript
 // Functions with proper parameter/return types
 export function processData(
@@ -200,7 +235,7 @@ const Component: FC<ComponentProps> = ({ data, onSelect }) => {
 };
 ```
 
-### Step 4: State & Redux Typing
+### Step 5: State & Redux Typing
 ```typescript
 // Hooks with specific types
 const [data, setData] = useState<Chart[]>([]);
@@ -339,45 +374,78 @@ grep -A 10 -B 10 "TypeName" src/*/types.ts
 
 ---
 
-## 📋 Coordinator Integration Patterns
+## Agent Constraints (CRITICAL)
 
-### Side-Effect Categories
-
-**Automatic Integration** ✅ (No coordinator action needed):
-- TypeScript compilation passes immediately
-- No import updates needed across codebase
-
-**Coordinator Integration** 🔧 (Common - expect this):
-- TypeScript compilation fails BUT subagent work is high quality
-- Type import conflicts need resolution
-- Mock objects need complete type satisfaction
-- **Action**: Fix type conflicts, maintain subagent's good work
-
-**Rollback Required** ❌ (Rare):
-- Subagent introduced `any` types or poor patterns
-- Fundamental approach needs rework
-
-### Integration Workflow
-1. **Review subagent's types** - Check for `any`, proper inheritance, good placement
-2. **Run TypeScript compilation** - `npm run type`
-3. **Resolve type conflicts**:
-   - Import from authoritative sources
-   - Complete mock objects with proper typing
-   - Fix stub method references
-4. **Verify tests still pass** - `npm test -- filename.test.ts`
-5. **Commit with git history** - Git usually auto-detects renames
+1. **Use git mv** - Run `git mv file.js file.ts` to preserve git history, but NO `git commit`
+2. **NO global import changes** - Don't update imports across codebase
+3. **Type files OK** - Can modify existing type files to improve/align types
+4. **TypeScript validation** - Use proper TypeScript compilation commands:
+   - **Per-file validation**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {relative-path-to-file}`
+   - **Project-wide scan**: `npm run type` (only consider errors related to your files - other agents may be working in parallel)
+5. **ESLint validation** - Run `npm run eslint -- {file}` for each migrated file to ensure formatting/linting
+6. Zero `any` types - use proper TypeScript types
+7. Search existing types before creating new ones
+8. Follow patterns from this guide
 
 ---
 
-## 🎯 Quality Gates
+## Success Report Format
 
-**Before completing migration:**
-- [ ] TypeScript compilation passes
-- [ ] Zero `any` types used
-- [ ] All imports resolved
-- [ ] Functionality unchanged
-- [ ] Types placed in discoverable locations
-- [ ] Existing types reused where possible
+```
+SUCCESS: Atomic Migration of {core-filename}
+
+## Files Migrated (Atomic Unit)
+- Core: {core-filename} → {core-filename.ts/tsx}
+- Tests: {list-of-test-files} → {list-of-test-files.ts/tsx} OR "CREATED: {basename}.test.ts"
+- Mocks: {list-of-mock-files} → {list-of-mock-files.ts}
+- Type files modified: {list-of-type-files}
+
+## Types Created/Improved
+- {TypeName}: {location} ({scope}) - {rationale}
+- {ExistingType}: enhanced in {location} - {improvement-description}
+
+## Documentation Recommendations  
+- ADD_TO_DIRECTORY: {TypeName} - {reason}
+- NO_DOCUMENTATION: {TypeName} - {reason}
+
+## Quality Validation
+- File-level TypeScript compilation: ✅ PASS (using `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {files}`)
+- ESLint validation: ✅ PASS (using `npm run eslint -- {files}`)
+- Zero any types: ✅ PASS
+- Local imports resolved: ✅ PASS
+- Functionality preserved: ✅ PASS
+- Tests pass (if test file): ✅ PASS
+- Project-wide compilation note: {PASS/ISSUES-UNRELATED/ISSUES-RELATED} (from `npm run type`)
+- Follow-up action required: {YES/NO}
+
+## Migration Learnings
+- Type conflicts encountered: {describe any multiple type definitions}
+- Mock patterns used: {describe test mocking approaches}
+- Import hierarchy decisions: {note authoritative type sources used}
+
+## Improvement Suggestions for Documentation
+- AGENT.md enhancement: {suggest additions to migration guide}
+- Common pattern identified: {note reusable patterns for future migrations}
+```
+
+---
+
+## Dependency Block Report Format
+
+```
+DEPENDENCY_BLOCK: Cannot migrate {filename}
+
+## Blocking Dependencies
+- {path}: {type} - {usage} - {priority}
+
+## Impact Analysis
+- Estimated types: {number}
+- Expected locations: {list}
+- Cross-domain: {YES/NO}
+
+## Recommended Order
+{ordered-list}
+```
 
 ---
 
