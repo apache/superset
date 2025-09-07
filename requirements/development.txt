@@ -18,6 +18,8 @@ amqp==5.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
+annotated-types==0.7.0
+    # via pydantic
 apispec==6.6.1
     # via
     #   -c requirements/base-constraint.txt
@@ -632,6 +634,10 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
+pydantic==2.11.7
+    # via apache-superset
+pydantic-core==2.33.2
+    # via pydantic
 pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
@@ -875,10 +881,15 @@ typing-extensions==4.14.0
     #   apache-superset
     #   cattrs
     #   limits
+    #   pydantic
+    #   pydantic-core
     #   pyopenssl
     #   referencing
     #   selenium
     #   shillelagh
+    #   typing-inspection
+typing-inspection==0.4.1
+    # via pydantic
 tzdata==2025.2
     # via
     #   -c requirements/base-constraint.txt
