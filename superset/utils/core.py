@@ -34,6 +34,7 @@ import tempfile
 import threading
 import traceback
 import uuid
+import warnings
 import zlib
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
@@ -1858,6 +1859,112 @@ class DateColumn:
         )
 
 
+def detect_datetime_format(series: pd.Series, sample_size: int = 100) -> str | None:
+    """
+    Detect the datetime format from a sample of the series.
+
+    :param series: The pandas Series to analyze
+    :param sample_size: Number of rows to sample for format detection
+    :return: Detected format string or None if no consistent format found
+    """
+    # Most common formats first for performance
+    common_formats = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%SZ",
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S.%fZ",
+        "%m/%d/%Y",
+        "%d/%m/%Y",
+        "%Y/%m/%d",
+        "%m/%d/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M:%S",
+        "%m-%d-%Y",
+        "%d-%m-%Y",
+        "%Y%m%d",
+    ]
+
+    # Get non-null sample
+    sample = series.dropna().head(sample_size)
+    if sample.empty:
+        return None
+
+    # Convert to string if not already
+    if not pd.api.types.is_string_dtype(sample):
+        sample = sample.astype(str)
+
+    # Try each format
+    for fmt in common_formats:
+        try:
+            # Test on small sample first
+            test_sample = sample.head(10)
+            pd.to_datetime(test_sample, format=fmt, errors="raise")
+            # If successful, verify on larger sample
+            pd.to_datetime(sample, format=fmt, errors="raise")
+            return fmt
+        except (ValueError, TypeError):
+            continue
+
+    return None
+
+
+def _process_datetime_column(
+    df: pd.DataFrame,
+    col: DateColumn,
+) -> None:
+    """Process a single datetime column with format detection."""
+    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+        dttm_series = df[col.col_label]
+        if is_numeric_dtype(dttm_series):
+            # Column is formatted as a numeric value
+            unit = col.timestamp_format.replace("epoch_", "")
+            df[col.col_label] = pd.to_datetime(
+                dttm_series,
+                utc=False,
+                unit=unit,
+                origin="unix",
+                errors="coerce",
+                exact=False,
+            )
+        else:
+            # Column has already been formatted as a timestamp.
+            try:
+                df[col.col_label] = dttm_series.apply(
+                    lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                )
+            except ValueError:
+                logger.warning(
+                    "Unable to convert column %s to datetime, ignoring",
+                    col.col_label,
+                )
+    else:
+        # Try to detect format if not specified
+        format_to_use = col.timestamp_format or detect_datetime_format(
+            df[col.col_label]
+        )
+
+        # Parse with or without format (suppress warning if no format)
+        if format_to_use:
+            df[col.col_label] = pd.to_datetime(
+                df[col.col_label],
+                utc=False,
+                format=format_to_use,
+                errors="coerce",
+                exact=False,
+            )
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*Could not infer format.*")
+                df[col.col_label] = pd.to_datetime(
+                    df[col.col_label],
+                    utc=False,
+                    format=None,
+                    errors="coerce",
+                    exact=False,
+                )
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
     dttm_cols: tuple[DateColumn, ...] = tuple(),  # noqa: C408
@@ -1866,38 +1973,8 @@ def normalize_dttm_col(
         if _col.col_label not in df.columns:
             continue
 
-        if _col.timestamp_format in ("epoch_s", "epoch_ms"):
-            dttm_series = df[_col.col_label]
-            if is_numeric_dtype(dttm_series):
-                # Column is formatted as a numeric value
-                unit = _col.timestamp_format.replace("epoch_", "")
-                df[_col.col_label] = pd.to_datetime(
-                    dttm_series,
-                    utc=False,
-                    unit=unit,
-                    origin="unix",
-                    errors="coerce",
-                    exact=False,
-                )
-            else:
-                # Column has already been formatted as a timestamp.
-                try:
-                    df[_col.col_label] = dttm_series.apply(
-                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
-                    )
-                except ValueError:
-                    logger.warning(
-                        "Unable to convert column %s to datetime, ignoring",
-                        _col.col_label,
-                    )
-        else:
-            df[_col.col_label] = pd.to_datetime(
-                df[_col.col_label],
-                utc=False,
-                format=_col.timestamp_format,
-                errors="coerce",
-                exact=False,
-            )
+        _process_datetime_column(df, _col)
+
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
         if _col.time_shift is not None:
