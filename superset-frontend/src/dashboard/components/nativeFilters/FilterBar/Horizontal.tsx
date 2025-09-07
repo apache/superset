@@ -36,7 +36,7 @@ const HorizontalBar = styled.div`
       theme.sizeUnit * 3
     }px ${theme.sizeUnit * 4}px;
     background: ${theme.colorBgBase};
-    box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
+    box-shadow: inset 0px -2px 2px -1px ${theme.colorSplit};
   `}
 `;
 
@@ -57,7 +57,7 @@ const HorizontalBarContent = styled.div`
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
     font-weight: ${theme.fontWeightStrong};
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
     padding-left: ${theme.sizeUnit * 2}px;
   `}
@@ -96,7 +96,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
         {!isInitialized ? (
-          <Loading position="inline-centered" />
+          <Loading position="inline-centered" size="s" muted />
         ) : (
           <>
             <FilterBarSettings />

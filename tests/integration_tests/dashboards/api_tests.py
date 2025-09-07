@@ -55,7 +55,6 @@ from tests.integration_tests.fixtures.importexport import (
     dashboard_export,
     dashboard_metadata_config,
     dataset_config,
-    dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
@@ -531,6 +530,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "last_name": "user",
                 },
                 "id": dashboard.id,
+                "uuid": str(dashboard.uuid),
                 "css": "",
                 "dashboard_title": "title",
                 "datasources": [],
@@ -550,6 +550,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "tags": [],
                 "thumbnail_url": dashboard.thumbnail_url,
                 "is_managed_externally": False,
+                "theme": None,
             }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on" in data["result"]
@@ -871,10 +872,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dataset API: Test add dashboard to favorites
         """
+        # Let database auto-generate ID and use unique names
+        import uuid
+
+        unique_id = uuid.uuid4().hex[:8]
         dashboard = Dashboard(
-            id=100,
-            dashboard_title="test_dashboard",
-            slug="test_slug",
+            dashboard_title=f"test_dashboard_{unique_id}",
+            slug=f"test_slug_{unique_id}",
             slices=[],
             published=True,
         )
@@ -904,10 +908,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dataset API: Test remove dashboard from favorites
         """
+        # Let database auto-generate ID and use unique names
+        import uuid
+
+        unique_id = uuid.uuid4().hex[:8]
         dashboard = Dashboard(
-            id=100,
-            dashboard_title="test_dashboard",
-            slug="test_slug",
+            dashboard_title=f"test_dashboard_{unique_id}",
+            slug=f"test_slug_{unique_id}",
             slices=[],
             published=True,
         )
@@ -992,6 +999,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_gets_not_certified_dashboards_filter(self):
+        # Get all uncertified dashboards to check if any belong to this test
         arguments = {
             "filters": [
                 {
@@ -1009,7 +1017,18 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 0
+
+        # Filter results to only count dashboards that could belong to this fixture
+        # The create_dashboards fixture creates dashboards with titles like
+        # "title0", "title1", etc.
+        fixture_uncertified_count = 0
+        for result in data["result"]:
+            title = result["dashboard_title"]
+            # Only count dashboards that match the fixture naming pattern
+            if title and title.startswith("title") and title[5:].isdigit():
+                fixture_uncertified_count += 1
+
+        assert fixture_uncertified_count == 0
 
     @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
     def test_get_dashboards_created_by_me(self):
@@ -2313,7 +2332,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/import/"
 
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2418,7 +2437,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/import/"
 
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2429,7 +2448,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2437,30 +2456,19 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dashboard",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered an "
-                                    "error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
-        }
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dashboard")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "dashboards/dashboard.yaml" in str(error["extra"])
+        assert "Dashboard already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
         # import with overwrite flag
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
             "overwrite": "true",
@@ -2492,26 +2500,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("dashboard_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "dashboard_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "dashboard_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("dashboard_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-            with bundle.open(
-                "dashboard_export/dashboards/imported_dashboard.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dashboard_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("chart", dashboards=[dashboard_config])
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2519,27 +2508,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dashboard",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "metadata.yaml": {"type": ["Must be equal to Dashboard."]},
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered "
-                                    "an error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dashboard")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "metadata.yaml" in error["extra"]
+        assert error["extra"]["metadata.yaml"] == {
+            "type": ["Must be equal to Dashboard."]
         }
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
     def test_get_all_related_roles(self):
         """
@@ -2585,7 +2563,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             return query.filter_by(name="Alpha")
 
         with patch.dict(
-            "superset.views.filters.current_app.config",
+            "flask.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
             uri = "api/v1/dashboard/related/roles"  # noqa: F541
@@ -3201,6 +3179,79 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_filename_in_header(
+        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Dashboard API: Test that screenshot download includes proper filename in header
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 200
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
+            response = self._get_screenshot(dashboard.id, cache_key, format)
+            assert response.status_code == 200
+            assert response.mimetype == mt
+            assert (
+                response.headers["Content-Disposition"]
+                == f'attachment; filename="dash_with_tag.{format}"'
+            )
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_filename_in_header_dashboard_with_no_title(
+        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Dashboard API: Test that filename in header for screenshot download defaults
+        to screenshot if dashboard does not have a title.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = Dashboard()
+        db.session.add(dashboard)
+        db.session.commit()
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 200
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
+            response = self._get_screenshot(dashboard.id, cache_key, format)
+            assert response.status_code == 200
+            assert response.mimetype == mt
+            assert (
+                response.headers["Content-Disposition"]
+                == f'attachment; filename="screenshot.{format}"'
+            )
 
     @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")

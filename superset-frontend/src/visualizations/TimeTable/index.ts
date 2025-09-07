@@ -17,10 +17,9 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from './transformProps';
+import { transformProps, controlPanel } from './config';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.jpg';
-import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Table'),

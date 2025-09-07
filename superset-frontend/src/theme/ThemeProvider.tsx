@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   createContext,
   useCallback,
@@ -25,8 +24,12 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Theme, AnyThemeConfig, ThemeContextType } from '@superset-ui/core';
-import { ThemeMode } from '@superset-ui/core/theme/types';
+import {
+  type AnyThemeConfig,
+  type ThemeContextType,
+  Theme,
+  ThemeMode,
+} from '@superset-ui/core';
 import { ThemeController } from './ThemeController';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
@@ -62,8 +65,8 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
-  const changeThemeMode = useCallback(
-    (newMode: ThemeMode) => themeController.changeThemeMode(newMode),
+  const setThemeMode = useCallback(
+    (newMode: ThemeMode) => themeController.setThemeMode(newMode),
     [themeController],
   );
 
@@ -72,15 +75,79 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  // setCrudTheme removed - dashboards should NOT modify the global controller
+
+  const setTemporaryTheme = useCallback(
+    (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
+    [themeController],
+  );
+
+  const clearLocalOverrides = useCallback(
+    () => themeController.clearLocalOverrides(),
+    [themeController],
+  );
+
+  const getCurrentCrudThemeId = useCallback(
+    () => themeController.getCurrentCrudThemeId(),
+    [themeController],
+  );
+
+  const hasDevOverride = useCallback(
+    () => themeController.hasDevOverride(),
+    [themeController],
+  );
+
+  const canSetMode = useCallback(
+    () => themeController.canSetMode(),
+    [themeController],
+  );
+
+  const canSetTheme = useCallback(
+    () => themeController.canSetTheme(),
+    [themeController],
+  );
+
+  const canDetectOSPreference = useCallback(
+    () => themeController.canDetectOSPreference(),
+    [themeController],
+  );
+
+  const createDashboardThemeProvider = useCallback(
+    (themeId: string) => themeController.createDashboardThemeProvider(themeId),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
       themeMode: currentThemeMode,
       setTheme,
-      changeThemeMode,
+      setThemeMode,
       resetTheme,
+      setTemporaryTheme,
+      clearLocalOverrides,
+      getCurrentCrudThemeId,
+      hasDevOverride,
+      canSetMode,
+      canSetTheme,
+      canDetectOSPreference,
+      createDashboardThemeProvider,
     }),
-    [currentTheme, currentThemeMode, setTheme, changeThemeMode, resetTheme],
+    [
+      currentTheme,
+      currentThemeMode,
+      setTheme,
+      setThemeMode,
+      resetTheme,
+      setTemporaryTheme,
+      clearLocalOverrides,
+      getCurrentCrudThemeId,
+      hasDevOverride,
+      canSetMode,
+      canSetTheme,
+      canDetectOSPreference,
+      createDashboardThemeProvider,
+    ],
   );
 
   return (
@@ -96,9 +163,10 @@ export function SupersetThemeProvider({
  * React hook to use the theme context
  */
 export function useThemeContext(): ThemeContextType {
-  const context = useContext(ThemeContext);
-  if (!context) {
+  const context: ThemeContextType | null = useContext(ThemeContext);
+
+  if (!context)
     throw new Error('useThemeContext must be used within a ThemeProvider');
-  }
+
   return context;
 }

@@ -24,7 +24,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           submodules: recursive
@@ -51,7 +51,7 @@ jobs:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
         run: |
-          pytest --durations-min=0.5 --cov-report= --cov=superset/sql/ ./tests/unit_tests/sql/ --cache-clear --cov-fail-under=100
+          pytest --durations-min=0.5 --cov=superset/sql/ ./tests/unit_tests/sql/ --cache-clear --cov-fail-under=100
       - name: Upload code coverage
         uses: codecov/codecov-action@v5
         with:

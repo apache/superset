@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useState } from 'react';
+import { FC, PropsWithChildren, useEffect, useState } from 'react';
 
 import { css, styled } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -28,6 +28,7 @@ import { debounce } from 'lodash';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
+    background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
     grid-template-columns: auto 1fr;
@@ -43,8 +44,8 @@ const StyledDiv = styled.div`
       }
       & .empty-droptarget:before {
         display: block;
-        border-color: ${theme.colors.primary.light1};
-        background-color: ${theme.colors.primary.light3};
+        border-color: ${theme.colorPrimary};
+        background-color: ${theme.colorPrimaryBg};
       }
       & .grid-row:after {
         border-style: hidden;
@@ -112,9 +113,7 @@ const StyledDiv = styled.div`
   `}
 `;
 
-type Props = {};
-
-const DashboardWrapper: FC<Props> = ({ children }) => {
+const DashboardWrapper: FC<PropsWithChildren<{}>> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );

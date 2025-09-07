@@ -64,6 +64,10 @@ const CssTemplateList = lazy(
     ),
 );
 
+const ThemeList = lazy(
+  () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
+);
+
 const DashboardList = lazy(
   () =>
     import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
@@ -121,6 +125,10 @@ const AllEntities = lazy(
 
 const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
+);
+
+const Extensions = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
 );
 
 const RowLevelSecurityList = lazy(
@@ -224,6 +232,10 @@ export const routes: Routes = [
     Component: CssTemplateList,
   },
   {
+    path: '/theme/list/',
+    Component: ThemeList,
+  },
+  {
     path: '/annotationlayer/list/',
     Component: AnnotationLayerList,
   },
@@ -323,6 +335,13 @@ if (isAdmin) {
       Component: GroupsList,
     },
   );
+
+  if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+    routes.push({
+      path: '/extensions/list/',
+      Component: Extensions,
+    });
+  }
 }
 
 if (authRegistrationEnabled) {

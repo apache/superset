@@ -18,9 +18,9 @@
  */
 import { createRef, Component } from 'react';
 import PropTypes from 'prop-types';
-import { Button, Icons } from '@superset-ui/core/components';
+import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import Tabs from '@superset-ui/core/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
@@ -32,6 +32,8 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import rison from 'rison';
+import { isObject } from 'lodash';
 import { ExpressionTypes } from '../types';
 
 const propTypes = {
@@ -86,6 +88,11 @@ const FilterActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
+const LayerSelectContainer = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 12}px;
+`;
+
 export default class AdhocFilterEditPopover extends Component {
   constructor(props) {
     super(props);
@@ -97,6 +104,8 @@ export default class AdhocFilterEditPopover extends Component {
     this.setSimpleTabIsValid = this.setSimpleTabIsValid.bind(this);
     this.adjustHeight = this.adjustHeight.bind(this);
     this.onTabChange = this.onTabChange.bind(this);
+    this.loadLayerOptions = this.loadLayerOptions.bind(this);
+    this.onLayerChange = this.onLayerChange.bind(this);
 
     this.state = {
       adhocFilter: this.props.adhocFilter,
@@ -104,6 +113,9 @@ export default class AdhocFilterEditPopover extends Component {
       height: POPOVER_INITIAL_HEIGHT,
       activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
       isSimpleTabValid: true,
+      selectedLayers: [{ id: null, value: -1, label: 'All' }],
+      layerOptions: [],
+      hasLayerFilterScopeChanged: false,
     };
 
     this.popoverContentRef = createRef();
@@ -111,6 +123,26 @@ export default class AdhocFilterEditPopover extends Component {
 
   componentDidMount() {
     document.addEventListener('mouseup', this.onMouseUp);
+
+    // Load layer options if deck_slices exist
+    if (
+      this.props.adhocFilter?.deck_slices &&
+      this.props.adhocFilter.deck_slices.length > 0
+    ) {
+      this.loadLayerOptions(0, 100).then(result => {
+        this.setState({ layerOptions: result.data });
+        const layerFilterScope = this.props.adhocFilter?.layerFilterScope;
+        if (layerFilterScope) {
+          const selectedLayers = layerFilterScope.map(item => {
+            const layerOption = result.data.find(
+              option => option.value === item,
+            );
+            return layerOption;
+          });
+          this.setState({ selectedLayers });
+        }
+      });
+    }
   }
 
   componentWillUnmount() {
@@ -127,7 +159,28 @@ export default class AdhocFilterEditPopover extends Component {
   }
 
   onSave() {
-    this.props.onChange(this.state.adhocFilter);
+    const hasDeckSlices =
+      this.state.adhocFilter.deck_slices &&
+      this.state.adhocFilter.deck_slices.length > 0;
+
+    if (!hasDeckSlices) {
+      this.props.onChange(this.state.adhocFilter);
+      this.props.onClose();
+      return;
+    }
+    // Update layer filter scope for deck multi
+    const selectedLayers = this.state.selectedLayers.map(item => {
+      if (isObject(item)) {
+        return item.value;
+      }
+      return item;
+    });
+    const correctedAdhocFilter = {
+      ...this.state.adhocFilter,
+      layerFilterScope: selectedLayers,
+    };
+    this.setState({ hasLayerFilterScopeChanged: false });
+    this.props.onChange(correctedAdhocFilter);
     this.props.onClose();
   }
 
@@ -167,6 +220,86 @@ export default class AdhocFilterEditPopover extends Component {
     this.setState(state => ({ height: state.height + heightDifference }));
   }
 
+  loadLayerOptions(page, pageSize) {
+    const query = rison.encode({
+      columns: ['id', 'slice_name', 'viz_type'],
+      filters: [{ col: 'viz_type', opr: 'sw', value: 'deck' }],
+      page,
+      page_size: pageSize,
+      order_column: 'slice_name',
+      order_direction: 'asc',
+    });
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${query}`,
+    }).then(response => {
+      if (!response?.json?.result) {
+        return {
+          data: [
+            {
+              id: null,
+              value: -1,
+              label: 'All',
+            },
+          ],
+          totalCount: 1,
+        };
+      }
+
+      const deckSlices = this.props.adhocFilter?.deck_slices || [];
+
+      const list = [
+        {
+          id: null,
+          value: -1,
+          label: 'All',
+        },
+        ...response.json.result
+          .map(item => {
+            const sliceIndex = deckSlices.indexOf(item.id);
+            return {
+              id: item.id,
+              value: sliceIndex >= 0 ? sliceIndex : item.id,
+              label: item.slice_name,
+              sliceIndex,
+            };
+          })
+          .filter(item => item.sliceIndex !== -1)
+          .map(({ sliceIndex, ...item }) => item),
+      ];
+
+      return {
+        data: list,
+        totalCount: list.length,
+      };
+    });
+  }
+
+  onLayerChange(selectedValue) {
+    let updatedSelectedLayers = selectedValue;
+
+    if (!selectedValue || selectedValue.length === 0) {
+      updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
+    } else if (
+      selectedValue.length > 1 &&
+      selectedValue.some(item => item.value === -1 || item === -1)
+    ) {
+      if (
+        selectedValue[selectedValue.length - 1].value === -1 ||
+        selectedValue[selectedValue.length - 1] === -1
+      ) {
+        updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
+      } else {
+        updatedSelectedLayers = selectedValue
+          .filter(item => item.value !== -1)
+          .filter(item => item !== -1);
+      }
+    }
+
+    this.setState({ selectedLayers: updatedSelectedLayers });
+    this.setState({ hasLayerFilterScopeChanged: true });
+  }
+
   render() {
     const {
       adhocFilter: propsAdhocFilter,
@@ -182,10 +315,16 @@ export default class AdhocFilterEditPopover extends Component {
       ...popoverProps
     } = this.props;
 
-    const { adhocFilter } = this.state;
+    const { adhocFilter, selectedLayers, hasLayerFilterScopeChanged } =
+      this.state;
     const stateIsValid = adhocFilter.isValid();
     const hasUnsavedChanges =
-      requireSave || !adhocFilter.equals(propsAdhocFilter);
+      requireSave ||
+      !adhocFilter.equals(propsAdhocFilter) ||
+      hasLayerFilterScopeChanged;
+
+    const hasDeckSlices =
+      adhocFilter.deck_slices && adhocFilter.deck_slices.length > 0;
 
     return (
       <FilterPopoverContentContainer
@@ -233,12 +372,24 @@ export default class AdhocFilterEditPopover extends Component {
                     options={this.props.options}
                     height={this.state.height}
                     activeKey={this.state.activeKey}
+                    datasource={datasource}
                   />
                 </ErrorBoundary>
               ),
             },
           ]}
         />
+        {hasDeckSlices && (
+          <LayerSelectContainer>
+            <Select
+              options={this.state.layerOptions}
+              onChange={this.onLayerChange}
+              value={selectedLayers}
+              mode="multiple"
+            />
+          </LayerSelectContainer>
+        )}
+
         <FilterActionsContainer>
           <Button
             buttonStyle="secondary"

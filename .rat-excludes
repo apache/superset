@@ -32,6 +32,8 @@ apache_superset.egg-info
 # json and csv in general cannot have comments
 .*json
 .*csv
+# jinja templates often need to be as-is
+.*j2
 # Generated doc files
 env/*
 docs/.htaccess*
@@ -71,8 +73,17 @@ ibm-db2.svg
 postgresql.svg
 snowflake.svg
 ydb.svg
+loading.svg
 
 # docs-related
 erd.puml
 erd.svg
 intro_header.txt
+
+# for LLMs
+llm-context.md
+LLMS.md
+CLAUDE.md
+CURSOR.md
+GEMINI.md
+GPT.md

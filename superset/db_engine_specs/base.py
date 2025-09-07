@@ -30,6 +30,7 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Optional,
     TYPE_CHECKING,
     TypedDict,
     Union,
@@ -42,7 +43,7 @@ import requests
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app, g, url_for
+from flask import current_app as app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -54,7 +55,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
+from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
 
 from superset import db
@@ -377,6 +378,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
     # by driver name
+
+    # Whether to use equality operators (= true/false) instead of IS operators
+    # for boolean filters. Some databases like Snowflake don't support IS true/false
+    use_equality_for_boolean_filters = False
     enforce_uri_query_params: dict[str, dict[str, Any]] = {}
 
     force_column_alias_quotes = False
@@ -455,7 +460,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def is_oauth2_enabled(cls) -> bool:
         return (
             cls.supports_oauth2
-            and cls.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+            and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
         )
 
     @classmethod
@@ -508,12 +513,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Build the DB engine spec level OAuth2 client config.
         """
-        oauth2_config = current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        oauth2_config = app.config["DATABASE_OAUTH2_CLIENTS"]
         if cls.engine_name not in oauth2_config:
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = current_app.config.get(
+        redirect_uri = app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
             url_for("DatabaseRestApi.oauth2", _external=True),
         )
@@ -569,7 +574,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Exchange authorization code for refresh/access tokens.
         """
-        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
             "code": code,
@@ -591,7 +596,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Refresh an access token that has expired.
         """
-        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
             "client_id": config["id"],
@@ -703,6 +708,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
@@ -867,7 +873,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         ret_list = []
         time_grains = builtin_time_grains.copy()
-        time_grains.update(current_app.config["TIME_GRAIN_ADDONS"])
+        time_grains.update(app.config["TIME_GRAIN_ADDONS"])
         for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -946,9 +952,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        grain_addon_expressions = app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        denylist: list[str] = current_app.config["TIME_GRAIN_DENYLIST"]
+        denylist: list[str] = app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key, None)
 
@@ -1203,6 +1209,78 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def handle_boolean_filter(
+        cls, sqla_col: Any, op: str, value: bool
+    ) -> BinaryExpression:
+        """
+        Handle boolean filter operations with engine-specific logic.
+
+        By default, uses SQLAlchemy's IS operator (column IS true/false).
+        Engines that don't support IS for boolean values can override
+        use_equality_for_boolean_filters to use equality operators instead.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_TRUE or IS_FALSE)
+        :param value: Boolean value (True or False)
+        :return: SQLAlchemy expression for the boolean filter
+        """
+        if cls.use_equality_for_boolean_filters:
+            return sqla_col == value
+        else:
+            return sqla_col.is_(value)
+
+    @classmethod
+    def handle_null_filter(
+        cls,
+        sqla_col: Any,
+        op: utils.FilterOperator,
+    ) -> BinaryExpression:
+        """
+        Handle null/not null filter operations.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_NULL or IS_NOT_NULL)
+        :return: SQLAlchemy expression for the null filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.IS_NULL:
+            return sqla_col.is_(None)
+        elif op == utils.FilterOperator.IS_NOT_NULL:
+            return sqla_col.isnot(None)
+        else:
+            raise ValueError(f"Invalid null filter operator: {op}")
+
+    @classmethod
+    def handle_comparison_filter(
+        cls, sqla_col: Any, op: utils.FilterOperator, value: Any
+    ) -> BinaryExpression:
+        """
+        Handle comparison filter operations (=, !=, >, <, >=, <=).
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator
+        :param value: Filter value
+        :return: SQLAlchemy expression for the comparison filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.EQUALS:
+            return sqla_col == value
+        elif op == utils.FilterOperator.NOT_EQUALS:
+            return sqla_col != value
+        elif op == utils.FilterOperator.GREATER_THAN:
+            return sqla_col > value
+        elif op == utils.FilterOperator.LESS_THAN:
+            return sqla_col < value
+        elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS:
+            return sqla_col >= value
+        elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS:
+            return sqla_col <= value
+        else:
+            raise ValueError(f"Invalid comparison filter operator: {op}")
+
+    @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
@@ -1414,6 +1492,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema and cls.try_remove_schema_from_table_name:
             views = {re.sub(f"^{schema}\\.", "", view) for view in views}
         return views
+
+    @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all materialized views.
+        """
+        return set()
 
     @classmethod
     def get_indexes(
@@ -1902,6 +1992,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return []
 
+    @classmethod
+    def get_column_description_limit_size(cls) -> int:
+        """
+        Get a minimum limit size for the sample SELECT column query
+        to fetch the column metadata.
+
+        :return: A number of limit size
+        """
+        return 1
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2159,7 +2259,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if db_engine_uri_validator := current_app.config["DB_SQLA_URI_VALIDATOR"]:
+        if db_engine_uri_validator := app.config["DB_SQLA_URI_VALIDATOR"]:
             db_engine_uri_validator(sqlalchemy_uri)
 
         if existing_disallowed := cls.disallow_uri_query_params.get(

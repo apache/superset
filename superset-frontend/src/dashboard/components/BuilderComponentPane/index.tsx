@@ -19,9 +19,11 @@
 /* eslint-env browser */
 import { rgba } from 'emotion-rgba';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t, css, SupersetTheme } from '@superset-ui/core';
+import { t, css, SupersetTheme, useTheme } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
+import { useMemo } from 'react';
 import NewColumn from '../gridComponents/new/NewColumn';
 import NewDivider from '../gridComponents/new/NewDivider';
 import NewHeader from '../gridComponents/new/NewHeader';
@@ -37,81 +39,97 @@ const TABS_KEYS = {
   LAYOUT_ELEMENTS: 'LAYOUT_ELEMENTS',
 };
 
-const BuilderComponentPane = ({ topOffset = 0 }) => (
-  <div
-    data-test="dashboard-builder-sidepane"
-    css={css`
-      position: sticky;
-      right: 0;
-      top: ${topOffset}px;
-      height: calc(100vh - ${topOffset}px);
-      width: ${BUILDER_PANE_WIDTH}px;
-    `}
-  >
+const BuilderComponentPane = ({ topOffset = 0 }) => {
+  const theme = useTheme();
+  const nativeFiltersBarOpen = useSelector(
+    (state: any) => state.dashboardState.nativeFiltersBarOpen ?? false,
+  );
+
+  const tabBarStyle = useMemo(
+    () => ({
+      paddingLeft: nativeFiltersBarOpen ? 0 : theme.sizeUnit * 4,
+    }),
+    [nativeFiltersBarOpen, theme.sizeUnit],
+  );
+
+  return (
     <div
-      css={(theme: SupersetTheme) => css`
-        position: absolute;
-        height: 100%;
+      data-test="dashboard-builder-sidepane"
+      css={css`
+        position: sticky;
+        right: 0;
+        top: ${topOffset}px;
+        height: calc(100vh - ${topOffset}px);
         width: ${BUILDER_PANE_WIDTH}px;
-        box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
-        background-color: ${theme.colorBgBase};
       `}
     >
-      <Tabs
-        data-test="dashboard-builder-component-pane-tabs-navigation"
-        id="tabs"
+      <div
         css={(theme: SupersetTheme) => css`
-          line-height: inherit;
-          margin-top: ${theme.sizeUnit * 2}px;
+          position: absolute;
           height: 100%;
-
-          & .ant-tabs-content-holder {
-            height: 100%;
-            & .ant-tabs-content {
-              height: 100%;
-            }
-          }
+          width: ${BUILDER_PANE_WIDTH}px;
+          box-shadow: -4px 0 4px 0 ${rgba(theme.colorBorder, 0.1)};
+          background-color: ${theme.colorBgBase};
         `}
-        items={[
-          {
-            key: TABS_KEYS.CHARTS,
-            label: t('Charts'),
-            children: (
-              <div
-                css={css`
-                  height: calc(100vh - ${topOffset * 2}px);
-                `}
-              >
-                <SliceAdder />
-              </div>
-            ),
-          },
-          {
-            key: TABS_KEYS.LAYOUT_ELEMENTS,
-            label: t('Layout elements'),
-            children: (
-              <>
-                <NewTabs />
-                <NewRow />
-                <NewColumn />
-                <NewHeader />
-                <NewMarkdown />
-                <NewDivider />
-                {dashboardComponents
-                  .getAll()
-                  .map(({ key: componentKey, metadata }) => (
-                    <NewDynamicComponent
-                      metadata={metadata}
-                      componentKey={componentKey}
-                    />
-                  ))}
-              </>
-            ),
-          },
-        ]}
-      />
+      >
+        <Tabs
+          data-test="dashboard-builder-component-pane-tabs-navigation"
+          id="tabs"
+          tabBarStyle={tabBarStyle}
+          css={(theme: SupersetTheme) => css`
+            line-height: inherit;
+            margin-top: ${theme.sizeUnit * 2}px;
+            height: 100%;
+
+            & .ant-tabs-content-holder {
+              height: 100%;
+              & .ant-tabs-content {
+                height: 100%;
+              }
+            }
+          `}
+          items={[
+            {
+              key: TABS_KEYS.CHARTS,
+              label: t('Charts'),
+              children: (
+                <div
+                  css={css`
+                    height: calc(100vh - ${topOffset * 2}px);
+                  `}
+                >
+                  <SliceAdder />
+                </div>
+              ),
+            },
+            {
+              key: TABS_KEYS.LAYOUT_ELEMENTS,
+              label: t('Layout elements'),
+              children: (
+                <>
+                  <NewTabs />
+                  <NewRow />
+                  <NewColumn />
+                  <NewHeader />
+                  <NewMarkdown />
+                  <NewDivider />
+                  {dashboardComponents
+                    .getAll()
+                    .map(({ key: componentKey, metadata }) => (
+                      <NewDynamicComponent
+                        key={componentKey}
+                        metadata={metadata}
+                        componentKey={componentKey}
+                      />
+                    ))}
+                </>
+              ),
+            },
+          ]}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default BuilderComponentPane;

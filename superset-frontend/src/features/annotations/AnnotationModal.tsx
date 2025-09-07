@@ -18,10 +18,9 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   Input,
@@ -29,8 +28,10 @@ import {
   Modal,
   RangePicker,
 } from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 
 import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -49,8 +50,7 @@ const StyledAnnotationTitle = styled.div`
 `;
 
 const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
+  /* Border is already applied by AceEditor itself */
 `;
 
 const AnnotationContainer = styled.div`
@@ -79,11 +79,15 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   onHide,
   show,
 }) => {
-  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAnnotation, setCurrentAnnotation] =
     useState<AnnotationObject | null>(null);
   const isEditMode = annotation !== null;
+
+  // JSON validation for metadata
+  const jsonAnnotations = useJsonValidation(currentAnnotation?.json_metadata, {
+    errorPrefix: 'Invalid JSON metadata',
+  });
 
   // annotation fetch logic
   const {
@@ -264,29 +268,17 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="55%"
+      name={isEditMode ? t('Edit annotation') : t('Add annotation')}
       title={
-        <h4 data-test="annotation-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit annotation') : t('Add annotation')}
-        </h4>
+        <ModalTitleWithIcon
+          data-test="annotation-modal-title"
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit annotation') : t('Add annotation')}
+        />
       }
     >
       <StyledAnnotationTitle>
-        <h4>{t('Basic information')}</h4>
+        <h4>{t('General information')}</h4>
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">
@@ -345,6 +337,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           }
           width="100%"
           height="120px"
+          annotations={jsonAnnotations}
         />
       </AnnotationContainer>
     </Modal>

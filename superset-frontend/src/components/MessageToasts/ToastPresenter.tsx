@@ -63,7 +63,7 @@ const StyledToastPresenter = styled.div<VisualProps>(
     }
 
     .toast > button {
-      color: ${theme.colors.grayscale.light5};
+      color: ${theme.colorTextLightSolid};
       opacity: 1;
     }
 

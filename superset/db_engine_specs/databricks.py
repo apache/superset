@@ -17,13 +17,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
+from sqlalchemy import types
+from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -38,6 +40,67 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+
+try:
+    from databricks.sql.utils import ParamEscaper
+except ImportError:
+
+    class ParamEscaper:  # type: ignore
+        """Dummy class."""
+
+
+class DatabricksStringType(types.TypeDecorator):
+    impl = types.String
+    cache_ok = True
+    pe = ParamEscaper()
+
+    def process_literal_param(self, value: Any, dialect: Any) -> str:
+        return self.pe.escape_string(value)
+
+    def literal_processor(self, dialect: Any) -> Callable[[Any], str]:
+        def process(value: Any) -> str:
+            _step1 = self.process_literal_param(value, dialect="databricks")
+            if dialect.identifier_preparer._double_percents:
+                _step2 = _step1.replace("%", "%%")
+            else:
+                _step2 = _step1
+
+            return "%s" % _step2
+
+        return process
+
+
+def monkeypatch_dialect() -> None:
+    """
+    Monkeypatch dialect to correctly escape single quotes for Databricks.
+
+    The Databricks SQLAlchemy dialect (<3.0) incorrectly escapes single quotes by
+    doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
+    fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
+
+    Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
+    we can't patch it without affecting other Hive-based dialects. The solution is to
+    introduce a dialect-aware string type so that the change applies only to Databricks.
+    """
+    try:
+        from pyhive.sqlalchemy_hive import HiveDialect
+
+        class ContextAwareStringType(types.TypeDecorator):
+            impl = types.String
+            cache_ok = True
+
+            def literal_processor(
+                self, dialect: DefaultDialect
+            ) -> Callable[[Any], str]:
+                if dialect.__class__.__name__ == "DatabricksDialect":
+                    return DatabricksStringType().literal_processor(dialect)
+                return super().literal_processor(dialect)
+
+        HiveDialect.colspecs[types.String] = ContextAwareStringType
+
+    except ImportError:
+        pass
 
 
 class DatabricksBaseSchema(Schema):
@@ -595,3 +658,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             uri = uri.update_query_dict({"schema": schema})
 
         return uri, connect_args
+
+
+# TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x
+monkeypatch_dialect()

@@ -54,9 +54,6 @@ class TagDAO(BaseDAO[Tag]):
         for name in clean_tag_names:
             type_ = TagType.custom
             tag = TagDAO.get_by_name(name, type_)
-            tagged_objects.append(
-                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
-            )
 
             # Check if the association already exists
             existing_tagged_object = (

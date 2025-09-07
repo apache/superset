@@ -21,7 +21,7 @@ from typing import Any
 from urllib import request
 
 import pandas as pd
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
@@ -88,7 +88,7 @@ def validate_data_uri(data_uri: str) -> None:
     :param data_uri:
     :return:
     """
-    allowed_urls = current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
+    allowed_urls = app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
     for allowed_url in allowed_urls:
         try:
             match = re.match(allowed_url, data_uri)
@@ -199,6 +199,11 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     :raises DatasetUnAllowedDataURI: If a dataset is trying
     to load data from a URI that is not allowed.
     """
+    from superset.examples.helpers import normalize_example_data_url
+
+    # Convert example URLs to align with configuration
+    data_uri = normalize_example_data_url(data_uri)
+
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
     data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
@@ -213,7 +218,7 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if database.sqlalchemy_uri == current_app.config.get("SQLALCHEMY_DATABASE_URI"):
+    if database.sqlalchemy_uri == app.config.get("SQLALCHEMY_DATABASE_URI"):
         logger.info("Loading data inside the import transaction")
         connection = db.session.connection()
         df.to_sql(

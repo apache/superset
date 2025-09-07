@@ -30,6 +30,7 @@ import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
+  isMatrixifyEnabled,
 } from '@superset-ui/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
@@ -323,10 +324,30 @@ function ExploreViewContainer(props) {
 
   const onQuery = useCallback(() => {
     props.actions.setForceQuery(false);
+
+    // Skip main query if Matrixify is enabled
+    if (isMatrixifyEnabled(props.form_data)) {
+      // Set chart to success state since Matrixify will handle its own queries
+      props.actions.chartUpdateSucceeded([], props.chart.id);
+      props.actions.chartRenderingSucceeded(props.chart.id);
+
+      // Update history and controls
+      addHistory();
+      setLastQueriedControls(props.controls);
+      return;
+    }
+
+    // Normal behavior for non-Matrixify
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
-  }, [props.controls, addHistory, props.actions, props.chart.id]);
+  }, [
+    props.controls,
+    addHistory,
+    props.actions,
+    props.chart.id,
+    props.form_data,
+  ]);
 
   const handleKeydown = useCallback(
     event => {
@@ -541,7 +562,11 @@ function ExploreViewContainer(props) {
       .map(message => {
         const matchingLabels = controlsWithErrors
           .filter(control => control.validationErrors?.includes(message))
-          .map(control => control.label);
+          .map(control =>
+            typeof control.label === 'function'
+              ? control.label(props.exploreState)
+              : control.label,
+          );
         return [matchingLabels, message];
       })
       .map(([labels, message]) => (
@@ -769,7 +794,29 @@ function mapStateToProps(state) {
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});
-  const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
+
+  const controlsBasedFormData = omit(
+    getFormDataFromControls(controls),
+    fieldsToOmit,
+  );
+  const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
+
+  const getDeckGLFormData = () => {
+    const formData = { ...controlsBasedFormData };
+
+    if (explore.form_data?.layer_filter_scope) {
+      formData.layer_filter_scope = explore.form_data.layer_filter_scope;
+    }
+
+    if (explore.form_data?.filter_data_mapping) {
+      formData.filter_data_mapping = explore.form_data.filter_data_mapping;
+    }
+
+    return formData;
+  };
+
+  const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
+
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

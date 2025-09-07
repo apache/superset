@@ -189,6 +189,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         accessor: 'name',
         id: 'name',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { name },
@@ -274,23 +275,19 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Role')}
-          </>
-        ),
+        name: t('Bulk select'),
+        onClick: toggleBulkSelect,
+        buttonStyle: 'secondary',
+      },
+      {
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Role'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);
         },
         loading: loadingState.permissions,
         'data-test': 'add-role-button',
-      },
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
       },
     );
   }

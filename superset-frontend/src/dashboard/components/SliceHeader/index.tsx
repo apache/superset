@@ -34,6 +34,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
@@ -58,6 +59,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  exportPivotExcel?: (arg0: string) => void;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -166,6 +168,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
+      exportPivotExcel = () => ({}),
     },
     ref,
   ) => {
@@ -173,6 +176,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       'dashboard.slice.header',
     );
     const uiConfig = useUiConfig();
+    const shouldShowRowLimitWarning =
+      !isEmbedded() || uiConfig.showRowLimitWarning;
     const dashboardPageId = useContext(DashboardPageIdContext);
     const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
     const headerRef = useRef<HTMLDivElement>(null);
@@ -232,20 +237,23 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
-            <EditableTitle
-              title={
-                sliceName ||
-                (editMode
-                  ? '---' // this makes an empty title clickable
-                  : '')
-              }
-              canEdit={editMode}
-              onSaveTitle={updateSliceName}
-              showTooltip={false}
-              renderLink={
-                canExplore && exploreUrl ? renderExploreLink : undefined
-              }
-            />
+            {/* this div ensures the hover event triggers correctly and prevents flickering */}
+            <div>
+              <EditableTitle
+                title={
+                  sliceName ||
+                  (editMode
+                    ? '---' // this makes an empty title clickable
+                    : '')
+                }
+                canEdit={editMode}
+                onSaveTitle={updateSliceName}
+                showTooltip={false}
+                renderLink={
+                  canExplore && exploreUrl ? renderExploreLink : undefined
+                }
+              />
+            </div>
           </Tooltip>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
@@ -296,7 +304,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 <FiltersBadge chartId={slice.slice_id} />
               )}
 
-              {sqlRowCount === rowLimit && (
+              {shouldShowRowLimitWarning && sqlRowCount === rowLimit && (
                 <RowCountLabel
                   rowcount={sqlRowCount}
                   limit={rowLimit}
@@ -341,6 +349,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  exportPivotExcel={exportPivotExcel}
                 />
               )}
             </>
