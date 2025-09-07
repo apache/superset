@@ -33,6 +33,7 @@ import {
   UseResizeColumnsColumnOptions,
   UseResizeColumnsColumnProps,
 } from 'react-table';
+import { ColumnsType } from 'antd/es/table';
 
 import { SortOrder } from '../Table';
 
@@ -87,7 +88,7 @@ export function mapColumns<T extends object>(
   columns: EnhancedColumnInstance<T>[],
   headerGroups: EnhancedHeaderGroup<T>[],
   columnsForWrapText?: string[],
-) {
+): ColumnsType<object> {
   return columns.map(column => {
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
     return {
@@ -121,7 +122,7 @@ export function mapColumns<T extends object>(
             column,
           });
         }
-        return val;
+        return String(val);
       },
       className: column.className,
     };

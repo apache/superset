@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -55,7 +55,7 @@ afterEach(() => {
 test('puts api request with formData', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}`;
   fetchMock.put(tabStateMutationApiRoute, 200);
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () => useUpdateSqlEditorTabMutation(),
     {
       wrapper: createWrapper({
@@ -105,7 +105,7 @@ test('puts api request with formData', async () => {
 test('posts activate request with queryEditorId', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}/activate`;
   fetchMock.post(tabStateMutationApiRoute, 200);
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () => useUpdateCurrentSqlEditorTabMutation(),
     {
       wrapper: createWrapper({
@@ -125,7 +125,7 @@ test('posts activate request with queryEditorId', async () => {
 test('deletes destoryed query editors', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}`;
   fetchMock.delete(tabStateMutationApiRoute, 200);
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () => useDeleteSqlEditorTabMutation(),
     {
       wrapper: createWrapper({

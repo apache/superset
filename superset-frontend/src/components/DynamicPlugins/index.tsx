@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useContext, useEffect, useReducer, createContext, FC } from 'react';
+import {
+  useContext,
+  useEffect,
+  useReducer,
+  createContext,
+  FC,
+  PropsWithChildren,
+} from 'react';
 
 import {
   ChartMetadata,
@@ -122,7 +129,7 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export const DynamicPluginProvider: FC = ({ children }) => {
+export const DynamicPluginProvider = ({ children }: PropsWithChildren) => {
   const [pluginState, dispatch] = useReducer(
     pluginContextReducer,
     dummyPluginContext,

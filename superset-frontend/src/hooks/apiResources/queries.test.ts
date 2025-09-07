@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,

@@ -18,7 +18,7 @@
  */
 
 import { ReactElement } from 'react';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { createWrapper, render } from 'spec/helpers/testing-library';
 import { useCrossFiltersScopingModal } from './useCrossFiltersScopingModal';
 

@@ -19,7 +19,7 @@
 import { ReactNode } from 'react';
 import { type ThemeContextType, Theme, ThemeMode } from '@superset-ui/core';
 import { act, render, screen } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
 import { ThemeController } from '../ThemeController';
 

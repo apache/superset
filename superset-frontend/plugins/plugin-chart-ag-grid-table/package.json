@@ -42,7 +42,6 @@
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^13.0.0",
-    "@testing-library/react-hooks": "*",
     "@testing-library/user-event": "*",
     "@types/classnames": "*",
     "@types/react": "*",

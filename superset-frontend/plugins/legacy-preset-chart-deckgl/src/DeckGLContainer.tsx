@@ -178,5 +178,5 @@ export const DeckGLContainerStyledWrapper = styled(DeckGLContainer)`
 `;
 
 export type DeckGLContainerHandle = typeof DeckGLContainer & {
-  setTooltip: (tooltip: ReactNode) => void;
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void;
 };

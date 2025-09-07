@@ -158,6 +158,7 @@ export interface SubMenuProps {
   color?: string;
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
+  children?: ReactNode;
 }
 
 const { SubMenu } = MainNav;
