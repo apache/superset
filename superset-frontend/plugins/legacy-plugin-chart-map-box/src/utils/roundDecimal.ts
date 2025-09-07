@@ -17,11 +17,14 @@
  * under the License.
  */
 
-export default function roundDecimal(number, precision) {
-  let roundedNumber;
-  let p = precision;
+export default function roundDecimal(
+  number: number,
+  precision?: number,
+): number {
+  let roundedNumber: number;
   if (precision) {
-    roundedNumber = Math.round(number * (p = 10 ** p)) / p;
+    const p = 10 ** precision;
+    roundedNumber = Math.round(number * p) / p;
   } else {
     roundedNumber = Math.round(number);
   }
