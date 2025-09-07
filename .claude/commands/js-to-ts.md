@@ -73,11 +73,13 @@ SUCCESS: Atomic Migration of {core-filename}
 - NO_DOCUMENTATION: {TypeName} - {reason}
 
 ## Quality Validation
-- File-level TypeScript compilation: ✅ PASS  
+- File-level TypeScript compilation: ✅ PASS (using `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {files}`)
+- ESLint validation: ✅ PASS (using `npm run eslint -- {files}`)
 - Zero any types: ✅ PASS
 - Local imports resolved: ✅ PASS
 - Functionality preserved: ✅ PASS
 - Tests pass (if test file): ✅ PASS
+- Project-wide compilation note: {PASS/ISSUES-UNRELATED/ISSUES-RELATED} (from `npm run type`)
 - Coordinator action required: {YES/NO}
 
 ## Migration Learnings
@@ -110,10 +112,13 @@ DEPENDENCY_BLOCK: Cannot migrate {filename}
 1. **Use git mv** - Run `git mv file.js file.ts` to preserve git history, but NO `git commit`
 2. **NO global import changes** - Don't update imports across codebase
 3. **Type files OK** - Can modify existing type files to improve/align types
-4. **Targeted validation** - Run `tsc --noEmit` on modified files only
-5. Zero `any` types - use proper TypeScript types
-6. Search existing types before creating new ones
-7. Follow patterns from INSTRUCTIONS.md
+4. **TypeScript validation** - Use proper TypeScript compilation commands:
+   - **Per-file validation**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {relative-path-to-file}`
+   - **Project-wide scan**: `npm run type` (only consider errors related to your files - other agents may be working in parallel)
+5. **ESLint validation** - Run `npm run eslint -- {file}` for each migrated file to ensure formatting/linting
+6. Zero `any` types - use proper TypeScript types
+7. Search existing types before creating new ones
+8. Follow patterns from INSTRUCTIONS.md
 
 ---
 

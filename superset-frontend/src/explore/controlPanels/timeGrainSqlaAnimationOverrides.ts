@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ControlPanelState, Dataset } from '@superset-ui/chart-controls';
+
+interface TimeGrainOverrideState {
+  choices: [string, string][] | null;
+}
+
 export default {
   default: null,
-  mapStateToProps: state => ({
-    choices: state.datasource
-      ? state.datasource.time_grain_sqla.filter(o => o[0] !== null)
-      : null,
+  mapStateToProps: (state: ControlPanelState): TimeGrainOverrideState => ({
+    choices:
+      state.datasource && 'time_grain_sqla' in state.datasource
+        ? ((state.datasource as Dataset).time_grain_sqla?.filter(
+            (o: [string, string]) => o[0] !== null,
+          ) ?? null)
+        : null,
   }),
 };
