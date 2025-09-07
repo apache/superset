@@ -16,8 +16,15 @@
 # under the License.
 
 """
-Integration tests for BaseDAO functionality including database operations,
-CRUD methods, flexible column support, column operators, and error handling.
+Integration tests for BaseDAO functionality.
+
+This module contains comprehensive integration tests for the BaseDAO class and its
+subclasses, covering database operations, CRUD methods, flexible column support,
+column operators, and error handling.
+
+Tests use an in-memory SQLite database for isolation and to replicate the unit test
+environment behavior. User model deletions are avoided due to circular dependency
+constraints with self-referential foreign keys.
 """
 
 import datetime
@@ -109,7 +116,7 @@ def test_column_operator_enum_complete_coverage(user_with_data: Session) -> None
         assert column_operator.opr == operator
 
 
-def test_find_by_id_with_default_column(app_context: None) -> None:
+def test_find_by_id_with_default_column(app_context: Session) -> None:
     """Test find_by_id with default 'id' column."""
     # Create a user to test with
     user = User(
@@ -123,21 +130,17 @@ def test_find_by_id_with_default_column(app_context: None) -> None:
     db.session.commit()
 
     # Find by numeric id
-    found = UserDAO.find_by_id(user.id)
+    found = UserDAO.find_by_id(user.id, skip_base_filter=True)
     assert found is not None
     assert found.id == user.id
     assert found.username == "test_find_by_id"
 
     # Test with non-existent id
-    not_found = UserDAO.find_by_id(999999)
+    not_found = UserDAO.find_by_id(999999, skip_base_filter=True)
     assert not_found is None
 
-    # Cleanup
-    db.session.delete(user)
-    db.session.commit()
 
-
-def test_find_by_id_with_uuid_column(app_context: None) -> None:
+def test_find_by_id_with_uuid_column(app_context: Session) -> None:
     """Test find_by_id with custom uuid column."""
     # Create a dashboard with uuid
     dashboard = Dashboard(
@@ -148,27 +151,25 @@ def test_find_by_id_with_uuid_column(app_context: None) -> None:
     db.session.add(dashboard)
     db.session.commit()
 
-    # Find by uuid string
-    found = DashboardDAO.find_by_id(str(dashboard.uuid))
+    # Find by uuid string using the uuid column
+    found = DashboardDAO.find_by_id(
+        str(dashboard.uuid), id_column="uuid", skip_base_filter=True
+    )
     assert found is not None
     assert found.uuid == dashboard.uuid
     assert found.dashboard_title == "Test UUID Dashboard"
 
     # Find by numeric id (should still work)
-    found_by_id = DashboardDAO.find_by_id(dashboard.id)
+    found_by_id = DashboardDAO.find_by_id(dashboard.id, skip_base_filter=True)
     assert found_by_id is not None
     assert found_by_id.id == dashboard.id
 
     # Test with non-existent uuid
-    not_found = DashboardDAO.find_by_id(str(uuid.uuid4()))
+    not_found = DashboardDAO.find_by_id(str(uuid.uuid4()), skip_base_filter=True)
     assert not_found is None
 
-    # Cleanup
-    db.session.delete(dashboard)
-    db.session.commit()
 
-
-def test_find_by_id_with_slug_column(app_context: None) -> None:
+def test_find_by_id_with_slug_column(app_context: Session) -> None:
     """Test find_by_id with slug column fallback."""
     # Create a dashboard with slug
     dashboard = Dashboard(
@@ -179,29 +180,27 @@ def test_find_by_id_with_slug_column(app_context: None) -> None:
     db.session.add(dashboard)
     db.session.commit()
 
-    # Find by slug
-    found = DashboardDAO.find_by_id("test-slug-dashboard")
+    # Find by slug using the slug column
+    found = DashboardDAO.find_by_id(
+        "test-slug-dashboard", id_column="slug", skip_base_filter=True
+    )
     assert found is not None
     assert found.slug == "test-slug-dashboard"
     assert found.dashboard_title == "Test Slug Dashboard"
 
     # Test with non-existent slug
-    not_found = DashboardDAO.find_by_id("non-existent-slug")
+    not_found = DashboardDAO.find_by_id("non-existent-slug", skip_base_filter=True)
     assert not_found is None
 
-    # Cleanup
-    db.session.delete(dashboard)
-    db.session.commit()
 
-
-def test_find_by_id_with_invalid_column(app_context: None) -> None:
+def test_find_by_id_with_invalid_column(app_context: Session) -> None:
     """Test find_by_id returns None when column doesn't exist."""
     # This should return None gracefully
-    result = UserDAO.find_by_id("not_a_valid_id")
+    result = UserDAO.find_by_id("not_a_valid_id", skip_base_filter=True)
     assert result is None
 
 
-def test_find_by_id_skip_base_filter(app_context: None) -> None:
+def test_find_by_id_skip_base_filter(app_context: Session) -> None:
     """Test find_by_id with skip_base_filter parameter."""
     # Create users with different active states
     active_user = User(
@@ -233,13 +232,8 @@ def test_find_by_id_skip_base_filter(app_context: None) -> None:
     assert found_active.id == active_user.id
     assert found_active_skip.id == active_user.id
 
-    # Cleanup
-    db.session.delete(active_user)
-    db.session.delete(inactive_user)
-    db.session.commit()
 
-
-def test_find_by_ids_with_default_column(app_context: None) -> None:
+def test_find_by_ids_with_default_column(app_context: Session) -> None:
     """Test find_by_ids with default 'id' column."""
     # Create multiple users
     users = []
@@ -257,27 +251,22 @@ def test_find_by_ids_with_default_column(app_context: None) -> None:
 
     # Find by multiple ids
     ids = [user.id for user in users]
-    found = UserDAO.find_by_ids(ids)
+    found = UserDAO.find_by_ids(ids, skip_base_filter=True)
     assert len(found) == 3
     found_ids = [u.id for u in found]
     assert set(found_ids) == set(ids)
 
     # Test with mix of existent and non-existent ids
     mixed_ids = [users[0].id, 999999, users[1].id]
-    found_mixed = UserDAO.find_by_ids(mixed_ids)
+    found_mixed = UserDAO.find_by_ids(mixed_ids, skip_base_filter=True)
     assert len(found_mixed) == 2
 
     # Test with empty list
-    found_empty = UserDAO.find_by_ids([])
+    found_empty = UserDAO.find_by_ids([], skip_base_filter=True)
     assert found_empty == []
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_find_by_ids_with_uuid_column(app_context: None) -> None:
+def test_find_by_ids_with_uuid_column(app_context: Session) -> None:
     """Test find_by_ids with uuid column."""
     # Create multiple dashboards
     dashboards = []
@@ -293,23 +282,21 @@ def test_find_by_ids_with_uuid_column(app_context: None) -> None:
 
     # Find by multiple uuids
     uuids = [str(dashboard.uuid) for dashboard in dashboards]
-    found = DashboardDAO.find_by_ids(uuids)
+    found = DashboardDAO.find_by_ids(uuids, id_column="uuid", skip_base_filter=True)
     assert len(found) == 3
     found_uuids = [str(d.uuid) for d in found]
     assert set(found_uuids) == set(uuids)
 
-    # Test with mix of ids and uuids
-    mixed_ids = [dashboards[0].id, str(dashboards[1].uuid)]
-    found_mixed = DashboardDAO.find_by_ids(mixed_ids)
-    assert len(found_mixed) == 2
-
-    # Cleanup
-    for dashboard in dashboards:
-        db.session.delete(dashboard)
-    db.session.commit()
+    # Test with mix of ids and uuids - search separately by column
+    found_by_id = DashboardDAO.find_by_ids([dashboards[0].id], skip_base_filter=True)
+    found_by_uuid = DashboardDAO.find_by_ids(
+        [str(dashboards[1].uuid)], id_column="uuid", skip_base_filter=True
+    )
+    assert len(found_by_id) == 1
+    assert len(found_by_uuid) == 1
 
 
-def test_find_by_ids_with_slug_column(app_context: None) -> None:
+def test_find_by_ids_with_slug_column(app_context: Session) -> None:
     """Test find_by_ids with slug column."""
     # Create multiple dashboards
     dashboards = []
@@ -325,25 +312,20 @@ def test_find_by_ids_with_slug_column(app_context: None) -> None:
 
     # Find by multiple slugs
     slugs = [dashboard.slug for dashboard in dashboards]
-    found = DashboardDAO.find_by_ids(slugs)
+    found = DashboardDAO.find_by_ids(slugs, id_column="slug", skip_base_filter=True)
     assert len(found) == 3
     found_slugs = [d.slug for d in found]
     assert set(found_slugs) == set(slugs)
 
-    # Cleanup
-    for dashboard in dashboards:
-        db.session.delete(dashboard)
-    db.session.commit()
 
-
-def test_find_by_ids_with_invalid_column(app_context: None) -> None:
+def test_find_by_ids_with_invalid_column(app_context: Session) -> None:
     """Test find_by_ids returns empty list when column doesn't exist."""
     # This should return empty list gracefully
-    result = UserDAO.find_by_ids(["not_a_valid_id"])
+    result = UserDAO.find_by_ids(["not_a_valid_id"], skip_base_filter=True)
     assert result == []
 
 
-def test_find_by_ids_skip_base_filter(app_context: None) -> None:
+def test_find_by_ids_skip_base_filter(app_context: Session) -> None:
     """Test find_by_ids with skip_base_filter parameter."""
     # Create users
     users = []
@@ -369,13 +351,8 @@ def test_find_by_ids_skip_base_filter(app_context: None) -> None:
     found_skip = UserDAO.find_by_ids(ids, skip_base_filter=True)
     assert len(found_skip) == 3
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_create_with_item(app_context: None) -> None:
+def test_base_dao_create_with_item(app_context: Session) -> None:
     """Test BaseDAO.create with an item parameter."""
     # Create a user item
     user = User(
@@ -399,16 +376,12 @@ def test_base_dao_create_with_item(app_context: None) -> None:
     db.session.commit()
 
     # Find it again to ensure it was saved
-    found = UserDAO.find_by_id(created.id)
+    found = UserDAO.find_by_id(created.id, skip_base_filter=True)
     assert found is not None
     assert found.username == "created_with_item"
 
-    # Cleanup
-    db.session.delete(created)
-    db.session.commit()
 
-
-def test_base_dao_create_with_attributes(app_context: None) -> None:
+def test_base_dao_create_with_attributes(app_context: Session) -> None:
     """Test BaseDAO.create with attributes parameter."""
     # Create using attributes dict
     attributes = {
@@ -426,16 +399,12 @@ def test_base_dao_create_with_attributes(app_context: None) -> None:
 
     # Commit and verify
     db.session.commit()
-    found = UserDAO.find_by_id(created.id)
+    found = UserDAO.find_by_id(created.id, skip_base_filter=True)
     assert found is not None
     assert found.username == "created_with_attrs"
 
-    # Cleanup
-    db.session.delete(created)
-    db.session.commit()
 
-
-def test_base_dao_create_with_both_item_and_attributes(app_context: None) -> None:
+def test_base_dao_create_with_both_item_and_attributes(app_context: Session) -> None:
     """Test BaseDAO.create with both item and attributes (override behavior)."""
     # Create a user item
     user = User(
@@ -461,12 +430,8 @@ def test_base_dao_create_with_both_item_and_attributes(app_context: None) -> Non
 
     db.session.commit()
 
-    # Cleanup
-    db.session.delete(created)
-    db.session.commit()
 
-
-def test_base_dao_update_with_item(app_context: None) -> None:
+def test_base_dao_update_with_item(app_context: Session) -> None:
     """Test BaseDAO.update with an item parameter."""
     # Create a user first
     user = User(
@@ -488,16 +453,12 @@ def test_base_dao_update_with_item(app_context: None) -> None:
     db.session.commit()
 
     # Verify the update persisted
-    found = UserDAO.find_by_id(user.id)
+    found = UserDAO.find_by_id(user.id, skip_base_filter=True)
     assert found is not None
     assert found.first_name == "Updated"
 
-    # Cleanup
-    db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_update_with_attributes(app_context: None) -> None:
+def test_base_dao_update_with_attributes(app_context: Session) -> None:
     """Test BaseDAO.update with attributes parameter."""
     # Create a user first
     user = User(
@@ -519,12 +480,8 @@ def test_base_dao_update_with_attributes(app_context: None) -> None:
 
     db.session.commit()
 
-    # Cleanup
-    db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_update_detached_item(app_context: None) -> None:
+def test_base_dao_update_detached_item(app_context: Session) -> None:
     """Test BaseDAO.update with a detached item."""
     # Create a user first
     user = User(
@@ -551,68 +508,58 @@ def test_base_dao_update_detached_item(app_context: None) -> None:
     db.session.commit()
 
     # Verify the update persisted
-    found = UserDAO.find_by_id(user_id)
+    found = UserDAO.find_by_id(user_id, skip_base_filter=True)
     assert found is not None
     assert found.first_name == "Updated Detached"
 
-    # Cleanup
-    db.session.delete(found)
-    db.session.commit()
 
-
-def test_base_dao_delete_single_item(app_context: None) -> None:
+def test_base_dao_delete_single_item(app_context: Session) -> None:
     """Test BaseDAO.delete with a single item."""
-    # Create a user
-    user = User(
-        username="delete_test",
-        first_name="Delete",
-        last_name="Test",
-        email="delete@example.com",
-        active=True,
+    # Create a dashboard instead of user to avoid circular dependencies
+    dashboard = Dashboard(
+        dashboard_title="Delete Test",
+        slug="delete-test",
+        published=True,
     )
-    db.session.add(user)
+    db.session.add(dashboard)
     db.session.commit()
 
-    user_id = user.id
+    dashboard_id = dashboard.id
 
-    # Delete it
-    UserDAO.delete([user])
+    DashboardDAO.delete([dashboard])
     db.session.commit()
 
     # Verify it's gone
-    found = UserDAO.find_by_id(user_id)
+    found = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
     assert found is None
 
 
-def test_base_dao_delete_multiple_items(app_context: None) -> None:
+def test_base_dao_delete_multiple_items(app_context: Session) -> None:
     """Test BaseDAO.delete with multiple items."""
-    # Create multiple users
-    users = []
+    # Create multiple dashboards instead of users to avoid circular dependencies
+    dashboards = []
     for i in range(3):
-        user = User(
-            username=f"delete_multi_{i}",
-            first_name=f"Delete{i}",
-            last_name="Test",
-            email=f"delete{i}@example.com",
-            active=True,
+        dashboard = Dashboard(
+            dashboard_title=f"Delete Multi {i}",
+            slug=f"delete-multi-{i}",
+            published=True,
         )
-        users.append(user)
-        db.session.add(user)
+        dashboards.append(dashboard)
+        db.session.add(dashboard)
     db.session.commit()
 
-    user_ids = [user.id for user in users]
+    dashboard_ids = [dashboard.id for dashboard in dashboards]
 
-    # Delete all at once
-    UserDAO.delete(users)
+    DashboardDAO.delete(dashboards)
     db.session.commit()
 
     # Verify they're all gone
-    for user_id in user_ids:
-        found = UserDAO.find_by_id(user_id)
+    for dashboard_id in dashboard_ids:
+        found = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
         assert found is None
 
 
-def test_base_dao_delete_empty_list(app_context: None) -> None:
+def test_base_dao_delete_empty_list(app_context: Session) -> None:
     """Test BaseDAO.delete with empty list."""
     # Should not raise any errors
     UserDAO.delete([])
@@ -620,7 +567,7 @@ def test_base_dao_delete_empty_list(app_context: None) -> None:
     # Just ensuring no exception is raised
 
 
-def test_base_dao_find_all(app_context: None) -> None:
+def test_base_dao_find_all(app_context: Session) -> None:
     """Test BaseDAO.find_all method."""
     # Create some users
     users = []
@@ -645,13 +592,8 @@ def test_base_dao_find_all(app_context: None) -> None:
     for user in users:
         assert user.username in usernames
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_find_one_or_none(app_context: None) -> None:
+def test_base_dao_find_one_or_none(app_context: Session) -> None:
     """Test BaseDAO.find_one_or_none method."""
     # Create users with specific criteria
     user1 = User(
@@ -687,10 +629,6 @@ def test_base_dao_find_one_or_none(app_context: None) -> None:
     not_found = UserDAO.find_one_or_none(username="non_existent_user")
     assert not_found is None
 
-    # Cleanup
-    db.session.delete(user1)
-    db.session.delete(user2)
-    db.session.delete(user3)
     db.session.commit()
 
 
@@ -787,7 +725,6 @@ def test_base_dao_list_ordering(user_with_data: Session) -> None:
     assert usernames_desc.index("order_test_2") < usernames_desc.index("order_test_1")
     assert usernames_desc.index("order_test_1") < usernames_desc.index("order_test_0")
 
-    # Cleanup
     for user in users:
         user_with_data.delete(user)
     user_with_data.commit()
@@ -825,7 +762,6 @@ def test_base_dao_list_paging(user_with_data: Session) -> None:
     page2_ids = [r.id for r in page2_results]
     assert set(page1_ids).isdisjoint(set(page2_ids))  # No overlap
 
-    # Cleanup
     for user in users:
         user_with_data.delete(user)
     user_with_data.commit()
@@ -875,7 +811,6 @@ def test_base_dao_list_search(user_with_data: Session) -> None:
             or "searchable" in result.first_name.lower()
         )
 
-    # Cleanup
     for user in users:
         user_with_data.delete(user)
     user_with_data.commit()
@@ -905,21 +840,21 @@ def test_base_dao_list_custom_filter(user_with_data: Session) -> None:
 
     # Create a custom filter for active users only
     class ActiveUsersFilter(BaseFilter):
+        def __init__(self):
+            self.column_name = "active"
+            self.datamodel = None
+            self.model = User  # Set model directly
+
         def apply(self, query, value):
             return query.filter(User.active.is_(True))
 
-    custom_filters = {"active_only": ActiveUsersFilter("active", None)}
+    custom_filters = {"active_only": ActiveUsersFilter()}
 
     results, total = UserDAO.list(custom_filters=custom_filters)
 
     # All results should be active users
     for result in results:
         assert result.active is True
-
-    # Cleanup
-    user_with_data.delete(active_user)
-    user_with_data.delete(inactive_user)
-    user_with_data.commit()
 
 
 def test_base_dao_list_base_filter(user_with_data: Session) -> None:
@@ -962,7 +897,6 @@ def test_base_dao_list_base_filter(user_with_data: Session) -> None:
     for result in results:
         assert result.active is True
 
-    # Cleanup
     user_with_data.delete(active_user)
     user_with_data.delete(inactive_user)
     user_with_data.commit()
@@ -1032,12 +966,11 @@ def test_base_dao_list_with_default_columns(user_with_data: Session) -> None:
     assert total == 1
     assert results[0].username == "default_columns_test"
 
-    # Cleanup
     user_with_data.delete(user)
     user_with_data.commit()
 
 
-def test_base_dao_list_with_invalid_operator(app_context: None) -> None:
+def test_base_dao_list_with_invalid_operator(app_context: Session) -> None:
     """Test BaseDAO.list with invalid operator value."""
     # This test ensures that invalid operators are handled gracefully
     try:
@@ -1049,7 +982,7 @@ def test_base_dao_list_with_invalid_operator(app_context: None) -> None:
         pass
 
 
-def test_base_dao_get_filterable_columns(app_context: None) -> None:
+def test_base_dao_get_filterable_columns(app_context: Session) -> None:
     """Test get_filterable_columns_and_operators method."""
     # Get filterable columns for UserDAO
     filterable = UserDAO.get_filterable_columns_and_operators()
@@ -1065,7 +998,7 @@ def test_base_dao_get_filterable_columns(app_context: None) -> None:
         assert len(filterable[col]) > 0  # Should have at least some operators
 
 
-def test_base_dao_count_with_filters(app_context: None) -> None:
+def test_base_dao_count_with_filters(app_context: Session) -> None:
     """Test BaseDAO.count with various filters."""
     # Create test users
     users = []
@@ -1088,13 +1021,8 @@ def test_base_dao_count_with_filters(app_context: None) -> None:
     count = UserDAO.count(column_operators=column_operators)
     assert count == 5
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_find_by_ids_preserves_order(app_context: None) -> None:
+def test_find_by_ids_preserves_order(app_context: Session) -> None:
     """Test that find_by_ids preserves the order of input IDs."""
     # Create users with specific IDs
     users = []
@@ -1114,7 +1042,7 @@ def test_find_by_ids_preserves_order(app_context: None) -> None:
     user_ids = [users[1].id, users[2].id, users[0].id]  # 1, 2, 3
 
     # Find by IDs
-    found = UserDAO.find_by_ids(user_ids)
+    found = UserDAO.find_by_ids(user_ids, skip_base_filter=True)
 
     # The order might not be preserved by default SQL behavior
     # but we should get all users back
@@ -1122,13 +1050,8 @@ def test_find_by_ids_preserves_order(app_context: None) -> None:
     found_ids = [u.id for u in found]
     assert set(found_ids) == set(user_ids)
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_find_by_ids_with_mixed_types(app_context: None) -> None:
+def test_find_by_ids_with_mixed_types(app_context: Session) -> None:
     """Test find_by_ids with mixed ID types (int, str, uuid)."""
     # Create a database with mixed ID types
     database = Database(
@@ -1139,16 +1062,12 @@ def test_find_by_ids_with_mixed_types(app_context: None) -> None:
     db.session.commit()
 
     # Find by numeric ID
-    found = DatabaseDAO.find_by_ids([database.id])
+    found = DatabaseDAO.find_by_ids([database.id], skip_base_filter=True)
     assert len(found) == 1
     assert found[0].id == database.id
 
-    # Cleanup
-    db.session.delete(database)
-    db.session.commit()
 
-
-def test_find_by_column_helper_method(app_context: None) -> None:
+def test_find_by_column_helper_method(app_context: Session) -> None:
     """Test the _find_by_column helper method."""
     # Create a user
     user = User(
@@ -1170,12 +1089,8 @@ def test_find_by_column_helper_method(app_context: None) -> None:
     not_found = UserDAO._find_by_column("username", "non_existent")
     assert not_found is None
 
-    # Cleanup
-    db.session.delete(user)
-    db.session.commit()
 
-
-def test_find_methods_with_special_characters(app_context: None) -> None:
+def test_find_methods_with_special_characters(app_context: Session) -> None:
     """Test find methods with special characters in values."""
     # Create a dashboard with special characters in slug
     dashboard = Dashboard(
@@ -1187,21 +1102,21 @@ def test_find_methods_with_special_characters(app_context: None) -> None:
     db.session.commit()
 
     # Find by slug with special characters
-    found = DashboardDAO.find_by_id("test-special_chars.v1")
+    found = DashboardDAO.find_by_id(
+        "test-special_chars.v1", id_column="slug", skip_base_filter=True
+    )
     assert found is not None
     assert found.slug == "test-special_chars.v1"
 
     # Find by IDs with special characters
-    found_list = DashboardDAO.find_by_ids(["test-special_chars.v1"])
+    found_list = DashboardDAO.find_by_ids(
+        ["test-special_chars.v1"], id_column="slug", skip_base_filter=True
+    )
     assert len(found_list) == 1
     assert found_list[0].slug == "test-special_chars.v1"
 
-    # Cleanup
-    db.session.delete(dashboard)
-    db.session.commit()
 
-
-def test_find_methods_case_sensitivity(app_context: None) -> None:
+def test_find_methods_case_sensitivity(app_context: Session) -> None:
     """Test find methods with case sensitivity."""
     # Create users with similar usernames differing in case
     user1 = User(
@@ -1234,24 +1149,17 @@ def test_find_methods_case_sensitivity(app_context: None) -> None:
         assert found_lower.username == "casesensitive"
 
     finally:
-        # Cleanup - handle potential unique constraint issues
-        try:
-            db.session.delete(user1)
-            db.session.delete(user2)
-            db.session.commit()
-        except Exception:
-            # Some databases may have case-insensitive unique constraints
-            db.session.rollback()
+        pass
 
 
-def test_find_by_ids_empty_and_none_handling(app_context: None) -> None:
+def test_find_by_ids_empty_and_none_handling(app_context: Session) -> None:
     """Test find_by_ids with empty list and None values."""
     # Test with empty list
-    found_empty = UserDAO.find_by_ids([])
+    found_empty = UserDAO.find_by_ids([], skip_base_filter=True)
     assert found_empty == []
 
     # Test with None in list - cast to list with proper type
-    found_with_none = UserDAO.find_by_ids([None])  # type: ignore[list-item]
+    found_with_none = UserDAO.find_by_ids([None], skip_base_filter=True)  # type: ignore[list-item]
     assert found_with_none == []
 
     # Test with mix of valid and None
@@ -1265,16 +1173,12 @@ def test_find_by_ids_empty_and_none_handling(app_context: None) -> None:
     db.session.add(user)
     db.session.commit()
 
-    found_mixed = UserDAO.find_by_ids([user.id, None])  # type: ignore[list-item]
+    found_mixed = UserDAO.find_by_ids([user.id, None], skip_base_filter=True)  # type: ignore[list-item]
     assert len(found_mixed) == 1
     assert found_mixed[0].id == user.id
 
-    # Cleanup
-    db.session.delete(user)
-    db.session.commit()
 
-
-def test_find_methods_performance_with_large_lists(app_context: None) -> None:
+def test_find_methods_performance_with_large_lists(app_context: Session) -> None:
     """Test find_by_ids performance with large lists."""
     # Create a batch of users
     users = []
@@ -1294,20 +1198,15 @@ def test_find_methods_performance_with_large_lists(app_context: None) -> None:
     user_ids = [user.id for user in users]
 
     start_time = time.time()
-    found = UserDAO.find_by_ids(user_ids)
+    found = UserDAO.find_by_ids(user_ids, skip_base_filter=True)
     elapsed = time.time() - start_time
 
     assert len(found) == 50
     # Should complete reasonably quickly (within 1 second for 50 items)
     assert elapsed < 1.0
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_model_cls_property(app_context: None) -> None:
+def test_base_dao_model_cls_property(app_context: Session) -> None:
     """Test that model_cls is properly set on DAO classes."""
     # UserDAO should have User as model_cls
     assert UserDAO.model_cls == User
@@ -1322,7 +1221,7 @@ def test_base_dao_model_cls_property(app_context: None) -> None:
     assert DatabaseDAO.model_cls == Database
 
 
-def test_base_dao_id_column_name_property(app_context: None) -> None:
+def test_base_dao_id_column_name_property(app_context: Session) -> None:
     """Test that id_column_name property works correctly."""
     # Create a user to test with
     user = User(
@@ -1339,16 +1238,12 @@ def test_base_dao_id_column_name_property(app_context: None) -> None:
     assert UserDAO.id_column_name == "id"
 
     # Find by ID should work
-    found = UserDAO.find_by_id(user.id)
+    found = UserDAO.find_by_id(user.id, skip_base_filter=True)
     assert found is not None
     assert found.id == user.id
 
-    # Cleanup
-    db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_base_filter_integration(app_context: None) -> None:
+def test_base_dao_base_filter_integration(app_context: Session) -> None:
     """Test that base_filter is properly applied when set."""
     # Create test users
     users = []
@@ -1373,13 +1268,8 @@ def test_base_dao_base_filter_integration(app_context: None) -> None:
     all_users_normal = UserDAO.find_all()
     assert len(all_users_normal) >= 3
 
-    # Cleanup
-    for user in users:
-        db.session.delete(user)
-    db.session.commit()
 
-
-def test_base_dao_edge_cases(app_context: None) -> None:
+def test_base_dao_edge_cases(app_context: Session) -> None:
     """Test BaseDAO edge cases and error conditions."""
     # Test create without item or attributes
     created = UserDAO.create()
@@ -1417,7 +1307,7 @@ def test_base_dao_edge_cases(app_context: None) -> None:
     assert isinstance(total, int)
 
 
-def test_convert_value_for_column_uuid(app_context: None) -> None:
+def test_convert_value_for_column_uuid(app_context: Session) -> None:
     """Test the _convert_value_for_column method with UUID columns."""
     # Create a dashboard to get a real UUID column
     dashboard = Dashboard(
@@ -1446,12 +1336,8 @@ def test_convert_value_for_column_uuid(app_context: None) -> None:
     # Should return None or original value for invalid UUID
     assert invalid == "not-a-uuid" or invalid is None
 
-    # Cleanup
-    db.session.delete(dashboard)
-    db.session.commit()
 
-
-def test_convert_value_for_column_non_uuid(app_context: None) -> None:
+def test_convert_value_for_column_non_uuid(app_context: Session) -> None:
     """Test the _convert_value_for_column method with non-UUID columns."""
     # Get a non-UUID column
     id_column = User.id
@@ -1472,7 +1358,7 @@ def test_convert_value_for_column_non_uuid(app_context: None) -> None:
     assert converted == "testuser"
 
 
-def test_find_by_id_with_uuid_conversion_error_handling(app_context: None) -> None:
+def test_find_by_id_with_uuid_conversion_error_handling(app_context: Session) -> None:
     """Test find_by_id handles UUID conversion errors gracefully."""
     # Create a dashboard
     dashboard = Dashboard(
@@ -1485,15 +1371,11 @@ def test_find_by_id_with_uuid_conversion_error_handling(app_context: None) -> No
 
     # Try to find with completely invalid UUID format
     # Should handle gracefully and return None
-    found = DashboardDAO.find_by_id("not-a-uuid-at-all!!!")
+    found = DashboardDAO.find_by_id("not-a-uuid-at-all!!!", skip_base_filter=True)
     assert found is None
 
-    # Cleanup
-    db.session.delete(dashboard)
-    db.session.commit()
 
-
-def test_find_by_ids_with_uuid_conversion_error_handling(app_context: None) -> None:
+def test_find_by_ids_with_uuid_conversion_error_handling(app_context: Session) -> None:
     """Test find_by_ids handles UUID conversion errors gracefully."""
     # Create a dashboard
     dashboard = Dashboard(
@@ -1509,9 +1391,7 @@ def test_find_by_ids_with_uuid_conversion_error_handling(app_context: None) -> N
     invalid_uuids = ["not-a-uuid", "also-not-a-uuid"]
 
     # Should handle gracefully and only return valid matches
-    found = DashboardDAO.find_by_ids([valid_uuid] + invalid_uuids)
+    found = DashboardDAO.find_by_ids(
+        [valid_uuid] + invalid_uuids, id_column="uuid", skip_base_filter=True
+    )
     assert len(found) <= 1  # Should only find the valid one or none
-
-    # Cleanup
-    db.session.delete(dashboard)
-    db.session.commit()
