@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getComponentWidthFromDrop from './getComponentWidthFromDrop';
+import { safeStringify } from '../../utils/safeStringify';
 
-export default function doesChildOverflowParent(dropResult, layout) {
-  const childWidth = getComponentWidthFromDrop({ dropResult, layout });
-  return typeof childWidth === 'number' && childWidth < 0;
+interface GetKeyForFilterScopeTreeProps {
+  activeFilterField?: string;
+  checkedFilterFields: string[];
+}
+
+export default function getKeyForFilterScopeTree({
+  activeFilterField,
+  checkedFilterFields,
+}: GetKeyForFilterScopeTreeProps): string {
+  return safeStringify(
+    activeFilterField ? [activeFilterField] : checkedFilterFields,
+  );
 }

@@ -16,12 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => ({
-  columns: source.columns,
-  name: source?.datasource_name || source?.name || 'Untitled',
-  dbId: source?.database?.id || source?.dbId,
-  sql: source?.sql || '',
-  catalog: source?.catalog,
-  schema: source?.schema,
-  templateParams: source?.templateParams,
-});
+import type { ComponentType, Layout } from 'src/dashboard/types';
+import getComponentWidthFromDrop from './getComponentWidthFromDrop';
+
+export interface DropResult {
+  source: { id: string };
+  destination: { id: string };
+  dragging: {
+    id?: string;
+    type?: ComponentType;
+  };
+}
+
+export default function doesChildOverflowParent(
+  dropResult: DropResult,
+  layout: Layout,
+): boolean {
+  const childWidth = getComponentWidthFromDrop({ dropResult, layout });
+  return typeof childWidth === 'number' && childWidth < 0;
+}

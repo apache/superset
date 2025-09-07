@@ -16,16 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ChartState } from 'src/explore/types';
+import { Layout } from 'src/dashboard/types';
 import findNonTabChildCharIds from './findNonTabChildChartIds';
 
-export default function childChartsDidLoad({ chartQueries, layout, id }) {
+interface ChildChartsDidLoadParams {
+  chartQueries: Record<string, Partial<ChartState>>;
+  layout: Layout;
+  id: string;
+}
+
+interface ChildChartsDidLoadResult {
+  didLoad: boolean;
+  minQueryStartTime: number;
+}
+
+export default function childChartsDidLoad({
+  chartQueries,
+  layout,
+  id,
+}: ChildChartsDidLoadParams): ChildChartsDidLoadResult {
   const chartIds = findNonTabChildCharIds({ id, layout });
 
   let minQueryStartTime = Infinity;
-  const didLoad = chartIds.every(chartId => {
-    const query = chartQueries[chartId] || {};
-    minQueryStartTime = Math.min(query.chartUpdateStartTime, minQueryStartTime);
-    return ['stopped', 'failed', 'rendered'].indexOf(query.chartStatus) > -1;
+  const didLoad = chartIds.every((chartId: number) => {
+    const query = chartQueries[chartId.toString()] || {};
+    minQueryStartTime = Math.min(
+      query.chartUpdateStartTime || 0,
+      minQueryStartTime,
+    );
+    return ['stopped', 'failed', 'rendered'].includes(query.chartStatus || '');
   });
 
   return { didLoad, minQueryStartTime };

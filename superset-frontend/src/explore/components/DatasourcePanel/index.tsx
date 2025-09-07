@@ -58,6 +58,7 @@ export interface IDatasource {
   sql?: string | null;
   datasource_name?: string | null;
   name?: string | null;
+  catalog?: string | null;
   schema?: string | null;
 }
 

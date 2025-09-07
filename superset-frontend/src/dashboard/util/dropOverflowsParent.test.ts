@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
+// Layout type not directly used in tests - using object shapes for test data
+import dropOverflowsParent, {
+  type DropResult,
+} from 'src/dashboard/util/dropOverflowsParent';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import {
   CHART_TYPE,
@@ -28,7 +31,7 @@ import {
 
 describe('dropOverflowsParent', () => {
   it('returns true if a parent does NOT have adequate width for child', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
       dragging: { id: 'z' },
@@ -56,11 +59,11 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
   });
 
   it('returns false if a parent DOES have adequate width for child', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
       dragging: { id: 'z' },
@@ -88,11 +91,11 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 
   it('returns false if a child CAN shrink to available parent space', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
       dragging: { id: 'z' },
@@ -120,11 +123,11 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 
   it('returns true if a child CANNOT shrink to available parent space', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
       dragging: { id: 'b' },
@@ -153,11 +156,11 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
   });
 
   it('returns true if a column has children that CANNOT shrink to available parent space', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'destination' },
       dragging: { id: 'dragging' },
@@ -191,18 +194,18 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
     // remove children
     expect(
       dropOverflowsParent(dropResult, {
         ...layout,
-        dragging: { ...layout.dragging, children: [] },
-      }),
+        dragging: { ...layout.dragging, children: [] } as any,
+      } as any),
     ).toBe(false);
   });
 
   it('should work with new components that are not in the layout', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: NEW_COMPONENTS_SOURCE_ID },
       destination: { id: 'a' },
       dragging: { type: CHART_TYPE },
@@ -212,15 +215,15 @@ describe('dropOverflowsParent', () => {
       a: {
         id: 'a',
         type: ROW_TYPE,
-        children: [],
+        children: [] as any,
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 
   it('source/destination without widths should not overflow parent', () => {
-    const dropResult = {
+    const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'tab' },
       dragging: { id: 'header' },
@@ -237,6 +240,6 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
+    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 });
