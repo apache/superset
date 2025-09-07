@@ -19,7 +19,6 @@
 import 'src/public-path';
 
 import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import {
   type SupersetThemeConfig,
@@ -44,6 +43,7 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { createRoot } from 'react-dom/client';
 
 setupPlugins();
 
@@ -174,7 +174,8 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      const root = createRoot(appMountPoint);
+      root.render(<EmbeddedApp />);
     },
     err => {
       // something is most likely wrong with the guest token
