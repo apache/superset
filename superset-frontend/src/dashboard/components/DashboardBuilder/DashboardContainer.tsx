@@ -259,7 +259,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [onBeforeUnload]);
 
   const renderTabBar = useCallback(() => <></>, []);
-  const handleFocus = useCallback(e => {
+  const handleFocus = useCallback((e: any) => {
     if (
       // prevent scrolling when tabbing to the tab pane
       e.target.classList.contains('ant-tabs-tabpane') &&
@@ -273,7 +273,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => {
+    ({ width }: { width: any }) => {
       const tabItems = childIds.map((id, index) => ({
         key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
         label: null,

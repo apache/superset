@@ -641,7 +641,7 @@ function FiltersConfigModal({
   }, [currentFilterId]);
 
   const handleActiveFilterPanelChange = useCallback(
-    key => setActiveFilterPanelKey(key),
+    (key: any) => setActiveFilterPanelKey(key),
     [setActiveFilterPanelKey],
   );
 
@@ -750,7 +750,7 @@ function FiltersConfigModal({
       <ErrorBoundary>
         <StyledModalBody expanded={expanded}>
           <StyledForm
-            form={form}
+            form={form as any}
             onValuesChange={handleValuesChange}
             layout="vertical"
           >

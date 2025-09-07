@@ -198,7 +198,7 @@ function RoleListEditModal({
       bodyStyle={{ height: '400px' }}
       requiredFields={['roleName']}
     >
-      {(form: FormInstance) => {
+      {((form: FormInstance) => {
         formRef.current = form;
 
         return (
@@ -230,7 +230,7 @@ function RoleListEditModal({
             </Tabs.TabPane>
           </Tabs>
         );
-      }}
+      }) as any}
     </FormModal>
   );
 }

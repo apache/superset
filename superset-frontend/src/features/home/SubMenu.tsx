@@ -299,7 +299,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
             <Button
               key={i}
               buttonStyle={btn.buttonStyle}
-              icon={btn.icon}
+              icon={btn.icon as any}
               onClick={btn.onClick}
               data-test={btn['data-test']}
               loading={btn.loading ?? false}

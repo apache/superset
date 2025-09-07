@@ -112,7 +112,7 @@ export const FilterableTable = ({
   const keyword = useRef<string | undefined>(filterText);
   keyword.current = filterText;
 
-  const keywordFilter = useCallback(node => {
+  const keywordFilter = useCallback((node: any) => {
     if (keyword.current && node.data) {
       return hasMatch(keyword.current, node.data);
     }

@@ -100,7 +100,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       new: isNewQuery,
       ...urlParams
     } = {
-      ...this.context.requestedQuery,
+      ...(this.context as any).requestedQuery,
       ...bootstrapData.requested_query,
       ...queryParameters,
     } as Record<string, string>;
@@ -140,7 +140,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
           schema,
           autorun,
           sql,
-          isDataset: this.context.isDataset,
+          isDataset: (this.context as any).isDataset,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }

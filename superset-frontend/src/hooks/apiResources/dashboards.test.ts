@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import { useDashboardDatasets } from './dashboards';
 
@@ -60,10 +60,8 @@ describe('useDashboardDatasets', () => {
       result: mockDatasets,
     });
 
-    const { result, waitForNextUpdate } = renderHook(() =>
-      useDashboardDatasets(1),
-    );
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useDashboardDatasets(1));
+    await waitFor(() => expect(result.current.result).toBeDefined());
 
     const expectedContent = [
       {

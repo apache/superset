@@ -133,7 +133,7 @@ function UserListModal({
       requiredFields={requiredFields}
       initialValues={initialValues}
     >
-      {(form: FormInstance) => (
+      {((form: FormInstance) => (
         <>
           <FormItem
             name="first_name"
@@ -268,7 +268,7 @@ function UserListModal({
             </>
           )}
         </>
-      )}
+      )) as any}
     </FormModal>
   );
 }

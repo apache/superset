@@ -328,6 +328,7 @@ export const OptionControlLabel = ({
     },
   });
   const [{ isDragging }, drag] = useDrag({
+    type,
     item: {
       type,
       dragIndex: index,

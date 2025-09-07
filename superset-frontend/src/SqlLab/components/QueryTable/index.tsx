@@ -47,14 +47,17 @@ import { StaticPosition, StyledTooltip } from './styles';
 interface QueryTableQuery
   extends Omit<
     QueryResponse,
-    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started' | 'user' | 'db' | 'querylink'
   > {
   state?: Record<string, any>;
-  sql?: Record<string, any>;
+  sql?: ReactNode;
   progress?: Record<string, any>;
   results?: Record<string, any>;
   duration?: ReactNode;
   started?: ReactNode;
+  user?: ReactNode;
+  db?: ReactNode;
+  querylink?: ReactNode;
 }
 
 interface QueryTableProps {
@@ -234,7 +237,7 @@ const QueryTable = ({
     return queries
       .map(query => {
         const { state, sql, progress, ...rest } = query;
-        const q = rest as QueryTableQuery;
+        const q = { ...rest } as unknown as QueryTableQuery;
 
         const status = statusAttributes[state] || statusAttributes.error;
 

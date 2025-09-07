@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, ReactNode } from 'react';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -33,7 +33,7 @@ const proxyToInfinity = Number.MAX_VALUE;
 
 export interface ResizableContainerProps {
   id: string;
-  children?: object;
+  children?: ReactNode;
   adjustableWidth?: boolean;
   adjustableHeight?: boolean;
   gutterWidth?: number;

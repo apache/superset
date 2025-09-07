@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -64,7 +64,7 @@ describe('useSchemas hook', () => {
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
     fetchMock.get(schemaApiRoute, fakeApiResult);
     const onSuccess = jest.fn();
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useSchemas({
           dbId: expectDbId,
@@ -106,7 +106,7 @@ describe('useSchemas hook', () => {
     const expectDbId = 'db1';
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
     fetchMock.get(schemaApiRoute, fakeApiResult);
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       () =>
         useSchemas({
           dbId: expectDbId,
@@ -132,7 +132,7 @@ describe('useSchemas hook', () => {
       url.includes(expectDbId) ? fakeApiResult : fakeApiResult2,
     );
     const onSuccess = jest.fn();
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       ({ dbId }) =>
         useSchemas({
           dbId,
@@ -189,7 +189,7 @@ describe('useSchemas hook', () => {
         : fakeApiResult2,
     );
     const onSuccess = jest.fn();
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       ({ dbId, catalog }) =>
         useSchemas({
           dbId,

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import React from 'react';
 import { PickingInfo } from '@deck.gl/core';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import {
@@ -98,8 +99,8 @@ describe('getAggFunc', () => {
 
 describe('commonLayerProps', () => {
   const mockSetTooltip = jest.fn();
-  const mockSetTooltipContent = jest.fn(
-    () => (o: JsonObject) => `Tooltip for ${o}`,
+  const mockSetTooltipContent = jest.fn().mockReturnValue(
+    (o: JsonObject) => `Tooltip for ${o}` as React.ReactNode,
   );
   const mockOnSelect = jest.fn();
 

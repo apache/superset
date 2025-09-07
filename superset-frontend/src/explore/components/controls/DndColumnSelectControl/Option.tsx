@@ -42,7 +42,7 @@ export default function Option({
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
-    e => {
+    (e: any) => {
       e.stopPropagation();
       clickClose(index);
     },

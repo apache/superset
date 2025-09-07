@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { PureComponent, ErrorInfo } from 'react';
 import {
   ensureIsArray,
   FeatureFlag,
@@ -205,14 +205,14 @@ class Chart extends PureComponent<ChartProps, {}> {
 
   handleRenderContainerFailure(
     error: Error,
-    info: { componentStack: string } | null,
+    info: ErrorInfo,
   ) {
     const { actions, chartId } = this.props;
     logging.warn(error);
     actions.chartRenderingFailed(
       error.toString(),
       chartId,
-      info ? info.componentStack : null,
+      info ? info.componentStack ?? null : null,
     );
 
     actions.logEvent(LOG_ACTIONS_RENDER_CHART, {

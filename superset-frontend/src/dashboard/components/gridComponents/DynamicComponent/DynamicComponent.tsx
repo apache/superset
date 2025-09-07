@@ -88,7 +88,7 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
 
   const updateMeta = (metaKey: string, nextValue: string | number) => {
     updateComponents({
-      [component.id]: {
+      [String(component.id)]: {
         ...component,
         meta: {
           ...component.meta,
@@ -119,13 +119,13 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
       onDrop={handleComponentDrop}
       editMode={editMode}
     >
-      {({ dragSourceRef }) => (
+      {({ dragSourceRef }: { dragSourceRef: any }) => (
         <WithPopoverMenu
           menuItems={[
             <BackgroundStyleDropdown
               id={`${component.id}-background`}
               value={component.meta.background}
-              onChange={value => updateMeta('background', value)}
+              onChange={value => updateMeta('background', value as string | number)}
             />,
           ]}
           editMode={editMode}

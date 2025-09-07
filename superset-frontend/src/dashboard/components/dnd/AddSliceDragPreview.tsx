@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DragLayer, XYCoord } from 'react-dnd';
+import { useDragLayer } from 'react-dnd';
 import { Slice } from 'src/dashboard/types';
 import AddSliceCard from '../AddSliceCard';
 import {
@@ -31,10 +31,7 @@ interface DragItem {
 }
 
 interface AddSliceDragPreviewProps {
-  dragItem: DragItem | null;
   slices: Slice[] | null;
-  isDragging: boolean;
-  currentOffset: XYCoord | null;
 }
 
 const staticCardStyles: React.CSSProperties = {
@@ -47,11 +44,13 @@ const staticCardStyles: React.CSSProperties = {
 };
 
 const AddSliceDragPreview: React.FC<AddSliceDragPreviewProps> = ({
-  dragItem,
   slices,
-  isDragging,
-  currentOffset,
 }) => {
+  const { dragItem, isDragging, currentOffset } = useDragLayer((monitor: any) => ({
+    dragItem: monitor.getItem() as DragItem | null,
+    currentOffset: monitor.getSourceClientOffset(),
+    isDragging: monitor.isDragging(),
+  }));
   if (!isDragging || !currentOffset || !dragItem || !slices) return null;
 
   const slice = slices[dragItem.index];
@@ -77,9 +76,4 @@ const AddSliceDragPreview: React.FC<AddSliceDragPreviewProps> = ({
   );
 };
 
-// This injects these props into the component
-export default DragLayer(monitor => ({
-  dragItem: monitor.getItem() as DragItem | null,
-  currentOffset: monitor.getSourceClientOffset(),
-  isDragging: monitor.isDragging(),
-}))(AddSliceDragPreview);
+export default AddSliceDragPreview;

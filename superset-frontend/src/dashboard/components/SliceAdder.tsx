@@ -312,7 +312,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
         // actual style should be applied to nested AddSliceCard component
         style={{}}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: { dragSourceRef: any }) => (
           <AddSliceCard
             innerRef={dragSourceRef}
             style={style}

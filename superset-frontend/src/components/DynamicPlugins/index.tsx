@@ -21,7 +21,6 @@ import {
   useEffect,
   useReducer,
   createContext,
-  FC,
   PropsWithChildren,
 } from 'react';
 

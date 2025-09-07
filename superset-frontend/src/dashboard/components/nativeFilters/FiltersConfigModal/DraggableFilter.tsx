@@ -18,6 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { useRef, FC } from 'react';
+import React from 'react';
 import {
   DragSourceMonitor,
   DropTargetMonitor,
@@ -57,6 +58,7 @@ interface FilterTabTitleProps {
   index: number;
   filterIds: string[];
   onRearrange: (dragItemIndex: number, targetIndex: number) => void;
+  children?: React.ReactNode;
 }
 
 interface DragItem {
@@ -73,6 +75,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag({
+    type: FILTER_TYPE,
     item: { filterIds, type: FILTER_TYPE, index },
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),

@@ -165,7 +165,7 @@ const RunQueryActionButton = ({
             }
           : {
               buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
-              icon,
+              icon: icon as any,
             })}
       >
         {text}

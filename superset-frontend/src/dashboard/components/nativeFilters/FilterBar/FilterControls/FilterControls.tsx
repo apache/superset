@@ -187,7 +187,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   }, [overflowedCrossFilters, overflowedFiltersInScope]);
 
   const rendererCrossFilter = useCallback(
-    (crossFilter, orientation, last) => (
+    (crossFilter: any, orientation: any, last: any) => (
       <CrossFilter
         filter={crossFilter}
         orientation={orientation}

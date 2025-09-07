@@ -55,15 +55,12 @@ afterEach(() => {
 test('puts api request with formData', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}`;
   fetchMock.put(tabStateMutationApiRoute, 200);
-  const { result } = renderHook(
-    () => useUpdateSqlEditorTabMutation(),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store,
-      }),
-    },
-  );
+  const { result } = renderHook(() => useUpdateSqlEditorTabMutation(), {
+    wrapper: createWrapper({
+      useRedux: true,
+      store,
+    }),
+  });
   act(() => {
     result.current[0]({
       queryEditor: expectedQueryEditor,
@@ -105,15 +102,12 @@ test('puts api request with formData', async () => {
 test('posts activate request with queryEditorId', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}/activate`;
   fetchMock.post(tabStateMutationApiRoute, 200);
-  const { result } = renderHook(
-    () => useUpdateCurrentSqlEditorTabMutation(),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store,
-      }),
-    },
-  );
+  const { result } = renderHook(() => useUpdateCurrentSqlEditorTabMutation(), {
+    wrapper: createWrapper({
+      useRedux: true,
+      store,
+    }),
+  });
   act(() => {
     result.current[0](expectedQueryEditor.id);
   });
@@ -125,15 +119,12 @@ test('posts activate request with queryEditorId', async () => {
 test('deletes destoryed query editors', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}`;
   fetchMock.delete(tabStateMutationApiRoute, 200);
-  const { result } = renderHook(
-    () => useDeleteSqlEditorTabMutation(),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store,
-      }),
-    },
-  );
+  const { result } = renderHook(() => useDeleteSqlEditorTabMutation(), {
+    wrapper: createWrapper({
+      useRedux: true,
+      store,
+    }),
+  });
   act(() => {
     result.current[0](expectedQueryEditor.id);
   });
