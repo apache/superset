@@ -20,10 +20,10 @@ import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, styled } from '@superset-ui/core';
 
-import { Draggable } from '../dnd/DragDroppable';
-import HoverMenu from '../menu/HoverMenu';
-import DeleteComponentButton from '../DeleteComponentButton';
-import { componentShape } from '../../util/propShapes';
+import { Draggable } from '../../dnd/DragDroppable';
+import HoverMenu from '../../menu/HoverMenu';
+import DeleteComponentButton from '../../DeleteComponentButton';
+import { componentShape } from '../../../util/propShapes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
