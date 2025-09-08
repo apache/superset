@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { processSpatialData, DataRecord } from '../spatialUtils';
 import {
-  processSpatialData,
-  getMapboxApiKey,
-  addJsColumnsToExtraProps,
-  DataRecord,
-} from '../spatialUtils';
+  createBaseTransformResult,
+  getRecordsFromQuery,
+  getMetricLabelFromFormData,
+  parseMetricValue,
+  addPropertiesToFeature,
+} from '../transformUtils';
 import { DeckScatterFormData } from './buildQuery';
-
-const NOOP = () => {};
 
 interface ScatterPoint {
   position: [number, number];
@@ -49,83 +49,57 @@ function processScatterData(
   }
 
   const spatialFeatures = processSpatialData(records, spatial);
+  const excludeKeys = new Set([
+    'position',
+    'weight',
+    'extraProps',
+    ...(spatial
+      ? [
+          spatial.lonCol,
+          spatial.latCol,
+          spatial.lonlatCol,
+          spatial.geohashCol,
+        ].filter(Boolean)
+      : []),
+    radiusMetricLabel,
+    categoryColumn,
+    ...(jsColumns || []),
+  ]);
 
-  return spatialFeatures.map((feature, index) => {
-    const record = records[index];
+  return spatialFeatures.map(feature => {
     let scatterPoint: ScatterPoint = {
       position: feature.position,
-      extraProps: {},
+      extraProps: feature.extraProps || {},
     };
 
-    scatterPoint = addJsColumnsToExtraProps(scatterPoint, record, jsColumns);
-    if (radiusMetricLabel && record[radiusMetricLabel] != null) {
-      const radiusValue = parseFloat(String(record[radiusMetricLabel]));
-      if (!Number.isNaN(radiusValue)) {
+    if (radiusMetricLabel && feature[radiusMetricLabel] != null) {
+      const radiusValue = parseMetricValue(feature[radiusMetricLabel]);
+      if (radiusValue !== undefined) {
         scatterPoint.radius = radiusValue;
         scatterPoint.metric = radiusValue;
       }
     }
 
-    if (categoryColumn && record[categoryColumn] != null) {
-      scatterPoint.cat_color = String(record[categoryColumn]);
+    if (categoryColumn && feature[categoryColumn] != null) {
+      scatterPoint.cat_color = String(feature[categoryColumn]);
     }
 
-    Object.keys(record).forEach(key => {
-      if (spatial) {
-        const spatialColumnValues = [
-          spatial.lonCol,
-          spatial.latCol,
-          spatial.lonlatCol,
-          spatial.geohashCol,
-        ].filter(Boolean);
-        if (spatialColumnValues.includes(key)) {
-          return;
-        }
-      }
-
-      if (key === radiusMetricLabel || key === categoryColumn) {
-        return;
-      }
-
-      if (jsColumns?.includes(key)) {
-        return;
-      }
-
-      scatterPoint[key] = record[key];
-    });
-
+    scatterPoint = addPropertiesToFeature(
+      scatterPoint,
+      feature as DataRecord,
+      excludeKeys,
+    );
     return scatterPoint;
   });
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const {
-    datasource,
-    height,
-    hooks,
-    queriesData,
-    rawFormData: formData,
-    width,
-    filterState,
-    emitCrossFilters,
-  } = chartProps;
-
-  const {
-    onAddFilter = NOOP,
-    onContextMenu = NOOP,
-    setControlValue = NOOP,
-    setDataMask = NOOP,
-  } = hooks;
-
+  const { rawFormData: formData } = chartProps;
   const { spatial, point_radius_fixed, category_name, js_columns } =
     formData as DeckScatterFormData;
 
-  const radiusMetricLabel = point_radius_fixed?.value
-    ? getMetricLabel(point_radius_fixed.value)
-    : undefined;
-
-  const queryData = queriesData[0];
-  const records = queryData?.data || [];
+  const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
+  const records = getRecordsFromQuery(chartProps.queriesData);
   const features = processScatterData(
     records,
     spatial,
@@ -134,30 +108,9 @@ export default function transformProps(chartProps: ChartProps) {
     js_columns,
   );
 
-  return {
-    datasource,
-    emitCrossFilters,
-    formData,
-    height,
-    onAddFilter,
-    onContextMenu,
-    payload: {
-      ...queryData,
-      data: {
-        features,
-        mapboxApiKey: getMapboxApiKey(),
-        metricLabels: radiusMetricLabel ? [radiusMetricLabel] : [],
-      },
-    },
-    setControlValue,
-    filterState,
-    viewport: {
-      ...formData.viewport,
-      height,
-      width,
-    },
-    width,
-    setDataMask,
-    setTooltip: () => {},
-  };
+  return createBaseTransformResult(
+    chartProps,
+    features,
+    radiusMetricLabel ? [radiusMetricLabel] : [],
+  );
 }

@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel, DTTM_ALIAS } from '@superset-ui/core';
+import { ChartProps, DTTM_ALIAS } from '@superset-ui/core';
+import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
 import {
-  getMapboxApiKey,
-  addJsColumnsToExtraProps,
-  DataRecord,
-} from '../spatialUtils';
+  createBaseTransformResult,
+  getRecordsFromQuery,
+  getMetricLabelFromFormData,
+  parseMetricValue,
+  addPropertiesToFeature,
+} from '../transformUtils';
 import { DeckPathFormData } from './buildQuery';
 
 declare global {
@@ -40,8 +43,6 @@ export interface DeckPathTransformPropsFormData extends DeckPathFormData {
   js_tooltip?: string;
   js_onclick_href?: string;
 }
-
-const NOOP = () => {};
 
 interface PathFeature {
   path: [number, number][];
@@ -96,6 +97,15 @@ function processPathData(
   }
 
   const decoder = decoders[lineType] || decoders.json;
+  const excludeKeys = new Set(
+    [
+      lineType !== 'geohash' ? lineColumn : undefined,
+      'timestamp',
+      DTTM_ALIAS,
+      metricLabel,
+      ...(jsColumns || []),
+    ].filter(Boolean) as string[],
+  );
 
   return records.map(record => {
     const lineData = record[lineColumn];
@@ -103,7 +113,6 @@ function processPathData(
 
     if (lineData) {
       path = decoder(String(lineData));
-
       if (reverseLongLat && path.length > 0) {
         path = path.map(([lng, lat]) => [lat, lng]);
       }
@@ -116,52 +125,20 @@ function processPathData(
     };
 
     if (metricLabel && record[metricLabel] != null) {
-      const metricValue = parseFloat(String(record[metricLabel]));
-      if (!Number.isNaN(metricValue)) {
+      const metricValue = parseMetricValue(record[metricLabel]);
+      if (metricValue !== undefined) {
         feature.metric = metricValue;
       }
     }
 
     feature = addJsColumnsToExtraProps(feature, record, jsColumns);
-    Object.keys(record).forEach(key => {
-      if (key === lineColumn && lineType !== 'geohash') {
-        return;
-      }
-
-      if (key === 'timestamp' || key === DTTM_ALIAS || key === metricLabel) {
-        return;
-      }
-
-      if (jsColumns?.includes(key)) {
-        return;
-      }
-
-      feature[key] = record[key];
-    });
-
+    feature = addPropertiesToFeature(feature, record, excludeKeys);
     return feature;
   });
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const {
-    datasource,
-    height,
-    hooks,
-    queriesData,
-    rawFormData: formData,
-    width,
-    filterState,
-    emitCrossFilters,
-  } = chartProps;
-
-  const {
-    onAddFilter = NOOP,
-    onContextMenu = NOOP,
-    setControlValue = NOOP,
-    setDataMask = NOOP,
-  } = hooks;
-
+  const { rawFormData: formData } = chartProps;
   const {
     line_column,
     line_type = 'json',
@@ -170,10 +147,8 @@ export default function transformProps(chartProps: ChartProps) {
     js_columns,
   } = formData as DeckPathTransformPropsFormData;
 
-  const metricLabel = metric ? getMetricLabel(metric) : undefined;
-
-  const queryData = queriesData[0];
-  const records = queryData?.data || [];
+  const metricLabel = getMetricLabelFromFormData(metric);
+  const records = getRecordsFromQuery(chartProps.queriesData);
   const features = processPathData(
     records,
     line_column || '',
@@ -183,30 +158,9 @@ export default function transformProps(chartProps: ChartProps) {
     js_columns,
   ).reverse();
 
-  return {
-    datasource,
-    emitCrossFilters,
-    formData,
-    height,
-    onAddFilter,
-    onContextMenu,
-    payload: {
-      ...queryData,
-      data: {
-        features,
-        mapboxApiKey: getMapboxApiKey(),
-        metricLabels: metricLabel ? [metricLabel] : [],
-      },
-    },
-    setControlValue,
-    filterState,
-    viewport: {
-      ...formData.viewport,
-      height,
-      width,
-    },
-    width,
-    setDataMask,
-    setTooltip: () => {},
-  };
+  return createBaseTransformResult(
+    chartProps,
+    features,
+    metricLabel ? [metricLabel] : [],
+  );
 }

@@ -18,5 +18,4 @@
  */
 import { transformSpatialProps } from '../spatialUtils';
 
-// Use the generic spatial transform function directly
 export default transformSpatialProps;

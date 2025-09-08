@@ -18,10 +18,6 @@
  */
 import { SpatialFormData, buildSpatialQuery } from '../spatialUtils';
 
-export interface DeckHeatmapFormData extends SpatialFormData {
-  // Heatmap-specific properties can be added here if needed
-}
-
-export default function buildQuery(formData: DeckHeatmapFormData) {
+export default function buildQuery(formData: SpatialFormData) {
   return buildSpatialQuery(formData);
 }

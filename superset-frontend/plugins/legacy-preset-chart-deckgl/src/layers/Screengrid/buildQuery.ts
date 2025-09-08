@@ -18,10 +18,6 @@
  */
 import { SpatialFormData, buildSpatialQuery } from '../spatialUtils';
 
-export interface DeckScreengridFormData extends SpatialFormData {
-  // No additional fields specific to Screengrid
-}
-
-export default function buildQuery(formData: DeckScreengridFormData) {
+export default function buildQuery(formData: SpatialFormData) {
   return buildSpatialQuery(formData);
 }
