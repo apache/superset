@@ -39,7 +39,3 @@ export interface TagType {
   css?: SerializedStyles;
   closable?: boolean;
 }
-
-// For backward compatibility with PropTypes usage - create a placeholder object
-const tagType = {} as any;
-export default tagType;
