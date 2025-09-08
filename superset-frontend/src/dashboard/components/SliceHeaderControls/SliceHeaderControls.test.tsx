@@ -451,6 +451,102 @@ test('Should not show "View as table"', () => {
   expect(screen.queryByText('View as table')).not.toBeInTheDocument();
 });
 
+// Tests for dashboard menu visibility controls
+test('Should hide "Enter fullscreen" when show_fullscreen_menu is false', () => {
+  const props = createProps();
+  props.formData = {
+    ...props.formData,
+    show_fullscreen_menu: false,
+  };
+  renderWrapper(props);
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
+});
+
+test('Should show "Enter fullscreen" when show_fullscreen_menu is true', () => {
+  const props = createProps();
+  props.formData = {
+    ...props.formData,
+    show_fullscreen_menu: true,
+  };
+  renderWrapper(props);
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+});
+
+test('Should show "Enter fullscreen" when show_fullscreen_menu is undefined (default behavior)', () => {
+  const props = createProps();
+  // Explicitly not setting show_fullscreen_menu to test default behavior
+  renderWrapper(props);
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+});
+
+test('Should hide "View as table" when show_data_menu is false', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
+  props.formData = {
+    ...props.formData,
+    show_data_menu: false,
+  };
+  renderWrapper(props);
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+});
+
+test('Should show "View as table" when show_data_menu is true and user has permissions', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
+  props.formData = {
+    ...props.formData,
+    show_data_menu: true,
+  };
+  renderWrapper(props);
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+});
+
+test('Should show "View as table" when show_data_menu is undefined and user has permissions (default behavior)', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
+  // Explicitly not setting show_data_menu to test default behavior
+  renderWrapper(props);
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+});
+
+test('Should not show "View as table" even when show_data_menu is true but user lacks permissions', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.formData = {
+    ...props.formData,
+    show_data_menu: true,
+  };
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+});
+
+test('Should handle both menu controls being disabled', () => {
+  const props = createProps();
+  props.formData = {
+    ...props.formData,
+    show_fullscreen_menu: false,
+    show_data_menu: false,
+  };
+  renderWrapper(props);
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+  
+  // But other menu items should still be present
+  expect(screen.getByText('Edit chart')).toBeInTheDocument();
+});
+
 test('Should not show the "Edit chart" button', () => {
   const props = {
     ...createProps(),

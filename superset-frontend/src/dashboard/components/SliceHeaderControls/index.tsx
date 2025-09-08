@@ -760,7 +760,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
+      {(props.formData?.show_fullscreen_menu !== false) && (
+        <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
+      )}
 
       <Menu.Divider />
 
@@ -804,7 +806,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {(canExplore || canViewTable) && (
+      {(canExplore || canViewTable) && (props.formData?.show_data_menu !== false) && (
         <Menu.Item key={MenuKeys.ViewResults}>
           <ViewResultsModalTrigger
             canExplore={props.supersetCanExplore}

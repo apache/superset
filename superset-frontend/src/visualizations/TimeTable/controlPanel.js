@@ -59,6 +59,7 @@ export default {
         ],
       ],
     },
+    sections.dashboardMenuControls,
   ],
   controlOverrides: {
     groupby: {
