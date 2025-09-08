@@ -1104,7 +1104,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
             # do not pass "" as an empty schema; force null
-            return engine.has_table(table.table, table.schema or None)
+            if engine.has_table(table.table, table.schema or None):
+                return True
+            return engine.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
