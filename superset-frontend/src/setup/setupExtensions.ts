@@ -17,9 +17,18 @@
  * under the License.
  */
 
-// For individual deployments to add custom overrides
+/**
+ * Configuration options for setting up extensions in different contexts.
+ */
 interface SetupExtensionsOptions {
+  /**
+   * Whether the application is running in embedded mode.
+   */
   embedded?: boolean;
 }
 
+/**
+ * Hook for individual deployments to add custom overrides and extensions
+ * @param options - Configuration options for the setup process
+ */
 export default function setupExtensions(options: SetupExtensionsOptions = {}) {}
