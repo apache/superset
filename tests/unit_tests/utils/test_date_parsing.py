@@ -171,6 +171,78 @@ def test_edge_cases():
         normalize_dttm_col(df_copy, date_cols)
 
 
+def test_detect_datetime_format_empty_series():
+    """Test detect_datetime_format returns None for empty series after dropping NaN."""
+    # Test with all None values - covers lines 50-51 in pandas.py
+    series_all_none = pd.Series([None, None, None])
+    assert detect_datetime_format(series_all_none) is None
+
+    # Test with all NaN values
+    series_all_nan = pd.Series([pd.NaT, pd.NaT, pd.NaT])
+    assert detect_datetime_format(series_all_nan) is None
+
+    # Test with empty series
+    series_empty = pd.Series([], dtype=object)
+    assert detect_datetime_format(series_empty) is None
+
+
+def test_datetime_conversion_value_error(caplog, monkeypatch):
+    """Test ValueError during datetime conversion logs a warning.
+
+    Covers core.py lines 1887-88.
+    """
+    # Create a DataFrame with string values representing dates that are
+    # already datetime-like but when epoch_s format is specified and the
+    # values are NOT numeric, it tries to convert them using pd.Timestamp
+    # which can fail
+
+    # Create a mock type that raises ValueError when pd.Timestamp is called on it
+    class BadTimestampValue:
+        def __init__(self, value):
+            self.value = value
+
+        def __repr__(self):
+            return f"BadTimestamp({self.value})"
+
+        def __bool__(self):
+            return True
+
+    # Create DataFrame with values that will fail pd.Timestamp conversion
+    df = pd.DataFrame(
+        {
+            "date": [
+                BadTimestampValue("2023-01-01"),
+                BadTimestampValue("2023-01-02"),
+                BadTimestampValue("2023-01-03"),
+            ]
+        }
+    )
+
+    # Store original Timestamp
+    original_timestamp = pd.Timestamp
+
+    def failing_timestamp(value):
+        if isinstance(value, BadTimestampValue):
+            raise ValueError(f"Cannot convert {value} to Timestamp")
+        return original_timestamp(value)
+
+    # Set to epoch format with non-numeric data to trigger the else branch
+    # (lines 1881-1891 in core.py)
+    date_cols = (DateColumn(col_label="date", timestamp_format="epoch_s"),)
+
+    # Clear any existing log records
+    caplog.clear()
+
+    # Run the function with our patched Timestamp - should log a warning
+    with caplog.at_level("WARNING"):
+        # Use monkeypatch for cleaner patching
+        monkeypatch.setattr(pd, "Timestamp", failing_timestamp)
+        normalize_dttm_col(df, date_cols)
+
+    # Verify warning was logged (covers lines 1887-88 in core.py)
+    assert "Unable to convert column date to datetime, ignoring" in caplog.text
+
+
 def test_warning_suppression():
     """Verify our implementation suppresses warnings for mixed formats."""
     df = pd.DataFrame({"date": ["2023-01-01", "01/02/2023", "March 3, 2023"]})
