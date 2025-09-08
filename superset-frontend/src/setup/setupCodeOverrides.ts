@@ -32,5 +32,5 @@ interface CodeOverrideOptions {
  * @param options - Configuration options for the setup process
  */
 export default function setupCodeOverrides(
-  options: setupCodeOverridesOptions = {},
+  options: CodeOverrideOptions = {},
 ) {}
