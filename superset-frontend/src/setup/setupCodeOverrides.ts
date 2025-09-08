@@ -31,6 +31,4 @@ interface CodeOverrideOptions {
  * Hook for individual deployments to add custom overrides
  * @param options - Configuration options for the setup process
  */
-export default function setupCodeOverrides(
-  options: CodeOverrideOptions = {},
-) {}
+export default function setupCodeOverrides(options: CodeOverrideOptions = {}) {}
