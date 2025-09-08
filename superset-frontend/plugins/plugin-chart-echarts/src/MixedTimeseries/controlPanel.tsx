@@ -294,7 +294,6 @@ const config: ControlPanelConfig = {
     createAdvancedAnalyticsSection(t('Advanced analytics Query B'), '_b'),
     sections.annotationsAndLayersControls,
     sections.titleControls,
-    sections.dashboardMenuControls,
     {
       label: t('Chart Options'),
       expanded: true,
