@@ -169,7 +169,26 @@ class BaseScreenshot:
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            return WebDriverPlaywright(self.driver_type, window_size)
+            # Try to use Playwright if available (supports WebGL/DuckGL, unlike Cypress)
+            try:
+                from superset.utils.webdriver import (
+                    PLAYWRIGHT_AVAILABLE,
+                    PLAYWRIGHT_INSTALL_MESSAGE,
+                )
+
+                if PLAYWRIGHT_AVAILABLE:
+                    return WebDriverPlaywright(self.driver_type, window_size)
+            except ImportError:
+                pass  # Fall through to Selenium
+
+            # Log once that we're falling back (migration incomplete)
+            logger.info(
+                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
+                "installed. Falling back to Selenium (WebGL/Canvas charts may "
+                f"not render correctly). {PLAYWRIGHT_INSTALL_MESSAGE}"
+            )
+
+        # Use Selenium as default/fallback
         return WebDriverSelenium(self.driver_type, window_size)
 
     def get_screenshot(

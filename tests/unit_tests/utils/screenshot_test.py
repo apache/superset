@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, unused-argument
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -25,6 +25,8 @@ from pytest_mock import MockerFixture
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
+    ChartScreenshot,
+    DashboardScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
 )
@@ -239,3 +241,340 @@ class TestScreenshotCachePayloadGetImage:
 
         # Should be different BytesIO instances
         assert result1 is not result2
+
+
+class TestBaseScreenshotDriverFallback:
+    """Test BaseScreenshot.driver() fallback logic for Playwright migration."""
+
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_returns_playwright_when_feature_enabled_and_available(
+        self, mock_feature_flag, mock_playwright_available, screenshot_obj
+    ):
+        """Test driver() returns WebDriverPlaywright when enabled and available."""
+        mock_feature_flag.return_value = True
+
+        driver = screenshot_obj.driver()
+
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+        mock_feature_flag.assert_called_once_with("PLAYWRIGHT_REPORTS_AND_THUMBNAILS")
+
+    @patch("superset.utils.screenshots.logger")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_falls_back_to_selenium_when_playwright_unavailable(
+        self, mock_feature_flag, mock_playwright_available, mock_logger, screenshot_obj
+    ):
+        """Test driver() falls back to Selenium when Playwright unavailable."""
+        mock_feature_flag.return_value = True
+
+        driver = screenshot_obj.driver()
+
+        assert driver.__class__.__name__ == "WebDriverSelenium"
+        # Should log the fallback message
+        mock_logger.info.assert_called_once()
+        log_call = mock_logger.info.call_args[0][0]
+        assert (
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not installed"
+            in log_call
+        )
+        assert "Falling back to Selenium" in log_call
+        assert "WebGL/Canvas charts may not render correctly" in log_call
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_uses_selenium_when_feature_flag_disabled(
+        self, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() uses Selenium when feature flag disabled."""
+        mock_feature_flag.return_value = False
+
+        driver = screenshot_obj.driver()
+
+        assert driver.__class__.__name__ == "WebDriverSelenium"
+        mock_feature_flag.assert_called_once_with("PLAYWRIGHT_REPORTS_AND_THUMBNAILS")
+
+    @patch("superset.utils.screenshots.logger")
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_handles_import_error_gracefully(
+        self, mock_feature_flag, mock_logger, screenshot_obj
+    ):
+        """Test driver() handles ImportError for Playwright constants."""
+        mock_feature_flag.return_value = True
+
+        # Mock ImportError during the try block
+        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE") as mock_import:
+            mock_import.side_effect = ImportError("Module not found")
+
+            driver = screenshot_obj.driver()
+
+        assert driver.__class__.__name__ == "WebDriverSelenium"
+        # Should still log fallback message (except block handles ImportError)
+        mock_logger.info.assert_called_once()
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_driver_passes_window_size_to_playwright(
+        self, mock_playwright_available, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() passes window_size parameter to WebDriverPlaywright."""
+        mock_feature_flag.return_value = True
+        custom_window_size = (1200, 800)
+
+        driver = screenshot_obj.driver(window_size=custom_window_size)
+
+        assert driver._window == custom_window_size
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_passes_window_size_to_selenium(
+        self, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() passes window_size parameter to WebDriverSelenium."""
+        mock_feature_flag.return_value = False
+        custom_window_size = (1200, 800)
+
+        driver = screenshot_obj.driver(window_size=custom_window_size)
+
+        assert driver._window == custom_window_size
+        assert driver.__class__.__name__ == "WebDriverSelenium"
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_driver_uses_default_window_size_when_none_provided(
+        self, mock_playwright_available, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() uses screenshot object's window_size when none provided."""
+        mock_feature_flag.return_value = True
+
+        driver = screenshot_obj.driver()
+
+        assert driver._window == screenshot_obj.window_size
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.logger")
+    def test_driver_logs_fallback_message_only_once_per_call(
+        self, mock_logger, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() logs fallback message only once per method call."""
+        mock_feature_flag.return_value = True
+
+        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False):
+            # Call driver() multiple times
+            screenshot_obj.driver()
+            screenshot_obj.driver()
+            screenshot_obj.driver()
+
+        # Should log fallback message on each call (not cached)
+        assert mock_logger.info.call_count == 3
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_driver_returns_different_instances_on_multiple_calls(
+        self, mock_playwright_available, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() returns new instances on each call."""
+        mock_feature_flag.return_value = True
+
+        driver1 = screenshot_obj.driver()
+        driver2 = screenshot_obj.driver()
+
+        assert driver1 is not driver2
+        assert driver1.__class__.__name__ == "WebDriverPlaywright"
+        assert driver2.__class__.__name__ == "WebDriverPlaywright"
+
+
+class TestScreenshotSubclassesDriverBehavior:
+    """Test ChartScreenshot and DashboardScreenshot inherit driver behavior."""
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_chart_screenshot_uses_playwright_when_enabled(
+        self, mock_playwright_available, mock_feature_flag
+    ):
+        """Test ChartScreenshot uses Playwright when feature enabled."""
+        mock_feature_flag.return_value = True
+
+        chart_screenshot = ChartScreenshot("http://example.com/chart", "digest")
+        driver = chart_screenshot.driver()
+
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+        assert driver._window == chart_screenshot.window_size
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.utils.screenshots.logger")
+    def test_dashboard_screenshot_falls_back_to_selenium(
+        self, mock_logger, mock_playwright_available, mock_feature_flag
+    ):
+        """Test DashboardScreenshot falls back to Selenium if no Playwright."""
+        mock_feature_flag.return_value = True
+
+        dashboard_screenshot = DashboardScreenshot(
+            "http://example.com/dashboard", "digest"
+        )
+        driver = dashboard_screenshot.driver()
+
+        assert driver.__class__.__name__ == "WebDriverSelenium"
+        assert driver._window == dashboard_screenshot.window_size
+
+        # Should log fallback message
+        mock_logger.info.assert_called_once()
+        log_call = mock_logger.info.call_args[0][0]
+        assert "Falling back to Selenium" in log_call
+
+    def test_chart_screenshot_has_correct_default_window_size(self):
+        """Test ChartScreenshot has correct default window size."""
+        from superset.utils.screenshots import DEFAULT_CHART_WINDOW_SIZE
+
+        chart_screenshot = ChartScreenshot("http://example.com/chart", "digest")
+        assert chart_screenshot.window_size == DEFAULT_CHART_WINDOW_SIZE
+
+    def test_dashboard_screenshot_has_correct_default_window_size(self):
+        """Test DashboardScreenshot has correct default window size."""
+        from superset.utils.screenshots import DEFAULT_DASHBOARD_WINDOW_SIZE
+
+        dashboard_screenshot = DashboardScreenshot(
+            "http://example.com/dashboard", "digest"
+        )
+        assert dashboard_screenshot.window_size == DEFAULT_DASHBOARD_WINDOW_SIZE
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_custom_window_size_passed_to_driver(
+        self, mock_playwright_available, mock_feature_flag
+    ):
+        """Test custom window size is passed correctly to driver."""
+        mock_feature_flag.return_value = True
+        custom_window_size = (1920, 1080)
+        custom_thumb_size = (960, 540)
+
+        chart_screenshot = ChartScreenshot(
+            "http://example.com/chart",
+            "digest",
+            window_size=custom_window_size,
+            thumb_size=custom_thumb_size,
+        )
+
+        driver = chart_screenshot.driver()
+
+        assert driver._window == custom_window_size
+        assert chart_screenshot.thumb_size == custom_thumb_size
+
+
+class TestDriverMethodThreadSafety:
+    """Test thread safety and concurrency aspects of driver() method."""
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_driver_method_thread_safe_feature_flag_calls(
+        self, mock_playwright_available, mock_feature_flag
+    ):
+        """Test that feature flag calls are thread safe."""
+        mock_feature_flag.return_value = True
+        screenshot_obj = BaseScreenshot("http://example.com", "digest")
+
+        # Simulate concurrent calls
+        drivers = []
+        for _ in range(10):
+            drivers.append(screenshot_obj.driver())
+
+        # All should be Playwright drivers
+        for driver in drivers:
+            assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+        # Feature flag should be called for each driver() call
+        assert mock_feature_flag.call_count == 10
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.logger")
+    def test_concurrent_fallback_logging(self, mock_logger, mock_feature_flag):
+        """Test that concurrent fallback scenarios log appropriately."""
+        mock_feature_flag.return_value = True
+        screenshot_obj = BaseScreenshot("http://example.com", "digest")
+
+        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False):
+            # Simulate multiple concurrent calls
+            drivers = []
+            for _ in range(5):
+                drivers.append(screenshot_obj.driver())
+
+        # All should be Selenium drivers
+        for driver in drivers:
+            assert driver.__class__.__name__ == "WebDriverSelenium"
+
+        # Should have logged fallback message for each call
+        assert mock_logger.info.call_count == 5
+
+
+class TestScreenshotDriverPerformance:
+    """Test performance aspects of driver selection logic."""
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    def test_driver_selection_performance_with_playwright_available(
+        self, mock_playwright_available, mock_feature_flag
+    ):
+        """Test that driver selection is fast when Playwright available."""
+        mock_feature_flag.return_value = True
+        screenshot_obj = BaseScreenshot("http://example.com", "digest")
+
+        import time
+
+        start_time = time.time()
+
+        # Create multiple drivers to test performance
+        for _ in range(100):
+            driver = screenshot_obj.driver()
+            assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+        end_time = time.time()
+
+        # Should complete quickly (less than 1 second for 100 calls)
+        assert (end_time - start_time) < 1.0
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_selection_performance_with_feature_flag_disabled(
+        self, mock_feature_flag
+    ):
+        """Test that driver selection is fast when feature flag disabled."""
+        mock_feature_flag.return_value = False
+        screenshot_obj = BaseScreenshot("http://example.com", "digest")
+
+        import time
+
+        start_time = time.time()
+
+        # Create multiple drivers to test performance
+        for _ in range(100):
+            driver = screenshot_obj.driver()
+            assert driver.__class__.__name__ == "WebDriverSelenium"
+
+        end_time = time.time()
+
+        # Should complete quickly (less than 1 second for 100 calls)
+        assert (end_time - start_time) < 1.0
+
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    @patch("superset.utils.screenshots.logger")
+    def test_driver_selection_performance_with_fallback(
+        self, mock_logger, mock_feature_flag
+    ):
+        """Test that driver selection with fallback is reasonably fast."""
+        mock_feature_flag.return_value = True
+        screenshot_obj = BaseScreenshot("http://example.com", "digest")
+
+        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False):
+            import time
+
+            start_time = time.time()
+
+            # Create multiple drivers with fallback
+            for _ in range(50):  # Fewer iterations due to logging overhead
+                driver = screenshot_obj.driver()
+                assert driver.__class__.__name__ == "WebDriverSelenium"
+
+            end_time = time.time()
+
+            # Should complete reasonably quickly even with logging
+            assert (end_time - start_time) < 2.0
