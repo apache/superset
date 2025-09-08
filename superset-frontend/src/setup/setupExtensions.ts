@@ -18,4 +18,8 @@
  */
 
 // For individual deployments to add custom overrides
-export default function setupExtensions() {}
+interface SetupExtensionsOptions {
+  embedded?: boolean;
+}
+
+export default function setupExtensions(options: SetupExtensionsOptions = {}) {}

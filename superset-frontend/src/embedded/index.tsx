@@ -38,6 +38,7 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import setupExtensions from 'src/setup/setupExtensions';
 import {
   EmbeddedContextProviders,
   getThemeController,
@@ -46,6 +47,7 @@ import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
+setupExtensions({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
