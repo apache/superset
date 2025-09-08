@@ -27,6 +27,7 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
     ['datasource'],
     ['viz_type'],
     ['enable_ai_insights'],
+    ['show_fullscreen_menu', 'show_data_menu'],
     [
       {
         name: 'slice_id',

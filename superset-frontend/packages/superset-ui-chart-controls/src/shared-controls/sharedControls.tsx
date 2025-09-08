@@ -357,6 +357,22 @@ const enable_ai_insights: SharedControlConfig<'CheckboxControl'> = {
   renderTrigger: true,
 };
 
+const show_fullscreen_menu: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Show Enter full screen'),
+  default: true,
+  description: t('Show the "Enter full screen" option in the chart menu on dashboards'),
+  renderTrigger: true,
+};
+
+const show_data_menu: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable Show data'),
+  default: true,
+  description: t('Show the "View as table" option in the chart menu on dashboards'),
+  renderTrigger: true,
+};
+
 const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
   initialValue: (control: ControlState, state: ControlPanelState | null) =>
@@ -415,4 +431,6 @@ export default {
   currency_format,
   sort_by_metric,
   enable_ai_insights,
+  show_fullscreen_menu,
+  show_data_menu,
 };
