@@ -221,7 +221,7 @@
     "Publishers Performance by day": "Publisher performance by day",
     "ROI": "ROI",
     "Custom comparison": "Custom comparison",
-    "Total Spend": "Total spend",
+    "Total spend": "Total spend",
     "comparing_date": "Comparison date",
     "Transactions cmp": "Transactions cmp",
     "Δ trans": "Δ Trans",
@@ -300,5 +300,11 @@
     "Summary": "Summary",
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Show total aggregations of selected metrics. Note that row limit does not apply to the result.",
     "Total PC Commission": "Total PC commission",
-    "Total PV Commission": "Total PV commission"
+    "Total PV Commission": "Total PV commission",
+    "Top Publisher Groups by Sales": "Top Publisher Groups By Sales",
+    "Publisher group": "Publisher group",
+    "Total sales value": "Total sales value",
+    "Total override": "Total override",
+    "Campaigns: First vs last clicks": "Campaigns: First vs last clicks",
+    "KUR": "KUR"
 }

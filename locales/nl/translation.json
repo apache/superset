@@ -221,7 +221,7 @@
     "Publishers Performance by day": "Publisher performance per dag",
     "ROI": "ROI",
     "Custom comparison": "Aangepaste vergelijking",
-    "Total Spend": "Totale uitgaven",
+    "Total spend": "Totale uitgaven",
     "comparing_date": "Vergelijkingsdatum",
     "Transactions cmp": "Transacties vgl.",
     "Δ trans": "Δ Trans",
@@ -300,5 +300,11 @@
     "Summary": "Samenvatting",
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Toon totale aggregaties van geselecteerde statistieken. Let op: de regellimiet is niet van toepassing op het resultaat.",
     "Total PC Commission": "Totale PC commissie",
-    "Total PV Commission": "Totale PV commissie"
+    "Total PV Commission": "Totale PV commissie",
+    "Top Publisher Groups by Sales": "",
+    "Publisher group": "",
+    "Total sales value": "Totale waarde verkoop",
+    "Total override": "Totale override",
+    "Campaigns: First vs last clicks": "",
+    "KUR": ""
 }

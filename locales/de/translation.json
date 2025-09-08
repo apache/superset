@@ -221,7 +221,7 @@
     "Publishers Performance by day": "Publisher-Performance nach Tag",
     "ROI": "ROI",
     "Custom comparison": "Benutzerdefinierter Vergleich",
-    "Total Spend": "Gesamtausgaben",
+    "Total spend": "Gesamtausgaben",
     "comparing_date": "Vergleichsdatum",
     "Transactions cmp": "Transaktionen (Vgl.)",
     "Δ trans": "Δ Trans.",
@@ -300,5 +300,11 @@
     "Summary": "Zusammenfassung",
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Hier siehst du die Gesamtaggregationen ausgewählter Metriken. Das Zeilenlimit gilt nicht für das Ergebnis.",
     "Total PC Commission": "Gesamtprovision (PC)",
-    "Total PV Commission": "Gesamtprovision (PV)"
+    "Total PV Commission": "Gesamtprovision (PV)",
+    "Top Publisher Groups by Sales": "",
+    "Publisher group": "",
+    "Total sales value": "Gesamtumsatz",
+    "Total override": "Gesamt-Override",
+    "Campaigns: First vs last clicks": "",
+    "KUR": ""
 }
