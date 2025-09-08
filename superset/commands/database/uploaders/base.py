@@ -133,7 +133,8 @@ class BaseDataReader:
                 )
             ) from ex
         except Exception as ex:
-            raise DatabaseUploadFailed(exception=ex) from ex
+            message = ex.message if hasattr(ex, "message") and ex.message else str(ex)
+            raise DatabaseUploadFailed(message=message, exception=ex) from ex
 
 
 class UploadCommand(BaseCommand):
