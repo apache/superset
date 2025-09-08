@@ -228,6 +228,7 @@
     "@hot-loader/react-dom": "^17.0.2",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
+    "@playwright/test": "^1.48.0",
     "@storybook/addon-actions": "8.1.11",
     "@storybook/addon-controls": "8.1.11",
     "@storybook/addon-essentials": "8.1.11",
