@@ -198,7 +198,7 @@ function SearchInput({
       {t('Search')}
       <Input
         aria-label={t('Search %s records', count)}
-        placeholder={tn('%s record', '%s records', count, count)}
+        placeholder={tn('%s record', '%s records...', count, count)}
         value={value}
         onChange={onChange}
         onBlur={onBlur}
