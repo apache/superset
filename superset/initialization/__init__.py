@@ -638,6 +638,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     response.headers[k] = v
             return response
 
+        @self.superset_app.after_request
+        def cleanup_analytics_memory(response: Response) -> Response:
+            """Force garbage collection after each request if feature flag enabled"""
+            if feature_flag_manager.is_feature_enabled(
+                "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST"
+            ):
+                import gc
+
+                gc.collect()
+            return response
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
