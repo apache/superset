@@ -27,6 +27,45 @@ import { headerFontSize, subheaderFontSize } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
+  sectionOverrides: {
+    datasourceAndVizType: {
+      controlSetRows: [
+        ['datasource'],
+        ['viz_type'],
+        ['enable_ai_insights'],
+        ['show_fullscreen_menu', 'show_data_menu'],
+        [
+          {
+            name: 'slice_id',
+            config: {
+              type: 'HiddenControl',
+              label: t('Chart ID'),
+              hidden: true,
+              description: t('The id of the active chart'),
+            },
+          },
+          {
+            name: 'cache_timeout',
+            config: {
+              type: 'HiddenControl',
+              label: t('Cache Timeout (seconds)'),
+              hidden: true,
+              description: t('The number of seconds before expiring the cache'),
+            },
+          },
+          {
+            name: 'url_params',
+            config: {
+              type: 'HiddenControl',
+              label: t('URL parameters'),
+              hidden: true,
+              description: t('Extra parameters for use in jinja templated queries'),
+            },
+          },
+        ],
+      ],
+    },
+  },
   controlPanelSections: [
     {
       label: t('Query'),
