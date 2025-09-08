@@ -112,7 +112,7 @@ class TextAreaControl extends Component {
     }
     return (
       <TextArea
-        placeholder={t('textarea')}
+        placeholder={this.props.placeholder || t('textarea')}
         onChange={this.onControlChange.bind(this)}
         defaultValue={this.props.initialValue}
         disabled={this.props.readOnly}
@@ -141,8 +141,9 @@ class TextAreaControl extends Component {
             modalTitle={controlHeader}
             triggerNode={
               <Button buttonSize="small" className="m-t-5">
-                {t('Edit')} <strong>{this.props.language}</strong>{' '}
-                {t('in modal')}
+                <span>
+                  {t('Edit in Modal')}
+                </span>
               </Button>
             }
             modalBody={this.renderModalBody(true)}
