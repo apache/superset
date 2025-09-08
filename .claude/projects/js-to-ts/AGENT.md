@@ -250,6 +250,48 @@ const mapStateToProps = (state: RootState) => ({
 
 ---
 
+## 🧠 Type Debugging Strategies (Real-World Learnings)
+
+### The Evolution of Type Approaches
+When you hit type errors, follow this debugging evolution:
+
+#### 1. ❌ Idealized Union Types (First Attempt)
+```typescript
+// Looks clean but doesn't match reality
+type DatasourceInput = Datasource | QueryEditor;
+```
+**Problem**: Real calling sites pass variations, not exact types.
+
+#### 2. ❌ Overly Precise Types (Second Attempt)
+```typescript
+// Tried to match exact calling signatures
+type DatasourceInput =
+  | IDatasource  // From DatasourcePanel
+  | (QueryEditor & { columns: ColumnMeta[] });  // From SaveQuery
+```
+**Problem**: Too rigid, doesn't handle legacy variations.
+
+#### 3. ✅ Flexible Interface (Final Solution)
+```typescript
+// Captures what the function actually needs
+interface DatasourceInput {
+  name?: string | null;  // Allow null for compatibility
+  datasource_name?: string | null;  // Legacy variations
+  columns?: any[];  // Multiple column types accepted
+  database?: { id?: number };
+  // ... other optional properties
+}
+```
+**Success**: Works with all calling sites, focuses on function needs.
+
+### Type Debugging Process
+1. **Start with compilation errors** - they show exact mismatches
+2. **Examine actual usage** - look at calling sites, not idealized types  
+3. **Build flexible interfaces** - capture what functions need, not rigid contracts
+4. **Iterate based on downstream validation** - let calling sites guide your types
+
+---
+
 ## 🚨 Anti-Patterns to Avoid
 
 ```typescript
@@ -271,15 +313,68 @@ interface ChartSelectProps extends SelectProps {
   charts: Chart[];   // Only new props
 }
 
-// ❌ Don't create duplicate types
+// ❌ Don't create ad-hoc type variations
 interface UserInfo {
   name: string;
   email: string;
 }
 
-// ✅ Extend existing types
+// ✅ Extend existing types (DRY principle)
 import { User } from 'src/types/bootstrapTypes';
 type UserDisplayInfo = Pick<User, 'firstName' | 'lastName' | 'email'>;
+
+// ❌ Don't create overly rigid unions
+type StrictInput = ExactTypeA | ExactTypeB;
+
+// ✅ Create flexible interfaces for function parameters
+interface FlexibleInput {
+  // Focus on what the function actually needs
+  commonProperty: string;
+  optionalVariations?: any;  // Allow for legacy variations
+}
+```
+
+## 📍 DRY Type Guidelines (WHERE TYPES BELONG)
+
+### Type Placement Rules
+**CRITICAL**: Type variations must live close to where they belong, not scattered across files.
+
+#### ✅ Proper Type Organization
+```typescript
+// ❌ Don't create one-off interfaces in utility files
+// src/utils/datasourceUtils.ts
+interface DatasourceInput { /* custom interface */ }  // Wrong!
+
+// ✅ Use existing types or extend them in their proper domain
+// src/utils/datasourceUtils.ts
+import { IDatasource } from 'src/explore/components/DatasourcePanel';
+import { QueryEditor } from 'src/SqlLab/types';
+
+// Create flexible interface that references existing types
+interface FlexibleDatasourceInput {
+  // Properties that actually exist across variations
+}
+```
+
+#### Type Location Hierarchy
+1. **Domain Types**: `src/{domain}/types.ts` (dashboard, explore, SqlLab)
+2. **Component Types**: Co-located with components  
+3. **Global Types**: `src/types/` directory
+4. **Utility Types**: Only when they truly don't belong elsewhere
+
+#### ✅ DRY Type Patterns
+```typescript
+// ✅ Extend existing domain types
+interface SaveQueryData extends Pick<QueryEditor, 'sql' | 'dbId' | 'catalog'> {
+  columns: ColumnMeta[];  // Add what's needed
+}
+
+// ✅ Create flexible interfaces for cross-domain utilities
+interface CrossDomainInput {
+  // Common properties that exist across different source types
+  name?: string | null;  // Accommodate legacy null values
+  // Only include properties the function actually uses
+}
 ```
 
 ---
@@ -476,10 +571,15 @@ grep -A 10 -B 10 "TypeName" src/*/types.ts
 1. **Use git mv** - Run `git mv file.js file.ts` to preserve git history, but NO `git commit`
 2. **NO global import changes** - Don't update imports across codebase
 3. **Type files OK** - Can modify existing type files to improve/align types
-4. **TypeScript validation** - Use proper TypeScript compilation commands:
+4. **Downstream Impact Validation** (CRITICAL) - Your migration affects calling sites:
+   - **Find downstream files**: `find superset-frontend/src -name "*.tsx" -o -name "*.ts" | xargs grep -l "your-core-filename" 2>/dev/null || echo "No files found"`
+   - **Validate each downstream file individually**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {each-downstream-file}`
+   - **Fix type mismatches** you introduced in calling sites
+   - **NEVER ignore downstream errors** - they indicate your types don't match reality
+5. **TypeScript validation** - Use proper TypeScript compilation commands:
    - **Per-file validation**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {relative-path-to-file}`
-   - **Project-wide scan**: `npm run type` (only consider errors related to your files - other agents may be working in parallel)
-5. **ESLint validation** - Run `npm run eslint -- --fix {file}` for each migrated file to auto-fix formatting/linting issues
+   - **Avoid `npm run type` during parallel execution** - too many false positives from other agents
+6. **ESLint validation** - Run `npm run eslint -- --fix {file}` for each migrated file to auto-fix formatting/linting issues
 6. Zero `any` types - use proper TypeScript types
 7. Search existing types before creating new ones
 8. Follow patterns from this guide
@@ -506,14 +606,16 @@ SUCCESS: Atomic Migration of {core-filename}
 - NO_DOCUMENTATION: {TypeName} - {reason}
 
 ## Quality Validation
-- File-level TypeScript compilation: ✅ PASS (using `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {files}`)
-- ESLint validation: ✅ PASS (using `npm run eslint -- --fix {files}` to auto-fix formatting)
-- Zero any types: ✅ PASS
-- Local imports resolved: ✅ PASS
-- Functionality preserved: ✅ PASS
-- Tests pass (if test file): ✅ PASS
-- Project-wide compilation note: {PASS/ISSUES-UNRELATED/ISSUES-RELATED} (from `npm run type`)
-- Follow-up action required: {YES/NO}
+- **Downstream Impact Check**: ✅ PASS - Found {N} files importing this module, all validate successfully
+  - Downstream files: {list-of-files-that-import-your-module}
+  - Individual validation: `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {each-file}`
+- **File-level TypeScript compilation**: ✅ PASS (using `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {files}`)
+- **ESLint validation**: ✅ PASS (using `npm run eslint -- --fix {files}` to auto-fix formatting)
+- **Zero any types**: ✅ PASS
+- **Local imports resolved**: ✅ PASS
+- **Functionality preserved**: ✅ PASS
+- **Tests pass** (if test file): ✅ PASS
+- **Follow-up action required**: {YES/NO}
 
 ## Migration Learnings
 - Type conflicts encountered: {describe any multiple type definitions}
