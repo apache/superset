@@ -28,7 +28,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
 import { DatabaseObject, ConfigurationMethod } from '../types';
 import DatabaseModal, {
@@ -1538,7 +1538,7 @@ describe('DatabaseModal', () => {
         <>ssh_tunnel.form.switch extension component</>
       ));
 
-      setupExtensions();
+      setupCodeOverrides();
     });
 
     test('should render an extension component if one is supplied', async () => {

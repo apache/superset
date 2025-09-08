@@ -18,9 +18,9 @@
  */
 
 /**
- * Configuration options for setting up extensions in different contexts.
+ * Configuration options for setting up code overrides in different contexts.
  */
-interface SetupExtensionsOptions {
+interface setupCodeOverridesOptions {
   /**
    * Whether the application is running in embedded mode.
    */
@@ -28,7 +28,9 @@ interface SetupExtensionsOptions {
 }
 
 /**
- * Hook for individual deployments to add custom overrides and extensions
+ * Hook for individual deployments to add custom overrides
  * @param options - Configuration options for the setup process
  */
-export default function setupExtensions(options: SetupExtensionsOptions = {}) {}
+export default function setupCodeOverrides(
+  options: setupCodeOverridesOptions = {},
+) {}
