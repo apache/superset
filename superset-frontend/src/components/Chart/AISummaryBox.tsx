@@ -31,6 +31,7 @@ type Props = {
   queriesData?: unknown;
   timeRange?: string | null;
   filters?: Record<string, unknown>;
+  customSystemPrompt?: string;
   onHeightChange?: (height: number) => void;
 };
 
@@ -143,6 +144,7 @@ export default function AISummaryBox({
   queriesData,
   timeRange,
   filters,
+  customSystemPrompt,
   onHeightChange,
 }: Props) {
   // Summary state lifecycle: loading -> text OR error
@@ -274,6 +276,7 @@ export default function AISummaryBox({
           imageBase64,
           timeRange: timeRange ?? null,
           filters: filters ?? {},
+          customSystemPrompt,
         },
         {
           mode: dataSample ? 'data' : 'image',
@@ -304,6 +307,7 @@ export default function AISummaryBox({
     dataSample,
     timeRange,
     filtersString,
+    customSystemPrompt,
   ]);
 
   // Always collapse when the page/tab becomes hidden OR the component leaves viewport

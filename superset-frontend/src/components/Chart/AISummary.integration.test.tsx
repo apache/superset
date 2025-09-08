@@ -139,6 +139,7 @@ describe('AI Summary Integration Tests', () => {
             ],
             title: 'Sales Performance Dashboard',
             description: 'A comprehensive analysis of sales performance trends across different regions and time periods',
+            custom_system_prompt: undefined,
             currency_code: 'USD',
             timezone: 'America/New_York',
           },
