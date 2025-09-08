@@ -740,7 +740,6 @@ class DatasourceEditor extends PureComponent {
     this.props.runQuery({
       client_id: this.props.clientId,
       database_id: this.state.datasource.database.id,
-      json: true,
       runAsync: false,
       catalog: this.state.datasource.catalog,
       schema: this.state.datasource.schema,
