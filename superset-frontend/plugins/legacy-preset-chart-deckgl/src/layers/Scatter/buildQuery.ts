@@ -27,6 +27,7 @@ import {
   addSpatialNullFilters,
   SpatialFormData,
 } from '../spatialUtils';
+import { addJsColumnsToColumns, processMetricsArray } from '../buildQueryUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>,
@@ -49,47 +50,38 @@ export default function buildQuery(formData: DeckScatterFormData) {
     throw new Error('Spatial configuration is required for Scatter charts');
   }
 
-  return buildQueryContext(formData, baseQueryObject => {
-    const spatialColumns = getSpatialColumns(spatial);
-    let columns = [...(baseQueryObject.columns || []), ...spatialColumns];
+  return buildQueryContext(formData, {
+    buildQuery: baseQueryObject => {
+      const spatialColumns = getSpatialColumns(spatial);
+      let columns = [...(baseQueryObject.columns || []), ...spatialColumns];
 
-    const metrics = [];
-    if (point_radius_fixed?.value) {
-      metrics.push(point_radius_fixed.value);
-    }
+      if (category_name) {
+        columns.push(category_name);
+      }
 
-    if (category_name) {
-      columns = [...columns, category_name];
-    }
+      columns = addJsColumnsToColumns(columns.map(String), js_columns);
 
-    // Add js_columns to ensure they're available for JavaScript functions
-    if (js_columns?.length) {
-      js_columns.forEach((col: string) => {
-        if (!columns.includes(col)) {
-          columns.push(col);
-        }
-      });
-    }
+      const metrics = processMetricsArray([point_radius_fixed?.value]);
+      const filters = addSpatialNullFilters(
+        spatial,
+        ensureIsArray(baseQueryObject.filters || []),
+      );
 
-    const filters = addSpatialNullFilters(
-      spatial,
-      ensureIsArray(baseQueryObject.filters || []),
-    );
+      const orderby = point_radius_fixed?.value
+        ? ([[point_radius_fixed.value, false]] as QueryFormOrderBy[])
+        : (baseQueryObject.orderby as QueryFormOrderBy[]) || [];
 
-    const orderby: QueryFormOrderBy[] = point_radius_fixed?.value
-      ? [[point_radius_fixed.value, false]]
-      : baseQueryObject.orderby || [];
-
-    return [
-      {
-        ...baseQueryObject,
-        columns,
-        metrics,
-        filters,
-        orderby,
-        is_timeseries: false,
-        row_limit: baseQueryObject.row_limit,
-      },
-    ];
+      return [
+        {
+          ...baseQueryObject,
+          columns,
+          metrics,
+          filters,
+          orderby,
+          is_timeseries: false,
+          row_limit: baseQueryObject.row_limit,
+        },
+      ];
+    },
   });
 }

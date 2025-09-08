@@ -327,8 +327,7 @@ export function getMapboxApiKey(mapboxApiKey?: string): string {
       }
     } catch (error) {
       throw new Error(
-        'Failed to read MAPBOX_API_KEY from bootstrap data:',
-        error,
+        `Failed to read MAPBOX_API_KEY from bootstrap data: ${error}`,
       );
     }
   }

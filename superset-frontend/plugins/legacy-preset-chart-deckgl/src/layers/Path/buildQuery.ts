@@ -21,6 +21,7 @@ import {
   ensureIsArray,
   SqlaFormData,
 } from '@superset-ui/core';
+import { addNullFilters } from '../buildQueryUtils';
 
 export interface DeckPathFormData extends SqlaFormData {
   line_column?: string;
@@ -37,63 +38,48 @@ export default function buildQuery(formData: DeckPathFormData) {
     throw new Error('Line column is required for Path charts');
   }
 
-  return buildQueryContext(formData, baseQueryObject => {
-    const columns = ensureIsArray(baseQueryObject.columns || []);
-    const metrics = ensureIsArray(baseQueryObject.metrics || []);
-    const groupby = ensureIsArray(baseQueryObject.groupby || []);
+  return buildQueryContext(formData, {
+    buildQuery: baseQueryObject => {
+      const columns = ensureIsArray(baseQueryObject.columns || []);
+      const metrics = ensureIsArray(baseQueryObject.metrics || []);
+      const groupby = ensureIsArray(baseQueryObject.groupby || []);
+      const jsColumns = ensureIsArray(js_columns || []);
 
-    // Add js_columns to ensure they're available for JavaScript functions
-    const jsColumns = ensureIsArray(js_columns || []);
-
-    // Logic from DeckPathViz.query_obj():
-    // If there are metrics, add line_column to groupby
-    // Otherwise, add line_column to columns
-    if (baseQueryObject.metrics?.length || metric) {
-      // Add metric if specified
-      if (metric && !metrics.includes(metric)) {
-        metrics.push(metric);
+      if (baseQueryObject.metrics?.length || metric) {
+        if (metric && !metrics.includes(metric)) {
+          metrics.push(metric);
+        }
+        if (!groupby.includes(line_column)) {
+          groupby.push(line_column);
+        }
+      } else if (!columns.includes(line_column)) {
+        columns.push(line_column);
       }
-      // Add line column to groupby when we have metrics
-      if (!groupby.includes(line_column)) {
-        groupby.push(line_column);
-      }
-    } else if (!columns.includes(line_column)) {
-      // Add line column to columns when no metrics
-      columns.push(line_column);
-    }
 
-    // Add js_columns to columns for JavaScript functions
-    jsColumns.forEach(col => {
-      if (!columns.includes(col) && !groupby.includes(col)) {
-        columns.push(col);
-      }
-    });
-
-    // Add NOT NULL filter for line column to avoid rendering issues
-    const filters = ensureIsArray(baseQueryObject.filters || []);
-    const hasLineColumnFilter = filters.some(
-      filter => filter.col === line_column && filter.op === 'IS NOT NULL',
-    );
-    if (!hasLineColumnFilter) {
-      filters.push({
-        col: line_column,
-        op: 'IS NOT NULL' as const,
+      jsColumns.forEach(col => {
+        if (!columns.includes(col) && !groupby.includes(col)) {
+          columns.push(col);
+        }
       });
-    }
 
-    // Path charts support time series
-    const isTimeseries = Boolean(formData.time_grain_sqla);
+      const filters = addNullFilters(
+        ensureIsArray(baseQueryObject.filters || []),
+        [line_column],
+      );
 
-    return [
-      {
-        ...baseQueryObject,
-        columns,
-        metrics,
-        groupby,
-        filters,
-        is_timeseries: isTimeseries,
-        row_limit: baseQueryObject.row_limit,
-      },
-    ];
+      const isTimeseries = Boolean(formData.time_grain_sqla);
+
+      return [
+        {
+          ...baseQueryObject,
+          columns,
+          metrics,
+          groupby,
+          filters,
+          is_timeseries: isTimeseries,
+          row_limit: baseQueryObject.row_limit,
+        },
+      ];
+    },
   });
 }
