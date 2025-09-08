@@ -113,3 +113,32 @@ export const annotations: ControlPanelSectionConfig = {
     ],
   ],
 };
+
+export const dashboardMenuControls: ControlPanelSectionConfig = {
+  label: t('Dashboard Menu Options'),
+  expanded: false,
+  controlSetRows: [
+    [
+      {
+        name: 'show_fullscreen_menu',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Show Enter full screen'),
+          default: true,
+          renderTrigger: false,
+          description: t('Show the "Enter full screen" option in the chart menu on dashboards'),
+        },
+      },
+      {
+        name: 'show_data_menu',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Enable Show data'),
+          default: true,
+          renderTrigger: false,
+          description: t('Show the "View as table" option in the chart menu on dashboards'),
+        },
+      },
+    ],
+  ],
+};

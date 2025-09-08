@@ -187,6 +187,9 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: QueryFormMetric;
+  /** Dashboard menu visibility controls */
+  show_fullscreen_menu?: boolean;
+  show_data_menu?: boolean;
 }
 
 /**
