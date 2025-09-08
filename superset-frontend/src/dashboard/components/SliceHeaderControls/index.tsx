@@ -764,7 +764,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
       )}
 
-      <Menu.Divider />
+      {(isForceRefreshEnabled || (props.formData?.show_fullscreen_menu !== false)) && (
+        <Menu.Divider />
+      )}
 
       {/* {slice.description && (
         <Menu.Item key={MenuKeys.ToggleChartDescription}>
