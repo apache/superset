@@ -302,6 +302,8 @@ describe('spatialUtils', () => {
     const records = [
       { longitude: 'invalid', latitude: 37.8, count: 10 },
       { longitude: -122.4, latitude: NaN, count: 20 },
+      // 'latlong' spatial type expects longitude/latitude fields
+      // so records with 'coordinates' should be filtered out
       { coordinates: 'invalid,coords', count: 30 },
       { coordinates: '-122.4,invalid', count: 40 },
     ];

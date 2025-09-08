@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
 import {
-  getMapboxApiKey,
-  addJsColumnsToExtraProps,
-  DataRecord,
-} from '../spatialUtils';
+  createBaseTransformResult,
+  getRecordsFromQuery,
+  getMetricLabelFromFormData,
+  parseMetricValue,
+  addPropertiesToFeature,
+} from '../transformUtils';
 import { DeckPolygonFormData } from './buildQuery';
-
-const NOOP = () => {};
 
 interface PolygonFeature {
   polygon?: number[][];
   name?: string;
   elevation?: number;
   extraProps?: Record<string, unknown>;
-  [key: string]: unknown;
+  metrics?: Record<string, number | string>;
 }
 
 function processPolygonData(
@@ -51,29 +52,24 @@ function processPolygonData(
     return [];
   }
 
-  const metricLabel = metric ? getMetricLabel(metric) : null;
-  const elevationLabel = point_radius_fixed?.value
-    ? getMetricLabel(point_radius_fixed.value)
-    : null;
+  const metricLabel = getMetricLabelFromFormData(metric);
+  const elevationLabel = getMetricLabelFromFormData(point_radius_fixed);
+  const excludeKeys = new Set([line_column, ...(js_columns || [])]);
 
   return records
     .map(record => {
       let feature: PolygonFeature = {
         extraProps: {},
+        metrics: {},
       };
 
       feature = addJsColumnsToExtraProps(feature, record, js_columns);
-      Object.keys(record).forEach(key => {
-        if (key === line_column) {
-          return;
-        }
-
-        if (js_columns?.includes(key)) {
-          return;
-        }
-
-        feature[key] = record[key];
-      });
+      const updatedFeature = addPropertiesToFeature(
+        feature as unknown as Record<string, unknown>,
+        record,
+        excludeKeys,
+      );
+      feature = updatedFeature as unknown as PolygonFeature;
 
       const rawPolygonData = record[line_column];
       if (!rawPolygonData) {
@@ -114,16 +110,22 @@ function processPolygonData(
         feature.polygon = polygonCoords;
 
         if (elevationLabel && record[elevationLabel] != null) {
-          const elevationValue = parseFloat(String(record[elevationLabel]));
-          if (!Number.isNaN(elevationValue)) {
+          const elevationValue = parseMetricValue(record[elevationLabel]);
+          if (elevationValue !== undefined) {
             feature.elevation = elevationValue;
           }
         }
 
         if (metricLabel && record[metricLabel] != null) {
-          feature[metricLabel] = record[metricLabel];
+          const metricValue = record[metricLabel];
+          if (
+            typeof metricValue === 'string' ||
+            typeof metricValue === 'number'
+          ) {
+            feature.metrics![metricLabel] = metricValue;
+          }
         }
-      } catch (error) {
+      } catch {
         return null;
       }
 
@@ -133,51 +135,9 @@ function processPolygonData(
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const {
-    datasource,
-    height,
-    hooks,
-    queriesData,
-    rawFormData: formData,
-    width,
-    filterState,
-    emitCrossFilters,
-  } = chartProps;
-
-  const {
-    onAddFilter = NOOP,
-    onContextMenu = NOOP,
-    setControlValue = NOOP,
-    setDataMask = NOOP,
-  } = hooks;
-
-  const queryData = queriesData[0];
-  const records = queryData?.data || [];
+  const { rawFormData: formData } = chartProps;
+  const records = getRecordsFromQuery(chartProps.queriesData);
   const features = processPolygonData(records, formData as DeckPolygonFormData);
 
-  return {
-    datasource,
-    emitCrossFilters,
-    formData,
-    height,
-    onAddFilter,
-    onContextMenu,
-    payload: {
-      ...queryData,
-      data: {
-        features,
-        mapboxApiKey: getMapboxApiKey(),
-      },
-    },
-    setControlValue,
-    filterState,
-    viewport: {
-      ...formData.viewport,
-      height,
-      width,
-    },
-    width,
-    setDataMask,
-    setTooltip: () => {},
-  };
+  return createBaseTransformResult(chartProps, features);
 }

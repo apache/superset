@@ -19,13 +19,15 @@
 import { ChartProps } from '@superset-ui/core';
 import {
   processSpatialData,
-  getMapboxApiKey,
   addJsColumnsToExtraProps,
   DataRecord,
 } from '../spatialUtils';
+import {
+  createBaseTransformResult,
+  getRecordsFromQuery,
+  addPropertiesToFeature,
+} from '../transformUtils';
 import { DeckArcFormData } from './buildQuery';
-
-const NOOP = () => {};
 
 interface ArcPoint {
   sourcePosition: [number, number];
@@ -49,6 +51,11 @@ function processArcData(
 
   const startFeatures = processSpatialData(records, startSpatial);
   const endFeatures = processSpatialData(records, endSpatial);
+  const excludeKeys = new Set(
+    ['__timestamp', dimension, ...(jsColumns || [])].filter(
+      (key): key is string => key != null,
+    ),
+  );
 
   return records
     .map((record, index) => {
@@ -76,45 +83,19 @@ function processArcData(
         // eslint-disable-next-line no-underscore-dangle
         arcPoint.__timestamp = Number(record.__timestamp);
       }
-      Object.keys(record).forEach(key => {
-        if (
-          key !== '__timestamp' &&
-          key !== dimension &&
-          !(jsColumns || []).includes(key)
-        ) {
-          arcPoint[key] = record[key];
-        }
-      });
 
+      arcPoint = addPropertiesToFeature(arcPoint, record, excludeKeys);
       return arcPoint;
     })
     .filter((point): point is ArcPoint => point !== null);
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const {
-    datasource,
-    height,
-    hooks,
-    queriesData,
-    rawFormData: formData,
-    width,
-    filterState,
-    emitCrossFilters,
-  } = chartProps;
-
-  const {
-    onAddFilter = NOOP,
-    onContextMenu = NOOP,
-    setControlValue = NOOP,
-    setDataMask = NOOP,
-  } = hooks;
-
+  const { rawFormData: formData } = chartProps;
   const { start_spatial, end_spatial, dimension, js_columns } =
     formData as DeckArcFormData;
 
-  const queryData = queriesData[0];
-  const records = queryData?.data || [];
+  const records = getRecordsFromQuery(chartProps.queriesData);
   const features = processArcData(
     records,
     start_spatial,
@@ -123,29 +104,5 @@ export default function transformProps(chartProps: ChartProps) {
     js_columns,
   );
 
-  return {
-    datasource,
-    emitCrossFilters,
-    formData,
-    height,
-    onAddFilter,
-    onContextMenu,
-    payload: {
-      ...queryData,
-      data: {
-        features,
-        mapboxApiKey: getMapboxApiKey(),
-      },
-    },
-    setControlValue,
-    filterState,
-    viewport: {
-      ...formData.viewport,
-      height,
-      width,
-    },
-    width,
-    setDataMask,
-    setTooltip: () => {},
-  };
+  return createBaseTransformResult(chartProps, features);
 }
