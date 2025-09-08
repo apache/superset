@@ -366,10 +366,12 @@ const ai_custom_system_prompt: SharedControlConfig<'TextAreaControl'> = {
   ),
   renderTrigger: true,
   visibility: ({ controls }) => Boolean(controls?.enable_ai_insights?.value),
+  placeholder: t(
+    'Enter custom instructions to guide AI analysis (e.g., "Focus on trends and key insights", "Highlight anomalies", "Compare with previous periods"). Max 4000 characters.',
+  ),
   textAreaStyles: {
     maxLength: 4000,
     rows: 4,
-    placeholder: t('Enter custom instructions for AI summary generation...'),
   },
 };
 
