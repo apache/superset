@@ -325,7 +325,7 @@ export function DatabaseSelector({
         changeCatalog(undefined);
       }
     },
-    [showCatalogSelector, catalogRef],
+    [showCatalogSelector, changeCatalog, catalogRef],
   );
 
   const autoSelectSchema = useCallback(
