@@ -571,14 +571,19 @@ grep -A 10 -B 10 "TypeName" src/*/types.ts
 1. **Use git mv** - Run `git mv file.js file.ts` to preserve git history, but NO `git commit`
 2. **NO global import changes** - Don't update imports across codebase
 3. **Type files OK** - Can modify existing type files to improve/align types
-4. **Downstream Impact Validation** (CRITICAL) - Your migration affects calling sites:
+4. **Single-File TypeScript Validation** (CRITICAL) - tsc has known issues with multi-file compilation:
+   - **Core Issue**: TypeScript's `tsc` has documented problems validating multiple files simultaneously in complex projects
+   - **Solution**: ALWAYS validate files one at a time using individual `tsc` calls
+   - **Command Pattern**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {single-file-path}`
+   - **Why**: Multi-file validation can produce false positives, miss real errors, and conflict during parallel agent execution
+5. **Downstream Impact Validation** (CRITICAL) - Your migration affects calling sites:
    - **Find downstream files**: `find superset-frontend/src -name "*.tsx" -o -name "*.ts" | xargs grep -l "your-core-filename" 2>/dev/null || echo "No files found"`
    - **Validate each downstream file individually**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {each-downstream-file}`
    - **Fix type mismatches** you introduced in calling sites
    - **NEVER ignore downstream errors** - they indicate your types don't match reality
-5. **TypeScript validation** - Use proper TypeScript compilation commands:
-   - **Per-file validation**: `cd superset-frontend && npx tscw --noEmit --allowJs --composite false --project tsconfig.json {relative-path-to-file}`
-   - **Avoid `npm run type` during parallel execution** - too many false positives from other agents
+6. **Avoid Project-Wide Validation During Migration**:
+   - **NEVER use `npm run type`** during parallel agent execution - produces unreliable results
+   - **Single-file validation is authoritative** - trust individual file checks over project-wide scans
 6. **ESLint validation** - Run `npm run eslint -- --fix {file}` for each migrated file to auto-fix formatting/linting issues
 6. Zero `any` types - use proper TypeScript types
 7. Search existing types before creating new ones
@@ -606,16 +611,22 @@ SUCCESS: Atomic Migration of {core-filename}
 - NO_DOCUMENTATION: {TypeName} - {reason}
 
 ## Quality Validation
-- **Downstream Impact Check**: ✅ PASS - Found {N} files importing this module, all validate successfully
+- **Single-File TypeScript Validation**: ✅ PASS - Core files individually validated
+  - Core file: `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {core-file}`
+  - Test files: `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {test-file}` (if exists)
+- **Downstream Impact Check**: ✅ PASS - Found {N} files importing this module, all validate individually
   - Downstream files: {list-of-files-that-import-your-module}
-  - Individual validation: `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {each-file}`
-- **File-level TypeScript compilation**: ✅ PASS (using `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {files}`)
+  - Individual validation: `npx tscw --noEmit --allowJs --composite false --project tsconfig.json {each-downstream-file}`
 - **ESLint validation**: ✅ PASS (using `npm run eslint -- --fix {files}` to auto-fix formatting)
 - **Zero any types**: ✅ PASS
-- **Local imports resolved**: ✅ PASS
+- **Local imports resolved**: ✅ PASS  
 - **Functionality preserved**: ✅ PASS
 - **Tests pass** (if test file): ✅ PASS
 - **Follow-up action required**: {YES/NO}
+
+## Validation Strategy Notes
+- **Single-file approach used**: Avoided multi-file tsc validation due to known TypeScript compilation issues
+- **Project-wide validation skipped**: `npm run type` not used during parallel migration to prevent false positives
 
 ## Migration Learnings
 - Type conflicts encountered: {describe any multiple type definitions}
