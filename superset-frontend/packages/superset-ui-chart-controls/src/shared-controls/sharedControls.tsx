@@ -357,11 +357,29 @@ const enable_ai_insights: SharedControlConfig<'CheckboxControl'> = {
   renderTrigger: true,
 };
 
+const ai_custom_system_prompt: SharedControlConfig<'TextAreaControl'> = {
+  type: 'TextAreaControl',
+  label: t('Custom system prompt'),
+  default: '',
+  description: t(
+    'Custom instructions for AI summary generation (max 4000 characters)',
+  ),
+  renderTrigger: true,
+  visibility: ({ controls }) => Boolean(controls?.enable_ai_insights?.value),
+  textAreaStyles: {
+    maxLength: 4000,
+    rows: 4,
+    placeholder: t('Enter custom instructions for AI summary generation...'),
+  },
+};
+
 const show_fullscreen_menu: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Show Enter full screen'),
   default: true,
-  description: t('Show the "Enter full screen" option in the chart menu on dashboards'),
+  description: t(
+    'Show the "Enter full screen" option in the chart menu on dashboards',
+  ),
   renderTrigger: true,
 };
 
@@ -369,7 +387,9 @@ const show_data_menu: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Enable Show data'),
   default: true,
-  description: t('Show the "View as table" option in the chart menu on dashboards'),
+  description: t(
+    'Show the "View as table" option in the chart menu on dashboards',
+  ),
   renderTrigger: true,
 };
 
@@ -431,6 +451,7 @@ export default {
   currency_format,
   sort_by_metric,
   enable_ai_insights,
+  ai_custom_system_prompt,
   show_fullscreen_menu,
   show_data_menu,
 };

@@ -20,6 +20,7 @@ export interface ChartSummaryInput {
   description?: string;
   filters?: Record<string, unknown>;
   timeRange?: string | null;
+  customSystemPrompt?: string;
 }
 
 export interface GenerateSummaryOptions {
@@ -103,6 +104,7 @@ export async function generateSummary(
       dataSample: input.dataSample,
       title: input.title,
       description: input.description,
+      custom_system_prompt: input.customSystemPrompt,
     } as Record<string, unknown>,
   };
 

@@ -333,6 +333,8 @@ class ChartRenderer extends Component {
       isFeatureEnabled(FeatureFlag.AiSummaryOnChart) &&
       vizType !== 'big_number_total' &&
       vizType !== 'big_number' &&
+      vizType !== 'big_number_period_over_period' &&
+      vizType !== 'big_number_with_trendline' &&
       Boolean(currentFormData && currentFormData.enable_ai_insights);
     const defaultReserved = 64;
     const bufferPx = 8;
@@ -397,6 +399,7 @@ class ChartRenderer extends Component {
               queriesData={this.mutableQueriesResponse}
               timeRange={formData?.time_range}
               filters={formData?.adhoc_filters}
+              customSystemPrompt={formData?.ai_custom_system_prompt}
               onHeightChange={h => {
                 const prev = this.state.aiBoxHeight || 0;
                 const threshold = 4; // ignore tiny changes to avoid jitter
