@@ -573,7 +573,9 @@ def test_csv_reader_multiple_errors_display():
     assert "Line 3: 'invalid1' cannot be converted to int64" in error_msg
     assert "Line 4: 'invalid2' cannot be converted to int64" in error_msg
     assert "Line 5: 'invalid3' cannot be converted to int64" in error_msg
-    assert "and 1 more error(s)" in error_msg
+    assert "Line 6: 'invalid4' cannot be converted to int64" in error_msg
+    # With MAX_DISPLAYED_ERRORS = 5, all 4 errors should be shown without truncation
+    assert "and" not in error_msg or "more error(s)" not in error_msg
 
 
 def test_csv_reader_non_numeric_in_integer_column():
@@ -745,7 +747,7 @@ def test_csv_reader_error_detection_mixed_valid_invalid():
 
 
 def test_csv_reader_error_detection_multiple_invalid_values():
-    """Test error detection with multiple invalid values showing first 3 + count."""
+    """Test error detection with multiple invalid values showing first 5 + count."""
     csv_data = [
         ["Name", "Score", "City"],
         ["name1", "95.5", "city1"],
@@ -773,7 +775,9 @@ def test_csv_reader_error_detection_multiple_invalid_values():
     assert "Line 5: 'eighty-five' cannot be converted to float64" in error_msg
     assert "Line 6: 'eighty-one' cannot be converted to float64" in error_msg
     assert "Line 7: 'eighty' cannot be converted to float64" in error_msg
-    assert "and 3 more error(s)" in error_msg
+    assert "Line 8: 'one' cannot be converted to float64" in error_msg
+    assert "Line 9: 'two' cannot be converted to float64" in error_msg
+    assert "and 1 more error(s)" in error_msg
 
 
 def test_csv_reader_error_detection_non_numeric_types():

@@ -1328,13 +1328,6 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # Smaller values use less memory but may be slower for large files
 READ_CSV_CHUNK_SIZE = 1000
 
-# Maximum number of detailed errors to display in CSV upload error messages
-# When there are more errors than this limit, the system will show the first
-# CSV_UPLOAD_MAX_ERRORS_DISPLAYED errors with details and indicate how many
-# additional errors exist (e.g., "and 5 more error(s)")
-CSV_UPLOAD_MAX_ERRORS_DISPLAYED = 3
-
-
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this

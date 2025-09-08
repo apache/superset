@@ -33,8 +33,9 @@ from superset.commands.database.uploaders.base import (
 
 logger = logging.getLogger(__name__)
 
-
-max_displayed_errors = current_app.config.get("CSV_UPLOAD_MAX_ERRORS_DISPLAYED", 3)
+# Fixed error limit to avoid huge payloads and poor UX given that a file
+# might contain thousands of errors.
+MAX_DISPLAYED_ERRORS = 5
 
 ROWS_TO_READ_METADATA = 100
 DEFAULT_ENCODING = "utf-8"
@@ -193,7 +194,7 @@ class CSVReader(BaseDataReader):
         :param kwargs: Additional parameters including header row information
 
         :return: Tuple containing:
-            - List of formatted error detail strings (limited by max_displayed_errors)
+            - List of formatted error detail strings (limited by MAX_DISPLAYED_ERRORS)
             - Total count of errors found
         """
         if not invalid_mask.any():
@@ -203,7 +204,7 @@ class CSVReader(BaseDataReader):
         total_errors = len(invalid_indices)
 
         error_details = []
-        for idx in invalid_indices[:max_displayed_errors]:
+        for idx in invalid_indices[:MAX_DISPLAYED_ERRORS]:
             invalid_value = df.loc[idx, column]
             line_number = idx + kwargs.get("header", 0) + 2
             error_details.append(
@@ -251,8 +252,8 @@ class CSVReader(BaseDataReader):
             )
             detailed_errors = "\n".join(error_details)
 
-            if total_errors > max_displayed_errors:
-                remaining = total_errors - max_displayed_errors
+            if total_errors > MAX_DISPLAYED_ERRORS:
+                remaining = total_errors - MAX_DISPLAYED_ERRORS
                 additional_msg = f"\n  ... and {remaining} more error(s)"
                 return f"{base_msg}\n{detailed_errors}{additional_msg}"
             else:
