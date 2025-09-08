@@ -45,6 +45,13 @@ from superset.utils.screenshot_utils import take_tiled_screenshot
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
+# Installation message for missing Playwright (needed for WebGL/DuckGL support)
+PLAYWRIGHT_INSTALL_MESSAGE = (
+    "To complete the migration from Cypress and enable WebGL/DuckGL screenshot "
+    "support, install Playwright with: pip install playwright && "
+    "playwright install chromium"
+)
+
 if TYPE_CHECKING:
     from typing import Any
 
@@ -69,6 +76,31 @@ except ImportError:
     Locator = Any
     Page = Any
     sync_playwright = None
+
+# Check Playwright availability at module level
+PLAYWRIGHT_AVAILABLE = sync_playwright is not None
+
+
+def validate_webdriver_config() -> dict[str, Any]:
+    """
+    Validate webdriver configuration and dependencies.
+
+    Used to check migration status from Cypress to Playwright.
+    Returns a dictionary with the status of available webdrivers
+    and feature flags.
+    """
+    from superset import feature_flag_manager
+
+    return {
+        "selenium_available": True,  # Always available as required dependency
+        "playwright_available": PLAYWRIGHT_AVAILABLE,
+        "playwright_feature_enabled": feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ),
+        "recommended_action": (
+            PLAYWRIGHT_INSTALL_MESSAGE if not PLAYWRIGHT_AVAILABLE else None
+        ),
+    }
 
 
 class DashboardStandaloneMode(Enum):
@@ -151,6 +183,14 @@ class WebDriverPlaywright(WebDriverProxy):
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info(
+                "Playwright not available - falling back to Selenium. "
+                "Note: WebGL/Canvas charts may not render correctly with Selenium. "
+                f"{PLAYWRIGHT_INSTALL_MESSAGE}"
+            )
+            return None
+
         with sync_playwright() as playwright:
             browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
