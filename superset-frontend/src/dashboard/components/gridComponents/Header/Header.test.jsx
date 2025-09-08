@@ -22,7 +22,6 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import sinon from 'sinon';
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import Header from 'src/dashboard/components/gridComponents/Header';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
   HEADER_TYPE,
@@ -30,6 +29,7 @@ import {
 } from 'src/dashboard/util/componentTypes';
 
 import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import Header from './Header';
 
 describe('Header', () => {
   const props = {

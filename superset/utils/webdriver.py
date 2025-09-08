@@ -21,7 +21,7 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
 from packaging import version
@@ -302,47 +302,99 @@ class WebDriverPlaywright(WebDriverProxy):
 
 
 class WebDriverSelenium(WebDriverProxy):
+    def _create_firefox_driver(
+        self, pixel_density: float
+    ) -> tuple[type[WebDriver], type[Service], dict[str, Any]]:
+        """Create Firefox driver configuration."""
+        options = firefox.options.Options()
+        profile = FirefoxProfile()
+        profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
+        options.profile = profile
+        return (
+            firefox.webdriver.WebDriver,
+            firefox.service.Service,
+            {"options": options},
+        )
+
+    def _create_chrome_driver(
+        self, pixel_density: float
+    ) -> tuple[type[WebDriver], type[Service], dict[str, Any]]:
+        """Create Chrome driver configuration."""
+        options = chrome.options.Options()
+        options.add_argument(f"--force-device-scale-factor={pixel_density}")
+        options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
+        return (
+            chrome.webdriver.WebDriver,
+            chrome.service.Service,
+            {"options": options},
+        )
+
+    def _normalize_timeout_values(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert timeout values to float for urllib3 2.x compatibility."""
+        timeout_keys = [
+            "timeout",
+            "connect_timeout",
+            "socket_timeout",
+            "read_timeout",
+            "page_load_timeout",
+            "implicit_wait",
+            "command_executor_timeout",
+            "connection_timeout",
+        ]
+
+        for key, value in config.items():
+            if any(timeout_key in key.lower() for timeout_key in timeout_keys):
+                if value is None or value == "None" or value == "null":
+                    config[key] = None
+                else:
+                    try:
+                        config[key] = float(value)
+                    except (ValueError, TypeError):
+                        config[key] = None
+                        logger.warning(
+                            f"Invalid timeout value for {key}: {value}, setting to None"
+                        )
+        return config
+
     def create(self) -> WebDriver:
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+
+        # Get driver class and initial kwargs based on driver type
         if self._driver_type == "firefox":
-            driver_class: type[WebDriver] = firefox.webdriver.WebDriver
-            service_class: type[Service] = firefox.service.Service
-            options = firefox.options.Options()
-            profile = FirefoxProfile()
-            profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            options.profile = profile
-            kwargs = {"options": options}
+            driver_class, service_class, kwargs = self._create_firefox_driver(
+                pixel_density
+            )
         elif self._driver_type == "chrome":
-            driver_class = chrome.webdriver.WebDriver
-            service_class = chrome.service.Service
-            options = chrome.options.Options()
-            options.add_argument(f"--force-device-scale-factor={pixel_density}")
-            options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = {"options": options}
+            driver_class, service_class, kwargs = self._create_chrome_driver(
+                pixel_density
+            )
         else:
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Webdriver name ({self._driver_type}) not supported"
             )
 
-        # Prepare args for the webdriver init
+        # Add additional arguments from config
+        options = kwargs["options"]
         for arg in list(app.config["WEBDRIVER_OPTION_ARGS"]):
             options.add_argument(arg)
 
-        # Add additional configured webdriver options
-        webdriver_conf = dict(app.config["WEBDRIVER_CONFIGURATION"])
+        # Fix timeout values for urllib3 2.x compatibility
+        webdriver_config = app.config["WEBDRIVER_CONFIGURATION"].copy()
+        webdriver_config = self._normalize_timeout_values(webdriver_config)
+        kwargs.update(webdriver_config)
 
         # Set the binary location if provided
         # We need to pop it from the dict due to selenium_version < 4.10.0
-        options.binary_location = webdriver_conf.pop("binary_location", "")
+        options.binary_location = webdriver_config.pop("binary_location", "")
 
         if version.parse(selenium_version) < version.parse("4.10.0"):
-            kwargs |= webdriver_conf
+            kwargs |= webdriver_config
         else:
             driver_opts = dict(
-                webdriver_conf.get("options", {"capabilities": {}, "preferences": {}})
+                webdriver_config.get("options", {"capabilities": {}, "preferences": {}})
             )
             driver_srv = dict(
-                webdriver_conf.get(
+                webdriver_config.get(
                     "service",
                     {
                         "log_output": "/dev/null",
