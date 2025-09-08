@@ -17,3 +17,6 @@
  * under the License.
  */
 export { savedMetricType } from './types';
+
+// For backward compatibility with PropTypes usage
+export { savedMetricType as default } from './types';

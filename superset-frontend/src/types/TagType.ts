@@ -40,4 +40,6 @@ export interface TagType {
   closable?: boolean;
 }
 
-export default TagType;
+// For backward compatibility with PropTypes usage - create a placeholder object
+const tagType = {} as any;
+export default tagType;

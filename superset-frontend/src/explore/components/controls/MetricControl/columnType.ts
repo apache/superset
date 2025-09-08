@@ -20,4 +20,6 @@ import { Column } from '@superset-ui/core';
 
 export type ColumnType = Pick<Column, 'column_name' | 'type'>;
 
-export default ColumnType;
+// For backward compatibility with PropTypes usage - create a placeholder object
+const columnType = {} as any;
+export default columnType;
