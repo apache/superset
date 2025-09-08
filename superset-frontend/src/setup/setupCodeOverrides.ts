@@ -20,7 +20,7 @@
 /**
  * Configuration options for setting up code overrides in different contexts.
  */
-interface setupCodeOverridesOptions {
+interface CodeOverrideOptions {
   /**
    * Whether the application is running in embedded mode.
    */
