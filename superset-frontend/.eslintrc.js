@@ -323,6 +323,7 @@ module.exports = {
         '*.stories.tsx',
         '*.stories.jsx',
         'fixtures.*',
+        'playwright/**/*',
       ],
       excludedFiles: 'cypress-base/cypress/**/*',
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
