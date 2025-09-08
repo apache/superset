@@ -61,7 +61,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Series setting'),
+      label: t('Series settings'),
       expanded: true,
       controlSetRows: [
         [
@@ -73,11 +73,13 @@ const config: ControlPanelConfig = {
           {
             name: 'increase_color',
             config: {
-              label: t('Increase'),
+              label: t('Increase color'),
               type: 'ColorPickerControl',
               default: { r: 90, g: 193, b: 137, a: 1 },
               renderTrigger: true,
-              description: t('Choose the color for series increase'),
+              description: t(
+                'Select the color used for values that indicate an increase in the chart',
+              ),
             },
           },
           {
@@ -99,11 +101,13 @@ const config: ControlPanelConfig = {
           {
             name: 'decrease_color',
             config: {
-              label: t('Decrease'),
+              label: t('Decrease color'),
               type: 'ColorPickerControl',
               default: { r: 224, g: 67, b: 85, a: 1 },
               renderTrigger: true,
-              description: t('Choose the color for series decrease'),
+              description: t(
+                'Select the color used for values ​​that indicate a decrease in the chart.',
+              ),
             },
           },
           {
@@ -125,11 +129,13 @@ const config: ControlPanelConfig = {
           {
             name: 'total_color',
             config: {
-              label: t('Total'),
+              label: t('Total color'),
               type: 'ColorPickerControl',
               default: { r: 102, g: 102, b: 102, a: 1 },
               renderTrigger: true,
-              description: t('Choose the color for series total'),
+              description: t(
+                'Select the color used for values that represent total bars in the chart',
+              ),
             },
           },
 

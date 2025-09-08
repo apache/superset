@@ -109,7 +109,7 @@ export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
-    label: t('Show Value'),
+    label: t('Show value'),
     default: false,
     renderTrigger: true,
     description: t('Show series values on the chart'),
