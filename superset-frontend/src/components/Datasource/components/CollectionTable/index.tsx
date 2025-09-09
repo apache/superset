@@ -28,13 +28,13 @@ import Table, {
   type TablePaginationConfig,
   TableSize,
 } from '@superset-ui/core/components/Table';
-import Fieldset from './Fieldset';
-import { recurseReactClone } from './utils';
+import Fieldset from '../Fieldset';
+import { recurseReactClone } from '../../utils';
 import {
   type CRUDCollectionProps,
   type CRUDCollectionState,
   type Sort,
-} from './types';
+} from '../../types';
 
 const CrudButtonWrapper = styled.div`
   text-align: right;

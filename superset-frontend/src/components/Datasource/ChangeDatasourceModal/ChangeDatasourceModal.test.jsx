@@ -22,7 +22,7 @@ import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import { ChangeDatasourceModal } from '.';
+import ChangeDatasourceModal from '.';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

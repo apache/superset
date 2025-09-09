@@ -29,7 +29,7 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import { DatasourceModal } from '.';
+import DatasourceModal from '.';
 
 // Define your constants here
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';

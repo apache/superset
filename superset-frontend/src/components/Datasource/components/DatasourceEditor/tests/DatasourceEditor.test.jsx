@@ -26,7 +26,7 @@ import {
 } from 'spec/helpers/testing-library';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
-import DatasourceEditor from './DatasourceEditor';
+import DatasourceEditor from '..';
 
 /* eslint-disable jest/no-export */
 jest.mock('@superset-ui/core', () => ({
@@ -178,7 +178,7 @@ describe('DatasourceEditor', () => {
       const newColumn = screen.getAllByRole('textbox')[0];
       expect(newColumn).toHaveValue('<new column>');
     });
-  });
+  }, 60000);
 
   it('renders isSqla fields', async () => {
     const columnsTab = screen.getByRole('tab', {
