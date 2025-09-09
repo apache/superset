@@ -32,7 +32,11 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['datasource'],
         ['viz_type'],
+        ['enable_ai_insights'],
         ['show_fullscreen_menu', 'show_data_menu'],
+        ['enable_export_csv', 'enable_export_excel'],
+        ['enable_export_full_csv', 'enable_export_full_excel'],
+        ['enable_download_image'],
         [
           {
             name: 'slice_id',
