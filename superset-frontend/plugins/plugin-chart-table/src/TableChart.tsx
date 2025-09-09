@@ -89,6 +89,7 @@ import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
+import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -198,7 +199,7 @@ function SearchInput({
       {t('Search')}
       <Input
         aria-label={t('Search %s records', count)}
-        placeholder={tn('search.num_records', count)}
+        placeholder={tn('%s record', '%s records...', count, count)}
         value={value}
         onChange={onChange}
         onBlur={onBlur}
@@ -934,7 +935,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             },
             className: [
               className,
-              value == null ? 'dt-is-null' : '',
+              value == null ||
+              (value instanceof DateWithFormatter && value.input == null)
+                ? 'dt-is-null'
+                : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
             tabIndex: 0,

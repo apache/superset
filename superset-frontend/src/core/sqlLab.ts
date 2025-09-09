@@ -102,8 +102,11 @@ export const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatab
     createActionListener(
       predicate(QUERY_EDITOR_SETDB),
       listener,
-      (action: { type: string; queryEditor: { dbId: number } }) =>
-        action.queryEditor.dbId,
+      (action: {
+        type: string;
+        dbId?: number;
+        queryEditor: { dbId: number };
+      }) => action.dbId || action.queryEditor.dbId,
       thisArgs,
     );
 

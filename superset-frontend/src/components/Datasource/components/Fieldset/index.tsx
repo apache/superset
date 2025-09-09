@@ -19,8 +19,8 @@
 import { ReactNode, useCallback } from 'react';
 import { Divider, Form, Typography } from '@superset-ui/core/components';
 import { css } from '@superset-ui/core';
-import { recurseReactClone } from './utils';
-import Field from './Field';
+import { recurseReactClone } from '../../utils';
+import Field from '../Field';
 
 interface FieldsetProps {
   children: ReactNode;

@@ -45,9 +45,11 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
-import type { DatasourceModalProps } from './types';
+import type { DatasourceModalProps } from '../types';
 
-const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
+const DatasourceEditor = AsyncEsmComponent(
+  () => import('../components/DatasourceEditor'),
+);
 
 const StyledDatasourceModal = styled(Modal)`
   .modal-content {
