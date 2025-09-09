@@ -395,7 +395,10 @@ const ExploreChartPanel = ({
               queriesResponse: chart.queriesResponse,
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
-            hideRowCount={formData?.matrixify_enabled === true}
+            hideRowCount={
+              formData?.matrixify_enable_vertical_layout === true ||
+              formData?.matrixify_enable_horizontal_layout === true
+            }
           />
         </ChartHeaderExtension>
         {renderChart()}
@@ -412,7 +415,8 @@ const ExploreChartPanel = ({
       chart.chartUpdateEndTime,
       refreshCachedQuery,
       formData?.row_limit,
-      formData?.matrixify_enabled,
+      formData?.matrixify_enable_vertical_layout,
+      formData?.matrixify_enable_horizontal_layout,
       renderChart,
     ],
   );

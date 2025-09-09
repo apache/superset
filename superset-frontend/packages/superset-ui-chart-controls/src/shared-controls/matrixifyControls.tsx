@@ -43,16 +43,22 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       ['dimensions', t('Dimension members')],
     ],
     renderTrigger: true,
+    visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true,
   };
 
   matrixifyControls[`matrixify_${axis}`] = {
     ...dndAdhocMetricControl,
     label: t(`Metrics`),
     multi: true,
-    validators: [], // Not required
-    // description: t(`Select metrics for ${axis}`),
+    validators: [], // No validation for metrics
     renderTrigger: true,
     visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true &&
       controls?.[`matrixify_mode_${axis}`]?.value === 'metrics',
   };
 
@@ -62,7 +68,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     label: t(`Dimension selection`),
     description: t(`Select dimension and values`),
     default: { dimension: '', values: [] },
-    validators: [], // Not required
+    validators: [], // No validation - rely on visibility
     renderTrigger: true,
     shouldMapStateToProps: (prevState, state) => {
       // Recalculate when any relevant form_data field changes
@@ -82,12 +88,14 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       const getValue = (key: string, defaultValue?: any) =>
         form_data?.[key] ?? controls?.[key]?.value ?? defaultValue;
 
+      const selectionMode = getValue(
+        `matrixify_dimension_selection_mode_${axis}`,
+        'members',
+      );
+
       return {
         datasource,
-        selectionMode: getValue(
-          `matrixify_dimension_selection_mode_${axis}`,
-          'members',
-        ),
+        selectionMode,
         topNMetric: getValue(`matrixify_topn_metric_${axis}`),
         topNValue: getValue(`matrixify_topn_value_${axis}`),
         topNOrder: getValue(`matrixify_topn_order_${axis}`),
@@ -95,6 +103,9 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       };
     },
     visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true &&
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions',
   };
 
@@ -128,6 +139,9 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     ],
     renderTrigger: true,
     visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true &&
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions',
   };
 
@@ -138,7 +152,11 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     description: t(`How many top values to select`),
     default: 10,
     isInt: true,
+    validators: [], // No validation - rely on visibility
     visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true &&
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
@@ -148,9 +166,12 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     ...dndAdhocMetricControl,
     label: t(`Metric for ordering`),
     multi: false,
-    validators: [], // Not required
+    validators: [], // No validation - rely on visibility
     description: t(`Metric to use for ordering Top N values`),
     visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true &&
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
@@ -165,6 +186,9 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       ['desc', t('Descending')],
     ],
     visibility: ({ controls }) =>
+      controls?.[
+        `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+      ]?.value === true &&
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
@@ -213,13 +237,21 @@ matrixifyControls.matrixify_charts_per_row = {
     !controls?.matrixify_fit_columns_dynamically?.value,
 };
 
-// Main enable control
-matrixifyControls.matrixify_enabled = {
+// Remove matrixify_enabled - use layout enables directly
+
+// Progressive disclosure controls for layout sections
+matrixifyControls.matrixify_enable_vertical_layout = {
   type: 'CheckboxControl',
-  label: t('Enable matrixify'),
-  description: t(
-    'Transform this chart into a matrix/grid of charts based on dimensions or metrics',
-  ),
+  label: t('Enable vertical layout (rows)'),
+  description: t('Create matrix rows by stacking charts vertically'),
+  default: false,
+  renderTrigger: true,
+};
+
+matrixifyControls.matrixify_enable_horizontal_layout = {
+  type: 'CheckboxControl',
+  label: t('Enable horizontal layout (columns)'),
+  description: t('Create matrix columns by placing charts side-by-side'),
   default: false,
   renderTrigger: true,
 };
@@ -234,8 +266,8 @@ matrixifyControls.matrixify_cell_title_template = {
   default: '',
   renderTrigger: true,
   visibility: ({ controls }) =>
-    (controls?.matrixify_mode_rows?.value ||
-      controls?.matrixify_mode_columns?.value) !== undefined,
+    controls?.matrixify_enable_vertical_layout?.value === true ||
+    controls?.matrixify_enable_horizontal_layout?.value === true,
 };
 
 // Matrix display controls
@@ -246,8 +278,7 @@ matrixifyControls.matrixify_show_row_labels = {
   default: true,
   renderTrigger: true,
   visibility: ({ controls }) =>
-    (controls?.matrixify_mode_rows?.value ||
-      controls?.matrixify_mode_columns?.value) !== undefined,
+    controls?.matrixify_enable_vertical_layout?.value === true,
 };
 
 matrixifyControls.matrixify_show_column_headers = {
@@ -257,8 +288,7 @@ matrixifyControls.matrixify_show_column_headers = {
   default: true,
   renderTrigger: true,
   visibility: ({ controls }) =>
-    (controls?.matrixify_mode_rows?.value ||
-      controls?.matrixify_mode_columns?.value) !== undefined,
+    controls?.matrixify_enable_horizontal_layout?.value === true,
 };
 
 export { matrixifyControls };

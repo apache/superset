@@ -288,26 +288,30 @@ function buildMatrixifySection(
     [`matrixify_topn_order_${axis}`],
   ];
 
+  // Add enable checkbox at the beginning of each section
+  const enableControl =
+    axis === 'rows'
+      ? 'matrixify_enable_vertical_layout'
+      : 'matrixify_enable_horizontal_layout';
+
+  baseControls.unshift([enableControl]);
+
   // Add specific controls for each axis
   if (axis === 'rows') {
-    // Add show row labels at the beginning
-    baseControls.unshift(['matrixify_show_row_labels']);
-    // Add row height control after show labels
-    baseControls.splice(1, 0, ['matrixify_row_height']);
+    // Add show row labels after enable
+    baseControls.splice(1, 0, ['matrixify_show_row_labels']);
   } else if (axis === 'columns') {
-    // Add show column headers at the beginning
-    baseControls.unshift(['matrixify_show_column_headers']);
-    // Add fit columns control after show headers
-    baseControls.splice(1, 0, ['matrixify_fit_columns_dynamically']);
-    // Add charts per row after fit columns control
-    baseControls.splice(2, 0, ['matrixify_charts_per_row']);
+    // Add show column headers after enable
+    baseControls.splice(1, 0, ['matrixify_show_column_headers']);
   }
 
   return {
-    label: axis === 'columns' ? t('Horizontal layout') : t('Vertical layout'),
+    label:
+      axis === 'columns'
+        ? t('Horizontal layout (columns)')
+        : t('Vertical layout (rows)'),
     expanded: true,
     tabOverride: 'matrixify',
-    visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
     controlSetRows: baseControls,
   };
 }
@@ -315,17 +319,18 @@ function buildMatrixifySection(
 export const matrixifyRows = buildMatrixifySection('rows');
 export const matrixifyColumns = buildMatrixifySection('columns');
 
-export const matrixifyEnableSection: ControlPanelSectionConfig = {
-  label: t('Enable Matrixify'),
-  expanded: true,
-  tabOverride: 'matrixify',
-  controlSetRows: [['matrixify_enabled']],
-};
+// Removed - checkboxes now inside their respective sections
 
 export const matrixifyCells: ControlPanelSectionConfig = {
-  label: t('Cells'),
+  label: t('Cell layout & styling'),
   expanded: true,
   tabOverride: 'matrixify',
-  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
-  controlSetRows: [['matrixify_cell_title_template']],
+  visibility: ({ controls }) =>
+    controls?.matrixify_enable_vertical_layout?.value === true ||
+    controls?.matrixify_enable_horizontal_layout?.value === true,
+  controlSetRows: [
+    ['matrixify_row_height', 'matrixify_fit_columns_dynamically'],
+    ['matrixify_charts_per_row'],
+    ['matrixify_cell_title_template'],
+  ],
 };
