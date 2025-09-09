@@ -335,6 +335,16 @@ class BaseDAO(Generic[T]):
         if not converted_ids:
             return []
 
+        # Validate type consistency for better error handling
+        if len(converted_ids) > 1:
+            types_found = set(map(type, converted_ids))
+            if len(types_found) > 1:
+                logger.warning(
+                    "Mixed ID types detected for %s: %s",
+                    cls.model_cls.__name__ if cls.model_cls else "Unknown",
+                    [t.__name__ for t in types_found],
+                )
+
         query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
 
