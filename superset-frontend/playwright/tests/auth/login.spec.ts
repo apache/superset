@@ -65,7 +65,7 @@ test.describe('Login view', () => {
     const loginRequestPromise = authPage.waitForLoginRequest();
 
     // Login with correct credentials
-    await authPage.loginWithCredentials('admin', 'admin');
+    await authPage.loginWithCredentials('admin', 'general');
 
     // Wait for login request and verify response
     const loginResponse = await loginRequestPromise;
