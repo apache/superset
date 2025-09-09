@@ -23,9 +23,6 @@ export function generateGroupById(): string {
   return `groupby_${Date.now()}`;
 }
 
-/**
- * Gets an array of all chart customization item IDs
- */
 export const getChartCustomizationIds = (items: ChartCustomizationItem[]) =>
   items.map(item => item.id);
 
