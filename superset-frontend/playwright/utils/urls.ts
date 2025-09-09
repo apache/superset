@@ -17,5 +17,11 @@
  * under the License.
  */
 
-export const LOGIN = '/login/';
-export const LOGIN_REQUEST_PATTERN = '**/login/';
+export const URL = {
+  LOGIN: '/login/',
+  WELCOME: '/superset/welcome/',
+} as const;
+
+export const REQUEST_PATTERN = {
+  LOGIN: '**/login/',
+} as const;

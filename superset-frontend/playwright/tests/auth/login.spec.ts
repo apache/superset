@@ -19,23 +19,26 @@
 
 import { test, expect } from '@playwright/test';
 import { AuthPage } from '../../pages/AuthPage';
-import { LOGIN } from '../../utils/urls';
+import { URL } from '../../utils/urls';
 
 test.describe('Login view', () => {
   let authPage: AuthPage;
+  let loginRequestPromise: Promise<any>;
 
   test.beforeEach(async ({ page }) => {
     authPage = new AuthPage(page);
     await authPage.goto();
-  });
 
-  test('should redirect to login with incorrect username and password', async () => {
     // Wait for form to be ready
     await authPage.waitForLoginForm();
 
     // Setup request interception before login attempt
-    const loginRequestPromise = authPage.waitForLoginRequest();
+    loginRequestPromise = authPage.waitForLoginRequest();
+  });
 
+  test('should redirect to login with incorrect username and password', async ({
+    page,
+  }) => {
     // Attempt login with incorrect credentials
     await authPage.loginWithCredentials('admin', 'wrongpassword');
 
@@ -44,18 +47,21 @@ test.describe('Login view', () => {
     // Failed login typically returns 302 redirect back to login page
     expect([200, 302]).toContain(loginResponse.status());
 
+    // Wait for redirect to complete before checking URL
+    await page.waitForURL(url => url.pathname.includes('/login'), {
+      timeout: 10000,
+    });
+
     // Verify we stay on login page
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain(LOGIN);
+    expect(currentUrl).toContain(URL.LOGIN);
+
+    // Verify error message is shown
+    const hasError = await authPage.hasLoginError();
+    expect(hasError).toBe(true);
   });
 
-  test('should login with correct username and password', async () => {
-    // Wait for form to be ready
-    await authPage.waitForLoginForm();
-
-    // Setup request interception before login attempt
-    const loginRequestPromise = authPage.waitForLoginRequest();
-
+  test('should login with correct username and password', async ({ page }) => {
     // Login with correct credentials
     await authPage.loginWithCredentials('admin', 'admin');
 
@@ -63,9 +69,12 @@ test.describe('Login view', () => {
     const loginResponse = await loginRequestPromise;
     expect([200, 302]).toContain(loginResponse.status());
 
-    // Verify successful redirect away from login page
+    // Wait for navigation to complete (either redirect to dashboard or back to login)
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+
+    // Verify successful redirect to welcome page
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).not.toContain(LOGIN);
+    expect(currentUrl).toContain(URL.WELCOME);
 
     // Verify specific session cookie exists
     const sessionCookie = await authPage.getSessionCookie();

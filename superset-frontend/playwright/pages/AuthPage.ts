@@ -19,7 +19,7 @@
 
 import { Page, Response } from '@playwright/test';
 import { Form } from '../components/core';
-import { LOGIN } from '../utils/urls';
+import { URL } from '../utils/urls';
 
 export class AuthPage {
   private readonly page: Page;
@@ -32,6 +32,12 @@ export class AuthPage {
     USERNAME_INPUT: '[data-test="username-input"]',
     PASSWORD_INPUT: '[data-test="password-input"]',
     LOGIN_BUTTON: '[data-test="login-button"]',
+    ERROR_SELECTORS: [
+      '[role="alert"]',
+      '.ant-form-item-explain-error',
+      '.ant-form-item-explain.ant-form-item-explain-error',
+      '.alert-danger',
+    ],
   } as const;
 
   constructor(page: Page) {
@@ -43,7 +49,7 @@ export class AuthPage {
    * Navigate to the login page
    */
   async goto(): Promise<void> {
-    await this.page.goto(LOGIN);
+    await this.page.goto(URL.LOGIN);
   }
 
   /**
@@ -51,13 +57,6 @@ export class AuthPage {
    */
   async waitForLoginForm(): Promise<void> {
     await this.loginForm.waitForVisible();
-  }
-
-  /**
-   * Check if login form is visible
-   */
-  async isLoginFormVisible(): Promise<boolean> {
-    return this.loginForm.isVisible();
   }
 
   /**
@@ -92,19 +91,10 @@ export class AuthPage {
   }
 
   /**
-   * Get all cookies from the current context
-   */
-  async getCookies(): Promise<
-    Array<{ name: string; value: string; domain: string }>
-  > {
-    return this.page.context().cookies();
-  }
-
-  /**
    * Get the session cookie specifically
    */
   async getSessionCookie(): Promise<{ name: string; value: string } | null> {
-    const cookies = await this.getCookies();
+    const cookies = await this.page.context().cookies();
     return cookies.find(c => c.name === 'session') || null;
   }
 
@@ -120,15 +110,8 @@ export class AuthPage {
    * Check if login form has validation errors
    */
   async hasLoginError(): Promise<boolean> {
-    const errorSelectors = [
-      '[role="alert"]',
-      '.ant-form-item-explain-error',
-      '.ant-form-item-explain.ant-form-item-explain-error',
-      '.alert-danger',
-    ];
-
-    const visibilityPromises = errorSelectors.map(selector =>
-      this.page.locator(selector).isVisible(),
+    const visibilityPromises = AuthPage.SELECTORS.ERROR_SELECTORS.map(
+      selector => this.page.locator(selector).isVisible(),
     );
     const visibilityResults = await Promise.all(visibilityPromises);
     return visibilityResults.some(isVisible => isVisible);
@@ -138,14 +121,7 @@ export class AuthPage {
    * Get login error message if present
    */
   async getLoginErrorMessage(): Promise<string | null> {
-    const errorSelectors = [
-      '[role="alert"]',
-      '.ant-form-item-explain-error',
-      '.ant-form-item-explain.ant-form-item-explain-error',
-      '.alert-danger',
-    ];
-
-    const errorLocators = errorSelectors.map(selector =>
+    const errorLocators = AuthPage.SELECTORS.ERROR_SELECTORS.map(selector =>
       this.page.locator(selector).first(),
     );
 
@@ -159,31 +135,6 @@ export class AuthPage {
     }
 
     return null;
-  }
-
-  /**
-   * Check if login form is ready for interaction
-   */
-  async isLoginFormReady(): Promise<boolean> {
-    const usernameInput = this.loginForm.getInput(
-      AuthPage.SELECTORS.USERNAME_INPUT,
-    );
-    const passwordInput = this.loginForm.getInput(
-      AuthPage.SELECTORS.PASSWORD_INPUT,
-    );
-    const loginButton = this.loginForm.getButton(
-      AuthPage.SELECTORS.LOGIN_BUTTON,
-    );
-
-    const [usernameEnabled, passwordEnabled, buttonEnabled] = await Promise.all(
-      [
-        usernameInput.isEnabled(),
-        passwordInput.isEnabled(),
-        loginButton.isEnabled(),
-      ],
-    );
-
-    return usernameEnabled && passwordEnabled && buttonEnabled;
   }
 
   /**
