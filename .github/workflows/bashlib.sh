@@ -213,7 +213,7 @@ playwright-run() {
   sleep 10
 
   say "::group::Run Playwright tests"
-  npx playwright test --reporter=github --output-dir=playwright-results
+  npx playwright test --reporter=github --output playwright-results
   local status=$?
   say "::endgroup::"
 
