@@ -51,16 +51,10 @@ const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
-  devserverPort: cliPort,
-  devserverHost: cliHost,
+  devserverPort = 9000,
   measure = false,
   nameChunks = false,
 } = parsedArgs;
-
-// Precedence: CLI args > env vars > defaults
-const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
-const devserverHost =
-  cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
 
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
@@ -574,9 +568,7 @@ if (isDevMode) {
     },
     historyApiFallback: true,
     hot: true,
-    host: devserverHost,
     port: devserverPort,
-    allowedHosts: ['localhost', '.localhost', '127.0.0.1', '::1', '.local'],
     proxy: [() => proxyConfig],
     client: {
       overlay: {

@@ -53,7 +53,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     ...dndAdhocMetricControl,
     label: t(`Metrics`),
     multi: true,
-    validators: [], // No validation for metrics
+    validators: [], // No validation - rely on visibility
     renderTrigger: true,
     visibility: ({ controls }) =>
       controls?.[
@@ -109,8 +109,6 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions',
   };
 
-  // Dimension picker for TopN mode (just dimension, no values)
-  // NOTE: This is now handled by matrixify_dimension control, so hiding it
   matrixifyControls[`matrixify_topn_dimension_${axis}`] = {
     type: 'SelectControl',
     label: t('Dimension'),
@@ -237,9 +235,6 @@ matrixifyControls.matrixify_charts_per_row = {
     !controls?.matrixify_fit_columns_dynamically?.value,
 };
 
-// Remove matrixify_enabled - use layout enables directly
-
-// Progressive disclosure controls for layout sections
 matrixifyControls.matrixify_enable_vertical_layout = {
   type: 'CheckboxControl',
   label: t('Enable vertical layout (rows)'),

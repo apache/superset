@@ -37,10 +37,11 @@ test('isMatrixifyEnabled should return false when no matrixify configuration exi
   expect(isMatrixifyEnabled(formData)).toBe(false);
 });
 
-test('isMatrixifyEnabled should return false when matrixify_enabled is false', () => {
+test('isMatrixifyEnabled should return false when layout controls are false', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: false,
+    matrixify_enable_vertical_layout: false,
+    matrixify_enable_horizontal_layout: false,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
   } as MatrixifyFormData;
@@ -51,7 +52,7 @@ test('isMatrixifyEnabled should return false when matrixify_enabled is false', (
 test('isMatrixifyEnabled should return true for valid metrics mode configuration', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
@@ -64,7 +65,7 @@ test('isMatrixifyEnabled should return true for valid metrics mode configuration
 test('isMatrixifyEnabled should return true for valid dimensions mode configuration', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: ['USA'] },
@@ -77,7 +78,7 @@ test('isMatrixifyEnabled should return true for valid dimensions mode configurat
 test('isMatrixifyEnabled should return true for mixed mode configuration', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'dimensions',
     matrixify_rows: [createMetric('Revenue')],
@@ -90,7 +91,7 @@ test('isMatrixifyEnabled should return true for mixed mode configuration', () =>
 test('isMatrixifyEnabled should return true for topn dimension selection mode', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: {
@@ -109,7 +110,7 @@ test('isMatrixifyEnabled should return true for topn dimension selection mode', 
 test('isMatrixifyEnabled should return false when both axes have empty metrics arrays', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [],
@@ -122,7 +123,7 @@ test('isMatrixifyEnabled should return false when both axes have empty metrics a
 test('isMatrixifyEnabled should return false when both dimensions have empty values and no topn mode', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: [] },
@@ -140,7 +141,7 @@ test('getMatrixifyConfig should return null when no matrixify configuration exis
 test('getMatrixifyConfig should return valid config for metrics mode', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
@@ -158,7 +159,7 @@ test('getMatrixifyConfig should return valid config for metrics mode', () => {
 test('getMatrixifyConfig should return valid config for dimensions mode', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: ['USA'] },
@@ -182,7 +183,7 @@ test('getMatrixifyConfig should return valid config for dimensions mode', () => 
 test('getMatrixifyConfig should handle topn selection mode', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: {
@@ -212,7 +213,7 @@ test('getMatrixifyValidationErrors should return empty array when matrixify is n
 test('getMatrixifyValidationErrors should return empty array when properly configured', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
@@ -225,7 +226,7 @@ test('getMatrixifyValidationErrors should return empty array when properly confi
 test('getMatrixifyValidationErrors should return error when enabled but no configuration exists', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
   } as MatrixifyFormData;
 
   const errors = getMatrixifyValidationErrors(formData);
@@ -235,7 +236,7 @@ test('getMatrixifyValidationErrors should return error when enabled but no confi
 test('getMatrixifyValidationErrors should return error when metrics mode has no metrics', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [],
     matrixify_columns: [],
@@ -261,7 +262,7 @@ test('should handle empty form data object', () => {
 test('should handle partial configuration with one axis only', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
     // No columns configuration

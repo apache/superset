@@ -319,8 +319,6 @@ function buildMatrixifySection(
 export const matrixifyRows = buildMatrixifySection('rows');
 export const matrixifyColumns = buildMatrixifySection('columns');
 
-// Removed - checkboxes now inside their respective sections
-
 export const matrixifyCells: ControlPanelSectionConfig = {
   label: t('Cell layout & styling'),
   expanded: true,
