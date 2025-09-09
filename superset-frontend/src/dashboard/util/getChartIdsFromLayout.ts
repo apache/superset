@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function serializeFilterScopes(dashboardFilters) {
-  return Object.values(dashboardFilters).reduce((map, { chartId, scopes }) => {
-    const scopesById = Object.keys(scopes).reduce(
-      (scopesByColumn, column) => ({
-        ...scopesByColumn,
-        [column]: scopes[column],
-      }),
-      {},
-    );
+import { CHART_TYPE } from './componentTypes';
+import type { DashboardLayout } from '../types';
 
-    return {
-      ...map,
-      [chartId]: scopesById,
-    };
-  }, {});
+export default function getChartIdsFromLayout(
+  layout: DashboardLayout,
+): number[] {
+  return Object.values(layout).reduce(
+    (chartIds: number[], currentComponent) => {
+      if (
+        currentComponent &&
+        currentComponent.type === CHART_TYPE &&
+        currentComponent.meta &&
+        currentComponent.meta.chartId
+      ) {
+        chartIds.push(currentComponent.meta.chartId);
+      }
+      return chartIds;
+    },
+    [],
+  );
 }

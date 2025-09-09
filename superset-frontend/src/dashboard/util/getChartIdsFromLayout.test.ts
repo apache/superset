@@ -18,36 +18,55 @@
  */
 import getChartIdsFromLayout from 'src/dashboard/util/getChartIdsFromLayout';
 import { ROW_TYPE, CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import type { DashboardLayout } from '../types';
 
 describe('getChartIdsFromLayout', () => {
-  const mockLayout = {
+  const mockLayout: DashboardLayout = {
     a: {
       id: 'a',
       type: CHART_TYPE,
-      meta: { chartId: 'A' },
+      children: [],
+      meta: {
+        chartId: 123,
+        height: 400,
+        width: 400,
+        uuid: 'uuid-a',
+      },
     },
     b: {
       id: 'b',
       type: CHART_TYPE,
-      meta: { chartId: 'B' },
+      children: [],
+      meta: {
+        chartId: 456,
+        height: 400,
+        width: 400,
+        uuid: 'uuid-b',
+      },
     },
     c: {
       id: 'c',
       type: ROW_TYPE,
-      meta: { chartId: 'C' },
+      children: [],
+      meta: {
+        chartId: 789,
+        height: 400,
+        width: 400,
+        uuid: 'uuid-c',
+      },
     },
   };
 
   it('should return an array of chartIds', () => {
     const result = getChartIdsFromLayout(mockLayout);
     expect(Array.isArray(result)).toBe(true);
-    expect(result.includes('A')).toBe(true);
-    expect(result.includes('B')).toBe(true);
+    expect(result.includes(123)).toBe(true);
+    expect(result.includes(456)).toBe(true);
   });
 
   it('should return ids only from CHART_TYPE components', () => {
     const result = getChartIdsFromLayout(mockLayout);
     expect(result).toHaveLength(2);
-    expect(result.includes('C')).toBe(false);
+    expect(result.includes(789)).toBe(false);
   });
 });
