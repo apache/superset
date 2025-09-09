@@ -395,6 +395,56 @@ const show_data_menu: SharedControlConfig<'CheckboxControl'> = {
   renderTrigger: true,
 };
 
+const enable_export_csv: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable Export to .CSV'),
+  default: true,
+  description: t(
+    'Show the "Export to .CSV" option in the download menu on dashboards',
+  ),
+  renderTrigger: true,
+};
+
+const enable_export_excel: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable Export to Excel'),
+  default: true,
+  description: t(
+    'Show the "Export to Excel" option in the download menu on dashboards',
+  ),
+  renderTrigger: true,
+};
+
+const enable_export_full_csv: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable Export to Full .CSV'),
+  default: true,
+  description: t(
+    'Show the "Export to full .CSV" option in the download menu on dashboards',
+  ),
+  renderTrigger: true,
+};
+
+const enable_export_full_excel: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable Export to Full Excel'),
+  default: true,
+  description: t(
+    'Show the "Export to full Excel" option in the download menu on dashboards',
+  ),
+  renderTrigger: true,
+};
+
+const enable_download_image: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Enable Download as Image'),
+  default: true,
+  description: t(
+    'Show the "Download as image" option in the download menu on dashboards',
+  ),
+  renderTrigger: true,
+};
+
 const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
   initialValue: (control: ControlState, state: ControlPanelState | null) =>
@@ -456,4 +506,9 @@ export default {
   ai_custom_system_prompt,
   show_fullscreen_menu,
   show_data_menu,
+  enable_export_csv,
+  enable_export_excel,
+  enable_export_full_csv,
+  enable_export_full_excel,
+  enable_download_image,
 };

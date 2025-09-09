@@ -574,6 +574,18 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
   );
   const isForceRefreshEnabled = isFeatureEnabled(FeatureFlag.EnableChartForceRefresh);
+  
+  // Helper to check if any download options are enabled
+  const hasDownloadOptions = () => {
+    const formData = props.formData;
+    return (
+      (formData?.enable_export_csv !== false) ||
+      (formData?.enable_export_excel !== false) ||
+      (formData?.enable_export_full_csv !== false && isFeatureEnabled(FeatureFlag.AllowFullCsvExport) && isTable) ||
+      (formData?.enable_export_full_excel !== false && isFeatureEnabled(FeatureFlag.AllowFullCsvExport) && isTable) ||
+      (formData?.enable_download_image !== false)
+    );
+  };
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -871,19 +883,21 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.SubMenu>
       )}
 
-      {props.supersetCanCSV && (
+      {props.supersetCanCSV && hasDownloadOptions() && (
         <Menu.SubMenu
           title={t('Download')}
           key={MenuKeys.Download}
           onTitleMouseEnter={() => setOpenKeys(undefined)}
         >
-          <Menu.Item
-            key={MenuKeys.ExportCsv}
-            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-          >
-            {t('Export to .CSV')}
-          </Menu.Item>
-          {isPivotTable && (
+          {(props.formData?.enable_export_csv !== false) && (
+            <Menu.Item
+              key={MenuKeys.ExportCsv}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to .CSV')}
+            </Menu.Item>
+          )}
+          {isPivotTable && (props.formData?.enable_export_csv !== false) && (
             <Menu.Item
               key={MenuKeys.ExportPivotCsv}
               icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
@@ -891,38 +905,46 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
               {t('Export to Pivoted .CSV')}
             </Menu.Item>
           )}
-          <Menu.Item
-            key={MenuKeys.ExportXlsx}
-            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-          >
-            {t('Export to Excel')}
-          </Menu.Item>
+          {(props.formData?.enable_export_excel !== false) && (
+            <Menu.Item
+              key={MenuKeys.ExportXlsx}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Excel')}
+            </Menu.Item>
+          )}
 
           {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
             props.supersetCanCSV &&
             isTable && (
               <>
-                <Menu.Item
-                  key={MenuKeys.ExportFullCsv}
-                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-                >
-                  {t('Export to full .CSV')}
-                </Menu.Item>
-                <Menu.Item
-                  key={MenuKeys.ExportFullXlsx}
-                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-                >
-                  {t('Export to full Excel')}
-                </Menu.Item>
+                {(props.formData?.enable_export_full_csv !== false) && (
+                  <Menu.Item
+                    key={MenuKeys.ExportFullCsv}
+                    icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                  >
+                    {t('Export to full .CSV')}
+                  </Menu.Item>
+                )}
+                {(props.formData?.enable_export_full_excel !== false) && (
+                  <Menu.Item
+                    key={MenuKeys.ExportFullXlsx}
+                    icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                  >
+                    {t('Export to full Excel')}
+                  </Menu.Item>
+                )}
               </>
             )}
 
-          <Menu.Item
-            key={MenuKeys.DownloadAsImage}
-            icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
-          >
-            {t('Download as image')}
-          </Menu.Item>
+          {(props.formData?.enable_download_image !== false) && (
+            <Menu.Item
+              key={MenuKeys.DownloadAsImage}
+              icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Download as image')}
+            </Menu.Item>
+          )}
         </Menu.SubMenu>
       )}
     </Menu>
