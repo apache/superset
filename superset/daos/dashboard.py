@@ -49,7 +49,6 @@ DASHBOARD_CUSTOM_FIELDS = {
     "tags": ["eq", "in_", "like"],
     "owner": ["eq", "in_"],
     "published": ["eq"],
-    "favorite": ["eq"],
 }
 
 
