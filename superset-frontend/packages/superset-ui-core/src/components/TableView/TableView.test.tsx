@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { TableView, TableViewProps } from '.';
 
 const mockedProps: TableViewProps = {
@@ -30,6 +30,7 @@ const mockedProps: TableViewProps = {
     {
       accessor: 'age',
       Header: 'Age',
+      sortable: true,
       id: 'age',
     },
     {
@@ -78,10 +79,10 @@ test('should render the cells', () => {
 
 test('should render the pagination', () => {
   render(<TableView {...mockedProps} />);
-  expect(screen.getByRole('navigation')).toBeInTheDocument();
-  expect(screen.getAllByRole('button')).toHaveLength(4);
-  expect(screen.getByText('«')).toBeInTheDocument();
-  expect(screen.getByText('»')).toBeInTheDocument();
+  expect(screen.getByRole('list')).toBeInTheDocument();
+  expect(screen.getAllByRole('button')).toHaveLength(2);
+  expect(screen.getByTitle('Previous Page')).toBeInTheDocument();
+  expect(screen.getByTitle('Next Page')).toBeInTheDocument();
 });
 
 test('should show the row count by default', () => {
@@ -104,45 +105,63 @@ test('should NOT render the pagination when disabled', () => {
     withPagination: false,
   };
   render(<TableView {...withoutPaginationProps} />);
-  expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
-test('should NOT render the pagination when fewer rows than page size', () => {
+test('should render the pagination even when fewer rows than page size', () => {
   const withoutPaginationProps = {
     ...mockedProps,
     pageSize: 3,
   };
   render(<TableView {...withoutPaginationProps} />);
-  expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  expect(screen.getByRole('list')).toBeInTheDocument();
 });
 
-test('should change page when « and » buttons are clicked', async () => {
+test('should change page when pagination is clicked', async () => {
   render(<TableView {...mockedProps} />);
-  const nextBtn = screen.getByText('»');
-  const prevBtn = screen.getByText('«');
 
-  await userEvent.click(nextBtn);
-  expect(screen.getAllByRole('cell')).toHaveLength(3);
-  expect(screen.getByText('321')).toBeInTheDocument();
-  expect(screen.getByText('10')).toBeInTheDocument();
-  expect(screen.getByText('Kate')).toBeInTheDocument();
-  expect(screen.queryByText('Emily')).not.toBeInTheDocument();
-
-  await userEvent.click(prevBtn);
-  expect(screen.getAllByRole('cell')).toHaveLength(3);
   expect(screen.getByText('123')).toBeInTheDocument();
   expect(screen.getByText('27')).toBeInTheDocument();
   expect(screen.getByText('Emily')).toBeInTheDocument();
   expect(screen.queryByText('Kate')).not.toBeInTheDocument();
+
+  const page2 = screen.getByRole('listitem', { name: '2' });
+  await userEvent.click(page2);
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('cell')).toHaveLength(3);
+    expect(screen.getByText('321')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('Kate')).toBeInTheDocument();
+    expect(screen.queryByText('Emily')).not.toBeInTheDocument();
+  });
+
+  const page1 = screen.getByRole('listitem', { name: '1' });
+  await userEvent.click(page1);
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('cell')).toHaveLength(3);
+    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(screen.getByText('27')).toBeInTheDocument();
+    expect(screen.getByText('Emily')).toBeInTheDocument();
+    expect(screen.queryByText('Kate')).not.toBeInTheDocument();
+  });
 });
 
 test('should sort by age', async () => {
   render(<TableView {...mockedProps} />);
 
   await userEvent.click(screen.getAllByTestId('sort-header')[1]);
-  expect(screen.getAllByTestId('table-row-cell')[1]).toHaveTextContent('10');
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId('table-row-cell')[1]).toHaveTextContent('10');
+  });
+
   await userEvent.click(screen.getAllByTestId('sort-header')[1]);
-  expect(screen.getAllByTestId('table-row-cell')[1]).toHaveTextContent('27');
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId('table-row-cell')[1]).toHaveTextContent('27');
+  });
 });
 
 test('should sort by initialSortBy DESC', () => {

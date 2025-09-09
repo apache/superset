@@ -462,7 +462,6 @@ export function ListView<T extends object = any>({
                 </FullPageLoadingWrapper>
               ) : (
                 <TableCollection
-                  usePagination
                   getTableProps={getTableProps}
                   getTableBodyProps={getTableBodyProps}
                   prepareRow={prepareRow}

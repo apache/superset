@@ -47,15 +47,19 @@ interface TableCollectionProps<T extends object> {
   toggleAllRowsSelected?: (value?: boolean) => void;
   sticky?: boolean;
   size?: TableSize;
-  usePagination?: boolean;
   pageIndex?: number;
   pageSize?: number;
   totalCount?: number;
   onPageChange?: (page: number, pageSize: number) => void;
+  isPaginationSticky?: boolean;
+  showRowCount?: boolean;
 }
 
-const StyledTable = styled(Table)`
-  ${({ theme }) => `
+const StyledTable = styled(Table)<{
+  isPaginationSticky?: boolean;
+  showRowCount?: boolean;
+}>`
+  ${({ theme, isPaginationSticky, showRowCount }) => `
     th.ant-column-cell {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -108,7 +112,7 @@ const StyledTable = styled(Table)`
     &.ant-table-wrapper .ant-table-pagination.ant-pagination {
       display: flex;
       justify-content: center;
-      margin: ${theme.sizeUnit * 4}px 0 ${theme.sizeUnit * 14}px 0;
+      margin: ${showRowCount ? theme.sizeUnit * 4 : 0}px 0 ${showRowCount ? theme.sizeUnit * 14 : 0}px 0;
       position: relative;
 
       .ant-pagination-total-text {
@@ -116,6 +120,18 @@ const StyledTable = styled(Table)`
         margin-inline-end: 0;
         position: absolute;
         top: ${theme.sizeUnit * 12}px;
+      }
+
+      ${
+        isPaginationSticky &&
+        `
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        background-color: ${theme.colorBgElevated};
+        padding: ${theme.sizeUnit * 2}px 0;
+      `
       }
     }
 
@@ -140,17 +156,19 @@ function TableCollection<T extends object>({
   prepareRow,
   sticky,
   size = TableSize.Middle,
-  usePagination = false,
   pageIndex = 0,
   pageSize = 25,
   totalCount = 0,
   onPageChange,
+  isPaginationSticky = false,
+  showRowCount = true,
 }: TableCollectionProps<T>) {
   const mappedColumns = mapColumns<T>(
     columns,
     headerGroups,
     columnsForWrapText,
   );
+
   const mappedRows = mapRows(rows, prepareRow);
 
   const selectedRowKeys = useMemo(
@@ -178,25 +196,38 @@ function TableCollection<T extends object>({
   ]);
 
   const paginationConfig = useMemo(() => {
-    if (!usePagination) return false;
+    if (totalCount === 0) return false;
 
-    return {
-      current: pageIndex + 1,
+    const config: any = {
       pageSize,
-      total: totalCount,
       size: 'default' as const,
       showSizeChanger: false,
       showQuickJumper: false,
       align: 'center' as const,
-      showTotal: (total: number, range: [number, number]) =>
-        `${range[0]}-${range[1]} of ${total}`,
-      onChange: (page: number, size: number) => {
+      showTotal: showRowCount
+        ? (total: number, range: [number, number]) =>
+            `${range[0]}-${range[1]} of ${total}`
+        : undefined,
+    };
+
+    if (onPageChange) {
+      config.current = pageIndex + 1;
+      config.total = totalCount;
+      config.onChange = (page: number, size: number) => {
         const validPage = Math.max(0, (page || 1) - 1);
         const validSize = size || pageSize;
-        onPageChange?.(validPage, validSize);
-      },
-    };
-  }, [usePagination, pageIndex, pageSize, totalCount, onPageChange]);
+
+        onPageChange(validPage, validSize);
+      };
+    } else {
+      if (pageIndex > 0) config.defaultCurrent = pageIndex + 1;
+
+      config.total = totalCount;
+    }
+
+    return config;
+  }, [pageSize, totalCount, showRowCount, onPageChange, pageIndex]);
+
   return (
     <StyledTable
       loading={loading}
@@ -206,11 +237,14 @@ function TableCollection<T extends object>({
       size={size}
       data-test="listview-table"
       pagination={paginationConfig}
+      scroll={{ x: 'max-content' }}
       tableLayout="auto"
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}
       sortDirections={['ascend', 'descend', 'ascend']}
+      isPaginationSticky={isPaginationSticky}
+      showRowCount={showRowCount}
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
@@ -227,12 +261,14 @@ function TableCollection<T extends object>({
         },
       }}
       onChange={(_pagination, _filters, sorter: SorterResult) => {
-        setSortBy?.([
-          {
-            id: sorter.field,
-            desc: sorter.order === 'descend',
-          },
-        ] as SortingRule<T>[]);
+        if (sorter && sorter.field) {
+          setSortBy?.([
+            {
+              id: sorter.field,
+              desc: sorter.order === 'descend',
+            },
+          ] as SortingRule<T>[]);
+        }
       }}
     />
   );

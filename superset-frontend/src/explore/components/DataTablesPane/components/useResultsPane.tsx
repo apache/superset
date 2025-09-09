@@ -35,6 +35,14 @@ const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
+const StyledDiv = styled.div`
+  ${() => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
+`;
+
 const cache = new WeakMap();
 
 export const useResultsPane = ({
@@ -144,16 +152,17 @@ export const useResultsPane = ({
     : resultResp.slice(0, queryCount);
 
   return resultRespToDisplay.map((result, idx) => (
-    <SingleQueryResultPane
-      data={result.data}
-      colnames={result.colnames}
-      coltypes={result.coltypes}
-      rowcount={result.rowcount}
-      dataSize={dataSize}
-      datasourceId={queryFormData.datasource}
-      key={idx}
-      isVisible={isVisible}
-      canDownload={canDownload}
-    />
+    <StyledDiv key={idx}>
+      <SingleQueryResultPane
+        data={result.data}
+        colnames={result.colnames}
+        coltypes={result.coltypes}
+        rowcount={result.rowcount}
+        dataSize={dataSize}
+        datasourceId={queryFormData.datasource}
+        isVisible={isVisible}
+        canDownload={canDownload}
+      />
+    </StyledDiv>
   ));
 };
