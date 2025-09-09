@@ -18,10 +18,6 @@
  */
 
 export const URL = {
-  LOGIN: '/login/',
-  WELCOME: '/superset/welcome/',
-} as const;
-
-export const REQUEST_PATTERN = {
-  LOGIN: '**/login/',
+  LOGIN: 'login/',
+  WELCOME: 'superset/welcome/',
 } as const;
