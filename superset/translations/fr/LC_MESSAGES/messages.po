@@ -504,7 +504,7 @@ msgstr "10 minutes"
 
 #, fuzzy
 msgid "10 seconds"
-msgstr "30 secondes"
+msgstr "10 secondes"
 
 msgid "10/90 percentiles"
 msgstr "10/90 percentiles"
@@ -520,7 +520,7 @@ msgstr "Il y a 104 semaines"
 
 #, fuzzy
 msgid "12 hours"
-msgstr "1 heure"
+msgstr "12 heures"
 
 msgid "15 minute"
 msgstr "15 minutes"
@@ -560,7 +560,7 @@ msgstr "22"
 
 #, fuzzy
 msgid "24 hours"
-msgstr "6 heures"
+msgstr "24 heures"
 
 msgid "28 days"
 msgstr "28 jours"
