@@ -182,6 +182,51 @@ cypress-run-all() {
   kill $flaskProcessId
 }
 
+playwright-install() {
+  cd "$GITHUB_WORKSPACE/superset-frontend"
+
+  say "::group::Install Playwright browsers"
+  npx playwright install --with-deps chromium
+  say "::endgroup::"
+}
+
+playwright-run() {
+  local APP_ROOT=$1
+  cd "$GITHUB_WORKSPACE/superset-frontend"
+
+  # Start Flask and run it in background (same as Cypress)
+  # --no-debugger means disable the interactive debugger on the 500 page
+  # so errors can print to stderr.
+  local flasklog="${HOME}/flask-playwright.log"
+  local port=8081
+  PLAYWRIGHT_BASE_URL="http://localhost:${port}"
+  if [ -n "$APP_ROOT" ]; then
+    export SUPERSET_APP_ROOT=$APP_ROOT
+    PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}
+  fi
+  export PLAYWRIGHT_BASE_URL
+
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  local flaskProcessId=$!
+
+  # Wait for server to be ready
+  sleep 10
+
+  say "::group::Run Playwright tests"
+  npx playwright test --reporter=github --output-dir=playwright-results
+  local status=$?
+  say "::endgroup::"
+
+  # After job is done, print out Flask log for debugging
+  echo "::group::Flask log for Playwright run"
+  cat "$flasklog"
+  echo "::endgroup::"
+  # make sure the program exits
+  kill $flaskProcessId
+
+  return $status
+}
+
 eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1

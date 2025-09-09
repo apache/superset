@@ -42,7 +42,8 @@ export default defineConfig({
 
   // Global test setup
   use: {
-    baseURL: 'http://localhost:8088',
+    // Use environment variable for base URL in CI, default to localhost:8088 for local
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088',
 
     // Browser settings
     headless: !!process.env.CI,
@@ -67,11 +68,13 @@ export default defineConfig({
     },
   ],
 
-  // Web server setup - assume Superset is already running
-  webServer: {
-    command: 'echo "Assuming Superset is running on localhost:8088"',
-    url: 'http://localhost:8088/health',
-    reuseExistingServer: true,
-    timeout: 10000,
-  },
+  // Web server setup - disabled in CI (Flask started separately in workflow)
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: 'echo "Assuming Superset is running on localhost:8088"',
+        url: 'http://localhost:8088/health',
+        reuseExistingServer: true,
+        timeout: 10000,
+      },
 });
