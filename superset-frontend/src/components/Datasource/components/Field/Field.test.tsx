@@ -19,7 +19,7 @@
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { Input } from '@superset-ui/core/components';
 
-import Field from './Field';
+import Field from '.';
 
 const defaultProps = {
   fieldKey: 'mock',
