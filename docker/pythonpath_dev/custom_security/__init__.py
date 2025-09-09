@@ -1,0 +1,1 @@
+# Custom security managers for Azure AD integration
