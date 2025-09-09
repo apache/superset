@@ -23,7 +23,6 @@ import { URL } from '../../utils/urls';
 
 test.describe('Login view', () => {
   let authPage: AuthPage;
-  let loginRequestPromise: Promise<any>;
 
   test.beforeEach(async ({ page }) => {
     authPage = new AuthPage(page);
@@ -31,21 +30,21 @@ test.describe('Login view', () => {
 
     // Wait for form to be ready
     await authPage.waitForLoginForm();
-
-    // Setup request interception before login attempt
-    loginRequestPromise = authPage.waitForLoginRequest();
   });
 
   test('should redirect to login with incorrect username and password', async ({
     page,
   }) => {
+    // Setup request interception before login attempt
+    const loginRequestPromise = authPage.waitForLoginRequest();
+
     // Attempt login with incorrect credentials
     await authPage.loginWithCredentials('admin', 'wrongpassword');
 
     // Wait for login request and verify response
     const loginResponse = await loginRequestPromise;
-    // Failed login typically returns 302 redirect back to login page
-    expect([200, 302]).toContain(loginResponse.status());
+    // Failed login returns 401 Unauthorized or 302 redirect to login
+    expect([401, 302]).toContain(loginResponse.status());
 
     // Wait for redirect to complete before checking URL
     await page.waitForURL(url => url.pathname.includes('/login'), {
@@ -62,27 +61,25 @@ test.describe('Login view', () => {
   });
 
   test('should login with correct username and password', async ({ page }) => {
+    // Setup request interception before login attempt
+    const loginRequestPromise = authPage.waitForLoginRequest();
+
     // Login with correct credentials
     await authPage.loginWithCredentials('admin', 'admin');
 
     // Wait for login request and verify response
     const loginResponse = await loginRequestPromise;
-    expect([200, 302]).toContain(loginResponse.status());
+    // Successful login returns 302 redirect
+    expect(loginResponse.status()).toBe(302);
 
-    // Wait for navigation to complete (either redirect to dashboard or back to login)
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
-
-    // Verify successful redirect to welcome page
-    const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain(URL.WELCOME);
+    // Wait for successful redirect to welcome page
+    await page.waitForURL(url => url.pathname.includes(URL.WELCOME), {
+      timeout: 10000,
+    });
 
     // Verify specific session cookie exists
     const sessionCookie = await authPage.getSessionCookie();
     expect(sessionCookie).not.toBeNull();
     expect(sessionCookie?.value).toBeTruthy();
-
-    // Verify logged in state
-    const isLoggedIn = await authPage.isLoggedIn();
-    expect(isLoggedIn).toBe(true);
   });
 });

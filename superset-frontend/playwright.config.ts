@@ -32,7 +32,7 @@ export default defineConfig({
 
   // Parallel execution
   fullyParallel: true,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 2 : 1,
 
   // Retry logic - 2 retries in CI, 0 locally
   retries: process.env.CI ? 2 : 0,
@@ -72,9 +72,9 @@ export default defineConfig({
   webServer: process.env.CI
     ? undefined
     : {
-        command: 'echo "Assuming Superset is running on localhost:8088"',
+        command: 'curl -f http://localhost:8088/health',
         url: 'http://localhost:8088/health',
         reuseExistingServer: true,
-        timeout: 10000,
+        timeout: 5000,
       },
 });

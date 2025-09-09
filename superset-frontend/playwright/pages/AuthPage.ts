@@ -99,14 +99,6 @@ export class AuthPage {
   }
 
   /**
-   * Check if user is logged in (redirected away from login page)
-   */
-  async isLoggedIn(): Promise<boolean> {
-    const url = await this.getCurrentUrl();
-    return !url.includes('/login');
-  }
-
-  /**
    * Check if login form has validation errors
    */
   async hasLoginError(): Promise<boolean> {
@@ -115,26 +107,6 @@ export class AuthPage {
     );
     const visibilityResults = await Promise.all(visibilityPromises);
     return visibilityResults.some(isVisible => isVisible);
-  }
-
-  /**
-   * Get login error message if present
-   */
-  async getLoginErrorMessage(): Promise<string | null> {
-    const errorLocators = AuthPage.SELECTORS.ERROR_SELECTORS.map(selector =>
-      this.page.locator(selector).first(),
-    );
-
-    const visibilityResults = await Promise.all(
-      errorLocators.map(locator => locator.isVisible()),
-    );
-
-    const visibleIndex = visibilityResults.findIndex(isVisible => isVisible);
-    if (visibleIndex !== -1) {
-      return errorLocators[visibleIndex].textContent();
-    }
-
-    return null;
   }
 
   /**

@@ -209,8 +209,28 @@ playwright-run() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  # Wait for server to be ready
-  sleep 10
+  # Ensure cleanup on exit
+  trap "kill $flaskProcessId 2>/dev/null || true" EXIT
+
+  # Wait for server to be ready with health check
+  local timeout=60
+  say "Waiting for Flask server to start on port $port..."
+  while [ $timeout -gt 0 ]; do
+    if curl -f ${PLAYWRIGHT_BASE_URL}/health >/dev/null 2>&1; then
+      say "Flask server is ready"
+      break
+    fi
+    sleep 1
+    timeout=$((timeout - 1))
+  done
+
+  if [ $timeout -eq 0 ]; then
+    echo "::error::Flask server failed to start within 60 seconds"
+    echo "::group::Flask startup log"
+    cat "$flasklog"
+    echo "::endgroup::"
+    return 1
+  fi
 
   say "::group::Run Playwright tests"
   npx playwright test --reporter=github --output playwright-results
