@@ -174,6 +174,7 @@ class DatasetPutSchema(Schema):
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
+    drill_through_chart_id = fields.Integer(allow_none=True)
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
@@ -318,6 +319,7 @@ class ImportV1DatasetSchema(Schema):
     fetch_values_predicate = fields.String(allow_none=True)
     extra = fields.Dict(allow_none=True)
     uuid = fields.UUID(required=True)
+    drill_through_chart_id = fields.Integer(allow_none=True)
     columns = fields.List(fields.Nested(ImportV1ColumnSchema))
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
     version = fields.String(required=True)
@@ -411,6 +413,7 @@ class DatasetDrillInfoSchema(Schema):
     created_on_humanized = fields.String()
     changed_by = fields.Nested(UserSchema)
     changed_on_humanized = fields.String()
+    drill_through_chart_id = fields.Integer(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump(pass_original=True)

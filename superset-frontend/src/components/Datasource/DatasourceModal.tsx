@@ -45,6 +45,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
+import { invalidateDatasetDrillCache } from 'src/utils/cachedSupersetGet';
 import type { DatasourceModalProps } from './types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
@@ -179,6 +180,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       owners: datasource.owners.map(
         (o: Record<string, number>) => o.value || o.id,
       ),
+      drill_through_chart_id: datasource.drill_through_chart_id || null,
     };
     // Handle catalog based on database's allow_multi_catalog setting
     // If multi-catalog is disabled, don't include catalog in payload
@@ -201,6 +203,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+
+      // Invalidate drill info cache to pick up any drill-through config changes
+      invalidateDatasetDrillCache(currentDatasource.id);
+
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
