@@ -33,7 +33,7 @@ export function assetUrl(path: string): string {
  * @param url_or_path A url or relative path to a resource
  */
 export function assetUrlIf(url_or_path: string): string {
-  if (URL.canParse(url_or_path)) return url_or_path;
+  if (url_or_path.startsWith('/')) return assetUrl(url_or_path);
 
-  return assetUrl(url_or_path);
+  return url_or_path;
 }
