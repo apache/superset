@@ -134,3 +134,6 @@ PROJECT.md
 .aider*
 .claude_rc*
 .env.local
+
+# Playwright related
+superset-frontend/test-results/.last-run.json

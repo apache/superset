@@ -39,8 +39,12 @@ test.describe('Login view', () => {
     // Attempt login with incorrect credentials
     await authPage.loginWithCredentials('admin', 'wrongpassword');
 
-    // Wait for login request and verify we stay on login page
-    await loginRequestPromise;
+    // Wait for login request and verify response
+    const loginResponse = await loginRequestPromise;
+    // Failed login typically returns 302 redirect back to login page
+    expect([200, 302]).toContain(loginResponse.status());
+
+    // Verify we stay on login page
     const currentUrl = await authPage.getCurrentUrl();
     expect(currentUrl).toContain(LOGIN);
   });
@@ -53,11 +57,23 @@ test.describe('Login view', () => {
     const loginRequestPromise = authPage.waitForLoginRequest();
 
     // Login with correct credentials
-    await authPage.loginWithCredentials('admin', 'general');
+    await authPage.loginWithCredentials('admin', 'admin');
 
-    // Wait for login request and verify cookies are set
-    await loginRequestPromise;
-    const cookies = await authPage.getCookies();
-    expect(cookies.length).toBeGreaterThanOrEqual(1);
+    // Wait for login request and verify response
+    const loginResponse = await loginRequestPromise;
+    expect([200, 302]).toContain(loginResponse.status());
+
+    // Verify successful redirect away from login page
+    const currentUrl = await authPage.getCurrentUrl();
+    expect(currentUrl).not.toContain(LOGIN);
+
+    // Verify specific session cookie exists
+    const sessionCookie = await authPage.getSessionCookie();
+    expect(sessionCookie).not.toBeNull();
+    expect(sessionCookie?.value).toBeTruthy();
+
+    // Verify logged in state
+    const isLoggedIn = await authPage.isLoggedIn();
+    expect(isLoggedIn).toBe(true);
   });
 });

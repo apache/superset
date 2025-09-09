@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { Page } from '@playwright/test';
+import { Page, Response } from '@playwright/test';
 import { Form } from '../components/core';
-import { LOGIN, LOGIN_REQUEST_PATTERN } from '../utils/urls';
+import { LOGIN } from '../utils/urls';
 
 export class AuthPage {
   private readonly page: Page;
@@ -101,9 +101,99 @@ export class AuthPage {
   }
 
   /**
-   * Wait for a login request to be made
+   * Get the session cookie specifically
    */
-  async waitForLoginRequest(): Promise<void> {
-    await this.page.waitForRequest(LOGIN_REQUEST_PATTERN);
+  async getSessionCookie(): Promise<{ name: string; value: string } | null> {
+    const cookies = await this.getCookies();
+    return cookies.find(c => c.name === 'session') || null;
+  }
+
+  /**
+   * Check if user is logged in (redirected away from login page)
+   */
+  async isLoggedIn(): Promise<boolean> {
+    const url = await this.getCurrentUrl();
+    return !url.includes('/login');
+  }
+
+  /**
+   * Check if login form has validation errors
+   */
+  async hasLoginError(): Promise<boolean> {
+    const errorSelectors = [
+      '[role="alert"]',
+      '.ant-form-item-explain-error',
+      '.ant-form-item-explain.ant-form-item-explain-error',
+      '.alert-danger',
+    ];
+
+    const visibilityPromises = errorSelectors.map(selector =>
+      this.page.locator(selector).isVisible(),
+    );
+    const visibilityResults = await Promise.all(visibilityPromises);
+    return visibilityResults.some(isVisible => isVisible);
+  }
+
+  /**
+   * Get login error message if present
+   */
+  async getLoginErrorMessage(): Promise<string | null> {
+    const errorSelectors = [
+      '[role="alert"]',
+      '.ant-form-item-explain-error',
+      '.ant-form-item-explain.ant-form-item-explain-error',
+      '.alert-danger',
+    ];
+
+    const errorLocators = errorSelectors.map(selector =>
+      this.page.locator(selector).first(),
+    );
+
+    const visibilityResults = await Promise.all(
+      errorLocators.map(locator => locator.isVisible()),
+    );
+
+    const visibleIndex = visibilityResults.findIndex(isVisible => isVisible);
+    if (visibleIndex !== -1) {
+      return errorLocators[visibleIndex].textContent();
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if login form is ready for interaction
+   */
+  async isLoginFormReady(): Promise<boolean> {
+    const usernameInput = this.loginForm.getInput(
+      AuthPage.SELECTORS.USERNAME_INPUT,
+    );
+    const passwordInput = this.loginForm.getInput(
+      AuthPage.SELECTORS.PASSWORD_INPUT,
+    );
+    const loginButton = this.loginForm.getButton(
+      AuthPage.SELECTORS.LOGIN_BUTTON,
+    );
+
+    const [usernameEnabled, passwordEnabled, buttonEnabled] = await Promise.all(
+      [
+        usernameInput.isEnabled(),
+        passwordInput.isEnabled(),
+        loginButton.isEnabled(),
+      ],
+    );
+
+    return usernameEnabled && passwordEnabled && buttonEnabled;
+  }
+
+  /**
+   * Wait for a login request to be made and return the response
+   */
+  async waitForLoginRequest(): Promise<Response> {
+    return this.page.waitForResponse(
+      response =>
+        response.url().includes('/login/') &&
+        response.request().method() === 'POST',
+    );
   }
 }
