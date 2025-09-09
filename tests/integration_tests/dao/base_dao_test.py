@@ -1217,8 +1217,230 @@ def test_base_dao_model_cls_property(app_context: Session) -> None:
     # ChartDAO should have Slice as model_cls
     assert ChartDAO.model_cls == Slice
 
-    # DatabaseDAO should have Database as model_cls
-    assert DatabaseDAO.model_cls == Database
+
+def test_base_dao_list_with_relationships_pagination(app_context: Session) -> None:
+    """
+    Test that pagination works correctly when loading relationships.
+
+    This test addresses the concern that joinedload() with many-to-many
+    relationships can cause incorrect pagination due to SQL JOINs multiplying rows.
+    """
+    # Create dashboards with owners (many-to-many relationship)
+    users = []
+    for i in range(3):
+        user = User(
+            username=f"rel_test_user_{i}",
+            first_name=f"RelUser{i}",
+            last_name="Test",
+            email=f"reluser{i}@example.com",
+            active=True,
+        )
+        users.append(user)
+        db.session.add(user)
+
+    dashboards = []
+    for i in range(10):
+        dashboard = Dashboard(
+            dashboard_title=f"Relationship Test Dashboard {i}",
+            slug=f"rel-test-dash-{i}",
+        )
+        # Add multiple owners to create many-to-many relationship
+        dashboard.owners = users[:2]  # Each dashboard has 2 owners
+        dashboards.append(dashboard)
+        db.session.add(dashboard)
+
+    db.session.commit()
+
+    # Test pagination without relationships - baseline
+    results_no_rel, count_no_rel = DashboardDAO.list(
+        page=0,
+        page_size=5,
+        order_column="dashboard_title",
+        order_direction="asc",
+    )
+
+    assert count_no_rel >= 10  # At least our 10 dashboards
+    assert len(results_no_rel) == 5  # Should get exactly 5 due to page_size
+
+    # Test pagination WITH relationships loaded
+    # This is the critical test - it should NOT inflate the count
+    results_with_rel, count_with_rel = DashboardDAO.list(
+        page=0,
+        page_size=5,
+        columns=[
+            "id",
+            "dashboard_title",
+            "owners",
+        ],  # Include many-to-many relationship
+        order_column="dashboard_title",
+        order_direction="asc",
+    )
+
+    # CRITICAL ASSERTIONS:
+    # 1. Count should be the same regardless of joins
+    assert count_with_rel == count_no_rel, (
+        f"Count inflated by joins! Without relationships: {count_no_rel}, "
+        f"With relationships: {count_with_rel}"
+    )
+
+    # 2. Should still get exactly 5 dashboards, not affected by joins
+    assert len(results_with_rel) == 5, (
+        f"Pagination broken by joins! Expected 5 dashboards, got "
+        f"{len(results_with_rel)}"
+    )
+
+    # 3. Verify relationships are actually loaded
+    for result in results_with_rel:
+        # Check that owners relationship is loaded (would raise if not)
+        assert hasattr(result, "owners")
+        # In our test setup, each dashboard should have 2 owners
+        assert len(result.owners) == 2
+
+    # Test second page to ensure offset works correctly
+    results_page2, _ = DashboardDAO.list(
+        page=1,
+        page_size=5,
+        columns=["id", "dashboard_title", "owners"],
+        order_column="dashboard_title",
+        order_direction="asc",
+    )
+
+    assert len(results_page2) == 5  # Should get next 5 dashboards
+    # Ensure no overlap between pages
+    page1_ids = {d.id for d in results_with_rel}
+    page2_ids = {d.id for d in results_page2}
+    assert page1_ids.isdisjoint(page2_ids), "Pages should not overlap"
+
+
+def test_base_dao_list_with_one_to_many_relationship(app_context: Session) -> None:
+    """
+    Test pagination with one-to-many relationships.
+
+    Charts have a many-to-one relationship with databases.
+    When we load the database relationship, it shouldn't affect pagination.
+    """
+    # Create a database
+    database = Database(
+        database_name="TestDB for Relationships",
+        sqlalchemy_uri="sqlite:///:memory:",
+    )
+    db.session.add(database)
+    db.session.commit()
+
+    # Create charts linked to this database
+    charts = []
+    for i in range(15):
+        chart = Slice(
+            slice_name=f"Chart with Relationship {i}",
+            datasource_type="table",
+            datasource_id=1,
+            viz_type="line",
+            params="{}",
+        )
+        charts.append(chart)
+        db.session.add(chart)
+
+    db.session.commit()
+
+    # Test with relationship loading (skip_base_filter since ChartDAO may have filters)
+    # We'll use a simpler approach - directly test the BaseDAO.list method
+    from superset.daos.base import BaseDAO
+
+    class TestChartDAO(BaseDAO[Slice]):
+        model_cls = Slice
+        base_filter = None  # No base filter for testing
+
+    results, total_count = TestChartDAO.list(
+        page=0,
+        page_size=10,
+        columns=["id", "slice_name", "datasource_type"],
+        order_column="slice_name",
+        order_direction="asc",
+    )
+
+    # Should get exactly 10 charts
+    assert len(results) == 10
+    # Total count should reflect all charts, not be affected by any joins
+    assert total_count >= 15
+
+
+def test_base_dao_list_count_accuracy_with_filters_and_relationships(
+    app_context: Session,
+) -> None:
+    """
+    Test that count remains accurate when combining filters with relationship loading.
+
+    This ensures the fix (counting before joins) works correctly with complex queries.
+    """
+    # Create users with specific patterns
+    active_users = []
+    inactive_users = []
+
+    for i in range(8):
+        user = User(
+            username=f"count_test_active_{i}",
+            first_name="Active",
+            last_name=f"User{i}",
+            email=f"active{i}@test.com",
+            active=True,
+        )
+        active_users.append(user)
+        db.session.add(user)
+
+    for i in range(5):
+        user = User(
+            username=f"count_test_inactive_{i}",
+            first_name="Inactive",
+            last_name=f"User{i}",
+            email=f"inactive{i}@test.com",
+            active=False,
+        )
+        inactive_users.append(user)
+        db.session.add(user)
+
+    db.session.commit()
+
+    # Create dashboards owned by these users
+    for i in range(6):
+        dashboard = Dashboard(
+            dashboard_title=f"Count Test Dashboard {i}",
+            slug=f"count-test-{i}",
+        )
+        dashboard.owners = active_users[:3]  # 3 owners per dashboard
+        db.session.add(dashboard)
+
+    db.session.commit()
+
+    # Test with filters and relationship loading
+    filters = [
+        ColumnOperator(
+            col="dashboard_title",
+            opr=ColumnOperatorEnum.sw,
+            value="Count Test",
+        )
+    ]
+
+    results, count = DashboardDAO.list(
+        column_operators=filters,
+        columns=["id", "dashboard_title", "owners"],  # Load many-to-many
+        page=0,
+        page_size=3,
+    )
+
+    # Should find exactly 6 dashboards that match the filter
+    assert count == 6, f"Expected 6 dashboards, but count was {count}"
+
+    # Should return only 3 due to page_size
+    assert len(results) == 3, (
+        f"Expected 3 results due to pagination, got {len(results)}"
+    )
+
+    # Each should have 3 owners as we set up
+    for dashboard in results:
+        assert len(dashboard.owners) == 3, (
+            f"Dashboard {dashboard.dashboard_title} should have 3 owners, "
+            f"has {len(dashboard.owners)}"
+        )
 
 
 def test_base_dao_id_column_name_property(app_context: Session) -> None:

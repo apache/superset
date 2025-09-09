@@ -66,20 +66,40 @@ def test_column_operator_enum_apply_method() -> None:  # noqa: C901
     # Test each operator's apply method
     test_cases = [
         # (operator, column, value, expected_sql_fragment)
-        (ColumnOperatorEnum.eq, TestModel.name, "test", "name = 'test'"),
-        (ColumnOperatorEnum.ne, TestModel.name, "test", "name != 'test'"),
-        (ColumnOperatorEnum.sw, TestModel.name, "test", "name LIKE 'test%'"),
-        (ColumnOperatorEnum.ew, TestModel.name, "test", "name LIKE '%test'"),
-        (ColumnOperatorEnum.in_, TestModel.id, [1, 2, 3], "id IN (1, 2, 3)"),
-        (ColumnOperatorEnum.nin, TestModel.id, [1, 2, 3], "id NOT IN (1, 2, 3)"),
-        (ColumnOperatorEnum.gt, TestModel.age, 25, "age > 25"),
-        (ColumnOperatorEnum.gte, TestModel.age, 25, "age >= 25"),
-        (ColumnOperatorEnum.lt, TestModel.age, 25, "age < 25"),
-        (ColumnOperatorEnum.lte, TestModel.age, 25, "age <= 25"),
-        (ColumnOperatorEnum.like, TestModel.name, "test", "name LIKE '%test%'"),
-        (ColumnOperatorEnum.ilike, TestModel.name, "test", "name ILIKE '%test%'"),
-        (ColumnOperatorEnum.is_null, TestModel.name, None, "name IS NULL"),
-        (ColumnOperatorEnum.is_not_null, TestModel.name, None, "name IS NOT NULL"),
+        (ColumnOperatorEnum.eq, TestModel.name, "test", "test_model.name = 'test'"),
+        (ColumnOperatorEnum.ne, TestModel.name, "test", "test_model.name != 'test'"),
+        (ColumnOperatorEnum.sw, TestModel.name, "test", "test_model.name LIKE 'test%'"),
+        (ColumnOperatorEnum.ew, TestModel.name, "test", "test_model.name LIKE '%test'"),
+        (ColumnOperatorEnum.in_, TestModel.id, [1, 2, 3], "test_model.id IN (1, 2, 3)"),
+        (
+            ColumnOperatorEnum.nin,
+            TestModel.id,
+            [1, 2, 3],
+            "test_model.id NOT IN (1, 2, 3)",
+        ),
+        (ColumnOperatorEnum.gt, TestModel.age, 25, "test_model.age > 25"),
+        (ColumnOperatorEnum.gte, TestModel.age, 25, "test_model.age >= 25"),
+        (ColumnOperatorEnum.lt, TestModel.age, 25, "test_model.age < 25"),
+        (ColumnOperatorEnum.lte, TestModel.age, 25, "test_model.age <= 25"),
+        (
+            ColumnOperatorEnum.like,
+            TestModel.name,
+            "test",
+            "test_model.name LIKE '%test%'",
+        ),
+        (
+            ColumnOperatorEnum.ilike,
+            TestModel.name,
+            "test",
+            "lower(test_model.name) LIKE lower('%test%')",
+        ),
+        (ColumnOperatorEnum.is_null, TestModel.name, None, "test_model.name IS NULL"),
+        (
+            ColumnOperatorEnum.is_not_null,
+            TestModel.name,
+            None,
+            "test_model.name IS NOT NULL",
+        ),
     ]
 
     for operator, column, value, expected_sql_fragment in test_cases:
@@ -89,32 +109,16 @@ def test_column_operator_enum_apply_method() -> None:  # noqa: C901
         # Convert to string to check SQL generation
         sql_str = str(result.compile(compile_kwargs={"literal_binds": True}))
 
-        # Verify the SQL contains the expected fragment
-        # Note: SQLAlchemy might format this differently, so we check for key parts
-        if "=" in expected_sql_fragment:
-            assert "=" in sql_str
-        elif "!=" in expected_sql_fragment:
-            assert "!=" in sql_str
-        elif "LIKE" in expected_sql_fragment:
-            assert "LIKE" in sql_str
-        elif "ILIKE" in expected_sql_fragment:
-            assert "ILIKE" in sql_str
-        elif "IN" in expected_sql_fragment:
-            assert "IN" in sql_str
-        elif "NOT IN" in expected_sql_fragment:
-            assert "NOT IN" in sql_str
-        elif ">" in expected_sql_fragment:
-            assert ">" in sql_str
-        elif ">=" in expected_sql_fragment:
-            assert ">=" in sql_str
-        elif "<" in expected_sql_fragment:
-            assert "<" in sql_str
-        elif "<=" in expected_sql_fragment:
-            assert "<=" in sql_str
-        elif "IS NULL" in expected_sql_fragment:
-            assert "IS NULL" in sql_str
-        elif "IS NOT NULL" in expected_sql_fragment:
-            assert "IS NOT NULL" in sql_str
+        # Normalize whitespace for comparison
+        normalized_sql = " ".join(sql_str.split())
+        normalized_expected = " ".join(expected_sql_fragment.split())
+
+        # Assert the exact SQL fragment is present
+        assert normalized_expected in normalized_sql, (
+            f"Expected SQL fragment '{expected_sql_fragment}' not found in generated "
+            f"SQL: '{sql_str}' "
+            f"for operator {operator.name}"
+        )
 
     # Test that all operators are covered
     all_operators = set(ColumnOperatorEnum)
