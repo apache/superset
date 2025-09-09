@@ -31,6 +31,7 @@ const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
   initialValue: PropTypes.string,
+  value: PropTypes.string,
   height: PropTypes.number,
   minLines: PropTypes.number,
   maxLines: PropTypes.number,
@@ -60,6 +61,7 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   initialValue: '',
+  value: undefined,
   height: 250,
   minLines: 3,
   maxLines: 10,
@@ -102,7 +104,7 @@ class TextAreaControl extends Component {
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
           editorProps={{ $blockScrolling: true }}
-          defaultValue={this.props.initialValue}
+          value={this.props.value !== undefined ? this.props.value : this.props.initialValue}
           readOnly={this.props.readOnly}
           key={this.props.name}
           {...this.props}
@@ -111,10 +113,10 @@ class TextAreaControl extends Component {
       );
     }
     return (
-      <TextArea
+        <TextArea
         placeholder={this.props.placeholder || t('textarea')}
         onChange={this.onControlChange.bind(this)}
-        defaultValue={this.props.initialValue}
+        value={this.props.value !== undefined ? this.props.value : this.props.initialValue}
         disabled={this.props.readOnly}
         style={{ height: this.props.height }}
       />
