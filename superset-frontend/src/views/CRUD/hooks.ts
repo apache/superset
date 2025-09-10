@@ -91,12 +91,9 @@ export function useListViewResource<D extends object = any>(
     bulkSelectEnabled: false,
   });
 
-  const updateState = useCallback(
-    (update: Partial<ListViewResourceState<D>>) => {
-      setState(currentState => ({ ...currentState, ...update }));
-    },
-    [],
-  );
+  function updateState(update: Partial<ListViewResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
 
   function toggleBulkSelect() {
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
@@ -124,7 +121,7 @@ export function useListViewResource<D extends object = any>(
         ),
       ),
     );
-  }, [handleErrorMsg, infoEnable, resource, resourceLabel, updateState]);
+  }, []);
 
   function hasPerm(perm: string) {
     if (!state.permissions.length) {
@@ -165,28 +162,17 @@ export function useListViewResource<D extends object = any>(
               : value,
         }));
 
-      const queryParams: Record<string, any> = {
+      const queryParams = rison.encode_uri({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
         page: pageIndex,
         page_size: pageSize,
-      };
-
-      if (sortBy && sortBy.length > 0 && sortBy[0].id !== undefined) {
-        queryParams.order_column = sortBy[0].id;
-        queryParams.order_direction = sortBy[0].desc ? 'desc' : 'asc';
-      }
-
-      if (filterExps.length) {
-        queryParams.filters = filterExps;
-      }
-
-      if (selectColumns?.length) {
-        queryParams.select_columns = selectColumns;
-      }
-
-      const encodedParams = rison.encode_uri(queryParams);
+        ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
+      });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/${resource}/?q=${encodedParams}`,
+        endpoint: `/api/v1/${resource}/?q=${queryParams}`,
       })
         .then(
           ({ json = {} }) => {
@@ -210,14 +196,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [
-      baseFilters,
-      handleErrorMsg,
-      resource,
-      resourceLabel,
-      selectColumns,
-      updateState,
-    ],
+    [baseFilters],
   );
 
   return {
@@ -266,12 +245,9 @@ export function useSingleViewResource<D extends object = any>(
     error: null,
   });
 
-  const updateState = useCallback(
-    (update: Partial<SingleViewResourceState<D>>) => {
-      setState(currentState => ({ ...currentState, ...update }));
-    },
-    [],
-  );
+  function updateState(update: Partial<SingleViewResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
 
   const fetchResource = useCallback(
     (resourceID: number) => {
@@ -312,7 +288,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [updateState, resourceName, path_suffix, handleErrorMsg, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel],
   );
 
   const createResource = useCallback(
@@ -356,7 +332,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [updateState, resourceName, handleErrorMsg, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel],
   );
 
   const updateResource = useCallback(
@@ -405,7 +381,7 @@ export function useSingleViewResource<D extends object = any>(
           }
         });
     },
-    [resourceName, updateState, handleErrorMsg, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel],
   );
 
   const clearError = () =>
@@ -577,7 +553,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceLabel, resourceName],
+    [],
   );
 
   return { state, importResource };
@@ -663,7 +639,7 @@ export function useFavoriteStatus(
         ),
       );
     },
-    [handleErrorMsg, type],
+    [type],
   );
 
   return [saveFaveStar, favoriteStatus] as const;

@@ -227,3 +227,146 @@ test('should render the right wrap content text by columnsForWrapText', () => {
     'ant-table-cell-ellipsis',
   );
 });
+
+test('should handle server-side pagination', async () => {
+  const onServerPagination = jest.fn();
+  const serverPaginationProps = {
+    ...mockedProps,
+    serverPagination: true,
+    onServerPagination,
+    totalCount: 10,
+    pageSize: 2,
+  };
+  render(<TableView {...serverPaginationProps} />);
+
+  // Click next page
+  const page2 = screen.getByRole('listitem', { name: '2' });
+  await userEvent.click(page2);
+
+  await waitFor(() => {
+    expect(onServerPagination).toHaveBeenCalledWith({
+      pageIndex: 1,
+    });
+  });
+});
+
+test('should handle server-side sorting', async () => {
+  const onServerPagination = jest.fn();
+  const serverPaginationProps = {
+    ...mockedProps,
+    serverPagination: true,
+    onServerPagination,
+  };
+  render(<TableView {...serverPaginationProps} />);
+
+  // Click on sortable column
+  await userEvent.click(screen.getAllByTestId('sort-header')[0]);
+
+  await waitFor(() => {
+    expect(onServerPagination).toHaveBeenCalledWith({
+      pageIndex: 0,
+      sortBy: [{ id: 'id', desc: false }],
+    });
+  });
+});
+
+test('pagination callbacks should be stable across re-renders', () => {
+  const onServerPagination = jest.fn();
+  const serverPaginationProps = {
+    ...mockedProps,
+    serverPagination: true,
+    onServerPagination,
+    totalCount: 10,
+    pageSize: 2,
+  };
+
+  const { rerender } = render(<TableView {...serverPaginationProps} />);
+
+  // Re-render with same props
+  rerender(<TableView {...serverPaginationProps} />);
+
+  // onServerPagination should not have been called during re-render
+  expect(onServerPagination).not.toHaveBeenCalled();
+});
+
+test('should scroll to top when scrollTopOnPagination is true', async () => {
+  const scrollToSpy = jest
+    .spyOn(window, 'scrollTo')
+    .mockImplementation(() => {});
+
+  const scrollProps = {
+    ...mockedProps,
+    scrollTopOnPagination: true,
+    pageSize: 1,
+  };
+  render(<TableView {...scrollProps} />);
+
+  // Click next page
+  const page2 = screen.getByRole('listitem', { name: '2' });
+  await userEvent.click(page2);
+
+  await waitFor(() => {
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+  });
+
+  scrollToSpy.mockRestore();
+});
+
+test('should NOT scroll to top when scrollTopOnPagination is false', async () => {
+  const scrollToSpy = jest
+    .spyOn(window, 'scrollTo')
+    .mockImplementation(() => {});
+
+  const scrollProps = {
+    ...mockedProps,
+    scrollTopOnPagination: false,
+    pageSize: 1,
+  };
+  render(<TableView {...scrollProps} />);
+
+  // Click next page
+  const page2 = screen.getByRole('listitem', { name: '2' });
+  await userEvent.click(page2);
+
+  await waitFor(() => {
+    expect(screen.getByText('321')).toBeInTheDocument();
+  });
+
+  expect(scrollToSpy).not.toHaveBeenCalled();
+
+  scrollToSpy.mockRestore();
+});
+
+test('should handle totalCount of 0 correctly', () => {
+  const emptyProps = {
+    ...mockedProps,
+    data: [],
+    totalCount: 0,
+  };
+  render(<TableView {...emptyProps} />);
+
+  // Pagination should not be shown when totalCount is 0
+  expect(screen.queryByRole('list')).not.toBeInTheDocument();
+});
+
+test('should handle large datasets with pagination', () => {
+  const largeDataset = Array.from({ length: 100 }, (_, i) => ({
+    id: i,
+    age: 20 + i,
+    name: `Person ${i}`,
+  }));
+
+  const largeDataProps = {
+    ...mockedProps,
+    data: largeDataset,
+    pageSize: 10,
+  };
+  render(<TableView {...largeDataProps} />);
+
+  // Should show only first page (10 items)
+  expect(screen.getAllByTestId('table-row')).toHaveLength(10);
+
+  // Should show pagination with correct page count
+  expect(screen.getByRole('list')).toBeInTheDocument();
+  expect(screen.getByText('1-10 of 100')).toBeInTheDocument();
+});

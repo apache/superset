@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo } from 'react';
+import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
 import {
   ColumnInstance,
   HeaderGroup,
@@ -128,7 +128,7 @@ const StyledTable = styled(Table)<{
         position: sticky;
         bottom: 0;
         left: 0;
-        z-index: 10;
+        z-index: 1;
         background-color: ${theme.colorBgElevated};
         padding: ${theme.sizeUnit * 2}px 0;
       `
@@ -163,13 +163,15 @@ function TableCollection<T extends object>({
   isPaginationSticky = false,
   showRowCount = true,
 }: TableCollectionProps<T>) {
-  const mappedColumns = mapColumns<T>(
-    columns,
-    headerGroups,
-    columnsForWrapText,
+  const mappedColumns = useMemo(
+    () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
+    [columns, headerGroups, columnsForWrapText],
   );
 
-  const mappedRows = mapRows(rows, prepareRow);
+  const mappedRows = useMemo(
+    () => mapRows(rows, prepareRow),
+    [rows, prepareRow],
+  );
 
   const selectedRowKeys = useMemo(
     () => selectedFlatRows?.map(row => row.id) || [],
@@ -195,6 +197,35 @@ function TableCollection<T extends object>({
     toggleAllRowsSelected,
   ]);
 
+  const handlePaginationChange = useCallback(
+    (page: number, size: number) => {
+      const validPage = Math.max(0, (page || 1) - 1);
+      const validSize = size || pageSize;
+      onPageChange?.(validPage, validSize);
+    },
+    [pageSize, onPageChange],
+  );
+
+  const showTotalFunc = useCallback(
+    (total: number, range: [number, number]) =>
+      `${range[0]}-${range[1]} of ${total}`,
+    [],
+  );
+
+  const handleTableChange = useCallback(
+    (_pagination: any, _filters: any, sorter: SorterResult) => {
+      if (sorter && sorter.field) {
+        setSortBy?.([
+          {
+            id: sorter.field,
+            desc: sorter.order === 'descend',
+          },
+        ] as SortingRule<T>[]);
+      }
+    },
+    [setSortBy],
+  );
+
   const paginationConfig = useMemo(() => {
     if (totalCount === 0) return false;
 
@@ -204,29 +235,28 @@ function TableCollection<T extends object>({
       showSizeChanger: false,
       showQuickJumper: false,
       align: 'center' as const,
-      showTotal: showRowCount
-        ? (total: number, range: [number, number]) =>
-            `${range[0]}-${range[1]} of ${total}`
-        : undefined,
+      showTotal: showRowCount ? showTotalFunc : undefined,
     };
 
     if (onPageChange) {
       config.current = pageIndex + 1;
       config.total = totalCount;
-      config.onChange = (page: number, size: number) => {
-        const validPage = Math.max(0, (page || 1) - 1);
-        const validSize = size || pageSize;
-
-        onPageChange(validPage, validSize);
-      };
+      config.onChange = handlePaginationChange;
     } else {
       if (pageIndex > 0) config.defaultCurrent = pageIndex + 1;
-
       config.total = totalCount;
     }
 
     return config;
-  }, [pageSize, totalCount, showRowCount, onPageChange, pageIndex]);
+  }, [
+    pageSize,
+    totalCount,
+    showRowCount,
+    showTotalFunc,
+    pageIndex,
+    handlePaginationChange,
+    onPageChange,
+  ]);
 
   return (
     <StyledTable
@@ -260,16 +290,7 @@ function TableCollection<T extends object>({
           ),
         },
       }}
-      onChange={(_pagination, _filters, sorter: SorterResult) => {
-        if (sorter && sorter.field) {
-          setSortBy?.([
-            {
-              id: sorter.field,
-              desc: sorter.order === 'descend',
-            },
-          ] as SortingRule<T>[]);
-        }
-      }}
+      onChange={handleTableChange}
     />
   );
 }

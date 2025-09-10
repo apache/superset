@@ -25,6 +25,8 @@ import TableCollection from '@superset-ui/core/components/TableCollection';
 import { TableSize } from '@superset-ui/core/components/Table';
 import { SortByType, ServerPagination } from './types';
 
+const NOOP_SERVER_PAGINATION = () => {};
+
 const DEFAULT_PAGE_SIZE = 10;
 
 export enum EmptyWrapperType {
@@ -109,18 +111,21 @@ const RawTableView = ({
   showRowCount = true,
   serverPagination = false,
   columnsForWrapText,
-  onServerPagination = () => {},
+  onServerPagination = NOOP_SERVER_PAGINATION,
   scrollTopOnPagination = true,
   size = TableSize.Middle,
   ...props
 }: TableViewProps) => {
   const tableRef = useRef<HTMLTableElement>(null);
 
-  const initialState = {
-    pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
-    pageIndex: initialPageIndex ?? 0,
-    sortBy: initialSortBy,
-  };
+  const initialState = useMemo(
+    () => ({
+      pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
+      pageIndex: initialPageIndex ?? 0,
+      sortBy: initialSortBy,
+    }),
+    [initialPageSize, initialPageIndex, initialSortBy],
+  );
 
   const {
     getTableProps,
@@ -159,12 +164,10 @@ const RawTableView = ({
     }
   }, [emptyWrapperType]);
 
-  const content = useMemo(() => {
-    if (!withPagination) return rows;
-    if (serverPagination) return page;
-
-    return page;
-  }, [withPagination, serverPagination, rows, page]);
+  const content = useMemo(
+    () => (withPagination ? page : rows),
+    [withPagination, page, rows],
+  );
 
   const isEmpty = useMemo(
     () => !loading && content.length === 0,
@@ -188,10 +191,11 @@ const RawTableView = ({
 
   const handlePageChange = useCallback(
     (p: number) => {
-      handleScrollToTop();
+      if (scrollTopOnPagination) handleScrollToTop();
+
       gotoPage(p);
     },
-    [handleScrollToTop, gotoPage],
+    [scrollTopOnPagination, handleScrollToTop, gotoPage],
   );
 
   const paginationProps = useMemo(() => {
@@ -225,8 +229,8 @@ const RawTableView = ({
     pageIndex,
     initialPageSize,
     totalCount,
-    handlePageChange,
     data.length,
+    handlePageChange,
   ]);
 
   useEffect(() => {

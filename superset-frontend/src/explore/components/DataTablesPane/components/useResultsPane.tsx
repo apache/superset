@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement } from 'react';
+import { useState, useEffect, ReactElement, useCallback } from 'react';
 
 import {
   ensureIsArray,
@@ -65,6 +65,8 @@ export const useResultsPane = ({
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
+
+  const noOpInputChange = useCallback(() => {}, []);
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -131,7 +133,7 @@ export const useResultsPane = ({
           columnTypes={[]}
           rowcount={0}
           datasourceId={queryFormData.datasource}
-          onInputChange={() => {}}
+          onInputChange={noOpInputChange}
           isLoading={false}
           canDownload={canDownload}
         />
