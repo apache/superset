@@ -40,7 +40,8 @@ services:
     volumes:
       - superset_home:/app/superset_home
       - ./freetds:/etc/freetds
-      - ./rmcdocker/superset_config.py:/app/pythonpath/superset_config.py
+      - ./docker/pythonpath_dev/superset_config_docker.py:/app/pythonpath/superset_config.py
+      - ./docker/pythonpath_dev/custom_security:/app/pythonpath/custom_security
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
       interval: 30s
@@ -61,7 +62,8 @@ services:
         condition: service_started
     volumes:
       - superset_home:/app/superset_home
-      - ./rmcdocker/superset_config.py:/app/pythonpath/superset_config.py
+      - ./docker/pythonpath_dev/superset_config_docker.py:/app/pythonpath/superset_config.py
+      - ./docker/pythonpath_dev/custom_security:/app/pythonpath/custom_security
 
   superset-worker-beat:
     build:
@@ -76,7 +78,8 @@ services:
         condition: service_started
     volumes:
       - superset_home:/app/superset_home
-      - ./rmcdocker/superset_config.py:/app/pythonpath/superset_config.py
+      - ./docker/pythonpath_dev/superset_config_docker.py:/app/pythonpath/superset_config.py
+      - ./docker/pythonpath_dev/custom_security:/app/pythonpath/custom_security
 
 volumes:
   superset_home:
