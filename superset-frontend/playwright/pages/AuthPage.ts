@@ -49,14 +49,95 @@ export class AuthPage {
    * Navigate to the login page
    */
   async goto(): Promise<void> {
-    await this.page.goto(URL.LOGIN);
+    console.log('=== PLAYWRIGHT DEBUG START ===');
+    console.log('Navigating to URL:', URL.LOGIN);
+    console.log('Current baseURL:', this.page.context().options.baseURL);
+
+    const response = await this.page.goto(URL.LOGIN);
+
+    console.log('Final URL after navigation:', this.page.url());
+    console.log('Response status:', response?.status());
+    console.log('Response headers:', await response?.allHeaders());
+
+    // Check for redirects
+    const expectedUrl = `${this.page.context().options.baseURL}${URL.LOGIN}`;
+    if (this.page.url() !== expectedUrl) {
+      console.log('REDIRECT DETECTED!');
+      console.log('Expected:', expectedUrl);
+      console.log('Actual:', this.page.url());
+    }
+
+    // Wait a bit for any dynamic content
+    await this.page.waitForTimeout(2000);
+
+    // Check page content
+    const content = await this.page.content();
+    const hasLoginForm = content.includes('data-test="login-form"');
+    console.log('Login form found in DOM:', hasLoginForm);
+
+    if (!hasLoginForm) {
+      console.log('Page title:', await this.page.title());
+      console.log('Page content length:', content.length);
+
+      // Log first 1000 chars of content to see what we got
+      console.log('Page content preview:', content.substring(0, 1000));
+
+      // Check for common error patterns
+      if (content.includes('404') || content.includes('Not Found')) {
+        console.error('ERROR: Page returned 404!');
+      }
+      if (
+        content.includes('500') ||
+        content.includes('Internal Server Error')
+      ) {
+        console.error('ERROR: Page returned 500!');
+      }
+
+      // Check if static assets are loading
+      const failedRequests: string[] = [];
+      this.page.on('requestfailed', (request: any) => {
+        failedRequests.push(
+          `${request.url()} - ${request.failure()?.errorText}`,
+        );
+      });
+
+      // Log any JavaScript errors
+      this.page.on('pageerror', (error: any) => {
+        console.error('JavaScript error:', error.message);
+      });
+
+      // Take a screenshot for debugging
+      await this.page.screenshot({
+        path: 'playwright-results/debug-login-page.png',
+        fullPage: true,
+      });
+      console.log(
+        'Debug screenshot saved to playwright-results/debug-login-page.png',
+      );
+
+      if (failedRequests.length > 0) {
+        console.error('Failed requests:', failedRequests);
+      }
+    }
+
+    console.log('=== PLAYWRIGHT DEBUG END ===');
   }
 
   /**
    * Wait for login form to be visible
    */
   async waitForLoginForm(): Promise<void> {
-    await this.loginForm.waitForVisible();
+    try {
+      await this.loginForm.waitForVisible({ timeout: 5000 });
+    } catch (error) {
+      console.error('Login form wait timeout after 5 seconds');
+      // Take another screenshot at timeout
+      await this.page.screenshot({
+        path: 'playwright-results/timeout-login-form.png',
+        fullPage: true,
+      });
+      throw error;
+    }
   }
 
   /**
@@ -95,7 +176,7 @@ export class AuthPage {
    */
   async getSessionCookie(): Promise<{ name: string; value: string } | null> {
     const cookies = await this.page.context().cookies();
-    return cookies.find(c => c.name === 'session') || null;
+    return cookies.find((c: any) => c.name === 'session') || null;
   }
 
   /**
@@ -106,7 +187,7 @@ export class AuthPage {
       selector => this.page.locator(selector).isVisible(),
     );
     const visibilityResults = await Promise.all(visibilityPromises);
-    return visibilityResults.some(isVisible => isVisible);
+    return visibilityResults.some((isVisible: any) => isVisible);
   }
 
   /**
@@ -114,7 +195,7 @@ export class AuthPage {
    */
   async waitForLoginRequest(): Promise<Response> {
     return this.page.waitForResponse(
-      response =>
+      (response: any) =>
         response.url().includes('/login/') &&
         response.request().method() === 'POST',
     );

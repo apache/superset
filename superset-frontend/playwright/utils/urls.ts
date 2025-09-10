@@ -18,6 +18,6 @@
  */
 
 export const URL = {
-  LOGIN: 'login/',
-  WELCOME: 'superset/welcome/',
+  LOGIN: '/login/',
+  WELCOME: '/superset/welcome/',
 } as const;

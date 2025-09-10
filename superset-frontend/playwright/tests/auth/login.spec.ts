@@ -24,17 +24,29 @@ import { URL } from '../../utils/urls';
 test.describe('Login view', () => {
   let authPage: AuthPage;
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, baseURL }: any) => {
+    console.log('=== TEST SETUP START ===');
+    console.log('Test baseURL:', baseURL);
+    console.log(
+      'Environment PLAYWRIGHT_BASE_URL:',
+      process.env.PLAYWRIGHT_BASE_URL,
+    );
+    console.log(
+      'Environment SUPERSET_APP_ROOT:',
+      process.env.SUPERSET_APP_ROOT,
+    );
+
     authPage = new AuthPage(page);
     await authPage.goto();
 
     // Wait for form to be ready
     await authPage.waitForLoginForm();
+    console.log('=== TEST SETUP COMPLETE ===');
   });
 
   test('should redirect to login with incorrect username and password', async ({
     page,
-  }) => {
+  }: any) => {
     // Setup request interception before login attempt
     const loginRequestPromise = authPage.waitForLoginRequest();
 
@@ -47,7 +59,7 @@ test.describe('Login view', () => {
     expect([401, 302]).toContain(loginResponse.status());
 
     // Wait for redirect to complete before checking URL
-    await page.waitForURL(url => url.pathname.includes('/login'), {
+    await page.waitForURL((url: any) => url.pathname.includes('/login'), {
       timeout: 10000,
     });
 
@@ -60,7 +72,9 @@ test.describe('Login view', () => {
     expect(hasError).toBe(true);
   });
 
-  test('should login with correct username and password', async ({ page }) => {
+  test('should login with correct username and password', async ({
+    page,
+  }: any) => {
     // Setup request interception before login attempt
     const loginRequestPromise = authPage.waitForLoginRequest();
 
@@ -73,7 +87,7 @@ test.describe('Login view', () => {
     expect(loginResponse.status()).toBe(302);
 
     // Wait for successful redirect to welcome page
-    await page.waitForURL(url => url.pathname.includes(URL.WELCOME), {
+    await page.waitForURL((url: any) => url.pathname.includes(URL.WELCOME), {
       timeout: 10000,
     });
 
