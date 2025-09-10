@@ -48,7 +48,7 @@ const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
 
     .required {
       margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colorError};
+      color: ${theme.colorIcon};
     }
 
     .helper {

@@ -59,6 +59,7 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
+import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteReportSchedule';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
@@ -157,12 +158,16 @@ function AlertList({
     addDangerToast,
   );
 
+  // Execute hook for Fire Now functionality
+  const { executeReport } = useExecuteReportSchedule();
+
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
   const [currentAlertDeleting, setCurrentAlertDeleting] =
     useState<AlertObject | null>(null);
+  const [executingIds, setExecutingIds] = useState<Set<number>>(new Set());
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
@@ -244,6 +249,51 @@ function AlertList({
       }
     },
     [alerts, setResourceCollection, updateResource],
+  );
+
+  const handleExecuteReport = useCallback(
+    async (alert: AlertObject) => {
+      const alertId = alert.id;
+      if (!alertId || executingIds.has(alertId)) {
+        return;
+      }
+
+      // Add to executing set
+      setExecutingIds(prev => new Set(prev).add(alertId));
+
+      try {
+        await executeReport(
+          alertId,
+          response => {
+            addSuccessToast(
+              t('%(alertType)s "%(alertName)s" triggered successfully', {
+                alertType: alert.type,
+                alertName: alert.name,
+              }),
+            );
+          },
+          error => {
+            addDangerToast(
+              t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
+                alertType: alert.type,
+                alertName: alert.name,
+                error,
+              }),
+            );
+          },
+        );
+      } catch (error) {
+        // Error already handled by onError callback
+      } finally {
+        // Remove from executing set
+        setExecutingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(alertId);
+          return newSet;
+        });
+      }
+    },
+    [executeReport, executingIds, addSuccessToast, addDangerToast],
   );
 
   const columns = useMemo(
@@ -397,6 +447,16 @@ function AlertList({
                   onClick: handleEdit,
                 }
               : null,
+            allowEdit
+              ? {
+                  label: 'trigger-now-action',
+                  tooltip: t('Trigger Now'),
+                  placement: 'bottom',
+                  icon: 'ThunderboltOutlined',
+                  loading: executingIds.has(original.id),
+                  onClick: () => handleExecuteReport(original),
+                }
+              : null,
             allowEdit && canDelete
               ? {
                   label: 'delete-action',
@@ -424,7 +484,14 @@ function AlertList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, isReportEnabled, toggleActive],
+    [
+      canDelete,
+      canEdit,
+      isReportEnabled,
+      toggleActive,
+      executingIds,
+      handleExecuteReport,
+    ],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];

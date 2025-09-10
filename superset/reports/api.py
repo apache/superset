@@ -29,13 +29,16 @@ from superset.charts.filters import ChartFilter
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.delete import DeleteReportScheduleCommand
 from superset.commands.report.exceptions import (
+    ReportScheduleCeleryNotConfiguredError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
+    ReportScheduleExecuteNowFailedError,
     ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
+from superset.commands.report.execute_now import ExecuteReportScheduleNowCommand
 from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
@@ -48,6 +51,7 @@ from superset.reports.schemas import (
     get_delete_ids_schema,
     get_slack_channels_schema,
     openapi_spec_methods_override,
+    ReportScheduleExecuteResponseSchema,
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
@@ -76,6 +80,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",
         "slack_channels",  # not using RouteMethod since locally defined
+        "execute",  # not using RouteMethod since locally defined
     }
     class_permission_name = "ReportSchedule"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -587,4 +592,78 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=channels)
         except SupersetException as ex:
             logger.error("Error fetching slack channels %s", str(ex))
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/execute", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.execute",
+        log_to_statsd=False,
+    )
+    def execute(self, pk: int) -> Response:
+        """Execute a report schedule immediately.
+        ---
+        post:
+          summary: Execute a report schedule immediately
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The report schedule pk
+          responses:
+            200:
+              description: Report schedule execution started
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      execution_id:
+                        type: string
+                        description: UUID to track the execution status
+                      message:
+                        type: string
+                        description: Success message
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            execution_id = ExecuteReportScheduleNowCommand(pk).run()
+            response_schema = ReportScheduleExecuteResponseSchema()
+            return self.response(
+                200,
+                **response_schema.dump(
+                    {
+                        "execution_id": execution_id,
+                        "message": "Report schedule execution started successfully",
+                    }
+                ),
+            )
+        except ReportScheduleNotFoundError:
+            return self.response_404()
+        except ReportScheduleForbiddenError:
+            return self.response_403()
+        except ReportScheduleCeleryNotConfiguredError as ex:
+            logger.error(
+                "Celery backend not configured for report schedule execution: %s",
+                str(ex),
+            )
+            return self.response(503, message=str(ex))
+        except ReportScheduleExecuteNowFailedError as ex:
+            logger.error(
+                "Error executing report schedule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
