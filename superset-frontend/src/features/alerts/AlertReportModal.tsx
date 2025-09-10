@@ -264,11 +264,6 @@ export const StyledInputContainer = styled.div`
       text-align: left;
     }
 
-    .required {
-      margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colorIcon};
-    }
-
     .control-label {
       margin-bottom: ${theme.sizeUnit * 2}px;
       color: ${theme.colorText};
@@ -2113,7 +2108,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           label={t('Database')}
                           required
                           error={
-                            validationStatus[Sections.Content]?.hasErrors &&
+                            validationStatus[Sections.Alert]?.hasErrors &&
                             !currentAlert?.database
                               ? t('Database is required')
                               : undefined
@@ -2143,8 +2138,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
                           )}
                           error={
-                            validationStatus[Sections.Content]?.hasErrors &&
-                            !resource?.sql
+                            validationStatus[Sections.Alert]?.hasErrors &&
+                            !currentAlert?.sql?.length
                               ? t('SQL Query is required')
                               : undefined
                           }
