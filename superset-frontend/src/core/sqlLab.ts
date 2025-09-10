@@ -16,18 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { sqlLab as sqlLabType } from '@apache-superset/core';
+import { sqlLab as sqlLabType } from '@apache-superset/core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
   QUERY_EDITOR_SETDB,
   querySuccess,
+  startQuery,
+  START_QUERY,
+  stopQuery,
+  STOP_QUERY,
+  createQueryFailedAction,
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { Disposable, Editor, Panel, Tab } from './core';
+import {
+  Disposable,
+  Editor,
+  Panel,
+  QueryErrorResultContext,
+  QueryRequestContext,
+  QueryResultContext,
+  Tab,
+} from './core';
 import { createActionListener } from './utils';
+
+const { CTASMethod } = sqlLabType;
 
 const activeEditorId = () => {
   const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
@@ -66,34 +81,168 @@ const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
 };
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
-  listener: (editor: sqlLabType.Editor) => void,
+  listener: (editor: sqlLabType.QueryRequestContext) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    predicate(START_QUERY),
+    listener,
+    (action: ReturnType<typeof startQuery>) => {
+      const { query } = action;
+      const {
+        id,
+        dbId,
+        catalog,
+        schema,
+        sql,
+        startDttm,
+        ctas_method: ctasMethod,
+        runAsync,
+        tempTable,
+        templateParams,
+      } = query;
+      const editor = new Editor(sql, dbId, catalog, schema);
+      const panels: Panel[] = []; // TODO: Populate panels
+      const tab = new Tab(query.sqlEditorId, query.tab, editor, panels);
+      return new QueryRequestContext(id, editor, tab, runAsync, startDttm, {
+        ctasMethod,
+        tempTable,
+        templateParams,
+      });
+    },
+    thisArgs,
+  );
+
+export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
+  listener: (query: sqlLabType.QueryResultContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
     predicate(QUERY_SUCCESS),
     listener,
     (action: ReturnType<typeof querySuccess>) => {
+      const { query, results } = action;
+      const {
+        id,
+        dbId,
+        catalog,
+        schema,
+        sql,
+        startDttm,
+        ctas_method: ctasMethod,
+        runAsync,
+        templateParams,
+      } = query;
+      const {
+        query_id: queryId,
+        columns,
+        data,
+        query: { endDttm, executedSql, tempTable, limit, limitingFactor },
+      } = results;
+      const editor = new Editor(sql, dbId, catalog, schema);
+      const panels: Panel[] = []; // TODO: Populate panels
+      const tab = new Tab(query.sqlEditorId, query.tab, editor, panels);
+      return new QueryResultContext(
+        id,
+        queryId,
+        executedSql ?? sql,
+        columns,
+        data,
+        editor,
+        tab,
+        runAsync,
+        startDttm,
+        endDttm,
+        {
+          ctasMethod,
+          tempTable,
+          templateParams,
+          limit,
+          limitingFactor,
+        },
+      );
+    },
+    thisArgs,
+  );
+
+export const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
+  listener: (query: sqlLabType.QueryRequestContext) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    predicate(STOP_QUERY),
+    listener,
+    (action: ReturnType<typeof stopQuery>) => {
       const { query } = action;
-      const { dbId, catalog, schema, sql } = query;
-      return new Editor(sql, dbId, catalog, schema);
+      const {
+        id,
+        dbId,
+        catalog,
+        schema,
+        sql,
+        startDttm,
+        ctas_method: ctasMethod,
+        runAsync,
+        tempTable,
+        templateParams,
+      } = query;
+      const editor = new Editor(sql, dbId, catalog, schema);
+      const panels: Panel[] = []; // TODO: Populate panels
+      const tab = new Tab(query.sqlEditorId, query.tab, editor, panels);
+      return new QueryRequestContext(id, editor, tab, runAsync, startDttm, {
+        ctasMethod,
+        tempTable,
+        templateParams,
+      });
     },
     thisArgs,
   );
 
 export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
-  listener: (e: string) => void,
+  listener: (query: sqlLabType.QueryErrorResultContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    predicate(QUERY_FAILED),
+    action => action.type === QUERY_FAILED,
     listener,
-    (action: {
-      type: string;
-      query: any;
-      msg: string;
-      link: any;
-      errors: any;
-    }) => action.msg,
+    (action: ReturnType<typeof createQueryFailedAction>) => {
+      const { query, msg: errorMessage, errors } = action;
+      const {
+        id,
+        dbId,
+        catalog,
+        endDttm,
+        executedSql,
+        schema,
+        sql,
+        startDttm,
+        ctas_method: ctasMethod,
+        runAsync,
+        templateParams,
+        query_id: queryId,
+        tempTable,
+      } = query;
+      const editor = new Editor(sql, dbId, catalog, schema);
+      const panels: Panel[] = []; // TODO: Populate panels
+      const tab = new Tab(query.sqlEditorId, query.tab, editor, panels);
+      return new QueryErrorResultContext(
+        id,
+        errorMessage,
+        errors,
+        editor,
+        tab,
+        runAsync,
+        startDttm,
+        {
+          queryId,
+          executedSql,
+          endDttm,
+          ctasMethod,
+          tempTable,
+          templateParams,
+        },
+      );
+    },
     thisArgs,
   );
 
@@ -138,14 +287,6 @@ const onDidChangeTabTitle: typeof sqlLabType.onDidChangeTabTitle = () => {
   throw new Error('Not implemented yet');
 };
 
-const onDidQueryStop: typeof sqlLabType.onDidQueryStop = () => {
-  throw new Error('Not implemented yet');
-};
-
-const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = () => {
-  throw new Error('Not implemented yet');
-};
-
 const getDatabases: typeof sqlLabType.getDatabases = () => {
   throw new Error('Not implemented yet');
 };
@@ -179,6 +320,7 @@ const onDidRefreshTables: typeof sqlLabType.onDidRefreshTables = () => {
 };
 
 export const sqlLab: typeof sqlLabType = {
+  CTASMethod,
   getCurrentTab,
   onDidChangeEditorContent,
   onDidChangeEditorDatabase,

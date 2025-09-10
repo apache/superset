@@ -111,6 +111,215 @@ export interface Tab {
   panels: Panel[];
 }
 
+// Keep in sync with superset/errors.py
+export type ErrorLevel = 'info' | 'warning' | 'error';
+
+/**
+ * Superset error object structure.
+ * Contains details about an error that occurred within Superset.
+ */
+export type SupersetError<ExtraType = Record<string, any> | null> = {
+  /**
+   * Error types, see enum of SupersetErrorType in superset/errors.py
+   */
+  error_type: string;
+
+  /**
+   * Extra properties based on the error types
+   */
+  extra: ExtraType;
+
+  /**
+   * Level of the error type
+   */
+  level: ErrorLevel;
+
+  /**
+   * Detail description for the error
+   */
+  message: string;
+};
+
+/**
+ * Generic data types, see enum of the same name in superset/utils/core.py.
+ */
+enum GenericDataType {
+  Numeric = 0,
+  String = 1,
+  Temporal = 2,
+  Boolean = 3,
+}
+
+/**
+ * Column metadata returned in query results.
+ */
+export type QueryColumn = {
+  /**
+   * Label of the column
+   */
+  name?: string;
+
+  /**
+   * Column name defined
+   */
+  column_name: string;
+
+  /**
+   * Type of the column value
+   */
+  type: string | null;
+
+  /**
+   * Generic data type format
+   */
+  type_generic: GenericDataType;
+
+  /**
+   * True if the column is date format
+   */
+  is_dttm: boolean;
+};
+
+/**
+ * Possible states of a query during its lifecycle.
+ */
+enum QueryState {
+  Started = 'started',
+  Stopped = 'stopped',
+  Failed = 'failed',
+  Pending = 'pending',
+  Running = 'running',
+  Scheduled = 'scheduled',
+  Success = 'success',
+  Fetching = 'fetching',
+  TimedOut = 'timed_out',
+}
+
+export enum CTASMethod {
+  Table = 'TABLE',
+  View = 'VIEW',
+}
+
+export interface CTAS {
+  /**
+   * Create method for CTAS creation request
+   */
+  method: CTASMethod;
+
+  /**
+   * Temporary table name for creation using a CTAS query
+   */
+  tempTable: string | null;
+}
+
+export interface QueryRequestContext {
+  /**
+   * Unique query ID on client side
+   */
+  id: string;
+
+  /**
+   * Contains CTAS if the query requests table creation
+   */
+  ctas: CTAS | null;
+
+  /**
+   * The SQL editor instance associated with the query
+   */
+  editor: Editor;
+
+  /**
+   * Requested row limit for the query
+   */
+  queryLimit: number | null;
+
+  /**
+   * True if the query execution result will be/was delivered asynchronously
+   */
+  runAsync?: boolean;
+
+  /**
+   * Start datetime for the query in a numerical timestamp
+   */
+  startDttm: number;
+
+  /**
+   * The tab instance associated with the request query
+   */
+  tab: Tab;
+
+  /**
+   * A key-value JSON formatted string associated with Jinja template variables
+   */
+  templateParams: string;
+}
+
+export interface QueryErrorResultContext extends QueryRequestContext {
+  /**
+   * Finished datetime for the query in a numerical timestamp
+   */
+  endDttm: number;
+
+  /**
+   * Error message returned from DB engine
+   */
+  errorMessage: string;
+
+  /**
+   * Error details in a SupersetError structure
+   */
+  errors?: SupersetError[];
+
+  /**
+   * Executed sql after parsing the jinja templates
+   */
+  executedSql: string | null;
+}
+
+export interface QueryResultContext extends QueryRequestContext {
+  /**
+   * Finished datetime for the query in a numerical timestamp
+   */
+  endDttm: number;
+
+  /**
+   * Executed sql after parsing the jinja templates
+   */
+  executedSql: string;
+
+  /**
+   * Actual number of rows returned by the query
+   */
+  limit: number;
+
+  /**
+   * Major factor that is determining the row limit of the query results
+   */
+  limitingFactor: string;
+
+  /**
+   * Remote query id stored in backend
+   */
+  queryId: number;
+
+  /**
+   * Query result data and metadata
+   */
+  result: QueryResult;
+}
+
+export interface QueryResult {
+  /**
+   * Column metadata associated with the query result
+   */
+  columns: QueryColumn[];
+
+  /**
+   * Query result
+   */
+  data: Record<string, any>[];
+}
+
 /**
  * Tab-scoped Events and Functions
  *
@@ -240,30 +449,30 @@ export declare const onDidChangeTabTitle: Event<string>;
 
 /**
  * Event fired when a query starts running in the current tab.
- * Provides the editor state at the time of query execution.
+ * Provides the query request state at the time of query execution.
  *
  * @example
  * ```typescript
- * onDidQueryRun.event((editor) => {
- *   console.log('Query started on database:', editor.databaseId);
- *   console.log('Query content:', editor.content);
+ * onDidQueryRun.event((query) => {
+ *   console.log('Query started on database:', query.editor.databaseId);
+ *   console.log('Query content:', query.editor.content);
  * });
  * ```
  */
-export declare const onDidQueryRun: Event<Editor>;
+export declare const onDidQueryRun: Event<QueryRequestContext>;
 
 /**
  * Event fired when a running query is stopped in the current tab.
- * Provides the editor state when the query was stopped.
+ * Provides the query request state when the query was stopped.
  *
  * @example
  * ```typescript
- * onDidQueryStop.event((editor) => {
- *   console.log('Query stopped for database:', editor.databaseId);
+ * onDidQueryStop.event((query) => {
+ *   console.log('Query stopped for database:', query.editor.databaseId);
  * });
  * ```
  */
-export declare const onDidQueryStop: Event<Editor>;
+export declare const onDidQueryStop: Event<QueryRequestContext>;
 
 /**
  * Event fired when a query fails in the current tab.
@@ -273,12 +482,12 @@ export declare const onDidQueryStop: Event<Editor>;
  *
  * @example
  * ```typescript
- * onDidQueryFail.event((error) => {
- *   console.error('Query failed:', error);
+ * onDidQueryFail.event((result) => {
+ *   console.error('Query failed:', result.errorMessage);
  * });
  * ```
  */
-export declare const onDidQueryFail: Event<string>;
+export declare const onDidQueryFail: Event<QueryErrorResultContext>;
 
 /**
  * Event fired when a query succeeds in the current tab.
@@ -288,12 +497,13 @@ export declare const onDidQueryFail: Event<string>;
  *
  * @example
  * ```typescript
- * onDidQuerySuccess.event((result) => {
- *   console.log('Query succeeded:', result);
+ * onDidQuerySuccess.event((query) => {
+ *   console.log('Query succeeded:', query.result.data);
+ *   console.log('Query executed content:', query.executedSql);
  * });
  * ```
  */
-export declare const onDidQuerySuccess: Event<string>;
+export declare const onDidQuerySuccess: Event<QueryResultContext>;
 
 /**
  * Global Events and Functions
