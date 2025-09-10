@@ -29,7 +29,7 @@
  * - Global APIs: Functions and events available across the entire SQL Lab interface
  */
 
-import { Event, Database } from './core';
+import { Event, Database, SupersetError } from './core';
 
 /**
  * Represents an SQL editor instance within a SQL Lab tab.
@@ -110,35 +110,6 @@ export interface Tab {
    */
   panels: Panel[];
 }
-
-// Keep in sync with superset/errors.py
-export type ErrorLevel = 'info' | 'warning' | 'error';
-
-/**
- * Superset error object structure.
- * Contains details about an error that occurred within Superset.
- */
-export type SupersetError<ExtraType = Record<string, any> | null> = {
-  /**
-   * Error types, see enum of SupersetErrorType in superset/errors.py
-   */
-  error_type: string;
-
-  /**
-   * Extra properties based on the error types
-   */
-  extra: ExtraType;
-
-  /**
-   * Level of the error type
-   */
-  level: ErrorLevel;
-
-  /**
-   * Detail description for the error
-   */
-  message: string;
-};
 
 /**
  * Generic data types, see enum of the same name in superset/utils/core.py.

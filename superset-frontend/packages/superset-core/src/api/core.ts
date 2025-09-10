@@ -76,6 +76,35 @@ export declare interface Database {
   schemas: Schema[];
 }
 
+// Keep in sync with superset/errors.py
+export type ErrorLevel = 'info' | 'warning' | 'error';
+
+/**
+ * Superset error object structure.
+ * Contains details about an error that occurred within Superset.
+ */
+export type SupersetError<ExtraType = Record<string, any> | null> = {
+  /**
+   * Error types, see enum of SupersetErrorType in superset/errors.py
+   */
+  error_type: string;
+
+  /**
+   * Extra properties based on the error types
+   */
+  extra: ExtraType;
+
+  /**
+   * Level of the error type
+   */
+  level: ErrorLevel;
+
+  /**
+   * Detail description for the error
+   */
+  message: string;
+};
+
 /**
  * Represents a type which can release resources, such
  * as event listening or a timer.
