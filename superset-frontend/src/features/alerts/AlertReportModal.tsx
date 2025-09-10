@@ -2160,6 +2160,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <ModalFormField
                     label={isReport ? t('Report name') : t('Alert name')}
                     required
+                    error={
+                      validationStatus[Sections.General]?.hasErrors &&
+                      !currentAlert?.name?.trim()
+                        ? t(
+                            '%s name is required',
+                            isReport ? t('Report') : t('Alert'),
+                          )
+                        : undefined
+                    }
                   >
                     <Input
                       name="name"
@@ -2172,7 +2181,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Owners')} required>
+                  <ModalFormField
+                    label={t('Owners')}
+                    required
+                    error={
+                      validationStatus[Sections.General]?.hasErrors &&
+                      (!currentAlert?.owners ||
+                        currentAlert.owners.length === 0)
+                        ? t('Owners are required')
+                        : undefined
+                    }
+                  >
                     <AsyncSelect
                       ariaLabel={t('Owners')}
                       allowClear
@@ -2631,7 +2650,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         <InputNumber
                           type="number"
                           name="custom_width"
-                          value={currentAlert?.custom_width || undefined}
+                          value={currentAlert?.custom_width || 1600}
                           min={600}
                           max={2400}
                           placeholder={t('Input custom width in pixels')}
