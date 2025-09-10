@@ -48,7 +48,7 @@ export class CTAS implements sqlLabType.CTAS {
 }
 
 export class QueryContext implements sqlLabType.QueryContext {
-  id: string;
+  clientId: string;
 
   ctas: sqlLabType.CTAS | null;
 
@@ -62,10 +62,10 @@ export class QueryContext implements sqlLabType.QueryContext {
 
   tab: Tab;
 
-  private rawTemplateParams: string;
+  private templateParams: string;
 
   constructor(
-    id: string,
+    clientId: string,
     tab: Tab,
     runAsync: boolean,
     startDttm: number,
@@ -76,7 +76,7 @@ export class QueryContext implements sqlLabType.QueryContext {
       requestedLimit?: number;
     } = {},
   ) {
-    this.id = id;
+    this.clientId = clientId;
     this.tab = tab;
     this.runAsync = runAsync;
     this.startDttm = startDttm;
@@ -84,13 +84,13 @@ export class QueryContext implements sqlLabType.QueryContext {
     this.ctas = options.tempTable
       ? new CTAS(options.ctasMethod === CTASMethod.View, options.tempTable)
       : null;
-    this.rawTemplateParams = options.templateParams ?? '';
+    this.templateParams = options.templateParams ?? '';
   }
 
-  get templateParams() {
+  get templateParameters() {
     let parsed = {};
     try {
-      parsed = JSON.parse(this.rawTemplateParams);
+      parsed = JSON.parse(this.templateParams);
     } catch (e) {
       // ignore invalid format string.
     }
@@ -110,13 +110,13 @@ export class QueryResultContext
 
   executedSql: string;
 
-  queryId: number;
+  remoteId: number;
 
   result: sqlLabType.QueryResult;
 
   constructor(
-    id: string,
-    queryId: number,
+    clientId: string,
+    remoteId: number,
     executedSql: string,
     columns: sqlLabType.QueryResult['columns'],
     data: sqlLabType.QueryResult['data'],
@@ -134,8 +134,8 @@ export class QueryResultContext
     } = {},
   ) {
     const { appliedLimit, appliedLimitingFactor, ...opt } = options;
-    super(id, tab, runAsync, startDttm, opt);
-    this.queryId = queryId;
+    super(clientId, tab, runAsync, startDttm, opt);
+    this.remoteId = remoteId;
     this.executedSql = executedSql;
     this.endDttm = endDttm;
     this.result = {
@@ -160,7 +160,7 @@ export class QueryErrorResultContext
   executedSql: string | null;
 
   constructor(
-    id: string,
+    clientId: string,
     errorMessage: string,
     errors: coreType.SupersetError[],
     tab: Tab,
@@ -177,7 +177,7 @@ export class QueryErrorResultContext
     } = {},
   ) {
     const { queryId, executedSql, endDttm, ...opt } = options;
-    super(id, tab, runAsync, startDttm, opt);
+    super(clientId, tab, runAsync, startDttm, opt);
     this.executedSql = executedSql ?? null;
     this.errorMessage = errorMessage;
     this.errors = errors;

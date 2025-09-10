@@ -132,7 +132,7 @@ export interface QueryContext {
   /**
    * Unique query ID on client side.
    */
-  id: string;
+  clientId: string;
 
   /**
    * Contains CTAS if the query requests table creation.
@@ -167,7 +167,7 @@ export interface QueryContext {
   /**
    * A key-value JSON associated with Jinja template variables
    */
-  templateParams: Record<string, any>;
+  templateParameters: Record<string, any>;
 }
 
 export interface QueryErrorResultContext extends QueryContext {
@@ -216,7 +216,7 @@ export interface QueryResultContext extends QueryContext {
   /**
    * Remote query id stored in backend.
    */
-  queryId: number;
+  remoteId: number;
 
   /**
    * Query result data and metadata.
