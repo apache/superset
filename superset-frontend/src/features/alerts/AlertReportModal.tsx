@@ -311,7 +311,7 @@ export const StyledInputContainer = styled.div`
 
     .required {
       margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colorError};
+      color: ${theme.colorIcon};
     }
 
     .control-label {
