@@ -41,6 +41,24 @@ from superset.utils.webdriver import (
 
 logger = logging.getLogger(__name__)
 
+# Cache Playwright availability check at module level to avoid repeated imports
+# This optimization prevents checking for Playwright on every screenshot generation
+_PLAYWRIGHT_AVAILABLE: bool | None = None
+_PLAYWRIGHT_INSTALL_MESSAGE: str | None = None
+_PLAYWRIGHT_FALLBACK_LOGGED = False  # Track if we've already logged the fallback
+
+try:
+    from superset.utils.webdriver import (
+        PLAYWRIGHT_AVAILABLE,
+        PLAYWRIGHT_INSTALL_MESSAGE,
+    )
+
+    _PLAYWRIGHT_AVAILABLE = PLAYWRIGHT_AVAILABLE
+    _PLAYWRIGHT_INSTALL_MESSAGE = PLAYWRIGHT_INSTALL_MESSAGE
+except ImportError:
+    _PLAYWRIGHT_AVAILABLE = False
+    _PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
+
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
 DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
 DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
@@ -169,24 +187,19 @@ class BaseScreenshot:
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            # Try to use Playwright if available (supports WebGL/DuckGL, unlike Cypress)
-            try:
-                from superset.utils.webdriver import (
-                    PLAYWRIGHT_AVAILABLE,
-                    PLAYWRIGHT_INSTALL_MESSAGE,
+            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
+            if _PLAYWRIGHT_AVAILABLE:
+                return WebDriverPlaywright(self.driver_type, window_size)
+
+            # Log fallback only once to avoid log spam on repeated operations
+            global _PLAYWRIGHT_FALLBACK_LOGGED
+            if not _PLAYWRIGHT_FALLBACK_LOGGED:
+                logger.info(
+                    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
+                    "installed. Falling back to Selenium (WebGL/Canvas charts may "
+                    f"not render correctly). {_PLAYWRIGHT_INSTALL_MESSAGE}"
                 )
-
-                if PLAYWRIGHT_AVAILABLE:
-                    return WebDriverPlaywright(self.driver_type, window_size)
-            except ImportError:
-                pass  # Fall through to Selenium
-
-            # Log once that we're falling back (migration incomplete)
-            logger.info(
-                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
-                "installed. Falling back to Selenium (WebGL/Canvas charts may "
-                f"not render correctly). {PLAYWRIGHT_INSTALL_MESSAGE}"
-            )
+                _PLAYWRIGHT_FALLBACK_LOGGED = True
 
         # Use Selenium as default/fallback
         return WebDriverSelenium(self.driver_type, window_size)

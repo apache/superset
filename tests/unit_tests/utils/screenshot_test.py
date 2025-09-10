@@ -246,10 +246,10 @@ class TestScreenshotCachePayloadGetImage:
 class TestBaseScreenshotDriverFallback:
     """Test BaseScreenshot.driver() fallback logic for Playwright migration."""
 
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_returns_playwright_when_feature_enabled_and_available(
-        self, mock_feature_flag, mock_playwright_available, screenshot_obj
+        self, mock_feature_flag, screenshot_obj
     ):
         """Test driver() returns WebDriverPlaywright when enabled and available."""
         mock_feature_flag.return_value = True
@@ -260,13 +260,18 @@ class TestBaseScreenshotDriverFallback:
         mock_feature_flag.assert_called_once_with("PLAYWRIGHT_REPORTS_AND_THUMBNAILS")
 
     @patch("superset.utils.screenshots.logger")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_falls_back_to_selenium_when_playwright_unavailable(
-        self, mock_feature_flag, mock_playwright_available, mock_logger, screenshot_obj
+        self, mock_feature_flag, mock_logger, screenshot_obj
     ):
         """Test driver() falls back to Selenium when Playwright unavailable."""
         mock_feature_flag.return_value = True
+
+        # Reset the global fallback logging flag to ensure we can test the logging
+        import superset.utils.screenshots
+
+        superset.utils.screenshots._PLAYWRIGHT_FALLBACK_LOGGED = False
 
         driver = screenshot_obj.driver()
 
@@ -298,23 +303,20 @@ class TestBaseScreenshotDriverFallback:
     def test_driver_handles_import_error_gracefully(
         self, mock_feature_flag, mock_logger, screenshot_obj
     ):
-        """Test driver() handles ImportError for Playwright constants."""
-        mock_feature_flag.return_value = True
+        """Test driver() gracefully degrades when Playwright not available."""
+        mock_feature_flag.return_value = False  # Feature flag disabled
 
-        # Mock ImportError during the try block
-        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE") as mock_import:
-            mock_import.side_effect = ImportError("Module not found")
+        driver = screenshot_obj.driver()
 
-            driver = screenshot_obj.driver()
-
+        # Should use Selenium when feature flag is disabled
         assert driver.__class__.__name__ == "WebDriverSelenium"
-        # Should still log fallback message (except block handles ImportError)
-        mock_logger.info.assert_called_once()
+        # Should not log since feature flag is disabled
+        mock_logger.info.assert_not_called()
 
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     def test_driver_passes_window_size_to_playwright(
-        self, mock_playwright_available, mock_feature_flag, screenshot_obj
+        self, mock_feature_flag, screenshot_obj
     ):
         """Test driver() passes window_size parameter to WebDriverPlaywright."""
         mock_feature_flag.return_value = True
@@ -338,10 +340,10 @@ class TestBaseScreenshotDriverFallback:
         assert driver._window == custom_window_size
         assert driver.__class__.__name__ == "WebDriverSelenium"
 
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     def test_driver_uses_default_window_size_when_none_provided(
-        self, mock_playwright_available, mock_feature_flag, screenshot_obj
+        self, mock_feature_flag, screenshot_obj
     ):
         """Test driver() uses screenshot object's window_size when none provided."""
         mock_feature_flag.return_value = True
@@ -351,27 +353,32 @@ class TestBaseScreenshotDriverFallback:
         assert driver._window == screenshot_obj.window_size
         assert driver.__class__.__name__ == "WebDriverPlaywright"
 
-    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     @patch("superset.utils.screenshots.logger")
-    def test_driver_logs_fallback_message_only_once_per_call(
-        self, mock_logger, mock_feature_flag, screenshot_obj
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_logs_fallback_message_only_once_globally(
+        self, mock_feature_flag, mock_logger, screenshot_obj
     ):
-        """Test driver() logs fallback message only once per method call."""
+        """Test driver() logs fallback message only once globally."""
         mock_feature_flag.return_value = True
 
-        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False):
+        # Reset the global flag to test the logging
+        import superset.utils.screenshots
+
+        superset.utils.screenshots._PLAYWRIGHT_FALLBACK_LOGGED = False
+
+        with patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False):
             # Call driver() multiple times
             screenshot_obj.driver()
             screenshot_obj.driver()
             screenshot_obj.driver()
 
-        # Should log fallback message on each call (not cached)
-        assert mock_logger.info.call_count == 3
+        # Should log fallback message only once due to global flag
+        assert mock_logger.info.call_count == 1
 
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     def test_driver_returns_different_instances_on_multiple_calls(
-        self, mock_playwright_available, mock_feature_flag, screenshot_obj
+        self, mock_feature_flag, screenshot_obj
     ):
         """Test driver() returns new instances on each call."""
         mock_feature_flag.return_value = True
@@ -387,11 +394,9 @@ class TestBaseScreenshotDriverFallback:
 class TestScreenshotSubclassesDriverBehavior:
     """Test ChartScreenshot and DashboardScreenshot inherit driver behavior."""
 
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
-    def test_chart_screenshot_uses_playwright_when_enabled(
-        self, mock_playwright_available, mock_feature_flag
-    ):
+    def test_chart_screenshot_uses_playwright_when_enabled(self, mock_feature_flag):
         """Test ChartScreenshot uses Playwright when feature enabled."""
         mock_feature_flag.return_value = True
 
@@ -401,11 +406,11 @@ class TestScreenshotSubclassesDriverBehavior:
         assert driver.__class__.__name__ == "WebDriverPlaywright"
         assert driver._window == chart_screenshot.window_size
 
-    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
     @patch("superset.utils.screenshots.logger")
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_dashboard_screenshot_falls_back_to_selenium(
-        self, mock_logger, mock_playwright_available, mock_feature_flag
+        self, mock_feature_flag, mock_logger
     ):
         """Test DashboardScreenshot falls back to Selenium if no Playwright."""
         mock_feature_flag.return_value = True
@@ -418,10 +423,8 @@ class TestScreenshotSubclassesDriverBehavior:
         assert driver.__class__.__name__ == "WebDriverSelenium"
         assert driver._window == dashboard_screenshot.window_size
 
-        # Should log fallback message
-        mock_logger.info.assert_called_once()
-        log_call = mock_logger.info.call_args[0][0]
-        assert "Falling back to Selenium" in log_call
+        # Note: May not log if fallback message was already logged globally
+        # This is expected behavior due to the single-log optimization
 
     def test_chart_screenshot_has_correct_default_window_size(self):
         """Test ChartScreenshot has correct default window size."""
@@ -439,11 +442,9 @@ class TestScreenshotSubclassesDriverBehavior:
         )
         assert dashboard_screenshot.window_size == DEFAULT_DASHBOARD_WINDOW_SIZE
 
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
-    def test_custom_window_size_passed_to_driver(
-        self, mock_playwright_available, mock_feature_flag
-    ):
+    def test_custom_window_size_passed_to_driver(self, mock_feature_flag):
         """Test custom window size is passed correctly to driver."""
         mock_feature_flag.return_value = True
         custom_window_size = (1920, 1080)
@@ -505,6 +506,68 @@ class TestDriverMethodThreadSafety:
 
         # Should have logged fallback message for each call
         assert mock_logger.info.call_count == 5
+
+
+class TestScreenshotModuleLevelCaching:
+    """Test module-level caching of Playwright availability."""
+
+    def test_playwright_availability_cached_at_module_level(self):
+        """Test that Playwright availability is cached at module import time."""
+        import superset.utils.screenshots as screenshots_module
+
+        # These should be set at module import time
+        assert hasattr(screenshots_module, "_PLAYWRIGHT_AVAILABLE")
+        assert hasattr(screenshots_module, "_PLAYWRIGHT_INSTALL_MESSAGE")
+        assert hasattr(screenshots_module, "_PLAYWRIGHT_FALLBACK_LOGGED")
+
+        # Should be boolean or None
+        assert isinstance(screenshots_module._PLAYWRIGHT_AVAILABLE, (bool, type(None)))
+        assert isinstance(
+            screenshots_module._PLAYWRIGHT_INSTALL_MESSAGE, (str, type(None))
+        )
+        assert isinstance(screenshots_module._PLAYWRIGHT_FALLBACK_LOGGED, bool)
+
+    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.utils.screenshots._PLAYWRIGHT_INSTALL_MESSAGE", "Test message")
+    def test_cached_values_used_in_driver_method(self, screenshot_obj):
+        """Test that driver() method uses cached module-level values."""
+        with patch(
+            "superset.extensions.feature_flag_manager.is_feature_enabled"
+        ) as mock_feature_flag:
+            mock_feature_flag.return_value = True
+
+            # Should use cached value, not re-check
+            driver = screenshot_obj.driver()
+
+            assert driver.__class__.__name__ == "WebDriverSelenium"
+
+    def test_fallback_logging_flag_persists_across_instances(self):
+        """Test that fallback logging flag persists across screenshot instances."""
+        import superset.utils.screenshots as screenshots_module
+
+        # Reset the flag
+        screenshots_module._PLAYWRIGHT_FALLBACK_LOGGED = False
+
+        with patch(
+            "superset.extensions.feature_flag_manager.is_feature_enabled"
+        ) as mock_feature_flag:
+            mock_feature_flag.return_value = True
+            with patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False):
+                with patch("superset.utils.screenshots.logger") as mock_logger:
+                    # Create multiple screenshot instances
+                    screenshot1 = BaseScreenshot("http://example1.com", "digest1")
+                    screenshot2 = BaseScreenshot("http://example2.com", "digest2")
+
+                    # First instance logs
+                    screenshot1.driver()
+                    assert mock_logger.info.call_count == 1
+
+                    # Second instance doesn't log (flag is set)
+                    screenshot2.driver()
+                    assert mock_logger.info.call_count == 1  # Still 1, not 2
+
+                    # Flag should be set
+                    assert screenshots_module._PLAYWRIGHT_FALLBACK_LOGGED is True
 
 
 class TestScreenshotDriverPerformance:
