@@ -42,6 +42,11 @@ export default function transformProps(chartProps) {
         ID: 'indonesia',
         AE: 'united_arab_emirates',
         UK: 'uk',
+        SA: 'saudi_arabia',
+        ZA: 'south_africa',
+        MY: 'malaysia',
+        PH: 'philippines',
+        PHP: 'philippines',
       };
       if (alpha2ToPluginKey[cc]) {
         countryFromForm = alpha2ToPluginKey[cc];
