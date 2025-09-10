@@ -258,3 +258,66 @@ describe('legend sorting', () => {
     ]);
   });
 });
+
+it('legend margin: top orientation sets grid.top correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).top).toEqual(270);
+});
+
+it('legend margin: bottom orientation sets grid.bottom correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Bottom,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).bottom).toEqual(270);
+});
+
+it('legend margin: left orientation sets grid.left correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Left,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).left).toEqual(270);
+});
+
+it('legend margin: right orientation sets grid.right correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 270,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Right,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).right).toEqual(270);
+});
