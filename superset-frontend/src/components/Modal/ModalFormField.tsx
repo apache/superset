@@ -33,8 +33,11 @@ interface ModalFormFieldProps {
   hasFeedback?: boolean;
 }
 
-const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
-  ${({ theme, bottomSpacing }) => css`
+const StyledFieldContainer = styled.div<{
+  bottomSpacing: boolean;
+  hasError: boolean;
+}>`
+  ${({ theme, bottomSpacing, hasError }) => css`
     flex: 1;
     margin-top: 0px;
     margin-bottom: ${bottomSpacing ? theme.sizeUnit * 4 : 0}px;
@@ -48,7 +51,7 @@ const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
 
     .required {
       margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colorIcon};
+      color: ${hasError ? theme.colorError : theme.colorIcon};
     }
 
     .helper {
@@ -128,8 +131,14 @@ export function ModalFormField({
   validateStatus,
   hasFeedback = false,
 }: ModalFormFieldProps) {
+  const hasError = !!(error || validateStatus === 'error');
+
   return (
-    <StyledFieldContainer bottomSpacing={bottomSpacing} data-test={testId}>
+    <StyledFieldContainer
+      bottomSpacing={bottomSpacing}
+      hasError={hasError}
+      data-test={testId}
+    >
       <div className="control-label">
         {label}
         {tooltip && <InfoTooltip tooltip={tooltip} />}
