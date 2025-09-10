@@ -21,6 +21,7 @@ from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -296,11 +297,16 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
     @classmethod
     def extract_errors(
-        cls, ex: Exception, context: dict[str, Any] | None = None
+        cls,
+        ex: Exception,
+        context: dict[str, Any] | None = None,
+        database_name: str | None = None,
     ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
+
+        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
         # access_token isn't currently parseable from the
         # databricks error response, but adding it in here
         # for reference if their error message changes
@@ -308,7 +314,23 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
 
-        for regex, (message, error_type, extra) in cls.custom_errors.items():
+        if not isinstance(config_custom_errors, dict):
+            config_custom_errors = {}
+
+        db_engine_custom_errors = {}
+
+        if database_name and database_name in config_custom_errors:
+            database_errors = config_custom_errors[database_name]
+            if isinstance(database_errors, dict):
+                db_engine_custom_errors.update(database_errors)
+
+        if not isinstance(db_engine_custom_errors, dict):
+            db_engine_custom_errors = {}
+
+        for regex, (message, error_type, extra) in [
+            *db_engine_custom_errors.items(),
+            *cls.custom_errors.items(),
+        ]:
             match = regex.search(raw_message)
             if match:
                 params = {**context, **match.groupdict()}

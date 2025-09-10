@@ -25,7 +25,7 @@ from superset.errors import SupersetErrorType
 # links using custom_doc_links. Set show_issue_info=False to hide default error codes.
 # Example:
 # CUSTOM_DATABASE_ERRORS = {
-#     "PostgreSQL": {
+#     "database_name": {
 #         re.compile('permission denied for view'): (
 #             __(
 #                 'Permission denied'
@@ -42,7 +42,7 @@ from superset.errors import SupersetErrorType
 #             }
 #         )
 #     },
-#     "trino": {
+#     "examples": {
 #         re.compile(r'message="(?P<message>[^"]*)"'): (
 #             __(
 #                 'Unexpected error: "%(message)s"'

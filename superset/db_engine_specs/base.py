@@ -1344,11 +1344,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         db_engine_custom_errors = {}
 
-        for engine_key in [cls.engine, cls.engine_name]:
-            if engine_key and engine_key in config_custom_errors:
-                engine_errors = config_custom_errors[engine_key]
-                if isinstance(engine_errors, dict):
-                    db_engine_custom_errors.update(engine_errors)
+        if database_name and database_name in config_custom_errors:
+            database_errors = config_custom_errors[database_name]
+            if isinstance(database_errors, dict):
+                db_engine_custom_errors.update(database_errors)
 
         if not isinstance(db_engine_custom_errors, dict):
             db_engine_custom_errors = {}
