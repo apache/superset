@@ -85,7 +85,7 @@ const ComparisonIndicator = styled.div<{
     font-size: ${theme.typography.sizes.s}px;
     font-weight: ${theme.typography.weights.medium};
     color: ${indicatorColor} !important;
-    cursor: help;
+    cursor: default;
     white-space: nowrap;
     position: relative;
     
