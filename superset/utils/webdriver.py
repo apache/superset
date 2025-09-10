@@ -45,11 +45,11 @@ from superset.utils.screenshot_utils import take_tiled_screenshot
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
-# Installation message for missing Playwright (needed for WebGL/DuckGL support)
+# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
 PLAYWRIGHT_INSTALL_MESSAGE = (
-    "To complete the migration from Cypress and enable WebGL/DuckGL screenshot "
-    "support, install Playwright with: pip install playwright && "
-    "playwright install chromium"
+    "To complete the migration from Cypress "
+    "and enable WebGL/Canvas screenshot support, install Playwright with: "
+    "pip install playwright && playwright install chromium"
 )
 
 if TYPE_CHECKING:
