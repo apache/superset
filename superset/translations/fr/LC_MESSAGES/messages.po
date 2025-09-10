@@ -748,7 +748,7 @@ msgstr "Une liste de tags qui ont été appliquées à ce graphique."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
-msgstr "Une liste de tags qui ont été appliquées à ce graphique."
+msgstr "Une liste d'étiquettes qui ont été appliquées à ce graphique."
 
 msgid "A list of users who can alter the chart. Searchable by name or username."
 msgstr ""
@@ -838,7 +838,7 @@ msgstr ""
 
 #, fuzzy
 msgid "AND"
-msgstr "aléatoire"
+msgstr "ET"
 
 msgid "APPLY"
 msgstr "APPLIQUER"
@@ -1005,13 +1005,13 @@ msgstr ""
 
 #, fuzzy
 msgid "Add certification details for this dashboard"
-msgstr "Détails de certification"
+msgstr "Ajouter des détails de certification pour ce tableau de bord"
 
 msgid "Add color for positive/negative change"
 msgstr "Ajouter une couleur pour les changements positifs/négatifs"
 
 msgid "Add colors to cell bars for +/-"
-msgstr "ajouter des couleurs aux barres de cellules pour +/-"
+msgstr "Ajouter des couleurs aux barres de cellules pour +/-"
 
 msgid "Add cross-filter"
 msgstr "Ajouter un filtre croisé"
@@ -1109,7 +1109,7 @@ msgstr "Ajouter le nom du tableau de bord"
 
 #, fuzzy
 msgid "Add theme"
-msgstr "Ajouter un élément"
+msgstr "Ajouter un thème"
 
 msgid "Add to dashboard"
 msgstr "Ajouter au tableau de bord"
@@ -1193,7 +1193,7 @@ msgstr "Type de données avancées"
 
 #, fuzzy
 msgid "Advanced settings"
-msgstr "Paramètres du filtre"
+msgstr "Paramètres avancés"
 
 msgid "Advanced-Analytics"
 msgstr "Analyses avancées"
@@ -2024,7 +2024,7 @@ msgid ""
 "Are you sure you want to remove the system default theme? The application"
 " will fall back to the configuration file default."
 msgstr ""
-"Êtes-vous sûr de vouloir supprimer le thème par défaut du système ? L'application
+"Êtes-vous sûr de vouloir supprimer le thème par défaut du système ? L'application "
 "reviendra au thème par défaut défini dans le fichier de configuration."
 
 msgid "Are you sure you want to save and apply changes?"
@@ -2541,7 +2541,7 @@ msgstr "Le template CSS n'a pas pu être supprimé."
 
 #, fuzzy
 msgid "CSV Export"
-msgstr "rapport"
+msgstr "Export CSV"
 
 #, fuzzy
 msgid "CSV upload"
@@ -3169,7 +3169,7 @@ msgstr "Effacer"
 
 #, fuzzy
 msgid "Clear Sort"
-msgstr "Forme claire"
+msgstr "Effacer le tri"
 
 msgid "Clear all"
 msgstr "Effacer tout"
@@ -3180,14 +3180,14 @@ msgstr "Effacer toutes les données"
 
 #, fuzzy
 msgid "Clear form"
-msgstr "Forme claire"
+msgstr "Effacer le formulaire"
 
 #, fuzzy
 msgid "Clear local theme"
-msgstr "reinitialiser tous les filtres"
+msgstr "Reinitialiser tous les filtres"
 
 msgid "Clear the selection to revert to the system default theme"
-msgstr "Effacez la sélection pour revenir au thème par défaut du système"
+msgstr "Effacer la sélection pour revenir au thème par défaut du système"
 
 #, fuzzy
 msgid ""
@@ -3214,7 +3214,7 @@ msgid ""
 "Click this link to switch to an alternate form that allows you to input "
 "the SQLAlchemy URL for this database manually."
 msgstr ""
-"Cliquez sur ce lien pour basculer sur un autre formulaire qui vous "
+"Cliquer sur ce lien pour basculer sur un autre formulaire qui vous "
 "permettra d'entrer manuellement l'URL SQLAlchemy pour cette base de "
 "données."
 
@@ -3222,7 +3222,7 @@ msgid ""
 "Click this link to switch to an alternate form that exposes only the "
 "required fields needed to connect this database."
 msgstr ""
-"Cliquez sur ce lien pour basculer sur un autre formulaire qui ne montrera"
+"Cliquer sur ce lien pour basculer sur un autre formulaire qui ne montrera"
 " que les champs nécessaires pour se connecter à cette base de données."
 
 msgid "Click to add a contour"
@@ -3341,7 +3341,7 @@ msgstr "Limites de couleur"
 
 #, fuzzy
 msgid "Color breakpoints"
-msgstr "Points de rupture du seau"
+msgstr "Couleur des points de rupture"
 
 #, fuzzy
 msgid "Color by"
@@ -3349,14 +3349,14 @@ msgstr "Colorer par"
 
 #, fuzzy
 msgid "Color for breakpoint"
-msgstr "Points de rupture du seau"
+msgstr "Couleur pour point de rupture"
 
 msgid "Color metric"
 msgstr "Mesure de couleur"
 
 #, fuzzy
 msgid "Color of the source location"
-msgstr "Couleur de l'emplacement de la cible"
+msgstr "Couleur de l'emplacement de la source"
 
 #, fuzzy
 msgid "Color of the target location"
@@ -3498,7 +3498,7 @@ msgstr "Colonnes à lire"
 
 #, fuzzy
 msgid "Columns to show in the tooltip."
-msgstr "Colonnes à regrouper sur les colonnes"
+msgstr "Colonnes à afficher dans l'infobulle"
 
 #, fuzzy
 msgid "Combine metrics"
@@ -3681,7 +3681,7 @@ msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion
 
 #, fuzzy
 msgid "Contains"
-msgstr "crontab"
+msgstr "Contient"
 
 #, fuzzy
 msgid "Content format"
@@ -3711,7 +3711,7 @@ msgstr "Mode contribution"
 
 #, fuzzy
 msgid "Contributions"
-msgstr "Contribution"
+msgstr "Contributions"
 
 #, fuzzy
 msgid "Control"
@@ -4552,7 +4552,7 @@ msgstr "Diminuer"
 
 #, fuzzy
 msgid "Default"
-msgstr "défaut"
+msgstr "Défaut"
 
 msgid "Default Catalog"
 msgstr "Catalogue par défaut"
@@ -4578,7 +4578,7 @@ msgstr "Valeur par défaut"
 
 #, fuzzy
 msgid "Default color"
-msgstr "défaut"
+msgstr "couleur par défaut"
 
 msgid "Default datetime"
 msgstr "Horodatage par défaut"
