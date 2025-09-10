@@ -62,7 +62,7 @@ export class QueryContext implements sqlLabType.QueryContext {
 
   tab: Tab;
 
-  private _templateParams: string;
+  private rawTemplateParams: string;
 
   constructor(
     id: string,
@@ -84,13 +84,13 @@ export class QueryContext implements sqlLabType.QueryContext {
     this.ctas = options.tempTable
       ? new CTAS(options.ctasMethod === CTASMethod.View, options.tempTable)
       : null;
-    this._templateParams = options.templateParams ?? '';
+    this.rawTemplateParams = options.templateParams ?? '';
   }
 
   get templateParams() {
     let parsed = {};
     try {
-      parsed = JSON.parse(this._templateParams);
+      parsed = JSON.parse(this.rawTemplateParams);
     } catch (e) {
       // ignore invalid format string.
     }
