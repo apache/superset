@@ -77,8 +77,35 @@ except ImportError:
     Page = Any
     sync_playwright = None
 
+
 # Check Playwright availability at module level
-PLAYWRIGHT_AVAILABLE = sync_playwright is not None
+def check_playwright_availability() -> bool:
+    """
+    Comprehensive check for Playwright availability.
+
+    Verifies not only that the module is imported, but also that
+    browser binaries are installed and can be launched.
+    """
+    if sync_playwright is None:
+        return False
+
+    try:
+        # Try to actually launch a browser to ensure binaries are installed
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            return True
+    except Exception as e:
+        logger.warning(
+            "Playwright module is installed but browser launch failed. "
+            "Run 'playwright install chromium' to install browser binaries. "
+            "Error: %s",
+            str(e),
+        )
+        return False
+
+
+PLAYWRIGHT_AVAILABLE = check_playwright_availability()
 
 
 def validate_webdriver_config() -> dict[str, Any]:
