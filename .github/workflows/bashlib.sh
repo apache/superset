@@ -187,6 +187,9 @@ playwright-install() {
 
   say "::group::Install Playwright browsers"
   npx playwright install --with-deps chromium
+  # Create output directories for test results and debugging
+  mkdir -p playwright-results
+  mkdir -p test-results
   say "::endgroup::"
 }
 
@@ -233,7 +236,8 @@ playwright-run() {
   fi
 
   say "::group::Run Playwright tests"
-  npx playwright test --reporter=github --output playwright-results
+  echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
+  npx playwright test auth/login --reporter=github --output=playwright-results
   local status=$?
   say "::endgroup::"
 

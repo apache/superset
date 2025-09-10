@@ -59,7 +59,7 @@ test.describe('Login view', () => {
     expect([401, 302]).toContain(loginResponse.status());
 
     // Wait for redirect to complete before checking URL
-    await page.waitForURL((url: any) => url.pathname.includes('/login'), {
+    await page.waitForURL((url: any) => url.pathname.endsWith('login/'), {
       timeout: 10000,
     });
 
@@ -87,9 +87,12 @@ test.describe('Login view', () => {
     expect(loginResponse.status()).toBe(302);
 
     // Wait for successful redirect to welcome page
-    await page.waitForURL((url: any) => url.pathname.includes(URL.WELCOME), {
-      timeout: 10000,
-    });
+    await page.waitForURL(
+      (url: any) => url.pathname.endsWith('superset/welcome/'),
+      {
+        timeout: 10000,
+      },
+    );
 
     // Verify specific session cookie exists
     const sessionCookie = await authPage.getSessionCookie();
