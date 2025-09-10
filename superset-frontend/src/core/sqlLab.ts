@@ -221,7 +221,7 @@ const predicate = (
   const id = activeEditorId();
   return action =>
     // Compares the original id with the current active editor ID
-    action.type === actionType && currentTabOnly && activeEditorId() === id;
+    action.type === actionType && (!currentTabOnly || activeEditorId() === id);
 };
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
