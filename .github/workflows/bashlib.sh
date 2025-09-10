@@ -195,11 +195,9 @@ playwright-install() {
 
 playwright-run() {
   local APP_ROOT=$1
-  cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  # Start Flask and run it in background (same as Cypress)
-  # --no-debugger means disable the interactive debugger on the 500 page
-  # so errors can print to stderr.
+  # Start Flask from the project root (same as Cypress)
+  cd "$GITHUB_WORKSPACE"
   local flasklog="${HOME}/flask-playwright.log"
   local port=8081
   PLAYWRIGHT_BASE_URL="http://localhost:${port}"
@@ -234,6 +232,9 @@ playwright-run() {
     echo "::endgroup::"
     return 1
   fi
+
+  # Change to frontend directory for Playwright execution
+  cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Run Playwright tests"
   echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
