@@ -355,19 +355,6 @@ export function DatabaseSelector({
     }
   }, [currentDb?.id, showCatalogSelector]);
 
-  // Auto-select when data becomes available (handles both fresh data and cached data)
-  useEffect(() => {
-    if (catalogData?.result) {
-      autoSelectCatalog(catalogData.result, catalogData.default);
-    }
-  }, [catalogData?.result, catalogData?.default, autoSelectCatalog]);
-
-  useEffect(() => {
-    if (schemaData?.result) {
-      autoSelectSchema(schemaData.result, schemaData.default);
-    }
-  }, [schemaData?.result, schemaData?.default, autoSelectSchema]);
-
   function changeDatabase(
     value: { label: string; value: number },
     database: DatabaseValue,

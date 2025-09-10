@@ -728,6 +728,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalogs,
             )
             default_catalog = database.get_default_catalog()
+            # TODO: Consider refactoring API response structure during
+            # next breaking change window to return catalogs as objects
+            # with a 'default' flag instead of separate fields
+            # e.g., result=[{"name": "catalog1", "default": true},
+            #                {"name": "catalog2", "default": false}]
             return self.response(200, result=list(catalogs), default=default_catalog)
         except OperationalError:
             return self.response(
@@ -815,6 +820,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         ],
                         default=default_schema,
                     )
+            # TODO: Consider refactoring API response structure during
+            # next breaking change window to return schemas as objects
+            # with a 'default' flag instead of separate fields
+            # e.g., result=[{"name": "schema1", "default": true},
+            #                {"name": "schema2", "default": false}]
             return self.response(200, result=list(schemas), default=default_schema)
         except OperationalError:
             return self.response(

@@ -397,7 +397,7 @@ test('Should auto-select default schema on load', async () => {
 
   // Wait for the default schema to be auto-selected
   await waitFor(() => {
-    expect(props.onSchemaChange).toHaveBeenCalledWith('public');
+    expect(propsWithoutSchema.onSchemaChange).toHaveBeenCalledWith('public');
   });
 });
 
