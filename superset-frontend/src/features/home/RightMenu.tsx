@@ -526,26 +526,7 @@ const RightMenu = ({
                     font-size: ${theme.fontSizeSM}px;
                     color: ${theme.colorTextSecondary || theme.colorText};
                     white-space: pre-wrap;
-                    word-break: break-word;
                     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-
-                    /* Force the parent menu item to expand */
-                    && {
-                      min-height: auto;
-                    }
-
-                    /* Target the Ant Design menu item */
-                    :global(.ant-menu-item-group-list .ant-menu-item) {
-                      height: auto;
-                      min-height: auto;
-                      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-                    }
-
-                    /* Target the menu title content */
-                    :global(.ant-menu-title-content) {
-                      height: auto;
-                      display: block;
-                    }
                   `}
                 >
                   {[
