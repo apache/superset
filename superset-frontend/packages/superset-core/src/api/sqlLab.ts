@@ -140,11 +140,6 @@ export interface QueryContext {
   ctas: CTAS | null;
 
   /**
-   * The SQL editor instance associated with the query.
-   */
-  editor: Editor;
-
-  /**
    * Requested row limit for the query.
    */
   requestedLimit: number | null;

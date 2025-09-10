@@ -64,6 +64,8 @@ export class QueryContext implements sqlLabType.QueryContext {
 
   private templateParams: string;
 
+  private parsedParams: Record<string, any>;
+
   constructor(
     clientId: string,
     tab: Tab,
@@ -87,13 +89,23 @@ export class QueryContext implements sqlLabType.QueryContext {
     this.templateParams = options.templateParams ?? '';
   }
 
+  /**
+   * A custom accessor is used to process JSON parsing only
+   * when necessary for better performance.
+   */
   get templateParameters() {
+    if (this.parsedParams) {
+      return this.parsedParams;
+    }
+
     let parsed = {};
     try {
       parsed = JSON.parse(this.templateParams);
     } catch (e) {
       // ignore invalid format string.
     }
+    this.parsedParams = parsed;
+
     return parsed;
   }
 }
