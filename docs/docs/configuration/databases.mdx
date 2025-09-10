@@ -1774,10 +1774,11 @@ You can use the `CUSTOM_DATABASE_ERRORS` in the `superset/custom_database_errors
 
 This feature lets you transform raw database errors into user-friendly messages, optionally including documentation links and hiding default error codes.
 
+Provide an empty string as the first value to keep the original error message. This way, you can add just a link to the documentation
 **Example usage:**
 ```Python
 CUSTOM_DATABASE_ERRORS = {
-    "PostgreSQL": {
+    "database_name": {
         re.compile('permission denied for view'): (
             __(
                 'Permission denied'
@@ -1794,7 +1795,7 @@ CUSTOM_DATABASE_ERRORS = {
             }
         )
     },
-    "trino": {
+    "examples": {
         re.compile(r'message="(?P<message>[^"]*)"'): (
             __(
                 'Unexpected error: "%(message)s"'
