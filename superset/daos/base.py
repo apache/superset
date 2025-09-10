@@ -31,6 +31,7 @@ from typing import (
     TypeVar,
 )
 
+import sqlalchemy as sa
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -38,6 +39,7 @@ from flask_sqlalchemy import BaseQuery
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
 
@@ -45,6 +47,8 @@ from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=Model)
 
@@ -65,34 +69,75 @@ class ColumnOperatorEnum(str, Enum):
     is_null = "is_null"
     is_not_null = "is_not_null"
 
-    @classmethod
-    def operator_map(cls) -> Dict[ColumnOperatorEnum, Any]:
-        return {
-            cls.eq: lambda col, val: col == val,
-            cls.ne: lambda col, val: col != val,
-            cls.sw: lambda col, val: col.like(f"{val}%"),
-            cls.ew: lambda col, val: col.like(f"%{val}"),
-            cls.in_: lambda col, val: col.in_(
-                val if isinstance(val, (list, tuple)) else [val]
-            ),
-            cls.nin: lambda col, val: ~col.in_(
-                val if isinstance(val, (list, tuple)) else [val]
-            ),
-            cls.gt: lambda col, val: col > val,
-            cls.gte: lambda col, val: col >= val,
-            cls.lt: lambda col, val: col < val,
-            cls.lte: lambda col, val: col <= val,
-            cls.like: lambda col, val: col.like(f"%{val}%"),
-            cls.ilike: lambda col, val: col.ilike(f"%{val}%"),
-            cls.is_null: lambda col, _: col.is_(None),
-            cls.is_not_null: lambda col, _: col.isnot(None),
-        }
-
     def apply(self, column: Any, value: Any) -> Any:
-        op_func = self.operator_map().get(self)
+        op_func = operator_map.get(self)
         if not op_func:
-            raise ValueError(f"Unsupported operator: {self}")
+            raise ValueError("Unsupported operator: %s" % self)
         return op_func(column, value)
+
+
+# Define operator_map as a module-level dict after the enum is defined
+operator_map: Dict[ColumnOperatorEnum, Any] = {
+    ColumnOperatorEnum.eq: lambda col, val: col == val,
+    ColumnOperatorEnum.ne: lambda col, val: col != val,
+    ColumnOperatorEnum.sw: lambda col, val: col.like(f"{val}%"),
+    ColumnOperatorEnum.ew: lambda col, val: col.like(f"%{val}"),
+    ColumnOperatorEnum.in_: lambda col, val: col.in_(
+        val if isinstance(val, (list, tuple)) else [val]
+    ),
+    ColumnOperatorEnum.nin: lambda col, val: ~col.in_(
+        val if isinstance(val, (list, tuple)) else [val]
+    ),
+    ColumnOperatorEnum.gt: lambda col, val: col > val,
+    ColumnOperatorEnum.gte: lambda col, val: col >= val,
+    ColumnOperatorEnum.lt: lambda col, val: col < val,
+    ColumnOperatorEnum.lte: lambda col, val: col <= val,
+    ColumnOperatorEnum.like: lambda col, val: col.like(f"%{val}%"),
+    ColumnOperatorEnum.ilike: lambda col, val: col.ilike(f"%{val}%"),
+    ColumnOperatorEnum.is_null: lambda col, _: col.is_(None),
+    ColumnOperatorEnum.is_not_null: lambda col, _: col.isnot(None),
+}
+
+# Map SQLAlchemy types to supported operators
+TYPE_OPERATOR_MAP = {
+    "string": [
+        "eq",
+        "ne",
+        "sw",
+        "ew",
+        "in_",
+        "nin",
+        "like",
+        "ilike",
+        "is_null",
+        "is_not_null",
+    ],
+    "boolean": ["eq", "ne", "is_null", "is_not_null"],
+    "number": [
+        "eq",
+        "ne",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in_",
+        "nin",
+        "is_null",
+        "is_not_null",
+    ],
+    "datetime": [
+        "eq",
+        "ne",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in_",
+        "nin",
+        "is_null",
+        "is_not_null",
+    ],
+}
 
 
 class ColumnOperator(BaseModel):
@@ -272,6 +317,16 @@ class BaseDAO(Generic[T]):
             if converted_value is not None:
                 converted_ids.append(converted_value)
 
+        # Validate type consistency for better error handling
+        if len(converted_ids) > 1:
+            types_found = set(map(type, converted_ids))
+            if len(types_found) > 1:
+                logger.warning(
+                    "Mixed ID types detected for %s: %s",
+                    cls.model_cls.__name__ if cls.model_cls else "Unknown",
+                    [t.__name__ for t in types_found],
+                )
+
         query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
 
@@ -280,7 +335,7 @@ class BaseDAO(Generic[T]):
         except SQLAlchemyError as ex:
             model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
             raise DAOFindFailedError(
-                f"Failed to find {model_name} with ids: {model_ids}"
+                "Failed to find %s with ids: %s" % (model_name, model_ids)
             ) from ex
 
         return results
@@ -416,10 +471,11 @@ class BaseDAO(Generic[T]):
             if not col or not hasattr(cls.model_cls, col):
                 model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
                 logging.error(
-                    f"Invalid filter: column '{col}' does not exist on {model_name}"
+                    "Invalid filter: column '%s' does not exist on %s", col, model_name
                 )
                 raise ValueError(
-                    f"Invalid filter: column '{col}' does not exist on {model_name}"
+                    "Invalid filter: column '%s' does not exist on %s"
+                    % (col, model_name)
                 )
             column = getattr(cls.model_cls, col)
             try:
@@ -427,7 +483,7 @@ class BaseDAO(Generic[T]):
                 operator_enum = ColumnOperatorEnum(opr)
                 query = query.filter(operator_enum.apply(column, value))
             except Exception as e:
-                logging.error(f"Error applying filter on column '{col}': {e}")
+                logging.error("Error applying filter on column '%s': %s", col, e)
                 raise
         return query
 
@@ -439,7 +495,6 @@ class BaseDAO(Generic[T]):
         filter options. Custom fields supported by the DAO but not present on the model
         should be documented here.
         """
-        from sqlalchemy.ext.hybrid import hybrid_property
 
         mapper = inspect(cls.model_cls)
         columns = {c.key: c for c in mapper.columns}
@@ -452,64 +507,23 @@ class BaseDAO(Generic[T]):
         # You may add custom fields here, e.g.:
         # custom_fields = {"tags": ["eq", "in_", "like"], ...}
         custom_fields: Dict[str, List[str]] = {}
-        # Map SQLAlchemy types to supported operators
-        type_operator_map = {
-            "string": [
-                "eq",
-                "ne",
-                "sw",
-                "ew",
-                "in_",
-                "nin",
-                "like",
-                "ilike",
-                "is_null",
-                "is_not_null",
-            ],
-            "boolean": ["eq", "ne", "is_null", "is_not_null"],
-            "number": [
-                "eq",
-                "ne",
-                "gt",
-                "gte",
-                "lt",
-                "lte",
-                "in_",
-                "nin",
-                "is_null",
-                "is_not_null",
-            ],
-            "datetime": [
-                "eq",
-                "ne",
-                "gt",
-                "gte",
-                "lt",
-                "lte",
-                "in_",
-                "nin",
-                "is_null",
-                "is_not_null",
-            ],
-        }
-        import sqlalchemy as sa
 
         filterable = {}
         for name, col in columns.items():
             if isinstance(col.type, (sa.String, sa.Text)):
-                filterable[name] = type_operator_map["string"]
+                filterable[name] = TYPE_OPERATOR_MAP["string"]
             elif isinstance(col.type, (sa.Boolean,)):
-                filterable[name] = type_operator_map["boolean"]
+                filterable[name] = TYPE_OPERATOR_MAP["boolean"]
             elif isinstance(col.type, (sa.Integer, sa.Float, sa.Numeric)):
-                filterable[name] = type_operator_map["number"]
+                filterable[name] = TYPE_OPERATOR_MAP["number"]
             elif isinstance(col.type, (sa.DateTime, sa.Date, sa.Time)):
-                filterable[name] = type_operator_map["datetime"]
+                filterable[name] = TYPE_OPERATOR_MAP["datetime"]
             else:
                 # Fallback to eq/ne/null
                 filterable[name] = ["eq", "ne", "is_null", "is_not_null"]
         # Add hybrid properties as string fields by default
         for name in hybrids:
-            filterable[name] = type_operator_map["string"]
+            filterable[name] = TYPE_OPERATOR_MAP["string"]
         # Add custom fields
         filterable.update(custom_fields)
         return filterable
@@ -585,11 +599,9 @@ class BaseDAO(Generic[T]):
             # Ignore properties and other non-queryable attributes
 
         if relationship_loads:
-            # If any relationships are requested, query the full model and joinedload
-            # relationships
+            # If any relationships are requested, query the full model
+            # but don't add the joins yet - we'll add them after counting
             query = data_model.session.query(cls.model_cls)
-            for loader in relationship_loads:
-                query = query.options(loader)
         elif column_attrs:
             # Only columns requested
             query = data_model.session.query(*column_attrs)
@@ -610,7 +622,16 @@ class BaseDAO(Generic[T]):
                 query = filter_class.apply(query, None)
         if column_operators:
             query = cls.apply_column_operators(query, column_operators)
+
+        # Count before adding relationship joins to avoid inflated counts
+        # with one-to-many or many-to-many relationships
         total_count = query.count()
+
+        # Add relationship joins after counting
+        if relationship_loads:
+            for loader in relationship_loads:
+                query = query.options(loader)
+
         if hasattr(cls.model_cls, order_column):
             column = getattr(cls.model_cls, order_column)
             if order_direction.lower() == "desc":

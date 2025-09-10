@@ -84,6 +84,7 @@ dependencies = [
     "pgsanity",
     "Pillow>=11.0.0, <12",
     "polyline>=2.0.0, <3.0",
+    "pydantic>=2.8.0",
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies

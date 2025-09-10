@@ -44,6 +44,13 @@ from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for dashboards
+DASHBOARD_CUSTOM_FIELDS = {
+    "tags": ["eq", "in_", "like"],
+    "owner": ["eq", "in_"],
+    "published": ["eq"],
+}
+
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
@@ -52,14 +59,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         filterable = super().get_filterable_columns_and_operators()
         # Add custom fields for dashboards
-        filterable.update(
-            {
-                "tags": ["eq", "in_", "like"],
-                "owner": ["eq", "in_"],
-                "published": ["eq"],
-                "favorite": ["eq"],
-            }
-        )
+        filterable.update(DASHBOARD_CUSTOM_FIELDS)
         return filterable
 
     @classmethod
