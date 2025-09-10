@@ -41,7 +41,7 @@ import {
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
@@ -353,7 +353,7 @@ describe('SqlEditor', () => {
       <>sqleditor.extension.form extension component</>
     ));
 
-    setupExtensions();
+    setupCodeOverrides();
     const { findByText } = setup(mockedProps, store);
     expect(
       await findByText('sqleditor.extension.form extension component'),
