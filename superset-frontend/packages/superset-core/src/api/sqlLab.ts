@@ -29,7 +29,7 @@
  * - Global APIs: Functions and events available across the entire SQL Lab interface
  */
 
-import { Event, Database, SupersetError } from './core';
+import { Event, Database, SupersetError, Column } from './core';
 
 /**
  * Represents an SQL editor instance within a SQL Lab tab.
@@ -111,46 +111,6 @@ export interface Tab {
   panels: Panel[];
 }
 
-/**
- * Generic data types, see enum of the same name in superset/utils/core.py.
- */
-enum GenericDataType {
-  Numeric = 0,
-  String = 1,
-  Temporal = 2,
-  Boolean = 3,
-}
-
-/**
- * Column metadata returned in query results.
- */
-export type QueryColumn = {
-  /**
-   * Label of the column
-   */
-  name?: string;
-
-  /**
-   * Column name defined
-   */
-  column_name: string;
-
-  /**
-   * Type of the column value
-   */
-  type: string | null;
-
-  /**
-   * Generic data type format
-   */
-  type_generic: GenericDataType;
-
-  /**
-   * True if the column is date format
-   */
-  is_dttm: boolean;
-};
-
 export enum CTASMethod {
   Table = 'TABLE',
   View = 'VIEW',
@@ -158,36 +118,36 @@ export enum CTASMethod {
 
 export interface CTAS {
   /**
-   * Create method for CTAS creation request
+   * Create method for CTAS creation request.
    */
   method: CTASMethod;
 
   /**
-   * Temporary table name for creation using a CTAS query
+   * Temporary table name for creation using a CTAS query.
    */
   tempTable: string | null;
 }
 
-export interface QueryRequestContext {
+export interface QueryContext {
   /**
-   * Unique query ID on client side
+   * Unique query ID on client side.
    */
   id: string;
 
   /**
-   * Contains CTAS if the query requests table creation
+   * Contains CTAS if the query requests table creation.
    */
   ctas: CTAS | null;
 
   /**
-   * The SQL editor instance associated with the query
+   * The SQL editor instance associated with the query.
    */
   editor: Editor;
 
   /**
-   * Requested row limit for the query
+   * Requested row limit for the query.
    */
-  queryLimit: number | null;
+  requestedLimit: number | null;
 
   /**
    * True if the query execution result will be/was delivered asynchronously
@@ -205,12 +165,12 @@ export interface QueryRequestContext {
   tab: Tab;
 
   /**
-   * A key-value JSON formatted string associated with Jinja template variables
+   * A key-value JSON associated with Jinja template variables
    */
-  templateParams: string;
+  templateParams: Record<string, any>;
 }
 
-export interface QueryErrorResultContext extends QueryRequestContext {
+export interface QueryErrorResultContext extends QueryContext {
   /**
    * Finished datetime for the query in a numerical timestamp
    */
@@ -224,54 +184,54 @@ export interface QueryErrorResultContext extends QueryRequestContext {
   /**
    * Error details in a SupersetError structure
    */
-  errors?: SupersetError[];
+  errors: SupersetError[] | null;
 
   /**
-   * Executed sql after parsing the jinja templates
+   * Executed SQL after parsing Jinja templates.
    */
   executedSql: string | null;
 }
 
-export interface QueryResultContext extends QueryRequestContext {
+export interface QueryResultContext extends QueryContext {
   /**
-   * Finished datetime for the query in a numerical timestamp
+   * Actual number of rows returned by the query.
+   */
+  appliedLimit: number;
+
+  /**
+   * Major factor that is determining the row limit of the query results.
+   */
+  appliedLimitingFactor: string;
+
+  /**
+   * Finished datetime for the query in a numerical timestamp.
    */
   endDttm: number;
 
   /**
-   * Executed sql after parsing the jinja templates
+   * Executed SQL after parsing Jinja templates.
    */
   executedSql: string;
 
   /**
-   * Actual number of rows returned by the query
-   */
-  limit: number;
-
-  /**
-   * Major factor that is determining the row limit of the query results
-   */
-  limitingFactor: string;
-
-  /**
-   * Remote query id stored in backend
+   * Remote query id stored in backend.
    */
   queryId: number;
 
   /**
-   * Query result data and metadata
+   * Query result data and metadata.
    */
   result: QueryResult;
 }
 
 export interface QueryResult {
   /**
-   * Column metadata associated with the query result
+   * Column metadata associated with the query result.
    */
-  columns: QueryColumn[];
+  columns: Column[];
 
   /**
-   * Query result
+   * Query result data.
    */
   data: Record<string, any>[];
 }
@@ -410,12 +370,12 @@ export declare const onDidChangeTabTitle: Event<string>;
  * @example
  * ```typescript
  * onDidQueryRun.event((query) => {
- *   console.log('Query started on database:', query.editor.databaseId);
- *   console.log('Query content:', query.editor.content);
+ *   console.log('Query started on database:', query.tab.editor.databaseId);
+ *   console.log('Query content:', query.tab.editor.content);
  * });
  * ```
  */
-export declare const onDidQueryRun: Event<QueryRequestContext>;
+export declare const onDidQueryRun: Event<QueryContext>;
 
 /**
  * Event fired when a running query is stopped in the current tab.
@@ -424,11 +384,11 @@ export declare const onDidQueryRun: Event<QueryRequestContext>;
  * @example
  * ```typescript
  * onDidQueryStop.event((query) => {
- *   console.log('Query stopped for database:', query.editor.databaseId);
+ *   console.log('Query stopped for database:', query.tab.editor.databaseId);
  * });
  * ```
  */
-export declare const onDidQueryStop: Event<QueryRequestContext>;
+export declare const onDidQueryStop: Event<QueryContext>;
 
 /**
  * Event fired when a query fails in the current tab.

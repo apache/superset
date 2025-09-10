@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sqlLab as sqlLabType } from '@apache-superset/core';
+import { sqlLab as sqlLabType, core as coreType } from '@apache-superset/core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
@@ -33,7 +33,6 @@ import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { Disposable, Editor, Panel, Tab } from './core';
 import { createActionListener } from './utils';
-import { SupersetError } from '@superset-ui/core';
 
 const { CTASMethod } = sqlLabType;
 
@@ -48,14 +47,14 @@ export class CTAS implements sqlLabType.CTAS {
   }
 }
 
-export class QueryRequestContext implements sqlLabType.QueryRequestContext {
+export class QueryContext implements sqlLabType.QueryContext {
   id: string;
 
   ctas: sqlLabType.CTAS | null;
 
   editor: Editor;
 
-  queryLimit: number | null;
+  requestedLimit: number | null;
 
   runAsync: boolean;
 
@@ -63,11 +62,10 @@ export class QueryRequestContext implements sqlLabType.QueryRequestContext {
 
   tab: Tab;
 
-  templateParams: string;
+  private _templateParams: string;
 
   constructor(
     id: string,
-    editor: Editor,
     tab: Tab,
     runAsync: boolean,
     startDttm: number,
@@ -75,31 +73,42 @@ export class QueryRequestContext implements sqlLabType.QueryRequestContext {
       templateParams?: string;
       ctasMethod?: string;
       tempTable?: string;
+      requestedLimit?: number;
     } = {},
   ) {
     this.id = id;
-    this.editor = editor;
     this.tab = tab;
     this.runAsync = runAsync;
     this.startDttm = startDttm;
+    this.requestedLimit = options.requestedLimit ?? null;
     this.ctas = options.tempTable
       ? new CTAS(options.ctasMethod === CTASMethod.View, options.tempTable)
       : null;
-    this.templateParams = options.templateParams ?? '';
+    this._templateParams = options.templateParams ?? '';
+  }
+
+  get templateParams() {
+    let parsed = {};
+    try {
+      parsed = JSON.parse(this._templateParams);
+    } catch (e) {
+      // ignore invalid format string.
+    }
+    return parsed;
   }
 }
 
 export class QueryResultContext
-  extends QueryRequestContext
+  extends QueryContext
   implements sqlLabType.QueryResultContext
 {
+  appliedLimit: number;
+
+  appliedLimitingFactor: string;
+
   endDttm: number;
 
   executedSql: string;
-
-  limit: number;
-
-  limitingFactor: string;
 
   queryId: number;
 
@@ -111,21 +120,21 @@ export class QueryResultContext
     executedSql: string,
     columns: sqlLabType.QueryResult['columns'],
     data: sqlLabType.QueryResult['data'],
-    editor: Editor,
     tab: Tab,
     runAsync: boolean,
     startDttm: number,
     endDttm: number,
     options: {
+      appliedLimit?: number;
+      appliedLimitingFactor?: string;
       templateParams?: string;
       ctasMethod?: string;
       tempTable?: string;
-      limit?: number;
-      limitingFactor?: string;
+      requestedLimit?: number;
     } = {},
   ) {
-    const { limit, ...opt } = options;
-    super(id, editor, tab, runAsync, startDttm, opt);
+    const { appliedLimit, appliedLimitingFactor, ...opt } = options;
+    super(id, tab, runAsync, startDttm, opt);
     this.queryId = queryId;
     this.executedSql = executedSql;
     this.endDttm = endDttm;
@@ -133,42 +142,42 @@ export class QueryResultContext
       columns,
       data,
     };
-    this.limit = limit ?? data.length;
-    this.limitingFactor = options.limitingFactor ?? '';
+    this.appliedLimit = appliedLimit ?? data.length;
+    this.appliedLimitingFactor = options.appliedLimitingFactor ?? '';
   }
 }
 
 export class QueryErrorResultContext
-  extends QueryRequestContext
+  extends QueryContext
   implements sqlLabType.QueryErrorResultContext
 {
   endDttm: number;
 
   errorMessage: string;
 
-  errors: SupersetError[];
+  errors: coreType.SupersetError[] | null;
 
   executedSql: string | null;
 
   constructor(
     id: string,
     errorMessage: string,
-    errors: SupersetError[],
-    editor: Editor,
+    errors: coreType.SupersetError[],
     tab: Tab,
     runAsync: boolean,
     startDttm: number,
     options: {
-      queryId?: number;
+      ctasMethod?: string;
       executedSql?: string;
       endDttm?: number;
       templateParams?: string;
-      ctasMethod?: string;
       tempTable?: string;
+      requestedLimist?: number;
+      queryId?: number;
     } = {},
   ) {
     const { queryId, executedSql, endDttm, ...opt } = options;
-    super(id, editor, tab, runAsync, startDttm, opt);
+    super(id, tab, runAsync, startDttm, opt);
     this.executedSql = executedSql ?? null;
     this.errorMessage = errorMessage;
     this.errors = errors;
@@ -204,16 +213,19 @@ const getCurrentTab: typeof sqlLabType.getCurrentTab = () => {
   return undefined;
 };
 
-const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
+const predicate = (
+  actionType: string,
+  currentTabOnly: boolean = true,
+): AnyListenerPredicate<RootState> => {
   // Uses closure to capture the active editor ID at the time the listener is created
   const id = activeEditorId();
   return action =>
     // Compares the original id with the current active editor ID
-    action.type === actionType && activeEditorId() === id;
+    action.type === actionType && currentTabOnly && activeEditorId() === id;
 };
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
-  listener: (editor: sqlLabType.QueryRequestContext) => void,
+  listener: (editor: sqlLabType.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -232,14 +244,16 @@ export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
         runAsync,
         tempTable,
         templateParams,
+        queryLimit,
       } = query;
       const editor = new Editor(sql, dbId, catalog, schema);
       const panels: Panel[] = []; // TODO: Populate panels
       const tab = new Tab(query.sqlEditorId, query.tab, editor, panels);
-      return new QueryRequestContext(id, editor, tab, runAsync, startDttm, {
+      return new QueryContext(id, tab, runAsync, startDttm, {
         ctasMethod,
         tempTable,
         templateParams,
+        requestedLimit: queryLimit,
       });
     },
     thisArgs,
@@ -250,7 +264,7 @@ export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    predicate(QUERY_SUCCESS),
+    predicate(QUERY_SUCCESS, false),
     listener,
     (action: ReturnType<typeof querySuccess>) => {
       const { query, results } = action;
@@ -280,7 +294,6 @@ export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
         executedSql ?? sql,
         columns,
         data,
-        editor,
         tab,
         runAsync,
         startDttm,
@@ -289,8 +302,8 @@ export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
           ctasMethod,
           tempTable,
           templateParams,
-          limit,
-          limitingFactor,
+          appliedLimit: limit,
+          appliedLimitingFactor: limitingFactor,
         },
       );
     },
@@ -298,7 +311,7 @@ export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
   );
 
 export const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
-  listener: (query: sqlLabType.QueryRequestContext) => void,
+  listener: (query: sqlLabType.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -321,7 +334,7 @@ export const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
       const editor = new Editor(sql, dbId, catalog, schema);
       const panels: Panel[] = []; // TODO: Populate panels
       const tab = new Tab(query.sqlEditorId, query.tab, editor, panels);
-      return new QueryRequestContext(id, editor, tab, runAsync, startDttm, {
+      return new QueryContext(id, tab, runAsync, startDttm, {
         ctasMethod,
         tempTable,
         templateParams,
@@ -335,7 +348,7 @@ export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    action => action.type === QUERY_FAILED,
+    predicate(QUERY_FAILED, false),
     listener,
     (action: ReturnType<typeof createQueryFailedAction>) => {
       const { query, msg: errorMessage, errors } = action;
@@ -361,7 +374,6 @@ export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
         id,
         errorMessage,
         errors,
-        editor,
         tab,
         runAsync,
         startDttm,

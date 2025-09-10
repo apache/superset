@@ -19,28 +19,19 @@
 import { core as coreType, sqlLab as sqlLabType } from '@apache-superset/core';
 import { getExtensionsContextValue } from '../extensions/ExtensionsContextUtils';
 
-export class Column implements coreType.Column {
-  name: string;
-
-  type: string;
-
-  constructor(name: string, type: string) {
-    this.name = name;
-    this.type = type;
-  }
-}
+const { GenericDataType } = coreType;
 
 export class Table implements coreType.Table {
   name: string;
 
-  columns: Column[];
+  columns: coreType.Column[];
 
-  constructor(name: string, columns: Column[]) {
+  constructor(name: string, columns: coreType.Column[]) {
     this.name = name;
     this.columns = columns;
   }
 
-  addColumn(column: Column): void {
+  addColumn(column: coreType.Column): void {
     this.columns.push(column);
   }
 }
@@ -187,6 +178,7 @@ const registerViewProvider: typeof coreType.registerViewProvider = (
 };
 
 export const core: typeof coreType = {
+  GenericDataType,
   registerViewProvider,
   Disposable,
 };
