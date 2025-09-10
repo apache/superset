@@ -31,12 +31,32 @@ import { Contributions } from './contributions';
 /**
  * Represents a database column with its name and data type.
  */
-export declare interface Column {
-  /** The name of the column */
+export type Column = {
+  /**
+   * Label of the column
+   */
   name: string;
-  /** The data type of the column (e.g., 'INTEGER', 'VARCHAR', 'TIMESTAMP') */
+
+  /**
+   * Column name defined
+   */
+  column_name: string;
+
+  /**
+   * The data type of the column (e.g., 'INTEGER', 'VARCHAR', 'TIMESTAMP')
+   */
   type: string;
-}
+
+  /**
+   * Generic data type format
+   */
+  type_generic: GenericDataType;
+
+  /**
+   * True if the column is date format
+   */
+  is_dttm: boolean;
+};
 
 /**
  * Represents a database table with its name and column definitions.
@@ -74,6 +94,45 @@ export declare interface Database {
   catalogs: Catalog[];
   /** Array of schemas available in this database */
   schemas: Schema[];
+}
+
+// Keep in sync with superset/errors.py
+export type ErrorLevel = 'info' | 'warning' | 'error';
+
+/**
+ * Superset error object structure.
+ * Contains details about an error that occurred within Superset.
+ */
+export type SupersetError = {
+  /**
+   * Error types, see enum of SupersetErrorType in superset/errors.py
+   */
+  error_type: string;
+
+  /**
+   * Extra properties based on the error types
+   */
+  extra: Record<string, any>;
+
+  /**
+   * Level of the error type
+   */
+  level: ErrorLevel;
+
+  /**
+   * Detail description for the error
+   */
+  message: string;
+};
+
+/**
+ * Generic data types, see enum of the same name in superset/utils/core.py.
+ */
+export enum GenericDataType {
+  Numeric = 0,
+  String = 1,
+  Temporal = 2,
+  Boolean = 3,
 }
 
 /**

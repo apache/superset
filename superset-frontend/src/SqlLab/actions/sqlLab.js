@@ -272,10 +272,14 @@ export function logFailedQuery(query, errors) {
   };
 }
 
+export function createQueryFailedAction(query, msg, link, errors) {
+  return { type: QUERY_FAILED, query, msg, link, errors };
+}
+
 export function queryFailed(query, msg, link, errors) {
   return function (dispatch) {
     dispatch(logFailedQuery(query, errors));
-    dispatch({ type: QUERY_FAILED, query, msg, link, errors });
+    dispatch(createQueryFailedAction(query, msg, link, errors));
   };
 }
 
