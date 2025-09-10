@@ -151,21 +151,6 @@ export type QueryColumn = {
   is_dttm: boolean;
 };
 
-/**
- * Possible states of a query during its lifecycle.
- */
-enum QueryState {
-  Started = 'started',
-  Stopped = 'stopped',
-  Failed = 'failed',
-  Pending = 'pending',
-  Running = 'running',
-  Scheduled = 'scheduled',
-  Success = 'success',
-  Fetching = 'fetching',
-  TimedOut = 'timed_out',
-}
-
 export enum CTASMethod {
   Table = 'TABLE',
   View = 'VIEW',
