@@ -31,7 +31,7 @@ SELENIUM_USERNAME = "admin"
 
 
 def _get_users(
-    params: Optional[Union[int, list[int]]]
+    params: Optional[Union[int, list[int]]],
 ) -> Optional[Union[User, list[User]]]:
     if params is None:
         return None

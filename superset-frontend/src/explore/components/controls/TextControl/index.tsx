@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
@@ -47,7 +47,7 @@ const safeStringify = (value?: InputValueType | null) =>
 
 export default class TextControl<
   T extends InputValueType = InputValueType,
-> extends React.Component<TextControlProps<T>, TextControlState> {
+> extends Component<TextControlProps<T>, TextControlState> {
   initialValue?: TextControlProps['value'];
 
   constructor(props: TextControlProps<T>) {
@@ -87,7 +87,7 @@ export default class TextControl<
     this.onChange(inputValue);
   }, FAST_DEBOUNCE);
 
-  onChangeWrapper = (event: React.ChangeEvent<HTMLInputElement>) => {
+  onChangeWrapper = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     this.setState({ value }, () => {
       this.debouncedOnChange(value);

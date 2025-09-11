@@ -5,13 +5,9 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
-    paths:
-      - "superset/**"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
-    paths:
-      - "superset/**"
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -20,10 +16,10 @@ concurrency:
 
 jobs:
   unit-tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["current", "next"]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -32,35 +28,21 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check if python changes are present
+      - name: Check for file changes
         id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
-        if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v5
+        uses: ./.github/actions/setup-backend/
+        if: steps.check.outputs.python
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
-      # TODO: separated requirements.txt file just for unit tests
-      - name: Install dependencies
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
-            mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python
         env:
           SUPERSET_TESTENV: true
+          SUPERSET_SECRET_KEY: not-a-secret
         run: |
           pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage

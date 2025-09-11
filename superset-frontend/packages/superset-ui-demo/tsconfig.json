@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "jsx": "react",
+    "jsx": "preserve",
     "outDir": "../../build/lib",
     "rootDir": "../../",
     "emitDeclarationOnly": false,

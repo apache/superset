@@ -17,13 +17,12 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import {
   EchartsPieChartPlugin,
   PieTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
-import { weekday, population } from './data';
+import { weekday, population, sales } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
@@ -172,6 +171,94 @@ PopulationPie.args = {
 };
 
 PopulationPie.argTypes = {
+  donut: { control: 'boolean' },
+  innerRadius: { control: 'number' },
+  outerRadius: { control: 'number' },
+  labelsOutside: { control: 'boolean' },
+  labelLine: { control: 'boolean' },
+  showLabels: { control: 'boolean' },
+  showLegend: { control: 'boolean' },
+  labelType: {
+    control: {
+      type: 'select',
+      options: [
+        'key',
+        'value',
+        'percent',
+        'key_value',
+        'key_percent',
+        'key_value_percent',
+      ],
+    },
+  },
+};
+
+export const SalesPie = (
+  {
+    donut,
+    innerRadius,
+    outerRadius,
+    labelsOutside,
+    labelLine,
+    showLabels,
+    showLegend,
+    labelType,
+    roseType,
+  }: {
+    donut: boolean;
+    innerRadius: number;
+    outerRadius: number;
+    labelsOutside: boolean;
+    labelLine: boolean;
+    showLabels: boolean;
+    showLegend: boolean;
+    labelType: string;
+    roseType: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
+  <SuperChart
+    chartType="echarts-pie"
+    width={width}
+    height={height}
+    queriesData={[{ data: sales }]}
+    formData={{
+      colorScheme: 'supersetColors',
+      groupby: ['Product'],
+      metric: 'SUM(AMOUNT)',
+      numberFormat: 'SMART_NUMBER',
+      roseType,
+      donut,
+      innerRadius,
+      outerRadius,
+      labelsOutside,
+      labelLine,
+      showLabels,
+      showLegend,
+      labelType,
+    }}
+  />
+);
+
+SalesPie.args = {
+  roseType: 'area',
+  donut: false,
+  innerRadius: 30,
+  outerRadius: 70,
+  labelsOutside: false,
+  labelLine: true,
+  showLabels: true,
+  showLegend: false,
+  labelType: 'key',
+};
+
+SalesPie.argTypes = {
+  roseType: {
+    control: {
+      type: 'select',
+      options: ['area', 'radius'],
+    },
+  },
   donut: { control: 'boolean' },
   innerRadius: { control: 'number' },
   outerRadius: { control: 'number' },

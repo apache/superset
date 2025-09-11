@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 
-const getExportGoogleSheetsUrl = (dashboardId: number) =>
+const getExportGoogleSheetsUrl = (dashboardId: string) =>
   `/export/dashboard/${dashboardId}/google-sheets/`;
 
 export default function ExportToGoogleSheet({
@@ -30,7 +29,7 @@ export default function ExportToGoogleSheet({
   ...rest
 }: {
   addDangerToast: Function;
-  dashboardId: number;
+  dashboardId: string;
   logEvent?: Function;
 }) {
   if (!isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {

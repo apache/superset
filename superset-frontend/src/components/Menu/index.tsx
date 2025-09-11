@@ -17,10 +17,40 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { ReactElement } from 'react';
 import { Menu as AntdMenu } from 'antd';
 import { MenuProps as AntdMenuProps } from 'antd/lib/menu';
 
 export type MenuProps = AntdMenuProps;
+
+export enum MenuItemKeyEnum {
+  MenuItem = 'menu-item',
+  SubMenu = 'submenu',
+  SubMenuItem = 'submenu-item',
+}
+
+export type AntdMenuTypeRef = { current: { props: { parentMenu: AntdMenu } } };
+
+export type AntdMenuItemType = ReactElement & {
+  ref: AntdMenuTypeRef;
+  type: { displayName: string; isSubMenu: number };
+};
+
+export type MenuItemChildType = AntdMenuItemType;
+
+export const isAntdMenuItemRef = (
+  ref: AntdMenuTypeRef,
+): ref is AntdMenuTypeRef =>
+  (ref as AntdMenuTypeRef)?.current?.props?.parentMenu !== undefined;
+
+export const isAntdMenuItem = (child: MenuItemChildType) =>
+  child?.type?.displayName === 'Styled(MenuItem)';
+
+export const isAntdMenuSubmenu = (child: MenuItemChildType) =>
+  child?.type?.isSubMenu === 1;
+
+export const isSubMenuOrItemType = (type: string) =>
+  type === MenuItemKeyEnum.SubMenu || type === MenuItemKeyEnum.SubMenuItem;
 
 const MenuItem = styled(AntdMenu.Item)`
   > a {

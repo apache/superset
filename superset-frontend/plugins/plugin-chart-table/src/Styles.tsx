@@ -111,5 +111,12 @@ export default styled.div`
       text-align: center;
       padding: 1em 0.6em;
     }
+
+    .right-border-only {
+      border-right: 2px solid ${theme.colors.grayscale.light2};
+    }
+    table .right-border-only:last-child {
+      border-right: none;
+    }
   `}
 `;

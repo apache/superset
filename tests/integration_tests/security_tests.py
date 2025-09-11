@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 import inspect
 import time
 import unittest
@@ -28,9 +27,9 @@ import jwt
 import prison
 import pytest
 
-from flask import current_app
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
@@ -45,22 +44,24 @@ from superset.utils.core import (
     get_example_default_schema,
     override_user,
 )
+from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
-from .base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
-    public_role_like_gamma,
-    public_role_like_test_role,
+    public_role_like_gamma,  # noqa: F401
+    public_role_like_test_role,  # noqa: F401
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 NEW_SECURITY_CONVERGE_VIEWS = (
@@ -154,6 +155,7 @@ class TestRolePermission(SupersetTestCase):
         delete_schema_perm(schema_perm)
         db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         db.session.commit()
+        super().tearDown()
 
     def test_after_insert_dataset(self):
         security_manager.on_view_menu_after_insert = Mock()
@@ -896,12 +898,12 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")
+        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -954,12 +956,12 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
+        self.assertEqual(changed_table1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
 
         # Test Chart schema permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
+        self.assertEqual(slice1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -1067,12 +1069,12 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(
             changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
         )
-        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")
+        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -1156,9 +1158,9 @@ class TestRolePermission(SupersetTestCase):
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
-                database, ["1", "2", "3"]
+                database, None, {"1", "2", "3"}
             )
-            self.assertEqual(schemas, ["1", "2", "3"])  # no changes
+            self.assertEqual(schemas, {"1", "2", "3"})  # no changes
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
@@ -1169,10 +1171,10 @@ class TestRolePermission(SupersetTestCase):
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
-                database, ["1", "2", "3"]
+                database, None, {"1", "2", "3"}
             )
             # temp_schema is not passed in the params
-            self.assertEqual(schemas, ["1"])
+            self.assertEqual(schemas, {"1"})
         delete_schema_perm("[examples].[1]")
 
     def test_schemas_accessible_by_user_datasource_access(self):
@@ -1181,9 +1183,9 @@ class TestRolePermission(SupersetTestCase):
         with self.client.application.test_request_context():
             with override_user(security_manager.find_user("gamma")):
                 schemas = security_manager.get_schemas_accessible_by_user(
-                    database, ["temp_schema", "2", "3"]
+                    database, None, {"temp_schema", "2", "3"}
                 )
-                self.assertEqual(schemas, ["temp_schema"])
+                self.assertEqual(schemas, {"temp_schema"})
 
     def test_schemas_accessible_by_user_datasource_and_schema_access(self):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
@@ -1192,9 +1194,9 @@ class TestRolePermission(SupersetTestCase):
             database = get_example_database()
             with override_user(security_manager.find_user("gamma")):
                 schemas = security_manager.get_schemas_accessible_by_user(
-                    database, ["temp_schema", "2", "3"]
+                    database, None, {"temp_schema", "2", "3"}
                 )
-                self.assertEqual(schemas, ["temp_schema", "2"])
+                self.assertEqual(schemas, {"temp_schema", "2"})
                 vm = security_manager.find_permission_view_menu(
                     "schema_access", "[examples].[2]"
                 )
@@ -1207,7 +1209,7 @@ class TestRolePermission(SupersetTestCase):
         dash.published = True
         db.session.commit()
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         data = str(self.client.get("api/v1/dashboard/").data)
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
@@ -1272,10 +1274,9 @@ class TestRolePermission(SupersetTestCase):
             "page_size": -1,
         }
         NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         self.assertEqual(databases_json["count"], 1)
-        self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
         if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
@@ -1322,6 +1323,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_menu("Upload a CSV", perm_set)
         self.assert_cannot_menu("ReportSchedule", perm_set)
         self.assert_cannot_menu("Alerts & Report", perm_set)
+        self.assertNotIn(("can_csv_upload", "Database"), perm_set)
 
     def assert_can_gamma(self, perm_set):
         self.assert_can_read("Dataset", perm_set)
@@ -1350,8 +1352,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("Dataset", perm_set)
         self.assert_can_read("Database", perm_set)
-        self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
-        self.assertIn(("can_this_form_get", "CsvToDatabaseView"), perm_set)
+        self.assertIn(("can_csv_upload", "Database"), perm_set)
         self.assert_can_menu("Manage", perm_set)
         self.assert_can_menu("Annotation Layers", perm_set)
         self.assert_can_menu("CSS Templates", perm_set)
@@ -1541,6 +1542,7 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
             ["CurrentUserRestApi", "get_my_roles"],
+            ["UserRestApi", "avatar"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],
@@ -1551,6 +1553,7 @@ class TestRolePermission(SupersetTestCase):
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
             ["SupersetIndexView", "index"],
+            ["DatabaseRestApi", "oauth2"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -1630,7 +1633,10 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
         query = Mock(
-            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
         )
 
         mock_can_access.return_value = True
@@ -1884,6 +1890,20 @@ class TestSecurityManager(SupersetTestCase):
             roles = security_manager.get_user_roles()
             self.assertEqual([security_manager.get_public_role()], roles)
 
+    def test_all_database_access(self):
+        gamma_user = security_manager.find_user(username="gamma")
+        g.user = gamma_user
+
+        # Double checking that gamma users can't access all databases
+        assert not security_manager.can_access_all_databases()
+        assert not security_manager.can_access_datasource(self.get_datasource_mock())
+
+        all_db_pvm = ("all_database_access", "all_database_access")
+
+        with self.temporary_user(gamma_user, extra_pvms=[all_db_pvm]):
+            assert security_manager.can_access_all_databases()
+            assert security_manager.can_access_datasource(self.get_datasource_mock())
+
 
 class TestDatasources(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access_database")
@@ -2092,7 +2112,7 @@ class TestGuestTokens(SupersetTestCase):
         now = time.time()
         user = {"username": "test_guest"}
         resources = [{"some": "resource"}]
-        aud = get_url_host()
+        aud = get_url_host()  # noqa: F841
 
         claims = {
             "user": user,

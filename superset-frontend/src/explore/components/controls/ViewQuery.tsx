@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { styled } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -53,7 +53,7 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   flex: 1;
 `;
 
-const ViewQuery: React.FC<ViewQueryProps> = props => {
+const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql' } = props;
   return (
     <StyledSyntaxContainer key={sql}>

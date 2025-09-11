@@ -33,6 +33,7 @@ const sqlEditorApi = api.injectEndpoints({
           version = LatestQueryEditorVersion,
           id,
           dbId,
+          catalog,
           schema,
           queryLimit,
           sql,
@@ -50,6 +51,7 @@ const sqlEditorApi = api.injectEndpoints({
         postPayload: pickBy(
           {
             database_id: dbId,
+            catalog,
             schema,
             sql,
             label: name,
@@ -64,7 +66,25 @@ const sqlEditorApi = api.injectEndpoints({
         ),
       }),
     }),
+    updateCurrentSqlEditorTab: builder.mutation<string, string>({
+      query: queryEditorId => ({
+        method: 'POST',
+        endpoint: encodeURI(`/tabstateview/${queryEditorId}/activate`),
+        transformResponse: () => queryEditorId,
+      }),
+    }),
+    deleteSqlEditorTab: builder.mutation<void, string>({
+      query: queryEditorId => ({
+        method: 'DELETE',
+        endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
+        transformResponse: () => queryEditorId,
+      }),
+    }),
   }),
 });
 
-export const { useUpdateSqlEditorTabMutation } = sqlEditorApi;
+export const {
+  useUpdateSqlEditorTabMutation,
+  useUpdateCurrentSqlEditorTabMutation,
+  useDeleteSqlEditorTabMutation,
+} = sqlEditorApi;

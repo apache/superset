@@ -15,14 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.api import expose
+from flask_appbuilder.baseviews import expose_api
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access
-from flask_babel import lazy_gettext as _
+from flask_appbuilder.security.decorators import (
+    has_access,
+    has_access_api,
+    permission_name,
+)
 
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
-from superset.views.base import DeleteMixin, SupersetModelView
+from superset.views.base import DeleteMixin, deprecated, SupersetModelView
 
 
 class CssTemplateModelView(  # pylint: disable=too-many-ancestors
@@ -30,20 +34,10 @@ class CssTemplateModelView(  # pylint: disable=too-many-ancestors
     DeleteMixin,
 ):
     datamodel = SQLAInterface(models.CssTemplate)
-    include_route_methods = RouteMethod.CRUD_SET
+    include_route_methods = RouteMethod.LIST
 
     class_permission_name = "CssTemplate"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-
-    list_title = _("CSS Templates")
-    show_title = _("Show CSS Template")
-    add_title = _("Add CSS Template")
-    edit_title = _("Edit CSS Template")
-
-    list_columns = ["template_name"]
-    edit_columns = ["template_name", "css"]
-    add_columns = edit_columns
-    label_columns = {"template_name": _("Template Name")}
 
     @expose("/list/")
     @has_access
@@ -54,8 +48,15 @@ class CssTemplateModelView(  # pylint: disable=too-many-ancestors
 class CssTemplateAsyncModelView(  # pylint: disable=too-many-ancestors
     CssTemplateModelView
 ):
-    include_route_methods = {RouteMethod.API_READ}
+    include_route_methods = RouteMethod.API_READ
     class_permission_name = "CssTemplate"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
     list_columns = ["template_name", "css"]
+
+    @expose_api(name="read", url="/api/read", methods=["GET"])
+    @has_access_api
+    @permission_name("list")
+    @deprecated(eol_version="5.0.0")
+    def api_read(self) -> FlaskResponse:
+        return super().api_read()

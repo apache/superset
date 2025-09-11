@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
+import { FC } from 'react';
+import { SupersetError } from '@superset-ui/core';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SupersetError } from 'src/components/ErrorMessage/types';
 
 interface Props {
   chartId: string;
@@ -30,11 +30,7 @@ interface Props {
 /**
  * fetches the chart owners and adds them to the extra data of the error message
  */
-export const ChartErrorMessage: React.FC<Props> = ({
-  chartId,
-  error,
-  ...props
-}) => {
+export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
   const { result: owners } = useChartOwnerNames(chartId);
 
   // don't mutate props

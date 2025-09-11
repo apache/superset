@@ -21,9 +21,8 @@ Revises: 18532d70ab98
 Create Date: 2020-09-28 17:57:23.128142
 
 """
-import json
+
 import os
-from json.decoder import JSONDecodeError
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -34,7 +33,7 @@ from sqlalchemy_utils import UUIDType
 
 from superset import db
 from superset.migrations.shared.utils import assign_uuids
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 # revision identifiers, used by Alembic.
 revision = "b56500de1855"
@@ -80,7 +79,7 @@ default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 def update_position_json(dashboard, session, uuid_map):
     try:
         layout = json.loads(dashboard.position_json or "{}")
-    except JSONDecodeError:
+    except json.JSONDecodeError:
         layout = {}
 
     for object_ in layout.values():

@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import Markup
 from flask_babel import lazy_gettext as _
+from markupsafe import Markup
 
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.views.chart.filters import SliceFilter

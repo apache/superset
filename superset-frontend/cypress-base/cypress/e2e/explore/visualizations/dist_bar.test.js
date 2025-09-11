@@ -87,8 +87,5 @@ describe('Visualization > Distribution bar chart', () => {
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');
-    cy.get('.dist_bar .nv-legend .nv-legend-symbol')
-      .first()
-      .should('have.css', 'fill', 'rgb(41, 105, 107)');
   });
 });

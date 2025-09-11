@@ -42,10 +42,14 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import only_postgresql, only_sqlite
+from tests.integration_tests.conftest import (
+    only_postgresql,
+    only_sqlite,
+    with_feature_flags,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
 
@@ -136,7 +140,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertFalse(rehydrated_qc.force)
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         # construct baseline query_cache_key
@@ -152,8 +155,12 @@ class TestQueryContext(SupersetTestCase):
         description_original = datasource.description
         datasource.description = "temporary description"
         db.session.commit()
+        # wait a second since mysql records timestamps in second granularity
+        time.sleep(1)
         datasource.description = description_original
         db.session.commit()
+        # wait another second because why not
+        time.sleep(1)
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -164,7 +171,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key_new)
 
     def test_query_cache_key_changes_when_metric_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         # make temporary change and revert it to refresh the changed_on property
@@ -199,7 +205,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key_new)
 
     def test_query_cache_key_does_not_change_for_non_existent_or_null(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         del payload["queries"][0]["granularity"]
 
@@ -215,7 +220,6 @@ class TestQueryContext(SupersetTestCase):
         assert query_context.query_cache_key(query_object) == cache_key_original
 
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
         # construct baseline query_cache_key from query_context with post processing operation
@@ -238,7 +242,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key)
 
     def test_query_cache_key_changes_when_time_offsets_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_time_offsets=True)
 
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -255,7 +258,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Should support both predefined and adhoc metrics.
         """
-        self.login(username="admin")
         adhoc_metric = {
             "expressionType": "SIMPLE",
             "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
@@ -273,7 +275,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that deprecated fields are converted correctly
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         columns = payload["queries"][0]["columns"]
         payload["queries"][0]["groupby"] = columns
@@ -295,7 +296,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that CSV result format works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
@@ -310,7 +310,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid columns names in groupby are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -321,7 +320,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid column names in columns are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
@@ -334,7 +332,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid column names in filters are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["metrics"] = [
@@ -354,7 +351,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that samples result type works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["result_type"] = ChartDataResultType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
@@ -371,14 +367,14 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that query result type works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
+
         assert "SELECT" in sql_text
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
-            r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
-            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)\)""",
+            r"""NOT \([\s\n]*[`"\[]?name[`"\]]? IS NULL[\s\n]* """
+            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)[\s\n]*\)""",
             sql_text,
         )
 
@@ -387,7 +383,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Should properly handle sort by metrics in various scenarios.
         """
-        self.login(username="admin")
 
         sql_text = get_sql_text(get_query_context("birth_names"))
         if backend() == "hive":
@@ -397,7 +392,7 @@ class TestQueryContext(SupersetTestCase):
             # the alias should be in ORDER BY
             assert "ORDER BY `sum__num` DESC" in sql_text
         else:
-            assert re.search(r'ORDER BY [`"\[]?sum__num[`"\]]? DESC', sql_text)
+            assert re.search(r'ORDER BY[\s\n]* [`"\[]?sum__num[`"\]]? DESC', sql_text)
 
         sql_text = get_sql_text(
             get_query_context("birth_names:only_orderby_has_metric")
@@ -408,7 +403,9 @@ class TestQueryContext(SupersetTestCase):
             assert "ORDER BY `sum__num` DESC" in sql_text
         else:
             assert re.search(
-                r'ORDER BY SUM\([`"\[]?num[`"\]]?\) DESC', sql_text, re.IGNORECASE
+                r'ORDER BY[\s\n]* SUM\([`"\[]?num[`"\]]?\) DESC',
+                sql_text,
+                re.IGNORECASE,
             )
 
         sql_text = get_sql_text(get_query_context("birth_names:orderby_dup_alias"))
@@ -439,7 +436,7 @@ class TestQueryContext(SupersetTestCase):
             assert "sum(`num_girls`) AS `SUM(num_girls)`" not in sql_text
 
             # Should reference all ORDER BY columns by aliases
-            assert "ORDER BY `num_girls` DESC," in sql_text
+            assert "ORDER BY[\\s\n]* `num_girls` DESC," in sql_text
             assert "`AVG(num_boys)` DESC," in sql_text
             assert "`MAX(CASE WHEN...` ASC" in sql_text
         else:
@@ -447,14 +444,14 @@ class TestQueryContext(SupersetTestCase):
                 # since the selected `num_boys` is renamed to `num_boys__`
                 # it must be references as expression
                 assert re.search(
-                    r'ORDER BY SUM\([`"\[]?num_girls[`"\]]?\) DESC',
+                    r'ORDER BY[\s\n]* SUM\([`"\[]?num_girls[`"\]]?\) DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
             else:
                 # Should reference the adhoc metric by alias when possible
                 assert re.search(
-                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC',
+                    r'ORDER BY[\s\n]* [`"\[]?num_girls[`"\]]? DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
@@ -474,7 +471,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that fetch values predicate is added to query if needed
         """
-        self.login(username="admin")
 
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
@@ -489,7 +485,6 @@ class TestQueryContext(SupersetTestCase):
         Ensure that query objects with unknown fields don't raise an Exception and
         have an identical cache key as one without the unknown field
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
@@ -505,7 +500,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that time_offsets can generate the correct query
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["name"]
@@ -543,7 +537,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that time_offsets can generate the correct query
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         # should process empty dateframe correctly
@@ -565,9 +558,9 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         # query without cache
-        query_context.processing_time_offsets(df, query_object)
+        query_context.processing_time_offsets(df.copy(), query_object)
         # query with cache
-        rv = query_context.processing_time_offsets(df, query_object)
+        rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
         cache_keys__1_year_ago = cache_keys[0]
         cache_keys__1_year_later = cache_keys[1]
@@ -579,7 +572,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context.processing_time_offsets(df, query_object)
+        rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
         self.assertEqual(cache_keys__1_year_ago, cache_keys[1])
         self.assertEqual(cache_keys__1_year_later, cache_keys[0])
@@ -589,10 +582,11 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         rv = query_context.processing_time_offsets(
-            df,
+            df.copy(),
             query_object,
         )
-        self.assertIs(rv["df"], df)
+
+        self.assertEqual(rv["df"].shape, df.shape)
         self.assertEqual(rv["queries"], [])
         self.assertEqual(rv["cache_keys"], [])
 
@@ -871,6 +865,7 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
     assert df["COL2 ALIAS"][0] == "a"
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_special_chars_in_column_name(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={
@@ -1140,21 +1135,35 @@ def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
 
     sqls = query_payload["query"].split(";")
     """
-    SELECT DATE_TRUNC('quarter', col6) AS col6,
-           SUM(col1) AS "SUM(col1)"
-    FROM physical_dataset
-    WHERE col6 >= TO_TIMESTAMP('2002-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-      AND col6 < TO_TIMESTAMP('2003-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    GROUP BY DATE_TRUNC('quarter', col6)
-    LIMIT 10000;
+    SELECT
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3)) AS col6,
+  SUM(col1) AS "SUM(col1)"
+FROM physical_dataset
+WHERE
+  col6 >= '2002-01-01 00:00:00' AND col6 < '2003-01-01 00:00:00'
+GROUP BY
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3))
+LIMIT 10000
+OFFSET 0
 
-    SELECT DATE_TRUNC('quarter', col6) AS col6,
-           SUM(col1) AS "SUM(col1)"
-    FROM physical_dataset
-    WHERE col6 >= TO_TIMESTAMP('2001-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-      AND col6 < TO_TIMESTAMP('2002-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    GROUP BY DATE_TRUNC('quarter', col6)
-    LIMIT 10000;
+SELECT
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3)) AS col6,
+  SUM(col1) AS "SUM(col1)"
+FROM physical_dataset
+WHERE
+  col6 >= '2001-10-01 00:00:00' AND col6 < '2002-10-01 00:00:00'
+GROUP BY
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3))
+LIMIT 10000
+OFFSET 0
     """
     assert (
         re.search(r"WHERE col6 >= .*2002-01-01", sqls[0])
@@ -1164,3 +1173,37 @@ def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
         re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None
+
+
+def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comments):
+    if backend() == "mysql":
+        return
+
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": virtual_dataset_with_comments.type,
+            "id": virtual_dataset_with_comments.id,
+        },
+        queries=[
+            {
+                "columns": ["col1", "col2"],
+                "metrics": ["count"],
+                "post_processing": [
+                    {
+                        "operation": "pivot",
+                        "options": {
+                            "aggregates": {"count": {"operator": "mean"}},
+                            "columns": ["col2"],
+                            "index": ["col1"],
+                        },
+                    },
+                    {"operation": "flatten"},
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert len(df) == 3

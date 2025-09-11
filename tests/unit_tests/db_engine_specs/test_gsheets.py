@@ -17,15 +17,23 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
-import json
+from typing import TYPE_CHECKING
+from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
+from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
+from superset.superset_typing import OAuth2ClientConfig
+from superset.utils import json
+from superset.utils.oauth2 import decode_oauth2_state
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import OAuth2State
 
 
 class ProgrammingError(Exception):
@@ -83,7 +91,7 @@ def test_validate_parameters_simple_with_in_root_catalog() -> None:
 
 
 def test_validate_parameters_catalog(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -173,7 +181,7 @@ def test_validate_parameters_catalog(
 
 
 def test_validate_parameters_catalog_and_credentials(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -239,9 +247,34 @@ def test_validate_parameters_catalog_and_credentials(
     )
 
 
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    config = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+    assert GSheetsEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 def test_unmask_encrypted_extra() -> None:
     """
-    Test that the private key can be reused from the previous ``encrypted_extra``.
+    Test that the private key can be reused from the previous `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -262,17 +295,52 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "SECRET",
-        },
-    }
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra_field_changeed() -> None:
+    """
+    Test that the private key is not reused when the field has changed.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
+
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
 
 
 def test_unmask_encrypted_extra_when_old_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the old field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -286,17 +354,19 @@ def test_unmask_encrypted_extra_when_old_is_none() -> None:
         }
     )
 
-    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "XXXXXXXXXX",
-        },
-    }
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
 
 def test_unmask_encrypted_extra_when_new_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the new field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -313,7 +383,7 @@ def test_unmask_encrypted_extra_when_new_is_none() -> None:
     assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None
 
 
-def test_upload_new(mocker: MockFixture) -> None:
+def test_upload_new(mocker: MockerFixture) -> None:
     """
     Test file upload when the table does not exist.
     """
@@ -342,7 +412,7 @@ def test_upload_new(mocker: MockFixture) -> None:
     )
 
 
-def test_upload_existing(mocker: MockFixture) -> None:
+def test_upload_existing(mocker: MockerFixture) -> None:
     """
     Test file upload when the table does exist.
     """
@@ -398,4 +468,201 @@ def test_upload_existing(mocker: MockFixture) -> None:
             ),
             mocker.call().json(),
         ]
+    )
+
+
+def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
+    """
+    Test passing a username to `get_url_for_impersonation`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    user = mocker.MagicMock()
+    user.email = "alice@example.org"
+    mocker.patch(
+        "superset.db_engine_specs.gsheets.security_manager.find_user",
+        return_value=user,
+    )
+
+    assert GSheetsEngineSpec.get_url_for_impersonation(
+        url=make_url("gsheets://"),
+        impersonate_user=True,
+        username="alice",
+        access_token=None,
+    ) == make_url("gsheets://?subject=alice%40example.org")
+
+
+def test_get_url_for_impersonation_access_token() -> None:
+    """
+    Test passing an access token to `get_url_for_impersonation`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    assert GSheetsEngineSpec.get_url_for_impersonation(
+        url=make_url("gsheets://"),
+        impersonate_user=True,
+        username=None,
+        access_token="access-token",
+    ) == make_url("gsheets://?access_token=access-token")
+
+
+def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
+    """
+    Test `is_oauth2_enabled` when OAuth2 is not configured.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.current_app.config",
+        new={"DATABASE_OAUTH2_CLIENTS": {}},
+    )
+
+    assert GSheetsEngineSpec.is_oauth2_enabled() is False
+
+
+def test_is_oauth2_enabled_config(mocker: MockerFixture) -> None:
+    """
+    Test `is_oauth2_enabled` when OAuth2 is configured.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.current_app.config",
+        new={
+            "DATABASE_OAUTH2_CLIENTS": {
+                "Google Sheets": {
+                    "id": "XXX.apps.googleusercontent.com",
+                    "secret": "GOCSPX-YYY",
+                },
+            }
+        },
+    )
+
+    assert GSheetsEngineSpec.is_oauth2_enabled() is True
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for GSheets OAuth2.
+    """
+    return {
+        "id": "XXX.apps.googleusercontent.com",
+        "secret": "GOCSPX-YYY",
+        "scope": " ".join(
+            [
+                "https://www.googleapis.com/auth/drive.readonly "
+                "https://www.googleapis.com/auth/spreadsheets "
+                "https://spreadsheets.google.com/feeds"
+            ]
+        ),
+        "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_request_uri": "https://oauth2.googleapis.com/token",
+    }
+
+
+def test_get_oauth2_authorization_uri(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_authorization_uri`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    url = GSheetsEngineSpec.get_oauth2_authorization_uri(oauth2_config, state)
+    parsed = urlparse(url)
+    assert parsed.netloc == "accounts.google.com"
+    assert parsed.path == "/o/oauth2/v2/auth"
+
+    query = parse_qs(parsed.query)
+    assert query["scope"][0] == (
+        "https://www.googleapis.com/auth/drive.readonly "
+        "https://www.googleapis.com/auth/spreadsheets "
+        "https://spreadsheets.google.com/feeds"
+    )
+    encoded_state = query["state"][0].replace("%2E", ".")
+    assert decode_oauth2_state(encoded_state) == state
+
+
+def test_get_oauth2_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert GSheetsEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://oauth2.googleapis.com/token",
+        json={
+            "code": "code",
+            "client_id": "XXX.apps.googleusercontent.com",
+            "client_secret": "GOCSPX-YYY",
+            "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+            "grant_type": "authorization_code",
+        },
+        timeout=30.0,
+    )
+
+
+def test_get_oauth2_fresh_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://oauth2.googleapis.com/token",
+        json={
+            "client_id": "XXX.apps.googleusercontent.com",
+            "client_secret": "GOCSPX-YYY",
+            "refresh_token": "refresh-token",
+            "grant_type": "refresh_token",
+        },
+        timeout=30.0,
     )

@@ -19,7 +19,6 @@
 
 // TODO: These tests should be made atomic in separate files
 
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import {
@@ -434,9 +433,12 @@ describe('DatabaseModal', () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButton = screen.getByRole('button', { name: /close/i });
+
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
+      expect(basicHeader).toBeVisible();
+
       // <ModalHeader> - Connection header
       const basicHelper = screen.getByText(/step 2 of 2/i);
       const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
@@ -496,7 +498,6 @@ describe('DatabaseModal', () => {
       // ---------- Assertions ----------
       const visibleComponents = [
         closeButton,
-        basicHeader,
         basicHelper,
         basicHeaderTitle,
         basicHeaderSubtitle,
@@ -699,9 +700,9 @@ describe('DatabaseModal', () => {
         /force all tables and views to be created in this schema when clicking ctas or cvas in sql lab\./i,
       );
       const allowDMLCheckbox = screen.getByRole('checkbox', {
-        name: /allow dml/i,
+        name: /allow ddl and dml/i,
       });
-      const allowDMLText = screen.getByText(/allow dml/i);
+      const allowDMLText = screen.getByText(/allow ddl and dml/i);
       const enableQueryCostEstimationCheckbox = screen.getByRole('checkbox', {
         name: /enable query cost estimation/i,
       });

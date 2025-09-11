@@ -19,7 +19,6 @@
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
-import React from 'react';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 import { Route, BrowserRouter } from 'react-router-dom';

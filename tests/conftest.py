@@ -28,11 +28,8 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
-from flask import current_app, Flask
-from flask.ctx import AppContext
 from pytest import fixture
 
-from superset.app import create_app
 from tests.example_data.data_loading.pandas.pandas_data_loader import PandasDataLoader
 from tests.example_data.data_loading.pandas.pands_data_loading_conf import (
     PandasLoaderConfigurations,
@@ -72,7 +69,7 @@ def example_db_provider() -> Callable[[], Database]:
 @fixture(scope="session")
 def example_db_engine(example_db_provider: Callable[[], Database]) -> Engine:
     with app.app_context():
-        with example_db_provider().get_sqla_engine_with_context() as engine:
+        with example_db_provider().get_sqla_engine() as engine:
             return engine
 
 

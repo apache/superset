@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -186,6 +186,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setItem(LocalStorageKeys.HomepageCollapseState, state);
   };
 
+  const SubmenuExtension = extensionsRegistry.get('home.submenu');
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
   const WelcomeTopExtension = extensionsRegistry.get('welcome.banner');
   const WelcomeMainExtension = extensionsRegistry.get(
@@ -217,7 +218,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }, []);
 
   useEffect(() => {
-    if (!otherTabFilters) {
+    if (!otherTabFilters || WelcomeMainExtension) {
       return;
     }
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
@@ -352,7 +353,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   return (
     <>
-      <SubMenu {...menuData} />
+      {SubmenuExtension ? (
+        <SubmenuExtension {...menuData} />
+      ) : (
+        <SubMenu {...menuData} />
+      )}
       <WelcomeContainer>
         {WelcomeMessageExtension && <WelcomeMessageExtension />}
         {WelcomeTopExtension && <WelcomeTopExtension />}

@@ -485,7 +485,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           Sports: '#8FD3E4',
           Strategy: '#A1A6BD',
         },
-        shared_label_colors: {},
+        shared_label_colors: [],
         color_scheme: 'supersetColors',
         extra_filters: [
           {
@@ -710,7 +710,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         queryFields: {
           metric: 'metrics',
         },
-        shared_label_colors: {},
+        shared_label_colors: [],
         color_scheme: 'supersetColors',
         extra_filters: [
           {
@@ -759,7 +759,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
             queryFields: {
               metric: 'metrics',
             },
-            shared_label_colors: {},
+            shared_label_colors: [],
             color_scheme: 'supersetColors',
             dashboardId: 9,
             applied_time_extras: {},
@@ -3046,7 +3046,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           groupby: 'groupby',
           metrics: 'metrics',
         },
-        shared_label_colors: {},
+        shared_label_colors: [],
         extra_filters: [
           {
             col: '__time_range',
@@ -3125,7 +3125,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
               groupby: 'groupby',
               metrics: 'metrics',
             },
-            shared_label_colors: {},
+            shared_label_colors: [],
             dashboardId: 9,
             applied_time_extras: {},
             where: '',
@@ -16514,7 +16514,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           groupby: 'groupby',
           metrics: 'metrics',
         },
-        shared_label_colors: {},
+        shared_label_colors: [],
         extra_filters: [
           {
             col: '__time_range',
@@ -16661,7 +16661,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
               groupby: 'groupby',
               metrics: 'metrics',
             },
-            shared_label_colors: {},
+            shared_label_colors: [],
             dashboardId: 9,
             applied_time_extras: {},
             where: '',
@@ -17523,7 +17523,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           Sports: '#8FD3E4',
           Strategy: '#A1A6BD',
         },
-        shared_label_colors: {},
+        shared_label_colors: [],
         extra_filters: [
           {
             col: '__time_range',
@@ -17678,7 +17678,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           groupby: 'groupby',
           metrics: 'metrics',
         },
-        shared_label_colors: {},
+        shared_label_colors: [],
         extra_filters: [
           {
             col: '__time_range',
@@ -17715,7 +17715,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
               groupby: 'groupby',
               metrics: 'metrics',
             },
-            shared_label_colors: {},
+            shared_label_colors: [],
             dashboardId: 9,
             applied_time_extras: {},
             where: '',

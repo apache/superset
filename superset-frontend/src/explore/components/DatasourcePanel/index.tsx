@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import {
   css,
   DatasourceType,
@@ -50,7 +50,7 @@ import { DndItemType } from '../DndItemType';
 import { DndItemValue } from './types';
 import { DropzoneContext } from '../ExploreContainer';
 
-interface DatasourceControl extends ControlConfig {
+interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
   datasource?: IDatasource;
 }
 export interface IDatasource {
@@ -322,7 +322,7 @@ export default function DataSourcePanel({
             </StyledInfoboxWrapper>
           )}
           <AutoSizer>
-            {({ height }) => (
+            {({ height }: { height: number }) => (
               <List
                 width={width - BORDER_WIDTH}
                 height={height}
@@ -389,6 +389,7 @@ export default function DataSourcePanel({
           formData={formData}
         />
       )}
+      {/* @ts-ignore */}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
+import { Fragment, PureComponent } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-import { EmptyStateMedium } from 'src/components/EmptyState';
 import EditableTitle from 'src/components/EditableTitle';
+import { EmptyStateMedium } from 'src/components/EmptyState';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
-import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import DragDroppable, {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { componentShape } from 'src/dashboard/util/propShapes';
 
 export const RENDER_TAB = 'RENDER_TAB';
@@ -49,6 +50,7 @@ const propTypes = {
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
+  embeddedMode: PropTypes.bool,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -88,7 +90,7 @@ const TabTitleContainer = styled.div`
 const renderDraggableContent = dropProps =>
   dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
-class Tab extends React.PureComponent {
+class Tab extends PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -137,6 +139,10 @@ class Tab extends React.PureComponent {
         },
       });
     }
+  }
+
+  shouldDropToChild(item) {
+    return item.type !== TAB_TYPE;
   }
 
   renderTabContent() {
@@ -218,7 +224,7 @@ class Tab extends React.PureComponent {
           />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
-          <React.Fragment key={componentId}>
+          <Fragment key={componentId}>
             <DashboardComponent
               id={componentId}
               parentId={tabComponent.id}
@@ -248,7 +254,7 @@ class Tab extends React.PureComponent {
                 {renderDraggableContent}
               </Droppable>
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     );
@@ -263,6 +269,7 @@ class Tab extends React.PureComponent {
       editMode,
       isFocused,
       isHighlighted,
+      embeddedMode,
     } = this.props;
 
     return (
@@ -275,6 +282,7 @@ class Tab extends React.PureComponent {
         onDrop={this.handleDrop}
         onHover={this.handleOnHover}
         editMode={editMode}
+        dropToChild={this.shouldDropToChild}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <TabTitleContainer
@@ -291,7 +299,7 @@ class Tab extends React.PureComponent {
               showTooltip={false}
               editing={editMode && isFocused}
             />
-            {!editMode && (
+            {!editMode && !embeddedMode && (
               <AnchorLink
                 id={component.id}
                 dashboardId={this.props.dashboardId}

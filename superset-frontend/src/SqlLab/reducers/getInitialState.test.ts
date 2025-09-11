@@ -274,6 +274,9 @@ describe('getInitialState', () => {
                 name: expectedValue,
               },
             ],
+            destroyedQueryEditors: {
+              10: 12345,
+            },
           },
         }),
       );
@@ -291,7 +294,10 @@ describe('getInitialState', () => {
             updatedAt: lastUpdatedTime,
           },
         },
-        tab_state_ids: [{ id: 1, label: '' }],
+        tab_state_ids: [
+          { id: 1, label: '' },
+          { id: 10, label: 'removed' },
+        ],
       };
       expect(
         getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[0],
@@ -301,6 +307,16 @@ describe('getInitialState', () => {
           name: expectedValue,
         }),
       );
+      expect(
+        getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors,
+      ).not.toContainEqual(
+        expect.objectContaining({
+          id: '10',
+        }),
+      );
+      expect(
+        getInitialState(apiDataWithLocalStorage).sqlLab.lastUpdatedActiveTab,
+      ).toEqual(apiDataWithTabState.active_tab.id.toString());
     });
 
     it('skip unsaved changes for expired data', () => {

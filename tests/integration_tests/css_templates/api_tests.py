@@ -16,20 +16,21 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
+
 import pytest
 import prison
 from datetime import datetime
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import db
 from superset.models.core import CssTemplate
-from superset.utils.database import get_example_database
+from superset.utils.database import get_example_database  # noqa: F401
+from superset.utils import json
 
 from tests.integration_tests.base_tests import SupersetTestCase
-
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 CSS_TEMPLATES_FIXTURE_COUNT = 5
 
@@ -73,8 +74,8 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         css_templates = db.session.query(CssTemplate).all()
 
-        self.login(username="admin")
-        uri = f"api/v1/css_template/"
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/css_template/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -108,7 +109,7 @@ class TestCssTemplateApi(SupersetTestCase):
             .order_by(CssTemplate.template_name.asc())
             .all()
         )
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         query_string = {"order_column": "template_name", "order_direction": "asc"}
         uri = f"api/v1/css_template/?q={prison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
@@ -123,7 +124,7 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         CSS Template API: Test get list and custom filter
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         all_css_templates = (
             db.session.query(CssTemplate).filter(CssTemplate.css.ilike("%css2%")).all()
@@ -167,8 +168,8 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         CssTemplate API: Test info
         """
-        self.login(username="admin")
-        uri = f"api/v1/css_template/_info"
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/css_template/_info"  # noqa: F541
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
@@ -176,7 +177,7 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         CssTemplate API: Test info security
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
         uri = f"api/v1/css_template/_info?q={prison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
@@ -197,7 +198,7 @@ class TestCssTemplateApi(SupersetTestCase):
                 .filter(CssTemplate.template_name == "template_name1")
                 .one_or_none()
             )
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             uri = f"api/v1/css_template/{css_template.id}"
             rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
@@ -228,7 +229,7 @@ class TestCssTemplateApi(SupersetTestCase):
         CSS Template API: Test get CSS Template not found
         """
         max_id = db.session.query(func.max(CssTemplate.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/{max_id + 1}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 404
@@ -242,8 +243,8 @@ class TestCssTemplateApi(SupersetTestCase):
             "css": "css_create",
         }
 
-        self.login(username="admin")
-        uri = f"api/v1/css_template/"
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/css_template/"  # noqa: F541
         rv = self.post_assert_metric(uri, post_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
@@ -273,7 +274,7 @@ class TestCssTemplateApi(SupersetTestCase):
             "css": "css_changed",
         }
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/{css_template.id}"
         rv = self.put_assert_metric(uri, put_data, "put")
         assert rv.status_code == 200
@@ -288,7 +289,7 @@ class TestCssTemplateApi(SupersetTestCase):
         CSS Template API: Test update not found
         """
         max_id = db.session.query(func.max(CssTemplate.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         put_data = {
             "template_name": "template_name_changed",
@@ -310,7 +311,7 @@ class TestCssTemplateApi(SupersetTestCase):
             .one_or_none()
         )
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/{css_template.id}"
         rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 200
@@ -324,7 +325,7 @@ class TestCssTemplateApi(SupersetTestCase):
         CSS Template API: Test delete not found
         """
         max_id = db.session.query(func.max(CssTemplate.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/{max_id + 1}"
         rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 404
@@ -337,7 +338,7 @@ class TestCssTemplateApi(SupersetTestCase):
         css_templates = db.session.query(CssTemplate).all()
         css_template_ids = [css_template.id for css_template in css_templates]
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
@@ -357,7 +358,7 @@ class TestCssTemplateApi(SupersetTestCase):
         css_template = db.session.query(CssTemplate).first()
         css_template_ids = [css_template.id]
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
@@ -372,7 +373,7 @@ class TestCssTemplateApi(SupersetTestCase):
         CSS Template API: Test delete bulk bad request
         """
         css_template_ids = [1, "a"]
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
@@ -385,7 +386,7 @@ class TestCssTemplateApi(SupersetTestCase):
         max_id = db.session.query(func.max(CssTemplate.id)).scalar()
 
         css_template_ids = [max_id + 1, max_id + 2]
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404

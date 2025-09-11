@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  cloneElement,
   ReactElement,
   useCallback,
   useEffect,
@@ -63,7 +64,7 @@ function Resizable({ children }: { children: ReactElement }) {
   const { ref, height } = useResizeDetector();
   return (
     <div ref={ref} css={{ flex: 1 }}>
-      {React.cloneElement(children, { height })}
+      {cloneElement(children, { height })}
     </div>
   );
 }
@@ -265,6 +266,8 @@ export default function DrillDetailPane({
     (!responseError && !resultsPages.size) ||
     metadataBarStatus === ResourceStatus.Loading;
 
+  const allowHTML = formData.allow_render_html ?? true;
+
   let tableContent = null;
   if (responseError) {
     // Render error if page download failed
@@ -301,7 +304,7 @@ export default function DrillDetailPane({
           }
           resizable
           virtualize
-          allowHTML
+          allowHTML={allowHTML}
         />
       </Resizable>
     );

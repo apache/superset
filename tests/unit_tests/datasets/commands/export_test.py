@@ -16,11 +16,10 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
-import json
-
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.utils import json
 
 
 def test_export(session: Session) -> None:
@@ -68,6 +67,7 @@ def test_export(session: Session) -> None:
         description="This is the description",
         is_featured=1,
         cache_timeout=3600,
+        catalog="public",
         schema="my_schema",
         sql=None,
         params=json.dumps(
@@ -88,9 +88,20 @@ def test_export(session: Session) -> None:
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
-    export = list(
-        ExportDatasetsCommand._export(sqla_table)  # pylint: disable=protected-access
+    export = [
+        (file[0], file[1]())
+        for file in list(
+            ExportDatasetsCommand._export(sqla_table)  # pylint: disable=protected-access
+        )
+    ]
+
+    payload = sqla_table.export_to_dict(
+        recursive=True,
+        include_parent_ref=False,
+        include_defaults=True,
+        export_uuids=True,
     )
+
     assert export == [
         (
             "datasets/my_database/my_table.yaml",
@@ -100,6 +111,7 @@ description: This is the description
 default_endpoint: null
 offset: -8
 cache_timeout: 3600
+catalog: public
 schema: my_schema
 sql: null
 params:
@@ -114,7 +126,7 @@ extra:
   warning_markdown: '*WARNING*'
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: null
+uuid: {payload['uuid']}
 metrics:
 - metric_name: cnt
   verbose_name: null
@@ -129,12 +141,12 @@ metrics:
 columns:
 - column_name: profit
   verbose_name: null
-  is_dttm: null
-  is_active: null
+  is_dttm: false
+  is_active: true
   type: INTEGER
   advanced_data_type: null
-  groupby: null
-  filterable: null
+  groupby: true
+  filterable: true
   expression: revenue-expenses
   description: null
   python_date_format: null
@@ -143,47 +155,47 @@ columns:
 - column_name: ds
   verbose_name: null
   is_dttm: 1
-  is_active: null
+  is_active: true
   type: TIMESTAMP
   advanced_data_type: null
-  groupby: null
-  filterable: null
+  groupby: true
+  filterable: true
   expression: null
   description: null
   python_date_format: null
   extra: null
 - column_name: user_id
   verbose_name: null
-  is_dttm: null
-  is_active: null
+  is_dttm: false
+  is_active: true
   type: INTEGER
   advanced_data_type: null
-  groupby: null
-  filterable: null
+  groupby: true
+  filterable: true
   expression: null
   description: null
   python_date_format: null
   extra: null
 - column_name: expenses
   verbose_name: null
-  is_dttm: null
-  is_active: null
+  is_dttm: false
+  is_active: true
   type: INTEGER
   advanced_data_type: null
-  groupby: null
-  filterable: null
+  groupby: true
+  filterable: true
   expression: null
   description: null
   python_date_format: null
   extra: null
 - column_name: revenue
   verbose_name: null
-  is_dttm: null
-  is_active: null
+  is_dttm: false
+  is_active: true
   type: INTEGER
   advanced_data_type: null
-  groupby: null
-  filterable: null
+  groupby: true
+  filterable: true
   expression: null
   description: null
   python_date_format: null

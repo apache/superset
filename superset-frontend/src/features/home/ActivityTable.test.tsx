@@ -16,19 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { act } from 'react-dom/test-utils';
-import { ReactWrapper } from 'enzyme';
-import { Provider } from 'react-redux';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
 import { TableTab } from 'src/views/CRUD/types';
+import userEvent from '@testing-library/user-event';
 import ActivityTable from './ActivityTable';
-
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
@@ -76,64 +68,78 @@ fetchMock.get(dashboardsEndpoint, {
   ],
 });
 
-describe('ActivityTable', () => {
-  const activityProps = {
-    activeChild: TableTab.Created,
-    activityData: mockData,
-    setActiveChild: jest.fn(),
-    user: { userId: '1' },
-    isFetchingActivityData: false,
-  };
+const mockSetActiveChild = jest.fn();
 
-  let wrapper: ReactWrapper;
+const activityProps = {
+  activeChild: TableTab.Created,
+  activityData: mockData,
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
 
-  beforeAll(async () => {
-    await act(async () => {
-      wrapper = mount(
-        <Provider store={store}>
-          <ActivityTable {...activityProps} />
-        </Provider>,
-      );
-    });
-  });
+const activityEditedTabProps = {
+  activeChild: TableTab.Edited,
+  activityData: mockData,
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
 
-  it('the component renders', () => {
-    expect(wrapper.find(ActivityTable)).toExist();
+const activityViewedTabProps = {
+  activeChild: TableTab.Viewed,
+  activityData: mockData,
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
+
+const emptyActivityProps = {
+  activeChild: TableTab.Created,
+  activityData: {},
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
+
+const renderOptions = {
+  useRedux: true,
+  useRouter: true,
+};
+
+const renderActivityTable = (props: any) =>
+  render(<ActivityTable {...props} />, renderOptions);
+
+test('the component renders with ActivityCards', async () => {
+  renderActivityTable(activityProps);
+  expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
+});
+test('renders tabs with three buttons', async () => {
+  renderActivityTable(activityProps);
+  expect(screen.getAllByRole('tab')).toHaveLength(3);
+});
+test('renders Viewed tab with ActivityCards', async () => {
+  renderActivityTable(activityViewedTabProps);
+  expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
+});
+test('calls the getEdited batch call when edited tab is clicked', async () => {
+  const { rerender } = renderActivityTable(activityProps);
+  const editedButton = screen.getByText(/edited/i);
+  expect(editedButton).toBeInTheDocument();
+  userEvent.click(editedButton);
+  expect(mockSetActiveChild).toHaveBeenCalledWith(TableTab.Edited);
+  rerender(<ActivityTable {...activityEditedTabProps} />);
+  // simulate the render after getEditedObjects has been called
+  await waitFor(() => {
+    expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
+    expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
   });
-  it('renders tabs with three buttons', () => {
-    expect(wrapper.find('[role="tab"]')).toHaveLength(3);
-  });
-  it('renders ActivityCards', async () => {
-    expect(wrapper.find('ListViewCard')).toExist();
-  });
-  it('calls the getEdited batch call when edited tab is clicked', async () => {
-    act(() => {
-      const handler = wrapper.find('[role="tab"] a').at(1).prop('onClick');
-      if (handler) {
-        handler({} as any);
-      }
-    });
-    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    const chartCall = fetchMock.calls(/chart\/\?q/);
-    // waitforcomponenttopaint does not work here in this instance...
-    setTimeout(() => {
-      expect(chartCall).toHaveLength(1);
-      expect(dashboardCall).toHaveLength(1);
-    });
-  });
-  it('show empty state if there is no data', () => {
-    const activityProps = {
-      activeChild: TableTab.Created,
-      activityData: {},
-      setActiveChild: jest.fn(),
-      user: { userId: '1' },
-      isFetchingActivityData: false,
-    };
-    const wrapper = mount(
-      <Provider store={store}>
-        <ActivityTable {...activityProps} />
-      </Provider>,
-    );
-    expect(wrapper.find('EmptyState')).toExist();
-  });
+});
+test('show empty state if there is no data', () => {
+  renderActivityTable(emptyActivityProps);
+  expect(
+    screen.getByText(
+      /recently created charts, dashboards, and saved queries will appear here/i,
+    ),
+  ).toBeInTheDocument();
 });

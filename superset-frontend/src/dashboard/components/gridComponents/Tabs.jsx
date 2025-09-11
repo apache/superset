@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
 import { connect } from 'react-redux';
@@ -108,7 +108,7 @@ const StyledTabsContainer = styled.div`
   }
 `;
 
-export class Tabs extends React.PureComponent {
+export class Tabs extends PureComponent {
   constructor(props) {
     super(props);
     const { tabIndex, activeKey } = this.getTabInfo(props);
@@ -429,4 +429,5 @@ function mapStateToProps(state) {
     directPathToChild: state.dashboardState.directPathToChild,
   };
 }
+
 export default connect(mapStateToProps)(Tabs);

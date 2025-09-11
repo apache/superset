@@ -133,6 +133,7 @@ export const singleNativeFiltersState = {
       id: [NATIVE_FILTER_ID],
       name: 'eth',
       type: 'text',
+      filterType: 'filter_select',
       targets: [{ datasetId: 13, column: { name: 'ethnic_minority' } }],
       defaultDataMask: {
         filterState: {

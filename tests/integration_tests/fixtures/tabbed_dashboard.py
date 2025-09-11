@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 
 import pytest
 
 from superset import db
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 from superset.utils.core import shortid
 from tests.integration_tests.dashboards.superset_factory_util import create_dashboard
 

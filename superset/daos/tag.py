@@ -19,12 +19,11 @@ from operator import and_
 from typing import Any, Optional
 
 from flask import g
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import NoResultFound
 
 from superset.commands.tag.exceptions import TagNotFoundError
 from superset.commands.tag.utils import to_object_type
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
@@ -75,7 +74,6 @@ class TagDAO(BaseDAO[Tag]):
                 )
 
         db.session.add_all(tagged_objects)
-        db.session.commit()
 
     @staticmethod
     def delete_tagged_object(
@@ -86,9 +84,7 @@ class TagDAO(BaseDAO[Tag]):
         """
         tag = TagDAO.find_by_name(tag_name.strip())
         if not tag:
-            raise DAODeleteFailedError(
-                message=f"Tag with name {tag_name} does not exist."
-            )
+            raise NoResultFound(message=f"Tag with name {tag_name} does not exist.")
 
         tagged_object = db.session.query(TaggedObject).filter(
             TaggedObject.tag_id == tag.id,
@@ -96,17 +92,13 @@ class TagDAO(BaseDAO[Tag]):
             TaggedObject.object_id == object_id,
         )
         if not tagged_object:
-            raise DAODeleteFailedError(
+            raise NoResultFound(
                 message=f'Tagged object with object_id: {object_id} \
                     object_type: {object_type} \
                     and tag name: "{tag_name}" could not be found'
             )
-        try:
-            db.session.delete(tagged_object.one())
-            db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAODeleteFailedError(exception=ex) from ex
+
+        db.session.delete(tagged_object.one())
 
     @staticmethod
     def delete_tags(tag_names: list[str]) -> None:
@@ -117,18 +109,12 @@ class TagDAO(BaseDAO[Tag]):
         for name in tag_names:
             tag_name = name.strip()
             if not TagDAO.find_by_name(tag_name):
-                raise DAODeleteFailedError(
-                    message=f"Tag with name {tag_name} does not exist."
-                )
+                raise NoResultFound(message=f"Tag with name {tag_name} does not exist.")
             tags_to_delete.append(tag_name)
         tag_objects = db.session.query(Tag).filter(Tag.name.in_(tags_to_delete))
+
         for tag in tag_objects:
-            try:
-                db.session.delete(tag)
-                db.session.commit()
-            except SQLAlchemyError as ex:  # pragma: no cover
-                db.session.rollback()
-                raise DAODeleteFailedError(exception=ex) from ex
+            db.session.delete(tag)
 
     @staticmethod
     def get_by_name(name: str, type_: TagType = TagType.custom) -> Tag:
@@ -283,21 +269,10 @@ class TagDAO(BaseDAO[Tag]):
     ) -> None:
         """
         Marks a specific tag as a favorite for the current user.
-        This function will find the tag by the provided id,
-        create a new UserFavoriteTag object that represents
-        the user's preference, add that object to the database
-        session, and commit the session. It uses the currently
-        authenticated user from the global 'g' object.
-        Args:
-            tag_id: The id of the tag that is to be marked as
-                    favorite.
-        Raises:
-            Any exceptions raised by the find_by_id function,
-            the UserFavoriteTag constructor, or the database session's
-            add and commit methods will propagate up to the caller.
-        Returns:
-            None.
+
+        :param tag_id: The id of the tag that is to be marked as favorite
         """
+
         tag = TagDAO.find_by_id(tag_id)
         user = g.user
 
@@ -307,26 +282,13 @@ class TagDAO(BaseDAO[Tag]):
             raise TagNotFoundError()
 
         tag.users_favorited.append(user)
-        db.session.commit()
 
     @staticmethod
     def remove_user_favorite_tag(tag_id: int) -> None:
         """
         Removes a tag from the current user's favorite tags.
 
-        This function will find the tag by the provided id and remove the tag
-        from the user's list of favorite tags. It uses the currently authenticated
-        user from the global 'g' object.
-
-        Args:
-            tag_id: The id of the tag that is to be removed from the favorite tags.
-
-        Raises:
-            Any exceptions raised by the find_by_id function, the database session's
-            commit method will propagate up to the caller.
-
-        Returns:
-            None.
+        :param tag_id: The id of the tag that is to be removed from the favorite tags
         """
         tag = TagDAO.find_by_id(tag_id)
         user = g.user
@@ -337,9 +299,6 @@ class TagDAO(BaseDAO[Tag]):
             raise TagNotFoundError()
 
         tag.users_favorited.remove(user)
-
-        # Commit to save the changes
-        db.session.commit()
 
     @staticmethod
     def favorited_ids(tags: list[Tag]) -> list[int]:
@@ -424,5 +383,4 @@ class TagDAO(BaseDAO[Tag]):
                     object_id,
                     tag.name,
                 )
-
         db.session.add_all(tagged_objects)

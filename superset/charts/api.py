@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -40,7 +39,8 @@ from superset.charts.filters import (
     ChartFilter,
     ChartHasCreatedByFilter,
     ChartOwnedCreatedFavoredByMeFilter,
-    ChartTagFilter,
+    ChartTagIdFilter,
+    ChartTagNameFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -66,10 +66,12 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
 )
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -81,6 +83,7 @@ from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
+from superset.utils import json
 from superset.utils.screenshots import ChartScreenshot, DEFAULT_CHART_WINDOW_SIZE
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -238,7 +241,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ],
         "slice_name": [ChartAllTextFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
-        "tags": [ChartTagFilter],
+        "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
@@ -268,10 +271,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
     allowed_rel_fields = {"owners", "created_by", "changed_by"}
@@ -404,6 +409,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_404()
         except ChartForbiddenError:
             response = self.response_403()
+        except TagForbiddenError as ex:
+            response = self.response(403, message=str(ex))
         except ChartInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
@@ -793,7 +800,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             try:
                 for file_name, file_content in ExportChartsCommand(requested_ids).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except ChartNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -893,11 +900,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = ChartDAO.find_by_id(pk)
-        if not chart:
+        try:
+            AddFavoriteChartCommand(pk).run()
+        except ChartNotFoundError:
             return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
 
-        ChartDAO.add_favorite(chart)
         return self.response(200, result="OK")
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
@@ -936,11 +945,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = ChartDAO.find_by_id(pk)
-        if not chart:
-            return self.response_404()
+        try:
+            DelFavoriteChartCommand(pk).run()
+        except ChartNotFoundError:
+            self.response_404()
+        except ChartForbiddenError:
+            self.response_403()
 
-        ChartDAO.remove_favorite(chart)
         return self.response(200, result="OK")
 
     @expose("/warm_up_cache", methods=("PUT",))

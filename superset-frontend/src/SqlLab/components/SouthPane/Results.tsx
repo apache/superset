@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -46,7 +46,7 @@ const StyledEmptyStateWrapper = styled.div`
   }
 `;
 
-const Results: React.FC<Props> = ({
+const Results: FC<Props> = ({
   latestQueryId,
   height,
   displayLimit,

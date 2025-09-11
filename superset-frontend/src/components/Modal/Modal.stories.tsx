@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ModalFuncProps } from 'antd/lib/modal';
-import React from 'react';
 import Modal, { ModalProps } from '.';
 import Button from '../Button';
 

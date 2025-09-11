@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -33,10 +33,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.utils import json
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -47,28 +48,34 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         self._properties = data.copy()
         self._model: Optional[ReportSchedule] = None
 
+    @transaction(on_error=partial(on_error, reraise=ReportScheduleUpdateFailedError))
     def run(self) -> Model:
         self.validate()
-        assert self._model
-
-        try:
-            report_schedule = ReportScheduleDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ReportScheduleUpdateFailedError() from ex
-        return report_schedule
+        return ReportScheduleDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
-        exceptions: list[ValidationError] = []
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
-        report_type = self._properties.get("type", ReportScheduleType.ALERT)
+        """
+        Validates the properties of a report schedule configuration, including uniqueness
+        of name and type, relations based on the report type, frequency, etc. Populates
+        a list of `ValidationErrors` to be returned in the API response if any.
 
-        name = self._properties.get("name", "")
+        Fields were loaded according to the `ReportSchedulePutSchema` schema.
+        """
+        # Load existing report schedule config
         self._model = ReportScheduleDAO.find_by_id(self._model_id)
-
-        # Does the report exist?
         if not self._model:
             raise ReportScheduleNotFoundError()
+
+        # Required fields for validation
+        cron_schedule = self._properties.get("crontab", self._model.crontab)
+        name = self._properties.get("name", self._model.name)
+        report_type = self._properties.get("type", self._model.type)
+
+        # Optional fields
+        database_id = self._properties.get("database")
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
+
+        exceptions: list[ValidationError] = []
 
         # Change the state to not triggered when the user deactivates
         # A report that is currently in a working state. This prevents
@@ -80,28 +87,31 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         ):
             self._properties["last_state"] = ReportState.NOOP
 
-        # validate relation by report type
-        if not report_type:
-            report_type = self._model.type
-
-        # Validate name type uniqueness
-        if not ReportScheduleDAO.validate_update_uniqueness(
-            name, report_type, expect_id=self._model_id
-        ):
-            exceptions.append(
-                ReportScheduleNameUniquenessValidationError(
-                    report_type=report_type, name=name
+        # Validate name/type uniqueness if either is changing
+        if name != self._model.name or report_type != self._model.type:
+            if not ReportScheduleDAO.validate_update_uniqueness(
+                name, report_type, expect_id=self._model_id
+            ):
+                exceptions.append(
+                    ReportScheduleNameUniquenessValidationError(
+                        report_type=report_type, name=name
+                    )
                 )
-            )
 
-        if report_type == ReportScheduleType.ALERT:
-            database_id = self._properties.get("database")
-            # If database_id was sent let's validate it exists
-            if database_id:
-                database = DatabaseDAO.find_by_id(database_id)
-                if not database:
-                    exceptions.append(DatabaseNotFoundValidationError())
-                self._properties["database"] = database
+        # Validate if DB exists (for alerts)
+        if report_type == ReportScheduleType.ALERT and database_id:
+            if not (database := DatabaseDAO.find_by_id(database_id)):
+                exceptions.append(DatabaseNotFoundValidationError())
+            self._properties["database"] = database
+
+        # validate report frequency
+        try:
+            self.validate_report_frequency(
+                cron_schedule,
+                report_type,
+            )
+        except ValidationError as exc:
+            exceptions.append(exc)
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions, update=True)

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
+
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -61,6 +62,7 @@ class ReportScheduleValidatorType(StrEnum):
 class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
+    SLACKV2 = "SlackV2"
 
 
 class ReportState(StrEnum):
@@ -72,8 +74,9 @@ class ReportState(StrEnum):
 
 
 class ReportDataFormat(StrEnum):
-    VISUALIZATION = "PNG"
-    DATA = "CSV"
+    PDF = "PDF"
+    PNG = "PNG"
+    CSV = "CSV"
     TEXT = "TEXT"
 
 
@@ -127,7 +130,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         String(255), server_default=ReportCreationMethod.ALERTS_REPORTS
     )
     timezone = Column(String(100), default="UTC", nullable=False)
-    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
+    report_format = Column(String(50), default=ReportDataFormat.PNG)
     sql = Column(MediumText())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
@@ -170,6 +173,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_height = Column(Integer, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
+
+    email_subject = Column(String(255))
 
     def __repr__(self) -> str:
         return str(self.name)

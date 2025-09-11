@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import CollectionTable from './CollectionTable';
@@ -27,22 +26,13 @@ const props = {
   tableColumns: ['column_name', 'type', 'groupby'],
 };
 
-describe('CollectionTable', () => {
-  let wrapper;
-  let el;
-
-  beforeEach(() => {
-    el = <CollectionTable {...props} />;
-    wrapper = shallow(el);
-  });
-
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
-  });
-
-  it('renders a table', () => {
-    const { length } = mockDatasource['7__table'].columns;
-    expect(wrapper.find('table')).toExist();
-    expect(wrapper.find('tbody tr.row')).toHaveLength(length);
-  });
+test('renders a table', () => {
+  const { length } = mockDatasource['7__table'].columns;
+  const { getByRole } = render(<CollectionTable {...props} />);
+  expect(getByRole('table')).toBeInTheDocument();
+  expect(
+    getByRole('table')
+      .getElementsByTagName('tbody')[0]
+      .getElementsByClassName('row'),
+  ).toHaveLength(length);
 });

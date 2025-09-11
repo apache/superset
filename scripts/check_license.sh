@@ -61,7 +61,7 @@ else
     declare java_cmd=java
 fi
 
-export RAT_VERSION=0.13
+export RAT_VERSION=0.16.1
 export rat_jar="${TMP_DIR}"/lib/apache-rat-${RAT_VERSION}.jar
 mkdir -p ${TMP_DIR}/lib
 

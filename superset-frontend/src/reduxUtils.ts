@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
 import {
@@ -38,7 +38,7 @@ export function addToObject(
   const copiedObject = { ...obj };
 
   if (!copiedObject.id) {
-    copiedObject.id = shortid.generate();
+    copiedObject.id = nanoid();
   }
   newObject[copiedObject.id] = copiedObject;
   return { ...state, [arrKey]: newObject };
@@ -108,7 +108,7 @@ export function addToArr(
 ) {
   const newObj = { ...obj };
   if (!newObj.id) {
-    newObj.id = shortid.generate();
+    newObj.id = nanoid();
   }
   const newState = {};
   if (prepend) {
@@ -129,7 +129,7 @@ export function extendArr(
   newArr.forEach(el => {
     if (!el.id) {
       /* eslint-disable no-param-reassign */
-      el.id = shortid.generate();
+      el.id = nanoid();
     }
   });
   const newState = {};

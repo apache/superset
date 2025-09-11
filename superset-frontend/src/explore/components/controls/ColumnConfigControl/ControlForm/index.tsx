@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponentElement, useMemo } from 'react';
+import {
+  Children,
+  cloneElement,
+  FunctionComponentElement,
+  useMemo,
+} from 'react';
 import {
   FAST_DEBOUNCE,
   JsonObject,
@@ -77,20 +82,20 @@ export default function ControlForm({
     [onChange],
   );
 
-  const updatedChildren = React.Children.map(children, row => {
+  const updatedChildren = Children.map(children, row => {
     if ('children' in row.props) {
       const defaultWidth = Array.isArray(row.props.children)
         ? `${100 / row.props.children.length}%`
         : undefined;
-      return React.cloneElement(row, {
-        children: React.Children.map(row.props.children, item => {
+      return cloneElement(row, {
+        children: Children.map(row.props.children, item => {
           const {
             name,
             width,
             debounceDelay = FAST_DEBOUNCE,
             onChange: onItemValueChange,
           } = item.props;
-          return React.cloneElement(item, {
+          return cloneElement(item, {
             width: width || defaultWidth,
             value: value?.[name],
             // remove `debounceDelay` from rendered control item props

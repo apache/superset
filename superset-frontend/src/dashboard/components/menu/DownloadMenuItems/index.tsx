@@ -16,54 +16,77 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Menu } from 'src/components/Menu';
-import DownloadAsImage from './DownloadAsImage';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import DownloadScreenshot from './DownloadScreenshot';
+import { DownloadScreenshotFormat } from './types';
 import DownloadAsPdf from './DownloadAsPdf';
 import ExportToGoogleSheet from './ExportToGoogleSheet';
+import DownloadAsImage from './DownloadAsImage';
+import { addDangerToast } from '../../../../components/MessageToasts/actions';
 
 export interface DownloadMenuItemProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
-  addDangerToast: Function;
   dashboardTitle: string;
-  dashboardId: number;
   logEvent?: Function;
+  dashboardId: string;
 }
 
 const DownloadMenuItems = (props: DownloadMenuItemProps) => {
   const {
     pdfMenuItemTitle,
     imageMenuItemTitle,
-    addDangerToast,
-    dashboardTitle,
-    dashboardId,
     logEvent,
+    dashboardId,
+    dashboardTitle,
     ...rest
   } = props;
+  const isWebDriverScreenshotEnabled =
+    isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
+    isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
   return (
     <Menu selectable={false}>
-      <DownloadAsPdf
-        text={pdfMenuItemTitle}
-        addDangerToast={addDangerToast}
-        dashboardTitle={dashboardTitle}
-        logEvent={logEvent}
-        {...rest}
-      />
-      <DownloadAsImage
-        text={imageMenuItemTitle}
-        addDangerToast={addDangerToast}
-        dashboardTitle={dashboardTitle}
-        logEvent={logEvent}
-        {...rest}
-      />
       <ExportToGoogleSheet
         addDangerToast={addDangerToast}
         dashboardId={dashboardId}
         logEvent={logEvent}
         {...rest}
-        />
+      />
+      {isWebDriverScreenshotEnabled ? (
+        <>
+          <DownloadScreenshot
+            text={pdfMenuItemTitle}
+            dashboardId={dashboardId}
+            logEvent={logEvent}
+            format={DownloadScreenshotFormat.PDF}
+            {...rest}
+          />
+          <DownloadScreenshot
+            text={imageMenuItemTitle}
+            dashboardId={dashboardId}
+            logEvent={logEvent}
+            format={DownloadScreenshotFormat.PNG}
+            {...rest}
+          />
+        </>
+      ) : (
+        <>
+          <DownloadAsPdf
+            text={pdfMenuItemTitle}
+            dashboardTitle={dashboardTitle}
+            logEvent={logEvent}
+            {...rest}
+          />
+          <DownloadAsImage
+            text={imageMenuItemTitle}
+            dashboardTitle={dashboardTitle}
+            logEvent={logEvent}
+            {...rest}
+          />
+        </>
+      )}
     </Menu>
   );
 };

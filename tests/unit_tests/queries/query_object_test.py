@@ -17,7 +17,6 @@
 from unittest.mock import call, patch
 
 from flask_appbuilder.security.sqla.models import User
-from pytest_mock import MockFixture
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable

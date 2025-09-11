@@ -21,7 +21,6 @@ from sqlalchemy.engine.url import make_url
 
 from superset.exceptions import SupersetSecurityException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from tests.integration_tests.test_app import app
 
 
 @pytest.mark.parametrize(
@@ -84,10 +83,9 @@ from tests.integration_tests.test_app import app
 def test_check_sqlalchemy_uri(
     sqlalchemy_uri: str, error: bool, error_message: Optional[str]
 ):
-    with app.app_context():
-        if error:
-            with pytest.raises(SupersetSecurityException) as excinfo:
-                check_sqlalchemy_uri(make_url(sqlalchemy_uri))
-                assert str(excinfo.value) == error_message
-        else:
+    if error:
+        with pytest.raises(SupersetSecurityException) as excinfo:
             check_sqlalchemy_uri(make_url(sqlalchemy_uri))
+            assert str(excinfo.value) == error_message
+    else:
+        check_sqlalchemy_uri(make_url(sqlalchemy_uri))

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactElement } from 'react';
 
 import { t } from '@superset-ui/core';
 import { Dataset, isTemporalColumn } from '@superset-ui/chart-controls';
@@ -35,7 +35,7 @@ export const useDatePickerInAdhocFilter = ({
   timeRange,
   datasource,
   onChange,
-}: DatePickerInFilterProps): React.ReactElement | undefined => {
+}: DatePickerInFilterProps): ReactElement | undefined => {
   const onTimeRangeChange = (val: string) => onChange(columnName, val);
 
   return isTemporalColumn(columnName, datasource) ? (

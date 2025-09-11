@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { styled, ensureIsArray, t } from '@superset-ui/core';
+import { FC, useEffect, useState } from 'react';
+
+import {
+  styled,
+  ensureIsArray,
+  t,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
@@ -38,7 +43,7 @@ const ViewQueryModalContainer = styled.div`
   flex-direction: column;
 `;
 
-const ViewQueryModal: React.FC<Props> = props => {
+const ViewQueryModal: FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

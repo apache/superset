@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import React, { FC, useMemo } from 'react';
+import { memo, FC, useMemo } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
@@ -131,4 +131,4 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   );
 };
 
-export default React.memo(Header);
+export default memo(Header);

@@ -1,0 +1,274 @@
+---
+sidebar_position: 9
+---
+
+# FAQ
+
+## How big of a dataset can Superset handle?
+
+Superset can work with even gigantic databases! Superset acts as a thin layer above your underlying
+databases or data engines, which do all the processing.  Superset simply visualizes the results of
+the query.
+
+The key to achieving acceptable performance in Superset is whether your database can execute queries
+and return results at a speed that is acceptable to your users. If you experience slow performance with
+Superset, benchmark and tune your data warehouse.
+
+## What are the computing specifications required to run Superset?
+
+The specs of your Superset installation depend on how many users you have and what their activity is, not
+on the size of your data.  Superset admins in the community have reported 8GB RAM, 2vCPUs as adequate to
+run a moderately-sized instance. To develop Superset, e.g., compile code or build images, you may
+need more power.
+
+Monitor your resource usage and increase or decrease as needed. Note that Superset usage has a tendency
+to occur in spikes, e.g., if everyone in a meeting loads the same dashboard at once.
+
+Superset's application metadata does not require a very large database to store it, though
+the log file grows over time.
+
+## Can I join / query multiple tables at one time?
+
+Not in the Explore or Visualization UI. A Superset SQLAlchemy datasource can only be a single table
+or a view.
+
+When working with tables, the solution would be to create a table that contains all the fields
+needed for your analysis, most likely through some scheduled batch process.
+
+A view is a simple logical layer that abstracts an arbitrary SQL queries as a virtual table. This can
+allow you to join and union multiple tables and to apply some transformation using arbitrary SQL
+expressions. The limitation there is your database performance, as Superset effectively will run a
+query on top of your query (view). A good practice may be to limit yourself to joining your main
+large table to one or many small tables only, and avoid using _GROUP BY_ where possible as Superset
+will do its own _GROUP BY_ and doing the work twice might slow down performance.
+
+Whether you use a table or a view, performance depends on how fast your database can deliver
+the result to users interacting with Superset.
+
+However, if you are using SQL Lab, there is no such limitation. You can write SQL queries to join
+multiple tables as long as your database account has access to the tables.
+
+## How do I create my own visualization?
+
+We recommend reading the instructions in
+[Creating Visualization Plugins](/docs/contributing/howtos#creating-visualization-plugins).
+
+## Can I upload and visualize CSV data?
+
+Absolutely! Read the instructions [here](/docs/using-superset/exploring-data) to learn
+how to enable and use CSV upload.
+
+## Why are my queries timing out?
+
+There are many possible causes for why a long-running query might time out.
+
+For running long query from Sql Lab, by default Superset allows it run as long as 6 hours before it
+being killed by celery. If you want to increase the time for running query, you can specify the
+timeout in configuration. For example:
+
+```
+SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
+```
+
+If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are
+probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response
+from Superset server (which is processing long queries), these web servers will send 504 status code
+to clients directly. Superset has a client-side timeout limit to address this issue. If query didn’t
+come back within client-side timeout (60 seconds by default), Superset will display warning message
+to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change the
+timeout settings in **superset_config.py**:
+
+```
+SUPERSET_WEBSERVER_TIMEOUT = 60
+```
+
+## Why is the map not visible in the geospatial visualization?
+
+You need to register a free account at [Mapbox.com](https://www.mapbox.com), obtain an API key, and add it
+to **.env** at the key MAPBOX_API_KEY:
+
+```
+MAPBOX_API_KEY = "longstringofalphanumer1c"
+```
+
+## How to limit the timed refresh on a dashboard?
+
+By default, the dashboard timed refresh feature allows you to automatically re-query every slice on
+a dashboard according to a set schedule. Sometimes, however, you won’t want all of the slices to be
+refreshed - especially if some data is slow moving, or run heavy queries. To exclude specific slices
+from the timed refresh process, add the `timed_refresh_immune_slices` key to the dashboard JSON
+Metadata field:
+
+```
+{
+   "filter_immune_slices": [],
+    "expanded_slices": {},
+    "filter_immune_slice_fields": {},
+    "timed_refresh_immune_slices": [324]
+}
+```
+
+In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will
+be automatically re-queried on schedule.
+
+Slice refresh will also be staggered over the specified period. You can turn off this staggering by
+setting the `stagger_refresh` to false and modify the stagger period by setting `stagger_time` to a
+value in milliseconds in the JSON Metadata field:
+
+```
+{
+    "stagger_refresh": false,
+    "stagger_time": 2500
+}
+```
+
+Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of 2.5
+seconds is ignored.
+
+**Why does ‘flask fab’ or superset freezed/hung/not responding when started (my home directory is
+NFS mounted)?**
+
+By default, Superset creates and uses an SQLite database at `~/.superset/superset.db`. SQLite is
+known to [not work well if used on NFS](https://www.sqlite.org/lockingv3.html) due to broken file
+locking implementation on NFS.
+
+You can override this path using the **SUPERSET_HOME** environment variable.
+
+Another workaround is to change where superset stores the sqlite database by adding the following in
+`superset_config.py`:
+
+```
+SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread=false'
+```
+
+You can read more about customizing Superset using the configuration file
+[here](/docs/configuration/configuring-superset).
+
+## What if the table schema changed?
+
+Table schemas evolve, and Superset needs to reflect that. It’s pretty common in the life cycle of a
+dashboard to want to add a new dimension or metric. To get Superset to discover your new columns,
+all you have to do is to go to **Data -> Datasets**, click the edit icon next to the dataset
+whose schema has changed, and hit **Sync columns from source** from the **Columns** tab.
+Behind the scene, the new columns will get merged. Following this, you may want to re-edit the
+table afterwards to configure the Columns tab, check the appropriate boxes and save again.
+
+## What database engine can I use as a backend for Superset?
+
+To clarify, the database backend is an OLTP database used by Superset to store its internal
+information like your list of users and dashboard definitions. While Superset supports a
+[variety of databases as data *sources*](/docs/configuration/databases#installing-database-drivers),
+only a few database engines are supported for use as the OLTP backend / metadata store.
+
+Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
+Superset on one of these database servers for production.  Installation on other OLTP databases
+may work but isn’t tested.  It has been reported that [Microsoft SQL Server does *not*
+work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,
+non-OLTP databases are not designed for this type of workload.
+
+## How can I configure OAuth authentication and authorization?
+
+You can take a look at this Flask-AppBuilder
+[configuration example](https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py).
+
+## Is there a way to force the dashboard to use specific colors?
+
+It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON
+Metadata attribute using the `label_colors` key.
+
+```json
+{
+    "label_colors": {
+        "Girls": "#FF69B4",
+        "Boys": "#ADD8E6"
+    }
+}
+```
+
+## Does Superset work with [insert database engine here]?
+
+The [Connecting to Databases section](/docs/configuration/databases) provides the best
+overview for supported databases. Database engines not listed on that page may work too. We rely on
+the community to contribute to this knowledge base.
+
+For a database engine to be supported in Superset through the SQLAlchemy connector, it requires
+having a Python compliant [SQLAlchemy dialect](https://docs.sqlalchemy.org/en/13/dialects/) as well
+as a [DBAPI driver](https://www.python.org/dev/peps/pep-0249/) defined. Database that have limited
+SQL support may work as well. For instance it’s possible to connect to Druid through the SQLAlchemy
+connector even though Druid does not support joins and subqueries. Another key element for a
+database to be supported is through the Superset Database Engine Specification interface. This
+interface allows for defining database-specific configurations and logic that go beyond the
+SQLAlchemy and DBAPI scope. This includes features like:
+
+- date-related SQL function that allow Superset to fetch different time granularities when running
+  time-series queries
+- whether the engine supports subqueries. If false, Superset may run 2-phase queries to compensate
+  for the limitation
+- methods around processing logs and inferring the percentage of completion of a query
+- technicalities as to how to handle cursors and connections if the driver is not standard DBAPI
+
+Beyond the SQLAlchemy connector, it’s also possible, though much more involved, to extend Superset
+and write your own connector. The only example of this at the moment is the Druid connector, which
+is getting superseded by Druid’s growing SQL support and the recent availability of a DBAPI and
+SQLAlchemy driver. If the database you are considering integrating has any kind of of SQL support,
+it’s probably preferable to go the SQLAlchemy route. Note that for a native connector to be possible
+the database needs to have support for running OLAP-type queries and should be able to do things that
+are typical in basic SQL:
+
+- aggregate data
+- apply filters
+- apply HAVING-type filters
+- be schema-aware, expose columns and types
+
+## Does Superset offer a public API?
+
+Yes, a public REST API, and the surface of that API formal is expanding steadily. You can read more about this API and
+interact with it using Swagger [here](/docs/api).
+
+Some of the
+original vision for the collection of endpoints under **/api/v1** was originally specified in
+[SIP-17](https://github.com/apache/superset/issues/7259) and constant progress has been
+made to cover more and more use cases.
+
+The API available is documented using [Swagger](https://swagger.io/) and the documentation can be
+made available under **/swagger/v1** by enabling the following flag in `superset_config.py`:
+
+```
+FAB_API_SWAGGER_UI = True
+```
+
+There are other undocumented [private] ways to interact with Superset programmatically that offer no
+guarantees and are not recommended but may fit your use case temporarily:
+
+- using the ORM (SQLAlchemy) directly
+- using the internal FAB ModelView API (to be deprecated in Superset)
+- altering the source code in your fork
+
+## How can I see usage statistics (e.g., monthly active users)?
+
+This functionality is not included with Superset, but you can extract and analyze Superset's application
+metadata to see what actions have occurred.  By default, user activities are logged in the `logs` table
+in Superset's metadata database.  One company has published a write-up of [how they analyzed Superset
+usage, including example queries](https://engineering.hometogo.com/monitor-superset-usage-via-superset-c7f9fba79525).
+
+## What Does Hours Offset in the Edit Dataset view do?
+
+In the Edit Dataset view, you can specify a time offset. This field lets you configure the
+number of hours to be added or subtracted from the time column.
+This can be used, for example, to convert UTC time to local time.
+
+## Does Superset collect any telemetry data?
+
+Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telemetry data upon installing and/or running Superset. This data helps the maintainers of Superset better understand which versions of Superset are being used, in order to prioritize patch/minor releases and security fixes.
+We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
+Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
+Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
+Additional opt-out instructions for Docker users are available on the [Docker Installation](/docs/installation/docker-compose) page.
+
+## Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
+
+No. Currently, there is no way to recover a deleted Superset dashboard/chart/dataset/database from the UI. However, there is an [ongoing discussion](https://github.com/apache/superset/discussions/18386) about implementing such a feature.
+
+Hence, it is recommended to take periodic backups of the metadata database. For recovery, you can launch a recovery instance of a Superset server with the backed-up copy of the DB attached and use the Export Dashboard button in the Superset UI (or the `superset export-dashboards` CLI command). Then, take the .zip file and import it into the current Superset instance.
+
+Alternatively, you can programmatically take regular exports of the assets as a backup.

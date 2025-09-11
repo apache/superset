@@ -1,0 +1,107 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Bubble
+description: null
+certified_by: null
+certification_details: null
+viz_type: bubble_v2
+params:
+  datasource: 22__table
+  viz_type: bubble_v2
+  series: product_line
+  entity: deal_size
+  x:
+    expressionType: SIMPLE
+    column:
+      advanced_data_type: null
+      certification_details: null
+      certified_by: null
+      column_name: quantity_ordered
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 739
+      is_certified: false
+      is_dttm: false
+      python_date_format: null
+      type: BIGINT
+      type_generic: 0
+      verbose_name: null
+      warning_markdown: null
+    aggregate: SUM
+    sqlExpression: null
+    datasourceWarning: false
+    hasCustomLabel: false
+    label: SUM(quantity_ordered)
+    optionName: metric_ieq28dvzapm_wsnd3sj3trn
+  y:
+    expressionType: SIMPLE
+    column:
+      advanced_data_type: null
+      certification_details: null
+      certified_by: null
+      column_name: country
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 754
+      is_certified: false
+      is_dttm: false
+      python_date_format: null
+      type: TEXT
+      type_generic: 1
+      verbose_name: null
+      warning_markdown: null
+    aggregate: COUNT_DISTINCT
+    sqlExpression: null
+    datasourceWarning: false
+    hasCustomLabel: false
+    label: COUNT_DISTINCT(country)
+    optionName: metric_2pvgxo9w3dc_fazapv2jd65
+  adhoc_filters:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  size: count
+  order_desc: true
+  row_limit: 10000
+  color_scheme: supersetColors
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  max_bubble_size: "25"
+  tooltipSizeFormat: SMART_NUMBER
+  opacity: 0.6
+  x_axis_title_margin: 30
+  xAxisFormat: SMART_NUMBER
+  y_axis_title_margin: 30
+  y_axis_format: SMART_NUMBER
+  truncateXAxis: true
+  y_axis_bounds:
+    - null
+    - null
+  extra_form_data: {}
+  dashboards:
+    - 13
+cache_timeout: null
+uuid: c2014499-6800-43f0-908f-a2633db3ade7
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

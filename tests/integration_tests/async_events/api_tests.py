@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from typing import Optional
 from unittest import mock
 
 from superset.extensions import async_query_manager
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app
 
 
@@ -35,7 +36,7 @@ class TestAsyncEventApi(SupersetTestCase):
     def test_events(self, mock_uuid4):
         app._got_first_request = False
         async_query_manager.init_app(app)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
             rv = self.fetch_events()
             response = json.loads(rv.data.decode("utf-8"))
@@ -49,7 +50,7 @@ class TestAsyncEventApi(SupersetTestCase):
     def test_events_last_id(self, mock_uuid4):
         app._got_first_request = False
         async_query_manager.init_app(app)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
             rv = self.fetch_events("1607471525180-0")
             response = json.loads(rv.data.decode("utf-8"))
@@ -63,7 +64,7 @@ class TestAsyncEventApi(SupersetTestCase):
     def test_events_results(self, mock_uuid4):
         app._got_first_request = False
         async_query_manager.init_app(app)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
             mock_xrange.return_value = [
                 (
@@ -116,7 +117,7 @@ class TestAsyncEventApi(SupersetTestCase):
         assert rv.status_code == 401
 
     def test_events_no_token(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         self.client.set_cookie(app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "")
         rv = self.fetch_events()
         assert rv.status_code == 401

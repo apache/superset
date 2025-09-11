@@ -57,7 +57,7 @@ export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
         ),
         exampleGallery: [{ url: example }],
         name: t('Box Plot'),
-        tags: [t('ECharts'), t('Range'), t('Statistical')],
+        tags: [t('ECharts'), t('Range'), t('Statistical'), t('Featured')],
         thumbnail,
       },
       transformProps,

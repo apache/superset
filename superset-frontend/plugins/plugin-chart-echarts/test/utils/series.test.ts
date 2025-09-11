@@ -31,6 +31,7 @@ import {
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   formatSeriesName,
   getAxisType,
   getChartPadding,
@@ -40,6 +41,7 @@ import {
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
+  getTimeCompareStackId,
 } from '../../src/utils/series';
 import {
   EchartsTimeseriesSeriesType,
@@ -1040,4 +1042,60 @@ test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () 
     max: 100,
     scale: true,
   });
+});
+
+describe('getTimeCompareStackId', () => {
+  it('returns the defaultId when timeCompare is empty', () => {
+    const result = getTimeCompareStackId('default', []);
+    expect(result).toEqual('default');
+  });
+
+  it('returns the defaultId when no value in timeCompare is included in name', () => {
+    const result = getTimeCompareStackId(
+      'default',
+      ['compare1', 'compare2'],
+      'test__name',
+    );
+    expect(result).toEqual('default');
+  });
+
+  it('returns the first value in timeCompare that is included in name', () => {
+    const result = getTimeCompareStackId(
+      'default',
+      ['compare1', 'compare2'],
+      'test__compare1',
+    );
+    expect(result).toEqual('compare1');
+  });
+
+  it('handles name being a number', () => {
+    const result = getTimeCompareStackId('default', ['123', '456'], 123);
+    expect(result).toEqual('123');
+  });
+});
+
+const forecastValue = [
+  {
+    data: [0, 1],
+    seriesId: 'foo',
+  },
+  {
+    data: [0, 2],
+    seriesId: 'bar',
+  },
+];
+
+test('extractTooltipKeys with rich tooltip', () => {
+  const result = extractTooltipKeys(forecastValue, 1, true, false);
+  expect(result).toEqual(['foo', 'bar']);
+});
+
+test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
+  const result = extractTooltipKeys(forecastValue, 1, true, true);
+  expect(result).toEqual(['bar', 'foo']);
+});
+
+test('extractTooltipKeys with non-rich tooltip', () => {
+  const result = extractTooltipKeys(forecastValue, 1, false, false);
+  expect(result).toEqual(['foo']);
 });

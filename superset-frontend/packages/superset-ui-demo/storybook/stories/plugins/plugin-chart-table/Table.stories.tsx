@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import memoizeOne from 'memoize-one';
 import { SuperChart } from '@superset-ui/core';
 import TableChartPlugin, {

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset import is_feature_enabled
 
@@ -23,7 +23,7 @@ def dummy_is_feature_enabled(feature_flag_name: str, default: bool = True) -> bo
     return True if feature_flag_name.startswith("True_") else default
 
 
-def test_existing_feature_flags(mocker: MockFixture) -> None:
+def test_existing_feature_flags(mocker: MockerFixture) -> None:
     """
     Test that ``is_feature_enabled`` reads flags correctly.
     """
@@ -35,7 +35,7 @@ def test_existing_feature_flags(mocker: MockFixture) -> None:
     assert is_feature_enabled("FOO") is True
 
 
-def test_nonexistent_feature_flags(mocker: MockFixture) -> None:
+def test_nonexistent_feature_flags(mocker: MockerFixture) -> None:
     """
     Test that ``is_feature_enabled`` returns ``False`` when flag not set.
     """
@@ -45,7 +45,7 @@ def test_nonexistent_feature_flags(mocker: MockFixture) -> None:
     assert is_feature_enabled("FOO") is False
 
 
-def test_is_feature_enabled(mocker: MockFixture) -> None:
+def test_is_feature_enabled(mocker: MockerFixture) -> None:
     """
     Test ``_is_feature_enabled_func``.
     """

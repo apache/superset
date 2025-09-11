@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import React, { lazy } from 'react';
+import { lazy, ComponentType, ComponentProps } from 'react';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -139,9 +139,9 @@ const ExportSliceToGoogleSheets = lazy(
 
 type Routes = {
   path: string;
-  Component: React.ComponentType;
-  Fallback?: React.ComponentType;
-  props?: React.ComponentProps<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
+  props?: ComponentProps<any>;
 }[];
 
 export const routes: Routes = [

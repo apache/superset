@@ -26,10 +26,10 @@ Create Date: 2020-09-24 12:04:33.827436
 revision = "3fbbc6e8d654"
 down_revision = "e5ef6828ac4e"
 
-import re
+import re  # noqa: E402
 
-from alembic import op
-from sqlalchemy import (
+from alembic import op  # noqa: E402
+from sqlalchemy import (  # noqa: E402
     Column,
     ForeignKey,
     Integer,
@@ -39,9 +39,9 @@ from sqlalchemy import (
     Table,
     UniqueConstraint,
 )
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import backref, relationship  # noqa: E402
 
 Base = declarative_base()
 
@@ -106,7 +106,6 @@ sqlatable_user = Table(
 
 
 class Database(Base):  # pylint: disable=too-many-public-methods
-
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"

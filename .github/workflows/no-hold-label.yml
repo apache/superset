@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   check-hold-label:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Check for 'hold' label
       uses: actions/github-script@v7

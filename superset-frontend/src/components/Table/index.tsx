@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, ReactElement } from 'react';
+import { useState, useEffect, useRef, ReactElement, Key } from 'react';
+
 import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
@@ -69,11 +70,11 @@ export interface TableProps<RecordType> {
   /**
    * Array of row keys to represent list of selected rows.
    */
-  selectedRows?: React.Key[];
+  selectedRows?: Key[];
   /**
    * Callback function invoked when a row is selected by user.
    */
-  handleRowSelection?: (newSelectedRowKeys: React.Key[]) => void;
+  handleRowSelection?: (newSelectedRowKeys: Key[]) => void;
   /**
    * Controls the size of the table.
    */
@@ -158,7 +159,7 @@ export interface TableProps<RecordType> {
   childrenColumnName?: string;
 }
 
-const defaultRowSelection: React.Key[] = [];
+const defaultRowSelection: Key[] = [];
 
 const PAGINATION_HEIGHT = 40;
 const HEADER_HEIGHT = 68;
@@ -274,11 +275,10 @@ export function Table<RecordType extends object>(
   const [mergedLocale, setMergedLocale] = useState<
     Required<AntTableProps<RecordType>>['locale']
   >({ ...defaultLocale });
-  const [selectedRowKeys, setSelectedRowKeys] =
-    useState<React.Key[]>(selectedRows);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>(selectedRows);
   const interactiveTableUtils = useRef<InteractiveTableUtils | null>(null);
 
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+  const onSelectChange = (newSelectedRowKeys: Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
     handleRowSelection?.(newSelectedRowKeys);
   };

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -28,10 +29,10 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelRequiredFieldValidationError,
 )
 from superset.daos.database import SSHTunnelDAO
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.databases.utils import make_url_safe
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -44,15 +45,18 @@ class CreateSSHTunnelCommand(BaseCommand):
         self._properties["database"] = database
         self._database = database
 
+    @transaction(on_error=partial(on_error, reraise=SSHTunnelCreateFailedError))
     def run(self) -> Model:
-        try:
-            self.validate()
-            ssh_tunnel = SSHTunnelDAO.create(attributes=self._properties, commit=False)
-            return ssh_tunnel
-        except DAOCreateFailedError as ex:
-            raise SSHTunnelCreateFailedError() from ex
-        except SSHTunnelInvalidError as ex:
-            raise ex
+        """
+        Create an SSH tunnel.
+
+        :returns: The SSH tunnel model
+        :raises SSHTunnelCreateFailedError: If the model creation fails
+        :raises SSHTunnelInvalidError: If the configuration are invalid
+        """
+
+        self.validate()
+        return SSHTunnelDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost

@@ -19,7 +19,8 @@ under the License.
 
 ## @superset-ui/plugin-chart-handlebars
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-handlebars.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-handlebars)
+[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-handlebars.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/plugin-chart-handlebars)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fplugin-chart-handlebars?style=flat)](https://libraries.io/npm/@superset-ui%2Fplugin-chart-handlebars)
 
 This plugin renders the data using a handlebars template.
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import type { Table } from 'src/SqlLab/types';
 import Collapse from 'src/components/Collapse';
@@ -32,6 +32,7 @@ import {
   syncTable,
 } from 'src/SqlLab/actions/sqlLab';
 import {
+  tableApiUtil,
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
@@ -101,30 +102,32 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
 `;
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
-  const { dbId, schema, name, expanded } = table;
+  const { dbId, catalog, schema, name, expanded } = table;
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
-    data: tableMetadata,
+    currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
-    isLoading: isMetadataLoading,
+    isFetching: isMetadataFetching,
     isError: hasMetadataError,
   } = useTableMetadataQuery(
     {
       dbId,
+      catalog,
       schema,
       table: name,
     },
     { skip: !expanded },
   );
   const {
-    data: tableExtendedMetadata,
+    currentData: tableExtendedMetadata,
     isSuccess: isExtraMetadataSuccess,
     isLoading: isExtraMetadataLoading,
     isError: hasExtendedMetadataError,
   } = useTableExtendedMetadataQuery(
     {
       dbId,
+      catalog,
       schema,
       table: name,
     },
@@ -173,6 +176,13 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const toggleSortColumns = () => {
     setSortColumns(prevState => !prevState);
+  };
+
+  const refreshTableMetadata = () => {
+    dispatch(
+      tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
+    );
+    dispatch(syncTable(table, tableData));
   };
 
   const renderWell = () => {
@@ -266,6 +276,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           }
         `}
       >
+        <IconTooltip
+          className="fa fa-refresh pull-left m-l-2 pointer"
+          onClick={refreshTableMetadata}
+          tooltip={t('Refresh table schema')}
+        />
         {keyLink}
         <IconTooltip
           className={
@@ -339,7 +354,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         </Tooltip>
 
         <div className="pull-right header-right-side">
-          {isMetadataLoading || isExtraMetadataLoading ? (
+          {isMetadataFetching || isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
             <Fade

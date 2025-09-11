@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SqlEditorLeftBar, {
   SqlEditorLeftBarProps,
@@ -44,7 +43,18 @@ const mockedProps = {
 
 beforeEach(() => {
   fetchMock.get('glob:*/api/v1/database/?*', { result: [] });
-  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
+  fetchMock.get('glob:*/api/v1/database/*/catalogs/?*', {
+    count: 0,
+    result: [],
+  });
+  fetchMock.get('glob:*/api/v1/database/3/schemas/?*', {
+    error: 'Unauthorized',
+  });
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    count: 2,
+    result: ['main', 'db1_schema', 'db1_schema2'],
+  });
+  fetchMock.get('glob:*/api/v1/database/2/schemas/?*', {
     count: 2,
     result: ['main', 'new_schema'],
   });
@@ -61,13 +71,13 @@ beforeEach(() => {
       },
     ],
   });
-  fetchMock.get('glob:*/api/v1/database/*/table/*/*', {
+  fetchMock.get('glob:*/api/v1/database/*/table_metadata/*', {
     status: 200,
     body: {
       columns: table.columns,
     },
   });
-  fetchMock.get('glob:*/api/v1/database/*/table_extra/*/*', {
+  fetchMock.get('glob:*/api/v1/database/*/table_metadata/extra/*', {
     status: 200,
     body: {},
   });
@@ -103,7 +113,7 @@ test('renders a TableElement', async () => {
 });
 
 test('table should be visible when expanded is true', async () => {
-  const { container, getByText, getByRole, queryAllByText } =
+  const { container, getByText, getByRole, getAllByLabelText } =
     await renderAndWait(mockedProps, undefined, {
       ...initialState,
       sqlLab: { ...initialState.sqlLab, tables: [table] },
@@ -115,14 +125,58 @@ test('table should be visible when expanded is true', async () => {
   const schemaSelect = getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
-  const dropdown = getByText(/Table/i);
-  const abUser = queryAllByText(/ab_user/i);
+  const tableSelect = getAllByLabelText(
+    /Select table or type to search tables/i,
+  )[0];
+  const tableOption = within(tableSelect).getByText(/ab_user/i);
 
   expect(getByText(/Database/i)).toBeInTheDocument();
   expect(dbSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
+  expect(tableSelect).toBeInTheDocument();
+  expect(tableOption).toBeInTheDocument();
+  expect(
+    container.querySelector('.ant-collapse-content-active'),
+  ).toBeInTheDocument();
+  table.columns.forEach(({ name }) => {
+    expect(getByText(name)).toBeInTheDocument();
+  });
+});
+
+test('catalog selector should be visible when enabled in the database', async () => {
+  const { container, getByText, getByRole } = await renderAndWait(
+    {
+      ...mockedProps,
+      database: {
+        ...mockedProps.database,
+        allow_multi_catalog: true,
+      },
+    },
+    undefined,
+    {
+      ...initialState,
+      sqlLab: { ...initialState.sqlLab, tables: [table] },
+    },
+  );
+
+  const dbSelect = getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  const catalogSelect = getByRole('combobox', {
+    name: 'Select catalog or type to search catalogs',
+  });
+  const schemaSelect = getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
+  });
+  const dropdown = getByText(/Select table/i);
+  const abUser = getByText(/ab_user/i);
+
+  expect(getByText(/Database/i)).toBeInTheDocument();
+  expect(dbSelect).toBeInTheDocument();
+  expect(catalogSelect).toBeInTheDocument();
+  expect(schemaSelect).toBeInTheDocument();
   expect(dropdown).toBeInTheDocument();
-  expect(abUser).toHaveLength(2);
+  expect(abUser).toBeInTheDocument();
   expect(
     container.querySelector('.ant-collapse-content-active'),
   ).toBeInTheDocument();
@@ -151,7 +205,7 @@ test('should toggle the table when the header is clicked', async () => {
   );
 });
 
-test('When changing database the table list must be updated', async () => {
+test('When changing database the schema and table list must be updated', async () => {
   const { rerender } = await renderAndWait(mockedProps, undefined, {
     ...initialState,
     sqlLab: {
@@ -198,6 +252,32 @@ test('When changing database the table list must be updated', async () => {
   expect(updatedDbSelector[0]).toBeInTheDocument();
   const updatedTableSelector = await screen.findAllByText(/new_table/i);
   expect(updatedTableSelector[0]).toBeInTheDocument();
+
+  const select = screen.getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
+  });
+  userEvent.click(select);
+  expect(
+    await screen.findByRole('option', { name: 'main' }),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByRole('option', { name: 'new_schema' }),
+  ).toBeInTheDocument();
+  rerender(
+    <SqlEditorLeftBar
+      {...mockedProps}
+      database={{
+        id: 3,
+        database_name: 'unauth_db',
+        backend: 'minervasql',
+      }}
+      queryEditorId={extraQueryEditor1.id}
+    />,
+  );
+  userEvent.click(select);
+  expect(
+    await screen.findByText('No compatible schema found'),
+  ).toBeInTheDocument();
 });
 
 test('ignore schema api when current schema is deprecated', async () => {

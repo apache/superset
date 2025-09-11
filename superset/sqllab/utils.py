@@ -38,6 +38,8 @@ DATABASE_KEYS = [
     "force_ctas_schema",
     "id",
     "disable_data_preview",
+    "disable_drill_to_detail",
+    "allow_multi_catalog",
 ]
 
 

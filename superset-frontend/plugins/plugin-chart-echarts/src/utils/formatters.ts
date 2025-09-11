@@ -25,11 +25,20 @@ import {
   isSavedMetric,
   NumberFormats,
   QueryFormMetric,
-  smartDateDetailedFormatter,
-  smartDateFormatter,
+  SMART_DATE_DETAILED_ID,
+  SMART_DATE_ID,
+  SMART_DATE_VERBOSE_ID,
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
+
+export const getSmartDateDetailedFormatter = () =>
+  getTimeFormatter(SMART_DATE_DETAILED_ID);
+
+export const getSmartDateFormatter = () => getTimeFormatter(SMART_DATE_ID);
+
+export const getSmartDateVerboseFormatter = () =>
+  getTimeFormatter(SMART_DATE_VERBOSE_ID);
 
 export const getPercentFormatter = (format?: string) =>
   getNumberFormatter(
@@ -68,8 +77,8 @@ export const getYAxisFormatter = (
 export function getTooltipTimeFormatter(
   format?: string,
 ): TimeFormatter | StringConstructor {
-  if (format === smartDateFormatter.id) {
-    return smartDateDetailedFormatter;
+  if (format === SMART_DATE_ID) {
+    return getSmartDateDetailedFormatter();
   }
   if (format) {
     return getTimeFormatter(format);
@@ -80,7 +89,7 @@ export function getTooltipTimeFormatter(
 export function getXAxisFormatter(
   format?: string,
 ): TimeFormatter | StringConstructor | undefined {
-  if (format === smartDateFormatter.id || !format) {
+  if (format === SMART_DATE_ID || !format) {
     return undefined;
   }
   if (format) {

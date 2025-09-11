@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Suspense, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { hot } from 'react-hot-loader/root';
 import {
   BrowserRouter as Router,

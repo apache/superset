@@ -18,7 +18,6 @@
 
 from typing import Any, Optional, Union
 
-import simplejson as json
 from flask import g
 
 from superset.commands.base import BaseCommand
@@ -29,6 +28,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.extensions import db
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import error_msg_from_exception
 from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
 from superset.viz import viz_types

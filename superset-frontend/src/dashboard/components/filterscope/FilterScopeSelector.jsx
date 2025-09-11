@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import Button from 'src/components/Button';
@@ -324,7 +324,7 @@ const ActionsContainer = styled.div`
   `}
 `;
 
-export default class FilterScopeSelector extends React.PureComponent {
+export default class FilterScopeSelector extends PureComponent {
   constructor(props) {
     super(props);
 

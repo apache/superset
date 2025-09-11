@@ -17,13 +17,11 @@
  * under the License.
  */
 
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@superset-ui/core';
+import { ErrorLevel, ErrorSource, supersetTheme } from '@superset-ui/core';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import ErrorAlert from './ErrorAlert';
-import { ErrorLevel, ErrorSource } from './types';
 
 jest.mock(
   'src/components/Icons/Icon',

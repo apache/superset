@@ -316,7 +316,7 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       .map(val => optionLabel(val))
       .map(
         val =>
-          `${quote}${isString ? String(val).replace("'", "''") : val}${quote}`,
+          `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
       );
     if (comparatorArray.length > 0) {
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;

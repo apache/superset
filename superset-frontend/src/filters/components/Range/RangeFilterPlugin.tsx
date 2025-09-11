@@ -24,7 +24,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { rgba } from 'emotion-rgba';
 import { AntdSlider } from 'src/components';
 import { FilterBarOrientation } from 'src/dashboard/types';

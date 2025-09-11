@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 export interface ConfirmationAlertProps {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   onConfirm: OnClickHandler;
   onDismiss: OnClickHandler;
 }
@@ -61,6 +61,7 @@ export function CancelConfirmationAlert({
             buttonSize="small"
             buttonStyle="primary"
             onClick={onConfirm}
+            data-test="native-filter-modal-confirm-cancel-button"
           >
             {t('Yes, cancel')}
           </Button>

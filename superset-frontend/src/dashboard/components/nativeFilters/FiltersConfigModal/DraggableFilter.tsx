@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import React, { useRef } from 'react';
+import { useRef, FC } from 'react';
 import {
   DragSourceMonitor,
   DropTargetMonitor,
@@ -66,7 +66,7 @@ interface DragItem {
   type: string;
 }
 
-export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
+export const DraggableFilter: FC<FilterTabTitleProps> = ({
   index,
   onRearrange,
   filterIds,

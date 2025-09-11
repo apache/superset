@@ -17,7 +17,7 @@
  * under the License.
  */
 import { logging, t } from '@superset-ui/core';
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import Loading from 'src/components/Loading';

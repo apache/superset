@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { Menu } from 'src/components/Menu';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';

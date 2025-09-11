@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  ReactNode,
-  useState,
-  useCallback,
-  useRef,
-  useMemo,
-} from 'react';
+import { ReactNode, useState, useCallback, useRef, useMemo } from 'react';
 import Button from 'src/components/Button';
 import AsyncSelect from './AsyncSelect';
 import {

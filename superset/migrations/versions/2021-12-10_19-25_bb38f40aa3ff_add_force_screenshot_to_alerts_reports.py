@@ -26,11 +26,11 @@ Create Date: 2021-12-10 19:25:29.802949
 revision = "bb38f40aa3ff"
 down_revision = "31bb738bd1d2"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
 
 Base = declarative_base()
 

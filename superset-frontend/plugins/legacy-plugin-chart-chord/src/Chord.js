@@ -130,9 +130,9 @@ function Chord(element, props) {
     .text(
       d =>
         `${nodes[d.source.index]} → ${nodes[d.target.index]}: ${f(
-          d.source.value,
-        )}\n${nodes[d.target.index]} → ${nodes[d.source.index]}: ${f(
           d.target.value,
+        )}\n${nodes[d.target.index]} → ${nodes[d.source.index]}: ${f(
+          d.source.value,
         )}`,
     );
 }

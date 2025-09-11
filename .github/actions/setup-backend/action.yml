@@ -1,0 +1,53 @@
+name: 'Setup Python Environment'
+description: 'Set up Python and install dependencies with optional configurations.'
+inputs:
+  python-version:
+    description: 'Python version to set up. Accepts a version number, "current", or "next".'
+    required: true
+    default: 'current'
+  cache:
+    description: 'Cache dependencies. Options: pip'
+    required: false
+    default: 'pip'
+  requirements-type:
+    description: 'Type of requirements to install. Options: base, development, default'
+    required: false
+    default: 'dev'
+  install-superset:
+    description: 'Whether to install Superset itself. If false, only python is installed'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Interpret Python Version
+      id: set-python-version
+      shell: bash
+      run: |
+        if [ "${{ inputs.python-version }}" = "current" ]; then
+          echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
+        elif [ "${{ inputs.python-version }}" = "next" ]; then
+          echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
+        elif [ "${{ inputs.python-version }}" = "previous" ]; then
+          echo "PYTHON_VERSION=3.9" >> $GITHUB_ENV
+        else
+          echo "PYTHON_VERSION=${{ inputs.python-version }}" >> $GITHUB_ENV
+        fi
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: ${{ inputs.cache }}
+    - name: Install dependencies
+      run: |
+        if [ "${{ inputs.install-superset }}" = "true" ]; then
+          sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
+          pip install --upgrade pip setuptools wheel
+          if [ "${{ inputs.requirements-type }}" = "dev" ]; then
+            pip install -r requirements/development.txt
+          elif [ "${{ inputs.requirements-type }}" = "base" ]; then
+            pip install -r requirements/base.txt
+          fi
+        fi
+      shell: bash

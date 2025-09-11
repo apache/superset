@@ -19,14 +19,11 @@ updates:
     open-pull-requests-limit: 30
     versioning-strategy: increase
 
-  - package-ecosystem: "pip"
-    directory: "/requirements/"
-    schedule:
-      interval: "monthly"
-    labels:
-      - pip
-      - dependabot
-    open-pull-requests-limit: 30
+
+  # - package-ecosystem: "pip"
+  # NOTE: as dependabot isn't compatible with our python
+  # dependency setup (pip-compile-multi), we'll be using
+  # `supersetbot` instead
 
   - package-ecosystem: "npm"
     directory: ".github/actions"

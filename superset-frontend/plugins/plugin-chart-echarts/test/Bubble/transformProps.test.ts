@@ -160,42 +160,44 @@ describe('Bubble formatTooltip', () => {
       data: [10000, 20000, 3, 'bubble title', 'bubble dimension'],
     };
 
-    expect(
-      formatTooltip(
-        params,
-        'x-axis-label',
-        'y-axis-label',
-        'size-label',
-        dollerFormatter,
-        dollerFormatter,
-        percentFormatter,
-      ),
-    ).toEqual(
-      `<p>bubble title </br> bubble dimension</p>
-        x-axis-label: $10,000.00 <br/>
-        y-axis-label: $20,000.00 <br/>
-        size-label: 300.0%`,
+    const html = formatTooltip(
+      params,
+      'x-axis-label',
+      'y-axis-label',
+      'size-label',
+      dollerFormatter,
+      dollerFormatter,
+      percentFormatter,
     );
+    expect(html).toContain('bubble title');
+    expect(html).toContain('bubble dimension');
+    expect(html).toContain('x-axis-label');
+    expect(html).toContain('y-axis-label');
+    expect(html).toContain('size-label');
+    expect(html).toContain('$10,000.00');
+    expect(html).toContain('$20,000.00');
+    expect(html).toContain('300.0%');
   });
   it('Should generate correct bubble label content without dimension', () => {
     const params = {
       data: [10000, 25000, 3, 'bubble title', null],
     };
-    expect(
-      formatTooltip(
-        params,
-        'x-axis-label',
-        'y-axis-label',
-        'size-label',
-        dollerFormatter,
-        dollerFormatter,
-        percentFormatter,
-      ),
-    ).toEqual(
-      `<p>bubble title</p>
-        x-axis-label: $10,000.00 <br/>
-        y-axis-label: $25,000.00 <br/>
-        size-label: 300.0%`,
+    const html = formatTooltip(
+      params,
+      'x-axis-label',
+      'y-axis-label',
+      'size-label',
+      dollerFormatter,
+      dollerFormatter,
+      percentFormatter,
     );
+    expect(html).toContain('bubble title');
+    expect(html).not.toContain('bubble dimension');
+    expect(html).toContain('x-axis-label');
+    expect(html).toContain('y-axis-label');
+    expect(html).toContain('size-label');
+    expect(html).toContain('$10,000.00');
+    expect(html).toContain('$25,000.00');
+    expect(html).toContain('300.0%');
   });
 });

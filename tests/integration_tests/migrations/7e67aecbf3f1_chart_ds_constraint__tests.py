@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from importlib import import_module
+
+from superset.utils import json
 
 chart_ds_constraint = import_module(
     "superset.migrations.versions." "2023-03-27_12-30_7e67aecbf3f1_chart_ds_constraint",
@@ -53,4 +54,4 @@ def test_upgrade():
 def test_upgrade_bad_json():
     slc = Slice(datasource_type="query", params=json.dumps(sample_params))
 
-    assert None == upgrade_slice(slc)
+    assert None is upgrade_slice(slc)  # noqa: E711

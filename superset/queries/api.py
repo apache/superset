@@ -144,11 +144,13 @@ class QueryRestApi(BaseSupersetModelRestApi):
     ]
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "user": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
@@ -231,8 +233,8 @@ class QueryRestApi(BaseSupersetModelRestApi):
         backoff.constant,
         Exception,
         interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
+        on_backoff=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
+        on_giveup=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
         max_tries=5,
     )
     @requires_json

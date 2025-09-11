@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   AxisType,
   BinaryQueryObjectFilterClause,
@@ -110,13 +110,25 @@ export default function EchartsMixedTimeseries({
 
   const handleChange = useCallback(
     (seriesName: string, seriesIndex: number) => {
-      if (!emitCrossFilters) {
+      const isFirst = isFirstQuery(seriesIndex);
+      if (
+        !emitCrossFilters ||
+        (isFirst && groupby.length === 0) ||
+        (!isFirst && groupbyB.length === 0)
+      ) {
         return;
       }
 
       setDataMask(getCrossFilterDataMask(seriesName, seriesIndex).dataMask);
     },
-    [emitCrossFilters, setDataMask, getCrossFilterDataMask],
+    [
+      isFirstQuery,
+      emitCrossFilters,
+      groupby.length,
+      groupbyB.length,
+      setDataMask,
+      getCrossFilterDataMask,
+    ],
   );
 
   const eventHandlers: EventHandlers = {
@@ -140,7 +152,7 @@ export default function EchartsMixedTimeseries({
         const isFirst = isFirstQuery(seriesIndex);
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
+          ...((isFirst ? labelMap : labelMapB)[eventParams.seriesName] || []),
         ];
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
@@ -179,9 +191,14 @@ export default function EchartsMixedTimeseries({
               }),
             }),
         );
+        const hasCrossFilter =
+          (isFirst && groupby.length > 0) || (!isFirst && groupbyB.length > 0);
+
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(seriesName, seriesIndex),
+          crossFilter: hasCrossFilter
+            ? getCrossFilterDataMask(seriesName, seriesIndex)
+            : undefined,
           drillBy: {
             filters: drillByFilters,
             groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',

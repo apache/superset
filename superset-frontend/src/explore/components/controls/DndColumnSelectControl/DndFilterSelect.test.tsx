@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
@@ -37,6 +36,7 @@ import {
 import type { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { Operators } from 'src/explore/constants';
 import {
   DndFilterSelect,
   DndFilterSelectProps,
@@ -48,6 +48,7 @@ import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('src/components/AsyncAceEditor'),
   SQLEditor: (props: AsyncAceEditorProps) => (
     <div data-test="react-ace">{props.value}</div>
   ),
@@ -78,11 +79,13 @@ function setup({
   formData = baseFormData,
   columns = [],
   datasource = PLACEHOLDER_DATASOURCE,
+  additionalProps = {},
 }: {
-  value?: AdhocFilter;
+  value?: AdhocFilter | AdhocFilter[];
   formData?: QueryFormData;
   columns?: ColumnMeta[];
   datasource?: Datasource;
+  additionalProps?: Partial<DndFilterSelectProps>;
 } = {}) {
   return (
     <DndFilterSelect
@@ -91,9 +94,14 @@ function setup({
       value={ensureIsArray(value)}
       formData={formData}
       columns={columns}
+      {...additionalProps}
     />
   );
 }
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 test('renders with default props', async () => {
   render(setup(), { useDnd: true, store });
@@ -246,6 +254,73 @@ test('cannot drop a column that is not part of the simple column selection', () 
   expect(
     within(screen.getByTestId('filter-edit-popover')).getByTestId('react-ace'),
   ).toHaveTextContent('AGG(metric_a)');
+});
+
+test('calls onChange when close is clicked and canDelete is true', () => {
+  const value1 = new AdhocFilter({
+    sqlExpression: 'COUNT(*)',
+    expressionType: ExpressionTypes.Sql,
+  });
+  const value2 = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'col',
+    comparator: 'val',
+    operator: Operators.Equals,
+  });
+  const canDelete = jest.fn();
+  canDelete.mockReturnValue(true);
+  render(setup({ value: [value1, value2], additionalProps: { canDelete } }), {
+    useDnd: true,
+    store,
+  });
+  fireEvent.click(screen.getAllByTestId('remove-control-button')[0]);
+  expect(canDelete).toHaveBeenCalled();
+  expect(defaultProps.onChange).toHaveBeenCalledWith([value2]);
+});
+
+test('onChange is not called when close is clicked and canDelete is false', () => {
+  const value1 = new AdhocFilter({
+    sqlExpression: 'COUNT(*)',
+    expressionType: ExpressionTypes.Sql,
+  });
+  const value2 = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'col',
+    comparator: 'val',
+    operator: Operators.Equals,
+  });
+  const canDelete = jest.fn();
+  canDelete.mockReturnValue(false);
+  render(setup({ value: [value1, value2], additionalProps: { canDelete } }), {
+    useDnd: true,
+    store,
+  });
+  fireEvent.click(screen.getAllByTestId('remove-control-button')[0]);
+  expect(canDelete).toHaveBeenCalled();
+  expect(defaultProps.onChange).not.toHaveBeenCalled();
+});
+
+test('onChange is not called when close is clicked and canDelete is string, warning is displayed', async () => {
+  const value1 = new AdhocFilter({
+    sqlExpression: 'COUNT(*)',
+    expressionType: ExpressionTypes.Sql,
+  });
+  const value2 = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'col',
+    comparator: 'val',
+    operator: Operators.Equals,
+  });
+  const canDelete = jest.fn();
+  canDelete.mockReturnValue('Test warning');
+  render(setup({ value: [value1, value2], additionalProps: { canDelete } }), {
+    useDnd: true,
+    store,
+  });
+  fireEvent.click(screen.getAllByTestId('remove-control-button')[0]);
+  expect(canDelete).toHaveBeenCalled();
+  expect(defaultProps.onChange).not.toHaveBeenCalled();
+  expect(await screen.findByText('Test warning')).toBeInTheDocument();
 });
 
 describe('when disallow_adhoc_metrics is set', () => {

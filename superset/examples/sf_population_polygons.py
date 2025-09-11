@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 
 import pandas as pd
 from sqlalchemy import BigInteger, Float, inspect, Text
 
 import superset.utils.database as database_utils
 from superset import db
+from superset.sql_parse import Table
+from superset.utils import json
 
 from .helpers import get_example_url, get_table_connector_registry
 
@@ -30,9 +31,9 @@ def load_sf_population_polygons(
 ) -> None:
     tbl_name = "sf_population_polygons"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("sf_population.json.gz")
@@ -63,5 +64,4 @@ def load_sf_population_polygons(
     tbl.description = "Population density of San Francisco"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.commit()
     tbl.fetch_metadata()

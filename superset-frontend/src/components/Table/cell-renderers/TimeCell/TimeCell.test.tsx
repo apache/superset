@@ -17,7 +17,6 @@
  * under the License.
  */
 import { TimeFormats } from '@superset-ui/core';
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import TimeCell from '.';
 

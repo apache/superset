@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC, useMemo, useState, memo } from 'react';
+import { FC, useMemo, useState, memo } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
 import { Tree } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';

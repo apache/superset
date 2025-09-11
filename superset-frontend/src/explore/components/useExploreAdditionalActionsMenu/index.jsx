@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   css,
@@ -47,7 +47,7 @@ import {
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
-import ExportSliceToGoogleSheet from "../../../dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet";
+import ExportSliceToGoogleSheet from '../../../dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -174,22 +174,26 @@ export const useExploreAdditionalActionsMenu = (
 
   const exportJson = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'json',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'json',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const exportExcel = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'xlsx',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const copyLink = useCallback(async () => {
@@ -351,6 +355,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
             {t('Export to .JSON')}
           </Menu.Item>
@@ -363,6 +368,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_XLSX}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
             {t('Export to Excel')}
           </Menu.Item>

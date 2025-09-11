@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
@@ -101,7 +101,7 @@ jest.mock('src/components/Icons/Icon', () => ({
   }: {
     fileName: string;
     role: string;
-    'aria-label': React.AriaAttributes['aria-label'];
+    'aria-label': AriaAttributes['aria-label'];
   }) => (
     <span
       role={role ?? 'img'}
@@ -115,7 +115,7 @@ jest.mock('src/components/Icons/Icon', () => ({
     ...rest
   }: {
     role: string;
-    'aria-label': React.AriaAttributes['aria-label'];
+    'aria-label': AriaAttributes['aria-label'];
   }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
 }));
 

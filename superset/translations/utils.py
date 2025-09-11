@@ -15,8 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import os
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 # Global caching for JSON language packs
 ALL_LANGUAGE_PACKS: dict[str, dict[str, Any]] = {"en": {}}
@@ -35,11 +38,17 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
     pack = ALL_LANGUAGE_PACKS.get(locale)
     if not pack:
         filename = DIR + f"/{locale}/LC_MESSAGES/messages.json"
+        if not locale or locale == "en":
+            # Forcing a dummy, quasy-empty language pack for English since the file
+            # in the en directory is contains data with empty mappings
+            filename = DIR + "/empty_language_pack.json"
         try:
             with open(filename, encoding="utf8") as f:
                 pack = json.load(f)
                 ALL_LANGUAGE_PACKS[locale] = pack or {}
         except Exception:  # pylint: disable=broad-except
-            # Assuming english, client side falls back on english
-            pass
+            logger.error(
+                "Error loading language pack for, falling back on en %s", locale
+            )
+            pack = get_language_pack("en")
     return pack

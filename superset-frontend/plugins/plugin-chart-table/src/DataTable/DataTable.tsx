@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useCallback,
   useRef,
   ReactNode,
   HTMLProps,
   MutableRefObject,
   CSSProperties,
+  DragEvent,
 } from 'react';
+
 import {
   useTable,
   usePagination,
@@ -67,6 +69,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
+  renderGroupingHeaders?: () => JSX.Element;
+  renderTimeComparisonDropdown?: () => JSX.Element;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -99,6 +103,8 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
+  renderGroupingHeaders,
+  renderTimeComparisonDropdown,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -115,7 +121,8 @@ export default typedMemo(function DataTable<D extends object>({
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
   const pageSizeRef = useRef([initialPageSize, resultsSize]);
   const hasPagination = initialPageSize > 0 && resultsSize > 0; // pageSize == 0 means no pagination
-  const hasGlobalControl = hasPagination || !!searchInput;
+  const hasGlobalControl =
+    hasPagination || !!searchInput || renderTimeComparisonDropdown;
   const initialState = {
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
@@ -223,7 +230,7 @@ export default typedMemo(function DataTable<D extends object>({
 
   let columnBeingDragged = -1;
 
-  const onDragStart = (e: React.DragEvent) => {
+  const onDragStart = (e: DragEvent) => {
     const el = e.target as HTMLTableCellElement;
     columnBeingDragged = allColumns.findIndex(
       col => col.id === el.dataset.columnName,
@@ -231,7 +238,7 @@ export default typedMemo(function DataTable<D extends object>({
     e.dataTransfer.setData('text/plain', `${columnBeingDragged}`);
   };
 
-  const onDrop = (e: React.DragEvent) => {
+  const onDrop = (e: DragEvent) => {
     const el = e.target as HTMLTableCellElement;
     const newPosition = allColumns.findIndex(
       col => col.id === el.dataset.columnName,
@@ -251,6 +258,7 @@ export default typedMemo(function DataTable<D extends object>({
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
+        {renderGroupingHeaders ? renderGroupingHeaders() : null}
         {headerGroups.map(headerGroup => {
           const { key: headerGroupKey, ...headerGroupProps } =
             headerGroup.getHeaderGroupProps();
@@ -274,7 +282,7 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps}>
+              <tr key={rowKey || row.id} {...rowProps} role="row">
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
@@ -295,7 +303,11 @@ export default typedMemo(function DataTable<D extends object>({
             const { key: footerGroupKey, ...footerGroupProps } =
               footerGroup.getHeaderGroupProps();
             return (
-              <tr key={footerGroupKey || footerGroup.id} {...footerGroupProps}>
+              <tr
+                key={footerGroupKey || footerGroup.id}
+                {...footerGroupProps}
+                role="row"
+              >
                 {footerGroup.headers.map(column =>
                   column.render('Footer', { key: column.id }),
                 )}
@@ -351,7 +363,9 @@ export default typedMemo(function DataTable<D extends object>({
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
           <div className="row">
-            <div className="col-sm-6">
+            <div
+              className={renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'}
+            >
               {hasPagination ? (
                 <SelectPageSize
                   total={resultsSize}
@@ -376,6 +390,14 @@ export default typedMemo(function DataTable<D extends object>({
                   setGlobalFilter={setGlobalFilter}
                   filterValue={filterValue}
                 />
+              </div>
+            ) : null}
+            {renderTimeComparisonDropdown ? (
+              <div
+                className="col-sm-1"
+                style={{ float: 'right', marginTop: '6px' }}
+              >
+                {renderTimeComparisonDropdown()}
               </div>
             ) : null}
           </div>

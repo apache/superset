@@ -18,12 +18,18 @@
 set -e
 
 # Packages needed for puppeteer:
-apt update
-apt install -y chromium
+if [ "$PUPPETEER_SKIP_CHROMIUM_DOWNLOAD" = "false" ]; then
+    apt update
+    apt install -y chromium
+fi
 
-cd /app/superset-frontend
-npm install -f --no-optional --global webpack webpack-cli
-npm install -f --no-optional
+if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
+    cd /app/superset-frontend
+    npm install -f --no-optional --global webpack webpack-cli
+    npm install -f
 
-echo "Running frontend"
-npm run dev
+    echo "Running frontend"
+    npm run dev
+else
+    echo "Skipping frontend build steps - YOU RUN IT MANUALLY ON THE HOST!"
+fi

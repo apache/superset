@@ -16,18 +16,22 @@
 # under the License.
 #  type: ignore
 """Unit tests for Superset"""
-import json
+
 from unittest.mock import patch
 
 from superset import security_manager
+from superset.utils import json, slack  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_config, with_feature_flags
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 meUri = "/api/v1/me/"
+AVATAR_URL = "/internal/avatar.png"
 
 
 class TestCurrentUserApi(SupersetTestCase):
     def test_get_me_logged_in(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         rv = self.client.get(meUri)
 
@@ -38,7 +42,7 @@ class TestCurrentUserApi(SupersetTestCase):
         self.assertEqual(False, response["result"]["is_anonymous"])
 
     def test_get_me_with_roles(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         rv = self.client.get(meUri + "roles/")
         self.assertEqual(200, rv.status_code)
@@ -53,7 +57,6 @@ class TestCurrentUserApi(SupersetTestCase):
         self.assertEqual(401, rv.status_code)
 
     def test_get_me_unauthorized(self):
-        self.logout()
         rv = self.client.get(meUri)
         self.assertEqual(401, rv.status_code)
 
@@ -62,3 +65,28 @@ class TestCurrentUserApi(SupersetTestCase):
         mock_g.user = security_manager.get_anonymous_user
         rv = self.client.get(meUri)
         self.assertEqual(401, rv.status_code)
+
+
+class TestUserApi(SupersetTestCase):
+    def test_avatar_with_invalid_user(self):
+        self.login(ADMIN_USERNAME)
+        response = self.client.get("/api/v1/user/NOT_A_USER/avatar.png")
+        assert response.status_code == 404  # Assuming no user found leads to 404
+        response = self.client.get("/api/v1/user/999/avatar.png")
+        assert response.status_code == 404  # Assuming no user found leads to 404
+
+    def test_avatar_valid_user_no_avatar(self):
+        self.login(ADMIN_USERNAME)
+
+        response = self.client.get("/api/v1/user/1/avatar.png", follow_redirects=False)
+        assert response.status_code == 204
+
+    @with_config({"SLACK_API_TOKEN": "dummy"})
+    @with_feature_flags(SLACK_ENABLE_AVATARS=True)
+    @patch("superset.views.users.api.get_user_avatar", return_value=AVATAR_URL)
+    def test_avatar_with_valid_user(self, mock):
+        self.login(ADMIN_USERNAME)
+        response = self.client.get("/api/v1/user/1/avatar.png", follow_redirects=False)
+        mock.assert_called_once_with("admin@fab.org")
+        assert response.status_code == 301
+        assert response.headers["Location"] == AVATAR_URL

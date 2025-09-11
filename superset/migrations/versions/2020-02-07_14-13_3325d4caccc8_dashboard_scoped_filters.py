@@ -23,15 +23,15 @@ Create Date: 2020-02-07 14:13:51.714678
 """
 
 # revision identifiers, used by Alembic.
-import json
 import logging
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 from superset.utils.dashboard_filter_scopes_converter import convert_filter_scopes
 
 revision = "3325d4caccc8"

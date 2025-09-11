@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, Suspense } from 'react';
+import { FC, Suspense } from 'react';
 import { DashboardComponentMetadata, JsonObject, t } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';

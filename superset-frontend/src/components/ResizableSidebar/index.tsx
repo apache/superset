@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC, ReactNode } from 'react';
 import { Resizable } from 're-resizable';
 import { styled } from '@superset-ui/core';
 import useStoredSidebarWidth from './useStoredSidebarWidth';
@@ -49,10 +49,10 @@ type Props = {
   enable: boolean;
   minWidth?: number;
   maxWidth?: number;
-  children: (width: number) => React.ReactNode;
+  children: (width: number) => ReactNode;
 };
 
-const ResizableSidebar: React.FC<Props> = ({
+const ResizableSidebar: FC<Props> = ({
   id,
   initialWidth,
   minWidth,

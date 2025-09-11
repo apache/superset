@@ -17,7 +17,7 @@
 
 import copy
 
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import select
 
@@ -31,7 +31,7 @@ from tests.unit_tests.fixtures.assets_configs import (
 )
 
 
-def test_import_new_assets(mocker: MockFixture, session: Session) -> None:
+def test_import_new_assets(mocker: MockerFixture, session: Session) -> None:
     """
     Test that all new assets are imported correctly.
     """
@@ -63,7 +63,7 @@ def test_import_new_assets(mocker: MockFixture, session: Session) -> None:
     assert len(dashboard_ids) == expected_number_of_dashboards
 
 
-def test_import_adds_dashboard_charts(mocker: MockFixture, session: Session) -> None:
+def test_import_adds_dashboard_charts(mocker: MockerFixture, session: Session) -> None:
     """
     Test that existing dashboards are updated with new charts.
     """
@@ -102,7 +102,9 @@ def test_import_adds_dashboard_charts(mocker: MockFixture, session: Session) -> 
     assert len(dashboard_ids) == expected_number_of_dashboards
 
 
-def test_import_removes_dashboard_charts(mocker: MockFixture, session: Session) -> None:
+def test_import_removes_dashboard_charts(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test that existing dashboards are updated without old charts.
     """

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
@@ -61,7 +61,7 @@ const createProps = (overrides = {}) => ({
 describe('ChartContainer', () => {
   test('renders when vizType is line', () => {
     const props = createProps();
-    expect(React.isValidElement(<ChartContainer {...props} />)).toBe(true);
+    expect(isValidElement(<ChartContainer {...props} />)).toBe(true);
   });
 
   test('renders with alert banner', async () => {

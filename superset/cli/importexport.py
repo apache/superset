@@ -84,7 +84,7 @@ def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         with ZipFile(dashboard_file, "w") as bundle:
             for file_name, file_content in ExportDashboardsCommand(dashboard_ids).run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the dashboards, please check "
@@ -117,7 +117,7 @@ def export_datasources(datasource_file: Optional[str] = None) -> None:
         with ZipFile(datasource_file, "w") as bundle:
             for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the datasets, please check "

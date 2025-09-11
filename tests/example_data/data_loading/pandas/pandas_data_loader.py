@@ -79,5 +79,4 @@ class PandasDataLoader(DataLoader):
 
 class TableToDfConvertor(ABC):
     @abstractmethod
-    def convert(self, table: Table) -> DataFrame:
-        ...
+    def convert(self, table: Table) -> DataFrame: ...

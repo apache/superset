@@ -49,11 +49,23 @@ openapi_spec_methods_override = {
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_slack_channels_schema = {
+    "type": "object",
+    "properties": {
+        "search_string": {"type": "string"},
+        "types": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["public_channel", "private_channel"]},
+        },
+        "exact_match": {"type": "boolean"},
+    },
+}
 
 type_description = "The report schedule type"
 name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
+email_subject_description = "The report schedule subject line"
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -111,6 +123,8 @@ class ValidatorConfigJSONSchema(Schema):
 class ReportRecipientConfigJSONSchema(Schema):
     # TODO if email check validity
     target = fields.String()
+    ccTarget = fields.String()
+    bccTarget = fields.String()
 
 
 class ReportRecipientSchema(Schema):
@@ -142,6 +156,14 @@ class ReportSchedulePostSchema(Schema):
         metadata={
             "description": description_description,
             "example": "Daily sales dashboard to marketing",
+        },
+        allow_none=True,
+        required=False,
+    )
+    email_subject = fields.String(
+        metadata={
+            "description": email_subject_description,
+            "example": "[Report]  Report name: Dashboard or chart name",
         },
         allow_none=True,
         required=False,
@@ -204,7 +226,7 @@ class ReportSchedulePostSchema(Schema):
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
     report_format = fields.String(
-        dump_default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(
@@ -272,6 +294,14 @@ class ReportSchedulePutSchema(Schema):
         allow_none=True,
         required=False,
     )
+    email_subject = fields.String(
+        metadata={
+            "description": email_subject_description,
+            "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
         allow_none=True,
@@ -335,7 +365,7 @@ class ReportSchedulePutSchema(Schema):
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
-        dump_default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(dump_default=None)

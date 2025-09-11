@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import { NULL_DISPLAY } from 'src/constants';
 

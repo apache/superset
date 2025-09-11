@@ -63,24 +63,23 @@ github:
         # combination here.
         contexts:
           - lint-check
+          - cypress-matrix (0, chrome)
           - cypress-matrix (1, chrome)
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
+          - cypress-matrix (4, chrome)
+          - cypress-matrix (5, chrome)
           - frontend-build
-          - pre-commit (3.9)
-          - python-lint (3.9)
-          - test-mysql (3.9)
-          - test-postgres (3.9)
-          - test-postgres (3.10)
-          - test-sqlite (3.9)
-          - docker-build (dev, linux/amd64)
-          - docker-build (lean, linux/amd64)
-          - docker-build (py310, linux/arm64)
-          - docker-build (py310, linux/amd64)
-          - docker-build (websocket, linux/arm64)
-          - docker-build (websocket, linux/amd64)
-          - docker-build (dockerize, linux/arm64)
-          - docker-build (dockerize, linux/amd64)
+          - pre-commit
+          - python-lint
+          - test-mysql
+          - test-postgres (current)
+          - test-postgres (next)
+          - test-postgres-hive
+          - test-postgres-presto
+          - test-sqlite
+          - unit-tests (current)
+          - unit-tests (next)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

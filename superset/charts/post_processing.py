@@ -29,6 +29,7 @@ for these chart types.
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
+import numpy as np
 import pandas as pd
 from flask_babel import gettext as __
 
@@ -83,10 +84,11 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     else:
         axis = {"columns": 1, "rows": 0}
 
+    # pivoting with null values will create an empty df
+    df = df.fillna("SUPERSET_PANDAS_NAN")
+
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
-        # pivoting with null values will create an empty df
-        df = df.fillna("NULL")
         df = df.pivot_table(
             index=rows,
             columns=columns,
@@ -151,6 +153,18 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
         groups = df.columns
+        if not apply_metrics_on_rows:
+            for col in df.columns:
+                # we need to replace the temporary placeholder with either a string
+                # or np.nan, depending on the column type so that they can sum correctly
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    df[col].replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
+                else:
+                    df[col].replace("SUPERSET_PANDAS_NAN", "nan", inplace=True)
+        else:
+            # when we applied metrics on rows, we switched the columns and rows
+            # so checking column type doesn't apply. Replace everything with np.nan
+            df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
         for level in range(df.columns.nlevels):
             subgroups = {group[:level] for group in groups}
             for subgroup in subgroups:
@@ -171,7 +185,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for subgroup in subgroups:
                 slice_ = df.index.get_loc(subgroup)
                 subtotal = pivot_v2_aggfunc_map[aggfunc](
-                    df.iloc[slice_, :].apply(pd.to_numeric), axis=0
+                    df.iloc[slice_, :].apply(pd.to_numeric, errors="coerce"), axis=0
                 )
                 depth = df.index.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
@@ -185,6 +199,14 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # dataframe back
     if apply_metrics_on_rows:
         df = df.T
+
+    # replace the remaining temporary placeholder string for np.nan after pivoting
+    df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
+    df.rename(
+        index={"SUPERSET_PANDAS_NAN": np.nan},
+        columns={"SUPERSET_PANDAS_NAN": np.nan},
+        inplace=True,
+    )
 
     return df
 

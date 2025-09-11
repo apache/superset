@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -32,10 +32,10 @@ const mockedProps = {
   latestQueryId: 'ryhMUZCGb',
 };
 test('is valid', () => {
-  expect(React.isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
+  expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
 });
 test('is valid with props', () => {
-  expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
+  expect(isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
 });
 test('renders a proper table', () => {
   const mockStore = configureStore([thunk]);

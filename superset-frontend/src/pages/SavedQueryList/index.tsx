@@ -24,7 +24,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -298,6 +298,10 @@ function SavedQueryList({
         Header: t('Name'),
       },
       {
+        accessor: 'description',
+        Header: t('Description'),
+      },
+      {
         accessor: 'database.database_name',
         Header: t('Database'),
         size: 'xl',
@@ -382,7 +386,7 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = ({ metaKey }: React.MouseEvent) =>
+          const handleEdit = ({ metaKey }: MouseEvent) =>
             openInSqlLab(original.id, Boolean(metaKey));
           const handleCopy = () => copyQueryLink(original.id);
           const handleExport = () => handleBulkSavedQueryExport([original]);
@@ -443,11 +447,13 @@ function SavedQueryList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Name'),
+        Header: t('Search'),
         id: 'label',
         key: 'search',
         input: 'search',
         operator: FilterOperator.AllText,
+        toolTipDescription:
+          'Searches all text fields: Name, Description, Database & Schema',
       },
       {
         Header: t('Database'),
@@ -495,7 +501,7 @@ function SavedQueryList({
               id: 'tags',
               key: 'tags',
               input: 'select',
-              operator: FilterOperator.SavedQueryTags,
+              operator: FilterOperator.SavedQueryTagById,
               fetchSelects: loadTags,
             },
           ]

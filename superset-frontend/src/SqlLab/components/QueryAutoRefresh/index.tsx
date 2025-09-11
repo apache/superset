@@ -76,28 +76,35 @@ function QueryAutoRefresh({
         last_updated_ms: queriesLastUpdate - QUERY_UPDATE_BUFFER_MS,
       });
 
+      const controller = new AbortController();
       pendingRequestRef.current = true;
       SupersetClient.get({
         endpoint: `/api/v1/query/updated_since?q=${params}`,
         timeout: QUERY_TIMEOUT_LIMIT,
         parseMethod: 'json-bigint',
+        signal: controller.signal,
       })
         .then(({ json }) => {
           if (json) {
             const jsonPayload = json as { result?: QueryResponse[] };
             if (jsonPayload?.result?.length) {
               const queries =
-                jsonPayload?.result?.reduce((acc, current) => {
-                  acc[current.id] = current;
-                  return acc;
-                }, {}) ?? {};
+                jsonPayload?.result?.reduce(
+                  (acc: Record<string, QueryResponse>, current) => {
+                    acc[current.id] = current;
+                    return acc;
+                  },
+                  {},
+                ) ?? {};
               dispatch(refreshQueries(queries));
             } else {
               dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
             }
           }
         })
-        .catch(() => {})
+        .catch(() => {
+          controller.abort();
+        })
         .finally(() => {
           pendingRequestRef.current = false;
         });

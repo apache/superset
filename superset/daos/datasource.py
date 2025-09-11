@@ -22,14 +22,12 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query, SavedQuery
-from superset.tables.models import Table
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
-Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
+Datasource = Union[SqlaTable, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO[Datasource]):
@@ -37,8 +35,6 @@ class DatasourceDAO(BaseDAO[Datasource]):
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
-        DatasourceType.DATASET: Dataset,
-        DatasourceType.SLTABLE: Table,
     }
 
     @classmethod
@@ -63,5 +59,13 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 datasource_id,
             )
             raise DatasourceNotFound()
+
+        if datasource.sql:
+            name = "UNKNOWN"
+            if hasattr(datasource, "table_name"):
+                name = datasource.table_name
+
+            if "-- SUPERSET QUERY" not in datasource.sql:
+                datasource.sql = f"-- SUPERSET QUERY datasource type: {datasource_type} id: {datasource_id} name: {name} \n{datasource.sql}"
 
         return datasource

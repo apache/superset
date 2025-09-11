@@ -48,7 +48,7 @@ export const profile = {
   favoritesSpace: '#rc-tabs-0-panel-2',
 };
 export const securityAccess = {
-  rolesBubble: '.ant-badge-count',
+  rolesBubble: '.antd5-badge-count',
 };
 export const homePage = {
   homeSection: {
@@ -322,7 +322,9 @@ export const nativeFilters = {
     footer: '.ant-modal-footer',
     saveButton: dataTestLocator('native-filter-modal-save-button'),
     cancelButton: dataTestLocator('native-filter-modal-cancel-button'),
-    yesCancelButton: '[type="button"]',
+    confirmCancelButton: dataTestLocator(
+      'native-filter-modal-confirm-cancel-button',
+    ),
     alertXUnsavedFilters: '.ant-alert-message',
     tabsList: {
       filterItemsContainer: dataTestLocator('filter-title-container'),

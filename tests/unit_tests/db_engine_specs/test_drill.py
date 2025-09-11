@@ -23,7 +23,7 @@ import pytest
 from sqlalchemy.engine.url import make_url
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def test_odbc_impersonation() -> None:
@@ -38,7 +38,7 @@ def test_odbc_impersonation() -> None:
 
     url = URL.create("drill+odbc")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
     assert url.query["DelegationUID"] == username
 
 
@@ -54,7 +54,7 @@ def test_jdbc_impersonation() -> None:
 
     url = URL.create("drill+jdbc")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
     assert url.query["impersonation_target"] == username
 
 
@@ -70,7 +70,7 @@ def test_sadrill_impersonation() -> None:
 
     url = URL.create("drill+sadrill")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
     assert url.query["impersonation_target"] == username
 
 
@@ -90,7 +90,7 @@ def test_invalid_impersonation() -> None:
     username = "DoAsUser"
 
     with pytest.raises(SupersetDBAPIProgrammingError):
-        DrillEngineSpec.get_url_for_impersonation(url, True, username)
+        DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
 
 
 @pytest.mark.parametrize(
@@ -102,7 +102,9 @@ def test_invalid_impersonation() -> None:
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.drill import DrillEngineSpec as spec
 

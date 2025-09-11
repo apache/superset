@@ -16,29 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import type Owner from 'src/types/Owner';
 import {
   getCategoricalSchemeRegistry,
   styled,
+  isFeatureEnabled,
+  FeatureFlag,
   SupersetTheme,
 } from '@superset-ui/core';
+import getOwnerName from 'src/utils/getOwnerName';
 import { Tooltip } from 'src/components/Tooltip';
 import { Avatar } from 'src/components';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {
-  users: { first_name: string; last_name: string; id: number }[];
+  users: Owner[];
   maxCount?: number;
 }
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
 
-const customAvatarStyler = (theme: SupersetTheme) => `
-  width: ${theme.gridUnit * 6}px;
-  height: ${theme.gridUnit * 6}px;
-  line-height: ${theme.gridUnit * 6}px;
-  font-size: ${theme.typography.sizes.m}px;
-`;
+const customAvatarStyler = (theme: SupersetTheme) => {
+  const size = theme.gridUnit * 8;
+  return `
+  width: ${size}px;
+  height: ${size}px;
+  line-height: ${size}px;
+  font-size: ${theme.typography.sizes.s}px;`;
+};
 
 const StyledAvatar = styled(Avatar)`
   ${({ theme }) => customAvatarStyler(theme)}
@@ -54,10 +59,14 @@ const StyledGroup = styled(Avatar.Group)`
 export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
   return (
     <StyledGroup maxCount={maxCount}>
-      {users.map(({ first_name, last_name, id }) => {
-        const name = `${first_name} ${last_name}`;
+      {users.map(user => {
+        const { first_name, last_name, id } = user;
+        const name = getOwnerName(user);
         const uniqueKey = `${id}-${first_name}-${last_name}`;
         const color = getRandomColor(uniqueKey, colorList);
+        const avatarUrl = isFeatureEnabled(FeatureFlag.SlackEnableAvatars)
+          ? `/api/v1/user/${id}/avatar.png`
+          : undefined;
         return (
           <Tooltip key={name} title={name} placement="top">
             <StyledAvatar
@@ -66,6 +75,7 @@ export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
                 backgroundColor: color,
                 borderColor: color,
               }}
+              src={avatarUrl}
             >
               {first_name?.[0]?.toLocaleUpperCase()}
               {last_name?.[0]?.toLocaleUpperCase()}

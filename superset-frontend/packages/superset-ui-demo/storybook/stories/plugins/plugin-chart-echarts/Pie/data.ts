@@ -240,3 +240,14 @@ export const population = [
   { Country: 'Sint Maarten (Dutch part)', Population: 597781 },
   { Country: 'Tuvalu', Population: 466709 },
 ];
+
+export const sales = [
+  { Product: 'Laptop', 'SUM(AMOUNT)': 30 },
+  { Product: 'Workstation', 'SUM(AMOUNT)': 28 },
+  { Product: 'Phone', 'SUM(AMOUNT)': 26 },
+  { Product: 'Tablet', 'SUM(AMOUNT)': 24 },
+  { Product: 'PDA', 'SUM(AMOUNT)': 22 },
+  { Product: 'Ink Pad', 'SUM(AMOUNT)': 20 },
+  { Product: 'Accessories', 'SUM(AMOUNT)': 18 },
+  { Product: 'Pad', 'SUM(AMOUNT)': 16 },
+];

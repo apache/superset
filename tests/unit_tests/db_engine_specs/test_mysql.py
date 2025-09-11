@@ -34,14 +34,14 @@ from sqlalchemy.dialects.mysql import (
     TINYINT,
     TINYTEXT,
 )
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -94,7 +94,9 @@ def test_get_column_spec(
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec
 

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { cloneDeep } from 'lodash';
 import CategoricalColorScale from './CategoricalColorScale';
 import { ColorsLookup } from './types';
 import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
@@ -37,10 +38,21 @@ export default class CategoricalColorNamespace {
     this.forcedItems = {};
   }
 
-  getScale(schemeId?: string) {
-    const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
+  /**
+   * A new CategoricalColorScale instance is created for each chart.
+   *
+   * @param colorScheme - the color scheme to use
+   * @returns a new instance of a color scale
+   */
+  getScale(colorScheme?: string) {
+    const id =
+      colorScheme ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scheme = getCategoricalSchemeRegistry().get(id);
-    return new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
+    return new CategoricalColorScale(
+      scheme?.colors ?? [],
+      this.forcedItems,
+      colorScheme,
+    );
   }
 
   /**
@@ -58,6 +70,17 @@ export default class CategoricalColorNamespace {
 
   resetColors() {
     this.forcedItems = {};
+  }
+
+  resetColorsForLabels(labels: string[] = []) {
+    const updatedForcedItems = cloneDeep(this.forcedItems);
+    labels.forEach(label => {
+      if (updatedForcedItems.hasOwnProperty(label)) {
+        delete updatedForcedItems[label];
+      }
+    });
+
+    this.forcedItems = { ...updatedForcedItems };
   }
 }
 
@@ -80,16 +103,19 @@ export function getNamespace(name: string = DEFAULT_NAMESPACE) {
 
 export function getColor(
   value?: string,
-  schemeId?: string,
+  colorScheme?: string,
   namespace?: string,
 ) {
-  return getNamespace(namespace).getScale(schemeId).getColor(value);
+  return getNamespace(namespace).getScale(colorScheme).getColor(value);
 }
 
 /*
   Returns a new scale instance within the same namespace.
   Especially useful when a chart is booting for the first time
+
+  @param scheme - the applied color scheme
+  @param namespace - the namespace
 */
-export function getScale(scheme?: string, namespace?: string) {
-  return getNamespace(namespace).getScale(scheme);
+export function getScale(colorScheme?: string, namespace?: string) {
+  return getNamespace(namespace).getScale(colorScheme);
 }

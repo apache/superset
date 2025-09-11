@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ErrorTypeEnum } from '@superset-ui/core';
 import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
-import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
 import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage';
 import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessage';
 import MarshmallowErrorMessage from 'src/components/ErrorMessage/MarshmallowErrorMessage';
 import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMessage';
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
+import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -148,6 +149,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.MARSHMALLOW_ERROR,
     MarshmallowErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.OAUTH2_REDIRECT,
+    OAuth2RedirectMessage,
   );
   setupErrorMessagesExtra();
 }

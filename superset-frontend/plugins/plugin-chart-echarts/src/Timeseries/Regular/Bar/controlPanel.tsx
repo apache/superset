@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -74,6 +73,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -91,6 +92,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -105,6 +108,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -122,6 +127,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -139,6 +146,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -161,6 +170,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -171,6 +182,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           ...xAxisLabelRotation.config,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -182,6 +195,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           label: t('Axis Format'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -197,6 +212,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Logarithmic axis'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -211,6 +228,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Draw split lines for minor axis ticks'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -227,6 +246,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('It’s not recommended to truncate axis in Bar chart.'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -247,6 +268,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             Boolean(controls?.truncateYAxis?.value) &&
             (isXAxis ? isHorizontal(controls) : isVertical(controls)),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import Badge, { BadgeProps } from '.';
 
 export default {
@@ -59,47 +59,59 @@ const SIZES = {
   defaultValue: undefined,
 };
 
-export const InteractiveBadge = (args: BadgeProps) => <Badge {...args} />;
+export const InteractiveBadge = (args: BadgeProps) => (
+  <AntdThemeProvider>
+    <Badge {...args} />
+  </AntdThemeProvider>
+);
 
 InteractiveBadge.args = {
-  count: null,
-  color: null,
+  count: undefined,
+  color: undefined,
   text: 'Text',
-  textColor: null,
   status: 'success',
   size: 'default',
+  showZero: false,
+  overflowCount: 99,
 };
 
 InteractiveBadge.argTypes = {
   status: {
     control: {
       type: 'select',
-      options: [undefined, ...STATUSES],
     },
+    options: [undefined, ...STATUSES],
+    description:
+      'only works if `count` is `undefined` (or is set to 0) and `color` is set to `undefined`',
   },
   size: {
     control: {
       type: 'select',
-      options: SIZES.options,
     },
+    options: SIZES.options,
   },
   color: {
     control: {
       type: 'select',
-      options: [undefined, ...COLORS.options],
     },
-  },
-  textColor: {
-    control: {
-      type: 'select',
-      options: [undefined, ...COLORS.options],
-    },
+    options: [undefined, ...COLORS.options],
   },
   count: {
     control: {
       type: 'select',
-      options: [undefined, ...Array(100).keys()],
+      defaultValue: undefined,
     },
+    options: [undefined, ...Array(100).keys()],
+    defaultValue: undefined,
+  },
+  showZero: {
+    control: 'boolean',
+    defaultValue: false,
+  },
+  overflowCount: {
+    control: 'number',
+    description:
+      'The threshold at which the number overflows with a `+` e.g if you set this to 10, and the value is 11, you get `11+`',
   },
 };
 
@@ -108,43 +120,22 @@ export const BadgeGallery = () => (
     {SIZES.options.map(size => (
       <div key={size} style={{ marginBottom: 40 }}>
         <h4>{size}</h4>
-        {COLORS.options.map(color => (
-          <Badge
-            count={9}
-            textColor={color}
-            size={size}
-            key={`${color}_${size}`}
-            style={{ marginRight: '15px' }}
-          />
-        ))}
+        <AntdThemeProvider>
+          {COLORS.options.map(color => (
+            <Badge
+              count={9}
+              size={size}
+              key={`${color}_${size}`}
+              style={{ marginRight: '15px' }}
+            />
+          ))}
+        </AntdThemeProvider>
       </div>
     ))}
   </>
 );
 
-export const BadgeTextGallery = () => (
-  <>
-    {COLORS.options.map(color => (
-      <Badge
-        text="Hello"
-        color={color}
-        key={color}
-        style={{ marginRight: '15px' }}
-      />
-    ))}
-  </>
-);
-
 BadgeGallery.parameters = {
-  actions: {
-    disable: true,
-  },
-  controls: {
-    disable: true,
-  },
-};
-
-BadgeTextGallery.parameters = {
   actions: {
     disable: true,
   },

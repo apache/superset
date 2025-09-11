@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { isValidElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import CachedLabel, { CacheLabelProps } from '.';
 
@@ -30,7 +30,7 @@ const setup = (props: CacheLabelProps) => <CachedLabel {...props} />;
 
 describe('CachedLabel', () => {
   it('is valid', () => {
-    expect(React.isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
+    expect(isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
   });
 
   it('renders', () => {

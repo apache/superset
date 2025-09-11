@@ -24,10 +24,12 @@ import {
   getMetricLabel,
   getColumnLabel,
   getValueFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
-import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { GaugeSeriesOption } from 'echarts/charts';
+import type { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { range } from 'lodash';
 import { parseNumbersList } from '../utils/controls';
 import {
@@ -157,21 +159,23 @@ export default function transformProps(
   const detailOffsetFromTitle =
     FONT_SIZE_MULTIPLIERS.detailOffsetFromTitle * fontSize;
   const columnsLabelMap = new Map<string, string[]>();
+  const metricLabel = getMetricLabel(metric as QueryFormMetric);
 
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
         .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
+      const colorLabel = groupbyLabels.map(col => data_point[col] as string);
       columnsLabelMap.set(
         name,
         groupbyLabels.map(col => data_point[col] as string),
       );
       let item: GaugeDataItemOption = {
-        value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
+        value: data_point[metricLabel] as number,
         name,
         itemStyle: {
-          color: colorFn(index, sliceId),
+          color: colorFn(colorLabel, sliceId),
         },
         title: {
           offsetCenter: [
@@ -286,7 +290,7 @@ export default function transformProps(
     ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
-      return `${name} : ${formatValue(value as number)}`;
+      return tooltipHtml([[metricLabel, formatValue(value as number)]], name);
     },
   };
 

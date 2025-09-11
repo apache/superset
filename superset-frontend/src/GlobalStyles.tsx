@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { mix } from 'polished';
@@ -34,6 +33,11 @@ export const GlobalStyles = () => (
       strong,
       th {
         font-weight: ${theme.typography.weights.bold};
+      }
+      // CSS hack to resolve the issue caused by the invisible echart tooltip on
+      // https://github.com/apache/superset/issues/30058
+      .echarts-tooltip[style*='visibility: hidden'] {
+        display: none !important;
       }
       // TODO: Remove when on Ant Design 5.
       // Check src/components/Modal for more info.

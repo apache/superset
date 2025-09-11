@@ -30,18 +30,18 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
 
 from ..fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from ..fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from ..fixtures.pyodbcRow import Row
 
@@ -238,7 +238,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
         example_db = get_example_database()
-        sqla_table = example_db.get_table("energy_usage")
+        sqla_table = example_db.get_table(Table("energy_usage"))
         dialect = example_db.get_dialect()
 
         # TODO: fix column type conversion for presto.
@@ -308,10 +308,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         }
         sql = table.get_query_str(query_obj)
         assert (
-            """ORDER BY case
-             when gender='boy' then 'male'
-             else 'female'
-         end ASC;"""
+            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"
             in sql
         )
 
@@ -336,8 +333,8 @@ def test_time_grain_denylist():
 
     with app.app_context():
         time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
-        assert not "PT1M" in time_grain_functions
-        assert not "SQLITE_NONEXISTENT_GRAIN" in time_grain_functions
+        assert "PT1M" not in time_grain_functions  # noqa: E713
+        assert "SQLITE_NONEXISTENT_GRAIN" not in time_grain_functions  # noqa: E713
 
     app.config = config
 
@@ -543,8 +540,7 @@ def test_get_indexes():
         BaseEngineSpec.get_indexes(
             database=mock.Mock(),
             inspector=inspector,
-            table_name="bar",
-            schema="foo",
+            table=Table("bar", "foo"),
         )
         == indexes
     )

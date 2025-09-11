@@ -18,7 +18,7 @@
  */
 import { snakeCase, isEqual, cloneDeep } from 'lodash';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { createRef, Component } from 'react';
 import {
   SuperChart,
   logging,
@@ -41,8 +41,8 @@ const propTypes = {
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   latestQueryFormData: PropTypes.object,
-  labelColors: PropTypes.object,
-  sharedLabelColors: PropTypes.object,
+  labelsColor: PropTypes.object,
+  labelsColorMap: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -81,7 +81,7 @@ const defaultProps = {
   triggerRender: false,
 };
 
-class ChartRenderer extends React.Component {
+class ChartRenderer extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -94,7 +94,7 @@ class ChartRenderer extends React.Component {
     };
     this.hasQueryResponseChange = false;
 
-    this.contextMenuRef = React.createRef();
+    this.contextMenuRef = createRef();
 
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
@@ -153,8 +153,8 @@ class ChartRenderer extends React.Component {
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
-        nextProps.labelColors !== this.props.labelColors ||
-        nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
+        nextProps.labelsColor !== this.props.labelsColor ||
+        nextProps.labelsColorMap !== this.props.labelsColorMap ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||

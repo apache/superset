@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   BinaryQueryObjectFilterClause,

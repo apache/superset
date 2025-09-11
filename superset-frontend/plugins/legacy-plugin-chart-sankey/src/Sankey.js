@@ -67,7 +67,6 @@ function Sankey(element, props) {
     .attr('height', innerHeight + margin.top + margin.bottom)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const sankey = d3Sankey()

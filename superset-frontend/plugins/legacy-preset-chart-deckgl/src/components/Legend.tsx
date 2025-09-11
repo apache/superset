@@ -19,7 +19,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { formatNumber, styled } from '@superset-ui/core';
 
 const StyledLegend = styled.div`
@@ -40,11 +40,13 @@ const StyledLegend = styled.div`
       margin: 0;
 
       & li a {
+        display: flex;
         color: ${theme.colors.grayscale.base};
         text-decoration: none;
+        padding: ${theme.gridUnit}px 0;
 
         & span {
-          margin-right: ${theme.gridUnit * 3}px;
+          margin-right: ${theme.gridUnit}px;
         }
       }
     }
@@ -106,6 +108,7 @@ const Legend = ({
       <li key={k}>
         <a
           href="#"
+          role="button"
           onClick={() => toggleCategory(k)}
           onDoubleClick={() => showSingleCategory(k)}
         >

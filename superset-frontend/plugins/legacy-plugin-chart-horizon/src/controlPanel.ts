@@ -25,6 +25,12 @@ import {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
+      label: t('Time'),
+      expanded: true,
+      description: t('Time related form attributes'),
+      controlSetRows: [['granularity_sqla'], ['time_range']],
+    },
+    {
       label: t('Query'),
       expanded: true,
       controlSetRows: [

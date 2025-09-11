@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
-import { SEPARATOR } from 'src/explore/components/controls/DateFilterControl/utils';
+import { SEPARATOR, t } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';

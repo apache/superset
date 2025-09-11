@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { PureComponent } from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
 import {
   PlainObject,
@@ -29,7 +29,7 @@ import {
   SupersetThemeProps,
   withTheme,
   seed,
-  CategoricalColorScale,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
@@ -66,6 +66,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
   height: number;
   width: number;
   sliceId: number;
+  colorScheme: string;
 }
 
 export interface WordCloudState {
@@ -88,10 +89,7 @@ const MAX_SCALE_FACTOR = 3;
 // Needed to avoid clutter when shrinking a chart with many records.
 const TOP_RESULTS_PERCENTAGE = 0.1;
 
-class WordCloud extends React.PureComponent<
-  FullWordCloudProps,
-  WordCloudState
-> {
+class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
   static defaultProps = defaultProps;
 
   // Cannot name it isMounted because of conflict
@@ -224,7 +222,7 @@ class WordCloud extends React.PureComponent<
 
   render() {
     const { scaleFactor } = this.state;
-    const { width, height, encoding, sliceId } = this.props;
+    const { width, height, encoding, sliceId, colorScheme } = this.props;
     const { words } = this.state;
 
     // @ts-ignore
@@ -232,7 +230,7 @@ class WordCloud extends React.PureComponent<
     encoder.channels.color.setDomainFromDataset(words);
 
     const { getValueFromDatum } = encoder.channels.color;
-    const colorFn = encoder.channels.color.scale as CategoricalColorScale;
+    const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
     const viewBoxWidth = width * scaleFactor;
     const viewBoxHeight = height * scaleFactor;

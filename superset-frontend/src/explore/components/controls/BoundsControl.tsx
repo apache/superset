@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce, parseInt } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 type ValueType = (number | null)[];
@@ -43,8 +43,16 @@ const MaxInput = styled(InputNumber)`
   margin-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const parseNumber = (value: undefined | number | string | null) =>
-  value === null || Number.isNaN(Number(value)) ? null : Number(value);
+const parseNumber = (value: undefined | number | string | null) => {
+  if (
+    value === null ||
+    value === undefined ||
+    (typeof value === 'string' && Number.isNaN(parseInt(value)))
+  ) {
+    return null;
+  }
+  return Number(value);
+};
 
 export default function BoundsControl({
   onChange = () => {},

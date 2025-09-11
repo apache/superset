@@ -16,15 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
-
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import ControlPopover from '../ControlPopover/ControlPopover';
+import userEvent from '@testing-library/user-event';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },
@@ -37,49 +33,73 @@ const sumValueAdhocMetric = new AdhocMetric({
   aggregate: AGGREGATES.SUM,
 });
 
+const datasource = {
+  type: 'table',
+  id: 1,
+  uid: '1__table',
+  columnFormats: {},
+  verboseMap: {},
+};
+
+const defaultProps = {
+  adhocMetric: sumValueAdhocMetric,
+  savedMetric: {},
+  savedMetricsOptions: [],
+  onMetricEdit: jest.fn(),
+  columns,
+  datasource,
+  onMoveLabel: jest.fn(),
+  onDropLabel: jest.fn(),
+  index: 0,
+};
+
 function setup(overrides) {
-  const onMetricEdit = sinon.spy();
   const props = {
-    adhocMetric: sumValueAdhocMetric,
-    savedMetric: {},
-    savedMetrics: [],
-    onMetricEdit,
-    columns,
-    onMoveLabel: () => {},
-    onDropLabel: () => {},
-    index: 0,
+    ...defaultProps,
     ...overrides,
   };
-  const wrapper = shallow(<AdhocMetricOption {...props} />)
-    .find('AdhocMetricPopoverTrigger')
-    .shallow();
-  return { wrapper, onMetricEdit };
+  return render(<AdhocMetricOption {...props} />, { useDnd: true });
 }
 
-describe('AdhocMetricOption', () => {
-  it('renders an overlay trigger wrapper for the label', () => {
-    const { wrapper } = setup();
-    expect(wrapper.find(ControlPopover)).toExist();
-    expect(wrapper.find('OptionControlLabel')).toExist();
+test('renders an overlay trigger wrapper for the label', () => {
+  setup();
+  expect(screen.getByText('SUM(value)')).toBeInTheDocument();
+});
+
+test('overwrites the adhocMetric in state with onLabelChange', async () => {
+  setup();
+  userEvent.click(screen.getByText('SUM(value)'));
+  userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
+  const labelInput = await screen.findByTestId(/AdhocMetricEditTitle#input/i);
+  userEvent.clear(labelInput);
+  userEvent.type(labelInput, 'new label');
+  expect(labelInput).toHaveValue('new label');
+  fireEvent.keyPress(labelInput, {
+    key: 'Enter',
+    charCode: 13,
   });
+  expect(screen.getByText(/new label/i)).toBeInTheDocument();
+});
 
-  it('overwrites the adhocMetric in state with onLabelChange', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    expect(wrapper.state('title').label).toBe('new label');
-    expect(wrapper.state('title').hasCustomLabel).toBe(true);
+test('returns to default labels when the custom label is cleared', async () => {
+  setup();
+  userEvent.click(screen.getByText('SUM(value)'));
+  userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
+  const labelInput = await screen.findByTestId(/AdhocMetricEditTitle#input/i);
+  userEvent.clear(labelInput);
+  userEvent.type(labelInput, 'new label');
+  fireEvent.keyPress(labelInput, {
+    key: 'Enter',
+    charCode: 13,
   });
-
-  it('returns to default labels when the custom label is cleared', () => {
-    const { wrapper } = setup();
-    expect(wrapper.state('title').label).toBe('SUM(value)');
-
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    expect(wrapper.state('title').label).toBe('new label');
-
-    wrapper.instance().onLabelChange({ target: { value: '' } });
-
-    expect(wrapper.state('title').label).toBe('SUM(value)');
-    expect(wrapper.state('title').hasCustomLabel).toBe(false);
+  expect(labelInput).not.toBeInTheDocument();
+  expect(screen.getByText(/new label/i)).toBeInTheDocument();
+  userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
+  expect(screen.getByPlaceholderText(/new label/i)).toBeInTheDocument();
+  userEvent.clear(labelInput);
+  fireEvent.keyPress(labelInput, {
+    key: 'Enter',
+    charCode: 13,
   });
+  expect(screen.getByPlaceholderText('SUM(value)')).toBeInTheDocument();
 });

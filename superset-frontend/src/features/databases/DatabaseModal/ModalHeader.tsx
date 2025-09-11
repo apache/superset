@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { UploadFile } from 'antd/lib/upload/interface';
 import { t } from '@superset-ui/core';
@@ -33,10 +32,10 @@ const supersetTextDocs = getDatabaseDocumentationLinks();
 
 export const DOCUMENTATION_LINK = supersetTextDocs
   ? supersetTextDocs.support
-  : 'https://superset.apache.org/docs/databases/installing-database-drivers';
+  : 'https://superset.apache.org/docs/configuration/databases#installing-database-drivers';
 
 const irregularDocumentationLinks = {
-  postgresql: 'https://superset.apache.org/docs/databases/postgres',
+  postgresql: 'https://superset.apache.org',
   mssql: 'https://superset.apache.org/docs/databases/sql-server',
   gsheets: 'https://superset.apache.org/docs/databases/google-sheets',
 };
@@ -149,8 +148,7 @@ const ModalHeader = ({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t('connecting to %(dbModelName)s.', { dbModelName: dbModel.name })}
-            .
+            {t('connecting to %(dbModelName)s', { dbModelName: dbModel.name })}.
           </a>
         </p>
       </StyledFormHeader>

@@ -14,10 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-""" Superset wrapper around pyarrow.Table.
-"""
+"""Superset wrapper around pyarrow.Table."""
+
 import datetime
-import json
 import logging
 from typing import Any, Optional
 
@@ -28,13 +27,13 @@ from numpy.typing import NDArray
 
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
 
-def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:
+def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:  # noqa: E741
     """De-duplicates a list of string by suffixing a counter
 
     Always returns the same number of entries as provided, and always returns
@@ -61,7 +60,7 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json.dumps(obj, default=utils.json_iso_dttm_ser)
+    return json.dumps(obj, default=json.json_iso_dttm_ser)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
+
 import { useSelector } from 'react-redux';
 import { Global, css } from '@emotion/react';
 import { t } from '@superset-ui/core';
@@ -36,6 +37,10 @@ export interface DetailsPanelProps {
   appliedIndicators: Indicator[];
   onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
+  popoverVisible: boolean;
+  popoverContentRef: RefObject<HTMLDivElement>;
+  popoverTriggerRef: RefObject<HTMLDivElement>;
+  setPopoverVisible: (visible: boolean) => void;
 }
 
 const DetailsPanelPopover = ({
@@ -43,35 +48,87 @@ const DetailsPanelPopover = ({
   appliedIndicators = [],
   onHighlightFilterSource,
   children,
+  popoverVisible,
+  popoverContentRef,
+  popoverTriggerRef,
+  setPopoverVisible,
 }: DetailsPanelProps) => {
-  const [visible, setVisible] = useState(false);
   const activeTabs = useSelector<RootState>(
     state => state.dashboardState?.activeTabs,
   );
+  // Combined ref array for all filter indicator elements
+  const indicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    switch (event.key) {
+      case 'Escape':
+      case 'Enter':
+        // timing out to allow for filter selection to happen first
+        setTimeout(() => {
+          // move back to the popover trigger element
+          popoverTriggerRef?.current?.focus();
+          // Close popover on ESC or ENTER
+          setPopoverVisible(false);
+        });
+        break;
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        event.preventDefault(); // Prevent scrolling
+        // Navigate through filters with arrows up/down
+        const currentFocusIndex = indicatorRefs.current.findIndex(
+          ref => ref === document.activeElement,
+        );
+        const maxIndex = indicatorRefs.current.length - 1;
+        let nextFocusIndex = 0;
+
+        if (event.key === 'ArrowDown') {
+          nextFocusIndex =
+            currentFocusIndex >= maxIndex ? 0 : currentFocusIndex + 1;
+        } else if (event.key === 'ArrowUp') {
+          nextFocusIndex =
+            currentFocusIndex <= 0 ? maxIndex : currentFocusIndex - 1;
+        }
+        indicatorRefs.current[nextFocusIndex]?.focus();
+        break;
+      }
+      case 'Tab':
+        // forcing popover context until ESC or ENTER are pressed
+        event.preventDefault();
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleVisibility = (isOpen: boolean) => {
+    setPopoverVisible(isOpen);
+  };
 
   // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
   useEffect(() => {
-    if (visible) {
-      window.addEventListener('resize', () => setVisible(false), {
+    if (popoverVisible) {
+      window.addEventListener('resize', () => setPopoverVisible(false), {
         once: true,
       });
     }
-  }, [visible]);
+  }, [popoverVisible]);
 
   // if tabs change, popover doesn't close automatically
   useEffect(() => {
-    setVisible(false);
+    setPopoverVisible(false);
   }, [activeTabs]);
-
-  function handlePopoverStatus(isOpen: boolean) {
-    setVisible(isOpen);
-  }
 
   const indicatorKey = (indicator: Indicator): string =>
     `${indicator.column} - ${indicator.name}`;
 
   const content = (
-    <FiltersDetailsContainer>
+    <FiltersDetailsContainer
+      ref={popoverContentRef}
+      tabIndex={-1}
+      onMouseLeave={() => setPopoverVisible(false)}
+      onKeyDown={handleKeyDown}
+      role="menu"
+    >
       <Global
         styles={theme => css`
           .filterStatusPopover {
@@ -132,6 +189,7 @@ const DetailsPanelPopover = ({
             <FiltersContainer>
               {appliedCrossFilterIndicators.map(indicator => (
                 <FilterIndicator
+                  ref={el => indicatorRefs.current.push(el)}
                   key={indicatorKey(indicator)}
                   indicator={indicator}
                   onClick={onHighlightFilterSource}
@@ -151,6 +209,7 @@ const DetailsPanelPopover = ({
             <FiltersContainer>
               {appliedIndicators.map(indicator => (
                 <FilterIndicator
+                  ref={el => indicatorRefs.current.push(el)}
                   key={indicatorKey(indicator)}
                   indicator={indicator}
                   onClick={onHighlightFilterSource}
@@ -167,10 +226,10 @@ const DetailsPanelPopover = ({
     <Popover
       overlayClassName="filterStatusPopover"
       content={content}
-      visible={visible}
-      onVisibleChange={handlePopoverStatus}
+      visible={popoverVisible}
+      onVisibleChange={handleVisibility}
       placement="bottomRight"
-      trigger="hover"
+      trigger={['hover']}
     >
       {children}
     </Popover>

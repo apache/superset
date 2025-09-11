@@ -26,14 +26,13 @@ Create Date: 2020-04-29 09:24:04.952368
 revision = "620241d1153f"
 down_revision = "f9a30386bd74"
 
-import json
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, ForeignKey, Integer, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, ForeignKey, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db, db_engine_specs
-from superset.databases.utils import make_url_safe
+from superset import db, db_engine_specs  # noqa: E402
+from superset.databases.utils import make_url_safe  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ContourPopoverControl from './ContourPopoverControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
 import { ContourPopoverTriggerProps } from './types';

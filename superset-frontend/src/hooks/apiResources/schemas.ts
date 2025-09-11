@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -28,6 +28,7 @@ export type SchemaOption = {
 
 export type FetchSchemasQueryParams = {
   dbId?: string | number;
+  catalog?: string;
   forceRefresh: boolean;
   onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
   onError?: () => void;
@@ -39,21 +40,23 @@ const schemaApi = api.injectEndpoints({
   endpoints: builder => ({
     schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
       providesTags: [{ type: 'Schemas', id: 'LIST' }],
-      query: ({ dbId, forceRefresh }) => ({
+      query: ({ dbId, catalog, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/schemas/`,
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
           force: forceRefresh,
+          ...(catalog !== undefined && { catalog }),
         },
         transformResponse: ({ json }: JsonResponse) =>
-          json.result.map((value: string) => ({
+          json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
+      serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,
+        catalog,
       }),
     }),
   }),
@@ -69,57 +72,43 @@ export const {
 export const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
-  const isMountedRef = useRef(false);
-  const { dbId, onSuccess, onError } = options || {};
+  const { dbId, catalog, onSuccess, onError } = options || {};
   const [trigger] = useLazySchemasQuery();
   const result = useSchemasQuery(
-    { dbId, forceRefresh: false },
+    { dbId, catalog: catalog || undefined, forceRefresh: false },
     {
       skip: !dbId,
     },
   );
 
-  const handleOnSuccess = useEffectEvent(
-    (data: SchemaOption[], isRefetched: boolean) => {
-      onSuccess?.(data, isRefetched);
+  const fetchData = useEffectEvent(
+    (
+      dbId: FetchSchemasQueryParams['dbId'],
+      catalog: FetchSchemasQueryParams['catalog'],
+      forceRefresh = false,
+    ) => {
+      if (dbId && (!result.currentData || forceRefresh)) {
+        trigger({ dbId, catalog, forceRefresh }).then(
+          ({ isSuccess, isError, data }) => {
+            if (isSuccess) {
+              onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
+            }
+            if (isError) {
+              onError?.();
+            }
+          },
+        );
+      }
     },
   );
 
-  const handleOnError = useEffectEvent(() => {
-    onError?.();
-  });
+  useEffect(() => {
+    fetchData(dbId, catalog, false);
+  }, [dbId, catalog, fetchData]);
 
   const refetch = useCallback(() => {
-    if (dbId) {
-      trigger({ dbId, forceRefresh: true }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, handleOnError, handleOnSuccess, trigger]);
-
-  useEffect(() => {
-    if (isMountedRef.current) {
-      const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
-        result;
-      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess) {
-          handleOnSuccess(data || EMPTY_SCHEMAS, false);
-        }
-        if (isError) {
-          handleOnError();
-        }
-      }
-    } else {
-      isMountedRef.current = true;
-    }
-  }, [result, handleOnSuccess, handleOnError]);
+    fetchData(dbId, catalog, true);
+  }, [dbId, catalog, fetchData]);
 
   return {
     ...result,

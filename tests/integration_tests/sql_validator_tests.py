@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Sql Lab"""
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -38,14 +39,11 @@ class TestPrestoValidator(SupersetTestCase):
         self.validator = PrestoDBSQLValidator
         self.database = MagicMock()
         self.database_engine = (
-            self.database.get_sqla_engine_with_context.return_value.__enter__.return_value
+            self.database.get_sqla_engine.return_value.__enter__.return_value
         )
         self.database_conn = self.database_engine.raw_connection.return_value
         self.database_cursor = self.database_conn.cursor.return_value
         self.database_cursor.poll.return_value = None
-
-    def tearDown(self):
-        self.logout()
 
     PRESTO_ERROR_TEMPLATE = {
         "errorLocation": {"lineNumber": 10, "columnNumber": 20},
@@ -58,7 +56,7 @@ class TestPrestoValidator(SupersetTestCase):
         sql = "SELECT 1 FROM default.notarealtable"
         schema = "default"
 
-        errors = self.validator.validate(sql, schema, self.database)
+        errors = self.validator.validate(sql, None, schema, self.database)
 
         self.assertEqual([], errors)
 
@@ -72,7 +70,7 @@ class TestPrestoValidator(SupersetTestCase):
         fetch_fn.side_effect = DatabaseError("dummy db error")
 
         with self.assertRaises(PrestoSQLValidationError):
-            self.validator.validate(sql, schema, self.database)
+            self.validator.validate(sql, None, schema, self.database)
 
     @patch("superset.utils.core.g")
     def test_validator_unexpected_error(self, flask_g):
@@ -84,7 +82,7 @@ class TestPrestoValidator(SupersetTestCase):
         fetch_fn.side_effect = Exception("a mysterious failure")
 
         with self.assertRaises(Exception):
-            self.validator.validate(sql, schema, self.database)
+            self.validator.validate(sql, None, schema, self.database)
 
     @patch("superset.utils.core.g")
     def test_validator_query_error(self, flask_g):
@@ -95,7 +93,7 @@ class TestPrestoValidator(SupersetTestCase):
         fetch_fn = self.database.db_engine_spec.fetch_data
         fetch_fn.side_effect = DatabaseError(self.PRESTO_ERROR_TEMPLATE)
 
-        errors = self.validator.validate(sql, schema, self.database)
+        errors = self.validator.validate(sql, None, schema, self.database)
 
         self.assertEqual(1, len(errors))
 
@@ -107,7 +105,10 @@ class TestPostgreSQLValidator(SupersetTestCase):
 
         mock_database = MagicMock()
         annotations = PostgreSQLValidator.validate(
-            sql='SELECT 1, "col" FROM "table"', schema="", database=mock_database
+            sql='SELECT 1, "col" FROM "table"',
+            catalog=None,
+            schema="",
+            database=mock_database,
         )
         assert annotations == []
 
@@ -117,7 +118,10 @@ class TestPostgreSQLValidator(SupersetTestCase):
 
         mock_database = MagicMock()
         annotations = PostgreSQLValidator.validate(
-            sql='SELECT 1, "col"\nFROOM "table"', schema="", database=mock_database
+            sql='SELECT 1, "col"\nFROOM "table"',
+            catalog=None,
+            schema="",
+            database=mock_database,
         )
 
         assert len(annotations) == 1

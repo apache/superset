@@ -21,7 +21,6 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-from sqlalchemy import CheckConstraint, Column, Integer, MetaData, Table
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -30,6 +29,7 @@ from superset.utils.core import (
     DateColumn,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
+    get_datasource_full_name,
     is_test,
     normalize_dttm_col,
     parse_boolean_string,
@@ -314,7 +314,6 @@ def test_generic_constraint_name_not_found():
     table_name = "my_table"
     columns = {"column1", "column2"}
     referenced_table_name = "other_table"
-    constraint_name = "my_constraint"
 
     # Create a mock table object with the same structure but no matching constraint
     table_mock = MagicMock()
@@ -371,3 +370,29 @@ def test_generic_find_fk_constraint_none_exist():
     )
 
     assert result is None
+
+
+def test_get_datasource_full_name():
+    """
+    Test the `get_datasource_full_name` function.
+
+    This is used to build permissions, so it doesn't really return the datasource full
+    name. Instead, it returns a fully qualified table name that includes the database
+    name and schema, with each part wrapped in square brackets.
+    """
+    assert (
+        get_datasource_full_name("db", "table", "catalog", "schema")
+        == "[db].[catalog].[schema].[table]"
+    )
+
+    assert get_datasource_full_name("db", "table", None, None) == "[db].[table]"
+
+    assert (
+        get_datasource_full_name("db", "table", None, "schema")
+        == "[db].[schema].[table]"
+    )
+
+    assert (
+        get_datasource_full_name("db", "table", "catalog", None)
+        == "[db].[catalog].[table]"
+    )

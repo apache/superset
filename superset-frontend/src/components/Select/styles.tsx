@@ -41,7 +41,7 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 
 export const StyledSelect = styled(AntdSelect, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
-})<{ headerPosition: string; oneLine?: boolean }>`
+})<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
     && .ant-select-selector {

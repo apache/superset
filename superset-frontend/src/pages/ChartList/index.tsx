@@ -25,7 +25,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { useSelector } from 'react-redux';
@@ -614,7 +614,7 @@ function ChartList(props: ChartListProps) {
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.ChartTags,
+              operator: FilterOperator.ChartTagById,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },

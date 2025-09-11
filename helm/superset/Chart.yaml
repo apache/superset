@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 apiVersion: v2
-appVersion: "3.1.0"
+appVersion: "4.0.1"
 description: Apache Superset is a modern, enterprise-ready business intelligence web application
 name: superset
 icon: https://artifacthub.io/image/68c1d717-0e97-491f-b046-754e46f46922@2x
@@ -29,7 +29,7 @@ maintainers:
   - name: craig-rueda
     email: craig@craigrueda.com
     url: https://github.com/craig-rueda
-version: 0.12.5
+version: 0.12.12
 dependencies:
   - name: postgresql
     version: 12.1.6

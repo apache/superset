@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, TYPE_CHECKING
 from urllib import parse
@@ -45,13 +44,13 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -84,6 +83,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    catalog_perm = Column(String(1000), nullable=True, default=None)
     # the last time a user has saved the chart, changed_on is referencing
     # when the database row was last written
     last_saved_at = Column(DateTime, nullable=True)
@@ -104,9 +104,10 @@ class Slice(  # pylint: disable=too-many-public-methods
         "Tag",
         secondary="tagged_object",
         overlaps="objects,tag,tags",
-        primaryjoin="and_(Slice.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Slice.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'chart')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     table = relationship(
         "SqlaTable",
@@ -139,14 +140,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[BaseDatasource]:
+    def cls_model(self) -> type[SqlaTable]:
         # pylint: disable=import-outside-toplevel
         from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> BaseDatasource | None:
+    def datasource(self) -> SqlaTable | None:
         return self.get_datasource
 
     def clone(self) -> Slice:
@@ -163,7 +164,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    def get_datasource(self) -> BaseDatasource | None:
+    def get_datasource(self) -> SqlaTable | None:
         return (
             db.session.query(self.cls_model)
             .filter_by(id=self.datasource_id)
@@ -172,20 +173,17 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @renders("datasource_name")
     def datasource_link(self) -> Markup | None:
-        # pylint: disable=no-member
         datasource = self.datasource
         return datasource.link if datasource else None
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
-        # pylint: disable=no-member
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
         return datasource.explore_url if datasource else None
 
     def datasource_name_text(self) -> str | None:
-        # pylint: disable=no-member
         if self.table:
             if self.table.schema:
                 return f"{self.table.schema}.{self.table.table_name}"
@@ -198,7 +196,6 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        # pylint: disable=no-member
         datasource = self.datasource
         return datasource.url if datasource else None
 
@@ -292,7 +289,7 @@ class Slice(  # pylint: disable=too-many-public-methods
                 return self.get_query_context_factory().create(
                     **json.loads(self.query_context)
                 )
-            except json.decoder.JSONDecodeError as ex:
+            except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
         return None
@@ -372,6 +369,7 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+            target.catalog_perm = ds.catalog_perm
             target.schema_perm = ds.schema_perm
 
 

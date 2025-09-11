@@ -51,7 +51,6 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import extractUrlParams from '../util/extractUrlParams';
-import { updateColorSchema } from './dashboardInfo';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { FilterBarOrientation } from '../types';
 
@@ -70,16 +69,6 @@ export const hydrateDashboard =
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
     });
-
-    if (metadata?.shared_label_colors) {
-      updateColorSchema(metadata, metadata?.shared_label_colors);
-    }
-
-    // Priming the color palette with user's label-color mapping provided in
-    // the dashboard's JSON metadata
-    if (metadata?.label_colors) {
-      updateColorSchema(metadata, metadata?.label_colors);
-    }
 
     // new dash: position_json could be {} or null
     const layout =

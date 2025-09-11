@@ -19,7 +19,6 @@
 import { Preset } from '@superset-ui/core';
 import userEvent, { specialChars } from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import React from 'react';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';

@@ -41,17 +41,32 @@ export type DatabaseObject = {
   id: number;
 };
 
-export type NotificationMethodOption = 'Email' | 'Slack';
+export enum NotificationMethodOption {
+  Email = 'Email',
+  Slack = 'Slack',
+  SlackV2 = 'SlackV2',
+}
 
 export type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
+  cc?: string;
+  bcc?: string;
   options: NotificationMethodOption[];
+};
+
+export type SlackChannel = {
+  id: string;
+  name: string;
+  is_member: boolean;
+  is_private: boolean;
 };
 
 export type Recipient = {
   recipient_config_json: {
     target: string;
+    ccTarget?: string;
+    bccTarget?: string;
   };
   type: NotificationMethodOption;
 };
@@ -79,6 +94,7 @@ export type AlertObject = {
   dashboard_id?: number;
   database?: MetaObject;
   description?: string;
+  email_subject?: string;
   error?: string;
   force_screenshot: boolean;
   grace_period?: number;
@@ -123,6 +139,7 @@ export enum AlertState {
 export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
+  SlackV2 = 'SlackV2',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;

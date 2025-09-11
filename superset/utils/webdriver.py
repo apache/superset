@@ -237,7 +237,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 except PlaywrightTimeout as ex:
                     # page didn't load
                     logger.exception("Timed out requesting url %s", url)
-                    raise ex
+                    raise
 
                 try:
                     # chart containers didn't render
@@ -250,7 +250,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         "Timed out waiting for chart containers to draw at url %s",
                         url,
                     )
-                    raise ex
+                    raise
                 try:
                     # charts took too long to load
                     logger.debug(
@@ -372,9 +372,7 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.visibility_of_any_elements_located(
                         (By.CLASS_NAME, "ant-modal-content")
                     )
-                )[
-                    0
-                ]
+                )[0]
 
                 err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
 
@@ -426,24 +424,24 @@ class WebDriverSelenium(WebDriverProxy):
                 element = WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
-            except TimeoutException as ex:
+            except TimeoutException:
                 logger.exception("Selenium timed out requesting url %s", url)
-                raise ex
+                raise
 
             try:
                 # chart containers didn't render
                 logger.debug("Wait for chart containers to draw at url: %s", url)
                 WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.visibility_of_all_elements_located(
-                        (By.CLASS_NAME, "slice_container")
+                        (By.CLASS_NAME, "chart-container")
                     )
                 )
-            except TimeoutException as ex:
+            except TimeoutException:
                 logger.exception(
                     "Selenium timed out waiting for chart containers to draw at url %s",
                     url,
                 )
-                raise ex
+                raise
 
             try:
                 # charts took too long to load
@@ -453,11 +451,11 @@ class WebDriverSelenium(WebDriverProxy):
                 WebDriverWait(driver, self._screenshot_load_wait).until_not(
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
-            except TimeoutException as ex:
+            except TimeoutException:
                 logger.exception(
                     "Selenium timed out waiting for charts to load at url %s", url
                 )
-                raise ex
+                raise
 
             selenium_animation_wait = current_app.config[
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT"

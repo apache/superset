@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
@@ -26,7 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from superset import app, db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
@@ -65,12 +64,19 @@ from superset.reports.models import (
 )
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
-from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.notifications.exceptions import (
+    NotificationError,
+    NotificationParamException,
+    SlackV1NotificationError,
+)
 from superset.tasks.utils import get_executor
+from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.decorators import logs_context
+from superset.utils.decorators import logs_context, transaction
+from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -119,7 +125,35 @@ class BaseReportState:
 
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = datetime.utcnow()
-        db.session.commit()
+
+    def update_report_schedule_slack_v2(self) -> None:
+        """
+        Update the report schedule type and channels for all slack recipients to v2.
+        V2 uses ids instead of names for channels.
+        """
+        try:
+            for recipient in self._report_schedule.recipients:
+                if recipient.type == ReportRecipientType.SLACK:
+                    recipient.type = ReportRecipientType.SLACKV2
+                    slack_recipients = json.loads(recipient.recipient_config_json)
+                    # we need to ensure that existing reports can also fetch
+                    # ids from private channels
+                    recipient.recipient_config_json = json.dumps(
+                        {
+                            "target": get_channels_with_search(
+                                slack_recipients["target"],
+                                types=[
+                                    SlackChannelTypes.PRIVATE,
+                                    SlackChannelTypes.PUBLIC,
+                                ],
+                            )
+                        }
+                    )
+        except Exception as ex:
+            logger.warning(
+                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
+            )
+            raise UpdateFailedError from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -137,7 +171,7 @@ class BaseReportState:
             uuid=self._execution_id,
         )
         db.session.add(log)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     def _get_url(
         self,
@@ -238,6 +272,16 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError()
         return [image]
 
+    def _get_pdf(self) -> bytes:
+        """
+        Get chart or dashboard pdf
+        :raises: ReportSchedulePdfFailedError
+        """
+        screenshots = self._get_screenshots()
+        pdf = build_pdf_from_screenshots(screenshots)
+
+        return pdf
+
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
@@ -318,12 +362,21 @@ class BaseReportState:
         chart_id = None
         dashboard_id = None
         report_source = None
+        slack_channels = None
         if self._report_schedule.chart:
             report_source = ReportSourceFormat.CHART
             chart_id = self._report_schedule.chart_id
         else:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
+
+        if self._report_schedule.recipients:
+            slack_channels = [
+                recipient.recipient_config_json
+                for recipient in self._report_schedule.recipients
+                if recipient.type
+                in [ReportRecipientType.SLACK, ReportRecipientType.SLACKV2]
+            ]
 
         log_data: HeaderDataType = {
             "notification_type": self._report_schedule.type,
@@ -332,6 +385,7 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
+            "slack_channels": slack_channels,
         }
         return log_data
 
@@ -342,22 +396,27 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         csv_data = None
+        screenshot_data = []
+        pdf_data = None
         embedded_data = None
         error_text = None
-        screenshot_data = []
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
-            if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
+            if self._report_schedule.report_format == ReportDataFormat.PNG:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
+            elif self._report_schedule.report_format == ReportDataFormat.PDF:
+                pdf_data = self._get_pdf()
+                if not pdf_data:
+                    error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.DATA
+                and self._report_schedule.report_format == ReportDataFormat.CSV
             ):
                 csv_data = self._get_csv_data()
                 if not csv_data:
@@ -367,6 +426,7 @@ class BaseReportState:
                     name=self._report_schedule.name,
                     text=error_text,
                     header_data=header_data,
+                    url=url,
                 )
 
         if (
@@ -375,21 +435,25 @@ class BaseReportState:
         ):
             embedded_data = self._get_embedded_data()
 
-        if self._report_schedule.chart:
-            name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.chart.slice_name}"
-            )
+        if self._report_schedule.email_subject:
+            name = self._report_schedule.email_subject
         else:
-            name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.dashboard.dashboard_title}"
-            )
+            if self._report_schedule.chart:
+                name = (
+                    f"{self._report_schedule.name}: "
+                    f"{self._report_schedule.chart.slice_name}"
+                )
+            else:
+                name = (
+                    f"{self._report_schedule.name}: "
+                    f"{self._report_schedule.dashboard.dashboard_title}"
+                )
 
         return NotificationContent(
             name=name,
             url=url,
             screenshots=screenshot_data,
+            pdf=pdf_data,
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
@@ -420,6 +484,19 @@ class BaseReportState:
                     )
                 else:
                     notification.send()
+            except SlackV1NotificationError as ex:
+                # The slack notification should be sent with the v2 api
+                logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
+                try:
+                    self.update_report_schedule_slack_v2()
+                    recipient.type = ReportRecipientType.SLACKV2
+                    notification = create_notification(recipient, notification_content)
+                    notification.send()
+                except (UpdateFailedError, NotificationParamException) as err:
+                    # log the error but keep processing the report with SlackV1
+                    logger.warning(
+                        "Failed to update slack recipients to v2: %s", str(err)
+                    )
             except (NotificationError, SupersetException) as ex:
                 # collect errors but keep processing them
                 notification_errors.append(
@@ -457,13 +534,14 @@ class BaseReportState:
         :raises: CommandException
         """
         header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data
+            name=name, text=message, header_data=header_data, url=url
         )
 
         # filter recipients to recipients who are also owners
@@ -579,7 +657,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=second_error_message
                     )
-            raise first_ex
+            raise
 
 
 class ReportWorkingState(BaseReportState):
@@ -642,7 +720,7 @@ class ReportSuccessState(BaseReportState):
                     ReportState.ERROR,
                     error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                 )
-                raise ex
+                raise
 
         try:
             self.send()
@@ -670,6 +748,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
 
+    @transaction()
     def run(self) -> None:
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
@@ -698,6 +777,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
+    @transaction()
     def run(self) -> None:
         try:
             self.validate()
@@ -717,8 +797,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
-        except CommandException as ex:
-            raise ex
+        except CommandException:
+            raise
         except Exception as ex:
             raise ReportScheduleUnexpectedError(str(ex)) from ex
 

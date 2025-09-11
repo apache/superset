@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode, ReactElement } from 'react';
+
 import { AntdDropdown, AntdTooltip } from 'src/components';
 import { styled } from '@superset-ui/core';
 import { kebabCase } from 'lodash';
@@ -67,7 +68,7 @@ const StyledDropdownButton = styled.div`
 `;
 
 export interface DropdownButtonProps {
-  overlay: React.ReactElement;
+  overlay: ReactElement;
   tooltip?: string;
   placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
   buttonsRender?: ((buttons: ReactNode[]) => ReactNode[]) | undefined;

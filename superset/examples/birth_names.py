@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import textwrap
 from typing import Union
 
@@ -22,11 +21,13 @@ import pandas as pd
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -63,7 +64,7 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf = pdf.head(100) if sample else pdf
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
 
         pdf.to_sql(
@@ -91,11 +92,11 @@ def load_birth_names(
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
 
     tbl_name = "birth_names"
-    table_exists = database.has_table_by_name(tbl_name, schema=schema)
+    table_exists = database.has_table(Table(tbl_name, schema))
 
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
@@ -109,8 +110,6 @@ def load_birth_names(
 
     _set_table_metadata(obj, database)
     _add_table_metrics(obj)
-
-    db.session.commit()
 
     slices, _ = create_slices(obj)
     create_dashboard(slices)
@@ -153,6 +152,7 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
 
 
 def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
+    owner = security_manager.get_user_by_id(1)
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -194,7 +194,6 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
     slice_kwargs = {
         "datasource_id": tbl.id,
         "datasource_type": DatasourceType.TABLE,
-        "owners": [],
     }
 
     print("Creating some slices")
@@ -211,6 +210,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 compare_suffix="over 5Y",
                 metric=metric,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -219,6 +219,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults, viz_type="pie", groupby=["gender"], metric=metric
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -233,6 +234,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 show_legend=True,
                 metrics=metrics,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -269,6 +271,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 ],
                 groupby=["state"],
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -282,6 +285,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 timeseries_limit_metric=metric,
                 metrics=[metric],
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -298,6 +302,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 metric=metric,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -311,6 +316,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 timeseries_limit_metric=metric,
                 metrics=[metric],
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -327,6 +333,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "boy")],
                 metric=metric,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -344,6 +351,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -361,6 +369,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -382,6 +391,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
+            owners=[],
         ),
     ]
     misc_slices = [
@@ -406,12 +416,14 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 yAxisIndex=0,
                 yAxisIndexB=1,
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
             slice_name="Num Births Trend",
             viz_type="line",
             params=get_slice_json(defaults, viz_type="line", metrics=metrics),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -434,6 +446,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -453,6 +466,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 viz_type="big_number_total",
                 granularity_sqla="ds",
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -485,6 +499,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 },
                 limit="10",
             ),
+            owners=[owner] if owner else [],
         ),
         Slice(
             **slice_kwargs,
@@ -505,6 +520,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     "label": "SUM(num_california)",
                 },
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -518,6 +534,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 subheader="total female participants",
             ),
+            owners=[],
         ),
         Slice(
             **slice_kwargs,
@@ -530,6 +547,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 groupbyColumns=["state"],
                 metrics=metrics,
             ),
+            owners=[],
         ),
     ]
     for slc in slices:
@@ -843,5 +861,4 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
-    db.session.commit()
     return dash

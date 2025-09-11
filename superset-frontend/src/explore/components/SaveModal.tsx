@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React from 'react';
+import { ChangeEvent, FormEvent, Component } from 'react';
 import { Dispatch } from 'redux';
 import rison from 'rison';
 import { connect } from 'react-redux';
@@ -82,7 +82,7 @@ export const StyledModal = styled(Modal)`
   }
 `;
 
-class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
+class SaveModal extends Component<SaveModalProps, SaveModalState> {
   constructor(props: SaveModalProps) {
     super(props);
     this.state = {
@@ -139,12 +139,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
   }
 
-  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+  handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
     this.setState({ datasetName: e.target.value });
   };
 
-  onSliceNameChange(event: React.ChangeEvent<HTMLInputElement>) {
+  onSliceNameChange(event: ChangeEvent<HTMLInputElement>) {
     this.setState({ newSliceName: event.target.value });
   }
 

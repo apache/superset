@@ -16,19 +16,19 @@
 # under the License.
 # isort:skip_file
 import copy
-import json
 import time
 from unittest.mock import patch
 import pytest
 
-import tests.integration_tests.test_app  # pylint: disable=unused-import
+import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
 from superset import db, security_manager
+from superset.utils import json
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 
@@ -39,7 +39,6 @@ class TestDashboardDAO(SupersetTestCase):
     def test_get_dashboard_changed_on(self, mock_sm_g, mock_g):
         mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
-            self.login(username="admin")
             dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").first()
             )

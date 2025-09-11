@@ -47,6 +47,7 @@ from superset.tags.schemas import (
     openapi_spec_methods_override,
     TaggedObjectEntityResponseSchema,
     TagGetResponseSchema,
+    TagPostBulkResponseSchema,
     TagPostBulkSchema,
     TagPostSchema,
     TagPutSchema,
@@ -132,6 +133,8 @@ class TagRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (
         TagGetResponseSchema,
         TaggedObjectEntityResponseSchema,
+        TagPostBulkResponseSchema,
+        TagPostBulkSchema,
     )
     apispec_parameter_schemas = {
         "delete_tags_schema": delete_tags_schema,
@@ -211,40 +214,21 @@ class TagRestApi(BaseSupersetModelRestApi):
         """Bulk create tags and tagged objects
         ---
         post:
-          summary: Get all objects associated with a tag
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: tag_id
+          summary: Bulk create tags and tagged objects
           requestBody:
             description: Tag schema
             required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    tags:
-                      description: list of tag names to add to object
-                      type: array
-                      items:
-                        type: string
-                    objects_to_tag:
-                      description: list of object names to add to object
-                      type: array
-                      items:
-                        type: array
+                  $ref: '#/components/schemas/TagPostBulkSchema'
           responses:
             200:
-              description: Tag added to favorites
+              description: Bulk created tags and tagged objects
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      result:
-                        type: object
+                    $ref: '#/components/schemas/TagPostBulkResponseSchema'
             302:
               description: Redirects to the current digest
             400:
@@ -267,6 +251,7 @@ class TagRestApi(BaseSupersetModelRestApi):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
                     {
                         "name": tag.get("name"),
+                        "description": tag.get("description"),
                         "objects_to_tag": tag.get("objects_to_tag"),
                     }
                 )

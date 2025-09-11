@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
-import { AlertObject } from './types';
+import { AlertObject, NotificationMethodOption } from './types';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -31,7 +30,7 @@ jest.mock('@superset-ui/core', () => ({
 
 jest.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
-    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack'],
+    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
   }),
 }));
 
@@ -136,7 +135,7 @@ const validAlert: AlertObject = {
   ],
   recipients: [
     {
-      type: 'Email',
+      type: NotificationMethodOption.Email,
       recipient_config_json: { target: 'test@user.com' },
     },
   ],

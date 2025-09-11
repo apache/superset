@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import testData from './data';

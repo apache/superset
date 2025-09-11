@@ -18,10 +18,9 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import ParameterErrorMessage from './ParameterErrorMessage';
-import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 
 jest.mock(
   'src/components/Icons/Icon',

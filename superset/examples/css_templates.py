@@ -52,7 +52,6 @@ def load_css_templates() -> None:
     """
     )
     obj.css = css
-    db.session.commit()
 
     obj = db.session.query(CssTemplate).filter_by(template_name="Courier Black").first()
     if not obj:
@@ -97,4 +96,3 @@ def load_css_templates() -> None:
     """
     )
     obj.css = css
-    db.session.commit()

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
@@ -59,7 +59,7 @@ const mockState = {
 const store = mockStore(mockState);
 let isFeatureEnabledMock: jest.SpyInstance;
 
-const standardProvider: React.FC = ({ children }) => (
+const standardProvider: FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
     <Provider store={store}>{children}</Provider>
   </ThemeProvider>
@@ -75,7 +75,7 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
-const standardProviderWithUnsaved: React.FC = ({ children }) => (
+const standardProviderWithUnsaved: FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
     <Provider
       store={mockStore({

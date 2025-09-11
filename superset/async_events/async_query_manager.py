@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import uuid
 from typing import Any, Literal, Optional
 
 import jwt
 import redis
-from flask import Flask, request, Request, Response, session
+from flask import Flask, Request, request, Response, session
 
+from superset.utils import json
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
