@@ -64,6 +64,9 @@
       id="csrf_token"
       value="{{ csrf_token() if csrf_token else '' }}"
     />
+    {% block head_js %}
+      {% include "head_custom_extra.html" %}
+    {% endblock %}
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>
@@ -84,7 +87,10 @@
     {% endblock %}
 
     {% block tail_js %}
-      {{ js_bundle(assets_prefix, entry) }}
+      {% if entry %}
+        {{ js_bundle(assets_prefix, entry) }}
+      {% endif %}
+      {% include "tail_js_custom_extra.html" %}
     {% endblock %}
 
     <script nonce="{{ macros.get_nonce() }}">
