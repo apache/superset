@@ -62,7 +62,7 @@ const styled: CreateStyled = emotionStyled;
 
 // launching in in dark mode for now while iterating
 const themeObject: Theme = Theme.fromConfig({
-  algorithm: ThemeAlgorithm.DEFAULT,
+  algorithm: ThemeAlgorithm.DARK,
 });
 
 const { theme } = themeObject;

@@ -38,6 +38,7 @@ import {
   useTheme,
   chartLabelWeight,
   chartLabelExplanations,
+  isThemeDark,
 } from '@superset-ui/core';
 import { Input, Collapse, Tooltip, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -176,11 +177,11 @@ const SelectorLabel = styled.button`
     }
 
     &.selected {
-      background-color: ${theme.colorPrimaryBgHover};
-      color: ${theme.colorPrimaryTextActive};
+      background-color: ${theme.colorPrimary};
+      color: ${theme.colorTextLightSolid};
 
       svg {
-        color: ${theme.colorIcon};
+        color: ${theme.colorTextLightSolid};
       }
 
       &:hover {
@@ -259,6 +260,7 @@ const Examples = styled.div`
     height: 100%;
     border-radius: ${({ theme }) => theme.borderRadius}px;
     border: 1px solid ${({ theme }) => theme.colorBorder};
+    background-color: ${({ theme }) => theme.colorBgContainer};
   }
 `;
 
@@ -266,6 +268,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
   position: relative;
+  outline: none; /* Remove focus outline to show only selected state */
 
   img {
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
@@ -273,6 +276,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
     border: 1px solid ${theme.colorBorder};
     border-radius: ${theme.borderRadius}px;
     transition: border-color ${theme.motionDurationMid};
+    background-color: ${theme.colorBgContainer};
   }
 
   &.selected img {
@@ -334,8 +338,21 @@ const Thumbnail: FC<ThumbnailProps> = ({
   onDoubleClick,
 }) => {
   const theme = useTheme();
+  const isDarkMode = isThemeDark(theme);
   const { key, value: type } = entry;
   const isSelected = selectedViz === entry.key;
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setSelectedViz(key);
+    }
+  };
+
+  const handleFocus = () => {
+    // Auto-select chart when tabbed to
+    setSelectedViz(key);
+  };
 
   return (
     <div
@@ -347,13 +364,17 @@ const Thumbnail: FC<ThumbnailProps> = ({
       className={isSelected ? 'selected' : ''}
       onClick={() => setSelectedViz(key)}
       onDoubleClick={onDoubleClick}
+      onKeyDown={handleKeyDown}
+      onFocus={handleFocus}
       data-test="viztype-selector-container"
     >
       <img
         alt={type.name}
         width="100%"
         className={`viztype-selector ${isSelected ? 'selected' : ''}`}
-        src={type.thumbnail}
+        src={
+          isDarkMode && type.thumbnailDark ? type.thumbnailDark : type.thumbnail
+        }
       />
       <div
         className="viztype-label"
@@ -439,6 +460,8 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
+  const theme = useTheme();
+  const isDarkMode = isThemeDark(theme);
   const { selectedViz, onChange, onDoubleClick, className, denyList } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
@@ -836,7 +859,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               ).map(example => (
                 <img
                   key={example.url}
-                  src={example.url}
+                  src={
+                    isDarkMode && example.urlDark
+                      ? example.urlDark
+                      : example.url
+                  }
                   alt={example.caption}
                   title={example.caption}
                 />
