@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict, Protocol
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
@@ -69,9 +69,15 @@ class LoggingMiddleware(Middleware):
         )
         # (Optional) also log to standard logger for debugging
         logger.info(
-            f"MCP tool call: tool={getattr(context.message, 'name', None)}, "
-            f"agent_id={agent_id}, user_id={user_id}, method={context.method}, "
-            f"dashboard_id={dashboard_id}, slice_id={slice_id}, dataset_id={dataset_id}"
+            "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
+            "dashboard_id=%s, slice_id=%s, dataset_id=%s",
+            getattr(context.message, "name", None),
+            agent_id,
+            user_id,
+            context.method,
+            dashboard_id,
+            slice_id,
+            dataset_id,
         )
         return await call_next(context)
 
@@ -130,9 +136,13 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
         # Log the error with context
         logger.error(
-            f"MCP tool error: tool={tool_name}, "
-            f"user_id={user_id}, duration_ms={duration_ms}, "
-            f"error_type={type(error).__name__}, error={str(error)}"
+            "MCP tool error: tool=%s, user_id=%s, duration_ms=%s, "
+            "error_type=%s, error=%s",
+            tool_name,
+            user_id,
+            duration_ms,
+            type(error).__name__,
+            str(error),
         )
 
         # Log to Superset's event system
@@ -149,7 +159,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 },
             )
         except Exception as log_error:
-            logger.warning(f"Failed to log error event: {log_error}")
+            logger.warning("Failed to log error event: %s", log_error)
 
         # Handle specific error types with appropriate responses
         if isinstance(error, ToolError):
@@ -193,12 +203,200 @@ class GlobalErrorHandlerMiddleware(Middleware):
         else:
             # Generic internal errors
             error_id = f"err_{int(time.time())}"
-            logger.error(f"Unexpected error [{error_id}] in {tool_name}: {error}")
+            logger.error("Unexpected error [%s] in %s: %s", error_id, tool_name, error)
 
             raise ToolError(
                 f"Internal error in {tool_name}: An unexpected error occurred. "
                 f"Error ID: {error_id}. Please contact support if this persists."
             ) from error
+
+
+class RateLimiterProtocol(Protocol):
+    """Protocol for rate limiter implementations."""
+
+    def is_rate_limited(
+        self, key: str, limit: int, window: int = 60
+    ) -> tuple[bool, dict[str, Any]]:
+        """Check if a key is rate limited."""
+        ...
+
+    def cleanup(self) -> None:
+        """Clean up old entries if needed."""
+        ...
+
+
+class InMemoryRateLimiter:
+    """In-memory rate limiter for development."""
+
+    def __init__(self) -> None:
+        # Structure: {key: [(timestamp, count), ...]}
+        self._requests: Dict[str, list[tuple[float, int]]] = defaultdict(list)
+        self._cleanup_interval = 300  # Clean up every 5 minutes
+        self._last_cleanup = time.time()
+
+    def is_rate_limited(
+        self, key: str, limit: int, window: int = 60
+    ) -> tuple[bool, dict[str, Any]]:
+        """Check if request should be rate limited using sliding window."""
+        current_time = time.time()
+        window_start = current_time - window
+
+        # Get requests in the current window
+        requests_in_window = [
+            (timestamp, count)
+            for timestamp, count in self._requests[key]
+            if timestamp > window_start
+        ]
+
+        # Calculate total requests in window
+        total_requests = sum(count for _, count in requests_in_window)
+
+        # Check if rate limited BEFORE adding the current request
+        if total_requests >= limit:
+            # Rate limit info when limited
+            rate_limit_info = {
+                "limit": limit,
+                "remaining": 0,
+                "reset_time": int(window_start + window),
+                "window_seconds": window,
+            }
+            return True, rate_limit_info
+
+        # Add current request to tracking
+        self._requests[key].append((current_time, 1))
+
+        # Update total after adding
+        total_requests += 1
+
+        # Keep only recent entries
+        self._requests[key] = [
+            (ts, count)
+            for ts, count in self._requests[key]
+            if ts > current_time - 3600  # Keep last hour
+        ]
+
+        # Rate limit info after adding request
+        rate_limit_info = {
+            "limit": limit,
+            "remaining": max(0, limit - total_requests),
+            "reset_time": int(window_start + window),
+            "window_seconds": window,
+        }
+
+        return False, rate_limit_info
+
+    def cleanup(self) -> None:
+        """Remove entries older than 1 hour to prevent memory leaks."""
+        current_time = time.time()
+        if current_time - self._last_cleanup < self._cleanup_interval:
+            return
+
+        cutoff_time = current_time - 3600  # 1 hour ago
+        keys_to_clean = []
+
+        for key, requests in self._requests.items():
+            # Remove old entries
+            self._requests[key] = [
+                (timestamp, count)
+                for timestamp, count in requests
+                if timestamp > cutoff_time
+            ]
+            # Mark empty keys for removal
+            if not self._requests[key]:
+                keys_to_clean.append(key)
+
+        for key in keys_to_clean:
+            del self._requests[key]
+
+        self._last_cleanup = current_time
+
+
+class RedisRateLimiter:
+    """Redis-backed rate limiter for production."""
+
+    def __init__(self) -> None:
+        from superset.extensions import cache_manager
+
+        self._cache = cache_manager.cache
+        self._prefix = "mcp:ratelimit:"
+
+    def is_rate_limited(
+        self, key: str, limit: int, window: int = 60
+    ) -> tuple[bool, dict[str, Any]]:
+        """Check if request should be rate limited using Redis sliding window."""
+        current_time = time.time()
+        full_key = "%s%s" % (self._prefix, key)
+
+        try:
+            # Use Redis sorted set for sliding window
+            window_start = current_time - window
+
+            # Remove old entries outside the window
+            self._cache.delete_many(
+                [
+                    k
+                    for k, score in self._cache.get(full_key) or []
+                    if score < window_start
+                ]
+            )
+
+            # Get count of requests in window
+            request_count = self._cache.get("%s:count" % full_key) or 0
+
+            # Rate limit info
+            rate_limit_info = {
+                "limit": limit,
+                "remaining": max(0, limit - request_count),
+                "reset_time": int(current_time + window),
+                "window_seconds": window,
+            }
+
+            if request_count >= limit:
+                return True, rate_limit_info
+
+            # Increment counter with TTL
+            new_count = (request_count or 0) + 1
+            self._cache.set("%s:count" % full_key, new_count, timeout=window)
+
+            return False, rate_limit_info
+
+        except Exception as e:
+            logger.warning("Redis rate limiter error: %s, allowing request", e)
+            # On Redis error, allow the request
+            return False, {
+                "limit": limit,
+                "remaining": limit,
+                "reset_time": 0,
+                "window_seconds": window,
+            }
+
+    def cleanup(self) -> None:
+        """No cleanup needed for Redis - TTL handles expiration."""
+        pass
+
+
+def create_rate_limiter() -> RateLimiterProtocol:
+    """Factory to create appropriate rate limiter based on environment."""
+    try:
+        # Try to use Redis first (production)
+        from superset.extensions import cache_manager
+
+        if cache_manager and cache_manager.cache:
+            # Test Redis connectivity
+            test_key = "mcp:ratelimit:test"
+            cache_manager.cache.set(test_key, 1, timeout=1)
+            if cache_manager.cache.get(test_key):
+                cache_manager.cache.delete(test_key)
+                logger.info("Using Redis for rate limiting")
+                return RedisRateLimiter()
+    except Exception as e:
+        logger.warning(
+            "Redis not available for rate limiting: %s, falling back to in-memory", e
+        )
+
+    # Fallback to in-memory rate limiter (development)
+    logger.info("Using in-memory rate limiter")
+    return InMemoryRateLimiter()
 
 
 class RateLimitMiddleware(Middleware):
@@ -236,36 +434,8 @@ class RateLimitMiddleware(Middleware):
             ]
         )
 
-        # In-memory storage for rate limiting
-        # Structure: {key: [(timestamp, count), ...]}
-        self._requests: Dict[str, list[tuple[float, int]]] = defaultdict(list)
-        self._cleanup_interval = 300  # Clean up old entries every 5 minutes
-        self._last_cleanup = time.time()
-
-    def _cleanup_old_entries(self) -> None:
-        """Remove entries older than 1 hour to prevent memory leaks."""
-        current_time = time.time()
-        if current_time - self._last_cleanup < self._cleanup_interval:
-            return
-
-        cutoff_time = current_time - 3600  # 1 hour ago
-        keys_to_clean = []
-
-        for key, requests in self._requests.items():
-            # Remove old entries
-            self._requests[key] = [
-                (timestamp, count)
-                for timestamp, count in requests
-                if timestamp > cutoff_time
-            ]
-            # Mark empty keys for removal
-            if not self._requests[key]:
-                keys_to_clean.append(key)
-
-        for key in keys_to_clean:
-            del self._requests[key]
-
-        self._last_cleanup = current_time
+        # Use hybrid rate limiter (Redis in production, in-memory in development)
+        self._rate_limiter = create_rate_limiter()
 
     def _get_rate_limit_key(self, context: MiddlewareContext) -> tuple[str, int]:
         """
@@ -312,63 +482,20 @@ class RateLimitMiddleware(Middleware):
 
         return key, limit
 
-    def _is_rate_limited(self, key: str, limit: int) -> tuple[bool, dict[str, Any]]:
-        """
-        Check if request should be rate limited using sliding window.
-
-        Returns:
-            Tuple of (is_limited, rate_limit_info)
-        """
-        current_time = time.time()
-        window_start = current_time - 60  # 1 minute window
-
-        # Get requests in the current window
-        requests_in_window = [
-            (timestamp, count)
-            for timestamp, count in self._requests[key]
-            if timestamp > window_start
-        ]
-
-        # Calculate total requests in window
-        total_requests = sum(count for _, count in requests_in_window)
-
-        # Rate limit info
-        rate_limit_info = {
-            "limit": limit,
-            "remaining": max(0, limit - total_requests),
-            "reset_time": int(window_start + 60),  # When window resets
-            "window_seconds": 60,
-        }
-
-        if total_requests >= limit:
-            return True, rate_limit_info
-
-        # Add current request to tracking
-        self._requests[key].append((current_time, 1))
-
-        # Keep only recent entries to prevent memory bloat
-        self._requests[key] = [
-            (timestamp, count)
-            for timestamp, count in self._requests[key]
-            if timestamp > window_start
-        ]
-
-        return False, rate_limit_info
-
     async def on_call_tool(
         self,
         context: MiddlewareContext,
         call_next: Callable[[MiddlewareContext], Awaitable[Any]],
     ) -> Any:
         """Check rate limits before allowing tool calls."""
-        # Clean up old entries periodically
-        self._cleanup_old_entries()
+        # Clean up old entries periodically (only needed for in-memory)
+        self._rate_limiter.cleanup()
 
         # Get rate limit key and limit
         key, limit = self._get_rate_limit_key(context)
 
         # Check if rate limited
-        is_limited, rate_info = self._is_rate_limited(key, limit)
+        is_limited, rate_info = self._rate_limiter.is_rate_limited(key, limit)
 
         if is_limited:
             tool_name = getattr(context.message, "name", "unknown")
@@ -387,24 +514,30 @@ class RateLimitMiddleware(Middleware):
                     },
                 )
             except Exception as log_error:
-                logger.warning(f"Failed to log rate limit event: {log_error}")
+                logger.warning("Failed to log rate limit event: %s", log_error)
 
             logger.warning(
-                f"Rate limit exceeded for {tool_name}: "
-                f"key={key}, limit={limit}/min, "
-                f"reset_in={rate_info['reset_time'] - int(time.time())}s"
+                "Rate limit exceeded for %s: key=%s, limit=%s/min, reset_in=%ss",
+                tool_name,
+                key,
+                limit,
+                rate_info["reset_time"] - int(time.time()),
             )
 
             raise ToolError(
-                f"Rate limit exceeded for {tool_name}. "
-                f"Limit: {limit} requests per minute. "
-                f"Try again in {rate_info['reset_time'] - int(time.time())} seconds."
+                "Rate limit exceeded for %s. "
+                "Limit: %s requests per minute. "
+                "Try again in %s seconds."
+                % (tool_name, limit, rate_info["reset_time"] - int(time.time()))
             )
 
         # Log rate limit info for monitoring
         logger.debug(
-            f"Rate limit check: {getattr(context.message, 'name', 'unknown')}: "
-            f"key={key}, remaining={rate_info['remaining']}/{limit}"
+            "Rate limit check: %s: key=%s, remaining=%s/%s",
+            getattr(context.message, "name", "unknown"),
+            key,
+            rate_info["remaining"],
+            limit,
         )
 
         return await call_next(context)
@@ -454,7 +587,7 @@ class FieldPermissionsMiddleware(Middleware):
         try:
             user = self._get_current_user()
         except Exception as e:
-            logger.warning(f"Could not get current user for field filtering: {e}")
+            logger.warning("Could not get current user for field filtering: %s", e)
             user = None
 
         # Apply field-level permissions to the response
@@ -471,7 +604,7 @@ class FieldPermissionsMiddleware(Middleware):
             return filtered_response
 
         except Exception as e:
-            logger.error(f"Error applying field permissions to {tool_name}: {e}")
+            logger.error("Error applying field permissions to %s: %s", tool_name, e)
             # Return original response if filtering fails
             return response
 
@@ -492,7 +625,7 @@ class FieldPermissionsMiddleware(Middleware):
 
                     return db.session.query(User).filter_by(id=user_id).first()
             except Exception as e:
-                logger.debug(f"Could not get user from session: {e}")
+                logger.debug("Could not get user from session: %s", e)
                 return None
 
     def _filter_response(self, response: Any, object_type: str, user: Any) -> Any:
@@ -525,5 +658,7 @@ class FieldPermissionsMiddleware(Middleware):
             return [filter_sensitive_data(item, object_type, user) for item in response]
         else:
             # Unknown response type, return as-is
-            logger.debug(f"Unknown response type for field filtering: {type(response)}")
+            logger.debug(
+                "Unknown response type for field filtering: %s", type(response)
+            )
             return response
