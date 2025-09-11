@@ -228,6 +228,19 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
           cross_filters_enabled: crossFiltersEnabled,
         }),
       });
+
+      const updatedDashboard = response.result;
+      const lastModifiedTime = response.last_modified_time;
+
+      if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
+        dispatch(setCrossFiltersEnabled(metadata.cross_filters_enabled));
+      }
+
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
+      }
+
       dispatch(
         dashboardInfoChanged({
           metadata: JSON.parse(response.result.json_metadata || '{}'),
