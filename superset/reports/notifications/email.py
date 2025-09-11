@@ -29,7 +29,7 @@ from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
-from superset.utils.core import HeaderDataType, send_email_smtp
+from superset.utils.core import HeaderDataType, get_email_address_list, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,7 @@ ALLOWED_ATTRIBUTES = {
     **ALLOWED_TABLE_ATTRIBUTES,
 }
 
+INTERNAL_EMAIL_DOMAIN = 'aven.com'
 
 @dataclass
 class EmailContent:
@@ -130,6 +131,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
+        emailAddressList = get_email_address_list(self._get_to())
+        for emailAddress in emailAddressList:
+            if INTERNAL_EMAIL_DOMAIN not in emailAddress:
+                call_to_action = ""
+                break
+            
+        
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
