@@ -24,13 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import {
-  CssEditor,
-  Select,
-  Button,
-  Dropdown,
-  Flex,
-} from '@superset-ui/core/components';
+import { CssEditor, Select, Alert } from '@superset-ui/core/components';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
@@ -38,6 +32,10 @@ import { ModalFormField } from 'src/components/Modal';
 const StyledCssEditor = styled(CssEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colorBorder};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 interface Theme {
@@ -78,6 +76,9 @@ const StylingSection = ({
 }: StylingSectionProps) => {
   const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [originalTemplateContent, setOriginalTemplateContent] =
+    useState<string>('');
 
   // Fetch CSS templates
   const fetchCssTemplates = useCallback(async () => {
@@ -108,22 +109,25 @@ const StylingSection = ({
   // Handle CSS template selection
   const handleTemplateSelect = useCallback(
     (templateName: string) => {
-      const selectedTemplate = cssTemplates.find(
-        template => template.template_name === templateName,
-      );
-      if (selectedTemplate) {
-        onCustomCssChange(selectedTemplate.css);
+      if (!templateName) {
+        setSelectedTemplate(null);
+        setOriginalTemplateContent('');
+        return;
+      }
+
+      const template = cssTemplates.find(t => t.template_name === templateName);
+      if (template) {
+        setSelectedTemplate(templateName);
+        setOriginalTemplateContent(template.css);
+        onCustomCssChange(template.css);
       }
     },
     [cssTemplates, onCustomCssChange],
   );
 
-  // Create menu items for template dropdown
-  const templateMenuItems = cssTemplates.map(template => ({
-    key: template.template_name,
-    label: template.template_name,
-    onClick: () => handleTemplateSelect(template.template_name),
-  }));
+  // Check if current CSS differs from original template
+  const hasTemplateModification =
+    selectedTemplate && customCss !== originalTemplateContent;
 
   return (
     <>
@@ -163,42 +167,55 @@ const StylingSection = ({
           showWarning={hasCustomLabelsColor}
         />
       </ModalFormField>
+      {isFeatureEnabled(FeatureFlag.CssTemplates) &&
+        cssTemplates.length > 0 && (
+          <ModalFormField
+            label={t('Load CSS template (optional)')}
+            testId="dashboard-css-template-field"
+            helperText={t(
+              'Select a predefined CSS template to apply to your dashboard',
+            )}
+          >
+            <Select
+              data-test="dashboard-css-template-select"
+              onChange={handleTemplateSelect}
+              options={cssTemplates.map(template => ({
+                value: template.template_name,
+                label: template.template_name,
+              }))}
+              placeholder={t('Select a CSS template')}
+              loading={isLoadingTemplates}
+              allowClear
+              value={selectedTemplate}
+            />
+          </ModalFormField>
+        )}
+      {hasTemplateModification && (
+        <StyledAlert
+          type="warning"
+          message={t('Modified from "%s" template', selectedTemplate)}
+          showIcon
+          closable={false}
+          data-test="css-template-modified-warning"
+        />
+      )}
       <ModalFormField
-        label={t('Custom CSS')}
+        label={t('CSS')}
         testId="dashboard-css-field"
         helperText={t(
           'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
         )}
         bottomSpacing={false}
       >
-        <Flex vertical gap="small">
-          <StyledCssEditor
-            data-test="dashboard-css-editor"
-            onChange={onCustomCssChange}
-            value={customCss}
-            width="100%"
-            minLines={10}
-            maxLines={50}
-            editorProps={{ $blockScrolling: true }}
-          />
-          {isFeatureEnabled(FeatureFlag.CssTemplates) &&
-            cssTemplates.length > 0 && (
-              <Dropdown
-                menu={{ items: templateMenuItems }}
-                placement="bottomLeft"
-                disabled={isLoadingTemplates}
-              >
-                <Button
-                  buttonStyle="tertiary"
-                  buttonSize="small"
-                  loading={isLoadingTemplates}
-                  data-test="load-css-template-button"
-                >
-                  {t('Load CSS template')}
-                </Button>
-              </Dropdown>
-            )}
-        </Flex>
+        <StyledCssEditor
+          data-test="dashboard-css-editor"
+          onChange={onCustomCssChange}
+          value={customCss}
+          width="100%"
+          minLines={10}
+          maxLines={50}
+          editorProps={{ $blockScrolling: true }}
+        />
       </ModalFormField>
     </>
   );
