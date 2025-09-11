@@ -111,7 +111,7 @@ class RedisScreenshotCache:
 
     def get(self, key: str) -> Optional[bytes]:
         """Get a screenshot from Redis cache."""
-        full_key = f"{self._prefix}{key}"
+        full_key = "%s%s" % (self._prefix, key)
         try:
             return self._cache.get(full_key)
         except Exception as e:
@@ -120,7 +120,7 @@ class RedisScreenshotCache:
 
     def set(self, key: str, data: bytes) -> None:
         """Store a screenshot in Redis cache with TTL."""
-        full_key = f"{self._prefix}{key}"
+        full_key = "%s%s" % (self._prefix, key)
         try:
             self._cache.set(full_key, data, timeout=self._ttl)
         except Exception as e:
@@ -280,7 +280,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
     """
 
     # Check cache first
-    cache_key = f"chart_{chart_id}"
+    cache_key = "chart_%s" % chart_id
 
     cached_data = _screenshot_cache.get(cache_key)
     if cached_data:
@@ -290,7 +290,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
             media_type="image/png",
             headers={
                 "Cache-Control": "public, max-age=300",  # 5 min cache
-                "Content-Disposition": f"inline; filename=chart_{chart_id}.png",
+                "Content-Disposition": "inline; filename=chart_%s.png" % chart_id,
                 "X-Cache": "HIT",
             },
         )
@@ -333,7 +333,9 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
             logger.error("Error looking up chart %s: %s", chart_id, e)
             raise HTTPException(
                 status_code=500,
-                detail=(f"Database error while looking up chart {chart_id}: {str(e)}"),
+                detail=(
+                    "Database error while looking up chart %s: %s" % (chart_id, str(e))
+                ),
             ) from e
 
         if not chart:
@@ -341,8 +343,8 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    f"Chart with ID '{chart_id}' not found. "
-                    f"Please verify the chart ID exists."
+                    "Chart with ID '%s' not found. "
+                    "Please verify the chart ID exists." % chart_id
                 ),
             )
 
@@ -363,8 +365,8 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
             raise HTTPException(
                 status_code=500,
                 detail=(
-                    f"Failed to generate screenshot for chart {chart_id}. "
-                    f"Error: {str(e)}"
+                    "Failed to generate screenshot for chart %s. "
+                    "Error: %s" % (chart_id, str(e))
                 ),
             ) from e
 
@@ -379,7 +381,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
                 media_type="image/png",
                 headers={
                     "Cache-Control": "public, max-age=300",  # 5 min cache
-                    "Content-Disposition": f"inline; filename=chart_{chart.id}.png",
+                    "Content-Disposition": "inline; filename=chart_%s.png" % chart.id,
                     "X-Cache": "MISS",
                 },
             )
@@ -388,8 +390,8 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
             raise HTTPException(
                 status_code=500,
                 detail=(
-                    f"Screenshot generation returned empty result for "
-                    f"chart {chart_id}. The chart may have rendering issues."
+                    "Screenshot generation returned empty result for "
+                    "chart %s. The chart may have rendering issues." % chart_id
                 ),
             )
 
@@ -415,8 +417,8 @@ def _get_form_data_from_cache(form_data_key: str) -> str:
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    f"Form data key '{form_data_key}' not found or expired. "
-                    f"Please generate a new explore link."
+                    "Form data key '%s' not found or expired. "
+                    "Please generate a new explore link." % form_data_key
                 ),
             )
         return form_data_json
@@ -426,7 +428,8 @@ def _get_form_data_from_cache(form_data_key: str) -> str:
         logger.error("Failed to retrieve form data for key %s: %s", form_data_key, e)
         raise HTTPException(
             status_code=500,
-            detail=f"Error retrieving form data for key '{form_data_key}': {str(e)}",
+            detail="Error retrieving form data for key '%s': %s"
+            % (form_data_key, str(e)),
         ) from e
 
 
@@ -491,19 +494,19 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
 
             # Create explore URL with all necessary parameters
             explore_url = get_url_path("Superset.explore")
-            url_params = [f"form_data_key={form_data_key}"]
+            url_params = ["form_data_key=%s" % form_data_key]
 
             # Add datasource parameters if available
             if datasource_id:
-                url_params.append(f"datasource_id={datasource_id}")
-                url_params.append(f"datasource_type={datasource_type}")
+                url_params.append("datasource_id=%s" % datasource_id)
+                url_params.append("datasource_type=%s" % datasource_type)
 
             explore_url += "?" + "&".join(url_params)
 
             logger.info("Generating screenshot for explore URL: %s", explore_url)
             logger.info(
-                f"Form data retrieved: "
-                f"{form_data_json[:200] if form_data_json else 'None'}..."
+                "Form data retrieved: %s...",
+                form_data_json[:200] if form_data_json else "None",
             )  # Log first 200 chars
 
             # Use pooled screenshot for better performance
@@ -524,14 +527,14 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
                 )
             except Exception as e:
                 logger.error(
-                    f"Screenshot generation failed for explore view "
-                    f"{form_data_key}: {e}"
+                    "Screenshot generation failed for explore view "
+                    "%s: %s" % (form_data_key, e)
                 )
                 raise HTTPException(
                     status_code=500,
                     detail=(
-                        f"Failed to generate screenshot for explore view. "
-                        f"Error: {str(e)}"
+                        "Failed to generate screenshot for explore view. "
+                        "Error: %s" % str(e)
                     ),
                 ) from e
 
@@ -543,13 +546,13 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
                     headers={
                         "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
                         "Content-Disposition": (
-                            f"inline; filename=explore_{form_data_key}.png"
+                            "inline; filename=explore_%s.png" % form_data_key
                         ),
                     },
                 )
             else:
                 logger.error(
-                    f"Screenshot returned None for explore view {form_data_key}"
+                    "Screenshot returned None for explore view %s" % form_data_key
                 )
                 raise HTTPException(
                     status_code=500,
@@ -613,7 +616,7 @@ def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
                 # Set the auth provider on the mcp instance
                 mcp.auth = auth_provider
                 logger.info(
-                    f"Authentication configured: {type(auth_provider).__name__}"
+                    "Authentication configured: %s" % type(auth_provider).__name__
                 )
             else:
                 logger.info(
