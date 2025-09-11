@@ -17,7 +17,7 @@
 
 
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import fastmcp
 import pytest
@@ -1182,7 +1182,8 @@ class TestDatasetSortableColumns:
 
     @patch("superset.daos.dataset.DatasetDAO")
     @patch("superset.mcp_service.auth.get_user_from_request")
-    def test_list_datasets_with_valid_order_column(
+    @pytest.mark.asyncio
+    async def test_list_datasets_with_valid_order_column(
         self, mock_get_user, mock_dataset_dao
     ):
         """Test list_datasets with valid order column."""
@@ -1192,6 +1193,8 @@ class TestDatasetSortableColumns:
         mock_tool = MagicMock()
         mock_tool.run_tool.return_value = MagicMock(datasets=[], count=0)
         mock_ctx = MagicMock()
+        mock_ctx.info = AsyncMock()
+        mock_ctx.debug = AsyncMock()
 
         with patch(
             "superset.mcp_service.dataset.tool.list_datasets.ModelListCore",
@@ -1201,7 +1204,7 @@ class TestDatasetSortableColumns:
             request = ListDatasetsRequest(
                 order_column="table_name", order_direction="asc"
             )
-            list_datasets.fn(request, mock_ctx)
+            await list_datasets.fn(request, mock_ctx)
 
             # Verify the tool was called with the correct order column
             mock_tool.run_tool.assert_called_once()
@@ -1222,7 +1225,8 @@ class TestDatasetSortableColumns:
         for col in SORTABLE_DATASET_COLUMNS:
             assert col in list_datasets.description
 
-    def test_default_ordering(self):
+    @pytest.mark.asyncio
+    async def test_default_ordering(self):
         """Test default ordering behavior for datasets."""
         from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
@@ -1235,8 +1239,10 @@ class TestDatasetSortableColumns:
                     datasets=[], count=0
                 )
                 mock_ctx = MagicMock()
+                mock_ctx.info = AsyncMock()
+                mock_ctx.debug = AsyncMock()
                 request = ListDatasetsRequest()  # No order specified
-                list_datasets.fn(request, mock_ctx)
+                await list_datasets.fn(request, mock_ctx)
 
                 call_args = mock_tool.return_value.run_tool.call_args[1]
                 assert call_args["order_column"] == "changed_on"

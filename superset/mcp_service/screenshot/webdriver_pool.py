@@ -20,6 +20,7 @@ WebDriver connection pooling for improved screenshot performance
 """
 
 import logging
+import signal
 import threading
 import time
 from contextlib import contextmanager
@@ -34,6 +35,17 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from superset.utils.webdriver import WebDriverSelenium, WindowSize
 
 logger = logging.getLogger(__name__)
+
+
+class WebDriverCreationError(Exception):
+    """Exception raised when WebDriver creation times out"""
+
+    pass
+
+
+def _timeout_handler(signum: int, frame: Any) -> None:
+    """Signal handler for WebDriver creation timeout"""
+    raise WebDriverCreationError("WebDriver creation timed out")
 
 
 @dataclass
@@ -68,12 +80,14 @@ class WebDriverPool:
         max_usage_count: int = 50,  # Recreate after 50 uses
         idle_timeout_seconds: int = 300,  # 5 minutes
         health_check_interval: int = 60,  # 1 minute
+        creation_timeout_seconds: int = 30,  # SECURITY FIX: Timeout for driver creation
     ):
         self.max_pool_size = max_pool_size
         self.max_age_seconds = max_age_seconds
         self.max_usage_count = max_usage_count
         self.idle_timeout_seconds = idle_timeout_seconds
         self.health_check_interval = health_check_interval
+        self.creation_timeout_seconds = creation_timeout_seconds
 
         # Thread-safe pool management
         self._pool: Queue[PooledWebDriver] = Queue(maxsize=max_pool_size)
@@ -104,14 +118,24 @@ class WebDriverPool:
     def _create_driver(
         self, window_size: WindowSize, user_id: Optional[int] = None
     ) -> PooledWebDriver:
-        """Create a new WebDriver instance"""
+        """Create a new WebDriver instance with timeout protection"""
+        driver = None
+        old_handler = None
+
         try:
+            # SECURITY FIX: Set up timeout protection for driver creation
+            old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.alarm(self.creation_timeout_seconds)
+
             driver_type = current_app.config.get("WEBDRIVER_TYPE", "firefox")
             selenium_driver = WebDriverSelenium(driver_type, window_size)
 
-            # Create the actual WebDriver (without auth for now)
+            # Create the actual WebDriver with timeout protection
             driver = selenium_driver.create()
             driver.set_window_size(*window_size)
+
+            # Clear the alarm - creation successful
+            signal.alarm(0)
 
             pooled_driver = PooledWebDriver(
                 driver=driver,
@@ -129,9 +153,32 @@ class WebDriverPool:
             )
             return pooled_driver
 
+        except WebDriverCreationError:
+            logger.error(
+                "WebDriver creation timed out after %s seconds",
+                self.creation_timeout_seconds,
+            )
+            if driver:
+                try:
+                    driver.quit()
+                except Exception:
+                    logger.debug("Failed to cleanup driver during timeout")
+            raise Exception("WebDriver creation timed out") from None
+
         except Exception as e:
             logger.error("Failed to create WebDriver: %s", e)
+            if driver:
+                try:
+                    driver.quit()
+                except Exception:
+                    logger.debug("Failed to cleanup driver during error")
             raise
+
+        finally:
+            # Restore original signal handler and clear alarm
+            signal.alarm(0)
+            if old_handler is not None:
+                signal.signal(signal.SIGALRM, old_handler)
 
     def _is_driver_valid(self, pooled_driver: PooledWebDriver) -> bool:
         """Check if a pooled driver is still valid for use"""

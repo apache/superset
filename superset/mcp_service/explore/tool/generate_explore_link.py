@@ -39,7 +39,7 @@ from superset.mcp_service.mcp_app import mcp
 
 @mcp.tool
 @mcp_auth_hook
-def generate_explore_link(
+async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:
     """
@@ -77,14 +77,14 @@ def generate_explore_link(
     Returns:
         Dictionary containing explore URL for immediate use and error message if any
     """
-    ctx.info(
+    await ctx.info(
         "Generating explore link",
         extra={
             "dataset_id": request.dataset_id,
             "chart_type": request.config.chart_type,
         },
     )
-    ctx.debug(
+    await ctx.debug(
         "Configuration details",
         extra={
             "config": request.config.model_dump(),
@@ -95,11 +95,11 @@ def generate_explore_link(
     )
 
     try:
-        ctx.report_progress(1, 3, "Converting configuration to form data")
+        await ctx.report_progress(1, 3, "Converting configuration to form data")
         # Map config to form_data using shared utilities
         form_data = map_config_to_form_data(request.config)
 
-        ctx.debug(
+        await ctx.debug(
             "Form data generated",
             extra={
                 "form_data_keys": list(form_data.keys()),
@@ -108,12 +108,12 @@ def generate_explore_link(
             },
         )
 
-        ctx.report_progress(2, 3, "Generating explore URL")
+        await ctx.report_progress(2, 3, "Generating explore URL")
         # Generate explore link using shared utilities
         explore_url = generate_url(dataset_id=request.dataset_id, form_data=form_data)
 
-        ctx.report_progress(3, 3, "URL generation complete")
-        ctx.info(
+        await ctx.report_progress(3, 3, "URL generation complete")
+        await ctx.info(
             "Explore link generated successfully",
             extra={"url_length": len(explore_url), "dataset_id": request.dataset_id},
         )
@@ -124,7 +124,7 @@ def generate_explore_link(
         }
 
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Explore link generation failed",
             extra={
                 "dataset_id": request.dataset_id,

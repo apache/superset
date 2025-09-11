@@ -98,7 +98,7 @@ def dashboard_serializer(dashboard: Any) -> DashboardInfo:
 
 @mcp.tool
 @mcp_auth_hook
-def get_dashboard_info(
+async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:
     """
@@ -115,10 +115,10 @@ def get_dashboard_info(
 
     Returns a DashboardInfo model or DashboardError on error.
     """
-    ctx.info(
+    await ctx.info(
         "Retrieving dashboard information", extra={"identifier": request.identifier}
     )
-    ctx.debug(
+    await ctx.debug(
         "Metadata cache settings",
         extra={
             "use_cache": request.use_cache,
@@ -142,7 +142,7 @@ def get_dashboard_info(
         result = tool.run_tool(request.identifier)
 
         if isinstance(result, DashboardInfo):
-            ctx.info(
+            await ctx.info(
                 "Dashboard information retrieved successfully",
                 extra={
                     "dashboard_id": result.id,
@@ -152,7 +152,7 @@ def get_dashboard_info(
                 },
             )
         else:
-            ctx.warning(
+            await ctx.warning(
                 "Dashboard retrieval failed",
                 extra={"error_type": result.error_type, "error": result.error},
             )
@@ -160,7 +160,7 @@ def get_dashboard_info(
         return result
 
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Dashboard information retrieval failed",
             extra={
                 "identifier": request.identifier,

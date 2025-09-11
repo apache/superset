@@ -20,7 +20,9 @@ Unified error builder for chart operations.
 Consolidates error handling logic from multiple files.
 """
 
+import html
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from superset.mcp_service.common.error_schemas import (
@@ -29,6 +31,54 @@ from superset.mcp_service.common.error_schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_user_input(value: Any) -> str:
+    """Sanitize user input to prevent XSS and injection attacks in error messages."""
+    if value is None:
+        return "None"
+
+    # Convert to string and limit length
+    str_value = str(value)
+    if len(str_value) > 200:
+        str_value = str_value[:200] + "...[truncated]"
+
+    # HTML escape to prevent XSS
+    str_value = html.escape(str_value)
+
+    # Remove potentially dangerous patterns
+    dangerous_patterns = [
+        r"<script[^>]*>.*?</script>",
+        r"javascript:",
+        r"vbscript:",
+        r"on\w+\s*=",
+        r"data:text/html",
+    ]
+
+    for pattern in dangerous_patterns:
+        str_value = re.sub(
+            pattern, "[FILTERED]", str_value, flags=re.IGNORECASE | re.DOTALL
+        )
+
+    return str_value
+
+
+def _sanitize_template_vars(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Sanitize all variables before template formatting."""
+    sanitized = {}
+    for key, value in vars_dict.items():
+        # Only sanitize string-like values that could contain user input
+        if isinstance(value, (str, int, float)) or value is None:
+            sanitized[key] = _sanitize_user_input(value)
+        elif isinstance(value, (list, tuple)):
+            # Sanitize lists of strings
+            sanitized[key] = ", ".join(
+                [_sanitize_user_input(item) for item in value[:10]]
+            )  # Limit list size and convert to string
+        else:
+            # For other types, convert to string and sanitize
+            sanitized[key] = _sanitize_user_input(value)
+    return sanitized
 
 
 class ChartErrorBuilder:
@@ -146,29 +196,8 @@ class ChartErrorBuilder:
             ChartGenerationError with formatted message
         """
         template = cls.TEMPLATES.get(template_key, {})
-        vars_dict = template_vars or {}
-
-        # Format message
-        message_raw = template.get("message", "An error occurred")
-        message: str = (
-            " ".join(message_raw) if isinstance(message_raw, list) else str(message_raw)
-        )
-        if template_vars:
-            try:
-                message = message.format(**vars_dict)
-            except KeyError as e:
-                logger.warning("Missing template variable: %s", e)
-
-        # Format details
-        details_raw = template.get("details", "")
-        details: str = (
-            " ".join(details_raw) if isinstance(details_raw, list) else str(details_raw)
-        )
-        if template_vars and details:
-            try:
-                details = details.format(**vars_dict)
-            except KeyError as e:
-                logger.warning("Missing template variable: %s", e)
+        # SECURITY FIX: Sanitize template variables to prevent XSS/injection
+        vars_dict = _sanitize_template_vars(template_vars or {})
 
         message = cls._format_message(template, vars_dict)
         details = cls._format_details(template, vars_dict)
@@ -195,9 +224,12 @@ class ChartErrorBuilder:
         )
         if vars_dict:
             try:
+                # SECURITY FIX: vars_dict is already sanitized by caller
                 message = message.format(**vars_dict)
-            except KeyError as e:
-                logger.warning("Missing template variable: %s", e)
+            except (KeyError, ValueError, TypeError) as e:
+                logger.warning("Template formatting failed: %s", e)
+                # Return safe fallback message
+                message = "An error occurred during chart operation"
         return message
 
     @classmethod
@@ -211,9 +243,12 @@ class ChartErrorBuilder:
         )
         if vars_dict and details:
             try:
+                # SECURITY FIX: vars_dict is already sanitized by caller
                 details = details.format(**vars_dict)
-            except KeyError as e:
-                logger.warning("Missing template variable: %s", e)
+            except (KeyError, ValueError, TypeError) as e:
+                logger.warning("Template formatting failed: %s", e)
+                # Return safe fallback
+                details = "Additional error details unavailable"
         return details
 
     @classmethod
@@ -228,18 +263,24 @@ class ChartErrorBuilder:
         for suggestion in template.get("suggestions", []):
             if vars_dict and "{" in suggestion:
                 try:
+                    # SECURITY FIX: vars_dict is already sanitized by caller
                     suggestion = suggestion.format(**vars_dict)
                     if suggestion and suggestion != "None":
                         suggestions.append(suggestion)
-                except KeyError:
+                except (KeyError, ValueError, TypeError):
+                    # Skip malformed suggestions rather than exposing errors
                     continue
             else:
                 suggestions.append(suggestion)
 
         if custom_suggestions:
-            suggestions.extend(custom_suggestions)
+            # SECURITY FIX: Sanitize custom suggestions too
+            sanitized_custom = [
+                _sanitize_user_input(s) for s in custom_suggestions[:5]
+            ]  # Limit count
+            suggestions.extend(sanitized_custom)
 
-        return suggestions
+        return suggestions[:10]  # Limit total suggestions to prevent response bloat
 
     @classmethod
     def _generate_error_code(cls, error_code: Optional[str], template_key: str) -> str:

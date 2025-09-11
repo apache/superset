@@ -32,6 +32,43 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_validation_error(error: Exception) -> str:
+    """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
+    error_str = str(error)
+
+    # Limit length to prevent information leakage
+    if len(error_str) > 200:
+        error_str = error_str[:200] + "...[truncated]"
+
+    # Remove potentially sensitive schema information
+    import re
+
+    sensitive_patterns = [
+        # Database table/column references
+        (r'\btable\s+[\'"`]?(\w+)[\'"`]?', "table [REDACTED]"),
+        (r'\bcolumn\s+[\'"`]?(\w+)[\'"`]?', "column [REDACTED]"),
+        # SQL fragments
+        (r"SELECT\s+.*?\s+FROM", "SELECT [REDACTED] FROM"),
+        (r"WHERE\s+.*?(\s+ORDER|\s+GROUP|\s+LIMIT|$)", "WHERE [REDACTED]"),
+        # Database names/schemas
+        (r'\bdatabase\s+[\'"`]?(\w+)[\'"`]?', "database [REDACTED]"),
+        (r'\bschema\s+[\'"`]?(\w+)[\'"`]?', "schema [REDACTED]"),
+    ]
+
+    for pattern, replacement in sensitive_patterns:
+        error_str = re.sub(pattern, replacement, error_str, flags=re.IGNORECASE)
+
+    # For common error types, provide generic messages
+    if "permission" in error_str.lower() or "access" in error_str.lower():
+        return "Validation failed due to access restrictions"
+    elif "database" in error_str.lower() or "connection" in error_str.lower():
+        return "Validation failed due to database connectivity"
+    elif "timeout" in error_str.lower():
+        return "Validation timed out"
+
+    return error_str
+
+
 class ValidationPipeline:
     """
     Main validation orchestrator that runs validations in sequence:
@@ -87,10 +124,12 @@ class ValidationPipeline:
                 ChartErrorBuilder,
             )
 
+            # SECURITY FIX: Sanitize validation error to prevent information disclosure
+            sanitized_reason = _sanitize_validation_error(e)
             error = ChartErrorBuilder.build_error(
                 error_type="validation_system_error",
                 template_key="validation_error",
-                template_vars={"reason": str(e)},
+                template_vars={"reason": sanitized_reason},
                 error_code="VALIDATION_PIPELINE_ERROR",
             )
             return False, None, error

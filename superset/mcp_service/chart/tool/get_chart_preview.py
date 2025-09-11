@@ -1799,7 +1799,7 @@ def _create_numeric_summaries(data: List[Any], headers: List[str]) -> List[str]:
     return summaries
 
 
-def _get_chart_preview_internal(  # noqa: C901
+async def _get_chart_preview_internal(  # noqa: C901
     request: GetChartPreviewRequest,
     ctx: Context,
 ) -> ChartPreview | ChartError:
@@ -1818,7 +1818,7 @@ def _get_chart_preview_internal(  # noqa: C901
     ChartError on error.
     """
     try:
-        ctx.report_progress(1, 3, "Looking up chart")
+        await ctx.report_progress(1, 3, "Looking up chart")
         from superset.daos.chart import ChartDAO
 
         # Find the chart
@@ -1831,10 +1831,12 @@ def _get_chart_preview_internal(  # noqa: C901
                 if isinstance(request.identifier, str)
                 else request.identifier
             )
-            ctx.debug("Performing ID-based chart lookup", extra={"chart_id": chart_id})
+            await ctx.debug(
+                "Performing ID-based chart lookup", extra={"chart_id": chart_id}
+            )
             chart = ChartDAO.find_by_id(chart_id)
         else:
-            ctx.debug(
+            await ctx.debug(
                 "Performing UUID-based chart lookup", extra={"uuid": request.identifier}
             )
             # Try UUID lookup using DAO flexible method
@@ -1881,13 +1883,13 @@ def _get_chart_preview_internal(  # noqa: C901
                     )
 
         if not chart:
-            ctx.error("Chart not found", extra={"identifier": request.identifier})
+            await ctx.error("Chart not found", extra={"identifier": request.identifier})
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
             )
 
-        ctx.info(
+        await ctx.info(
             "Chart found successfully",
             extra={
                 "chart_id": getattr(chart, "id", None),
@@ -1910,8 +1912,8 @@ def _get_chart_preview_internal(  # noqa: C901
 
         start_time = time.time()
 
-        ctx.report_progress(2, 3, f"Generating {request.format} preview")
-        ctx.debug(
+        await ctx.report_progress(2, 3, f"Generating {request.format} preview")
+        await ctx.debug(
             "Preview generation parameters",
             extra={
                 "chart_id": chart.id,
@@ -1927,7 +1929,7 @@ def _get_chart_preview_internal(  # noqa: C901
         content = preview_generator.generate()
 
         if isinstance(content, ChartError):
-            ctx.error(
+            await ctx.error(
                 "Preview generation failed",
                 extra={
                     "chart_id": chart.id,
@@ -1938,7 +1940,7 @@ def _get_chart_preview_internal(  # noqa: C901
             )
             return content
 
-        ctx.report_progress(3, 3, "Building response")
+        await ctx.report_progress(3, 3, "Building response")
 
         # Create performance and accessibility metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -1954,7 +1956,7 @@ def _get_chart_preview_internal(  # noqa: C901
             high_contrast_available=False,
         )
 
-        ctx.debug(
+        await ctx.debug(
             "Preview generation completed",
             extra={
                 "execution_time_ms": execution_time,
@@ -1996,7 +1998,7 @@ def _get_chart_preview_internal(  # noqa: C901
         return result
 
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Chart preview generation failed",
             extra={
                 "identifier": request.identifier,
@@ -2013,7 +2015,7 @@ def _get_chart_preview_internal(  # noqa: C901
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_preview(
+async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:
     """
@@ -2041,7 +2043,7 @@ def get_chart_preview(
     Returns a ChartPreview with Superset URLs for the chart image or
     ChartError on error.
     """
-    ctx.info(
+    await ctx.info(
         "Starting chart preview generation",
         extra={
             "identifier": request.identifier,
@@ -2050,7 +2052,7 @@ def get_chart_preview(
             "height": request.height,
         },
     )
-    ctx.debug(
+    await ctx.debug(
         "Cache control settings",
         extra={
             "use_cache": request.use_cache,
@@ -2060,10 +2062,10 @@ def get_chart_preview(
     )
 
     try:
-        result = _get_chart_preview_internal(request, ctx)
+        result = await _get_chart_preview_internal(request, ctx)
 
         if isinstance(result, ChartPreview):
-            ctx.info(
+            await ctx.info(
                 "Chart preview generated successfully",
                 extra={
                     "chart_id": getattr(result, "chart_id", None),
@@ -2072,14 +2074,14 @@ def get_chart_preview(
                 },
             )
         else:
-            ctx.warning(
+            await ctx.warning(
                 "Chart preview generation failed",
                 extra={"error_type": result.error_type, "error": result.error},
             )
 
         return result
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Chart preview generation failed",
             extra={
                 "identifier": request.identifier,
