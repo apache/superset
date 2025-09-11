@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_dataset_info(
+async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
     """
@@ -60,8 +60,10 @@ def get_dataset_info(
 
     Returns a DatasetInfo model or DatasetError on error.
     """
-    ctx.info("Retrieving dataset information", extra={"identifier": request.identifier})
-    ctx.debug(
+    await ctx.info(
+        "Retrieving dataset information", extra={"identifier": request.identifier}
+    )
+    await ctx.debug(
         "Metadata cache settings",
         extra={
             "use_cache": request.use_cache,
@@ -85,7 +87,7 @@ def get_dataset_info(
         result = tool.run_tool(request.identifier)
 
         if isinstance(result, DatasetInfo):
-            ctx.info(
+            await ctx.info(
                 "Dataset information retrieved successfully",
                 extra={
                     "dataset_id": result.id,
@@ -95,7 +97,7 @@ def get_dataset_info(
                 },
             )
         else:
-            ctx.warning(
+            await ctx.warning(
                 "Dataset retrieval failed",
                 extra={"error_type": result.error_type, "error": result.error},
             )
@@ -103,7 +105,7 @@ def get_dataset_info(
         return result
 
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Dataset information retrieval failed",
             extra={
                 "identifier": request.identifier,

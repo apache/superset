@@ -360,10 +360,16 @@ def _mock_dataset(id: int = 1) -> Mock:
     return dataset
 
 
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_generate_chart_table_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_table_success(
+    mock_run, mock_find_dataset, mock_has_access, mcp_server
+):
     mock_run.return_value = _mock_chart(id=101, viz_type="table")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -391,9 +397,15 @@ async def test_generate_chart_table_success(mock_run, mock_find_dataset, mcp_ser
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_generate_chart_xy_line_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_line_success(
+    mock_run, mock_has_access, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_line")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -423,9 +435,15 @@ async def test_generate_chart_xy_line_success(mock_run, mock_find_dataset, mcp_s
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_generate_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_bar_success(
+    mock_run, mock_has_access, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=103, viz_type="echarts_timeseries_bar")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -452,9 +470,15 @@ async def test_generate_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_se
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_generate_chart_xy_area_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_area_success(
+    mock_run, mock_has_access, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=104, viz_type="echarts_area")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -483,10 +507,16 @@ async def test_generate_chart_xy_area_success(mock_run, mock_find_dataset, mcp_s
         mock_run.assert_called_once()
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_generate_chart_error(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_error(
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
+):
     mock_run.side_effect = Exception("Chart creation failed")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -513,10 +543,16 @@ async def test_generate_chart_error(mock_run, mock_find_dataset, mcp_server):
         )
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_generate_chart_table_minimal(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_table_minimal(
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
+):
     mock_run.return_value = _mock_chart(id=105, viz_type="table")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -537,10 +573,16 @@ async def test_generate_chart_table_minimal(mock_run, mock_find_dataset, mcp_ser
         mock_run.assert_called_once()
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_generate_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_minimal(
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
+):
     mock_run.return_value = _mock_chart(id=106, viz_type="echarts_timeseries_line")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -564,11 +606,15 @@ async def test_generate_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server
         mock_run.assert_called_once()
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_generate_chart_with_simple_metrics(
-    mock_run, mock_find_dataset, mcp_server
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=107, viz_type="echarts_timeseries_bar")
     mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -596,11 +642,15 @@ async def test_generate_chart_with_simple_metrics(
         mock_run.assert_called_once()
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_generate_chart_with_sql_aggregators(
-    mock_run, mock_find_dataset, mcp_server
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=108, viz_type="echarts_timeseries_line")
     mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -629,11 +679,15 @@ async def test_generate_chart_with_sql_aggregators(
         mock_run.assert_called_once()
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_generate_chart_comprehensive_metrics(
-    mock_run, mock_find_dataset, mcp_server
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=109, viz_type="echarts_timeseries_bar")
     mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -684,11 +738,15 @@ async def test_generate_chart_comprehensive_metrics(
         mock_run.assert_called_once()
 
 
-@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@patch(
+    "superset.mcp_service.chart.tool.generate_chart._has_dataset_access",
+    return_value=True,
+)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_generate_chart_xy_scatter_success(
-    mock_run, mock_find_dataset, mcp_server
+    mock_find_dataset, mock_has_access, mock_run, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=110, viz_type="echarts_timeseries_scatter")
     mock_find_dataset.return_value = _mock_dataset(id=1)

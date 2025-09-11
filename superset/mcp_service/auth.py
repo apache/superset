@@ -100,6 +100,12 @@ def impersonate_user(user: User, run_as: Optional[str] = None) -> User:
     if not run_as:
         return user
 
+    # SECURITY FIX: Check if user has impersonation permission
+    if not _can_impersonate(user, run_as):
+        raise PermissionError(
+            f"User '{user.username}' does not have permission to impersonate '{run_as}'"
+        )
+
     from superset import security_manager
 
     impersonated = security_manager.find_user(run_as)
@@ -108,6 +114,40 @@ def impersonate_user(user: User, run_as: Optional[str] = None) -> User:
 
     logger.info("Impersonating %s as %s", run_as, user.username)
     return impersonated
+
+
+def _can_impersonate(user: User, target_username: str) -> bool:
+    """Check if user has permission to impersonate another user."""
+    from superset import security_manager
+
+    # Only Admin role users can impersonate others
+    admin_role = security_manager.find_role("Admin")
+    if not admin_role or admin_role not in user.roles:
+        logger.warning(
+            "Non-admin user %s attempted impersonation of %s",
+            user.username,
+            target_username,
+        )
+        return False
+
+    # Additional check: prevent impersonation of other admin users by default
+    # unless explicitly configured otherwise
+    from flask import current_app
+
+    target_user = security_manager.find_user(target_username)
+    if target_user and admin_role in target_user.roles:
+        allow_admin_impersonation = current_app.config.get(
+            "MCP_ALLOW_ADMIN_IMPERSONATION", False
+        )
+        if not allow_admin_impersonation:
+            logger.warning(
+                "Admin user %s attempted to impersonate admin user %s (disabled)",
+                user.username,
+                target_username,
+            )
+            return False
+
+    return True
 
 
 def has_permission(user: User, tool_func: Callable[..., Any]) -> bool:
@@ -124,8 +164,15 @@ def has_permission(user: User, tool_func: Callable[..., Any]) -> bool:
 
         return _check_jwt_scopes(user, tool_func, access_token)
 
-    except Exception:
-        return True  # Allow access when JWT unavailable
+    except Exception as e:
+        # SECURITY FIX: Log security event and deny access on JWT validation failure
+        logger.warning(
+            "JWT validation failed for user %s on tool %s: %s",
+            user.username,
+            tool_func.__name__,
+            e,
+        )
+        return False  # Deny access when JWT validation fails
 
 
 def _check_jwt_scopes(
@@ -213,7 +260,14 @@ def log_access(user: User, tool_name: str, args: Any, kwargs: Any) -> None:
     """Log tool access with optional JWT context."""
 
     if jwt_context := _get_jwt_context():
-        logger.info("MCP access: user=%s, jwt=%s, ", user.username, jwt_context["user"])
+        # SECURITY FIX: Only log safe JWT context, not full token data
+        safe_context = _sanitize_jwt_context(jwt_context)
+        logger.info(
+            "MCP access: user=%s, jwt_user=%s, scopes=%s",
+            user.username,
+            safe_context.get("user"),
+            safe_context.get("scopes", []),
+        )
     else:
         logger.info("MCP access: user=%s, tool=%s", user.username, tool_name)
 
@@ -233,6 +287,25 @@ def _get_jwt_context() -> Optional[dict[str, Any]]:
         logger.debug("JWT context extraction failed: %s", e)
 
     return None
+
+
+def _sanitize_jwt_context(jwt_context: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize JWT context to remove sensitive information before logging."""
+    safe_context = {}
+
+    # Only include safe fields for logging
+    if "user" in jwt_context:
+        safe_context["user"] = jwt_context["user"]
+
+    if "scopes" in jwt_context:
+        # Limit scope list size to prevent log spam
+        scopes = jwt_context["scopes"]
+        if isinstance(scopes, list) and len(scopes) > 10:
+            safe_context["scopes"] = scopes[:10] + ["...truncated"]
+        else:
+            safe_context["scopes"] = scopes
+
+    return safe_context
 
 
 def mcp_auth_hook(tool_func: F) -> F:

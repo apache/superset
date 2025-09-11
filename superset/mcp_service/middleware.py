@@ -15,6 +15,44 @@ from superset.utils.core import get_user_id
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_error_for_logging(error: Exception) -> str:
+    """Sanitize error messages to prevent information disclosure in logs."""
+    error_str = str(error)
+
+    # Limit error message length to prevent log spam
+    if len(error_str) > 500:
+        error_str = error_str[:500] + "...[truncated]"
+
+    # Remove potentially sensitive information patterns
+    sensitive_patterns = [
+        # Database connection strings
+        (r"postgresql://[^@]+@[^/]+/", "postgresql://[REDACTED]@[REDACTED]/"),
+        (r"mysql://[^@]+@[^/]+/", "mysql://[REDACTED]@[REDACTED]/"),
+        # API keys and tokens
+        (r'[Aa]pi[_-]?[Kk]ey[:\s]*[^\s\'"]+', "ApiKey: [REDACTED]"),
+        (r'[Tt]oken[:\s]*[^\s\'"]+', "Token: [REDACTED]"),
+        # File paths that might reveal system structure
+        (r"/[a-zA-Z0-9_\-/.]+/superset/", "/[REDACTED]/superset/"),
+        # IP addresses (keep first octet for debugging)
+        (r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx"),
+    ]
+
+    import re
+
+    for pattern, replacement in sensitive_patterns:
+        error_str = re.sub(pattern, replacement, error_str)
+
+    # For certain error types, provide generic messages
+    if isinstance(error, (OperationalError, TimeoutError)):
+        return "Database operation failed"
+    elif isinstance(error, PermissionError):
+        return "Access denied"
+    elif isinstance(error, ValidationError):
+        return "Request validation failed"
+
+    return error_str
+
+
 class LoggingMiddleware(Middleware):
     """
     Middleware that logs every MCP message (request and response) using Superset's
@@ -134,7 +172,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         except Exception:
             user_id = None  # User not authenticated
 
-        # Log the error with context
+        # SECURITY FIX: Log the error with sanitized context
+        sanitized_error = _sanitize_error_for_logging(error)
         logger.error(
             "MCP tool error: tool=%s, user_id=%s, duration_ms=%s, "
             "error_type=%s, error=%s",
@@ -142,7 +181,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
             user_id,
             duration_ms,
             type(error).__name__,
-            str(error),
+            sanitized_error,
         )
 
         # Log to Superset's event system
@@ -288,7 +327,15 @@ class InMemoryRateLimiter:
     def cleanup(self) -> None:
         """Remove entries older than 1 hour to prevent memory leaks."""
         current_time = time.time()
-        if current_time - self._last_cleanup < self._cleanup_interval:
+
+        # SECURITY FIX: Check both time-based and size-based cleanup conditions
+        total_entries = sum(len(requests) for requests in self._requests.values())
+        size_threshold = 10000  # Maximum entries before forced cleanup
+
+        time_based_cleanup = current_time - self._last_cleanup >= self._cleanup_interval
+        size_based_cleanup = total_entries > size_threshold
+
+        if not (time_based_cleanup or size_based_cleanup):
             return
 
         cutoff_time = current_time - 3600  # 1 hour ago
@@ -307,6 +354,17 @@ class InMemoryRateLimiter:
 
         for key in keys_to_clean:
             del self._requests[key]
+
+        # SECURITY FIX: If still too many entries, implement aggressive cleanup
+        if total_entries > size_threshold:
+            logger.warning(
+                "Rate limiter memory high (%d entries), performing aggressive cleanup",
+                total_entries,
+            )
+            # Keep only the most recent entries per key
+            for key in list(self._requests.keys()):
+                if len(self._requests[key]) > 100:  # Keep max 100 entries per key
+                    self._requests[key] = self._requests[key][-100:]
 
         self._last_cleanup = current_time
 

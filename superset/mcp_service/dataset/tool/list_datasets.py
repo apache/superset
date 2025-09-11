@@ -64,7 +64,7 @@ SORTABLE_DATASET_COLUMNS = [
 
 @mcp.tool
 @mcp_auth_hook
-def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
+async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """
     List datasets with advanced filtering, search, and metadata cache control.
 
@@ -83,7 +83,7 @@ def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     When refresh_metadata=True, the tool will fetch fresh column and metric
     metadata from the database, which is useful when table schema has changed.
     """
-    ctx.info(
+    await ctx.info(
         "Listing datasets",
         extra={
             "page": request.page,
@@ -91,7 +91,7 @@ def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
             "search": request.search,
         },
     )
-    ctx.debug(
+    await ctx.debug(
         "Dataset listing parameters",
         extra={
             "filters": request.filters,
@@ -100,7 +100,7 @@ def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
             "select_columns": request.select_columns,
         },
     )
-    ctx.debug(
+    await ctx.debug(
         "Metadata cache settings",
         extra={
             "use_cache": request.use_cache,
@@ -139,7 +139,7 @@ def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
             page_size=request.page_size,
         )
 
-        ctx.info(
+        await ctx.info(
             "Datasets listed successfully",
             extra={
                 "count": len(result.datasets) if hasattr(result, "datasets") else 0,
@@ -151,7 +151,7 @@ def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
         return result
 
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Dataset listing failed",
             extra={
                 "page": request.page,

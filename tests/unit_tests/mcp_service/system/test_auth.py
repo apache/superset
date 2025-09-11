@@ -109,16 +109,19 @@ class TestMCPAuth:
             assert user == mock_user
             mock_sm.find_user.assert_called_once_with("admin")
 
-    @patch("superset.security_manager")
-    def test_impersonate_user(self, mock_sm, mock_user):
+    def test_impersonate_user(self, mock_user):
         """Test user impersonation."""
-        impersonated = MagicMock()
-        impersonated.username = "other_user"
-        mock_sm.find_user = Mock(return_value=impersonated)
+        # Override the _can_impersonate function to always return True for this test
+        with patch("superset.mcp_service.auth._can_impersonate", return_value=True):
+            with patch("superset.security_manager", new_callable=MagicMock) as mock_sm:
+                # Mock target user
+                impersonated = MagicMock()
+                impersonated.username = "other_user"
+                mock_sm.find_user.return_value = impersonated
 
-        result = impersonate_user(mock_user, "other_user")
-        assert result == impersonated
-        mock_sm.find_user.assert_called_once_with("other_user")
+                result = impersonate_user(mock_user, "other_user")
+                assert result == impersonated
+                mock_sm.find_user.assert_called_with("other_user")
 
         # Test no impersonation
         result = impersonate_user(mock_user, None)
@@ -141,12 +144,12 @@ class TestMCPAuth:
         """Test permission checking without JWT."""
         mock_func = MagicMock(__name__="generate_chart")
 
-        # Should allow access when no JWT
+        # Should deny access when JWT validation fails (SECURITY FIX)
         with patch(
             "fastmcp.server.dependencies.get_access_token",
             side_effect=Exception("No token"),
         ):
-            assert has_permission(mock_user, mock_func) is True
+            assert has_permission(mock_user, mock_func) is False
 
     @patch("superset.security_manager")
     @patch("fastmcp.server.dependencies.get_access_token")

@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_data(  # noqa: C901
+async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """
@@ -60,7 +60,7 @@ def get_chart_data(  # noqa: C901
 
     Returns chart data in a structured format with summary and detailed cache status.
     """
-    ctx.info(
+    await ctx.info(
         "Starting chart data retrieval",
         extra={
             "identifier": request.identifier,
@@ -68,7 +68,7 @@ def get_chart_data(  # noqa: C901
             "limit": request.limit,
         },
     )
-    ctx.debug(
+    await ctx.debug(
         "Cache settings",
         extra={
             "use_cache": request.use_cache,
@@ -78,7 +78,7 @@ def get_chart_data(  # noqa: C901
     )
 
     try:
-        ctx.report_progress(1, 4, "Looking up chart")
+        await ctx.report_progress(1, 4, "Looking up chart")
         from superset.daos.chart import ChartDAO
         from superset.utils import json as utils_json
 
@@ -92,23 +92,25 @@ def get_chart_data(  # noqa: C901
                 if isinstance(request.identifier, str)
                 else request.identifier
             )
-            ctx.debug("Performing ID-based chart lookup", extra={"chart_id": chart_id})
+            await ctx.debug(
+                "Performing ID-based chart lookup", extra={"chart_id": chart_id}
+            )
             chart = ChartDAO.find_by_id(chart_id)
         else:
-            ctx.debug(
+            await ctx.debug(
                 "Performing UUID-based chart lookup", extra={"uuid": request.identifier}
             )
             # Try UUID lookup using DAO flexible method
             chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
 
         if not chart:
-            ctx.error("Chart not found", extra={"identifier": request.identifier})
+            await ctx.error("Chart not found", extra={"identifier": request.identifier})
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
             )
 
-        ctx.info(
+        await ctx.info(
             "Chart found successfully",
             extra={
                 "chart_id": chart.id,
@@ -123,14 +125,14 @@ def get_chart_data(  # noqa: C901
         start_time = time.time()
 
         try:
-            ctx.report_progress(2, 4, "Preparing data query")
+            await ctx.report_progress(2, 4, "Preparing data query")
             # Get chart data using the existing API
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.common.query_context_factory import QueryContextFactory
 
             # Parse the form_data to get query context
             form_data = utils_json.loads(chart.params) if chart.params else {}
-            ctx.debug(
+            await ctx.debug(
                 "Chart form data parsed",
                 extra={
                     "has_filters": bool(form_data.get("filters")),
@@ -159,8 +161,8 @@ def get_chart_data(  # noqa: C901
                 force=request.force_refresh,
             )
 
-            ctx.report_progress(3, 4, "Executing data query")
-            ctx.debug(
+            await ctx.report_progress(3, 4, "Executing data query")
+            await ctx.debug(
                 "Query execution parameters",
                 extra={
                     "datasource_id": chart.datasource_id,
@@ -176,7 +178,7 @@ def get_chart_data(  # noqa: C901
 
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
-                ctx.warning(
+                await ctx.warning(
                     "Empty query results",
                     extra={"chart_id": chart.id, "chart_type": chart.viz_type},
                 )
@@ -191,7 +193,7 @@ def get_chart_data(  # noqa: C901
             data = query_result.get("data", [])
             raw_columns = query_result.get("colnames", [])
 
-            ctx.debug(
+            await ctx.debug(
                 "Query results received",
                 extra={
                     "row_count": len(data),
@@ -202,7 +204,9 @@ def get_chart_data(  # noqa: C901
 
             # Check if we have data to work with
             if not data:
-                ctx.warning("No data in query results", extra={"chart_id": chart.id})
+                await ctx.warning(
+                    "No data in query results", extra={"chart_id": chart.id}
+                )
                 return ChartError(
                     error=f"No data available for chart {chart.id}", error_type="NoData"
                 )
@@ -339,7 +343,7 @@ def get_chart_data(  # noqa: C901
                     performance,
                 )
 
-            ctx.report_progress(4, 4, "Building response")
+            await ctx.report_progress(4, 4, "Building response")
 
             # Calculate data quality metrics
             data_completeness = 1.0 - (
@@ -347,7 +351,7 @@ def get_chart_data(  # noqa: C901
                 / max(len(data) * len(columns), 1)
             )
 
-            ctx.info(
+            await ctx.info(
                 "Chart data retrieval completed successfully",
                 extra={
                     "chart_id": chart.id,
@@ -378,7 +382,7 @@ def get_chart_data(  # noqa: C901
             )
 
         except Exception as data_error:
-            ctx.error(
+            await ctx.error(
                 "Data retrieval failed",
                 extra={
                     "chart_id": chart.id,
@@ -393,7 +397,7 @@ def get_chart_data(  # noqa: C901
             )
 
     except Exception as e:
-        ctx.error(
+        await ctx.error(
             "Chart data retrieval failed",
             extra={
                 "identifier": request.identifier,

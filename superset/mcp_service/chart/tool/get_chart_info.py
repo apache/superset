@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_info(
+async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
     """
@@ -60,7 +60,9 @@ def get_chart_info(
     """
     from superset.daos.chart import ChartDAO
 
-    ctx.info("Retrieving chart information", extra={"identifier": request.identifier})
+    await ctx.info(
+        "Retrieving chart information", extra={"identifier": request.identifier}
+    )
 
     tool = ModelGetInfoCore(
         dao_class=ChartDAO,  # type: ignore[arg-type]
@@ -74,11 +76,11 @@ def get_chart_info(
     result = tool.run_tool(request.identifier)
 
     if isinstance(result, ChartInfo):
-        ctx.info(
+        await ctx.info(
             "Chart information retrieved successfully",
             extra={"chart_name": result.slice_name},
         )
     else:
-        ctx.warning("Chart retrieval failed", extra={"error": str(result)})
+        await ctx.warning("Chart retrieval failed", extra={"error": str(result)})
 
     return result
