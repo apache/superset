@@ -25,6 +25,8 @@ database connection, schema, dataset context, and SQL query.
 import logging
 from urllib.parse import urlencode
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.sql_lab.schemas import OpenSqlLabRequest, SqlLabResponse
@@ -34,7 +36,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def open_sql_lab_with_context(request: OpenSqlLabRequest) -> SqlLabResponse:
+def open_sql_lab_with_context(
+    request: OpenSqlLabRequest, ctx: Context
+) -> SqlLabResponse:
     """
     Generate a URL to open SQL Lab with pre-populated context.
 
@@ -100,7 +104,7 @@ def open_sql_lab_with_context(request: OpenSqlLabRequest) -> SqlLabResponse:
         url = f"/sqllab?{query_string}"
 
         logger.info(
-            f"Generated SQL Lab URL for database {request.database_connection_id}"
+            "Generated SQL Lab URL for database %s", request.database_connection_id
         )
 
         return SqlLabResponse(
@@ -112,7 +116,7 @@ def open_sql_lab_with_context(request: OpenSqlLabRequest) -> SqlLabResponse:
         )
 
     except Exception as e:
-        logger.error(f"Error generating SQL Lab URL: {e}", exc_info=True)
+        logger.error("Error generating SQL Lab URL: %s", e)
         return SqlLabResponse(
             url="",
             database_id=request.database_connection_id,

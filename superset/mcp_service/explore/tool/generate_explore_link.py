@@ -24,6 +24,8 @@ chart configuration.
 
 from typing import Any, Dict
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
@@ -37,7 +39,9 @@ from superset.mcp_service.mcp_app import mcp
 
 @mcp.tool
 @mcp_auth_hook
-def generate_explore_link(request: GenerateExploreLinkRequest) -> Dict[str, Any]:
+def generate_explore_link(
+    request: GenerateExploreLinkRequest, ctx: Context
+) -> Dict[str, Any]:
     """
     Generate a Superset explore URL for interactive data visualization and exploration.
 
@@ -73,12 +77,46 @@ def generate_explore_link(request: GenerateExploreLinkRequest) -> Dict[str, Any]
     Returns:
         Dictionary containing explore URL for immediate use and error message if any
     """
+    ctx.info(
+        "Generating explore link",
+        extra={
+            "dataset_id": request.dataset_id,
+            "chart_type": request.config.chart_type,
+        },
+    )
+    ctx.debug(
+        "Configuration details",
+        extra={
+            "config": request.config.model_dump(),
+            "use_cache": request.use_cache,
+            "force_refresh": request.force_refresh,
+            "cache_form_data": request.cache_form_data,
+        },
+    )
+
     try:
+        ctx.report_progress(1, 3, "Converting configuration to form data")
         # Map config to form_data using shared utilities
         form_data = map_config_to_form_data(request.config)
 
+        ctx.debug(
+            "Form data generated",
+            extra={
+                "form_data_keys": list(form_data.keys()),
+                "has_viz_type": bool(form_data.get("viz_type")),
+                "has_datasource": bool(form_data.get("datasource")),
+            },
+        )
+
+        ctx.report_progress(2, 3, "Generating explore URL")
         # Generate explore link using shared utilities
         explore_url = generate_url(dataset_id=request.dataset_id, form_data=form_data)
+
+        ctx.report_progress(3, 3, "URL generation complete")
+        ctx.info(
+            "Explore link generated successfully",
+            extra={"url_length": len(explore_url), "dataset_id": request.dataset_id},
+        )
 
         return {
             "url": explore_url,
@@ -86,6 +124,15 @@ def generate_explore_link(request: GenerateExploreLinkRequest) -> Dict[str, Any]
         }
 
     except Exception as e:
+        ctx.error(
+            "Explore link generation failed",
+            extra={
+                "dataset_id": request.dataset_id,
+                "chart_type": request.config.chart_type,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
         return {
             "url": "",
             "error": f"Failed to generate explore link: {str(e)}",

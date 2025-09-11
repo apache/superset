@@ -111,7 +111,7 @@ class RuntimeValidator:
         except ImportError:
             logger.warning("Format validator not available")
         except Exception as e:
-            logger.warning(f"Format validation failed: {e}")
+            logger.warning("Format validation failed: %s", e)
 
         return warnings
 
@@ -145,7 +145,7 @@ class RuntimeValidator:
         except ImportError:
             logger.warning("Cardinality validator not available")
         except Exception as e:
-            logger.warning(f"Cardinality validation failed: {e}")
+            logger.warning("Cardinality validation failed: %s", e)
 
         return warnings, suggestions
 
@@ -180,6 +180,6 @@ class RuntimeValidator:
         except ImportError:
             logger.warning("Chart type suggester not available")
         except Exception as e:
-            logger.warning(f"Chart type validation failed: {e}")
+            logger.warning("Chart type validation failed: %s", e)
 
         return warnings, suggestions

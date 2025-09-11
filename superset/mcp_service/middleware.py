@@ -596,9 +596,10 @@ class FieldPermissionsMiddleware(Middleware):
 
             # Log field filtering activity for monitoring
             logger.debug(
-                f"Applied field-level permissions for {tool_name} "
-                f"(object_type={object_type}, "
-                f"user={getattr(user, 'username', 'anonymous')})"
+                "Applied field-level permissions for %s (object_type=%s, user=%s)",
+                tool_name,
+                object_type,
+                getattr(user, "username", "anonymous"),
             )
 
             return filtered_response

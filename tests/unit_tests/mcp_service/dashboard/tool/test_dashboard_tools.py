@@ -556,6 +556,7 @@ class TestDashboardSortableColumns:
         mock_get_user.return_value = Mock(id=1)
         mock_tool = Mock()
         mock_tool.run_tool.return_value = Mock(dashboards=[], count=0)
+        mock_ctx = Mock()
 
         with patch(
             "superset.mcp_service.dashboard.tool.list_dashboards.ModelListCore",
@@ -565,7 +566,7 @@ class TestDashboardSortableColumns:
             request = ListDashboardsRequest(
                 order_column="dashboard_title", order_direction="desc"
             )
-            list_dashboards.fn(request)
+            list_dashboards.fn(request, mock_ctx)
 
             # Verify the tool was called with the correct order column
             mock_tool.run_tool.assert_called_once()

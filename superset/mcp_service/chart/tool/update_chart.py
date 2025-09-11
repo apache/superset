@@ -23,6 +23,8 @@ import logging
 import time
 from typing import Any, Dict
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -47,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def update_chart(request: UpdateChartRequest) -> Dict[str, Any]:
+def update_chart(request: UpdateChartRequest, ctx: Context) -> Dict[str, Any]:
     """
     Update an existing saved chart with new configuration.
 
@@ -160,14 +162,14 @@ def update_chart(request: UpdateChartRequest) -> Dict[str, Any]:
                     preview_request = GetChartPreviewRequest(
                         identifier=str(updated_chart.id), format=format_type
                     )
-                    preview_result = _get_chart_preview_internal(preview_request)
+                    preview_result = _get_chart_preview_internal(preview_request, ctx)
 
                     if hasattr(preview_result, "content"):
                         previews[format_type] = preview_result.content
 
             except Exception as e:
                 # Log warning but don't fail the entire request
-                logger.warning(f"Preview generation failed: {e}")
+                logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
         result = {

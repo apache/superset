@@ -22,6 +22,8 @@ MCP tool: get_chart_data
 import logging
 from typing import Any, Dict, List
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -38,7 +40,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # noqa: C901
+def get_chart_data(  # noqa: C901
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
     """
     Get the underlying data for a chart with advanced cache control.
 
@@ -56,7 +60,25 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
 
     Returns chart data in a structured format with summary and detailed cache status.
     """
+    ctx.info(
+        "Starting chart data retrieval",
+        extra={
+            "identifier": request.identifier,
+            "format": request.format,
+            "limit": request.limit,
+        },
+    )
+    ctx.debug(
+        "Cache settings",
+        extra={
+            "use_cache": request.use_cache,
+            "force_refresh": request.force_refresh,
+            "cache_timeout": request.cache_timeout,
+        },
+    )
+
     try:
+        ctx.report_progress(1, 4, "Looking up chart")
         from superset.daos.chart import ChartDAO
         from superset.utils import json as utils_json
 
@@ -70,30 +92,52 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                 if isinstance(request.identifier, str)
                 else request.identifier
             )
+            ctx.debug("Performing ID-based chart lookup", extra={"chart_id": chart_id})
             chart = ChartDAO.find_by_id(chart_id)
         else:
+            ctx.debug(
+                "Performing UUID-based chart lookup", extra={"uuid": request.identifier}
+            )
             # Try UUID lookup using DAO flexible method
             chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
 
         if not chart:
+            ctx.error("Chart not found", extra={"identifier": request.identifier})
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
             )
 
-        logger.info(f"Getting data for chart {chart.id}: {chart.slice_name}")
+        ctx.info(
+            "Chart found successfully",
+            extra={
+                "chart_id": chart.id,
+                "chart_name": chart.slice_name,
+                "viz_type": chart.viz_type,
+            },
+        )
+        logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
         import time
 
         start_time = time.time()
 
         try:
+            ctx.report_progress(2, 4, "Preparing data query")
             # Get chart data using the existing API
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.common.query_context_factory import QueryContextFactory
 
             # Parse the form_data to get query context
             form_data = utils_json.loads(chart.params) if chart.params else {}
+            ctx.debug(
+                "Chart form data parsed",
+                extra={
+                    "has_filters": bool(form_data.get("filters")),
+                    "has_groupby": bool(form_data.get("groupby")),
+                    "has_metrics": bool(form_data.get("metrics")),
+                },
+            )
 
             # Create a proper QueryContext using the factory with cache control
             factory = QueryContextFactory()
@@ -115,12 +159,27 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                 force=request.force_refresh,
             )
 
+            ctx.report_progress(3, 4, "Executing data query")
+            ctx.debug(
+                "Query execution parameters",
+                extra={
+                    "datasource_id": chart.datasource_id,
+                    "datasource_type": chart.datasource_type,
+                    "row_limit": request.limit or 100,
+                    "force_refresh": request.force_refresh,
+                },
+            )
+
             # Execute the query
             command = ChartDataCommand(query_context)
             result = command.run()
 
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
+                ctx.warning(
+                    "Empty query results",
+                    extra={"chart_id": chart.id, "chart_type": chart.viz_type},
+                )
                 return ChartError(
                     error=f"No query results returned for chart {chart.id}. "
                     f"This may occur with chart types like big_number.",
@@ -132,8 +191,18 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
             data = query_result.get("data", [])
             raw_columns = query_result.get("colnames", [])
 
+            ctx.debug(
+                "Query results received",
+                extra={
+                    "row_count": len(data),
+                    "column_count": len(raw_columns),
+                    "has_cache_key": bool(query_result.get("cache_key")),
+                },
+            )
+
             # Check if we have data to work with
             if not data:
+                ctx.warning("No data in query results", extra={"chart_id": chart.id})
                 return ChartError(
                     error=f"No data available for chart {chart.id}", error_type="NoData"
                 )
@@ -270,6 +339,26 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                     performance,
                 )
 
+            ctx.report_progress(4, 4, "Building response")
+
+            # Calculate data quality metrics
+            data_completeness = 1.0 - (
+                sum(col.null_count for col in columns)
+                / max(len(data) * len(columns), 1)
+            )
+
+            ctx.info(
+                "Chart data retrieval completed successfully",
+                extra={
+                    "chart_id": chart.id,
+                    "rows_returned": len(data),
+                    "columns_returned": len(raw_columns),
+                    "execution_time_ms": execution_time,
+                    "cache_hit": cache_status.cache_hit,
+                    "data_completeness": round(data_completeness, 3),
+                },
+            )
+
             # Default JSON format
             return ChartData(
                 chart_id=chart.id,
@@ -281,13 +370,7 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
                 insights=insights,
-                data_quality={
-                    "completeness": 1.0
-                    - (
-                        sum(col.null_count for col in columns)
-                        / max(len(data) * len(columns), 1)
-                    )
-                },
+                data_quality={"completeness": data_completeness},
                 recommended_visualizations=recommended_visualizations,
                 data_freshness=None,  # Add missing field
                 performance=performance,
@@ -295,14 +378,30 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
             )
 
         except Exception as data_error:
-            logger.error(f"Data retrieval error for chart {chart.id}: {data_error}")
+            ctx.error(
+                "Data retrieval failed",
+                extra={
+                    "chart_id": chart.id,
+                    "error": str(data_error),
+                    "error_type": type(data_error).__name__,
+                },
+            )
+            logger.error("Data retrieval error for chart %s: %s", chart.id, data_error)
             return ChartError(
                 error=f"Error retrieving chart data: {str(data_error)}",
                 error_type="DataError",
             )
 
     except Exception as e:
-        logger.error(f"Error in get_chart_data: {e}")
+        ctx.error(
+            "Chart data retrieval failed",
+            extra={
+                "identifier": request.identifier,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        logger.error("Error in get_chart_data: %s", e)
         return ChartError(
             error=f"Failed to get chart data: {str(e)}", error_type="InternalError"
         )

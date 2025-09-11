@@ -95,11 +95,11 @@ def disable_rate_limiting():
     """
     Disable rate limiting for tests to prevent rate limit errors.
 
-    This fixture patches the RateLimitMiddleware to always allow requests
-    through without rate limiting checks.
+    This fixture patches the rate limiter's is_rate_limited method to always allow
+    requests through without rate limiting checks.
     """
     with patch(
-        "superset.mcp_service.middleware.RateLimitMiddleware._is_rate_limited",
+        "superset.mcp_service.middleware.InMemoryRateLimiter.is_rate_limited",
         return_value=(
             False,
             {"limit": 100, "remaining": 100, "reset_time": 0, "window_seconds": 60},

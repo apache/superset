@@ -84,17 +84,17 @@ class PooledBaseScreenshot(BaseScreenshot):
                     driver.delete_all_cookies()
                     logger.debug("Cleared all cookies from WebDriver")
                 except Exception as e:
-                    logger.warning(f"Failed to clear cookies: {e}")
+                    logger.warning("Failed to clear cookies: %s", e)
 
                 # Authenticate the driver for this user
                 user_name = user.username if user else "None"
-                logger.debug(f"Authenticating WebDriver for user {user_name}")
+                logger.debug("Authenticating WebDriver for user %s", user_name)
                 machine_auth_provider_factory.instance.authenticate_webdriver(
                     driver, user
                 )
 
                 # Navigate to the URL
-                logger.debug(f"Navigating to screenshot URL: {self.url}")
+                logger.debug("Navigating to screenshot URL: %s", self.url)
                 driver.get(self.url)
 
                 # Check if we were redirected to login (authentication failed)
@@ -111,10 +111,10 @@ class PooledBaseScreenshot(BaseScreenshot):
 
             except (TimeoutException, WebDriverException, OSError) as e:
                 # These are retryable exceptions
-                logger.warning(f"Retryable error taking screenshot: {e}")
+                logger.warning("Retryable error taking screenshot: %s", e)
                 raise
             except Exception as e:
-                logger.error(f"Non-retryable error taking screenshot: {e}")
+                logger.error("Non-retryable error taking screenshot: %s", e)
                 raise
 
     def _take_screenshot(self, driver: Any, user: User) -> bytes | None:
@@ -161,7 +161,7 @@ class PooledChartScreenshot(PooledBaseScreenshot):
         try:
             # Wait for page to load
             selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
-            logger.debug(f"Sleeping for {selenium_headstart} seconds")
+            logger.debug("Sleeping for %s seconds", selenium_headstart)
             time.sleep(selenium_headstart)
 
             # Wait for chart container
@@ -188,7 +188,7 @@ class PooledChartScreenshot(PooledBaseScreenshot):
 
             # Wait for animations
             animation_wait = current_app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
-            logger.debug(f"Wait {animation_wait} seconds for chart animation")
+            logger.debug("Wait %s seconds for chart animation", animation_wait)
             time.sleep(animation_wait)
 
             # Handle unexpected errors if configured
@@ -198,19 +198,18 @@ class PooledChartScreenshot(PooledBaseScreenshot):
                 unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
                 if unexpected_errors:
                     logger.warning(
-                        f"{len(unexpected_errors)} errors found in screenshot. "
-                        f"URL: {self.url}. Errors: {unexpected_errors}"
+                        "%s errors found in screenshot. ", len(unexpected_errors)
                     )
 
             # Take screenshot
-            logger.debug(f"Taking PNG screenshot as user {user.username}")
+            logger.debug("Taking PNG screenshot as user %s", user.username)
             return element.screenshot_as_png
 
         except TimeoutException:
-            logger.exception(f"Timeout taking chart screenshot for URL: {self.url}")
+            logger.exception("Timeout taking chart screenshot for URL: %s", self.url)
             raise
         except WebDriverException:
-            logger.exception(f"WebDriver error taking screenshot for URL: {self.url}")
+            logger.exception("WebDriver error taking screenshot for URL: %s", self.url)
             raise
 
 
@@ -278,10 +277,10 @@ class PooledExploreScreenshot(PooledBaseScreenshot):
             return img
 
         except TimeoutException as e:
-            logger.warning(f"Chart container not found, trying fallbacks: {e}")
+            logger.warning("Chart container not found, trying fallbacks: %s", e)
             return self._fallback_screenshot(driver)
         except Exception as e:
-            logger.error(f"Error taking explore screenshot: {e}")
+            logger.error("Error taking explore screenshot: %s", e)
             raise
 
     def _hide_ui_elements(self, driver: Any) -> None:
@@ -346,7 +345,7 @@ class PooledExploreScreenshot(PooledBaseScreenshot):
             driver.execute_script(hide_script)
             logger.debug("Successfully executed UI hiding script")
         except WebDriverException as e:
-            logger.warning(f"Failed to execute UI hiding script: {e}")
+            logger.warning("Failed to execute UI hiding script: %s", e)
 
     def _fallback_screenshot(self, driver: Any) -> bytes | None:
         """Fallback screenshot strategies if chart container not found"""
@@ -379,7 +378,7 @@ class PooledExploreScreenshot(PooledBaseScreenshot):
                     return img
 
             except Exception as e2:
-                logger.warning(f"Chart-related container fallback failed: {e2}")
+                logger.warning("Chart-related container fallback failed: %s", e2)
 
             # Fallback 3: Full page screenshot
             logger.warning("Using full page screenshot as final fallback")
@@ -444,7 +443,7 @@ class PooledDashboardScreenshot(PooledBaseScreenshot):
                         )
                     )
                 except TimeoutException:
-                    logger.exception(f"Dashboard failed to load at URL: {self.url}")
+                    logger.exception("Dashboard failed to load at URL: %s", self.url)
                     raise
 
             # Wait for loading to complete
@@ -465,19 +464,20 @@ class PooledDashboardScreenshot(PooledBaseScreenshot):
                 unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
                 if unexpected_errors:
                     logger.warning(
-                        f"{len(unexpected_errors)} errors found in dashboard "
-                        f"screenshot. URL: {self.url}. Errors: {unexpected_errors}"
+                        "%s errors found in dashboard ", len(unexpected_errors)
                     )
 
             # Take screenshot
-            logger.debug(f"Taking PNG dashboard screenshot as user {user.username}")
+            logger.debug("Taking PNG dashboard screenshot as user %s", user.username)
             return element.screenshot_as_png
 
         except TimeoutException:
-            logger.exception(f"Timeout taking dashboard screenshot for URL: {self.url}")
+            logger.exception(
+                "Timeout taking dashboard screenshot for URL: %s", self.url
+            )
             raise
         except WebDriverException:
             logger.exception(
-                f"WebDriver error taking dashboard screenshot for URL: {self.url}"
+                "WebDriver error taking dashboard screenshot for URL: %s", self.url
             )
             raise

@@ -852,7 +852,15 @@ class TestChartSortableColumns:
             request = ListChartsRequest(
                 order_column="slice_name", order_direction="asc"
             )
-            list_charts.fn(request)
+            # Create a mock context
+            import asyncio
+            from unittest.mock import AsyncMock
+
+            mock_ctx = MagicMock()
+            mock_ctx.info = AsyncMock()
+            mock_ctx.debug = AsyncMock()
+            mock_ctx.error = AsyncMock()
+            asyncio.run(list_charts.fn(request, mock_ctx))
 
             # Verify the tool was called with the correct order column
             mock_tool.run_tool.assert_called_once()

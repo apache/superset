@@ -23,6 +23,8 @@ import logging
 import time
 from typing import Any, Dict
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -45,7 +47,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def update_chart_preview(request: UpdateChartPreviewRequest) -> Dict[str, Any]:
+def update_chart_preview(
+    request: UpdateChartPreviewRequest, ctx: Context
+) -> Dict[str, Any]:
     """
     Update a cached chart preview with new configuration without saving.
 
@@ -129,7 +133,7 @@ def update_chart_preview(request: UpdateChartPreviewRequest) -> Dict[str, Any]:
 
             except Exception as e:
                 # Log warning but don't fail the entire request
-                logger.warning(f"Preview generation failed: {e}")
+                logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
         result = {

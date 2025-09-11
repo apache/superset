@@ -25,6 +25,8 @@ about a specific dashboard.
 import logging
 from typing import Any
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.schemas import (
@@ -97,7 +99,7 @@ def dashboard_serializer(dashboard: Any) -> DashboardInfo:
 @mcp.tool
 @mcp_auth_hook
 def get_dashboard_info(
-    request: GetDashboardInfoRequest,
+    request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:
     """
     Get detailed information about a specific dashboard with metadata cache control.
@@ -113,15 +115,59 @@ def get_dashboard_info(
 
     Returns a DashboardInfo model or DashboardError on error.
     """
-
-    from superset.daos.dashboard import DashboardDAO
-
-    tool = ModelGetInfoCore(
-        dao_class=DashboardDAO,  # type: ignore[arg-type]
-        output_schema=DashboardInfo,
-        error_schema=DashboardError,
-        serializer=dashboard_serializer,
-        supports_slug=True,  # Dashboards support slugs
-        logger=logger,
+    ctx.info(
+        "Retrieving dashboard information", extra={"identifier": request.identifier}
     )
-    return tool.run_tool(request.identifier)
+    ctx.debug(
+        "Metadata cache settings",
+        extra={
+            "use_cache": request.use_cache,
+            "refresh_metadata": request.refresh_metadata,
+            "force_refresh": request.force_refresh,
+        },
+    )
+
+    try:
+        from superset.daos.dashboard import DashboardDAO
+
+        tool = ModelGetInfoCore(
+            dao_class=DashboardDAO,  # type: ignore[arg-type]
+            output_schema=DashboardInfo,
+            error_schema=DashboardError,
+            serializer=dashboard_serializer,
+            supports_slug=True,  # Dashboards support slugs
+            logger=logger,
+        )
+
+        result = tool.run_tool(request.identifier)
+
+        if isinstance(result, DashboardInfo):
+            ctx.info(
+                "Dashboard information retrieved successfully",
+                extra={
+                    "dashboard_id": result.id,
+                    "dashboard_title": result.dashboard_title,
+                    "chart_count": result.chart_count,
+                    "published": result.published,
+                },
+            )
+        else:
+            ctx.warning(
+                "Dashboard retrieval failed",
+                extra={"error_type": result.error_type, "error": result.error},
+            )
+
+        return result
+
+    except Exception as e:
+        ctx.error(
+            "Dashboard information retrieval failed",
+            extra={
+                "identifier": request.identifier,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        return DashboardError(
+            error=f"Failed to get dashboard info: {str(e)}", error_type="InternalError"
+        )

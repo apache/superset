@@ -199,7 +199,7 @@ def _execute_query(
                 _process_dml_results(cursor, conn, results)
 
     except Exception as e:
-        logger.error(f"Error executing SQL: {e}", exc_info=True)
+        logger.error("Error executing SQL: %s", e)
         raise
 
     return results

@@ -23,6 +23,8 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 import logging
 from typing import Any, Dict
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.mcp_core import InstanceInfoCore
@@ -231,7 +233,9 @@ _instance_info_core = InstanceInfoCore(
 
 @mcp.tool
 @mcp_auth_hook
-def get_superset_instance_info(request: GetSupersetInstanceInfoRequest) -> InstanceInfo:
+def get_superset_instance_info(
+    request: GetSupersetInstanceInfoRequest, ctx: Context
+) -> InstanceInfo:
     """
     Get comprehensive high-level information about the Superset instance.
 

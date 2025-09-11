@@ -1191,6 +1191,7 @@ class TestDatasetSortableColumns:
         mock_get_user.return_value = MagicMock(id=1)
         mock_tool = MagicMock()
         mock_tool.run_tool.return_value = MagicMock(datasets=[], count=0)
+        mock_ctx = MagicMock()
 
         with patch(
             "superset.mcp_service.dataset.tool.list_datasets.ModelListCore",
@@ -1200,7 +1201,7 @@ class TestDatasetSortableColumns:
             request = ListDatasetsRequest(
                 order_column="table_name", order_direction="asc"
             )
-            list_datasets.fn(request)
+            list_datasets.fn(request, mock_ctx)
 
             # Verify the tool was called with the correct order column
             mock_tool.run_tool.assert_called_once()
@@ -1233,8 +1234,9 @@ class TestDatasetSortableColumns:
                 mock_tool.return_value.run_tool.return_value = MagicMock(
                     datasets=[], count=0
                 )
+                mock_ctx = MagicMock()
                 request = ListDatasetsRequest()  # No order specified
-                list_datasets.fn(request)
+                list_datasets.fn(request, mock_ctx)
 
                 call_args = mock_tool.return_value.run_tool.call_args[1]
                 assert call_args["order_column"] == "changed_on"

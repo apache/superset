@@ -117,7 +117,9 @@ def user_has_permission(
 
         return False
     except Exception as e:
-        logger.warning(f"Error checking permission {permission} for user {user}: {e}")
+        logger.warning(
+            "Error checking permission %s for user %s: %s", permission, user, e
+        )
         return False
 
 
@@ -236,7 +238,7 @@ def filter_sensitive_data(
         else:
             # Log when we filter out sensitive data
             logger.debug(
-                f"Filtered sensitive field '{key}' for object type '{object_type}'"
+                "Filtered sensitive field '%s' for object type '%s'", key, object_type
             )
 
     return filtered_data

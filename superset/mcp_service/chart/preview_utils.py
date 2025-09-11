@@ -106,7 +106,7 @@ def generate_preview_from_form_data(
             )
 
     except Exception as e:
-        logger.error(f"Preview generation from form data failed: {e}")
+        logger.error("Preview generation from form data failed: %s", e)
         return ChartError(
             error=f"Failed to generate preview: {str(e)}", error_type="PreviewError"
         )

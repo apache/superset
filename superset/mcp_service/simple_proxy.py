@@ -23,13 +23,13 @@ proxy: Optional[FastMCP] = None
 
 def signal_handler(signum: int, frame: Any) -> None:
     """Handle shutdown signals gracefully"""
-    logger.info(f"Received signal {signum}, shutting down gracefully...")
+    logger.info("Received signal %s, shutting down gracefully...", signum)
     if proxy:
         try:
             # Give the proxy a moment to clean up
             time.sleep(0.1)
         except Exception as e:
-            logger.warning(f"Error during proxy cleanup: {e}")
+            logger.warning("Error during proxy cleanup: %s", e)
     sys.exit(0)
 
 
@@ -60,11 +60,11 @@ def main() -> None:
         logger.info("Received keyboard interrupt, shutting down...")
         sys.exit(0)
     except ImportError as e:
-        logger.error(f"Failed to import FastMCP: {e}")
+        logger.error("Failed to import FastMCP: %s", e)
         logger.error("Please install fastmcp: pip install fastmcp")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error("Unexpected error: %s", e)
         sys.exit(1)
     finally:
         logger.info("Proxy server stopped")

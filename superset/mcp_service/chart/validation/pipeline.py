@@ -111,7 +111,7 @@ class ValidationPipeline:
             )
             return True, None
         except Exception as e:
-            logger.warning(f"Dataset validation failed: {e}")
+            logger.warning("Dataset validation failed: %s", e)
             # Don't fail on dataset validation errors
             return True, None
 
@@ -131,7 +131,7 @@ class ValidationPipeline:
             )
             return True, None
         except Exception as e:
-            logger.warning(f"Runtime validation failed: {e}")
+            logger.warning("Runtime validation failed: %s", e)
             # Don't fail on runtime validation errors
             return True, None
 

@@ -20,6 +20,8 @@ Get available dataset filters FastMCP tool
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dataset.schemas import (
     DatasetAvailableFilters,
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 @mcp.tool
 @mcp_auth_hook
 def get_dataset_available_filters(
-    request: GetDatasetAvailableFiltersRequest,
+    request: GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:
     """
     Dynamically get information about available dataset filters and their operators.

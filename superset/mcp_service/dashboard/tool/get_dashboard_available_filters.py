@@ -6,6 +6,8 @@ Get available filters FastMCP tool
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     DashboardAvailableFilters,
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 @mcp.tool
 @mcp_auth_hook
 def get_dashboard_available_filters(
-    request: GetDashboardAvailableFiltersRequest,
+    request: GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:
     """
     Get information about available dashboard filters and their operators

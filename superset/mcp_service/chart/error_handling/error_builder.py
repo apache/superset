@@ -157,7 +157,7 @@ class ChartErrorBuilder:
             try:
                 message = message.format(**vars_dict)
             except KeyError as e:
-                logger.warning(f"Missing template variable: {e}")
+                logger.warning("Missing template variable: %s", e)
 
         # Format details
         details_raw = template.get("details", "")
@@ -168,7 +168,7 @@ class ChartErrorBuilder:
             try:
                 details = details.format(**vars_dict)
             except KeyError as e:
-                logger.warning(f"Missing template variable: {e}")
+                logger.warning("Missing template variable: %s", e)
 
         message = cls._format_message(template, vars_dict)
         details = cls._format_details(template, vars_dict)
@@ -197,7 +197,7 @@ class ChartErrorBuilder:
             try:
                 message = message.format(**vars_dict)
             except KeyError as e:
-                logger.warning(f"Missing template variable: {e}")
+                logger.warning("Missing template variable: %s", e)
         return message
 
     @classmethod
@@ -213,7 +213,7 @@ class ChartErrorBuilder:
             try:
                 details = details.format(**vars_dict)
             except KeyError as e:
-                logger.warning(f"Missing template variable: {e}")
+                logger.warning("Missing template variable: %s", e)
         return details
 
     @classmethod

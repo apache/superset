@@ -25,6 +25,8 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 import logging
 from typing import Any
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.schemas import (
@@ -99,7 +101,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
 
 @mcp.tool
 @mcp_auth_hook
-def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
+def list_dashboards(request: ListDashboardsRequest, ctx: Context) -> DashboardList:
     """
     List dashboards with advanced filtering, search, and metadata cache control.
 

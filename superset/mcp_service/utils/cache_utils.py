@@ -67,7 +67,7 @@ def get_cache_status_from_result(
                     (datetime.now(cache_age.tzinfo) - cache_age).total_seconds()
                 )
         except Exception as e:
-            logger.debug(f"Could not parse cache age: {e}")
+            logger.debug("Could not parse cache age: %s", e)
 
     return CacheStatus(
         cache_hit=cache_hit,
