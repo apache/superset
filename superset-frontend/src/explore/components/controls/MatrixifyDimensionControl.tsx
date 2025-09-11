@@ -74,6 +74,17 @@ export default function MatrixifyDimensionControl(
   const [loadingTopN, setLoadingTopN] = useState(false);
   const [topNError, setTopNError] = useState<string | null>(null);
 
+  // Reset values when selection mode changes
+  useEffect(() => {
+    if (value?.values?.length > 0) {
+      onChange({
+        dimension: value.dimension,
+        values: [],
+        topNValues: [],
+      });
+    }
+  }, [selectionMode]);
+
   // Initialize dimension options from datasource
   useEffect(() => {
     if (datasource?.columns) {
