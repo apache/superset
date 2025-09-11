@@ -19,7 +19,7 @@
 import { useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import { saveChartCustomization } from 'src/dashboard/actions/dashboardInfo';
+import { saveChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from './types';
 
 export const useChartCustomizationModal = (chartId?: number) => {

@@ -22,6 +22,8 @@ import {
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
+} from '../actions/dashboardInfo';
+import {
   SAVE_CHART_CUSTOMIZATION_COMPLETE,
   INITIALIZE_CHART_CUSTOMIZATION,
   SET_CHART_CUSTOMIZATION_DATA_LOADING,
@@ -30,7 +32,7 @@ import {
   CLEAR_PENDING_CHART_CUSTOMIZATION,
   CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
   CLEAR_ALL_CHART_CUSTOMIZATIONS,
-} from '../actions/dashboardInfo';
+} from '../actions/chartCustomizationActions';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {

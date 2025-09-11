@@ -39,7 +39,7 @@ import { RootState } from 'src/dashboard/types';
 import {
   setPendingChartCustomization,
   loadChartCustomizationData,
-} from 'src/dashboard/actions/dashboardInfo';
+} from 'src/dashboard/actions/chartCustomizationActions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { dispatchChartCustomizationHoverAction } from '../FilterBar/FilterControls/utils';
 import { mergeExtraFormData } from '../utils';

@@ -48,7 +48,7 @@ import {
   clearAllPendingChartCustomizations,
   ChartCustomizationSavePayload,
   clearAllChartCustomizationsFromMetadata,
-} from 'src/dashboard/actions/dashboardInfo';
+} from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 
 import { useImmer } from 'use-immer';
