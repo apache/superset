@@ -31,8 +31,6 @@ from fastmcp.server.auth.providers.bearer import BearerAuthProvider
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 
-# Apply Flask-AppBuilder compatibility patches before any Superset imports
-from superset.mcp_service import flask_appbuilder_compat  # noqa: F401
 from superset.mcp_service.middleware import (
     FieldPermissionsMiddleware,
     GlobalErrorHandlerMiddleware,

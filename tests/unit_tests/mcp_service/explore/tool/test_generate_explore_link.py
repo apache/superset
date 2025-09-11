@@ -80,7 +80,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=test_form_data_key_123"
+                == "http://localhost:9001/explore/?form_data_key=test_form_data_key_123"
             )
             mock_create_form_data.assert_called_once()
 
@@ -119,7 +119,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=comprehensive_key_456"
+                == "http://localhost:9001/explore/?form_data_key=comprehensive_key_456"
             )
             mock_create_form_data.assert_called_once()
 
@@ -158,7 +158,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=line_chart_key_789"
+                == "http://localhost:9001/explore/?form_data_key=line_chart_key_789"
             )
             mock_create_form_data.assert_called_once()
 
@@ -192,7 +192,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=bar_chart_key_abc"
+                == "http://localhost:9001/explore/?form_data_key=bar_chart_key_abc"
             )
             mock_create_form_data.assert_called_once()
 
@@ -229,7 +229,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=area_chart_key_def"
+                == "http://localhost:9001/explore/?form_data_key=area_chart_key_def"
             )
             mock_create_form_data.assert_called_once()
 
@@ -264,7 +264,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=scatter_chart_key_ghi"
+                == "http://localhost:9001/explore/?form_data_key=scatter_chart_key_ghi"
             )
             mock_create_form_data.assert_called_once()
 
@@ -292,7 +292,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?datasource_type=table&datasource_id=1"
+                == "http://localhost:9001/explore/?datasource_type=table&datasource_id=1"
             )
 
     @patch(
@@ -326,7 +326,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?datasource_type=table&datasource_id=5"
+                == "http://localhost:9001/explore/?datasource_type=table&datasource_id=5"
             )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -362,7 +362,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=many_columns_key"
+                == "http://localhost:9001/explore/?form_data_key=many_columns_key"
             )
             mock_create_form_data.assert_called_once()
 
@@ -405,7 +405,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=many_filters_key"
+                == "http://localhost:9001/explore/?form_data_key=many_filters_key"
             )
             mock_create_form_data.assert_called_once()
 
@@ -460,7 +460,7 @@ class TestGenerateExploreLink:
                 # All URLs should follow the same format
                 assert (
                     result.data["url"]
-                    == "http://localhost:8088/explore/?form_data_key=consistency_test_key"
+                    == "http://localhost:9001/explore/?form_data_key=consistency_test_key"
                 )
                 assert result.data["error"] is None
 
@@ -492,7 +492,7 @@ class TestGenerateExploreLink:
                 assert result.data["error"] is None
                 assert (
                     result.data["url"]
-                    == "http://localhost:8088/explore/?form_data_key=dataset_test_key"
+                    == "http://localhost:9001/explore/?form_data_key=dataset_test_key"
                 )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -536,7 +536,7 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:8088/explore/?form_data_key=complex_config_key"
+                == "http://localhost:9001/explore/?form_data_key=complex_config_key"
             )
             mock_create_form_data.assert_called_once()
 
@@ -564,6 +564,6 @@ class TestGenerateExploreLink:
                 )
 
                 # Should fallback to basic URL with correct dataset_id
-                expected_url = f"http://localhost:8088/explore/?datasource_type=table&datasource_id={dataset_id}"
+                expected_url = f"http://localhost:9001/explore/?datasource_type=table&datasource_id={dataset_id}"
                 assert result.data["error"] is None
                 assert result.data["url"] == expected_url

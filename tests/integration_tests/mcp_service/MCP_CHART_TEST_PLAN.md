@@ -20,7 +20,7 @@ When testing preview tools:
 
 ## Prerequisites
 
-1. Ensure Superset is running locally on http://localhost:8088
+1. Ensure Superset is running locally on http://localhost:9001
 2. Have at least one dataset available (e.g., "examples.births_2008" or any dataset ID)
 3. Have some existing charts in your Superset instance
 4. Verify MCP service is running on port 5008

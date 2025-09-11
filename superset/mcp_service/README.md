@@ -91,7 +91,7 @@ superset fab create-admin \
   --password admin
 
 # 6. Start Superset (in one terminal)
-superset run -p 8088 --with-threads --reload --debugger
+superset run -p 9001 --with-threads --reload --debugger
 
 # 7. Start frontend (in another terminal)
 cd superset-frontend && npm run dev
@@ -101,7 +101,7 @@ source venv/bin/activate
 superset mcp run --port 5008 --debug
 ```
 
-Access Superset at http://localhost:8088 (login: admin/admin)
+Access Superset at http://localhost:9001 (login: admin/admin)
 
 ## 🔌 Step 2: Connect Claude Desktop
 
@@ -221,7 +221,7 @@ For manual setup:
 ```bash
 
 # Check Superset is running
-curl http://localhost:8088/health
+curl http://localhost:9001/health
 ```
 
 Then in Claude Desktop, try:
@@ -243,13 +243,13 @@ Then in Claude Desktop, try:
 
 ### Manual Setup Commands
 
-| Command | Description |
-|---------|-------------|
-| `superset run -p 8088` | Start Superset backend |
-| `npm run dev` | Start frontend dev server (in superset-frontend) |
+| Command                        | Description |
+|--------------------------------|-------------|
+| `superset run -p 9001`         | Start Superset backend |
+| `npm run dev`                  | Start frontend dev server (in superset-frontend) |
 | `superset mcp run --port 5008` | Start MCP service |
-| `superset db upgrade` | Initialize/upgrade database |
-| `superset init` | Initialize Superset |
+| `superset db upgrade`          | Initialize/upgrade database |
+| `superset init`                | Initialize Superset |
 
 ## 🚨 Troubleshooting
 
@@ -265,13 +265,13 @@ Then in Claude Desktop, try:
 
 ### General Issues
 
-| Issue | Solution |
-|-------|----------|
-| Can't connect to MCP | Check service is running on port 5008 |
-| "Command not found" | Use absolute paths in Claude config |
-| "No MCP tools" | Restart Claude Desktop after config changes |
-| Frontend not loading | Check correct port (9001 for Docker, 8088 for manual) |
-| Python version issues | Ensure Python 3.10 or 3.11 is installed |
+| Issue | Solution                                              |
+|-------|-------------------------------------------------------|
+| Can't connect to MCP | Check service is running on port 5008                 |
+| "Command not found" | Use absolute paths in Claude config                   |
+| "No MCP tools" | Restart Claude Desktop after config changes           |
+| Frontend not loading | Check correct port (9001 for Docker, 9001 for manual) |
+| Python version issues | Ensure Python 3.10 or 3.11 is installed               |
 
 ## 📚 Documentation
 

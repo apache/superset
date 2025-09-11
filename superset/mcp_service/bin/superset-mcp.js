@@ -1,21 +1,52 @@
 #!/usr/bin/env node
 
 /**
- * Apache Superset MCP Server Runner
+ * Apache Superset MCP (Model Context Protocol) Server Runner
  *
- * This script provides an npx-compatible runner for the Superset MCP service.
- * It handles both stdio and HTTP transport modes and manages Python environment setup.
+ * OVERVIEW:
+ * This Node.js wrapper script provides an npx-compatible entry point for the Superset MCP service.
+ * It acts as a bridge between npm/npx tooling and the Python-based MCP server implementation.
+ *
+ * FUNCTIONALITY:
+ * - Detects and validates Python environment and Superset installation
+ * - Supports both stdio (Claude Desktop integration) and HTTP transport modes
+ * - Handles command-line argument parsing and environment variable configuration
+ * - Manages Python subprocess lifecycle with proper signal handling
+ * - Provides comprehensive help documentation and error diagnostics
+ *
+ * USAGE PATTERNS (DEVELOPMENT - Not yet published to npm):
+ * - Direct execution: node superset/mcp_service/bin/superset-mcp.js --stdio
+ * - HTTP server: node superset/mcp_service/bin/superset-mcp.js --http --port 6000
+ * - Development debugging: node superset/mcp_service/bin/superset-mcp.js --debug
+ *
+ * FUTURE USAGE (Once published to npm registry):
+ * - npx @superset/mcp-server --stdio
+ * - npx @superset/mcp-server --http --port 6000
+ *
+ * ARCHITECTURE:
+ * This wrapper enables the MCP service to be distributed as an npm package while
+ * maintaining the core Python implementation, bridging Node.js tooling with Python execution.
+ *
+ * PACKAGE STATUS (as of 2025-01-10):
+ * - NOT YET PUBLISHED to npm registry
+ * - Package name reserved: @superset/mcp-server
+ * - Requires package.json with proper metadata and "bin" field for npx execution
+ * - Will need to be published to npm registry before npx commands work
+ *
+ * TODO FOR NPM PUBLISHING:
+ * 1. Create package.json with name "@superset/mcp-server"
+ * 2. Add "bin" field pointing to this file
+ * 3. Set version, description, repository, license
+ * 4. Run npm publish with appropriate access rights
  */
 
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
 const isStdio = args.includes('--stdio') || process.env.FASTMCP_TRANSPORT === 'stdio';
-const isHttp = args.includes('--http') || (!isStdio && !args.includes('--stdio'));
 const isDebug = args.includes('--debug') || process.env.MCP_DEBUG === '1';
 const showHelp = args.includes('--help') || args.includes('-h');
 
@@ -28,7 +59,9 @@ if (showHelp) {
     console.log(`
 Apache Superset MCP Server
 
-Usage: npx @superset/mcp-server [options]
+Usage:
+  Development: node superset/mcp_service/bin/superset-mcp.js [options]
+  Future (npm): npx @superset/mcp-server [options]
 
 Options:
   --stdio       Run in stdio mode for direct Claude Desktop integration
@@ -46,15 +79,18 @@ Environment Variables:
   PYTHONPATH            Python path including Superset root
   SUPERSET_CONFIG_PATH  Path to superset_config.py
 
-Examples:
+Examples (Development):
   # Run in stdio mode for Claude Desktop
-  npx @superset/mcp-server --stdio
+  node superset/mcp_service/bin/superset-mcp.js --stdio
 
   # Run in HTTP mode on custom port
-  npx @superset/mcp-server --http --port 6000
+  node superset/mcp_service/bin/superset-mcp.js --http --port 6000
 
   # Run with debug output
-  npx @superset/mcp-server --debug
+  node superset/mcp_service/bin/superset-mcp.js --debug
+
+  # Or use the Python CLI directly:
+  superset mcp run --host 127.0.0.1 --port 6000
 `);
     process.exit(0);
 }

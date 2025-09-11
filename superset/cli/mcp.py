@@ -17,17 +17,18 @@
 """CLI module for MCP service"""
 
 import os
+import re
 import secrets
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
+import requests
 from colorama import Fore, Style
 from flask import current_app
 from flask.cli import with_appcontext
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.mcp_service.server import run_server
 
 
@@ -55,11 +56,8 @@ def run(host: str, port: int, debug: bool, sql_debug: bool) -> None:
 @click.option("--force", is_flag=True, help="Force setup even if configuration exists")
 @click.option("--skip-config", is_flag=True, help="Skip configuration file setup")
 @click.option("--skip-examples", is_flag=True, help="Skip loading example datasets")
-@click.option("--api-key", help="Anthropic API key for MCP service")
 @with_appcontext
-def setup(
-    force: bool, skip_config: bool, skip_examples: bool, api_key: Optional[str]
-) -> None:
+def setup(force: bool, skip_config: bool, skip_examples: bool) -> None:
     """Set up MCP service for Apache Superset"""
     click.echo(f"{Fore.CYAN}=== Apache Superset MCP Service Setup ==={Style.RESET_ALL}")
     click.echo()
@@ -74,29 +72,31 @@ def setup(
                 f"{Fore.YELLOW}⚠️  superset_config.py already exists{Style.RESET_ALL}"
             )
             if click.confirm("Do you want to check/add missing MCP settings?"):
-                _update_config_file(config_path, api_key)
+                _update_config_file(config_path)
             else:
                 click.echo("Keeping existing configuration")
         else:
-            _create_config_file(config_path, api_key)
+            _create_config_file(config_path)
 
     # 2. Database check
     try:
-        # Check if database is initialized
-        with db.engine.connect() as conn:
-            conn.execute("SELECT COUNT(*) FROM ab_user")
-            click.echo(f"{Fore.GREEN}✓ Database already initialized{Style.RESET_ALL}")
+        # Check if database is initialized using ORM
 
-            # Check for admin user
-            admin_exists = security_manager.find_user(username="admin")
-            if admin_exists:
-                click.echo(f"{Fore.GREEN}✓ Admin user already exists{Style.RESET_ALL}")
-            else:
-                if click.confirm("Create admin user (admin/admin)?"):
-                    _create_admin_user()
-    except Exception:
+        from flask_appbuilder.security.sqla.models import User
+
+        User.query.count()  # This will fail if tables don't exist
+        click.echo(f"{Fore.GREEN}✓ Database already initialized{Style.RESET_ALL}")
+
+        # Check for admin user
+        admin_exists = security_manager.find_user(username="admin")
+        if admin_exists:
+            click.echo(f"{Fore.GREEN}✓ Admin user already exists{Style.RESET_ALL}")
+        else:
+            if click.confirm("Create admin user (admin/admin)?"):
+                _create_admin_user()
+    except Exception as e:
         click.echo(
-            f"{Fore.YELLOW}Database not initialized. "
+            f"{Fore.YELLOW}Database not initialized: {e}. "
             f"Run 'superset db upgrade' and 'superset init' first.{Style.RESET_ALL}"
         )
         sys.exit(1)
@@ -119,10 +119,10 @@ def setup(
     click.echo()
     click.echo("To start Superset:")
     click.echo(
-        "  1. In terminal 1: superset run -p 8088 --with-threads --reload --debugger"
+        "  1. In terminal 1: superset run -p 9001 --with-threads --reload --debugger"
     )
     click.echo("  2. In terminal 2: cd superset-frontend && npm run dev-server")
-    click.echo("  3. Open http://localhost:8088")
+    click.echo("  3. Open http://localhost:9001")
     click.echo("  4. Login with admin/admin")
     click.echo()
     click.echo("To start MCP service:")
@@ -136,7 +136,7 @@ def setup(
         click.echo("  WTF_CSRF_ENABLED = False")
 
 
-def _create_config_file(config_path: Path, api_key: Optional[str]) -> None:
+def _create_config_file(config_path: Path) -> None:
     """Create a new superset_config.py file"""
     click.echo("Creating new superset_config.py...")
 
@@ -157,25 +157,18 @@ WTF_CSRF_TIME_LIMIT = None
 # MCP Service Configuration
 MCP_ADMIN_USERNAME = 'admin'
 MCP_DEV_USERNAME = 'admin'
-SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
+SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'
 
 # WebDriver Configuration for screenshots
-WEBDRIVER_BASEURL = 'http://localhost:8088/'
+WEBDRIVER_BASEURL = 'http://localhost:9001/'
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 """
-
-    if api_key or click.confirm("Do you have an Anthropic API key for MCP service?"):
-        if not api_key:
-            api_key = click.prompt("Enter your Anthropic API key", hide_input=True)
-        config_content += (
-            f"\n# Anthropic API Configuration\nANTHROPIC_API_KEY = '{api_key}'\n"
-        )
 
     config_path.write_text(config_content)
     click.echo(f"{Fore.GREEN}✓ Created superset_config.py{Style.RESET_ALL}")
 
 
-def _update_config_file(config_path: Path, api_key: Optional[str]) -> None:
+def _update_config_file(config_path: Path) -> None:
     """Update existing config file with missing settings"""
     content = config_path.read_text()
     updated = False
@@ -191,45 +184,15 @@ def _update_config_file(config_path: Path, api_key: Optional[str]) -> None:
         content += "\n# MCP Service Configuration\n"
         content += "MCP_ADMIN_USERNAME = 'admin'\n"
         content += "MCP_DEV_USERNAME = 'admin'\n"
-        content += "SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'\n"
+        content += "SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'\n"
         updated = True
 
     if "WEBDRIVER_BASEURL" not in content:
         click.echo("Adding WebDriver configuration...")
         content += "\n# WebDriver Configuration for screenshots\n"
-        content += "WEBDRIVER_BASEURL = 'http://localhost:8088/'\n"
+        content += "WEBDRIVER_BASEURL = 'http://localhost:9001/'\n"
         content += "WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL\n"
         updated = True
-
-    # Handle API key
-    if "ANTHROPIC_API_KEY" in content:
-        click.echo(
-            f"{Fore.GREEN}✓ Anthropic API key already configured{Style.RESET_ALL}"
-        )
-        if api_key or click.confirm("Update Anthropic API key?"):
-            if not api_key:
-                api_key = click.prompt(
-                    "Enter your new Anthropic API key", hide_input=True
-                )
-            # Remove old key
-            lines = content.split("\n")
-            content = "\n".join(
-                line for line in lines if "ANTHROPIC_API_KEY" not in line
-            )
-            content += (
-                f"\n# Anthropic API Configuration\nANTHROPIC_API_KEY = '{api_key}'\n"
-            )
-            updated = True
-    else:
-        if api_key or click.confirm(
-            "Do you have an Anthropic API key for MCP service?"
-        ):
-            if not api_key:
-                api_key = click.prompt("Enter your Anthropic API key", hide_input=True)
-            content += (
-                f"\n# Anthropic API Configuration\nANTHROPIC_API_KEY = '{api_key}'\n"
-            )
-            updated = True
 
     if updated:
         config_path.write_text(content)
@@ -305,17 +268,7 @@ def _check_config_settings(content: str) -> None:
     else:
         settings_status.append(
             f"{Fore.YELLOW}⚠ SUPERSET_WEBSERVER_ADDRESS not set "
-            f"(defaulting to http://localhost:8088){Style.RESET_ALL}"
-        )
-
-    if "ANTHROPIC_API_KEY" in content:
-        settings_status.append(
-            f"{Fore.GREEN}✓ ANTHROPIC_API_KEY configured{Style.RESET_ALL}"
-        )
-    else:
-        settings_status.append(
-            f"{Fore.YELLOW}⚠ ANTHROPIC_API_KEY not set "
-            f"(MCP features will be limited){Style.RESET_ALL}"
+            f"(defaulting to http://localhost:9001){Style.RESET_ALL}"
         )
 
     for status in settings_status:
@@ -324,21 +277,17 @@ def _check_config_settings(content: str) -> None:
 
 def _get_webserver_address(content: str) -> str:
     """Extract webserver address from config or use default"""
-    import re
-
     if "SUPERSET_WEBSERVER_ADDRESS" in content:
         match = re.search(
             r'SUPERSET_WEBSERVER_ADDRESS\s*=\s*["\']([^"\']+)["\']', content
         )
         if match:
             return match.group(1)
-    return "http://localhost:8088"
+    return "http://localhost:9001"
 
 
 def _check_superset_running(webserver_address: str) -> None:
     """Check if Superset is running at the given address"""
-    import requests
-
     click.echo()
     click.echo("Checking if Superset is running...")
 
