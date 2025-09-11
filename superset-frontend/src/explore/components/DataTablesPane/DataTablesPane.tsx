@@ -162,7 +162,7 @@ export const DataTablesPane = ({
       <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
     return (
-      <TableControlsWrapper>
+      <div>
         {panelOpen ? (
           <span
             role="button"
@@ -180,7 +180,7 @@ export const DataTablesPane = ({
             {caretIcon}
           </span>
         )}
-      </TableControlsWrapper>
+      </div>
     );
   }, [handleCollapseChange, panelOpen]);
 
