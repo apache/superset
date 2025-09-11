@@ -93,11 +93,11 @@ def main() -> None:
         captured_output = io.StringIO()
 
         # Set up Flask app context for database access
-        from superset.app import create_app
+        from superset.mcp_service.flask_singleton import get_flask_app
 
         # Temporarily redirect stdout during Flask app creation
         with contextlib.redirect_stdout(captured_output):
-            flask_app = create_app()
+            flask_app = get_flask_app()
             # Initialize the FastMCP server
             # Disable auth config for stdio mode to avoid Flask app output
             init_fastmcp_server(enable_auth_configuration=False)

@@ -165,16 +165,10 @@ def _create_auth_provider() -> Optional[BearerAuthProvider]:
     Uses app.config["MCP_AUTH_FACTORY"](app) pattern as suggested by @dpgaspar.
     """
     try:
-        from superset.app import create_app
-        from superset.mcp_service.config import DEFAULT_CONFIG
+        from superset.mcp_service.flask_singleton import get_flask_app
 
-        # Create Flask app instance to access config
-        superset_app = create_app()
-
-        # Apply defaults to app.config if not already set
-        for key, value in DEFAULT_CONFIG.items():
-            if key not in superset_app.config:
-                superset_app.config[key] = value
+        # Get singleton Flask app instance
+        superset_app = get_flask_app()
 
         # Call the factory using app.config pattern
         auth_factory = superset_app.config.get("MCP_AUTH_FACTORY")
@@ -465,11 +459,11 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
     try:
         from flask import g
 
-        from superset.app import create_app
+        from superset.mcp_service.flask_singleton import get_flask_app
         from superset.utils.urls import get_url_path
 
-        # Create Flask app instance and set up context
-        superset_app = create_app()
+        # Get singleton Flask app instance and set up context
+        superset_app = get_flask_app()
         with superset_app.app_context():
             # Create a mock user context - you might need to adjust this
             from flask_appbuilder.security.sqla.models import User
