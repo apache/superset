@@ -396,6 +396,7 @@ export function runQueryFromSqlEditor(
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.id,
+      immutableId: qe.immutableId,
       tab: qe.name,
       catalog: qe.catalog,
       schema: qe.schema,
@@ -543,6 +544,7 @@ export function addQueryEditor(queryEditor) {
   const newQueryEditor = {
     ...queryEditor,
     id: nanoid(11),
+    immutableId: nanoid(11),
     loaded: true,
     inLocalStorage: true,
   };

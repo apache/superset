@@ -197,6 +197,16 @@ export class QueryErrorResultContext
   }
 }
 
+const getActiveEditorImmutableId = () => {
+  const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
+  const { queryEditors, tabHistory } = sqlLab;
+  const activeEditorId = tabHistory[tabHistory.length - 1];
+  const activeEditor = queryEditors.find(
+    editor => editor.id === activeEditorId,
+  );
+  return activeEditor?.immutableId;
+};
+
 const activeEditorId = () => {
   const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
   const { tabHistory } = sqlLab;
@@ -225,19 +235,40 @@ const getCurrentTab: typeof sqlLabType.getCurrentTab = () => {
   return undefined;
 };
 
-const predicate = (
-  actionType: string,
-  currentTabOnly: boolean = true,
-): AnyListenerPredicate<RootState> => {
-  // Uses closure to capture the active editor ID at the time the listener is created
-  const id = activeEditorId();
-  return action =>
-    // Compares the original id with the current active editor ID
-    action.type === actionType && (!currentTabOnly || activeEditorId() === id);
+const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
+  // Capture the immutable ID of the active editor at the time the listener is created
+  // This ID never changes for a tab, ensuring stable event routing
+  const registrationImmutableId = getActiveEditorImmutableId();
+
+  return action => {
+    if (action.type !== actionType) return false;
+
+    // If we don't have a registration ID, don't filter events
+    if (!registrationImmutableId) return true;
+
+    // For query events, use the immutableId directly from the action payload
+    if (action.query?.immutableId) {
+      return action.query.immutableId === registrationImmutableId;
+    }
+
+    // For tab events, we need to find the immutable ID of the affected tab
+    if (action.queryEditor?.id) {
+      const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } =
+        store.getState();
+      const { queryEditors } = sqlLab;
+      const queryEditor = queryEditors.find(
+        editor => editor.id === action.queryEditor.id,
+      );
+      return queryEditor?.immutableId === registrationImmutableId;
+    }
+
+    // Fallback: do not allow the event if we can't determine the source
+    return false;
+  };
 };
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
-  listener: (editor: sqlLabType.QueryContext) => void,
+  listener: (queryContext: sqlLabType.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -272,11 +303,11 @@ export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
   );
 
 export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
-  listener: (query: sqlLabType.QueryResultContext) => void,
+  listener: (queryResultContext: sqlLabType.QueryResultContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    predicate(QUERY_SUCCESS, false),
+    predicate(QUERY_SUCCESS),
     listener,
     (action: ReturnType<typeof querySuccess>) => {
       const { query, results } = action;
@@ -323,7 +354,7 @@ export const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
   );
 
 export const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
-  listener: (query: sqlLabType.QueryContext) => void,
+  listener: (queryContext: sqlLabType.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -356,11 +387,13 @@ export const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
   );
 
 export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
-  listener: (query: sqlLabType.QueryErrorResultContext) => void,
+  listener: (
+    queryErrorResultContext: sqlLabType.QueryErrorResultContext,
+  ) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    predicate(QUERY_FAILED, false),
+    predicate(QUERY_FAILED),
     listener,
     (action: ReturnType<typeof createQueryFailedAction>) => {
       const { query, msg: errorMessage, errors } = action;
