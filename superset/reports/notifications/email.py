@@ -134,15 +134,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
         else:
-            html_table = ""
-
-        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
-        emailAddressList = get_email_address_list(self._get_to())
-        for emailAddress in emailAddressList:
-            if INTERNAL_EMAIL_DOMAIN not in emailAddress:
-                call_to_action = ""
-                break
-            
+            html_table = ""  
         
         img_tags = []
         for msgid in images.keys():
@@ -205,6 +197,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_call_to_action(self) -> str:
+        emailAddressList = get_email_address_list(self._get_to())
+        for emailAddress in emailAddressList:
+            if INTERNAL_EMAIL_DOMAIN not in emailAddress:
+                return ''
         return __(app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
