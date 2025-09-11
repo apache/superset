@@ -16,7 +16,6 @@
 # under the License.
 import pandas as pd
 
-
 def test_render_description_with_html() -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
@@ -97,8 +96,6 @@ def test_dont_include_cta_for_external_email() -> None:
     )
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
     assert ('Explore in Superset' not in email_body)
-
-    print(f'HERE: {email_body}')
 
 
 
