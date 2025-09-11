@@ -45,7 +45,7 @@ def test_render_description_with_html() -> None:
     )
     email_body = (
         EmailNotification(
-            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL, recipient_config_json='{"target": "test@example.com"}'), content=content
         )
         ._get_content()
         .body
@@ -55,3 +55,88 @@ def test_render_description_with_html() -> None:
         in email_body
     )
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+
+
+def test_dont_include_cta_for_external_email() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        embedded_data=pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
+            }
+        ),
+        description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL, recipient_config_json='{"target": "test@example.com, test@aven.com, test@gmail.com"}'), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert (
+        '<p>This is <a href="#" rel="noopener noreferrer">a test</a> alert</p><br>'
+        in email_body
+    )
+    assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+    assert ('Explore in Superset' not in email_body)
+
+    print(f'HERE: {email_body}')
+
+
+
+def test_include_cta_for_internal_email() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        embedded_data=pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
+            }
+        ),
+        description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL, recipient_config_json='{"target": "test@aven.com, test2@aven.com"}'), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert (
+        '<p>This is <a href="#" rel="noopener noreferrer">a test</a> alert</p><br>'
+        in email_body
+    )
+    assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+    assert ('Explore in Superset' in email_body)
