@@ -160,7 +160,9 @@ def test_validate_npm_handles_file_not_found_exception(mock_run, mock_which):
 def test_validate_npm_does_not_catch_other_subprocess_exceptions(
     mock_run, mock_which, exception_type
 ):
-    """Test validate_npm does not catch OSError and PermissionError (they propagate up)."""
+    """
+    Test validate_npm does not catch OSError and PermissionError (they propagate up).
+    """
     mock_which.return_value = "/usr/bin/npm"
     mock_run.side_effect = exception_type("Test error")
 
