@@ -398,6 +398,12 @@ module.exports = {
         'react/no-void-elements': 0,
       },
     },
+    {
+      files: ['playwright/**/*'],
+      rules: {
+        'import/no-unresolved': 0, // Playwright is not installed in main build
+      },
+    },
   ],
   // eslint-disable-next-line no-dupe-keys
   rules: {
