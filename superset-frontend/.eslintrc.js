@@ -323,6 +323,7 @@ module.exports = {
         '*.stories.tsx',
         '*.stories.jsx',
         'fixtures.*',
+        'playwright/**/*',
       ],
       excludedFiles: 'cypress-base/cypress/**/*',
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
@@ -395,6 +396,13 @@ module.exports = {
         'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
         'react/no-void-elements': 0,
+      },
+    },
+    {
+      files: ['playwright/**/*'],
+      rules: {
+        'import/no-unresolved': 0, // Playwright is not installed in main build
+        'import/no-extraneous-dependencies': 0, // Playwright is not installed in main build
       },
     },
   ],
