@@ -17,6 +17,7 @@
 # Notify E2E test maintainers of changes
 
 /superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida @mistercrunch
+/superset-frontend/playwright/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida @mistercrunch
 
 # Notify PMC members of changes to GitHub Actions
 

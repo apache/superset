@@ -203,7 +203,7 @@ playwright-run() {
   PLAYWRIGHT_BASE_URL="http://localhost:${port}"
   if [ -n "$APP_ROOT" ]; then
     export SUPERSET_APP_ROOT=$APP_ROOT
-    PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}
+    PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}/
   fi
   export PLAYWRIGHT_BASE_URL
 
