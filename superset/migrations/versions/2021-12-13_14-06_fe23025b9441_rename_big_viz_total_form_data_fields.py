@@ -65,8 +65,9 @@ def upgrade():
             slc.params = json.dumps(params, sort_keys=True)
         except Exception:
             logger.exception(
-                f"An error occurred: parsing params for slice {slc.id} failed."
-                f"You need to fix it before upgrading your DB."
+                "An error occurred: parsing params for slice %s failed."
+                "You need to fix it before upgrading your DB.",
+                slc.id,
             )
             raise
 
@@ -91,8 +92,9 @@ def downgrade():
             slc.params = json.dumps(params, sort_keys=True)
         except Exception:
             logger.exception(
-                f"An error occurred: parsing params for slice {slc.id} failed. "
-                "You need to fix it before downgrading your DB."
+                "An error occurred: parsing params for slice %s failed. "
+                "You need to fix it before downgrading your DB.",
+                slc.id,
             )
             raise
 
