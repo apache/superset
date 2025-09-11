@@ -23,7 +23,7 @@ import logging
 import os
 
 # Apply Flask-AppBuilder compatibility patches before any Superset imports
-from superset.mcp_service.mcp_app import init_fastmcp_server, mcp
+from superset.mcp_service.app import init_fastmcp_server, mcp
 
 
 def configure_logging(debug: bool = False) -> None:

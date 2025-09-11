@@ -24,6 +24,7 @@ from typing import Any, Dict, List
 
 from fastmcp import Context
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -32,7 +33,6 @@ from superset.mcp_service.chart.schemas import (
     GetChartDataRequest,
     PerformanceMetadata,
 )
-from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 
 logger = logging.getLogger(__name__)

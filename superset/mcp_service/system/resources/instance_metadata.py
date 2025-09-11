@@ -21,8 +21,8 @@ System resources for providing Superset configuration and stats
 
 import logging
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.mcp_app import mcp
 
 logger = logging.getLogger(__name__)
 
