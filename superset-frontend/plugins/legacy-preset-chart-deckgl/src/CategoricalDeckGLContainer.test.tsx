@@ -18,12 +18,11 @@
  */
 
 /**
- * Unit Tests for CategoricalDeckGLContainer Functions
+ * Unit Tests for CategoricalDeckGLContainer Core Functions
  *
- * These tests are designed to expose and fix three critical bugs:
- * 1. addColor returns empty array for undefined color_scheme_type
- * 2. getCategories doesn't handle undefined color_scheme_type properly
- * 3. Both functions should work consistently across Arc and Scatter data shapes
+ * Tests the data processing functions used by Arc and Scatter charts for legend
+ * generation and color assignment. Uses parameterized tests to verify both
+ * chart types work consistently.
  */
 
 import '@testing-library/jest-dom';
@@ -51,10 +50,8 @@ let getCategories: any;
 let addColor: any;
 
 beforeAll(() => {
-  // Since the internal functions have complex dependencies, we'll replicate
-  // their exact logic to test the behavior without import issues
-
-  // This replicates the exact getCategories logic from CategoricalDeckGLContainer.tsx line 56-81
+  // Mock implementations of internal functions to avoid complex dependencies
+  // These replicate the core logic for testing purposes
   getCategories = (fd: any, data: any[]) => {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
     const fixedColor = [c.r, c.g, c.b, 255 * c.a];
@@ -65,20 +62,15 @@ beforeAll(() => {
 
     const colorSchemeType = fd.color_scheme_type;
 
-    // Exact logic from CategoricalDeckGLContainer.tsx
     if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
-      // For this test, we'll simulate getColorBreakpointsBuckets
       categories = {
         'Breakpoint 1': { color: [255, 0, 0, 255], enabled: true },
       };
     } else {
-      // Only process data if dimension is set
       if (fd.dimension) {
         data.forEach(d => {
           if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
-            let color;
-            // Mock hexToRGB result
-            color = [255, 0, 0, 255];
+            let color = [255, 0, 0, 255];
             categories[d.cat_color] = { color, enabled: true };
           }
         });
@@ -88,14 +80,10 @@ beforeAll(() => {
     return categories;
   };
 
-  // This replicates the exact addColor logic from CategoricalDeckGLContainer.tsx line 146-212
   addColor = (data: any[], fd: any, selectedColorScheme: string) => {
     const appliedScheme = fd.color_scheme;
-    // Mock the color function
     const colorFn = () => '#ff0000';
     let color: any;
-
-    // Exact switch logic from CategoricalDeckGLContainer.tsx
     switch (selectedColorScheme) {
       case COLOR_SCHEME_TYPES.fixed_color: {
         color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
@@ -119,18 +107,17 @@ beforeAll(() => {
         }));
       }
       default: {
-        // FIXED: Handle undefined/null color_scheme_type for backward compatibility
-        // Treat as categorical_palette to maintain pre-6.0 behavior
+        // Handle undefined/null color_scheme_type for backward compatibility
         return data.map(d => ({
           ...d,
-          color: [255, 0, 0, 255], // Mock hexToRGB result
+          color: [255, 0, 0, 255],
         }));
       }
     }
   };
 });
 
-// Test data for Arc charts (has source/target coordinates)
+// Test data for Arc charts
 const mockArcData = [
   {
     source_latitude: 40.7128,
@@ -150,7 +137,7 @@ const mockArcData = [
   },
 ];
 
-// Test data for Scatter charts (has position array)
+// Test data for Scatter charts
 const mockScatterData = [
   {
     position: [-74.006, 40.7128],
@@ -222,17 +209,15 @@ describe.each([
         expect(categories).toHaveProperty('Breakpoint 1');
       });
 
-      test('should handle undefined color_scheme_type (migration scenario)', () => {
+      test('should handle undefined color_scheme_type', () => {
         const formData = {
           dimension: 'cat_color',
           color_scheme: 'supersetColors',
-          // color_scheme_type is undefined - simulates migrated chart
           color_picker: { r: 0, g: 0, b: 0, a: 1 },
         };
 
         const categories = getCategories(formData, mockData);
 
-        // Should still generate categories for backward compatibility
         expect(Object.keys(categories)).toHaveLength(2);
         const categoryNames = Object.keys(categories);
         mockData.forEach(d => {
@@ -337,23 +322,14 @@ describe.each([
         });
       });
 
-      /**
-       * CRITICAL TEST: This test verifies Bug #1 is fixed
-       *
-       * When color_scheme_type is undefined (migrated charts), addColor should
-       * NOT return an empty array - it should handle the data appropriately
-       * for backward compatibility.
-       */
-      test('should handle undefined color_scheme_type (migration scenario)', () => {
+      test('should handle undefined color_scheme_type', () => {
         const formData = {
           dimension: 'cat_color',
           color_scheme: 'supersetColors',
-          // color_scheme_type is undefined - simulates migrated chart
         };
 
         const result = addColor(mockData, formData, undefined);
 
-        // This should NOT be empty - backward compatibility requires data
         expect(result).toHaveLength(mockData.length);
         expect(result).not.toEqual([]);
 
@@ -373,7 +349,6 @@ describe.each([
 
         const result = addColor(mockData, formData, null);
 
-        // Should not return empty array for null either
         expect(result).toHaveLength(mockData.length);
         expect(result).not.toEqual([]);
       });
@@ -386,7 +361,6 @@ describe.each([
 
         const result = addColor(mockData, formData, 'unknown_type');
 
-        // Should not return empty array for unknown types either
         expect(result).toHaveLength(mockData.length);
         expect(result).not.toEqual([]);
       });
@@ -399,7 +373,6 @@ describe.each([
 
         addColor(mockData, formData, COLOR_SCHEME_TYPES.fixed_color);
 
-        // Original data should be unchanged
         expect(mockData).toEqual(originalData);
       });
     });
@@ -412,11 +385,9 @@ describe.each([
           color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
         };
 
-        // getCategories should create the legend categories
         const categories = getCategories(formData, mockData);
         expect(Object.keys(categories)).toHaveLength(2);
 
-        // addColor should add color data to features
         const coloredData = addColor(
           mockData,
           formData,
@@ -424,46 +395,25 @@ describe.each([
         );
         expect(coloredData).toHaveLength(mockData.length);
 
-        // Both should reference the same categorical data
         const categoryNames = Object.keys(categories);
         coloredData.forEach(item => {
           expect(categoryNames).toContain(item.cat_color);
         });
       });
 
-      test('migration scenario: both functions should handle undefined consistently', () => {
+      test('both functions should handle undefined color_scheme_type consistently', () => {
         const formData = {
           dimension: 'cat_color',
           color_scheme: 'supersetColors',
-          // color_scheme_type undefined
         };
 
-        // Both functions should handle undefined color_scheme_type gracefully
         const categories = getCategories(formData, mockData);
-        expect(Object.keys(categories)).toHaveLength(2); // This should pass
+        expect(Object.keys(categories)).toHaveLength(2);
 
         const coloredData = addColor(mockData, formData, undefined);
-        expect(coloredData).toHaveLength(mockData.length); // Should pass now
-        expect(coloredData).not.toEqual([]); // Should pass now
+        expect(coloredData).toHaveLength(mockData.length);
+        expect(coloredData).not.toEqual([]);
       });
     });
   },
 );
-
-/**
- * Test Summary:
- *
- * Expected to PASS:
- * - getCategories with all defined color_scheme_types
- * - addColor with fixed_color, categorical_palette, color_breakpoints
- * - Empty data handling
- * - Data immutability
- *
- * Expected to FAIL (exposing bugs):
- * - addColor with undefined color_scheme_type (returns [])
- * - addColor with null color_scheme_type (returns [])
- * - addColor with unknown color_scheme_type (returns [])
- * - Integration test for migration scenario
- *
- * These failures will prove Bug #1 exists and needs to be fixed.
- */
