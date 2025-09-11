@@ -18,7 +18,7 @@
  */
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { makeApi, t, getClientErrorObject } from '@superset-ui/core';
+import { makeApi, t, getClientErrorObject, DataMask } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   ChartConfiguration,
@@ -30,23 +30,20 @@ import {
 import {
   ChartCustomizationItem,
   FilterOption,
+  ColumnOption,
 } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
 
-const createUpdateDashboardApi = (id: number | string | undefined) => {
-  if (!id) {
-    throw new Error('Dashboard ID is required');
-  }
-  return makeApi<
+const createUpdateDashboardApi = (id: number) =>
+  makeApi<
     Partial<DashboardInfo>,
     { result: Partial<DashboardInfo>; last_modified_time: number }
   >({
     method: 'PUT',
     endpoint: `/api/v1/dashboard/${id}`,
   });
-};
 
 export interface ChartCustomizationSavePayload {
   id: string;
@@ -80,8 +77,8 @@ export interface ChartCustomizationSavePayload {
     defaultValue?: string;
     isRequired?: boolean;
     selectFirst?: boolean;
-    defaultDataMask?: any;
-    defaultValueQueriesData?: any;
+    defaultDataMask?: DataMask;
+    defaultValueQueriesData?: ColumnOption[] | null;
     aggregation?: string;
     canSelectMultiple?: boolean;
   };
@@ -174,53 +171,6 @@ export function setChartCustomization(
   return { type: SAVE_CHART_CUSTOMIZATION_COMPLETE, chartCustomization };
 }
 
-export const SET_DASHBOARD_THEME = 'SET_DASHBOARD_THEME';
-
-export function setDashboardTheme(theme: { id: number; name: string } | null) {
-  return { type: SET_DASHBOARD_THEME, theme };
-}
-
-export function updateDashboardTheme(themeId: number | null) {
-  return async (dispatch: Dispatch, getState: () => RootState) => {
-    const { id } = getState().dashboardInfo;
-    const updateDashboard = createUpdateDashboardApi(id);
-
-    try {
-      const response = await updateDashboard({
-        theme_id: themeId,
-      });
-
-      // Update the dashboard info with the new theme
-      if (themeId === null) {
-        // Clearing the theme
-        dispatch(setDashboardTheme(null));
-      } else if (response.result.theme) {
-        // API returned the theme object
-        dispatch(setDashboardTheme(response.result.theme));
-      } else {
-        // API didn't return theme object, create it from the themeId
-        dispatch(setDashboardTheme({ id: themeId, name: `Theme ${themeId}` }));
-      }
-
-      const lastModifiedTime = response.last_modified_time;
-      if (lastModifiedTime) {
-        dispatch(onSave(lastModifiedTime));
-      }
-    } catch (errorObject) {
-      const { error } = await getClientErrorObject(errorObject);
-      dispatch(
-        addDangerToast(
-          t(
-            'Sorry, there was an error saving this dashboard: %s',
-            error || 'Bad Request',
-          ),
-        ),
-      );
-      throw errorObject;
-    }
-  };
-}
-
 export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
@@ -264,6 +214,10 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
     getState: () => RootState,
   ) {
     const { id, metadata } = getState().dashboardInfo;
+
+    const previousCrossFiltersEnabled =
+      getState().dashboardInfo.crossFiltersEnabled;
+
     dispatch(setCrossFiltersEnabled(crossFiltersEnabled));
     const updateDashboard = createUpdateDashboardApi(id);
 
@@ -281,6 +235,7 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
       );
       return response;
     } catch (err) {
+      dispatch(setCrossFiltersEnabled(previousCrossFiltersEnabled));
       dispatch(addDangerToast(t('Failed to save cross-filters setting')));
       throw err;
     }
