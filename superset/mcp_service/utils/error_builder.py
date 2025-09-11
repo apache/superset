@@ -169,6 +169,18 @@ class ChartErrorBuilder:
                 "Modify your data selection or aggregation",
             ],
         },
+        # Chart generation errors
+        "generation_failed": {
+            "message": "Chart generation failed: {reason}",
+            "details": "Failed to create {chart_type} chart for dataset {dataset_id}. "
+            "{reason}",
+            "suggestions": [
+                "Check that the dataset exists and is accessible",
+                "Verify chart configuration is valid for the selected chart type",
+                "Ensure all referenced columns exist in the dataset",
+                "Check Superset logs for detailed error information",
+            ],
+        },
     }
 
     @classmethod

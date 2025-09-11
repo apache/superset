@@ -355,9 +355,9 @@ class TestMcpConfigHelpers:
 
     def test_get_webserver_address_from_config(self):
         """Test extracting webserver address from config"""
-        content = "SUPERSET_WEBSERVER_ADDRESS = 'http://example.com:8088'"
+        content = "SUPERSET_WEBSERVER_ADDRESS = 'http://example.com:9001'"
         result = superset.cli.mcp._get_webserver_address(content)
-        assert result == "http://example.com:8088"
+        assert result == "http://example.com:9001"
 
     def test_get_webserver_address_default(self):
         """Test default webserver address"""
@@ -369,7 +369,7 @@ class TestMcpConfigHelpers:
         """Test config settings validation"""
         content = """
 SECRET_KEY = 'test'
-SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
+SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'
 """
         # This function prints output, so we just ensure it doesn't crash
         superset.cli.mcp._check_config_settings(content)
@@ -382,8 +382,8 @@ SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
         mock_get.return_value = mock_response
 
         # This function prints output, so we just ensure it doesn't crash
-        superset.cli.mcp._check_superset_running("http://localhost:8088")
-        mock_get.assert_called_once_with("http://localhost:8088/health", timeout=2)
+        superset.cli.mcp._check_superset_running("http://localhost:9001")
+        mock_get.assert_called_once_with("http://localhost:9001/health", timeout=2)
 
     @mock.patch("superset.cli.mcp.requests.get")
     def test_check_superset_running_wrong_status(self, mock_get):
@@ -392,8 +392,8 @@ SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
         mock_response.status_code = 500
         mock_get.return_value = mock_response
 
-        superset.cli.mcp._check_superset_running("http://localhost:8088")
-        mock_get.assert_called_once_with("http://localhost:8088/health", timeout=2)
+        superset.cli.mcp._check_superset_running("http://localhost:9001")
+        mock_get.assert_called_once_with("http://localhost:9001/health", timeout=2)
 
     @mock.patch("superset.cli.mcp.requests.get")
     def test_check_superset_running_connection_error(self, mock_get):
@@ -402,16 +402,16 @@ SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
             "Connection failed"
         )
 
-        superset.cli.mcp._check_superset_running("http://localhost:8088")
-        mock_get.assert_called_once_with("http://localhost:8088/health", timeout=2)
+        superset.cli.mcp._check_superset_running("http://localhost:9001")
+        mock_get.assert_called_once_with("http://localhost:9001/health", timeout=2)
 
     @mock.patch("superset.cli.mcp.requests.get")
     def test_check_superset_running_general_exception(self, mock_get):
         """Test checking Superset with general exception"""
         mock_get.side_effect = Exception("Unknown error")
 
-        superset.cli.mcp._check_superset_running("http://localhost:8088")
-        mock_get.assert_called_once_with("http://localhost:8088/health", timeout=2)
+        superset.cli.mcp._check_superset_running("http://localhost:9001")
+        mock_get.assert_called_once_with("http://localhost:9001/health", timeout=2)
 
     @mock.patch("superset.cli.mcp.Path")
     @mock.patch("superset.cli.mcp._check_superset_running")
@@ -443,10 +443,10 @@ SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
         mock_config_path.exists.return_value = True
         mock_config_path.read_text.return_value = "SECRET_KEY = 'test'"
         mock_path.return_value = mock_config_path
-        mock_get_address.return_value = "http://localhost:8088"
+        mock_get_address.return_value = "http://localhost:9001"
 
         superset.cli.mcp._verify_superset_config()
 
         mock_check_settings.assert_called_once_with("SECRET_KEY = 'test'")
         mock_get_address.assert_called_once_with("SECRET_KEY = 'test'")
-        mock_check_running.assert_called_once_with("http://localhost:8088")
+        mock_check_running.assert_called_once_with("http://localhost:9001")

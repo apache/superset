@@ -58,7 +58,7 @@ class DatasetValidator:
         # Get dataset context
         dataset_context = DatasetValidator._get_dataset_context(dataset_id)
         if not dataset_context:
-            from superset.mcp_service.chart.error_handling.error_builder import (
+            from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
             )
 
@@ -240,7 +240,7 @@ class DatasetValidator:
         dataset_context: DatasetContext,
     ) -> ChartGenerationError:
         """Build error for invalid columns."""
-        from superset.mcp_service.chart.error_handling.error_builder import (
+        from superset.mcp_service.utils.error_builder import (
             ChartErrorBuilder,
         )
 
@@ -301,7 +301,7 @@ class DatasetValidator:
                     and col_info.get("type", "").upper()
                     not in ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
                 ):
-                    from superset.mcp_service.chart.error_handling.error_builder import (  # noqa: E501
+                    from superset.mcp_service.utils.error_builder import (  # noqa: E501
                         ChartErrorBuilder,
                     )
 
