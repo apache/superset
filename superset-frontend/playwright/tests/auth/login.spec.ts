@@ -24,24 +24,10 @@ import { URL } from '../../utils/urls';
 test.describe('Login view', () => {
   let authPage: AuthPage;
 
-  test.beforeEach(async ({ page, baseURL }: any) => {
-    console.log('=== TEST SETUP START ===');
-    console.log('Test baseURL:', baseURL);
-    console.log(
-      'Environment PLAYWRIGHT_BASE_URL:',
-      process.env.PLAYWRIGHT_BASE_URL,
-    );
-    console.log(
-      'Environment SUPERSET_APP_ROOT:',
-      process.env.SUPERSET_APP_ROOT,
-    );
-
+  test.beforeEach(async ({ page }: any) => {
     authPage = new AuthPage(page);
     await authPage.goto();
-
-    // Wait for form to be ready
     await authPage.waitForLoginForm();
-    console.log('=== TEST SETUP COMPLETE ===');
   });
 
   test('should redirect to login with incorrect username and password', async ({
