@@ -36,7 +36,7 @@ except ModuleNotFoundError:
     pass
 
 class GoogleSheetsExport:
-    client: gspread.Client
+    client: "gspread.Client"
     share_permissions: dict[str, str]
 
     def __init__(self):
