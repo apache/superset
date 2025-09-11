@@ -715,6 +715,7 @@ const PropertiesModal = ({
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
                   onCustomCssChange={setCustomCss}
+                  addDangerToast={addDangerToast}
                 />
               ),
             },
