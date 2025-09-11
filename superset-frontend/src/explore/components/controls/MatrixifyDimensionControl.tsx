@@ -76,14 +76,14 @@ export default function MatrixifyDimensionControl(
 
   // Reset values when selection mode changes
   useEffect(() => {
-    if (value?.values?.length > 0) {
+    if (value?.values && value.values.length > 0) {
       onChange({
         dimension: value.dimension,
         values: [],
         topNValues: [],
       });
     }
-  }, [selectionMode]);
+  }, [selectionMode, value, onChange]);
 
   // Initialize dimension options from datasource
   useEffect(() => {
