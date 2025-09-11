@@ -23,8 +23,13 @@ class DummyLogger:
     def __init__(self):
         self.messages = []
 
-    def info(self, message):
-        self.messages.append(message)
+    def info(self, message, *args):
+        # Handle lazy logging format with multiple arguments
+        if args:
+            formatted_message = message % args
+        else:
+            formatted_message = message
+        self.messages.append(formatted_message)
 
 
 class DummyOp:
@@ -125,7 +130,6 @@ def test_create_unique_index_creates_index(monkeypatch):
     assert call_kwargs.get("unique") is True
     assert call_kwargs.get("columns") == columns
     # And a log message mentioning "Creating index" should be generated.
-    print(dummy_logger.messages)
     assert any("Creating index" in msg for msg in dummy_logger.messages)
 
 
