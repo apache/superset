@@ -503,7 +503,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
                 "execution_time_ms": int((time.time() - start_time) * 1000),
             },
         )
-        from superset.mcp_service.chart.error_handling import ChartErrorBuilder
+        from superset.mcp_service.utils.error_builder import ChartErrorBuilder
 
         logger.exception("Chart generation failed: %s", str(e))
 

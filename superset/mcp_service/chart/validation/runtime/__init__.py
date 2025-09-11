@@ -77,7 +77,7 @@ class RuntimeValidator:
 
         # If we have warnings, return them as a validation error
         if warnings:
-            from superset.mcp_service.chart.error_handling.error_builder import (
+            from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
             )
 

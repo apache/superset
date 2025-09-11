@@ -120,7 +120,7 @@ class ValidationPipeline:
 
         except Exception as e:
             logger.exception("Validation pipeline error")
-            from superset.mcp_service.chart.error_handling.error_builder import (
+            from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
             )
 
@@ -192,7 +192,7 @@ class ValidationPipeline:
 
         # Check for contradictory filters
         if ValidationPipeline._has_contradictory_filters(filters):
-            from superset.mcp_service.chart.error_handling.error_builder import (
+            from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
             )
 
@@ -211,7 +211,7 @@ class ValidationPipeline:
 
         # Check for filters likely to return empty
         if empty_warnings := ValidationPipeline._check_empty_result_filters(filters):
-            from superset.mcp_service.chart.error_handling.error_builder import (
+            from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
             )
 
