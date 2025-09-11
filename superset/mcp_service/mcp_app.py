@@ -23,8 +23,10 @@ middleware. All tool modules should import mcp from here and use @mcp.tool and
 """
 
 import logging
+import threading
 import time
-from typing import Any, Dict, Optional, Tuple
+from collections import OrderedDict
+from typing import Any, Optional, Protocol, Tuple
 
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.bearer import BearerAuthProvider
@@ -41,9 +43,120 @@ from superset.mcp_service.middleware import (
 
 logger = logging.getLogger(__name__)
 
-# Simple in-memory cache for screenshots (chart_id -> (timestamp, image_data))
-_screenshot_cache: Dict[str, Tuple[float, bytes]] = {}
+# Screenshot cache configuration
 SCREENSHOT_CACHE_TTL = 300  # 5 minutes cache
+SCREENSHOT_CACHE_MAX_SIZE = 100  # Maximum number of screenshots to cache in memory
+
+
+class ScreenshotCacheProtocol(Protocol):
+    """Protocol for screenshot cache implementations."""
+
+    def get(self, key: str) -> Optional[bytes]:
+        """Get a screenshot from cache."""
+        ...
+
+    def set(self, key: str, data: bytes) -> None:
+        """Store a screenshot in cache."""
+        ...
+
+
+class BoundedScreenshotCache:
+    """Thread-safe bounded cache with TTL and size limits for screenshots."""
+
+    def __init__(self, max_size: int = 100, ttl: int = 300):
+        """Initialize the cache with size and TTL limits."""
+        self._cache: OrderedDict[str, Tuple[float, bytes]] = OrderedDict()
+        self._max_size = max_size
+        self._ttl = ttl
+        self._lock = threading.Lock()
+
+    def get(self, key: str) -> Optional[bytes]:
+        """Get a screenshot from cache if it exists and hasn't expired."""
+        with self._lock:
+            if key in self._cache:
+                timestamp, data = self._cache[key]
+                if time.time() - timestamp < self._ttl:
+                    # Move to end for LRU
+                    self._cache.move_to_end(key)
+                    return data
+                else:
+                    # Expired - remove it
+                    del self._cache[key]
+        return None
+
+    def set(self, key: str, data: bytes) -> None:
+        """Store a screenshot in cache with automatic size limit enforcement."""
+        with self._lock:
+            # Add/update entry
+            self._cache[key] = (time.time(), data)
+            self._cache.move_to_end(key)
+
+            # Enforce size limit (remove oldest)
+            while len(self._cache) > self._max_size:
+                oldest_key = next(iter(self._cache))
+                del self._cache[oldest_key]
+                logger.debug("Evicted oldest screenshot from cache: %s", oldest_key)
+
+
+class RedisScreenshotCache:
+    """Redis-backed screenshot cache for distributed deployments."""
+
+    def __init__(self, ttl: int = 300):
+        """Initialize Redis cache with TTL."""
+        from superset.extensions import cache_manager
+
+        self._cache = cache_manager.cache
+        self._ttl = ttl
+        self._prefix = "mcp:screenshot:"
+
+    def get(self, key: str) -> Optional[bytes]:
+        """Get a screenshot from Redis cache."""
+        full_key = f"{self._prefix}{key}"
+        try:
+            return self._cache.get(full_key)
+        except Exception as e:
+            logger.warning("Failed to get screenshot from Redis: %s", e)
+            return None
+
+    def set(self, key: str, data: bytes) -> None:
+        """Store a screenshot in Redis cache with TTL."""
+        full_key = f"{self._prefix}{key}"
+        try:
+            self._cache.set(full_key, data, timeout=self._ttl)
+        except Exception as e:
+            logger.warning("Failed to store screenshot in Redis: %s", e)
+
+
+def create_screenshot_cache() -> ScreenshotCacheProtocol:
+    """Factory to create appropriate cache based on environment."""
+    try:
+        # Try to use Redis first (production)
+        from superset.extensions import cache_manager
+
+        if cache_manager and cache_manager.cache:
+            # Test Redis connectivity
+            test_key = "mcp:screenshot:test"
+            cache_manager.cache.set(test_key, b"test", timeout=1)
+            if cache_manager.cache.get(test_key):
+                cache_manager.cache.delete(test_key)
+                logger.info("Using Redis for screenshot cache")
+                return RedisScreenshotCache(ttl=SCREENSHOT_CACHE_TTL)
+    except Exception as e:
+        logger.warning("Redis not available: %s, falling back to in-memory cache", e)
+
+    # Fallback to in-memory cache (development)
+    logger.info(
+        "Using in-memory screenshot cache (max %d items, %ds TTL)",
+        SCREENSHOT_CACHE_MAX_SIZE,
+        SCREENSHOT_CACHE_TTL,
+    )
+    return BoundedScreenshotCache(
+        max_size=SCREENSHOT_CACHE_MAX_SIZE, ttl=SCREENSHOT_CACHE_TTL
+    )
+
+
+# Initialize cache at module level
+_screenshot_cache = create_screenshot_cache()
 
 
 def _create_auth_provider() -> Optional[BearerAuthProvider]:
@@ -70,7 +183,7 @@ def _create_auth_provider() -> Optional[BearerAuthProvider]:
 
         return None
     except Exception as e:
-        logger.error(f"Failed to create auth provider: {e}")
+        logger.error("Failed to create auth provider: %s", e)
         return None
 
 
@@ -167,22 +280,20 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
     """
 
     # Check cache first
-    current_time = time.time()
     cache_key = f"chart_{chart_id}"
 
-    if cache_key in _screenshot_cache:
-        timestamp, cached_data = _screenshot_cache[cache_key]
-        if current_time - timestamp < SCREENSHOT_CACHE_TTL:
-            logger.info(f"Serving cached screenshot for chart {chart_id}")
-            return Response(
-                content=cached_data,
-                media_type="image/png",
-                headers={
-                    "Cache-Control": "public, max-age=300",  # 5 min cache
-                    "Content-Disposition": f"inline; filename=chart_{chart_id}.png",
-                    "X-Cache": "HIT",
-                },
-            )
+    cached_data = _screenshot_cache.get(cache_key)
+    if cached_data:
+        logger.info("Serving cached screenshot for chart %s", chart_id)
+        return Response(
+            content=cached_data,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=300",  # 5 min cache
+                "Content-Disposition": f"inline; filename=chart_{chart_id}.png",
+                "X-Cache": "HIT",
+            },
+        )
 
     try:
         from flask import current_app, g
@@ -208,7 +319,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
         if mock_user:
             g.user = mock_user
         else:
-            logger.warning(f"User '{username}' not found, screenshot may fail")
+            logger.warning("User '%s' not found, screenshot may fail", username)
 
         # Find the chart
         chart = None
@@ -219,14 +330,14 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
                 # Try UUID lookup using DAO flexible method
                 chart = ChartDAO.find_by_id(chart_id, id_column="uuid")
         except Exception as e:
-            logger.error(f"Error looking up chart {chart_id}: {e}")
+            logger.error("Error looking up chart %s: %s", chart_id, e)
             raise HTTPException(
                 status_code=500,
                 detail=(f"Database error while looking up chart {chart_id}: {str(e)}"),
             ) from e
 
         if not chart:
-            logger.warning(f"Chart {chart_id} not found in database")
+            logger.warning("Chart %s not found in database", chart_id)
             raise HTTPException(
                 status_code=404,
                 detail=(
@@ -235,7 +346,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
                 ),
             )
 
-        logger.info(f"Serving screenshot for chart {chart.id}: {chart.slice_name}")
+        logger.info("Serving screenshot for chart %s: %s", chart.id, chart.slice_name)
 
         # Create chart URL for screenshot
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
@@ -248,7 +359,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
         try:
             image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
         except Exception as e:
-            logger.error(f"Screenshot generation failed for chart {chart_id}: {e}")
+            logger.error("Screenshot generation failed for chart %s: %s", chart_id, e)
             raise HTTPException(
                 status_code=500,
                 detail=(
@@ -259,17 +370,8 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
 
         if image_data:
             # Cache the screenshot
-            _screenshot_cache[cache_key] = (current_time, image_data)
-
-            # Clean up old cache entries (simple cleanup)
-            keys_to_remove = []
-            for key, (ts, _) in _screenshot_cache.items():
-                if current_time - ts > SCREENSHOT_CACHE_TTL:
-                    keys_to_remove.append(key)
-            for key in keys_to_remove:
-                del _screenshot_cache[key]
-
-            logger.info(f"Generated and cached screenshot for chart {chart_id}")
+            _screenshot_cache.set(cache_key, image_data)
+            logger.info("Generated and cached screenshot for chart %s", chart_id)
 
             # Return the PNG image directly
             return Response(
@@ -282,7 +384,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
                 },
             )
         else:
-            logger.error(f"Screenshot returned None for chart {chart_id}")
+            logger.error("Screenshot returned None for chart %s", chart_id)
             raise HTTPException(
                 status_code=500,
                 detail=(
@@ -294,7 +396,7 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error serving screenshot for chart {chart_id}: {e}")
+        logger.error("Error serving screenshot for chart %s: %s", chart_id, e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -309,7 +411,7 @@ def _get_form_data_from_cache(form_data_key: str) -> str:
         parameters = FormDataCommandParameters(key=form_data_key)
         form_data_json = GetFormDataCommand(parameters).run()
         if not form_data_json:
-            logger.warning(f"Form data key not found in cache: {form_data_key}")
+            logger.warning("Form data key not found in cache: %s", form_data_key)
             raise HTTPException(
                 status_code=404,
                 detail=(
@@ -321,7 +423,7 @@ def _get_form_data_from_cache(form_data_key: str) -> str:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to retrieve form data for key {form_data_key}: {e}")
+        logger.error("Failed to retrieve form data for key %s: %s", form_data_key, e)
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving form data for key '{form_data_key}': {str(e)}",
@@ -377,7 +479,7 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
             if mock_user:
                 g.user = mock_user
             else:
-                logger.warning(f"User '{username}' not found, screenshot may fail")
+                logger.warning("User '%s' not found, screenshot may fail", username)
 
             # Look up the form data from the cache
             form_data_json = _get_form_data_from_cache(form_data_key)
@@ -398,7 +500,7 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
 
             explore_url += "?" + "&".join(url_params)
 
-            logger.info(f"Generating screenshot for explore URL: {explore_url}")
+            logger.info("Generating screenshot for explore URL: %s", explore_url)
             logger.info(
                 f"Form data retrieved: "
                 f"{form_data_json[:200] if form_data_json else 'None'}..."
@@ -461,7 +563,9 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        logger.error(f"Error serving screenshot for form_data_key {form_data_key}: {e}")
+        logger.error(
+            "Error serving screenshot for form_data_key %s: %s", form_data_key, e
+        )
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -516,7 +620,7 @@ def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
                     "No authentication configured - MCP service will run without auth"
                 )
         except Exception as e:
-            logger.error(f"Auth configuration failed: {e}")
+            logger.error("Auth configuration failed: %s", e)
             logger.info("MCP service will run without authentication")
 
     # Add middleware (order matters - error handler should be first to catch all errors)
