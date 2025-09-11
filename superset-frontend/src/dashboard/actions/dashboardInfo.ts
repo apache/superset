@@ -198,9 +198,3 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
     }
   };
 }
-
-export type AnyDashboardInfoAction =
-  | ReturnType<typeof dashboardInfoChanged>
-  | ReturnType<typeof nativeFiltersConfigChanged>
-  | ReturnType<typeof setFilterBarOrientation>
-  | ReturnType<typeof setCrossFiltersEnabled>;
