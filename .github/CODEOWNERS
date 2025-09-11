@@ -33,10 +33,10 @@
 
 # Notify PMC members of changes to extension-related files
 
-/superset-core/ @michael-s-molina @villebro
-/superset-extensions-cli/ @michael-s-molina @villebro
-/superset/core/ @michael-s-molina @villebro
-/superset/extensions/ @michael-s-molina @villebro
-/superset-frontend/src/packages/superset-core/ @michael-s-molina @villebro
-/superset-frontend/src/core/ @michael-s-molina @villebro
-/superset-frontend/src/extensions/ @michael-s-molina @villebro
+/superset-core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
+/superset-extensions-cli/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
+/superset/core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
+/superset/extensions/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
+/superset-frontend/src/packages/superset-core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
+/superset-frontend/src/core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
+/superset-frontend/src/extensions/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
