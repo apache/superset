@@ -37,8 +37,18 @@ export default defineConfig({
   // Retry logic - 2 retries in CI, 0 locally
   retries: process.env.CI ? 2 : 0,
 
-  // Reporter configuration
-  reporter: process.env.CI ? 'github' : 'list',
+  // Reporter configuration - multiple reporters for better visibility
+  reporter: process.env.CI
+    ? [
+        ['github'], // GitHub Actions annotations
+        ['list'], // Detailed output with summary table
+        ['html', { outputFolder: 'playwright-report', open: 'never' }], // Interactive report
+        ['json', { outputFile: 'test-results/results.json' }], // Machine-readable
+      ]
+    : [
+        ['list'], // Shows summary table locally
+        ['html', { outputFolder: 'playwright-report', open: 'on-failure' }], // Auto-open on failure
+      ],
 
   // Global test setup
   use: {

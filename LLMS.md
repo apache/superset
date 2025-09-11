@@ -15,8 +15,9 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
-- **Prefer integration tests** over Cypress end-to-end tests
-- **Cypress is last resort** - Actively moving away from Cypress
+- **Prefer integration tests** over end-to-end tests
+- **Use Playwright for E2E tests** - Migrating from Cypress
+- **Cypress is deprecated** - Will be removed once migration is completed
 - **Use Jest + React Testing Library** for component testing
 - **Use `test()` instead of `describe()`** - Follow [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principles
 
@@ -106,6 +107,18 @@ superset/
 # Frontend
 npm run test                           # All tests
 npm run test -- filename.test.tsx     # Single file
+
+# E2E Tests (Playwright - NEW)
+npm run playwright:test                # All Playwright tests
+npm run playwright:ui                  # Interactive UI mode
+npm run playwright:headed              # See browser during tests
+npx playwright test tests/auth/login.spec.ts  # Single file
+npm run playwright:debug tests/auth/login.spec.ts  # Debug specific file
+
+# E2E Tests (Cypress - DEPRECATED)
+cd superset-frontend/cypress-base
+npm run cypress-run-chrome             # All Cypress tests (headless)
+npm run cypress-debug                  # Interactive Cypress UI
 
 # Backend  
 pytest                                 # All tests

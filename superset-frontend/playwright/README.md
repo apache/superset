@@ -142,17 +142,54 @@ Shared constants and utilities:
 
 ```bash
 # Run all tests
-npx playwright test
+npm run playwright:test
+# or: npx playwright test
 
 # Run specific test file
 npx playwright test tests/auth/login.spec.ts
 
 # Run with UI mode for debugging
-npx playwright test --ui
+npm run playwright:ui
+# or: npx playwright test --ui
 
 # Run in headed mode (see browser)
-npx playwright test --headed
+npm run playwright:headed
+# or: npx playwright test --headed
+
+# Debug specific test file
+npm run playwright:debug tests/auth/login.spec.ts
+# or: npx playwright test --debug tests/auth/login.spec.ts
 ```
+
+## Test Reports
+
+Playwright generates multiple reports for better visibility:
+
+```bash
+# View interactive HTML report (opens automatically on failure)
+npm run playwright:report
+# or: npx playwright show-report
+
+# View test trace for debugging failures
+npx playwright show-trace test-results/[test-name]/trace.zip
+```
+
+### Report Types
+
+- **List Reporter**: Shows progress and summary table in terminal
+- **HTML Report**: Interactive web interface with screenshots, videos, and traces
+- **JSON Report**: Machine-readable format in `test-results/results.json`
+- **GitHub Actions**: Annotations in CI for failed tests
+
+### Debugging Failed Tests
+
+When tests fail, Playwright automatically captures:
+- **Screenshots** at the point of failure
+- **Videos** of the entire test run
+- **Traces** with timeline and network activity
+- **Error context** with detailed debugging information
+
+All debugging artifacts are available in the HTML report for easy analysis.
 
 ## Configuration
 
