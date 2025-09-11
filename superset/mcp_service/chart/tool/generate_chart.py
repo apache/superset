@@ -24,6 +24,7 @@ from typing import Any, Dict
 
 from fastmcp import Context
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -37,7 +38,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     URLPreview,
 )
-from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,

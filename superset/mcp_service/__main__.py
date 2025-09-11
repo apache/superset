@@ -42,7 +42,7 @@ if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
     click.secho = secho_to_stderr
     click.echo = lambda *args, **kwargs: click.echo(*args, file=sys.stderr, **kwargs)
 
-from superset.mcp_service.mcp_app import init_fastmcp_server, mcp
+from superset.mcp_service.app import init_fastmcp_server, mcp
 
 
 def main() -> None:

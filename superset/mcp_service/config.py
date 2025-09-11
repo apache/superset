@@ -80,3 +80,29 @@ DEFAULT_CONFIG = {
     "MCP_REQUIRED_SCOPES": [],
     "MCP_ADMIN_USERNAME": "admin",
 }
+
+# Example MCP Authentication Configuration for superset_config.py
+# Add these settings to your superset_config.py to enable MCP authentication.
+
+# Example 1: Simple Configuration (Recommended)
+# MCP_AUTH_ENABLED = True
+# MCP_ADMIN_USERNAME = "your_admin_username"  # Must exist in Superset users
+
+# Example 2: JWT-based Authentication
+# def custom_user_resolver(access_token):
+#     """Extract username from JWT token."""
+#     return access_token.get("username") or access_token.get("sub")
+#
+# MCP_AUTH_ENABLED = True
+# MCP_USER_RESOLVER = custom_user_resolver
+# MCP_JWT_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+# YOUR_RSA_PUBLIC_KEY_HERE
+# -----END PUBLIC KEY-----"""
+# MCP_JWT_ISSUER = "your-auth-provider"
+# MCP_JWT_AUDIENCE = "superset-mcp"
+
+# Example 3: JWKS URI Configuration
+# MCP_AUTH_ENABLED = True
+# MCP_JWKS_URI = "https://your-auth-provider.com/.well-known/jwks.json"
+# MCP_JWT_ISSUER = "your-auth-provider"
+# MCP_JWT_AUDIENCE = "superset-mcp"

@@ -27,6 +27,7 @@ from typing import Any
 
 from fastmcp import Context
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.schemas import (
@@ -34,7 +35,6 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GetDashboardInfoRequest,
 )
-from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.system.schemas import (
     RoleInfo,
