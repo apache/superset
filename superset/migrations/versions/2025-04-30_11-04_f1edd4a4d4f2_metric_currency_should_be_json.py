@@ -22,10 +22,18 @@ Create Date: 2025-04-30 11:04:39.105229
 
 """
 
+import logging
+
+from alembic import op
+from sqlalchemy import JSON
+from sqlalchemy.engine.reflection import Inspector
+
 from superset.migrations.shared.utils import (
     cast_json_column_to_text,
     cast_text_column_to_json,
 )
+
+logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "f1edd4a4d4f2"
@@ -36,6 +44,20 @@ def upgrade():
     """
     Convert the currency column to JSON.
     """
+    bind = op.get_bind()
+    inspector = Inspector.from_engine(bind)
+
+    # Check if currency column is already JSON type
+    columns = inspector.get_columns("sql_metrics")
+    currency_column = next((col for col in columns if col["name"] == "currency"), None)
+
+    if currency_column and isinstance(currency_column["type"], JSON):
+        logger.info(
+            "Currency column is already JSON type, skipping schema conversion..."
+        )
+        return
+
+    logger.info("Converting currency column from TEXT to JSON...")
     cast_text_column_to_json("sql_metrics", "currency")
 
 

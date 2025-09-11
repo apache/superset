@@ -17,7 +17,7 @@
 """theme_crud
 
 Revision ID: 3fd555e76e3d
-Revises: 363a9b1e8992
+Revises: 9207a9cab91b
 Create Date: 2025-07-15 16:40:35.166210
 
 """
@@ -34,7 +34,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "3fd555e76e3d"
-down_revision = "363a9b1e8992"
+down_revision = "9207a9cab91b"
 
 
 def upgrade():
