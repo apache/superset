@@ -34,7 +34,7 @@ class TestUrlUtils:
             mock_app.config = MagicMock()
             mock_app.config.get.side_effect = Exception("No config")
             url = get_superset_base_url()
-            assert url == "http://localhost:8088"
+            assert url == "http://localhost:9001"
 
     def test_get_superset_base_url_from_config(self):
         """Test get_superset_base_url uses SUPERSET_WEBSERVER_ADDRESS from config."""

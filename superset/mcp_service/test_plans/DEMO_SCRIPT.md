@@ -3,7 +3,7 @@
 This demo showcases the powerful capabilities of the Superset MCP service, including the new Vega-Lite visualization and enhanced ASCII chart features.
 
 ## Prerequisites
-- ✅ Superset running on http://localhost:8088
+- ✅ Superset running on http://localhost:9001
 - ✅ MCP service running on port 5008
 - ✅ Sample datasets loaded (e.g., "examples" database)
 - ✅ Claude Desktop or compatible MCP client

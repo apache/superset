@@ -27,10 +27,10 @@ def get_superset_base_url() -> str:
     Get the Superset base URL from configuration.
 
     Returns:
-        Base URL for Superset web server (e.g., "http://localhost:8088")
+        Base URL for Superset web server (e.g., "http://localhost:9001")
     """
-    # Default fallback to localhost:8088
-    default_url = "http://localhost:8088"
+    # Default fallback to localhost:9001
+    default_url = "http://localhost:9001"
 
     try:
         # Try to get from configuration
@@ -48,7 +48,7 @@ def get_superset_base_url() -> str:
             webserver_protocol = config.get("ENABLE_PROXY_FIX", False)
             protocol = "https" if webserver_protocol else "http"
             host = config.get("WEBSERVER_HOST", "localhost")
-            port = config.get("WEBSERVER_PORT", 8088)
+            port = config.get("WEBSERVER_PORT", 9001)
             return f"{protocol}://{host}:{port}"
 
         return default_url

@@ -289,7 +289,7 @@ class TestGenerateExploreLink:
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_fallback_url(self, mock_get_base_url) -> None:
         """Test generate_explore_link returns fallback URL when dataset not found"""
-        mock_get_base_url.return_value = "http://localhost:8088"
+        mock_get_base_url.return_value = "http://localhost:9001"
         form_data = {"viz_type": "table"}
 
         # Mock dataset not found scenario
@@ -298,7 +298,7 @@ class TestGenerateExploreLink:
 
         assert (
             result
-            == "http://localhost:8088/explore/?datasource_type=table&datasource_id=999"
+            == "http://localhost:9001/explore/?datasource_type=table&datasource_id=999"
         )
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
@@ -307,7 +307,7 @@ class TestGenerateExploreLink:
         self, mock_command, mock_get_base_url
     ) -> None:
         """Test generate_explore_link creates form_data_key when dataset exists"""
-        mock_get_base_url.return_value = "http://localhost:8088"
+        mock_get_base_url.return_value = "http://localhost:9001"
         mock_command.return_value.run.return_value = "test_form_data_key"
 
         # Mock dataset exists
@@ -318,14 +318,14 @@ class TestGenerateExploreLink:
             result = generate_explore_link(123, {"viz_type": "table"})
 
         assert (
-            result == "http://localhost:8088/explore/?form_data_key=test_form_data_key"
+            result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
         )
         mock_command.assert_called_once()
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_exception_handling(self, mock_get_base_url) -> None:
         """Test generate_explore_link handles exceptions gracefully"""
-        mock_get_base_url.return_value = "http://localhost:8088"
+        mock_get_base_url.return_value = "http://localhost:9001"
 
         # Mock exception during form_data creation
         with patch(
@@ -337,7 +337,7 @@ class TestGenerateExploreLink:
         # Should fallback to basic URL
         assert (
             result
-            == "http://localhost:8088/explore/?datasource_type=table&datasource_id=123"
+            == "http://localhost:9001/explore/?datasource_type=table&datasource_id=123"
         )
 
 

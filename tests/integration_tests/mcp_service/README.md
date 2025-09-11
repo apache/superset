@@ -61,6 +61,6 @@ another prompt
 
 ## Requirements
 - Anthropic API key in `superset_config.py`
-- Superset running on port 8088
+- Superset running on port 9001
 - MCP service running on port 5008
 - ngrok URL updated in test files
