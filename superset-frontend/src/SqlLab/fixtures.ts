@@ -188,6 +188,7 @@ export const table = {
 export const defaultQueryEditor = {
   version: LatestQueryEditorVersion,
   id: 'dfsadfs',
+  immutableId: 'dfsadfs',
   autorun: false,
   dbId: 1,
   latestQueryId: null,
@@ -204,6 +205,7 @@ export const defaultQueryEditor = {
 export const extraQueryEditor1 = {
   ...defaultQueryEditor,
   id: 'diekd23',
+  immutableId: 'diekd23',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
   selectedText: 'SELECT',
@@ -212,6 +214,7 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
+  immutableId: 'owkdi998',
   sql: '',
   name: 'Untitled Query 3',
 };
@@ -219,6 +222,7 @@ export const extraQueryEditor2 = {
 export const extraQueryEditor3 = {
   ...defaultQueryEditor,
   id: 'kvk23',
+  immutableId: 'kvk23',
   sql: '',
   name: 'Untitled Query 4',
   tabViewId: 37,
