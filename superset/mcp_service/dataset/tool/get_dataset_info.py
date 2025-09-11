@@ -24,6 +24,8 @@ about a specific dataset.
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
@@ -39,7 +41,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_dataset_info(request: GetDatasetInfoRequest) -> DatasetInfo | DatasetError:
+def get_dataset_info(
+    request: GetDatasetInfoRequest, ctx: Context
+) -> DatasetInfo | DatasetError:
     """
     Get detailed information about a specific dataset with metadata cache control.
 
@@ -56,15 +60,57 @@ def get_dataset_info(request: GetDatasetInfoRequest) -> DatasetInfo | DatasetErr
 
     Returns a DatasetInfo model or DatasetError on error.
     """
-
-    from superset.daos.dataset import DatasetDAO
-
-    tool = ModelGetInfoCore(
-        dao_class=DatasetDAO,  # type: ignore[arg-type]
-        output_schema=DatasetInfo,
-        error_schema=DatasetError,
-        serializer=serialize_dataset_object,
-        supports_slug=False,  # Datasets don't have slugs
-        logger=logger,
+    ctx.info("Retrieving dataset information", extra={"identifier": request.identifier})
+    ctx.debug(
+        "Metadata cache settings",
+        extra={
+            "use_cache": request.use_cache,
+            "refresh_metadata": request.refresh_metadata,
+            "force_refresh": request.force_refresh,
+        },
     )
-    return tool.run_tool(request.identifier)
+
+    try:
+        from superset.daos.dataset import DatasetDAO
+
+        tool = ModelGetInfoCore(
+            dao_class=DatasetDAO,  # type: ignore[arg-type]
+            output_schema=DatasetInfo,
+            error_schema=DatasetError,
+            serializer=serialize_dataset_object,
+            supports_slug=False,  # Datasets don't have slugs
+            logger=logger,
+        )
+
+        result = tool.run_tool(request.identifier)
+
+        if isinstance(result, DatasetInfo):
+            ctx.info(
+                "Dataset information retrieved successfully",
+                extra={
+                    "dataset_id": result.id,
+                    "table_name": result.table_name,
+                    "columns_count": len(result.columns) if result.columns else 0,
+                    "metrics_count": len(result.metrics) if result.metrics else 0,
+                },
+            )
+        else:
+            ctx.warning(
+                "Dataset retrieval failed",
+                extra={"error_type": result.error_type, "error": result.error},
+            )
+
+        return result
+
+    except Exception as e:
+        ctx.error(
+            "Dataset information retrieval failed",
+            extra={
+                "identifier": request.identifier,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        return DatasetError(
+            error=f"Failed to get dataset info: {str(e)}", error_type="InternalError"
+        )

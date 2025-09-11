@@ -57,7 +57,7 @@ class ChartTypeSuggester:
             else:
                 return True, None
         except Exception as e:
-            logger.warning(f"Chart type analysis failed: {e}")
+            logger.warning("Chart type analysis failed: %s", e)
             return True, None  # Don't block on suggestion failures
 
     @staticmethod

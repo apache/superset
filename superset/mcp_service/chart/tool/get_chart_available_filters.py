@@ -21,6 +21,8 @@ MCP tool: get_chart_available_filters
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartAvailableFiltersResponse,
@@ -35,7 +37,7 @@ logger = logging.getLogger(__name__)
 @mcp.tool
 @mcp_auth_hook
 def get_chart_available_filters(
-    request: GetChartAvailableFiltersRequest,
+    request: GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:
     """
     Return available chart filter fields, types, and supported operators (MCP tool).

@@ -22,6 +22,8 @@ import logging
 import time
 from typing import Any, Dict
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -47,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C901
+def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[str, Any]:  # noqa: C901
     """
     l    Create and SAVE a new chart in Superset with enhanced validation and
     security features.
@@ -123,9 +125,23 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
             error info
     """
     start_time = time.time()
+    ctx.info(
+        "Starting chart generation",
+        extra={
+            "dataset_id": request.dataset_id,
+            "chart_type": request.config.chart_type,
+            "save_chart": request.save_chart,
+            "preview_formats": request.preview_formats,
+        },
+    )
+    ctx.debug(
+        "Chart configuration details", extra={"config": request.config.model_dump()}
+    )
 
     try:
         # Run comprehensive validation pipeline
+        ctx.report_progress(1, 5, "Running validation pipeline")
+        ctx.debug("Validating chart request", extra={"dataset_id": request.dataset_id})
         from superset.mcp_service.chart.validation import ValidationPipeline
 
         is_valid, parsed_request, validation_error = (
@@ -137,6 +153,10 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
         if not is_valid:
             execution_time = int((time.time() - start_time) * 1000)
             assert validation_error is not None  # Type narrowing for mypy
+            ctx.error(
+                "Chart validation failed",
+                extra={"error": validation_error.model_dump()},
+            )
             return {
                 "chart": None,
                 "error": validation_error.model_dump(),
@@ -160,14 +180,17 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
+            ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
 
             # Generate a chart name
             chart_name = generate_chart_name(request.config)
+            ctx.debug("Generated chart name", extra={"chart_name": chart_name})
 
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
 
+            ctx.debug("Looking up dataset", extra={"dataset_id": request.dataset_id})
             dataset = None
             if isinstance(request.dataset_id, int) or (
                 isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
@@ -183,6 +206,7 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                 dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
 
             if not dataset:
+                ctx.error("Dataset not found", extra={"dataset_id": request.dataset_id})
                 from superset.mcp_service.common.error_schemas import (
                     ChartGenerationError,
                 )
@@ -229,13 +253,19 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
 
             chart = command.run()
             chart_id = chart.id
+            ctx.info(
+                "Chart created successfully",
+                extra={"chart_id": chart.id, "chart_name": chart.slice_name},
+            )
             # Update explore URL to use saved chart
             explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
         else:
+            ctx.report_progress(2, 5, "Generating temporary chart preview")
             # Generate explore link with cached form_data for preview-only mode
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
             explore_url = generate_explore_link(request.dataset_id, form_data)
+            ctx.debug("Generated explore link", extra={"explore_url": explore_url})
 
             # Extract form_data_key from the explore URL
             if "form_data_key=" in explore_url:
@@ -266,10 +296,15 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
         )
 
         # Generate previews if requested
+        ctx.report_progress(3, 5, "Generating chart previews")
         previews = {}
         if request.generate_preview:
+            ctx.debug("Generating previews", extra={"formats": request.preview_formats})
             try:
                 for format_type in request.preview_formats:
+                    ctx.debug(
+                        "Processing preview format", extra={"format": format_type}
+                    )
                     # Skip base64 format - we never return base64
                     if format_type == "base64":
                         logger.info("Skipping base64 format - not supported")
@@ -285,7 +320,9 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                         preview_request = GetChartPreviewRequest(
                             identifier=str(chart_id), format=format_type
                         )
-                        preview_result = _get_chart_preview_internal(preview_request)
+                        preview_result = _get_chart_preview_internal(
+                            preview_request, ctx
+                        )
 
                         if hasattr(preview_result, "content"):
                             previews[format_type] = preview_result.content
@@ -321,8 +358,7 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                             else:
                                 # Skip preview generation for non-numeric dataset IDs
                                 logger.warning(
-                                    f"Cannot generate preview for non-numeric "
-                                    f"dataset_id: {request.dataset_id}"
+                                    "Cannot generate preview for non-numeric "
                                 )
                                 continue
 
@@ -337,9 +373,11 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
 
             except Exception as e:
                 # Log warning but don't fail the entire request
-                logger.warning(f"Preview generation failed: {e}")
+                ctx.warning("Preview generation failed", extra={"error": str(e)})
+                logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data while maintaining backward compatibility
+        ctx.report_progress(4, 5, "Building response")
         result = {
             "chart": {
                 "id": chart.id if chart else None,
@@ -384,12 +422,27 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
             "schema_version": "2.0",
             "api_version": "v1",
         }
+        ctx.report_progress(5, 5, "Chart generation completed")
+        ctx.info(
+            "Chart generation completed successfully",
+            extra={
+                "chart_id": chart.id if chart else None,
+                "execution_time_ms": int((time.time() - start_time) * 1000),
+            },
+        )
         return result
 
     except Exception as e:
+        ctx.error(
+            "Chart generation failed",
+            extra={
+                "error": str(e),
+                "execution_time_ms": int((time.time() - start_time) * 1000),
+            },
+        )
         from superset.mcp_service.chart.error_handling import ChartErrorBuilder
 
-        logger.exception(f"Chart generation failed: {str(e)}")
+        logger.exception("Chart generation failed: %s", str(e))
 
         # Extract chart_type from different sources for better error context
         chart_type = "unknown"
@@ -398,7 +451,7 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                 chart_type = request.config.chart_type
         except Exception as extract_error:
             # Ignore errors when extracting chart type for error context
-            logger.debug(f"Could not extract chart type: {extract_error}")
+            logger.debug("Could not extract chart type: %s", extract_error)
 
         execution_time = int((time.time() - start_time) * 1000)
 

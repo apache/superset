@@ -107,28 +107,30 @@ def retry_on_exception(
                     delay = exponential_backoff(attempt, base_delay, max_delay, jitter)
 
                     logger.warning(
-                        f"Attempt {attempt + 1}/{max_attempts} failed for "
-                        f"{func.__name__}: {type(e).__name__}: {e}. "
-                        f"Retrying in {delay:.2f}s..."
+                        "Attempt %s/%s failed for %s: %s. Retrying in %.2fs...",
+                        attempt + 1,
+                        max_attempts,
+                        func.__name__,
+                        e,
+                        delay,
                     )
 
                     time.sleep(delay)
                 except Exception as e:
                     # Non-retryable exception, fail immediately
-                    logger.error(
-                        f"Non-retryable exception in {func.__name__}: "
-                        f"{type(e).__name__}: {e}"
-                    )
+                    logger.error("Non-retryable exception in %s: %s", func.__name__, e)
                     raise
 
             # All attempts failed
             if last_exception is not None:
                 logger.error(
-                    f"All {max_attempts} attempts failed for {func.__name__}. "
-                    f"Last error: {type(last_exception).__name__}: {last_exception}"
+                    "All %s attempts failed for %s: %s",
+                    max_attempts,
+                    func.__name__,
+                    last_exception,
                 )
                 raise last_exception
-            logger.error(f"All {max_attempts} attempts failed for {func.__name__}")
+            logger.error("All %s attempts failed for %s", max_attempts, func.__name__)
             raise RuntimeError(
                 f"All {max_attempts} attempts failed for {func.__name__}"
             )
@@ -167,28 +169,30 @@ def async_retry_on_exception(
                     delay = exponential_backoff(attempt, base_delay, max_delay, jitter)
 
                     logger.warning(
-                        f"Attempt {attempt + 1}/{max_attempts} failed for "
-                        f"{func.__name__}: {type(e).__name__}: {e}. "
-                        f"Retrying in {delay:.2f}s..."
+                        "Attempt %s/%s failed for %s: %s. Retrying in %.2fs...",
+                        attempt + 1,
+                        max_attempts,
+                        func.__name__,
+                        e,
+                        delay,
                     )
 
                     await asyncio.sleep(delay)
                 except Exception as e:
                     # Non-retryable exception, fail immediately
-                    logger.error(
-                        f"Non-retryable exception in {func.__name__}: "
-                        f"{type(e).__name__}: {e}"
-                    )
+                    logger.error("Non-retryable exception in %s: %s", func.__name__, e)
                     raise
 
             # All attempts failed
             if last_exception is not None:
                 logger.error(
-                    f"All {max_attempts} attempts failed for {func.__name__}. "
-                    f"Last error: {type(last_exception).__name__}: {last_exception}"
+                    "All %s attempts failed for %s: %s",
+                    max_attempts,
+                    func.__name__,
+                    last_exception,
                 )
                 raise last_exception
-            logger.error(f"All {max_attempts} attempts failed for {func.__name__}")
+            logger.error("All %s attempts failed for %s", max_attempts, func.__name__)
             raise RuntimeError(
                 f"All {max_attempts} attempts failed for {func.__name__}"
             )
@@ -237,8 +241,7 @@ class RetryableOperation:
         if not issubclass(exc_type, self.exceptions):
             # Non-retryable exception
             logger.error(
-                f"Non-retryable exception in {self.operation_name}: "
-                f"{exc_type.__name__}: {exc_val}"
+                "Non-retryable exception in %s: %s", self.operation_name, exc_val
             )
             return False
 
@@ -248,8 +251,9 @@ class RetryableOperation:
         if self.current_attempt >= self.max_attempts:
             # Max attempts reached
             logger.error(
-                f"All {self.max_attempts} attempts failed for {self.operation_name}. "
-                f"Last error: {exc_type.__name__}: {exc_val}"
+                "All %s attempts failed for %s. ",
+                self.max_attempts,
+                self.operation_name,
             )
             return False
 
@@ -259,9 +263,12 @@ class RetryableOperation:
         )
 
         logger.warning(
-            f"Attempt {self.current_attempt}/{self.max_attempts} failed for "
-            f"{self.operation_name}: {exc_type.__name__}: {exc_val}. "
-            f"Retrying in {delay:.2f}s..."
+            "Attempt %s/%s failed for %s: %s. Retrying in %.2fs...",
+            self.current_attempt,
+            self.max_attempts,
+            self.operation_name,
+            exc_val,
+            delay,
         )
 
         time.sleep(delay)

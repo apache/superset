@@ -93,7 +93,7 @@ class CardinalityValidator:
             return True, None
 
         except Exception as e:
-            logger.warning(f"Cardinality check failed: {e}")
+            logger.warning("Cardinality check failed: %s", e)
             # Don't block on validation failures
             return True, None
 

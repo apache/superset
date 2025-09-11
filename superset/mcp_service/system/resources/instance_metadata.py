@@ -92,7 +92,7 @@ async def get_instance_metadata_resource() -> str:
         return instance_info_core.get_resource()
 
     except Exception as e:
-        logger.error(f"Error generating instance metadata: {e}")
+        logger.error("Error generating instance metadata: %s", e)
         # Return minimal metadata on error
         from superset.utils import json
 

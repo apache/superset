@@ -24,6 +24,8 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 import logging
 from typing import Any, Dict
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
@@ -135,7 +137,7 @@ def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
 @mcp.tool
 @mcp_auth_hook
 def add_chart_to_existing_dashboard(
-    request: AddChartToDashboardRequest,
+    request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
     """
     Add a chart to an existing dashboard.
@@ -267,8 +269,7 @@ def add_chart_to_existing_dashboard(
         )
 
         logger.info(
-            f"Added chart {request.chart_id} to dashboard {request.dashboard_id} "
-            f"in row {row_index}"
+            "Added chart %s to dashboard %s ", request.chart_id, request.dashboard_id
         )
 
         # Return position info for compatibility
@@ -282,7 +283,7 @@ def add_chart_to_existing_dashboard(
         )
 
     except Exception as e:
-        logger.error(f"Error adding chart to dashboard: {e}", exc_info=True)
+        logger.error("Error adding chart to dashboard: %s", e)
         return AddChartToDashboardResponse(
             dashboard=None,
             dashboard_url=None,

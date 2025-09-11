@@ -24,6 +24,8 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
@@ -62,7 +64,7 @@ SORTABLE_DATASET_COLUMNS = [
 
 @mcp.tool
 @mcp_auth_hook
-def list_datasets(request: ListDatasetsRequest) -> DatasetList:
+def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """
     List datasets with advanced filtering, search, and metadata cache control.
 
@@ -81,32 +83,81 @@ def list_datasets(request: ListDatasetsRequest) -> DatasetList:
     When refresh_metadata=True, the tool will fetch fresh column and metric
     metadata from the database, which is useful when table schema has changed.
     """
-
-    from superset.daos.dataset import DatasetDAO
-
-    # Create tool with standard serialization
-    tool = ModelListCore(
-        dao_class=DatasetDAO,  # type: ignore[arg-type]
-        output_schema=DatasetInfo,
-        item_serializer=lambda obj, cols: serialize_dataset_object(obj),
-        filter_type=DatasetFilter,
-        default_columns=DEFAULT_DATASET_COLUMNS,
-        search_columns=["schema", "sql", "table_name", "uuid"],
-        list_field_name="datasets",
-        output_list_schema=DatasetList,
-        logger=logger,
+    ctx.info(
+        "Listing datasets",
+        extra={
+            "page": request.page,
+            "page_size": request.page_size,
+            "search": request.search,
+        },
+    )
+    ctx.debug(
+        "Dataset listing parameters",
+        extra={
+            "filters": request.filters,
+            "order_column": request.order_column,
+            "order_direction": request.order_direction,
+            "select_columns": request.select_columns,
+        },
+    )
+    ctx.debug(
+        "Metadata cache settings",
+        extra={
+            "use_cache": request.use_cache,
+            "refresh_metadata": request.refresh_metadata,
+            "force_refresh": request.force_refresh,
+        },
     )
 
-    # Default ordering: by most recently updated
-    order_column = request.order_column or "changed_on"
-    order_direction = request.order_direction or "desc"
+    try:
+        from superset.daos.dataset import DatasetDAO
 
-    return tool.run_tool(
-        filters=request.filters,
-        search=request.search,
-        select_columns=request.select_columns,
-        order_column=order_column,
-        order_direction=order_direction,
-        page=max(request.page - 1, 0),
-        page_size=request.page_size,
-    )
+        # Create tool with standard serialization
+        tool = ModelListCore(
+            dao_class=DatasetDAO,  # type: ignore[arg-type]
+            output_schema=DatasetInfo,
+            item_serializer=lambda obj, cols: serialize_dataset_object(obj),
+            filter_type=DatasetFilter,
+            default_columns=DEFAULT_DATASET_COLUMNS,
+            search_columns=["schema", "sql", "table_name", "uuid"],
+            list_field_name="datasets",
+            output_list_schema=DatasetList,
+            logger=logger,
+        )
+
+        # Default ordering: by most recently updated
+        order_column = request.order_column or "changed_on"
+        order_direction = request.order_direction or "desc"
+
+        result = tool.run_tool(
+            filters=request.filters,
+            search=request.search,
+            select_columns=request.select_columns,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=max(request.page - 1, 0),
+            page_size=request.page_size,
+        )
+
+        ctx.info(
+            "Datasets listed successfully",
+            extra={
+                "count": len(result.datasets) if hasattr(result, "datasets") else 0,
+                "total_count": getattr(result, "total_count", None),
+                "total_pages": getattr(result, "total_pages", None),
+            },
+        )
+
+        return result
+
+    except Exception as e:
+        ctx.error(
+            "Dataset listing failed",
+            extra={
+                "page": request.page,
+                "page_size": request.page_size,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        raise

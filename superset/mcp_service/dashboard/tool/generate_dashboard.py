@@ -24,6 +24,8 @@ This tool creates a new dashboard with specified charts and layout configuration
 import logging
 from typing import Any, Dict, List
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
@@ -117,7 +119,9 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
 
 @mcp.tool
 @mcp_auth_hook
-def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardResponse:
+def generate_dashboard(
+    request: GenerateDashboardRequest, ctx: Context
+) -> GenerateDashboardResponse:
     """
     Generate a new dashboard with the specified charts.
 
@@ -225,7 +229,7 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
         dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
 
         logger.info(
-            f"Created dashboard {dashboard.id} with {len(request.chart_ids)} charts"
+            "Created dashboard %s with %s charts", dashboard.id, len(request.chart_ids)
         )
 
         return GenerateDashboardResponse(
@@ -233,7 +237,7 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
         )
 
     except Exception as e:
-        logger.error(f"Error creating dashboard: {e}", exc_info=True)
+        logger.error("Error creating dashboard: %s", e)
         return GenerateDashboardResponse(
             dashboard=None,
             dashboard_url=None,

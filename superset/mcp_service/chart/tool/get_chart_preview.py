@@ -22,6 +22,8 @@ MCP tool: get_chart_preview
 import logging
 from typing import Any, Dict, List, Protocol
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -110,7 +112,7 @@ class URLPreviewStrategy(PreviewFormatStrategy):
                     error_type="ScreenshotError",
                 )
         except Exception as e:
-            logger.error(f"URL preview generation failed: {e}")
+            logger.error("URL preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate URL preview: {str(e)}", error_type="URLError"
             )
@@ -130,10 +132,10 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
 
-            logger.info(f"Chart form_data keys: {list(form_data.keys())}")
-            logger.info(f"Chart viz_type: {self.chart.viz_type}")
-            logger.info(f"Chart datasource_id: {self.chart.datasource_id}")
-            logger.info(f"Chart datasource_type: {self.chart.datasource_type}")
+            logger.info("Chart form_data keys: %s", list(form_data.keys()))
+            logger.info("Chart viz_type: %s", self.chart.viz_type)
+            logger.info("Chart datasource_id: %s", self.chart.datasource_id)
+            logger.info("Chart datasource_type: %s", self.chart.datasource_type)
 
             # Check if datasource_id is None
             if self.chart.datasource_id is None:
@@ -194,7 +196,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
         except Exception as e:
-            logger.error(f"ASCII preview generation failed: {e}")
+            logger.error("ASCII preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate ASCII preview: {str(e)}",
                 error_type="ASCIIError",
@@ -253,7 +255,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             )
 
         except Exception as e:
-            logger.error(f"Table preview generation failed: {e}")
+            logger.error("Table preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate table preview: {str(e)}",
                 error_type="TableError",
@@ -359,7 +361,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
         except Exception as e:
             logger.exception(
-                f"Error generating Vega-Lite preview for chart {self.chart.id}"
+                "Error generating Vega-Lite preview for chart %s", self.chart.id
             )
             return ChartError(
                 error=f"Failed to generate Vega-Lite preview: {str(e)}",
@@ -436,7 +438,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     return getattr(self, method_name)(fields, field_types)
 
         # Default fallback
-        logger.info(f"Unknown chart type '{viz_type}', using scatter plot fallback")
+        logger.info("Unknown chart type '%s', using scatter plot fallback", viz_type)
         return self._scatter_chart_spec(fields, field_types)
 
     def _analyze_field_types(
@@ -468,11 +470,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     field_types[field] = field_type
 
                 except Exception as e:
-                    logger.warning(f"Error analyzing field '{field}': {e}")
+                    logger.warning("Error analyzing field '%s': %s", field, e)
                     field_types[field] = "nominal"  # Safe default
 
         except Exception as e:
-            logger.warning(f"Error in field type analysis: {e}")
+            logger.warning("Error in field type analysis: %s", e)
             # Return nominal types for all fields as fallback
             return {field: "nominal" for field in fields}
 
@@ -938,7 +940,7 @@ def generate_ascii_chart(
 
     try:
         logger.info(
-            f"generate_ascii_chart: chart_type={chart_type}, data_rows={len(data)}"
+            "generate_ascii_chart: chart_type=%s, data_rows=%s", chart_type, len(data)
         )
 
         # Generate appropriate ASCII chart based on type
@@ -953,13 +955,15 @@ def generate_ascii_chart(
             return _generate_ascii_scatter_chart(data, width, height)
         else:
             # Default to table format for unsupported chart types
-            logger.info(f"Unsupported chart type '{chart_type}', falling back to table")
+            logger.info(
+                "Unsupported chart type '%s', falling back to table", chart_type
+            )
             return _generate_ascii_table(data, width)
     except Exception as e:
-        logger.error(f"ASCII chart generation failed: {e}")
+        logger.error("ASCII chart generation failed: %s", e)
         import traceback
 
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error("Traceback: %s", traceback.format_exc())
         return f"ASCII chart generation failed: {str(e)}"
 
 
@@ -1797,6 +1801,7 @@ def _create_numeric_summaries(data: List[Any], headers: List[str]) -> List[str]:
 
 def _get_chart_preview_internal(  # noqa: C901
     request: GetChartPreviewRequest,
+    ctx: Context,
 ) -> ChartPreview | ChartError:
     """
     Get a visual preview of a chart with URLs for LLM embedding.
@@ -1813,6 +1818,7 @@ def _get_chart_preview_internal(  # noqa: C901
     ChartError on error.
     """
     try:
+        ctx.report_progress(1, 3, "Looking up chart")
         from superset.daos.chart import ChartDAO
 
         # Find the chart
@@ -1825,8 +1831,12 @@ def _get_chart_preview_internal(  # noqa: C901
                 if isinstance(request.identifier, str)
                 else request.identifier
             )
+            ctx.debug("Performing ID-based chart lookup", extra={"chart_id": chart_id})
             chart = ChartDAO.find_by_id(chart_id)
         else:
+            ctx.debug(
+                "Performing UUID-based chart lookup", extra={"uuid": request.identifier}
+            )
             # Try UUID lookup using DAO flexible method
             chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
 
@@ -1867,41 +1877,68 @@ def _get_chart_preview_internal(  # noqa: C901
                 except Exception as e:
                     # Form data key not found or invalid
                     logger.debug(
-                        f"Failed to get form data for key {request.identifier}: {e}"
+                        "Failed to get form data for key %s: %s", request.identifier, e
                     )
 
         if not chart:
+            ctx.error("Chart not found", extra={"identifier": request.identifier})
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
             )
 
+        ctx.info(
+            "Chart found successfully",
+            extra={
+                "chart_id": getattr(chart, "id", None),
+                "chart_name": getattr(chart, "slice_name", None),
+                "viz_type": getattr(chart, "viz_type", None),
+            },
+        )
+
         # Log all chart attributes for debugging
         logger.info(
-            f"Chart object type: {type(chart).__name__}, "
-            f"has id: {hasattr(chart, 'id')}, "
-            f"id value: {getattr(chart, 'id', 'NO_ID')}, "
-            f"id type: {type(getattr(chart, 'id', None))}"
+            "Chart object type: %s, id value: %s, id type: %s",
+            type(chart).__name__,
+            getattr(chart, "id", "NO_ID"),
+            type(getattr(chart, "id", None)),
         )
-        logger.info(
-            f"Generating preview for chart {getattr(chart, 'id', 'NO_ID')} "
-            f"in {request.format} format: {getattr(chart, 'slice_name', 'NO_NAME')}"
-        )
-        logger.info(
-            f"Chart datasource_id: {getattr(chart, 'datasource_id', 'NONE')}, "
-            f"datasource_type: {getattr(chart, 'datasource_type', 'NONE')}"
-        )
+        logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
+        logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
         import time
 
         start_time = time.time()
+
+        ctx.report_progress(2, 3, f"Generating {request.format} preview")
+        ctx.debug(
+            "Preview generation parameters",
+            extra={
+                "chart_id": chart.id,
+                "viz_type": chart.viz_type,
+                "datasource_id": chart.datasource_id,
+                "width": request.width,
+                "height": request.height,
+            },
+        )
 
         # Handle different preview formats using strategy pattern
         preview_generator = PreviewFormatGenerator(chart, request)
         content = preview_generator.generate()
 
         if isinstance(content, ChartError):
+            ctx.error(
+                "Preview generation failed",
+                extra={
+                    "chart_id": chart.id,
+                    "format": request.format,
+                    "error": content.error,
+                    "error_type": content.error_type,
+                },
+            )
             return content
+
+        ctx.report_progress(3, 3, "Building response")
 
         # Create performance and accessibility metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -1915,6 +1952,14 @@ def _get_chart_preview_internal(  # noqa: C901
             color_blind_safe=True,
             alt_text=f"Preview of {chart.slice_name or f'Chart {chart.id}'}",
             high_contrast_available=False,
+        )
+
+        ctx.debug(
+            "Preview generation completed",
+            extra={
+                "execution_time_ms": execution_time,
+                "content_type": type(content).__name__,
+            },
         )
 
         # Create backward-compatible response with enhanced metadata
@@ -1951,7 +1996,16 @@ def _get_chart_preview_internal(  # noqa: C901
         return result
 
     except Exception as e:
-        logger.error(f"Error in get_chart_preview: {e}")
+        ctx.error(
+            "Chart preview generation failed",
+            extra={
+                "identifier": request.identifier,
+                "format": request.format,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        logger.error("Error in get_chart_preview: %s", e)
         return ChartError(
             error=f"Failed to get chart preview: {str(e)}", error_type="InternalError"
         )
@@ -1959,7 +2013,9 @@ def _get_chart_preview_internal(  # noqa: C901
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_preview(request: GetChartPreviewRequest) -> ChartPreview | ChartError:
+def get_chart_preview(
+    request: GetChartPreviewRequest, ctx: Context
+) -> ChartPreview | ChartError:
     """
     Get a visual preview of a chart with URLs for LLM embedding.
 
@@ -1985,4 +2041,53 @@ def get_chart_preview(request: GetChartPreviewRequest) -> ChartPreview | ChartEr
     Returns a ChartPreview with Superset URLs for the chart image or
     ChartError on error.
     """
-    return _get_chart_preview_internal(request)
+    ctx.info(
+        "Starting chart preview generation",
+        extra={
+            "identifier": request.identifier,
+            "format": request.format,
+            "width": request.width,
+            "height": request.height,
+        },
+    )
+    ctx.debug(
+        "Cache control settings",
+        extra={
+            "use_cache": request.use_cache,
+            "force_refresh": request.force_refresh,
+            "cache_timeout": request.cache_timeout,
+        },
+    )
+
+    try:
+        result = _get_chart_preview_internal(request, ctx)
+
+        if isinstance(result, ChartPreview):
+            ctx.info(
+                "Chart preview generated successfully",
+                extra={
+                    "chart_id": getattr(result, "chart_id", None),
+                    "format": result.format,
+                    "has_preview_url": bool(getattr(result, "preview_url", None)),
+                },
+            )
+        else:
+            ctx.warning(
+                "Chart preview generation failed",
+                extra={"error_type": result.error_type, "error": result.error},
+            )
+
+        return result
+    except Exception as e:
+        ctx.error(
+            "Chart preview generation failed",
+            extra={
+                "identifier": request.identifier,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        return ChartError(
+            error=f"Failed to generate chart preview: {str(e)}",
+            error_type="InternalError",
+        )

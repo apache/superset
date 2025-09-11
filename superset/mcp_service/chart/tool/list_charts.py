@@ -21,6 +21,8 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
@@ -60,7 +62,7 @@ SORTABLE_CHART_COLUMNS = [
 
 @mcp.tool
 @mcp_auth_hook
-def list_charts(request: ListChartsRequest) -> ChartList:
+async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """
     List charts with advanced filtering, search, and metadata cache control.
 
@@ -83,6 +85,22 @@ def list_charts(request: ListChartsRequest) -> ChartList:
     When refresh_metadata=True, the tool will fetch fresh metadata from the database
     which is useful when database schema has changed.
     """
+    await ctx.info(
+        "Listing charts",
+        extra={
+            "page": request.page,
+            "page_size": request.page_size,
+            "search": request.search,
+        },
+    )
+    await ctx.debug(
+        "Chart listing filters",
+        extra={
+            "filters": request.filters,
+            "order_column": request.order_column,
+            "order_direction": request.order_direction,
+        },
+    )
 
     from superset.daos.chart import ChartDAO
 
@@ -100,12 +118,25 @@ def list_charts(request: ListChartsRequest) -> ChartList:
         output_list_schema=ChartList,
         logger=logger,
     )
-    return tool.run_tool(
-        filters=request.filters,
-        search=request.search,
-        select_columns=request.select_columns,
-        order_column=request.order_column,
-        order_direction=request.order_direction,
-        page=max(request.page - 1, 0),
-        page_size=request.page_size,
-    )
+
+    try:
+        result = tool.run_tool(
+            filters=request.filters,
+            search=request.search,
+            select_columns=request.select_columns,
+            order_column=request.order_column,
+            order_direction=request.order_direction,
+            page=max(request.page - 1, 0),
+            page_size=request.page_size,
+        )
+        await ctx.info(
+            "Charts listed successfully",
+            extra={
+                "count": len(result.charts) if hasattr(result, "charts") else 0,
+                "total_pages": getattr(result, "total_pages", None),
+            },
+        )
+        return result
+    except Exception as e:
+        await ctx.error("Failed to list charts", extra={"error": str(e)})
+        raise

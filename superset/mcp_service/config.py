@@ -49,7 +49,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
             required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
         )
     except Exception as e:
-        logger.error(f"Failed to create MCP auth provider: {e}")
+        logger.error("Failed to create MCP auth provider: %s", e)
         return None
 
 

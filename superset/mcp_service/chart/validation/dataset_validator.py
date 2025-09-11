@@ -156,7 +156,7 @@ class DatasetValidator:
             )
 
         except Exception as e:
-            logger.error(f"Error getting dataset context for {dataset_id}: {e}")
+            logger.error("Error getting dataset context for %s: %s", dataset_id, e)
             return None
 
     @staticmethod

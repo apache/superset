@@ -125,12 +125,12 @@ class WebDriverPool:
 
             self._stats["created"] += 1
             logger.debug(
-                f"Created new WebDriver instance for window size {window_size}"
+                "Created new WebDriver instance for window size %s", window_size
             )
             return pooled_driver
 
         except Exception as e:
-            logger.error(f"Failed to create WebDriver: {e}")
+            logger.error("Failed to create WebDriver: %s", e)
             raise
 
     def _is_driver_valid(self, pooled_driver: PooledWebDriver) -> bool:
@@ -175,7 +175,7 @@ class WebDriverPool:
         except Exception as e:
             pooled_driver.is_healthy = False
             self._stats["health_check_failures"] += 1
-            logger.warning(f"WebDriver health check error: {e}")
+            logger.warning("WebDriver health check error: %s", e)
             return False
 
     def _destroy_driver(self, pooled_driver: PooledWebDriver) -> None:
@@ -185,7 +185,7 @@ class WebDriverPool:
             self._stats["destroyed"] += 1
             logger.debug("Destroyed WebDriver instance")
         except Exception as e:
-            logger.warning(f"Error destroying WebDriver: {e}")
+            logger.warning("Error destroying WebDriver: %s", e)
 
     def _cleanup_expired_drivers(self) -> None:
         """Remove expired drivers from the pool"""
@@ -298,7 +298,7 @@ class WebDriverPool:
             # Mark driver as unhealthy if an error occurred
             if pooled_driver:
                 pooled_driver.is_healthy = False
-            logger.error(f"Error using pooled WebDriver: {e}")
+            logger.error("Error using pooled WebDriver: %s", e)
             raise
 
         finally:
@@ -343,7 +343,7 @@ class WebDriverPool:
                     break
 
             logger.info(
-                f"WebDriver pool shutdown complete. Final stats: {self.get_stats()}"
+                "WebDriver pool shutdown complete. Final stats: %s", self.get_stats()
             )
 
 

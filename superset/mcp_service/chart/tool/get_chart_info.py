@@ -21,6 +21,8 @@ MCP tool: get_chart_info
 
 import logging
 
+from fastmcp import Context
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -36,7 +38,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_info(request: GetChartInfoRequest) -> ChartInfo | ChartError:
+def get_chart_info(
+    request: GetChartInfoRequest, ctx: Context
+) -> ChartInfo | ChartError:
     """
     Get detailed information about a specific chart with metadata cache control.
 
@@ -56,6 +60,8 @@ def get_chart_info(request: GetChartInfoRequest) -> ChartInfo | ChartError:
     """
     from superset.daos.chart import ChartDAO
 
+    ctx.info("Retrieving chart information", extra={"identifier": request.identifier})
+
     tool = ModelGetInfoCore(
         dao_class=ChartDAO,  # type: ignore[arg-type]
         output_schema=ChartInfo,
@@ -64,4 +70,15 @@ def get_chart_info(request: GetChartInfoRequest) -> ChartInfo | ChartError:
         supports_slug=False,  # Charts don't have slugs
         logger=logger,
     )
-    return tool.run_tool(request.identifier)
+
+    result = tool.run_tool(request.identifier)
+
+    if isinstance(result, ChartInfo):
+        ctx.info(
+            "Chart information retrieved successfully",
+            extra={"chart_name": result.slice_name},
+        )
+    else:
+        ctx.warning("Chart retrieval failed", extra={"error": str(result)})
+
+    return result

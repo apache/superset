@@ -60,14 +60,14 @@ def _extract_username_from_jwt(app: Flask) -> str:
         )
 
         if username:
-            logger.info(f"MCP auth: JWT user '{username}'")
+            logger.info("MCP auth: JWT user '%s'", username)
             return username
 
     except Exception as e:
-        logger.debug(f"JWT extraction failed: {e}")
+        logger.debug("JWT extraction failed: %s", e)
 
     fallback = app.config.get("MCP_ADMIN_USERNAME", "admin")
-    logger.debug(f"MCP auth: Using fallback user '{fallback}'")
+    logger.debug("MCP auth: Using fallback user '%s'", fallback)
     return fallback
 
 
@@ -82,12 +82,12 @@ def _find_fallback_admin_user(username: str) -> User:
 
         if admin_user:
             logger.warning(
-                f"User '{username}' not found, using '{admin_user.username}'"
+                "User '%s' not found, using '%s'", username, admin_user.username
             )
             return admin_user
 
     except Exception as e:
-        logger.debug(f"Failed to find admin user: {e}")
+        logger.debug("Failed to find admin user: %s", e)
 
     raise ValueError(
         f"User '{username}' not found. Create user or update MCP_ADMIN_USERNAME. "
@@ -106,7 +106,7 @@ def impersonate_user(user: User, run_as: Optional[str] = None) -> User:
     if not impersonated:
         raise ValueError(f"Impersonation target '{run_as}' not found")
 
-    logger.info(f"Impersonating {run_as} as {user.username}")
+    logger.info("Impersonating %s as %s", run_as, user.username)
     return impersonated
 
 
@@ -151,10 +151,7 @@ def _check_jwt_scopes(
 
     has_access = any(scope in user_scopes for scope in required_scopes)
     if not has_access:
-        logger.warning(
-            f"User {user.username} lacks scopes {required_scopes} "
-            f"for {tool_func.__name__}"
-        )
+        logger.warning("User %s lacks scopes %s ", user.username, required_scopes)
 
     return has_access
 
@@ -207,7 +204,7 @@ def get_mcp_audit_context(
             context["jwt_scopes"] = jwt_context.get("scopes", [])
 
     except Exception as e:
-        logger.debug(f"Error getting MCP audit context: {e}")
+        logger.debug("Error getting MCP audit context: %s", e)
 
     return context
 
@@ -216,12 +213,9 @@ def log_access(user: User, tool_name: str, args: Any, kwargs: Any) -> None:
     """Log tool access with optional JWT context."""
 
     if jwt_context := _get_jwt_context():
-        logger.info(
-            f"MCP access: user={user.username}, jwt={jwt_context['user']}, "
-            f"tool={tool_name}, scopes={jwt_context['scopes']}"
-        )
+        logger.info("MCP access: user=%s, jwt=%s, ", user.username, jwt_context["user"])
     else:
-        logger.info(f"MCP access: user={user.username}, tool={tool_name}")
+        logger.info("MCP access: user=%s, tool=%s", user.username, tool_name)
 
 
 def _get_jwt_context() -> Optional[dict[str, Any]]:
@@ -236,7 +230,7 @@ def _get_jwt_context() -> Optional[dict[str, Any]]:
                 "scopes": getattr(token, "scopes", []),
             }
     except Exception as e:
-        logger.debug(f"JWT context extraction failed: {e}")
+        logger.debug("JWT context extraction failed: %s", e)
 
     return None
 
@@ -256,7 +250,7 @@ def mcp_auth_hook(tool_func: F) -> F:
                     log_to_statsd=False,
                 )(func)
         except Exception as e:
-            logger.debug(f"Event logger not available: {e}")
+            logger.debug("Event logger not available: %s", e)
         return func
 
     @apply_audit_logging
