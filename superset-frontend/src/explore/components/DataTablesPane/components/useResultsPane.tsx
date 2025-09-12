@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement } from 'react';
+import { useState, useEffect, ReactElement, useCallback } from 'react';
 
 import {
   ensureIsArray,
@@ -33,6 +33,14 @@ import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
+`;
+
+const StyledDiv = styled.div`
+  ${() => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
 `;
 
 const cache = new WeakMap();
@@ -57,6 +65,8 @@ export const useResultsPane = ({
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
+
+  const noOpInputChange = useCallback(() => {}, []);
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -123,7 +133,7 @@ export const useResultsPane = ({
           columnTypes={[]}
           rowcount={0}
           datasourceId={queryFormData.datasource}
-          onInputChange={() => {}}
+          onInputChange={noOpInputChange}
           isLoading={false}
           canDownload={canDownload}
         />
@@ -144,16 +154,17 @@ export const useResultsPane = ({
     : resultResp.slice(0, queryCount);
 
   return resultRespToDisplay.map((result, idx) => (
-    <SingleQueryResultPane
-      data={result.data}
-      colnames={result.colnames}
-      coltypes={result.coltypes}
-      rowcount={result.rowcount}
-      dataSize={dataSize}
-      datasourceId={queryFormData.datasource}
-      key={idx}
-      isVisible={isVisible}
-      canDownload={canDownload}
-    />
+    <StyledDiv key={idx}>
+      <SingleQueryResultPane
+        data={result.data}
+        colnames={result.colnames}
+        coltypes={result.coltypes}
+        rowcount={result.rowcount}
+        dataSize={dataSize}
+        datasourceId={queryFormData.datasource}
+        isVisible={isVisible}
+        canDownload={canDownload}
+      />
+    </StyledDiv>
   ));
 };
