@@ -25,6 +25,7 @@ from unittest.mock import Mock, patch
 import pytest
 from fastmcp import Client
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -34,7 +35,6 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.mcp_app import mcp
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

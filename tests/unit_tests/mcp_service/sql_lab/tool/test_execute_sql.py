@@ -26,7 +26,7 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
-from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.app import mcp
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

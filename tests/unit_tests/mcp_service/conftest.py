@@ -124,6 +124,6 @@ def test_user() -> User:
 @pytest.fixture
 def mcp_server():
     """Provide the MCP server instance for testing."""
-    from superset.mcp_service.mcp_app import mcp
+    from superset.mcp_service.app import mcp
 
     return mcp
