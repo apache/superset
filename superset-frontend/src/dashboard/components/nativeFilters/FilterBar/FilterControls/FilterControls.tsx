@@ -36,6 +36,7 @@ import {
   t,
   isNativeFilterWithDataMask,
   useTheme,
+  styled,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -51,6 +52,7 @@ import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   DropdownContainer,
   type DropdownRef as DropdownContainerRef,
+  Typography,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
@@ -73,6 +75,50 @@ type FilterControlsProps = {
   onClearAllComplete?: (filterId: string) => void;
   hideHeader?: boolean;
 };
+
+const SectionContainer = styled.div`
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px 0;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: ${({ theme }) => theme.colorBgTextHover};
+    margin: 0 -${({ theme }) => theme.sizeUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px;
+    border-radius: ${({ theme }) => theme.sizeUnit}px;
+  }
+`;
+
+const { Title } = Typography;
+
+const SectionContent = styled.div`
+  padding: ${({ theme }) => theme.sizeUnit * 2}px 0;
+`;
+
+const Divider = styled.div`
+  height: 1px;
+  background: ${({ theme }) => theme.colorSplit};
+  margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
+`;
+
+const StyledIcon = styled(Icons.UpOutlined)<{ isOpen: boolean }>`
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(0deg)' : 'rotate(180deg)')};
+  transition: transform 0.2s ease;
+  color: ${({ theme }) => theme.colorTextSecondary};
+`;
+
+const ChartCustomizationContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
@@ -152,76 +198,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     }));
   }, []);
 
-  const sectionContainerStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      margin-bottom: ${theme.sizeUnit * 3}px;
-    `,
-    [],
-  );
-
-  const sectionHeaderStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: ${theme.sizeUnit * 2}px 0;
-      cursor: pointer;
-      user-select: none;
-
-      &:hover {
-        background: ${theme.colorBgTextHover};
-        margin: 0 -${theme.sizeUnit * 2}px;
-        padding: ${theme.sizeUnit * 2}px;
-        border-radius: ${theme.sizeUnit}px;
-      }
-    `,
-    [],
-  );
-
-  const sectionTitleStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      margin: 0;
-      font-size: ${theme.fontSize}px;
-      font-weight: ${theme.fontWeightNormal};
-      color: ${theme.colorText};
-      line-height: 1.3;
-    `,
-    [],
-  );
-
-  const sectionContentStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      padding: ${theme.sizeUnit * 2}px 0;
-    `,
-    [],
-  );
-
-  const dividerStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      height: 1px;
-      background: ${theme.colorSplit};
-      margin: ${theme.sizeUnit * 2}px 0;
-    `,
-    [],
-  );
-
-  const iconStyle = useCallback(
-    (isOpen: boolean, theme: SupersetTheme) => css`
-      transform: ${isOpen ? 'rotate(0deg)' : 'rotate(180deg)'};
-      transition: transform 0.2s ease;
-      color: ${theme.colorTextSecondary};
-    `,
-    [],
-  );
-
-  const chartCustomizationContentStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      display: flex;
-      flex-direction: column;
-      gap: ${theme.sizeUnit * 2}px;
-    `,
-    [],
-  );
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
       const filterIndex = filtersWithValues.findIndex(f => f.id === id);
@@ -242,10 +218,9 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <>
         {filtersInScope.length > 0 && (
-          <div css={sectionContainerStyle}>
+          <SectionContainer>
             {!hideHeader && (
-              <div
-                css={sectionHeaderStyle}
+              <SectionHeader
                 onClick={() => toggleSection('filters')}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -256,20 +231,26 @@ const FilterControls: FC<FilterControlsProps> = ({
                 role="button"
                 tabIndex={0}
               >
-                <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
-                <Icons.UpOutlined
-                  iconSize="m"
-                  css={iconStyle(sectionsOpen.filters, theme)}
-                />
-              </div>
+                <Title
+                  level={5}
+                  style={{
+                    margin: 0,
+                    fontSize: theme.fontSize,
+                    fontWeight: theme.fontWeightNormal,
+                    color: theme.colorText,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {t('Filters')}
+                </Title>
+                <StyledIcon iconSize="m" isOpen={sectionsOpen.filters} />
+              </SectionHeader>
             )}
             {(hideHeader || sectionsOpen.filters) && (
-              <div css={sectionContentStyle}>
-                {filtersInScope.map(renderer)}
-              </div>
+              <SectionContent>{filtersInScope.map(renderer)}</SectionContent>
             )}
-            {(hideHeader || sectionsOpen.filters) && <div css={dividerStyle} />}
-          </div>
+            {(hideHeader || sectionsOpen.filters) && <Divider />}
+          </SectionContainer>
         )}
 
         {showCollapsePanel && (hideHeader || sectionsOpen.filters) && (
@@ -281,10 +262,9 @@ const FilterControls: FC<FilterControlsProps> = ({
         )}
 
         {chartCustomizationItems.length > 0 && (
-          <div css={sectionContainerStyle}>
+          <SectionContainer>
             {!hideHeader && (
-              <div
-                css={sectionHeaderStyle}
+              <SectionHeader
                 onClick={() => toggleSection('chartCustomization')}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -295,16 +275,27 @@ const FilterControls: FC<FilterControlsProps> = ({
                 role="button"
                 tabIndex={0}
               >
-                <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
-                <Icons.UpOutlined
+                <Title
+                  level={5}
+                  style={{
+                    margin: 0,
+                    fontSize: theme.fontSize,
+                    fontWeight: theme.fontWeightNormal,
+                    color: theme.colorText,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {t('Chart Customization')}
+                </Title>
+                <StyledIcon
                   iconSize="m"
-                  css={iconStyle(sectionsOpen.chartCustomization, theme)}
+                  isOpen={sectionsOpen.chartCustomization}
                 />
-              </div>
+              </SectionHeader>
             )}
             {(hideHeader || sectionsOpen.chartCustomization) && (
-              <div css={sectionContentStyle}>
-                <div css={chartCustomizationContentStyle}>
+              <SectionContent>
+                <ChartCustomizationContent>
                   {chartCustomizationItems
                     .filter(item => !item.removed)
                     .map(item => (
@@ -313,13 +304,11 @@ const FilterControls: FC<FilterControlsProps> = ({
                         customizationItem={item}
                       />
                     ))}
-                </div>
-              </div>
+                </ChartCustomizationContent>
+              </SectionContent>
             )}
-            {(hideHeader || sectionsOpen.chartCustomization) && (
-              <div css={dividerStyle} />
-            )}
-          </div>
+            {(hideHeader || sectionsOpen.chartCustomization) && <Divider />}
+          </SectionContainer>
         )}
       </>
     ),
@@ -332,13 +321,12 @@ const FilterControls: FC<FilterControlsProps> = ({
       chartCustomizationItems,
       sectionsOpen,
       toggleSection,
-      sectionContainerStyle,
-      sectionHeaderStyle,
-      sectionTitleStyle,
-      sectionContentStyle,
-      dividerStyle,
-      iconStyle,
-      chartCustomizationContentStyle,
+      SectionContainer,
+      SectionHeader,
+      SectionContent,
+      Divider,
+      StyledIcon,
+      ChartCustomizationContent,
       hideHeader,
     ],
   );

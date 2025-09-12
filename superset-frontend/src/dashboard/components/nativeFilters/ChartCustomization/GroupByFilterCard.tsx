@@ -86,13 +86,6 @@ const InternalRow = styled.div`
   overflow: hidden;
 `;
 
-const FilterValueContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: ${({ theme }) => theme.sizeUnit}px 0;
-`;
-
 const FilterTitle = styled(Typography.Text)`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colorText};
@@ -471,15 +464,79 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     customizationItem.description?.trim() ||
     customizationItem.customization.description?.trim();
 
-  if (isHorizontalLayout) {
-    return (
-      <FilterValueContainer>
+  return (
+    <div>
+      {!isHorizontalLayout && (
+        <Popover
+          placement="right"
+          overlayStyle={{ width: '280px' }}
+          content={
+            <GroupByFilterCardContent
+              customizationItem={customizationItem}
+              hidePopover={hideHoverCard}
+            />
+          }
+          mouseEnterDelay={0.2}
+          mouseLeaveDelay={0.2}
+          onOpenChange={visible => {
+            setIsHoverCardVisible(visible);
+          }}
+          open={isHoverCardVisible}
+          arrow={false}
+        >
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              margin-bottom: ${theme.sizeUnit}px;
+            `}
+          >
+            <TooltipWithTruncation
+              title={titleElementsTruncated ? displayTitle : null}
+            >
+              <div ref={filterTitleRef}>
+                <FilterTitle>
+                  {displayTitle}
+                  {isRequired && <RequiredFieldIndicator />}
+                </FilterTitle>
+              </div>
+            </TooltipWithTruncation>
+            {description && <DescriptionTooltip description={description} />}
+          </div>
+        </Popover>
+      )}
+
+      {isHorizontalLayout ? (
         <HorizontalFormItem
           label={
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {displayTitle}
-              {isRequired && <RequiredFieldIndicator />}
-            </div>
+            <Popover
+              placement="bottom"
+              overlayStyle={{ width: '240px' }}
+              content={
+                <GroupByFilterCardContent
+                  customizationItem={customizationItem}
+                  hidePopover={hideHoverCard}
+                />
+              }
+              mouseEnterDelay={0.2}
+              mouseLeaveDelay={0.2}
+              onOpenChange={visible => {
+                setIsHoverCardVisible(visible);
+              }}
+              open={isHoverCardVisible}
+              arrow={false}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                {displayTitle}
+                {isRequired && <RequiredFieldIndicator />}
+              </div>
+            </Popover>
           }
         >
           <div
@@ -529,102 +586,60 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             />
           </div>
         </HorizontalFormItem>
-
-        {loading && (
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <Loading position="inline" />
-          </div>
-        )}
-      </FilterValueContainer>
-    );
-  }
-
-  return (
-    <div>
-      <Popover
-        placement="right"
-        overlayStyle={{ width: '280px' }}
-        content={
-          <GroupByFilterCardContent
-            customizationItem={customizationItem}
-            hidePopover={hideHoverCard}
-          />
-        }
-        mouseEnterDelay={0.2}
-        mouseLeaveDelay={0.2}
-        onOpenChange={visible => {
-          setIsHoverCardVisible(visible);
-        }}
-        open={isHoverCardVisible}
-        arrow={false}
-      >
+      ) : (
         <div
           css={css`
-            display: flex;
-            align-items: center;
             margin-bottom: ${theme.sizeUnit}px;
           `}
+          onMouseEnter={setHoveredChartCustomization}
+          onMouseLeave={unsetHoveredChartCustomization}
         >
-          <TooltipWithTruncation
-            title={titleElementsTruncated ? displayTitle : null}
-          >
-            <div ref={filterTitleRef}>
-              <FilterTitle>
-                {displayTitle}
-                {isRequired && <RequiredFieldIndicator />}
-              </FilterTitle>
-            </div>
-          </TooltipWithTruncation>
-          {description && <DescriptionTooltip description={description} />}
-        </div>
-      </Popover>
-
-      <div
-        css={css`
-          margin-bottom: ${theme.sizeUnit}px;
-        `}
-        onMouseEnter={setHoveredChartCustomization}
-        onMouseLeave={unsetHoveredChartCustomization}
-      >
-        <Select
-          allowClear
-          autoClearSearchValue
-          placeholder={t('Search columns...')}
-          value={columnName || null}
-          onChange={(value: string | string[]) => {
-            const columnValue = canSelectMultiple
-              ? Array.isArray(value)
-                ? value.length > 0
+          <Select
+            allowClear
+            autoClearSearchValue
+            placeholder={t('Search columns...')}
+            value={columnName || null}
+            onChange={(value: string | string[]) => {
+              const columnValue = canSelectMultiple
+                ? Array.isArray(value)
+                  ? value.length > 0
+                    ? value
+                    : null
+                  : value || null
+                : typeof value === 'string'
                   ? value
-                  : null
-                : value || null
-              : typeof value === 'string'
-                ? value
-                : null;
+                  : null;
 
-            const updatedCustomization = {
-              ...customizationItem.customization,
-              column: columnValue,
-            };
+              const updatedCustomization = {
+                ...customizationItem.customization,
+                column: columnValue,
+              };
 
-            dispatch(
-              setPendingChartCustomization({
-                id: customizationItem.id,
-                title: customizationItem.title,
-                customization: updatedCustomization,
-              }),
-            );
-          }}
-          options={columnOptions}
-          showSearch
-          mode={canSelectMultiple ? 'multiple' : undefined}
-          filterOption={(input, option) =>
-            ((option?.label as string) ?? '')
-              .toLowerCase()
-              .includes(input.toLowerCase())
-          }
-        />
-      </div>
+              dispatch(
+                setPendingChartCustomization({
+                  id: customizationItem.id,
+                  title: customizationItem.title,
+                  customization: updatedCustomization,
+                }),
+              );
+            }}
+            options={columnOptions}
+            showSearch
+            mode={canSelectMultiple ? 'multiple' : undefined}
+            filterOption={(input, option) =>
+              ((option?.label as string) ?? '')
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          />
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <Loading position="inline" />
+        </div>
+      )}
     </div>
   );
 };
