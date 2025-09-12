@@ -32,7 +32,7 @@ class TestMCPAuthIntegration:
 
     def test_auth_disabled_by_default(self):
         """Test that authentication is disabled by default."""
-        from superset.mcp_service.mcp_app import _create_auth_provider
+        from superset.mcp_service.app import _create_auth_provider
 
         auth_provider = _create_auth_provider()
         assert auth_provider is None
@@ -40,14 +40,14 @@ class TestMCPAuthIntegration:
     @patch.dict(os.environ, {"MCP_AUTH_ENABLED": "true"})
     def test_auth_enabled_missing_config(self):
         """Test that auth is disabled if enabled but config is missing."""
-        from superset.mcp_service.mcp_app import _create_auth_provider
+        from superset.mcp_service.app import _create_auth_provider
 
         auth_provider = _create_auth_provider()
         assert auth_provider is None
 
     def test_auth_provider_creation_with_invalid_key(self):
         """Test that auth provider creation handles invalid configuration gracefully."""
-        from superset.mcp_service.mcp_app import _create_auth_provider
+        from superset.mcp_service.app import _create_auth_provider
 
         # This test verifies that _create_auth_provider doesn't crash with
         # invalid config

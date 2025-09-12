@@ -27,11 +27,11 @@ import pytest
 from fastmcp.exceptions import ToolError
 
 sys.path.append(".")
+from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     ListDashboardsRequest,
 )
 from superset.mcp_service.dataset.schemas import ListDatasetsRequest
-from superset.mcp_service.mcp_app import mcp
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

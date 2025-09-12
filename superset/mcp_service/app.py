@@ -257,7 +257,7 @@ import superset.mcp_service.dataset.prompts  # noqa: F401, E402
 import superset.mcp_service.dataset.resources  # noqa: F401, E402
 import superset.mcp_service.dataset.tool  # noqa: F401, E402
 import superset.mcp_service.explore.tool  # noqa: F401, E402
-import superset.mcp_service.sql_lab.tool  # noqa: F401, E402
+import superset.mcp_service.sql_lab.tools  # noqa: F401, E402
 
 # Import prompts and resources modules (must be after mcp is defined)
 # These imports register the prompts and resources with the mcp instance

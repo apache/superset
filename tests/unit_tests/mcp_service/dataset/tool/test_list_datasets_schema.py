@@ -25,12 +25,12 @@ import fastmcp
 import pytest
 from fastmcp import Client
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
     DatasetList,
     ListDatasetsRequest,
 )
-from superset.mcp_service.mcp_app import mcp
 
 
 @pytest.fixture

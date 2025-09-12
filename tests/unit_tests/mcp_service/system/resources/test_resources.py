@@ -22,7 +22,7 @@ from unittest.mock import patch
 import pytest
 from fastmcp import Client
 
-from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.app import mcp
 from superset.utils import json
 
 

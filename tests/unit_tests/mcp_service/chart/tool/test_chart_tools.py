@@ -27,6 +27,8 @@ import fastmcp.exceptions
 import pytest
 from fastmcp import Client
 
+from superset.mcp_service.app import mcp
+
 # Updated imports for new simplified schemas
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -39,7 +41,6 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.mcp_app import mcp
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
