@@ -373,7 +373,7 @@ sniffio==1.3.1
     # via trio
 sortedcontainers==2.4.0
     # via trio
-sqlalchemy==2.0.16
+sqlalchemy==2.0.30
     # via
     #   apache-superset (pyproject.toml)
     #   alembic

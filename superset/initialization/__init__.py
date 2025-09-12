@@ -66,7 +66,7 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import is_test, pessimistic_connection_handling
+from superset.utils.core import is_test
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -762,32 +762,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         SQLGLOT_DIALECTS.update(extensions)
 
-    def init_db_safe(self) -> None:
-        from flask_appbuilder import Model
-        from sqlalchemy import create_engine, inspect
-
-        engine = db.session.get_bind(mapper=None, clause=None)
-
-        # Check if tables exist
-        inspector = inspect(engine)
-        existing_tables = inspector.get_table_names()
-
-        if "ab_user" not in existing_tables or "ab_group" not in existing_tables:
-            db.session.close()
-            db.session.remove()
-
-            # Create a fresh engine for table creation
-            fresh_engine = create_engine(
-                current_app.config["SQLALCHEMY_DATABASE_URI"],
-                poolclass=engine.pool.__class__,
-            )
-
-            # Now create tables with the fresh engine
-            Model.metadata.create_all(fresh_engine)
-
-            # Dispose of the fresh engine
-            fresh_engine.dispose()
-
     @transaction()
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
@@ -803,7 +777,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
-        self.init_db_safe()
         appbuilder.init_app(self.superset_app, db.session)
 
     def configure_url_map_converters(self) -> None:
@@ -902,10 +875,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         encrypted_field_factory.init_app(self.superset_app)
 
     def setup_db(self) -> None:
+        # Configure SQLAlchemy engine options for connection pool management
+        # This replaces the legacy pessimistic_connection_handling with
+        # built-in features
+        engine_options = self.config.get("SQLALCHEMY_ENGINE_OPTIONS", {})
+
+        # Enable connection pool pre-ping (compatible with SQLAlchemy 1.4+)
+        # This tests connections before using them, similar to pessimistic handling
+        if "pool_pre_ping" not in engine_options:
+            engine_options = engine_options.copy()
+            engine_options["pool_pre_ping"] = True
+            self.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
+
         db.init_app(self.superset_app)
 
+        # Setup SQLite-specific configurations if needed
         with self.superset_app.app_context():
-            pessimistic_connection_handling(db.engine)
+            from superset.utils.core import setup_sqlite_foreign_keys
+
+            setup_sqlite_foreign_keys(db.engine)
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
 

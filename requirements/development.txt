@@ -815,7 +815,7 @@ sortedcontainers==2.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio
-sqlalchemy==2.0.16
+sqlalchemy==2.0.30
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
