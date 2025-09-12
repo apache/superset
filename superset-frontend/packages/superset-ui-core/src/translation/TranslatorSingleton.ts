@@ -17,8 +17,7 @@
  * under the License.
  */
 
-/* eslint no-console: 0 */
-
+import { logging } from '@superset-ui/core';
 import Translator from './Translator';
 import { TranslatorConfig, Translations, LocaleData } from './types';
 
@@ -34,7 +33,7 @@ function configure(config?: TranslatorConfig) {
 
 function getInstance() {
   if (!isConfigured) {
-    console.warn('You should call configure(...) before calling other methods');
+    logging.warn('You should call configure(...) before calling other methods');
   }
 
   if (typeof singleton === 'undefined') {
