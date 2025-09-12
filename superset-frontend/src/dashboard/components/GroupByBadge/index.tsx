@@ -36,16 +36,18 @@ const StyledTag = styled(Tag)`
     cursor: pointer;
     margin-left: ${theme.sizeUnit * 2}px;
     margin-right: ${theme.sizeUnit}px;
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 0.5}px ${theme.sizeUnit}px;
     background: ${theme.colorBgContainer};
     border: 1px solid ${theme.colorBorder};
     border-radius: 4px;
-    height: 100%;
+    height: auto;
+    min-height: 20px;
 
     .anticon {
       vertical-align: middle;
       color: ${theme.colorTextSecondary};
-      margin-right: ${theme.sizeUnit}px;
+      margin-right: ${theme.sizeUnit * 0.5}px;
+      font-size: 12px;
       &:hover {
         color: ${theme.colorText};
       }
@@ -63,16 +65,15 @@ const StyledTag = styled(Tag)`
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.sizeUnit}px;
+    margin-left: ${theme.sizeUnit * 0.5}px;
     &>sup.ant-badge-count {
-      padding: 0 ${theme.sizeUnit}px;
-      min-width: ${theme.sizeUnit * 4}px;
-      height: ${theme.sizeUnit * 4}px;
-      line-height: 1.5;
+      padding: 0 ${theme.sizeUnit * 0.5}px;
+      min-width: ${theme.sizeUnit * 3}px;
+      height: ${theme.sizeUnit * 3}px;
+      line-height: 1.2;
       font-weight: ${theme.fontWeightStrong};
-      font-size: ${theme.fontSizeSM - 1}px;
+      font-size: ${theme.fontSizeSM - 2}px;
       box-shadow: none;
-      padding: 0 ${theme.sizeUnit}px;
     }
   `}
 `;
@@ -323,6 +324,10 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
         backgroundColor: theme.colorBgContainer,
         border: `1px solid ${theme.colorBorder}`,
         boxShadow: theme.boxShadow,
+      }}
+      overlayInnerStyle={{
+        color: theme.colorText,
+        backgroundColor: theme.colorBgContainer,
       }}
     >
       <StyledTag
