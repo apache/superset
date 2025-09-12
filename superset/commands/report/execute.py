@@ -458,6 +458,8 @@ class BaseReportState:
             csv=csv_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            csv_filename=self._report_schedule.csv_filename,
+            email_subject=self._report_schedule.email_subject,
         )
 
     def _send(

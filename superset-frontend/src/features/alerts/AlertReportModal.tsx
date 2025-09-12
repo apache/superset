@@ -500,6 +500,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
+  const [csvFilename, setCsvFilename] = useState<string>('');
+  const [csvFilenameError, setCsvFilenameError] = useState(false);
 
   const onNotificationAdd = () => {
     setNotificationSettings([
@@ -554,6 +556,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     recipients: [],
     sql: '',
     email_subject: '',
+    csv_filename: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -650,6 +653,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      csv_filename: currentAlert?.csv_filename || '',
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -904,6 +908,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     if (name === 'name') {
       updateEmailSubject();
+      updateCsvFilename();
     }
   };
 
@@ -1115,6 +1120,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
     }
 
+    if (csvFilenameError) {
+      errors.push('csv filename');
+    }
+
     // Update validation status with combined errors
     updateValidationStatus(Sections.Notification, errors);
   };
@@ -1220,6 +1229,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
       setForceScreenshot(resource.force_screenshot);
 
+      // Set CSV filename from existing resource
+      if (resource.csv_filename) {
+        setCsvFilename(resource.csv_filename);
+      } else {
+        // If no existing CSV filename, generate a default one
+        setCsvFilename('');
+      }
+
       setCurrentAlert({
         ...resource,
         chart: resource.chart
@@ -1254,6 +1271,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
             : validatorConfig,
       });
+
+      // Update CSV filename after setting current alert
+      updateCsvFilename();
     }
   }, [resource]);
 
@@ -1262,6 +1282,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     validateAll();
     updateEmailSubject();
+    updateCsvFilename();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1276,6 +1297,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     notificationSettings,
     conditionNotNull,
     emailError,
+    csvFilenameError,
   ]);
   useEffect(() => {
     enforceValidation();
@@ -1343,8 +1365,34 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const updateCsvFilename = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setCsvFilename(
+          `${currentAlert?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report'}_${currentAlert?.chart?.label?.replace(/[^a-zA-Z0-9]/g, '_') || 'chart'}.csv`,
+        );
+      } else {
+        setCsvFilename('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setCsvFilename(
+          `${currentAlert?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report'}_${currentAlert?.dashboard?.label?.replace(/[^a-zA-Z0-9]/g, '_') || 'dashboard'}.csv`,
+        );
+      } else {
+        setCsvFilename('');
+      }
+    } else {
+      setCsvFilename('');
+    }
+  };
+
   const handleErrorUpdate = (hasError: boolean) => {
     setEmailError(hasError);
+  };
+
+  const handleCsvFilenameErrorUpdate = (hasError: boolean) => {
+    setCsvFilenameError(hasError);
   };
 
   return (
@@ -1798,6 +1846,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 email_subject={currentAlert?.email_subject || ''}
                 defaultSubject={emailSubject || ''}
                 setErrorSubject={handleErrorUpdate}
+                csv_filename={currentAlert?.csv_filename || ''}
+                defaultCsvFilename={csvFilename || ''}
+                setErrorCsvFilename={handleCsvFilenameErrorUpdate}
               />
             </StyledNotificationMethodWrapper>
           ))}
