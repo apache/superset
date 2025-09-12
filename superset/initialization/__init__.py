@@ -242,6 +242,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             self.superset_app.register_blueprint(mcp_bp)
 
+        # Register MCP native proxy blueprint (if feature enabled)
+        if feature_flag_manager.is_feature_enabled("MCP_SERVICE"):
+            from superset.views.mcp_native_proxy import mcp_native_bp
+
+            self.superset_app.register_blueprint(mcp_native_bp)
+
         #
         # Setup API views
         #
