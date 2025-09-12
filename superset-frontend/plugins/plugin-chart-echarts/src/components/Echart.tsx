@@ -204,6 +204,12 @@ function Echart(
           },
           legend: {
             textStyle: { color: antdTheme.colorTextSecondary },
+            pageTextStyle: {
+              color: antdTheme.colorTextSecondary,
+            },
+            pageIconColor: antdTheme.colorTextSecondary,
+            pageIconInactiveColor: antdTheme.colorTextDisabled,
+            inactiveColor: antdTheme.colorTextDisabled,
           },
           tooltip: {
             backgroundColor: antdTheme.colorBgContainer,
