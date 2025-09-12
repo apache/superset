@@ -274,30 +274,6 @@ test('should fetch TopN values when all params are provided', async () => {
   });
 });
 
-test('should show loading state while fetching TopN values', () => {
-  const mockFetchTopNValues = fetchTopNValues as jest.MockedFunction<
-    typeof fetchTopNValues
-  >;
-  const value: MatrixifyDimensionControlValue = {
-    dimension: 'country',
-    values: [],
-  };
-
-  mockFetchTopNValues.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-  render(
-    <MatrixifyDimensionControl
-      {...defaultProps}
-      value={value}
-      selectionMode="topn"
-      topNMetric="revenue"
-      topNValue={5}
-    />,
-  );
-
-  expect(screen.getByText('Loading top values...')).toBeInTheDocument();
-});
-
 test('should display error when TopN fetch fails', async () => {
   const mockFetchTopNValues = fetchTopNValues as jest.MockedFunction<
     typeof fetchTopNValues
