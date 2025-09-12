@@ -51,6 +51,12 @@ export enum EchartsTimeseriesSeriesType {
   End = 'end',
 }
 
+export enum EchartsTimeseriesLineStyle {
+  Solid = 'solid',
+  Dashed = 'dashed',
+  Dotted = 'dotted',
+}
+
 export type EchartsTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   area: boolean;
@@ -97,6 +103,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   showExtraControls: boolean;
   percentageThreshold: number;
   orientation?: OrientationType;
+  overrideLineStyle: EchartsTimeseriesLineStyle | null;
 } & LegendFormData &
   TitleFormData;
 
