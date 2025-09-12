@@ -434,6 +434,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
 
+        from superset.views.redirect import RedirectView
+
+        appbuilder.add_view_no_menu(RedirectView)
+
         #
         # Add links
         #
