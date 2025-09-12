@@ -29,7 +29,7 @@ import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError
-from jinja2.exceptions import SecurityError, UndefinedError
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -63,6 +63,13 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
+
+
+class UndefinedTemplateFunctionException(SupersetTemplateException):
+    """Raised when an undefined function-like Jinja identifier is encountered."""
+
+    pass
+
 
 NONE_TYPE = type(None).__name__
 ALLOWED_TYPES = (
@@ -696,6 +703,8 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
+        from jinja2 import UndefinedError
+
         try:
             template = self.env.from_string(sql)
         except (
@@ -767,6 +776,14 @@ class BaseTemplateProcessor:
             raise SupersetTemplateException(
                 "Infinite recursion detected in template"
             ) from ex
+        except UndefinedError as ex:
+            match = re.search(r"'([^']+)'\s+is undefined", str(ex))
+            undefined_name = match.group(1) if match else None
+            if undefined_name and re.search(
+                r"\{\{\s*" + re.escape(undefined_name) + r"\s*\(", sql
+            ):
+                raise UndefinedTemplateFunctionException(str(ex)) from ex
+            raise
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
