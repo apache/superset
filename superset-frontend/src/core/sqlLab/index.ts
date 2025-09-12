@@ -231,9 +231,7 @@ const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
   createActionListener(
     predicate(START_QUERY),
     listener,
-    (action: ReturnType<typeof startQuery>) => {
-      return createQueryContext(action);
-    },
+    (action: ReturnType<typeof startQuery>) => createQueryContext(action),
     thisArgs,
   );
 
@@ -244,9 +242,8 @@ const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
   createActionListener(
     predicate(QUERY_SUCCESS),
     listener,
-    (action: ReturnType<typeof querySuccess>) => {
-      return createQueryResultContext(action);
-    },
+    (action: ReturnType<typeof querySuccess>) =>
+      createQueryResultContext(action),
     thisArgs,
   );
 
@@ -257,9 +254,7 @@ const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
   createActionListener(
     predicate(STOP_QUERY),
     listener,
-    (action: ReturnType<typeof stopQuery>) => {
-      return createQueryContext(action);
-    },
+    (action: ReturnType<typeof stopQuery>) => createQueryContext(action),
     thisArgs,
   );
 
@@ -272,9 +267,8 @@ const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
   createActionListener(
     predicate(QUERY_FAILED),
     listener,
-    (action: ReturnType<typeof createQueryFailedAction>) => {
-      return createQueryErrorContext(action);
-    },
+    (action: ReturnType<typeof createQueryFailedAction>) =>
+      createQueryErrorContext(action),
     thisArgs,
   );
 
