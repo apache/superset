@@ -25,11 +25,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import {
-  SamplesPane,
-  TableControlsWrapper,
-  useResultsPane,
-} from './components';
+import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
 const StyledDiv = styled.div`
