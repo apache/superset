@@ -37,7 +37,6 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   country: PropTypes.string,
-  colorScheme: PropTypes.string,
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
@@ -47,7 +46,7 @@ const maps = {};
 
 function CountryMap(element, props) {
   const {
-    data,
+    rawData,
     width,
     height,
     country,
@@ -59,18 +58,6 @@ function CountryMap(element, props) {
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
-  const linearColorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => v.metric));
-  const colorScale = CategoricalColorNamespace.getScale(colorScheme);
-
-  const colorMap = {};
-  data.forEach(d => {
-    colorMap[d.country_id] = colorScheme
-      ? colorScale(d.country_id, sliceId)
-      : linearColorScale(d.metric);
-  });
-  const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
   const div = d3.select(container);
@@ -100,96 +87,152 @@ function CountryMap(element, props) {
     .classed('result-text', true)
     .attr('dy', '1em');
 
-  let centered;
-
-  const clicked = function clicked(d) {
-    const hasCenter = d && centered !== d;
-    let x;
-    let y;
-    let k;
-    const halfWidth = width / 2;
-    const halfHeight = height / 2;
-
-    if (hasCenter) {
-      const centroid = path.centroid(d);
-      [x, y] = centroid;
-      k = 4;
-      centered = d;
-    } else {
-      x = halfWidth;
-      y = halfHeight;
-      k = 1;
-      centered = null;
-    }
-
-    g.transition()
-      .duration(750)
-      .attr(
-        'transform',
-        `translate(${halfWidth},${halfHeight})scale(${k})translate(${-x},${-y})`,
-      );
-    textLayer
-      .style('opacity', 0)
-      .attr(
-        'transform',
-        `translate(0,0)translate(${x},${hasCenter ? y - 5 : 45})`,
-      )
-      .transition()
-      .duration(750)
-      .style('opacity', 1);
-    bigText
-      .transition()
-      .duration(750)
-      .style('font-size', hasCenter ? 6 : 16);
-    resultText
-      .transition()
-      .duration(750)
-      .style('font-size', hasCenter ? 16 : 24);
-  };
-
-  backgroundRect.on('click', clicked);
-
-  const selectAndDisplayNameOfRegion = function selectAndDisplayNameOfRegion(
-    feature,
-  ) {
-    let name = '';
-    if (feature && feature.properties) {
-      if (feature.properties.ID_2) {
-        name = feature.properties.NAME_2;
-      } else {
-        name = feature.properties.NAME_1;
-      }
-    }
-    bigText.text(name);
-  };
-
-  const updateMetrics = function updateMetrics(region) {
-    if (region.length > 0) {
-      resultText.text(format(region[0].metric));
-    }
-  };
-
-  const mouseenter = function mouseenter(d) {
-    // Darken color
-    let c = colorFn(d);
-    if (c !== 'none') {
-      c = d3.rgb(c).darker().toString();
-    }
-    d3.select(this).style('fill', c);
-    selectAndDisplayNameOfRegion(d);
-    const result = data.filter(
-      region => region.country_id === d.properties.ISO,
-    );
-    updateMetrics(result);
-  };
-
-  const mouseout = function mouseout() {
-    d3.select(this).style('fill', colorFn);
-    bigText.text('');
-    resultText.text('');
-  };
-
   function drawMap(mapData) {
+    const countryFeatures = mapData?.features || [];
+
+    const countryCode = countryFeatures[0]?.properties?.ISO?.split('-')[0];
+    const countryCodePrefix = countryCode ? `${countryCode}-` : '';
+
+    const isoLookup = {};
+    const regionLookup = {};
+
+    for (const { properties } of countryFeatures) {
+      const isoCode = properties.ISO;
+      const regionName1 = properties.NAME_1;
+      const regionName2 = properties.NAME_2;
+      const regionName = (regionName1 ?? regionName2 ?? '')
+        .trim()
+        .toLowerCase();
+      isoLookup[isoCode] = regionName;
+      regionLookup[regionName] = isoCode;
+    }
+
+    const data = rawData.map(d => {
+      const countryIdentifier = d.country_id;
+      if (
+        !countryIdentifier ||
+        countryIdentifier.startsWith(countryCodePrefix)
+      ) {
+        return d;
+      }
+
+      // Best guess by region code
+      const maybeISOCode = `${countryCodePrefix}${countryIdentifier}`;
+      if (isoLookup[maybeISOCode]) {
+        return { ...d, country_id: maybeISOCode };
+      }
+
+      // Best guess by region name
+      const foundByName = regionLookup[countryIdentifier];
+      if (foundByName) {
+        return { ...d, country_id: foundByName };
+      }
+
+      return d;
+    });
+
+    const linearColorScale = getSequentialSchemeRegistry()
+      .get(linearColorScheme)
+      .createLinearScale(d3Extent(data, v => v.metric));
+    const colorScale = CategoricalColorNamespace.getScale(colorScheme);
+
+    const colorMap = {};
+    data.forEach(d => {
+      colorMap[d.country_id] = colorScheme
+        ? colorScale(d.country_id, sliceId)
+        : linearColorScale(d.metric);
+    });
+    const colorFn = d => colorMap[d.properties.ISO] || 'none';
+
+    let centered;
+
+    const clicked = function clicked(d) {
+      const hasCenter = d && centered !== d;
+      let x;
+      let y;
+      let k;
+      const halfWidth = width / 2;
+      const halfHeight = height / 2;
+
+      if (hasCenter) {
+        const centroid = path.centroid(d);
+        [x, y] = centroid;
+        k = 4;
+        centered = d;
+      } else {
+        x = halfWidth;
+        y = halfHeight;
+        k = 1;
+        centered = null;
+      }
+
+      g.transition()
+        .duration(750)
+        .attr(
+          'transform',
+          `translate(${halfWidth},${halfHeight})scale(${k})translate(${-x},${-y})`,
+        );
+      textLayer
+        .style('opacity', 0)
+        .attr(
+          'transform',
+          `translate(0,0)translate(${x},${hasCenter ? y - 5 : 45})`,
+        )
+        .transition()
+        .duration(750)
+        .style('opacity', 1);
+      bigText
+        .transition()
+        .duration(750)
+        .style('font-size', hasCenter ? 6 : 16);
+      resultText
+        .transition()
+        .duration(750)
+        .style('font-size', hasCenter ? 16 : 24);
+    };
+
+    backgroundRect.on('click', clicked);
+
+    const selectAndDisplayNameOfRegion = function selectAndDisplayNameOfRegion(
+      feature,
+    ) {
+      let name = '';
+      if (feature && feature.properties) {
+        if (feature.properties.ID_2) {
+          name = feature.properties.NAME_2;
+        } else {
+          name = feature.properties.NAME_1;
+        }
+      }
+      bigText.text(name);
+    };
+
+    const updateMetrics = function updateMetrics(region) {
+      if (region.length > 0) {
+        resultText.text(format(region[0].metric));
+      }
+    };
+
+    const mouseenter = function mouseenter(d) {
+      // Darken color
+      let c = colorFn(d);
+      if (c !== 'none') {
+        c = d3.rgb(c).darker().toString();
+      }
+      d3.select(this).style('fill', c);
+      selectAndDisplayNameOfRegion(d);
+      const result = data.filter(
+        region => region.country_id === d.properties.ISO,
+      );
+      updateMetrics(result);
+    };
+
+    const mouseout = function mouseout() {
+      d3.select(this).style('fill', colorFn);
+      bigText.text('');
+      resultText.text('');
+    };
+
     const { features } = mapData;
     const center = d3.geo.centroid(mapData);
     const scale = 100;
