@@ -69,7 +69,7 @@
     {% endblock %}
   </head>
 
-  <body {% if standalone_mode %}class="standalone"{% endif %}>
+  <body {% if standalone_mode %}class="standalone"{% endif %} style="margin: 0; padding: 0; background-color: {{ tokens.get('colorBgBase', '#ffffff') }};">
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
@@ -85,14 +85,10 @@
           <!-- Custom URL from theme -->
           <img
             src="{{ tokens.brandSpinnerUrl }}"
-            alt="Loading..."
+            alt=""
             style="{{ spinner_style }}"
           />
-        {% else %}
-          <!-- Fallback: This should rarely happen with new logic -->
-          <div style="{{ spinner_style }}">
-            Loading...
-          </div>
+        {# Remove fallback text - let React app handle loading state #}
         {% endif %}
       </div>
     {% endblock %}
