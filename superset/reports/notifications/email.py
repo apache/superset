@@ -49,13 +49,6 @@ def replace_date_placeholders(text: str) -> str:
     - {yyMMdd} -> 240912
     - {yyyyMMdd_HHmmss} -> 20240912_143045
     - {yyyy/MM/dd} -> 2024/09/12
-    
-    Format codes:
-    - yyyy = 4-digit year, yy = 2-digit year
-    - MM = 2-digit month, M = 1-digit month
-    - dd = 2-digit day, d = 1-digit day
-    - HH = 24-hour format, hh = 12-hour format
-    - mm = minutes, ss = seconds
     """
     if not text:
         return text

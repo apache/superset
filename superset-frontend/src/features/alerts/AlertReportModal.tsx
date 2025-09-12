@@ -1369,7 +1369,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (contentType === 'chart') {
       if (currentAlert?.name || currentAlert?.chart?.label) {
         setCsvFilename(
-          `${currentAlert?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report'}_${currentAlert?.chart?.label?.replace(/[^a-zA-Z0-9]/g, '_') || 'chart'}.csv`,
+          `${currentAlert?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report'}_${
+            currentAlert?.chart?.label?.replace(/[^a-zA-Z0-9]/g, '_') || 'chart'
+          }.csv`,
         );
       } else {
         setCsvFilename('');
@@ -1377,7 +1379,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     } else if (contentType === 'dashboard') {
       if (currentAlert?.name || currentAlert?.dashboard?.label) {
         setCsvFilename(
-          `${currentAlert?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report'}_${currentAlert?.dashboard?.label?.replace(/[^a-zA-Z0-9]/g, '_') || 'dashboard'}.csv`,
+          `${currentAlert?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report'}_${
+            currentAlert?.dashboard?.label?.replace(/[^a-zA-Z0-9]/g, '_') ||
+            'dashboard'
+          }.csv`,
         );
       } else {
         setCsvFilename('');
