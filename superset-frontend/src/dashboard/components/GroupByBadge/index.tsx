@@ -20,7 +20,6 @@ import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
-import { ClassNames } from '@emotion/react';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
@@ -191,6 +190,18 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
 
     const existingColumns = new Set<string>();
 
+    const extractColumnNames = (columns: unknown[]): void => {
+      if (Array.isArray(columns)) {
+        columns.forEach((col: unknown) => {
+          if (typeof col === 'string') {
+            existingColumns.add(col);
+          } else if (col && typeof col === 'object' && 'column_name' in col) {
+            existingColumns.add((col as { column_name: string }).column_name);
+          }
+        });
+      }
+    };
+
     const existingGroupBy = Array.isArray(chartFormData.groupby)
       ? chartFormData.groupby
       : chartFormData.groupby
@@ -234,29 +245,11 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     }
 
     if (chartType === 'pivot_table_v2') {
-      const pivotColumns = chartFormData.groupbyColumns || [];
-      if (Array.isArray(pivotColumns)) {
-        pivotColumns.forEach((col: any) => {
-          if (typeof col === 'string') {
-            existingColumns.add(col);
-          } else if (col && typeof col === 'object' && 'column_name' in col) {
-            existingColumns.add(col.column_name);
-          }
-        });
-      }
+      extractColumnNames(chartFormData.groupbyColumns || []);
     }
 
     if (chartType === 'box_plot') {
-      const boxPlotColumns = chartFormData.columns || [];
-      if (Array.isArray(boxPlotColumns)) {
-        boxPlotColumns.forEach((col: any) => {
-          if (typeof col === 'string') {
-            existingColumns.add(col);
-          } else if (col && typeof col === 'object' && 'column_name' in col) {
-            existingColumns.add(col.column_name);
-          }
-        });
-      }
+      extractColumnNames(chartFormData.columns || []);
     }
 
     return applicableGroupBys.filter(item => {
@@ -320,42 +313,32 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   );
 
   return (
-    <ClassNames>
-      {({ css }) => (
-        <Tooltip
-          title={tooltipContent}
-          visible={tooltipVisible}
-          onVisibleChange={setTooltipVisible}
-          placement="bottom"
-          overlayClassName={css`
-            .ant-tooltip-inner {
-              color: ${theme.colorText} !important;
-              background-color: ${theme.colorBgContainer} !important;
-              border: 1px solid ${theme.colorBorder} !important;
-              box-shadow: ${theme.boxShadow} !important;
-            }
-            .ant-tooltip-arrow::before {
-              background-color: ${theme.colorBgContainer} !important;
-              border-color: ${theme.colorBorder} !important;
-            }
-          `}
-        >
-          <StyledTag
-            ref={triggerRef}
-            aria-label={t('Group by settings (%s)', groupByCount)}
-            role="button"
-            tabIndex={0}
-          >
-            <Icons.GroupOutlined iconSize="m" />
-            <StyledBadge
-              data-test="applied-groupby-count"
-              count={groupByCount}
-              showZero={false}
-            />
-          </StyledTag>
-        </Tooltip>
-      )}
-    </ClassNames>
+    <Tooltip
+      title={tooltipContent}
+      visible={tooltipVisible}
+      onVisibleChange={setTooltipVisible}
+      placement="bottom"
+      overlayStyle={{
+        color: theme.colorText,
+        backgroundColor: theme.colorBgContainer,
+        border: `1px solid ${theme.colorBorder}`,
+        boxShadow: theme.boxShadow,
+      }}
+    >
+      <StyledTag
+        ref={triggerRef}
+        aria-label={t('Group by settings (%s)', groupByCount)}
+        role="button"
+        tabIndex={0}
+      >
+        <Icons.GroupOutlined iconSize="m" />
+        <StyledBadge
+          data-test="applied-groupby-count"
+          count={groupByCount}
+          showZero={false}
+        />
+      </StyledTag>
+    </Tooltip>
   );
 };
 
