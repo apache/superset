@@ -28,29 +28,41 @@ import { useSchemas } from './schemas';
 
 const fakeApiResult = {
   result: ['test schema 1', 'test schema b'],
+  default: 'test schema 1',
 };
 const fakeApiResult2 = {
   result: ['test schema 2', 'test schema a'],
+  default: null,
 };
 const fakeApiResult3 = {
   result: ['test schema 3', 'test schema c'],
+  default: 'test schema 3',
 };
 
-const expectedResult = fakeApiResult.result.map((value: string) => ({
-  value,
-  label: value,
-  title: value,
-}));
-const expectedResult2 = fakeApiResult2.result.map((value: string) => ({
-  value,
-  label: value,
-  title: value,
-}));
-const expectedResult3 = fakeApiResult3.result.map((value: string) => ({
-  value,
-  label: value,
-  title: value,
-}));
+const expectedResult = {
+  result: fakeApiResult.result.map((value: string) => ({
+    value,
+    label: value,
+    title: value,
+  })),
+  default: fakeApiResult.default,
+};
+const expectedResult2 = {
+  result: fakeApiResult2.result.map((value: string) => ({
+    value,
+    label: value,
+    title: value,
+  })),
+  default: fakeApiResult2.default,
+};
+const expectedResult3 = {
+  result: fakeApiResult3.result.map((value: string) => ({
+    value,
+    label: value,
+    title: value,
+  })),
+  default: fakeApiResult3.default,
+};
 
 describe('useSchemas hook', () => {
   beforeEach(() => {

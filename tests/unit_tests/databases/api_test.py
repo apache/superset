@@ -2261,6 +2261,7 @@ def test_catalogs(
     """
     database = mocker.MagicMock()
     database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.return_value = "db1"
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
 
@@ -2272,7 +2273,7 @@ def test_catalogs(
 
     response = client.get("/api/v1/database/1/catalogs/")
     assert response.status_code == 200
-    assert response.json == {"result": ["db2"]}
+    assert response.json == {"result": ["db2"], "default": "db1"}
     database.get_all_catalog_names.assert_called_with(
         cache=database.catalog_cache_enabled,
         cache_timeout=database.catalog_cache_timeout,
@@ -2344,6 +2345,7 @@ def test_schemas(
 
     database = mocker.MagicMock()
     database.get_all_schema_names.return_value = {"schema1", "schema2"}
+    database.get_default_schema.return_value = "public"
     datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
     datamodel.get.return_value = database
 
@@ -2355,13 +2357,14 @@ def test_schemas(
 
     response = client.get("/api/v1/database/1/schemas/")
     assert response.status_code == 200
-    assert response.json == {"result": ["schema2"]}
+    assert response.json == {"result": ["schema2"], "default": "public"}
     database.get_all_schema_names.assert_called_with(
         catalog=None,
         cache=database.schema_cache_enabled,
         cache_timeout=database.schema_cache_timeout,
         force=False,
     )
+    database.get_default_schema.assert_called_with(None)
     security_manager.get_schemas_accessible_by_user.assert_called_with(
         database,
         None,
@@ -2383,11 +2386,64 @@ def test_schemas(
         cache_timeout=database.schema_cache_timeout,
         force=True,
     )
+    database.get_default_schema.assert_called_with("catalog2")
     security_manager.get_schemas_accessible_by_user.assert_called_with(
         database,
         "catalog2",
         {"schema1", "schema2"},
     )
+
+
+def test_catalogs_with_null_default(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `catalogs` endpoint when default catalog is None.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.return_value = None
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["db2"], "default": None}
+
+
+def test_schemas_with_null_default(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `schemas` endpoint when default schema is None.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"schema1", "schema2"}
+    database.get_default_schema.return_value = None
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["schema2"], "default": None}
 
 
 def test_schemas_with_oauth2(
