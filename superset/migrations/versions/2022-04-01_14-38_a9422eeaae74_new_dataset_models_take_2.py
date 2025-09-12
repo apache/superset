@@ -916,13 +916,13 @@ def upgrade() -> None:
     copy_datasets(session)
     copy_columns(session)
     copy_metrics(session)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
     postprocess_columns(session)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
     postprocess_datasets(session)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
     # Table were created with the same uuids are datasets. They should
     # have different uuids as they are different entities.

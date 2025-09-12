@@ -656,8 +656,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """Check database connection and warn if unavailable"""
         try:
             with self.superset_app.app_context():
-                # Simple connection test
-                db.engine.execute("SELECT 1")
+                # Simple connection test - SQLAlchemy 2.0 compatible
+                with db.engine.connect() as connection:
+                    connection.execute(db.text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
             safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
@@ -761,6 +762,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         SQLGLOT_DIALECTS.update(extensions)
 
+    def init_db_safe(self) -> None:
+        from flask_appbuilder import Model
+        from sqlalchemy import create_engine, inspect
+
+        engine = db.session.get_bind(mapper=None, clause=None)
+
+        # Check if tables exist
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+
+        if "ab_user" not in existing_tables or "ab_group" not in existing_tables:
+            db.session.close()
+            db.session.remove()
+
+            # Create a fresh engine for table creation
+            fresh_engine = create_engine(
+                current_app.config["SQLALCHEMY_DATABASE_URI"],
+                poolclass=engine.pool.__class__,
+            )
+
+            # Now create tables with the fresh engine
+            Model.metadata.create_all(fresh_engine)
+
+            # Dispose of the fresh engine
+            fresh_engine.dispose()
+
     @transaction()
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
@@ -776,6 +803,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
+        self.init_db_safe()
         appbuilder.init_app(self.superset_app, db.session)
 
     def configure_url_map_converters(self) -> None:

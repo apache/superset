@@ -27,6 +27,7 @@ revision = "07f9a902af1b"
 down_revision = "b5ea9d343307"
 
 from alembic import op  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 from sqlalchemy.dialects import postgresql  # noqa: E402
 
 
@@ -34,11 +35,11 @@ def upgrade():
     conn = op.get_bind()
     if isinstance(conn.dialect, postgresql.dialect):
         conn.execute(
-            'ALTER TABLE "tagged_object" ALTER COLUMN "object_type" TYPE VARCHAR'
+            text('ALTER TABLE "tagged_object" ALTER COLUMN "object_type" TYPE VARCHAR')
         )
-        conn.execute('ALTER TABLE "tag" ALTER COLUMN "type" TYPE VARCHAR')
-        conn.execute("DROP TYPE IF EXISTS objecttypes")
-        conn.execute("DROP TYPE IF EXISTS tagtypes")
+        conn.execute(text('ALTER TABLE "tag" ALTER COLUMN "type" TYPE VARCHAR'))
+        conn.execute(text("DROP TYPE IF EXISTS objecttypes"))
+        conn.execute(text("DROP TYPE IF EXISTS tagtypes"))
 
 
 def downgrade():

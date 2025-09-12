@@ -33,7 +33,6 @@ from uuid import uuid4  # noqa: E402
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 from sqlalchemy.engine.reflection import Inspector  # noqa: E402
-from sqlalchemy.orm import load_only  # noqa: E402
 from sqlalchemy_utils import UUIDType  # noqa: E402
 
 from superset import db  # noqa: E402
@@ -87,11 +86,12 @@ def upgrade():
 
     # add UUID to Dashboard.position_json; this function is idempotent
     # so we can call it for all objects
+    # For SQLAlchemy 2.0 compatibility, use explicit column selection
+    # instead of load_only
+    slice_model = models["slices"]
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
-        .options(load_only("id", "uuid"))
-        .all()
+        for slc in session.query(slice_model.id, slice_model.uuid).all()
     }
     update_dashboards(session, slice_uuid_map)
 

@@ -44,14 +44,14 @@ def upgrade():
         batch_op.add_column(sa.Column("cluster_id", sa.Integer()))
 
     # Update cluster_id values
-    metadata = sa.MetaData(bind=bind)
-    datasources = sa.Table("datasources", metadata, autoload=True)
-    clusters = sa.Table("clusters", metadata, autoload=True)
+    metadata = sa.MetaData()
+    datasources = sa.Table("datasources", metadata, autoload_with=bind)
+    clusters = sa.Table("clusters", metadata, autoload_with=bind)
 
     statement = datasources.update().values(
         cluster_id=sa.select(clusters.c.id)
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
-        .as_scalar()
+        .scalar_subquery()
     )
     bind.execute(statement)
 
@@ -86,14 +86,14 @@ def downgrade():
         batch_op.add_column(sa.Column("cluster_name", sa.String(250)))
 
     # Update cluster_name values
-    metadata = sa.MetaData(bind=bind)
-    datasources = sa.Table("datasources", metadata, autoload=True)
-    clusters = sa.Table("clusters", metadata, autoload=True)
+    metadata = sa.MetaData()
+    datasources = sa.Table("datasources", metadata, autoload_with=bind)
+    clusters = sa.Table("clusters", metadata, autoload_with=bind)
 
     statement = datasources.update().values(
         cluster_name=sa.select(clusters.c.cluster_name)
         .where(datasources.c.cluster_id == clusters.c.id)
-        .as_scalar()
+        .scalar_subquery()
     )
     bind.execute(statement)
 

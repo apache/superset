@@ -23,6 +23,7 @@ Create Date: 2022-06-30 22:04:17.686635
 """
 
 from alembic import op
+from sqlalchemy import text
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 from superset import db
@@ -41,8 +42,8 @@ def upgrade():
     # which may significantly increase the size of these fields.
     if isinstance(bind.dialect, MySQLDialect):
         # If the columns are already MEDIUMTEXT, this is a no-op
-        op.execute("ALTER TABLE slices MODIFY params MEDIUMTEXT")
-        op.execute("ALTER TABLE slices MODIFY query_context MEDIUMTEXT")
+        op.execute(text("ALTER TABLE slices MODIFY params MEDIUMTEXT"))
+        op.execute(text("ALTER TABLE slices MODIFY query_context MEDIUMTEXT"))
 
     session = db.Session(bind=bind)
     MigrateTreeMap.upgrade(session)

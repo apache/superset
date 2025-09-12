@@ -28,7 +28,6 @@ from uuid import uuid4
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
 
 from superset import db
@@ -141,11 +140,12 @@ def upgrade():
             batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
 
     # add UUID to Dashboard.position_json
+    # For SQLAlchemy 2.0 compatibility, use explicit column selection
+    # instead of load_only
+    slice_model = models["slices"]
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
-        .options(load_only("id", "uuid"))
-        .all()
+        for slc in session.query(slice_model.id, slice_model.uuid).all()
     }
     update_dashboards(session, slice_uuid_map)
 

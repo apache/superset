@@ -126,7 +126,7 @@ def test_datetime(console: Console, engine: Engine) -> None:
     select_stmt = select(table)
     with engine.connect() as connection:
         connection.execute(insert_stmt)
-        connection.commit()
+        connection.commit()  # pylint: disable=consider-using-transaction
         row = connection.execute(select_stmt).fetchone()
     assert row[0] == now
     console.print(":thumbs_up: [green]Success!")
