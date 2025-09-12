@@ -69,11 +69,12 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
-import { DatabaseSelector } from '../DatabaseSelector';
-import CollectionTable from './CollectionTable';
-import Fieldset from './Fieldset';
-import Field from './Field';
-import { fetchSyncedColumns, updateColumns } from './utils';
+import { DatabaseSelector } from '../../../DatabaseSelector';
+import CollectionTable from '../CollectionTable';
+import Fieldset from '../Fieldset';
+import Field from '../Field';
+import { fetchSyncedColumns, updateColumns } from '../../utils';
+import DatasetUsageTab from './components/DatasetUsageTab';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -142,7 +143,7 @@ const StyledLabelWrapper = styled.div`
   }
 `;
 
-const StyledColumnsTabWrapper = styled.div`
+const StyledTableTabWrapper = styled.div`
   .table > tbody > tr > td {
     vertical-align: middle;
   }
@@ -177,6 +178,7 @@ const TABS_KEYS = {
   METRICS: 'METRICS',
   COLUMNS: 'COLUMNS',
   CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
+  USAGE: 'USAGE',
   SETTINGS: 'SETTINGS',
   SPATIAL: 'SPATIAL',
 };
@@ -658,6 +660,8 @@ class DatasourceEditor extends PureComponent {
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
+      usageCharts: [],
+      usageChartsCount: 0,
     };
 
     this.onChange = this.onChange.bind(this);
@@ -671,6 +675,7 @@ class DatasourceEditor extends PureComponent {
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
     this.formatSql = this.formatSql.bind(this);
+    this.fetchUsageData = this.fetchUsageData.bind(this);
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -841,6 +846,89 @@ class DatasourceEditor extends PureComponent {
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+    }
+  }
+
+  async fetchUsageData(
+    page = 1,
+    pageSize = 25,
+    sortColumn = 'changed_on_delta_humanized',
+    sortDirection = 'desc',
+  ) {
+    const { datasource } = this.state;
+    try {
+      const queryParams = rison.encode({
+        columns: [
+          'slice_name',
+          'url',
+          'certified_by',
+          'certification_details',
+          'description',
+          'owners.first_name',
+          'owners.last_name',
+          'owners.id',
+          'changed_on_delta_humanized',
+          'changed_on',
+          'changed_by.first_name',
+          'changed_by.last_name',
+          'changed_by.id',
+          'dashboards.id',
+          'dashboards.dashboard_title',
+          'dashboards.url',
+        ],
+        filters: [
+          {
+            col: 'datasource_id',
+            opr: 'eq',
+            value: datasource.id,
+          },
+        ],
+        order_column: sortColumn,
+        order_direction: sortDirection,
+        page: page - 1,
+        page_size: pageSize,
+      });
+
+      const { json = {} } = await SupersetClient.get({
+        endpoint: `/api/v1/chart/?q=${queryParams}`,
+      });
+
+      const charts = json?.result || [];
+      const ids = json?.ids || [];
+
+      // Map chart IDs to chart objects
+      const chartsWithIds = charts.map((chart, index) => ({
+        ...chart,
+        id: ids[index],
+      }));
+
+      this.setState({
+        usageCharts: chartsWithIds,
+        usageChartsCount: json?.count || 0,
+      });
+
+      return {
+        charts: chartsWithIds,
+        count: json?.count || 0,
+        ids,
+      };
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while fetching usage data'),
+      );
+      this.setState({
+        usageCharts: [],
+        usageChartsCount: 0,
+      });
+      return {
+        charts: [],
+        count: 0,
+        ids: [],
+      };
     }
   }
 
@@ -1684,7 +1772,7 @@ class DatasourceEditor extends PureComponent {
                 />
               ),
               children: (
-                <StyledColumnsTabWrapper>
+                <StyledTableTabWrapper>
                   <ColumnButtonWrapper>
                     <StyledButtonWrapper>
                       <Button
@@ -1709,7 +1797,7 @@ class DatasourceEditor extends PureComponent {
                     onDatasourceChange={this.onDatasourceChange}
                   />
                   {this.state.metadataLoading && <Loading />}
-                </StyledColumnsTabWrapper>
+                </StyledTableTabWrapper>
               ),
             },
             {
@@ -1721,7 +1809,7 @@ class DatasourceEditor extends PureComponent {
                 />
               ),
               children: (
-                <StyledColumnsTabWrapper>
+                <StyledTableTabWrapper>
                   <ColumnCollectionTable
                     columns={this.state.calculatedColumns}
                     onColumnsChange={calculatedColumns =>
@@ -1748,7 +1836,27 @@ class DatasourceEditor extends PureComponent {
                       expanded: true,
                     })}
                   />
-                </StyledColumnsTabWrapper>
+                </StyledTableTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.USAGE,
+              label: (
+                <CollectionTabTitle
+                  collection={{ length: this.state.usageChartsCount }}
+                  title={t('Usage')}
+                />
+              ),
+              children: (
+                <StyledTableTabWrapper>
+                  <DatasetUsageTab
+                    datasourceId={datasource.id}
+                    charts={this.state.usageCharts}
+                    totalCount={this.state.usageChartsCount}
+                    onFetchCharts={this.fetchUsageData}
+                    addDangerToast={this.props.addDangerToast}
+                  />
+                </StyledTableTabWrapper>
               ),
             },
             {
@@ -1783,6 +1891,7 @@ class DatasourceEditor extends PureComponent {
       }
       return false;
     });
+    this.fetchUsageData();
   }
 
   componentWillUnmount() {

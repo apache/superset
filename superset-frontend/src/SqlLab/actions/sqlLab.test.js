@@ -441,6 +441,7 @@ describe('async actions', () => {
             queryLimit: undefined,
             maxRow: undefined,
             id: 'abcd',
+            immutableId: 'abcd',
             templateParams: undefined,
             inLocalStorage: true,
             loaded: true,
@@ -570,6 +571,7 @@ describe('async actions', () => {
           type: actions.ADD_QUERY_EDITOR,
           queryEditor: {
             ...queryEditor,
+            immutableId: 'abcd',
             inLocalStorage: true,
             loaded: true,
           },
@@ -597,6 +599,7 @@ describe('async actions', () => {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
               id: 'abcd',
+              immutableId: 'abcd',
               sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query 7`,
               dbId: defaultQueryEditor.dbId,
@@ -753,6 +756,7 @@ describe('async actions', () => {
             queryEditor: {
               ...queryEditor,
               id: 'abcd',
+              immutableId: 'abcd',
               loaded: true,
               inLocalStorage: true,
             },
