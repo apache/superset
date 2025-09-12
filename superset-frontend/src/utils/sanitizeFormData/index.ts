@@ -21,5 +21,33 @@ import { omit } from 'lodash';
 
 const TEMPORARY_CONTROLS: string[] = ['url_params'];
 
-export const sanitizeFormData = (formData: JsonObject): JsonObject =>
-  omit(formData, TEMPORARY_CONTROLS);
+/**
+ * Check if a filter was derived from Rison URL parameters
+ */
+function isRisonFilter(filter: any): boolean {
+  // eslint-disable-next-line no-underscore-dangle
+  return filter && filter.__superset_rison_filter__ === true;
+}
+
+/**
+ * Filter out Rison-derived filters from an array
+ */
+function excludeRisonFilters(filters: any[]): any[] {
+  return filters.filter(filter => !isRisonFilter(filter));
+}
+
+export const sanitizeFormData = (formData: JsonObject): JsonObject => {
+  const sanitized = omit(formData, TEMPORARY_CONTROLS);
+
+  // Remove Rison filters from adhoc_filters to prevent them from being stored server-side
+  if (
+    (sanitized as any).adhoc_filters &&
+    Array.isArray((sanitized as any).adhoc_filters)
+  ) {
+    (sanitized as any).adhoc_filters = excludeRisonFilters(
+      (sanitized as any).adhoc_filters,
+    );
+  }
+
+  return sanitized;
+};

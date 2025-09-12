@@ -19,11 +19,16 @@
 
 import { FC, memo, useMemo } from 'react';
 import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useSelector } from 'react-redux';
+import {
+  getRisonFilterParam,
+  parseRisonFilters,
+} from 'src/dashboard/util/risonFilters';
 import FilterControls from './FilterControls/FilterControls';
 import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
@@ -63,6 +68,40 @@ const FilterBarEmptyStateContainer = styled.div`
   `}
 `;
 
+const RisonFiltersContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: ${theme.sizeUnit * 2}px;
+    padding: 0 ${theme.sizeUnit * 2}px;
+    margin-right: ${theme.sizeUnit * 2}px;
+    border-right: 1px solid ${theme.colorBorder};
+  `}
+`;
+
+const RisonFilterTitle = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
+const RisonFilterItem = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+    background: ${theme.colorBgContainer};
+    border-radius: ${theme.borderRadius}px;
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
   dataMaskSelected,
@@ -90,7 +129,43 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
 
-  const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
+  // Get active Rison filters from URL
+  const activeRisonFilters = useMemo(() => {
+    const risonParam = getRisonFilterParam();
+    if (risonParam) {
+      return parseRisonFilters(risonParam);
+    }
+    return [];
+  }, []);
+
+  const risonFiltersComponent = useMemo(() => {
+    if (activeRisonFilters.length === 0) return null;
+
+    return (
+      <RisonFiltersContainer>
+        <RisonFilterTitle>
+          <Icons.LinkOutlined iconSize="s" />
+          {t('URL Filters')}
+        </RisonFilterTitle>
+        {activeRisonFilters.map((filter, index) => (
+          <RisonFilterItem key={`${filter.subject}-${index}`}>
+            <strong>{filter.subject}</strong>
+            <span>{filter.operator}</span>
+            <span>
+              {Array.isArray(filter.comparator)
+                ? filter.comparator.join(', ')
+                : filter.comparator}
+            </span>
+          </RisonFilterItem>
+        ))}
+      </RisonFiltersContainer>
+    );
+  }, [activeRisonFilters]);
+
+  const hasFilters =
+    filterValues.length > 0 ||
+    selectedCrossFilters.length > 0 ||
+    activeRisonFilters.length > 0;
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
@@ -106,12 +181,15 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
               </FilterBarEmptyStateContainer>
             )}
             {hasFilters && (
-              <FilterControls
-                dataMaskSelected={dataMaskSelected}
-                onFilterSelectionChange={onSelectionChange}
-                clearAllTriggers={clearAllTriggers}
-                onClearAllComplete={onClearAllComplete}
-              />
+              <>
+                {risonFiltersComponent}
+                <FilterControls
+                  dataMaskSelected={dataMaskSelected}
+                  onFilterSelectionChange={onSelectionChange}
+                  clearAllTriggers={clearAllTriggers}
+                  onClearAllComplete={onClearAllComplete}
+                />
+              </>
             )}
             {actions}
           </>

@@ -94,16 +94,37 @@ export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
+
+  // Store the Rison filter parameter separately to preserve its format
+  let risonParam = null;
+
   Object.keys(extraSearch).forEach(key => {
-    search[key] = extraSearch[key];
+    if (key === 'f' && extraSearch[key]) {
+      // Don't add Rison filter to URI search params yet
+      risonParam = extraSearch[key];
+    } else {
+      search[key] = extraSearch[key];
+    }
   });
+
   if (endpointType === URL_PARAMS.standalone.name) {
     if (force) {
       search.force = '1';
     }
     search.standalone = DashboardStandaloneMode.HideNav;
   }
-  return uri.directory(directory).search(search).toString();
+
+  let url = uri.directory(directory).search(search).toString();
+
+  // Manually append the Rison filter parameter to preserve its human-readable format
+  if (risonParam) {
+    const separator = url.includes('?') ? '&' : '?';
+    // Ensure we preserve the human-readable format
+    const cleanRison = risonParam.replace(/%20/g, ' ').replace(/%27/g, "'");
+    url = `${url}${separator}f=${cleanRison}`;
+  }
+
+  return url;
 }
 
 export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
