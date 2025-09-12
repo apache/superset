@@ -1216,6 +1216,11 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
+    if hasattr(column, "column_name"):
+        column_name = getattr(column, "column_name", "")
+        verbose_name = getattr(column, "verbose_name", "")
+        return verbose_name or column_name
+
     if isinstance(column, dict):
         if label := column.get("label"):
             return label

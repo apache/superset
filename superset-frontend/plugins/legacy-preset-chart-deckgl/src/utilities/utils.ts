@@ -28,8 +28,6 @@ export const COLOR_SCHEME_TYPES = {
 export type ColorSchemeType =
   (typeof COLOR_SCHEME_TYPES)[keyof typeof COLOR_SCHEME_TYPES];
 
-/* eslint camelcase: 0 */
-
 export function formatSelectOptions(options: (string | number)[]) {
   return options.map(opt => [opt, opt.toString()]);
 }
