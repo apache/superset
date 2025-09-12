@@ -20,6 +20,7 @@
 from textwrap import dedent
 
 import pytest
+import sqlalchemy as sa
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from unittest import mock
@@ -165,20 +166,23 @@ class TestSqlLab(SupersetTestCase):
             db.session.commit()
             examples_db = get_example_database()
             with examples_db.get_sqla_engine() as engine:
-                data = engine.execute(
-                    f"SELECT * FROM admin_database.{tmp_table_name}"  # noqa: S608
-                ).fetchall()
-                names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"  # noqa: F541, S608
-                ).first()
-                assert names_count[0] == len(
-                    data
-                )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+                with engine.connect() as connection:
+                    data = connection.execute(
+                        sa.text(f"SELECT * FROM admin_database.{tmp_table_name}")  # noqa: S608
+                    ).fetchall()
+                    names_count = connection.execute(
+                        sa.text(f"SELECT COUNT(*) FROM birth_names")  # noqa: F541, S608
+                    ).first()
+                    assert names_count[0] == len(data)
+                    # SQL_MAX_ROW not applied due to the
+                    # SQLLAB_CTAS_NO_LIMIT set to True
 
-                # cleanup
-                engine.execute(
-                    f"DROP {ctas_method.name} admin_database.{tmp_table_name}"
-                )
+                    # cleanup
+                    connection.execute(
+                        sa.text(
+                            f"DROP {ctas_method.name} admin_database.{tmp_table_name}"
+                        )
+                    )
                 examples_db.allow_ctas = old_allow_ctas
                 db.session.commit()
 
@@ -257,9 +261,13 @@ class TestSqlLab(SupersetTestCase):
         )
 
         with examples_db.get_sqla_engine() as engine:
-            engine.execute(
-                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"  # noqa: E501
-            )
+            with engine.connect() as connection:
+                connection.execute(
+                    sa.text(
+                        f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table "
+                        f"AS SELECT 1 as c1, 2 as c2"
+                    )  # noqa: E501
+                )
 
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",  # noqa: S608
@@ -288,7 +296,10 @@ class TestSqlLab(SupersetTestCase):
 
         db.session.query(Query).delete()
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
+            with engine.connect() as connection:
+                connection.execute(
+                    sa.text(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
+                )
         db.session.commit()
 
     def test_alias_duplicate(self):

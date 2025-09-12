@@ -23,6 +23,7 @@ from unittest import mock
 import prison
 import pytest
 from flask import current_app
+from sqlalchemy import text
 
 from superset import db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -62,16 +63,25 @@ def create_test_table_context(database: Database):
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"  # noqa: E501
-        )
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")  # noqa: S608
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")  # noqa: S608
+        with engine.connect() as connection:
+            connection.execute(
+                text(
+                    f"CREATE TABLE IF NOT EXISTS {full_table_name} "
+                    f"AS SELECT 1 as first, 2 as second"
+                )  # noqa: E501
+            )
+            connection.execute(
+                text(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")  # noqa: S608
+            )
+            connection.execute(
+                text(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")  # noqa: S608
+            )
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE {full_table_name}")
+        with engine.connect() as connection:
+            connection.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 @contextmanager
