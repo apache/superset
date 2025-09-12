@@ -29,7 +29,12 @@ from jsonpath_ng import parse
 from simplejson import JSONDecodeError
 
 from superset.constants import PASSWORD_MASK
-from superset.utils.dates import datetime_to_epoch, EPOCH
+from superset.utils.dates import (
+    datetime_to_epoch,
+    EPOCH,
+    JS_DATE_RANGE_MAX,
+    JS_DATE_RANGE_MIN,
+)
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -155,9 +160,27 @@ def json_int_dttm_ser(obj: Any) -> Any:
     """
 
     if isinstance(obj, (datetime, pd.Timestamp)):
+        # Check if datetime is within JavaScript's safe date range
+        # If not, return ISO string instead of epoch milliseconds
+        if isinstance(obj, pd.Timestamp):
+            dttm = obj.to_pydatetime()
+        else:
+            dttm = obj
+
+        # Remove timezone info for comparison
+        dttm_no_tz = dttm.replace(tzinfo=None) if dttm.tzinfo else dttm
+
+        if dttm_no_tz < JS_DATE_RANGE_MIN or dttm_no_tz > JS_DATE_RANGE_MAX:
+            # Return ISO string for dates outside JavaScript's safe range
+            return obj.isoformat()
+
         return datetime_to_epoch(obj)
 
     if isinstance(obj, date):
+        # Check if date is within JavaScript's safe date range
+        date_as_datetime = datetime.combine(obj, datetime.min.time())
+        if date_as_datetime < JS_DATE_RANGE_MIN or date_as_datetime > JS_DATE_RANGE_MAX:
+            return obj.isoformat()
         return (obj - EPOCH.date()).total_seconds() * 1000
 
     return base_json_conv(obj)
