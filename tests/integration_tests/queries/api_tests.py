@@ -18,7 +18,6 @@
 """Unit tests for Superset"""
 
 from datetime import datetime, timedelta
-from unittest import mock
 import random
 import string
 
@@ -453,21 +452,13 @@ class TestQueryApi(SupersetTestCase):
         db.session.delete(updated_query)
         db.session.commit()
 
-    @mock.patch("superset.sql_lab.cancel_query")
-    @mock.patch("superset.views.core.db.session")
-    def test_stop_query_not_found(
-        self, mock_superset_db_session, mock_sql_lab_cancel_query
-    ):
+    def test_stop_query_not_found(self):
         """
         Handles stop query when the DB engine spec does not
         have a cancel query method (with invalid client_id).
         """
         form_data = {"client_id": "foo2"}
-        query_mock = mock.Mock()
-        query_mock.return_value = None
         self.login(ADMIN_USERNAME)
-        mock_superset_db_session.query().filter_by().one_or_none = query_mock
-        mock_sql_lab_cancel_query.return_value = True
         rv = self.client.post(
             "/api/v1/query/stop",
             data=json.dumps(form_data),
@@ -478,22 +469,25 @@ class TestQueryApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["message"] == "Query with client_id foo2 not found"
 
-    @mock.patch("superset.sql_lab.cancel_query")
-    @mock.patch("superset.views.core.db.session")
-    def test_stop_query(self, mock_superset_db_session, mock_sql_lab_cancel_query):
+    # @mock.patch("superset.sql_lab.cancel_query")
+    def test_stop_query(self):
         """
         Handles stop query when the DB engine spec does not
         have a cancel query method.
         """
         form_data = {"client_id": "foo"}
-        query_mock = mock.Mock()
-        query_mock.client_id = "foo"
-        query_mock.status = QueryStatus.RUNNING
-        self.login(ADMIN_USERNAME)
-        mock_superset_db_session.query().filter_by().one_or_none().return_value = (
-            query_mock
+        admin = self.get_user("admin")
+        example_db = get_example_database()
+        query1 = self.insert_query(
+            example_db.id,
+            admin.id,
+            form_data["client_id"],
+            sql="SELECT col1, col2 from table1",
+            select_sql="SELECT col1, col2 from table1",
+            executed_sql="SELECT col1, col2 from table1 LIMIT 100",
+            changed_on=datetime.utcnow() - timedelta(days=1),
         )
-        mock_sql_lab_cancel_query.return_value = True
+        self.login(ADMIN_USERNAME)
         rv = self.client.post(
             "/api/v1/query/stop",
             data=json.dumps(form_data),
@@ -503,3 +497,5 @@ class TestQueryApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"] == "OK"
+        db.session.delete(query1)
+        db.session.commit()
