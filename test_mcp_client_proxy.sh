@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Test MCP Native Proxy Endpoints - Mirror of test_mcp_all.sh but through Superset Native proxy
+# Test MCP Native Proxy Endpoints - Mirror of test_mcp_all.sh but through Superset Client proxy
 
 echo "====================================="
-echo "  SUPERSET MCP NATIVE PROXY TEST SUITE"
+echo "  SUPERSET MCP CLIENT PROXY TEST SUITE"
 echo "====================================="
 
 SUPERSET_URL="http://localhost:9001"
-MCP_PROXY_URL="${SUPERSET_URL}/api/v1/mcp-native/"
+MCP_PROXY_URL="${SUPERSET_URL}/api/v1/mcp-client/"
 
 # Initialize session once
-echo -e "\n1️⃣ INITIALIZING SESSION via NATIVE PROXY..."
+echo -e "\n1️⃣ INITIALIZING SESSION via CLIENT PROXY..."
 SESSION=$(curl -sD - -X POST ${MCP_PROXY_URL} \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
@@ -27,7 +27,7 @@ curl -s -X POST ${MCP_PROXY_URL} \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}' > /dev/null
 
 # TEST 1: List Tools via proxy
-echo -e "\n2️⃣ LISTING AVAILABLE TOOLS via NATIVE PROXY..."
+echo -e "\n2️⃣ LISTING AVAILABLE TOOLS via CLIENT PROXY..."
 echo "--------------------------------"
 curl -s -X POST ${MCP_PROXY_URL} \
   -H "Content-Type: application/json" \
@@ -37,7 +37,7 @@ curl -s -X POST ${MCP_PROXY_URL} \
   | sed -n 's/^data: //p' | jq -r '.result.tools | length as $count | "\($count) tools available", (.[:5] | .[] | "  • \(.name)")'
 
 # TEST 2: Call list_datasets via proxy
-echo -e "\n3️⃣ CALLING list_datasets TOOL via NATIVE PROXY..."
+echo -e "\n3️⃣ CALLING list_datasets TOOL via CLIENT PROXY..."
 echo "--------------------------------"
 RESPONSE=$(curl -s -X POST ${MCP_PROXY_URL} \
   -H "Content-Type: application/json" \
@@ -76,7 +76,7 @@ echo "$RESPONSE" | grep "^data: " | tail -1 | sed 's/^data: //' | jq -r '
   end'
 
 # TEST 3: Call get_superset_instance_info via proxy
-echo -e "\n4️⃣ GETTING INSTANCE INFO via NATIVE PROXY..."
+echo -e "\n4️⃣ GETTING INSTANCE INFO via CLIENT PROXY..."
 echo "--------------------------------"
 RESPONSE=$(curl -s -X POST ${MCP_PROXY_URL} \
   -H "Content-Type: application/json" \
@@ -122,7 +122,7 @@ echo "$RESPONSE" | grep "^data: " | tail -1 | sed 's/^data: //' | jq -r '
   end'
 
 # TEST 4: Check health endpoint
-echo -e "\n5️⃣ CHECKING NATIVE PROXY HEALTH..."
+echo -e "\n5️⃣ CHECKING CLIENT PROXY HEALTH..."
 echo "--------------------------------"
 curl -s ${MCP_PROXY_URL}_health | jq -r '"Status: \(.status)\nProxy: \(.proxy)\nFastMCP: \(.fastmcp)\nCircuit Breaker: \(.circuit_breaker)"'
 

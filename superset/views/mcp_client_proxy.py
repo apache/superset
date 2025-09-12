@@ -48,7 +48,7 @@ from superset.views.mcp_proxy import (
 logger = logging.getLogger(__name__)
 
 # Create the MCP STDIO proxy blueprint (keeping the same name for compatibility)
-mcp_native_bp = Blueprint("mcp_native_proxy", __name__)
+mcp_client_bp = Blueprint("mcp_client_proxy", __name__)
 
 # Global instances
 circuit_breaker = CircuitBreaker()
@@ -240,7 +240,7 @@ def create_sse_response(response_data: Dict[str, Any]) -> Response:
     return Response(generate(), mimetype="text/event-stream", headers=sse_headers)
 
 
-@mcp_native_bp.route("/api/v1/mcp-native/test", methods=["GET", "POST"])
+@mcp_client_bp.route("/api/v1/mcp-client/test", methods=["GET", "POST"])
 def test_route() -> Response:
     """Simple test route."""
     return Response(
@@ -249,8 +249,8 @@ def test_route() -> Response:
     )
 
 
-@mcp_native_bp.route(
-    "/api/v1/mcp-native/", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+@mcp_client_bp.route(
+    "/api/v1/mcp-client/", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
 @csrf.exempt
 def proxy_mcp_native(path: str = "") -> Response:  # noqa: C901
@@ -453,7 +453,7 @@ def proxy_mcp_native(path: str = "") -> Response:  # noqa: C901
         )
 
 
-@mcp_native_bp.route("/api/v1/mcp-native/_health")
+@mcp_client_bp.route("/api/v1/mcp-client/_health")
 def health_check() -> Response:
     """Health check for Direct proxy."""
     try:
@@ -490,7 +490,7 @@ def health_check() -> Response:
         )
 
 
-@mcp_native_bp.route("/api/v1/mcp-native/_info")
+@mcp_client_bp.route("/api/v1/mcp-client/_info")
 @csrf.exempt
 def service_info() -> Response:
     """Get MCP Direct service information and configuration."""
@@ -540,7 +540,7 @@ def service_info() -> Response:
 
 
 # Handle CORS preflight requests
-@mcp_native_bp.before_request
+@mcp_client_bp.before_request
 def handle_preflight() -> None:
     """Handle CORS preflight requests for MCP Direct endpoints."""
     if request.method == "OPTIONS":
