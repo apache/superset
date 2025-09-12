@@ -336,7 +336,7 @@ def initialize_mcp_session() -> Optional[str]:
     return session_id
 
 
-@mcp_bp.route("/api/v1/mcp/test", methods=["GET", "POST"])
+@mcp_bp.route("/api/v1/mcp-proxy/test", methods=["GET", "POST"])
 def test_route() -> Response:
     """Simple test route."""
     return Response(
@@ -346,12 +346,12 @@ def test_route() -> Response:
 
 
 @mcp_bp.route(
-    "/api/v1/mcp/",
+    "/api/v1/mcp-proxy/",
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     defaults={"path": ""},
 )
 @mcp_bp.route(
-    "/api/v1/mcp/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    "/api/v1/mcp-proxy/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
 @csrf.exempt
 def proxy_mcp(path: str = "") -> Response:  # noqa: C901
@@ -472,7 +472,7 @@ def proxy_mcp(path: str = "") -> Response:  # noqa: C901
         )
 
 
-@mcp_bp.route("/api/v1/mcp/_health")
+@mcp_bp.route("/api/v1/mcp-proxy/_health")
 def health_check() -> Response:
     """Combined health check for proxy and FastMCP service."""
     try:
@@ -521,7 +521,7 @@ def health_check() -> Response:
     )
 
 
-@mcp_bp.route("/api/v1/mcp/_info")
+@mcp_bp.route("/api/v1/mcp-proxy/_info")
 @csrf.exempt
 def service_info() -> Response:
     """Get MCP service information and configuration."""

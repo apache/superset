@@ -7,7 +7,7 @@ echo "  SUPERSET MCP PROXY TEST SUITE"
 echo "====================================="
 
 SUPERSET_URL="http://localhost:9001"
-MCP_PROXY_URL="${SUPERSET_URL}/api/v1/mcp/"
+MCP_PROXY_URL="${SUPERSET_URL}/api/v1/mcp-proxy/"
 
 # Initialize session once
 echo -e "\n1️⃣ INITIALIZING SESSION via PROXY..."
