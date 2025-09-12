@@ -20,6 +20,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
+import pytest
 from flask import current_app
 
 import superset.cli.mcp
@@ -58,15 +59,16 @@ class TestMcpCliRun:
 class TestMcpCliSetup:
     """Test mcp setup command"""
 
-    def setUp(self):
-        """Set up test environment"""
-        self.test_dir = tempfile.mkdtemp()
-        self.original_cwd = os.getcwd()
-        os.chdir(self.test_dir)
-
-    def tearDown(self):
-        """Clean up test environment"""
-        os.chdir(self.original_cwd)
+    @pytest.fixture(autouse=True)
+    def setup_teardown(self, tmp_path):
+        """Set up and tear down test environment"""
+        # Save original directory
+        original_cwd = os.getcwd()
+        # Change to temp directory for test
+        os.chdir(tmp_path)
+        yield
+        # Restore original directory
+        os.chdir(original_cwd)
 
     def _mock_user_import(self, query_count_return=1, query_count_side_effect=None):
         """Helper to create consistent User import mocking with proper cleanup"""
@@ -116,10 +118,9 @@ class TestMcpCliSetup:
         with self._mock_user_import():
             mock_security.find_user.return_value = True
 
-            # Remove existing config file to test new config creation
+            # Config file should not exist in temp directory
             config_path = Path("superset_config.py")
-            if config_path.exists():
-                config_path.unlink()
+            assert not config_path.exists()
 
             runner = current_app.test_cli_runner()
             response = runner.invoke(superset.cli.mcp.setup, ["--skip-examples"])
@@ -275,9 +276,9 @@ class TestMcpConfigHelpers:
 
             shutil.rmtree(self.test_dir)
 
-    def test_create_config_file_basic(self):
+    def test_create_config_file_basic(self, tmp_path):
         """Test basic config file creation"""
-        config_path = Path("test_config.py")
+        config_path = tmp_path / "test_config.py"
 
         superset.cli.mcp._create_config_file(config_path)
 
@@ -286,9 +287,9 @@ class TestMcpConfigHelpers:
         assert "MCP_ADMIN_USERNAME = 'admin'" in content
         assert "SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'" in content
 
-    def test_update_config_file_add_missing(self):
+    def test_update_config_file_add_missing(self, tmp_path):
         """Test updating config file with missing settings"""
-        config_path = Path("test_config.py")
+        config_path = tmp_path / "test_config.py"
         config_path.write_text("# Empty config")
 
         superset.cli.mcp._update_config_file(config_path)
