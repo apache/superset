@@ -18,14 +18,17 @@ from datetime import datetime
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy.orm import Mapped
 
 
 class CacheKey(Model):  # pylint: disable=too-few-public-methods
     """Stores cache key records for the superset visualization."""
 
     __tablename__ = "cache_keys"
-    id = Column(Integer, primary_key=True)
-    cache_key = Column(String(256), nullable=False)
-    cache_timeout = Column(Integer, nullable=True)
-    datasource_uid = Column(String(64), nullable=False, index=True)
-    created_on = Column(DateTime, default=datetime.now, nullable=True)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    cache_key: Mapped[str] = Column(String(256), nullable=False)
+    cache_timeout: Mapped[int | None] = Column(Integer, nullable=True)
+    datasource_uid: Mapped[str] = Column(String(64), nullable=False, index=True)
+    created_on: Mapped[datetime | None] = Column(
+        DateTime, default=datetime.now, nullable=True
+    )

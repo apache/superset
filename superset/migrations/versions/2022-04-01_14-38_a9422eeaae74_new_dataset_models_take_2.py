@@ -182,6 +182,7 @@ sqlatable_user_table = sa.Table(
 class SqlaTable(AuxiliaryColumnsMixin, Base):
     __tablename__ = "tables"
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
+    __allow_unmapped__ = True
 
     id = sa.Column(sa.Integer, primary_key=True)
     extra = sa.Column(sa.Text)
@@ -258,6 +259,7 @@ class NewColumn(AuxiliaryColumnsMixin, Base):
 
 class NewTable(AuxiliaryColumnsMixin, Base):
     __tablename__ = "sl_tables"
+    __allow_unmapped__ = True
 
     id = sa.Column(sa.Integer, primary_key=True)
     # A temporary column to keep the link between NewTable to SqlaTable
@@ -872,7 +874,7 @@ def postprocess_columns(session: Session) -> None:  # noqa: C901
     print("   Assign table column relations...")
     insert_from_select(
         table_column_association_table,
-        select([NewColumn.table_id, NewColumn.id.label("column_id")])
+        select(NewColumn.table_id, NewColumn.id.label("column_id"))
         .select_from(NewColumn)
         .where(and_(NewColumn.is_physical, NewColumn.table_id.isnot(None))),
     )

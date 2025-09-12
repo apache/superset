@@ -206,7 +206,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     external_url = Column(Text, nullable=True)
 
     sql: str | None = None
-    owners: list[User]
+    owners: list[User]  # This is overridden in subclasses
     update_from_object_fields: list[str]
 
     extra_import_fields = ["is_managed_externally", "external_url"]
@@ -232,7 +232,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return self.kind == DatasourceKind.VIRTUAL
 
     @declared_attr
-    def slices(self) -> RelationshipProperty:
+    def slices(self) -> Mapped[list[Slice]]:
         return relationship(
             "Slice",
             overlaps="table",
@@ -1128,25 +1128,27 @@ class SqlaTable(
         UniqueConstraint("database_id", "catalog", "schema", "table_name"),
     )
 
-    table_name = Column(String(250), nullable=False)
-    main_dttm_col = Column(String(250))
-    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
-    fetch_values_predicate = Column(Text)
-    owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
-    database: Database = relationship(
+    table_name: Mapped[str] = Column(String(250), nullable=False)
+    main_dttm_col: Mapped[str | None] = Column(String(250))
+    database_id: Mapped[int] = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    fetch_values_predicate: Mapped[str | None] = Column(Text)
+    owners: Mapped[list[Any]] = relationship(
+        owner_class, secondary=sqlatable_user, backref="tables"
+    )
+    database: Mapped[Database] = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
-    schema = Column(String(255))
-    catalog = Column(String(256), nullable=True, default=None)
-    sql = Column(utils.MediumText())
-    is_sqllab_view = Column(Boolean, default=False)
-    template_params = Column(Text)
-    extra = Column(Text)
-    normalize_columns = Column(Boolean, default=False)
-    always_filter_main_dttm = Column(Boolean, default=False)
-    folders = Column(JSON, nullable=True)
+    schema: Mapped[str | None] = Column(String(255))
+    catalog: Mapped[str | None] = Column(String(256), nullable=True, default=None)
+    sql: Mapped[str | None] = Column(utils.MediumText())
+    is_sqllab_view: Mapped[bool] = Column(Boolean, default=False)
+    template_params: Mapped[str | None] = Column(Text)
+    extra: Mapped[str | None] = Column(Text)
+    normalize_columns: Mapped[bool] = Column(Boolean, default=False)
+    always_filter_main_dttm: Mapped[bool] = Column(Boolean, default=False)
+    folders: Mapped[Any | None] = Column(JSON, nullable=True)
 
     baselink = "tablemodelview"
 
@@ -1515,7 +1517,7 @@ class SqlaTable(
                 try:
                     # probe adhoc column type
                     tbl, _ = self.get_from_clause(template_processor)
-                    qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    qry = sa.select(sqla_column).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,

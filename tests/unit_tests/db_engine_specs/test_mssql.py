@@ -81,7 +81,7 @@ def test_where_clause_n_prefix() -> None:
 
     tbl = table("tbl")
     sel = (
-        select([str_col, unicode_col])
+        select(str_col, unicode_col)
         .select_from(tbl)
         .where(str_col == "abc")
         .where(unicode_col == "abc")

@@ -21,8 +21,8 @@ from typing import Any, Generic, get_args, TypeVar
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_sqlalchemy import BaseQuery
 from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy.orm import Query
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
@@ -228,9 +228,9 @@ class BaseDAO(Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def query(cls, query: BaseQuery) -> list[T]:
+    def query(cls, query: Query) -> list[T]:
         """
-        Get all that fit the `base_filter` based on a BaseQuery object
+        Get all that fit the `base_filter` based on a Query object
         """
         if cls.base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)

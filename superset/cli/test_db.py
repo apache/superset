@@ -121,11 +121,13 @@ def test_datetime(console: Console, engine: Engine) -> None:
 
     console.print("Inserting timestamp value...")
     insert_stmt = insert(table).values(ts=now)
-    engine.execute(insert_stmt)
 
     console.print("Reading timestamp value...")
     select_stmt = select(table)
-    row = engine.execute(select_stmt).fetchone()
+    with engine.connect() as connection:
+        connection.execute(insert_stmt)
+        connection.commit()
+        row = connection.execute(select_stmt).fetchone()
     assert row[0] == now
     console.print(":thumbs_up: [green]Success!")
 

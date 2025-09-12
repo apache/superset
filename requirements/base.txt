@@ -99,7 +99,7 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
-flask==2.3.3
+flask==3.1.2
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -116,7 +116,7 @@ flask==2.3.3
     #   flask-wtf
 flask-appbuilder==5.0.0
     # via apache-superset (pyproject.toml)
-flask-babel==3.1.0
+flask-babel==4.0.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
@@ -136,7 +136,7 @@ flask-migrate==3.1.0
     # via apache-superset (pyproject.toml)
 flask-session==0.8.0
     # via apache-superset (pyproject.toml)
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   flask-appbuilder
     #   flask-migrate
@@ -373,7 +373,7 @@ sniffio==1.3.1
     # via trio
 sortedcontainers==2.4.0
     # via trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.16
     # via
     #   apache-superset (pyproject.toml)
     #   alembic

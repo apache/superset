@@ -75,7 +75,7 @@ def upgrade():
     )
 
     delete_query = tagged_object_table.delete().where(
-        tagged_object_table.c.id.notin_(select([min_id_subquery.c.min_id]))
+        tagged_object_table.c.id.notin_(select(min_id_subquery.c.min_id))
     )
 
     bind.execute(delete_query)

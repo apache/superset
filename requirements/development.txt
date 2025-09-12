@@ -191,7 +191,7 @@ et-xmlfile==2.0.0
     #   openpyxl
 filelock==3.12.2
     # via virtualenv
-flask==2.3.3
+flask==3.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -212,7 +212,7 @@ flask-appbuilder==5.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-babel==3.1.0
+flask-babel==4.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
@@ -249,7 +249,7 @@ flask-session==0.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
@@ -815,7 +815,7 @@ sortedcontainers==2.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.16
     # via
     #   -c requirements/base-constraint.txt
     #   alembic

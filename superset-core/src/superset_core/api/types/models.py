@@ -18,8 +18,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Type
 
-from flask_sqlalchemy import BaseQuery
-from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import Query, scoped_session
 
 
 class CoreModelsApi(ABC):
@@ -63,7 +62,7 @@ class CoreModelsApi(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_datasets(query: Query | None = None, **kwargs: Any) -> list[Any]:
         """
         Retrieve Dataset (SqlaTable) entities.
 
@@ -77,7 +76,7 @@ class CoreModelsApi(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_databases(query: Query | None = None, **kwargs: Any) -> list[Any]:
         """
         Retrieve Database entities.
 

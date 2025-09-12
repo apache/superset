@@ -14,11 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from flask_appbuilder import Model
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
 from sqlalchemy import Column, ForeignKey, Integer, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy_utils import UUIDType
 
 from superset.models.helpers import AuditMixinNullable
@@ -38,14 +45,18 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
 
     __tablename__ = "embedded_dashboards"
 
-    uuid = Column(UUIDType(binary=True), default=uuid.uuid4, primary_key=True)
-    allow_domain_list = Column(Text)  # reference the `allowed_domains` property instead
-    dashboard_id = Column(
+    uuid: Mapped[UUID] = Column(
+        UUIDType(binary=True), default=uuid.uuid4, primary_key=True
+    )
+    allow_domain_list: Mapped[str | None] = Column(
+        Text
+    )  # reference the `allowed_domains` property instead
+    dashboard_id: Mapped[int] = Column(
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
         nullable=False,
     )
-    dashboard = relationship(
+    dashboard: Mapped["Dashboard"] = relationship(
         "Dashboard",
         back_populates="embedded",
         foreign_keys=[dashboard_id],

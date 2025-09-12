@@ -19,7 +19,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, Mapped, relationship
 from sqlalchemy.types import Text
 
 from superset.constants import PASSWORD_MASK
@@ -43,7 +43,7 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     database_id = sa.Column(
         sa.Integer, sa.ForeignKey("dbs.id"), nullable=False, unique=True
     )
-    database: Database = relationship(
+    database: Mapped[Database] = relationship(
         "Database",
         backref=backref("ssh_tunnels", uselist=False, cascade="all, delete-orphan"),
         foreign_keys=[database_id],

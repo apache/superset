@@ -49,7 +49,7 @@ def upgrade():
     )
 
     rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
-    filter_ids = sa.select([rlsf.c.id, rlsf.c.table_id])
+    filter_ids = sa.select(rlsf.c.id, rlsf.c.table_id)
 
     for row in bind.execute(filter_ids):
         move_table_id = rls_filter_tables.insert().values(
@@ -85,7 +85,7 @@ def downgrade():
     rls_filter_tables = sa.Table("rls_filter_tables", metadata, autoload=True)
     rls_filter_roles = sa.Table("rls_filter_roles", metadata, autoload=True)
 
-    filter_tables = sa.select([rls_filter_tables.c.rls_filter_id]).group_by(
+    filter_tables = sa.select(rls_filter_tables.c.rls_filter_id).group_by(
         rls_filter_tables.c.rls_filter_id
     )
 
@@ -95,7 +95,7 @@ def downgrade():
         filter_params = dict(bind.execute(filter_query).fetchone())
         origin_id = filter_params.pop("id", None)
         table_ids = bind.execute(
-            sa.select([rls_filter_tables.c.table_id]).where(
+            sa.select(rls_filter_tables.c.table_id).where(
                 rls_filter_tables.c.rls_filter_id == row["rls_filter_id"]
             )
         ).fetchall()

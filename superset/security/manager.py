@@ -49,7 +49,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
@@ -1207,8 +1207,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         pvms = (
             self.session.query(self.permissionview_model)
             .options(
-                eagerload(self.permissionview_model.permission),
-                eagerload(self.permissionview_model.view_menu),
+                joinedload(self.permissionview_model.permission),
+                joinedload(self.permissionview_model.view_menu),
             )
             .all()
         )
@@ -1796,7 +1796,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         table = SqlaTable.__table__  # pylint: disable=no-member
         current_dataset = connection.execute(
             table.select().where(table.c.id == target.id)
-        ).one()
+        ).fetchone()
         current_db_id = current_dataset.database_id
         current_catalog = current_dataset.catalog
         current_schema = current_dataset.schema
