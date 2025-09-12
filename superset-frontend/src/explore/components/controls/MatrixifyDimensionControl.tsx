@@ -40,6 +40,7 @@ interface MatrixifyDimensionControlProps {
   label?: string;
   description?: string;
   hovered?: boolean;
+  renderTrigger?: boolean;
   selectionMode?: 'members' | 'topn';
   topNMetric?: string;
   topNValue?: number;
@@ -57,6 +58,7 @@ export default function MatrixifyDimensionControl(
     label,
     description,
     hovered,
+    renderTrigger,
     selectionMode = 'members',
     topNMetric,
     topNValue,
@@ -71,7 +73,6 @@ export default function MatrixifyDimensionControl(
     Array<{ label: string; value: any }>
   >([]);
   const [loadingValues, setLoadingValues] = useState(false);
-  const [loadingTopN, setLoadingTopN] = useState(false);
   const [topNError, setTopNError] = useState<string | null>(null);
   const prevSelectionMode = useRef(selectionMode);
 
@@ -87,7 +88,7 @@ export default function MatrixifyDimensionControl(
         });
       }
     }
-  }, [selectionMode, value, onChange]);
+  }, [selectionMode, value]);
 
   // Initialize dimension options from datasource
   useEffect(() => {
@@ -186,7 +187,6 @@ export default function MatrixifyDimensionControl(
     const { signal } = controller;
 
     const loadTopNValues = async () => {
-      setLoadingTopN(true);
       setTopNError(null);
 
       try {
@@ -220,10 +220,6 @@ export default function MatrixifyDimensionControl(
             topNValues: [],
           });
         }
-      } finally {
-        if (!signal.aborted) {
-          setLoadingTopN(false);
-        }
       }
     };
 
@@ -241,7 +237,6 @@ export default function MatrixifyDimensionControl(
     topNOrder,
     formData?.adhoc_filters,
     formData?.time_range,
-    onChange, // Add onChange to deps
   ]);
 
   const handleDimensionChange = (dimension: string) => {
@@ -269,6 +264,7 @@ export default function MatrixifyDimensionControl(
             label={label || t('Dimension')}
             description={description || t('Select a dimension')}
             hovered={hovered}
+            renderTrigger={renderTrigger}
           />
         }
         onChange={handleDimensionChange}
@@ -301,9 +297,6 @@ export default function MatrixifyDimensionControl(
         />
       )}
 
-      {value?.dimension && selectionMode === 'topn' && loadingTopN && (
-        <div>{t('Loading top values...')}</div>
-      )}
       {value?.dimension && selectionMode === 'topn' && topNError && (
         <div css={theme => ({ color: theme.colorError })}>
           {t('Error: %s', topNError)}

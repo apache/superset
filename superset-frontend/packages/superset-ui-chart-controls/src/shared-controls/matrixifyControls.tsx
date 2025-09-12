@@ -151,6 +151,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     default: 10,
     isInt: true,
     validators: [], // No validation - rely on visibility
+    renderTrigger: true,
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -183,6 +184,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       ['asc', t('Ascending')],
       ['desc', t('Descending')],
     ],
+    renderTrigger: true,
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
