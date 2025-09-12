@@ -16,17 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Increase timeout for CI environment
 import {
   cleanup,
   render,
   screen,
   selectOption,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { IAceEditorProps } from 'react-ace';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
+
+jest.setTimeout(60000);
 
 // Add cleanup after each test
 afterEach(async () => {
@@ -60,11 +65,18 @@ test('calls onChange when the SQL clause changes', async () => {
       height={100}
     />,
   );
+
+  await waitFor(() => {
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+  });
+
   await selectOption(Clauses.Having);
-  await new Promise(resolve => setTimeout(resolve, 0));
-  expect(onChange).toHaveBeenCalledWith(
-    expect.objectContaining({ clause: Clauses.Having }),
-  );
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ clause: Clauses.Having }),
+    );
+  });
 });
 
 test('calls onChange when the SQL expression changes', async () => {

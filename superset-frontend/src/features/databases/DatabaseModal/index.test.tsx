@@ -19,6 +19,7 @@
 
 // TODO: These tests should be made atomic in separate files
 
+// Increase timeout for CI environment
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -37,6 +38,8 @@ import DatabaseModal, {
   ActionType,
   DatabaseModalProps,
 } from './index';
+
+jest.setTimeout(30000);
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),

@@ -29,7 +29,6 @@ const store = mockStore({});
 
 const DATABASE_IMPORT_URL = 'glob:*/api/v1/database/import/';
 fetchMock.config.overwriteRoutes = true;
-fetchMock.post(DATABASE_IMPORT_URL, { result: 'OK' });
 
 const requiredProps = {
   resourceName: 'database' as ImportResourceName,
@@ -43,8 +42,13 @@ const requiredProps = {
   onHide: () => {},
 };
 
+beforeEach(() => {
+  fetchMock.post(DATABASE_IMPORT_URL, { result: 'OK' });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
+  fetchMock.restore();
 });
 
 const setup = (overrides: Partial<ImportModelsModalProps> = {}) =>
@@ -83,33 +87,40 @@ test('should render the import button initially disabled', () => {
 test('should render the import button enabled when a file is selected', async () => {
   const file = new File([new ArrayBuffer(1)], 'model_export.zip');
   const { getByTestId, getByRole } = setup();
-  await waitFor(() =>
-    fireEvent.change(getByTestId('model-file-input'), {
-      target: {
-        files: [file],
-      },
-    }),
-  );
-  expect(getByRole('button', { name: 'Import' })).toBeEnabled();
+
+  fireEvent.change(getByTestId('model-file-input'), {
+    target: {
+      files: [file],
+    },
+  });
+
+  await waitFor(() => {
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled();
+  });
 });
 
 test('should POST with request header `Accept: application/json`', async () => {
   const file = new File([new ArrayBuffer(1)], 'model_export.zip');
   const { getByTestId, getByRole } = setup();
-  await waitFor(() =>
-    fireEvent.change(getByTestId('model-file-input'), {
-      target: {
-        files: [file],
-      },
-    }),
-  );
+
+  fireEvent.change(getByTestId('model-file-input'), {
+    target: {
+      files: [file],
+    },
+  });
+
+  await waitFor(() => {
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled();
+  });
+
   fireEvent.click(getByRole('button', { name: 'Import' }));
-  await waitFor(() =>
-    expect(fetchMock.calls(DATABASE_IMPORT_URL)).toHaveLength(1),
-  );
-  expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
-    Accept: 'application/json',
-    'X-CSRFToken': '1234',
+
+  await waitFor(() => {
+    expect(fetchMock.calls(DATABASE_IMPORT_URL)).toHaveLength(1);
+    expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
+      Accept: 'application/json',
+      'X-CSRFToken': '1234',
+    });
   });
 });
 

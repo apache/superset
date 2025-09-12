@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import fetchMock from 'fetch-mock';
 import { FeatureFlag, isFeatureEnabled, QueryState } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -25,6 +26,8 @@ import {
   defaultQueryEditor,
   extraQueryEditor3,
 } from 'src/SqlLab/fixtures';
+
+// Use default Jest timeout
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -94,18 +97,40 @@ test('Renders an empty state for query history', () => {
 });
 
 test('fetches the query history when the persistence mode is enabled', async () => {
+  jest.useFakeTimers();
+
+  // Set up the mock BEFORE rendering to avoid timing issues
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );
 
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
+
   render(setup(), { useRedux: true, initialState });
-  await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+
+  // Let any microtasks and timers resolve
+  await jest.runAllTimersAsync();
+
+  // Wait for the component to trigger the API call
+  await waitFor(
+    () => {
+      expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1);
+    },
+    { timeout: 5000 },
   );
-  const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
-  expect(queryResultText).toBeInTheDocument();
+
+  // Separately wait for the DOM to update with the result
+  await waitFor(
+    () => {
+      expect(
+        screen.getByText(fakeApiResult.result[0].rows),
+      ).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
+
+  jest.useRealTimers();
   isFeatureEnabledMock.mockClear();
 });
 

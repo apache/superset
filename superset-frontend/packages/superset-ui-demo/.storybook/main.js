@@ -20,6 +20,11 @@ module.exports = {
     resolve: {
       ...config.resolve,
       ...customConfig.resolve,
+      alias: {
+        ...config.resolve.alias,
+        ...customConfig.resolve.alias,
+        'react-dom/test-utils': 'react-dom/test-utils.js',
+      },
     },
   }),
 

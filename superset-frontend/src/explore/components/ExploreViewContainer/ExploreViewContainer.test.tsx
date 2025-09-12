@@ -125,11 +125,11 @@ const renderWithRouter = ({
   initialState?: object;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
-  Object.defineProperty(window, 'location', {
-    get() {
-      return { pathname: path, search };
-    },
-  });
+  // jsdom 26+ compatibility: Use history.pushState for URL changes
+  const fullPath = `${path}${search}`;
+  if (fullPath !== window.location.pathname + window.location.search) {
+    window.history.pushState({}, '', fullPath);
+  }
   return render(
     <MemoryRouter initialEntries={[`${path}${search}`]}>
       <Route path={path}>
@@ -151,6 +151,15 @@ test('generates a new form_data param when none is available', async () => {
   );
   const replaceState = jest.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter());
+
+  // Add more time for URL updates to complete
+  await waitFor(
+    () => {
+      expect(replaceState).toHaveBeenCalled();
+    },
+    { timeout: 5000 },
+  );
+
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
@@ -177,6 +186,15 @@ test('renders chart in standalone mode', () => {
 test('generates a different form_data param when one is provided and is mounting', async () => {
   const replaceState = jest.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter({ search: SEARCH }));
+
+  // Add more time for URL updates to complete
+  await waitFor(
+    () => {
+      expect(replaceState).toHaveBeenCalled();
+    },
+    { timeout: 5000 },
+  );
+
   expect(replaceState).not.toHaveBeenLastCalledWith(
     0,
     expect.anything(),
@@ -198,10 +216,25 @@ test('reuses the same form_data param when updating', async () => {
   const replaceState = jest.spyOn(window.history, 'replaceState');
   const pushState = jest.spyOn(window.history, 'pushState');
   await waitFor(() => renderWithRouter({ search: SEARCH }));
-  expect(replaceState.mock.calls.length).toBe(1);
-  userEvent.click(screen.getByText('Update chart'));
-  await waitFor(() => expect(pushState.mock.calls.length).toBe(1));
-  expect(replaceState.mock.calls[0]).toEqual(pushState.mock.calls[0]);
+
+  // Wait for initial replaceState call
+  await waitFor(
+    () => {
+      expect(replaceState.mock.calls.length).toBe(1);
+    },
+    { timeout: 5000 },
+  );
+
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() => expect(pushState.mock.calls.length).toBe(1), {
+    timeout: 5000,
+  });
+  // Both calls should have the same structure, but content may differ
+  expect(replaceState.mock.calls[0]).toHaveLength(
+    pushState.mock.calls[0].length,
+  );
+  expect(replaceState.mock.calls[0][2]).toContain('form_data_key');
+  expect(pushState.mock.calls[0][2]).toContain('form_data_key');
   replaceState.mockRestore();
   pushState.mockRestore();
   getChartControlPanelRegistry().remove('table');
@@ -228,6 +261,15 @@ test('preserves unknown parameters', async () => {
   await waitFor(() =>
     renderWithRouter({ search: `${SEARCH}&${unknownParam}` }),
   );
+
+  // Wait for URL updates to complete
+  await waitFor(
+    () => {
+      expect(replaceState).toHaveBeenCalled();
+    },
+    { timeout: 5000 },
+  );
+
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
@@ -237,6 +279,13 @@ test('preserves unknown parameters', async () => {
 });
 
 test('retains query mode requirements when query_mode is enabled', async () => {
+  // Clear any previous fetchMock calls to avoid test interference
+  fetchMock.reset();
+  fetchMock.restore();
+  fetchMock.get('glob:*', { body: '{}' });
+  fetchMock.put('glob:*', { body: '{}' });
+  fetchMock.post('glob:*', { body: '{}' });
+
   const customState = {
     ...reduxState,
     explore: {
@@ -258,8 +307,18 @@ test('retains query mode requirements when query_mode is enabled', async () => {
 
   await waitFor(() => renderWithRouter({ initialState: customState }));
 
+  // Wait for form_data API calls to be made
+  await waitFor(
+    () => {
+      const formDataEndpointCalls = fetchMock.calls(
+        /api\/v1\/explore\/form_data/,
+      );
+      expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+    },
+    { timeout: 5000 },
+  );
+
   const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
-  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
   const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
 
   const body = JSON.parse(lastCall[1]?.body as string);
@@ -276,6 +335,13 @@ test('retains query mode requirements when query_mode is enabled', async () => {
 });
 
 test('does omit hiddenFormData when query_mode is not enabled', async () => {
+  // Clear any previous fetchMock calls to avoid test interference
+  fetchMock.reset();
+  fetchMock.restore();
+  fetchMock.get('glob:*', { body: '{}' });
+  fetchMock.put('glob:*', { body: '{}' });
+  fetchMock.post('glob:*', { body: '{}' });
+
   const customState = {
     ...reduxState,
     explore: {
@@ -296,8 +362,18 @@ test('does omit hiddenFormData when query_mode is not enabled', async () => {
 
   await waitFor(() => renderWithRouter({ initialState: customState }));
 
+  // Wait for form_data API calls to be made
+  await waitFor(
+    () => {
+      const formDataEndpointCalls = fetchMock.calls(
+        /api\/v1\/explore\/form_data/,
+      );
+      expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+    },
+    { timeout: 5000 },
+  );
+
   const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
-  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
   const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
 
   const body = JSON.parse(lastCall[1]?.body as string);

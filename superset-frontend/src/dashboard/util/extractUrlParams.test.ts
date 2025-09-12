@@ -22,14 +22,13 @@ const originalWindowLocation = window.location;
 
 describe('extractUrlParams', () => {
   beforeAll(() => {
-    // @ts-ignore
-    delete window.location;
-    // @ts-ignore
-    window.location = { search: '?edit=true&abc=123' };
+    // jsdom 26+ compatibility: Use history.pushState instead of location mocking
+    window.history.pushState({}, '', '/?edit=true&abc=123');
   });
 
   afterAll(() => {
-    window.location = originalWindowLocation;
+    // Restore original URL
+    window.history.pushState({}, '', originalWindowLocation.href);
   });
 
   it('returns all urlParams', () => {

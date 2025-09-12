@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { ImageLoader, type BackgroundPosition } from './ImageLoader';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
@@ -48,7 +48,9 @@ describe('ImageLoader', () => {
 
   it('is a valid element', async () => {
     setup();
-    expect(await screen.findByTestId('image-loader')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByTestId('image-loader')).toBeVisible();
+    });
   });
 
   it('fetches loads the image in the background', async () => {

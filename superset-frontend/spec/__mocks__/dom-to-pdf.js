@@ -17,13 +17,8 @@
  * under the License.
  */
 
-import { SVGProps, forwardRef } from 'react';
+// Mock dom-to-pdf module for Jest tests
+// The real module requires TextEncoder which isn't available in Node.js test environment
+const domToPdf = jest.fn(() => Promise.resolve());
 
-const SvgrMock = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
-  (props, ref) => <svg ref={ref} {...props} />,
-);
-
-SvgrMock.displayName = 'SvgrMock';
-
-export const ReactComponent = SvgrMock;
-export default SvgrMock;
+export default domToPdf;

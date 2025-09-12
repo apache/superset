@@ -47,18 +47,28 @@ const defaultProps = {
   onHide: mockOnHide,
 };
 const resetMockApi = () => {
-  (makeApi as any).mockReturnValue(
+  (makeApi as jest.Mock).mockReturnValue(
     jest.fn().mockResolvedValue(defaultResponse),
   );
 };
 const setMockApiNotFound = () => {
   const notFound = new SupersetApiError({ message: 'Not found', status: 404 });
-  (makeApi as any).mockReturnValue(jest.fn().mockRejectedValue(notFound));
+  (makeApi as jest.Mock).mockImplementation(({ method }) => {
+    if (method === 'GET') {
+      return jest.fn().mockRejectedValue(notFound);
+    }
+    // POST requests (enable embedding) should succeed
+    return jest.fn().mockResolvedValue(defaultResponse);
+  });
 };
 
-const setup = () => {
+const setup = (mockOverride?: () => void) => {
+  if (mockOverride) {
+    mockOverride();
+  } else {
+    resetMockApi();
+  }
   render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
-  resetMockApi();
 };
 
 beforeEach(() => {
@@ -68,7 +78,7 @@ beforeEach(() => {
 
 test('renders', async () => {
   setup();
-  expect(await screen.findByText('Embed')).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByText('Embed')).toBeInTheDocument());
 });
 
 test('renders loading state', async () => {
@@ -97,16 +107,14 @@ test('renders the correct actions when dashboard is ready to embed', async () =>
 });
 
 test('renders the correct actions when dashboard is not ready to embed', async () => {
-  setMockApiNotFound();
-  setup();
+  setup(setMockApiNotFound);
   expect(
     await screen.findByRole('button', { name: 'Enable embedding' }),
   ).toBeInTheDocument();
 });
 
 test('enables embedding', async () => {
-  setMockApiNotFound();
-  setup();
+  setup(setMockApiNotFound);
 
   const enableEmbed = await screen.findByRole('button', {
     name: 'Enable embedding',
@@ -115,9 +123,11 @@ test('enables embedding', async () => {
 
   fireEvent.click(enableEmbed);
 
-  expect(
-    await screen.findByRole('button', { name: 'Deactivate' }),
-  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: 'Deactivate' }),
+    ).toBeInTheDocument();
+  });
 });
 
 test('shows and hides the confirmation modal on deactivation', async () => {

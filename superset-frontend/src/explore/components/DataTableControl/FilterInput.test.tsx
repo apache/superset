@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
 jest.mock('lodash/debounce', () => ({
@@ -30,7 +35,10 @@ test('Render a FilterInput', async () => {
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
   expect(onChangeHandler).toHaveBeenCalledTimes(0);
-  userEvent.type(screen.getByRole('textbox'), 'test');
+  await userEvent.type(screen.getByRole('textbox'), 'test');
 
-  expect(onChangeHandler).toHaveBeenCalledTimes(4);
+  await waitFor(() => {
+    expect(onChangeHandler).toHaveBeenCalledTimes(1);
+  });
+  expect(onChangeHandler).toHaveBeenCalledWith('test');
 });

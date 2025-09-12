@@ -47,7 +47,7 @@ const parseNumber = (value: undefined | number | string | null) => {
   if (
     value === null ||
     value === undefined ||
-    (typeof value === 'string' && Number.isNaN(Number.parseInt(value, 10)))
+    (typeof value === 'string' && Number.isNaN(Number(value)))
   ) {
     return null;
   }

@@ -16,10 +16,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Frontend Environment
+        uses: ./.github/actions/setup-frontend/
         with:
-          node-version: '20'
+          install-dependencies: 'false'
 
       - name: Install Dependencies
         run: npm install -g @action-validator/core @action-validator/cli --save-dev

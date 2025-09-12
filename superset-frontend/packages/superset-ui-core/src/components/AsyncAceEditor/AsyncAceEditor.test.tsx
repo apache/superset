@@ -35,57 +35,78 @@ const selector = '[id="ace-editor"]';
 test('renders SQLEditor', async () => {
   const { container } = render(<SQLEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders FullSQLEditor', async () => {
   const { container } = render(<FullSQLEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders MarkdownEditor', async () => {
   const { container } = render(<MarkdownEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders TextAreaEditor', async () => {
   const { container } = render(<TextAreaEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders CssEditor', async () => {
   const { container } = render(<CssEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders JsonEditor', async () => {
   const { container } = render(<JsonEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders ConfigEditor', async () => {
   const { container } = render(<ConfigEditor />);
 
-  await waitFor(() => {
-    expect(container.querySelector(selector)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('renders a custom placeholder', () => {

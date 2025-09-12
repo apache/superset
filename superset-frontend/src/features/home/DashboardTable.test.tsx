@@ -28,6 +28,7 @@ import { Router } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
+import * as navigationUtils from 'src/utils/navigationUtils';
 import DashboardTable from './DashboardTable';
 
 jest.mock('src/views/CRUD/utils', () => ({
@@ -216,11 +217,7 @@ describe('DashboardTable', () => {
   });
 
   it('handles create dashboard button click', async () => {
-    const assignMock = jest.fn();
-    Object.defineProperty(window, 'location', {
-      value: { assign: assignMock },
-      writable: true,
-    });
+    const navigateToSpy = jest.spyOn(navigationUtils, 'navigateTo');
 
     render(
       <Router history={history}>
@@ -229,9 +226,19 @@ describe('DashboardTable', () => {
       { store },
     );
 
-    const createButton = screen.getByRole('button', { name: /dashboard$/i });
-    await userEvent.click(createButton);
-    expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+    // Target the specific dashboard button with the plus icon (not the one in the empty state)
+    const createButton = screen
+      .getByTestId('add-annotation-layer-button')
+      .closest('button');
+
+    expect(createButton).toBeTruthy();
+    await userEvent.click(createButton!);
+
+    expect(navigateToSpy).toHaveBeenCalledWith('/dashboard/new', {
+      assign: true,
+    });
+
+    navigateToSpy.mockRestore();
   });
 
   it('switches to Other tab when available', async () => {

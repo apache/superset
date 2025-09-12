@@ -67,19 +67,19 @@ test('returns api response mapping json result', async () => {
       store,
     }),
   });
-  await waitFor(() =>
-    expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1),
-  );
-  expect(result.current.data).toEqual(expectedResult);
+  await waitFor(() => {
+    expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1);
+    expect(result.current.data).toEqual(expectedResult);
+  });
   expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1);
   // clean up cache
   act(() => {
     store.dispatch(api.util.invalidateTags(['SqlLabInitialState']));
   });
-  await waitFor(() =>
-    expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(2),
-  );
-  expect(result.current.data).toEqual(expectedResult);
+  await waitFor(() => {
+    expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(2);
+    expect(result.current.data).toEqual(expectedResult);
+  });
 });
 
 test('returns cached data without api request', async () => {
