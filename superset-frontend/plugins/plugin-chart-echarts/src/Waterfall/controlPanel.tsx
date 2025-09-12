@@ -24,6 +24,7 @@ import {
   DEFAULT_TIME_FORMAT,
   formatSelectOptions,
   sharedControls,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
 
@@ -159,6 +160,19 @@ const config: ControlPanelConfig = {
       This can help viewers understand how each category affects the overall value.`),
       multi: false,
     },
+  },
+  formDataOverrides: formData => {
+    const controls = getStandardizedControls();
+
+    // Keep the 0th element and discard the rest, and modify the original instance array directly
+    if (controls.controls.metrics.length > 1) {
+      controls.controls.metrics = [controls.controls.metrics[0]];
+    }
+
+    return {
+      ...formData,
+      groupby: controls.popAllColumns(),
+    };
   },
 };
 
