@@ -21,7 +21,6 @@ from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -306,7 +305,6 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
         context = context or {}
 
-        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
         # access_token isn't currently parseable from the
         # databricks error response, but adding it in here
         # for reference if their error message changes
@@ -314,16 +312,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
 
-        if not isinstance(config_custom_errors, dict):
-            config_custom_errors = {}
-
-        db_engine_custom_errors = {}
-
-        if database_name and database_name in config_custom_errors:
-            database_errors = config_custom_errors[database_name]
-            if isinstance(database_errors, dict):
-                db_engine_custom_errors.update(database_errors)
-
+        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
         if not isinstance(db_engine_custom_errors, dict):
             db_engine_custom_errors = {}
 

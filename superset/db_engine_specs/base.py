@@ -1327,6 +1327,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
+    def get_database_custom_errors(
+        cls, database_name: str | None
+    ) -> dict[Any, tuple[str, SupersetErrorType, dict[str, Any]]]:
+        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
+        if not isinstance(config_custom_errors, dict):
+            return {}
+
+        if database_name and database_name in config_custom_errors:
+            database_errors = config_custom_errors[database_name]
+            if isinstance(database_errors, dict):
+                return database_errors
+        return {}
+
+    @classmethod
     def extract_errors(
         cls,
         ex: Exception,
@@ -1336,21 +1350,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
-
-        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
-
-        if not isinstance(config_custom_errors, dict):
-            config_custom_errors = {}
-
-        db_engine_custom_errors = {}
-
-        if database_name and database_name in config_custom_errors:
-            database_errors = config_custom_errors[database_name]
-            if isinstance(database_errors, dict):
-                db_engine_custom_errors.update(database_errors)
-
-        if not isinstance(db_engine_custom_errors, dict):
-            db_engine_custom_errors = {}
+        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
 
         for regex, (message, error_type, extra) in [
             *db_engine_custom_errors.items(),
