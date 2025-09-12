@@ -66,15 +66,13 @@ beforeAll(() => {
       categories = {
         'Breakpoint 1': { color: [255, 0, 0, 255], enabled: true },
       };
-    } else {
-      if (fd.dimension) {
-        data.forEach(d => {
-          if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
-            let color = [255, 0, 0, 255];
-            categories[d.cat_color] = { color, enabled: true };
-          }
-        });
-      }
+    } else if (fd.dimension) {
+      data.forEach(d => {
+        if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+          const color = [255, 0, 0, 255];
+          categories[d.cat_color] = { color, enabled: true };
+        }
+      });
     }
 
     return categories;

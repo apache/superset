@@ -485,11 +485,9 @@ export const deckGLCategoricalColor: CustomControlItem = {
     description: t(
       'Pick a dimension from which categorical colors are defined',
     ),
-    visibility: ({ controls }) =>
-      isColorSchemeTypeVisible(
-        controls,
-        COLOR_SCHEME_TYPES.categorical_palette,
-      ),
+    // Allow categorical dimension to be selected regardless of color scheme type
+    // Users might want to use categorical data for legends even with fixed colors
+    visibility: () => true,
   },
 };
 

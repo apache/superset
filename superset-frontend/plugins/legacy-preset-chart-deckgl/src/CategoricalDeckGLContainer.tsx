@@ -204,7 +204,11 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
           });
         }
         default: {
-          return [];
+          // Handle undefined/null color_scheme_type for backward compatibility
+          return data.map(d => ({
+            ...d,
+            color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
+          }));
         }
       }
     },
