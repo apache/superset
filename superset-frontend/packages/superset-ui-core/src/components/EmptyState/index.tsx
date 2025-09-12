@@ -60,7 +60,7 @@ const EmptyStateContainer = styled.div`
     flex-direction: column;
     width: 100%;
     height: 100%;
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     align-items: center;
     justify-content: center;
     padding: ${theme.sizeUnit * 4}px;
@@ -84,7 +84,7 @@ const EmptyStateContainer = styled.div`
 const Title = styled.p<{ size: EmptyStateSize }>`
   ${({ theme, size }) => css`
     font-size: ${size === 'large' ? theme.fontSizeLG : theme.fontSize}px;
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     margin-top: ${size === 'large' ? theme.sizeUnit * 4 : theme.sizeUnit * 2}px;
     font-weight: ${theme.fontWeightStrong};
   `}
@@ -93,7 +93,7 @@ const Title = styled.p<{ size: EmptyStateSize }>`
 const Description = styled.p<{ size: EmptyStateSize }>`
   ${({ theme, size }) => css`
     font-size: ${size === 'large' ? theme.fontSize : theme.fontSizeSM}px;
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     margin-top: ${theme.sizeUnit * 2}px;
   `}
 `;
