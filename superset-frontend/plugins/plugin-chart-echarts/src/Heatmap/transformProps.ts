@@ -19,7 +19,6 @@
 import {
   GenericDataType,
   NumberFormats,
-  QueryFormColumn,
   getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
@@ -101,11 +100,13 @@ export default function transformProps(
     xAxisTimeFormat,
     xAxisLabelRotation,
     currencyFormat,
+    sortXAxis,
+    sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
   const xAxisLabel = getColumnLabel(xAxis);
   // groupby is overridden to be a single value
-  const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
+  const yAxisLabel = getColumnLabel(groupby?.[0] || '');
   const { data, colnames, coltypes } = queriesData[0];
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
@@ -144,6 +145,73 @@ export default function transformProps(
       DEFAULT_ECHARTS_BOUNDS[1];
   }
 
+  // Extract unique values for each axis
+  const xValues = Array.from(new Set(data.map(row => row[xAxisLabel])));
+  const yValues = Array.from(new Set(data.map(row => row[yAxisLabel])));
+
+  // Sort axis values based on configuration
+  const sortAxisValues = (
+    values: any[],
+    sortConfig: string | undefined,
+    axisLabel: string,
+  ) => {
+    if (!sortConfig) {
+      return values;
+    }
+
+    const isMetricSort = sortConfig.includes('value');
+    const isAscending = sortConfig.endsWith('asc');
+
+    if (isMetricSort) {
+      // Create a map of axis value to metric sum for sorting by metric
+      const metricSums: Record<string, number> = {};
+      data.forEach(row => {
+        const axisValue = row[axisLabel];
+        const metricValue = row[metricLabel];
+        if (typeof metricValue === 'number' && axisValue != null) {
+          const key = String(axisValue);
+          metricSums[key] = (metricSums[key] || 0) + metricValue;
+        }
+      });
+
+      values.sort((a, b) => {
+        const keyA = String(a);
+        const keyB = String(b);
+        const sumA = metricSums[keyA] || 0;
+        const sumB = metricSums[keyB] || 0;
+        return isAscending ? sumA - sumB : sumB - sumA;
+      });
+    } else {
+      // Sort alphabetically/numerically
+      values.sort((a, b) => {
+        // Handle null/undefined values
+        if (a === null || a === undefined) return isAscending ? -1 : 1;
+        if (b === null || b === undefined) return isAscending ? 1 : -1;
+
+        // Convert to strings for comparison
+        const strA = String(a);
+        const strB = String(b);
+
+        // Try numeric comparison first
+        const numA = Number(strA);
+        const numB = Number(strB);
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+          return isAscending ? numA - numB : numB - numA;
+        }
+
+        // Fall back to string comparison
+        return isAscending
+          ? strA.localeCompare(strB)
+          : strB.localeCompare(strA);
+      });
+    }
+
+    return values;
+  };
+
+  const sortedXValues = sortAxisValues(xValues, sortXAxis, xAxisLabel);
+  const sortedYValues = sortAxisValues(yValues, sortYAxis, yAxisLabel);
+
   const series: HeatmapSeriesOption[] = [
     {
       name: metricLabel,
@@ -168,10 +236,12 @@ export default function transformProps(
         },
       },
       itemStyle: {
-        borderColor: addAlpha(
-          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
-          borderColor.a,
-        ),
+        borderColor: borderColor
+          ? addAlpha(
+              rgbToHex(borderColor.r, borderColor.g, borderColor.b),
+              borderColor.a,
+            )
+          : 'transparent',
         borderWidth,
       },
       emphasis: {
@@ -249,6 +319,9 @@ export default function transformProps(
     },
     xAxis: {
       type: 'category',
+      data: sortedXValues.map(v =>
+        v === null || v === undefined ? NULL_STRING : v,
+      ),
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
@@ -257,6 +330,9 @@ export default function transformProps(
     },
     yAxis: {
       type: 'category',
+      data: sortedYValues.map(v =>
+        v === null || v === undefined ? NULL_STRING : v,
+      ),
       axisLabel: {
         formatter: yAxisFormatter,
         interval: yscaleInterval === -1 ? 'auto' : yscaleInterval - 1,
