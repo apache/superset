@@ -25,6 +25,8 @@
  */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
+import '@testing-library/jest-dom';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { render } from '@testing-library/react';
 import {
   ThemeProvider,
@@ -49,7 +51,7 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
-// Mock the heavy dependencies that cause test issues  
+// Mock the heavy dependencies that cause test issues
 jest.mock('./DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: 'div',
 }));
