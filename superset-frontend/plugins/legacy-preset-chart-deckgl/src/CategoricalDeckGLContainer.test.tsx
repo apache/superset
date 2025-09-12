@@ -25,7 +25,6 @@
  * chart types work consistently.
  */
 
-import '@testing-library/jest-dom';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
 
 // Mock all external dependencies that cause import issues
@@ -53,11 +52,6 @@ beforeAll(() => {
   // Mock implementations of internal functions to avoid complex dependencies
   // These replicate the core logic for testing purposes
   getCategories = (fd: any, data: any[]) => {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-    const appliedScheme = fd.color_scheme;
-    // Mock the color function
-    const colorFn = () => '#ff0000';
     let categories: Record<any, { color: any; enabled: boolean }> = {};
 
     const colorSchemeType = fd.color_scheme_type;
@@ -79,8 +73,6 @@ beforeAll(() => {
   };
 
   addColor = (data: any[], fd: any, selectedColorScheme: string) => {
-    const appliedScheme = fd.color_scheme;
-    const colorFn = () => '#ff0000';
     let color: any;
     switch (selectedColorScheme) {
       case COLOR_SCHEME_TYPES.fixed_color: {
@@ -264,7 +256,7 @@ describe.each([
         );
 
         expect(result).toHaveLength(mockData.length);
-        result.forEach(item => {
+        result.forEach((item: any) => {
           expect(item.color).toEqual([255, 128, 64, 80 * 255]);
           // Should preserve original data
           expect(item).toHaveProperty('cat_color');
@@ -285,7 +277,7 @@ describe.each([
         );
 
         expect(result).toHaveLength(mockData.length);
-        result.forEach(item => {
+        result.forEach((item: any) => {
           expect(item.color).toEqual([255, 0, 0, 255]); // Mocked color
           // Should preserve original data
           expect(item).toHaveProperty('cat_color');
@@ -312,7 +304,7 @@ describe.each([
         );
 
         expect(result).toHaveLength(mockData.length);
-        result.forEach(item => {
+        result.forEach((item: any) => {
           expect(item.color).toEqual([128, 128, 128, 255]); // Default color
           // Should preserve original data
           expect(item).toHaveProperty('cat_color');
@@ -331,7 +323,7 @@ describe.each([
         expect(result).toHaveLength(mockData.length);
         expect(result).not.toEqual([]);
 
-        result.forEach(item => {
+        result.forEach((item: any) => {
           expect(item).toHaveProperty('color');
           expect(item).toHaveProperty('cat_color');
           expect(item).toHaveProperty('metric');
@@ -394,7 +386,7 @@ describe.each([
         expect(coloredData).toHaveLength(mockData.length);
 
         const categoryNames = Object.keys(categories);
-        coloredData.forEach(item => {
+        coloredData.forEach((item: any) => {
           expect(categoryNames).toContain(item.cat_color);
         });
       });

@@ -24,13 +24,17 @@
  * data processing, and user configuration scenarios for Arc and Scatter charts.
  */
 
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { render } from '@testing-library/react';
+import {
+  ThemeProvider,
+  supersetTheme,
+  DatasourceType,
+} from '@superset-ui/core';
 import CategoricalDeckGLContainer, {
   CategoricalDeckGLContainerProps,
 } from './CategoricalDeckGLContainer';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
+import React from 'react';
 
 // Mock all deck.gl and mapbox dependencies
 jest.mock('@deck.gl/core');
@@ -45,7 +49,6 @@ jest.mock('@superset-ui/core', () => ({
 
 // Mock the heavy dependencies that cause test issues
 jest.mock('./DeckGLContainer', () => {
-  const React = require('react');
   return {
     DeckGLContainerStyledWrapper: React.forwardRef((props: any, ref: any) =>
       React.createElement('div', {
@@ -61,7 +64,7 @@ jest.mock('./utils/colors', () => ({
   hexToRGB: jest.fn(() => [255, 0, 0, 255]),
 }));
 
-jest.mock('./utils/sandbox', () => jest.fn(code => eval(code)));
+jest.mock('./utils/sandbox', () => jest.fn(() => ({})));
 jest.mock('./utils/fitViewport', () => jest.fn(viewport => viewport));
 
 // Mock Legend component with simplified rendering logic
@@ -89,7 +92,11 @@ const mockDatasource = {
   verbose_map: {},
   main_dttm_col: null,
   datasource_name: 'test_table',
-  description: null,
+  description: undefined,
+  name: 'test_table',
+  type: DatasourceType.Table,
+  columns: [],
+  metrics: [],
 };
 
 const mockFormData = {
