@@ -124,14 +124,6 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
           const isErrored = erroredItems.includes(item.id);
           const displayName =
             item.customization.name?.trim() || t('[untitled]');
-          const classNames = [];
-
-          if (isErrored) {
-            classNames.push('errored');
-          }
-          if (selected) {
-            classNames.push('active');
-          }
 
           return (
             <FilterTitle
@@ -141,7 +133,6 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
               selected={selected}
               errored={isErrored}
               onClick={() => onChange(item.id)}
-              className={classNames.join(' ')}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
