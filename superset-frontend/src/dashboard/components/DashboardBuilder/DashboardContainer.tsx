@@ -70,13 +70,12 @@ type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
-export const renderedChartIdsSelector = createSelector(
-  [(state: RootState) => state.charts],
-  charts =>
+export const renderedChartIdsSelector: (state: RootState) => number[] =
+  createSelector([(state: RootState) => state.charts], charts =>
     Object.values(charts)
       .filter(chart => chart.chartStatus === 'rendered')
       .map(chart => chart.id),
-);
+  );
 
 const useRenderedChartIds = () => {
   const renderedChartIds = useSelector<RootState, number[]>(
@@ -297,6 +296,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           allowOverflow
           onFocus={handleFocus}
           items={tabItems}
+          tabBarStyle={{ paddingLeft: 0 }}
         />
       );
     },

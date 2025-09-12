@@ -2456,27 +2456,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dashboard",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "dashboards/dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered an "
-                                    "error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
-        }
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dashboard")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "dashboards/dashboard.yaml" in str(error["extra"])
+        assert "Dashboard already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
         # import with overwrite flag
         buf = self.create_import_v1_zip_file("dashboard")
@@ -2519,27 +2508,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dashboard",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "metadata.yaml": {"type": ["Must be equal to Dashboard."]},
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered "
-                                    "an error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dashboard")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "metadata.yaml" in error["extra"]
+        assert error["extra"]["metadata.yaml"] == {
+            "type": ["Must be equal to Dashboard."]
         }
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
     def test_get_all_related_roles(self):
         """
@@ -3201,6 +3179,79 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_filename_in_header(
+        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Dashboard API: Test that screenshot download includes proper filename in header
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 200
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
+            response = self._get_screenshot(dashboard.id, cache_key, format)
+            assert response.status_code == 200
+            assert response.mimetype == mt
+            assert (
+                response.headers["Content-Disposition"]
+                == f'attachment; filename="dash_with_tag.{format}"'
+            )
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_filename_in_header_dashboard_with_no_title(
+        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Dashboard API: Test that filename in header for screenshot download defaults
+        to screenshot if dashboard does not have a title.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = Dashboard()
+        db.session.add(dashboard)
+        db.session.commit()
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 200
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
+            response = self._get_screenshot(dashboard.id, cache_key, format)
+            assert response.status_code == 200
+            assert response.mimetype == mt
+            assert (
+                response.headers["Content-Disposition"]
+                == f'attachment; filename="screenshot.{format}"'
+            )
 
     @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")

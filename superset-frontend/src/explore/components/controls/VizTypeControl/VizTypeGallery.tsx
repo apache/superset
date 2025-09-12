@@ -449,7 +449,7 @@ const Selector: FC<{
       role="tab"
     >
       {icon}
-      {selector}
+      {t(selector)}
     </SelectorLabel>
   );
 };
@@ -837,8 +837,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               ))}
             </TagsWrapper>
             <Description>
-              {selectedVizMetadata?.description ||
-                t('No description available.')}
+              {t(
+                selectedVizMetadata?.description || 'No description available.',
+              )}
             </Description>
             <SectionTitle
               css={css`

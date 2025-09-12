@@ -80,6 +80,11 @@ import {
   getDynamicLabelsColors,
 } from '../../utils/colorScheme';
 
+export const TOGGLE_NATIVE_FILTERS_BAR = 'TOGGLE_NATIVE_FILTERS_BAR';
+export function toggleNativeFiltersBar(isOpen) {
+  return { type: TOGGLE_NATIVE_FILTERS_BAR, isOpen };
+}
+
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
   return { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges } };
@@ -178,11 +183,6 @@ export function savePublished(id, isPublished) {
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
 export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };
-}
-
-export const UPDATE_CSS = 'UPDATE_CSS';
-export function updateCss(css) {
-  return { type: UPDATE_CSS, css };
 }
 
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';
@@ -455,6 +455,7 @@ export function saveDashboardRequest(data, id, saveType) {
               owners: cleanedData.owners,
               roles: cleanedData.roles,
               tags: cleanedData.tags || [],
+              theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({
                 ...(cleanedData?.metadata || {}),
                 default_filters: safeStringify(serializedFilters),

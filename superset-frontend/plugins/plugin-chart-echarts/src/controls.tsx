@@ -97,12 +97,31 @@ const legendOrientationControl: ControlSetItem = {
   },
 };
 
+export const legendSortControl: ControlSetItem = {
+  name: 'legendSort',
+  config: {
+    type: 'SelectControl',
+    label: t('Sort legend'),
+    default: null,
+    renderTrigger: true,
+    choices: [
+      ['asc', t('Label ascending')],
+      ['desc', t('Label descending')],
+      [null, t('Sort by data')],
+    ],
+    description: t('Changes the sort value of the items in the legend only'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
+  },
+};
+
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
+  [legendSortControl],
 ];
 
 export const showValueControl: ControlSetItem = {
@@ -316,6 +335,21 @@ export const xAxisLabelInterval = {
     default: defaultXAxis.xAxisLabelInterval,
     renderTrigger: true,
     description: t('Choose how many X-Axis labels to show'),
+  },
+};
+
+export const forceMaxInterval = {
+  name: 'force_max_interval',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Force Time Grain as Max Interval'),
+    renderTrigger: true,
+    default: false,
+    description: t(
+      'Forces selected Time Grain as the maximum interval for X Axis Labels',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.time_grain_sqla?.value),
   },
 };
 

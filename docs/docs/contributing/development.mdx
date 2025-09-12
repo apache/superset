@@ -620,10 +620,10 @@ See [how tos](/docs/contributing/howtos#linting)
 
 :::tip
 `act` compatibility of Superset's GHAs is not fully tested. Running `act` locally may or may not
-work for different actions, and may require fine tunning and local secret-handling.
+work for different actions, and may require fine tuning and local secret-handling.
 For those more intricate GHAs that are tricky to run locally, we recommend iterating
 directly on GHA's infrastructure, by pushing directly on a branch and monitoring GHA logs.
-For more targetted iteration, see the `gh workflow run --ref {BRANCH}` subcommand of the GitHub CLI.
+For more targeted iteration, see the `gh workflow run --ref {BRANCH}` subcommand of the GitHub CLI.
 :::
 
 For automation and CI/CD, Superset makes extensive use of GitHub Actions (GHA). You
@@ -746,6 +746,26 @@ To run a single test file:
 ```bash
 npm run test -- path/to/file.js
 ```
+
+#### Known Issues and Workarounds
+
+**Jest Test Hanging (MessageChannel Issue)**
+
+If Jest tests hang with "Jest did not exit one second after the test run has completed", this is likely due to the MessageChannel issue from rc-overflow (Ant Design v5 components).
+
+**Root Cause**: `rc-overflow@1.4.1` creates MessageChannel handles for responsive overflow detection that remain open after test completion.
+
+**Current Workaround**: MessageChannel is mocked as undefined in `spec/helpers/jsDomWithFetchAPI.ts`, forcing rc-overflow to use requestAnimationFrame fallback.
+
+**To verify if still needed**: Remove the MessageChannel mocking lines and run `npm test -- --shard=4/8`. If tests hang, the workaround is still required.
+
+**Future removal conditions**: This workaround can be removed when:
+- rc-overflow updates to properly clean up MessagePorts in test environments
+- Jest updates to handle MessageChannel/MessagePort cleanup better
+- Ant Design switches away from rc-overflow
+- We switch away from Ant Design v5
+
+**See**: [PR #34871](https://github.com/apache/superset/pull/34871) for full technical details.
 
 ### Debugging Server App
 

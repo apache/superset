@@ -217,7 +217,8 @@ def test_run_sync_query_cta_no_data(test_client):
     sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
     result = run_sql(test_client, sql_empty_result)
     assert QueryStatus.SUCCESS == result["query"]["state"]
-    assert ([], []) == (result["data"], result["columns"])
+    assert [] == result["data"]
+    assert len(result["columns"]) > 0
 
     query = get_query_by_id(result["query"]["serverId"])
     assert QueryStatus.SUCCESS == query.status

@@ -101,6 +101,7 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -112,6 +113,7 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
+from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -1199,9 +1201,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # fetch the dashboard screenshot using the current user and cache if set
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
-            image = cache_payload.get_image()
-            if not image:
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
                 return self.response_404()
+
+            filename = get_filename(
+                dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
+            )
             if download_format == "pdf":
                 pdf_img = image.getvalue()
                 # Convert the screenshot to PDF
@@ -1210,13 +1217,18 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 return Response(
                     pdf_data,
                     mimetype="application/pdf",
-                    headers={"Content-Disposition": "inline; filename=dashboard.pdf"},
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}.pdf"'
+                    },
                     direct_passthrough=True,
                 )
             if download_format == "png":
                 return Response(
                     FileWrapper(image),
                     mimetype="image/png",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}.png"'
+                    },
                     direct_passthrough=True,
                 )
         return self.response_404()
@@ -1324,8 +1336,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             )
 
         self.incr_stats("from_cache", self.thumbnail.__name__)
+        try:
+            image = cache_payload.get_image()
+        except ScreenshotImageNotAvailableException:
+            return self.response_404()
         return Response(
-            FileWrapper(cache_payload.get_image()),
+            FileWrapper(image),
             mimetype="image/png",
             direct_passthrough=True,
         )

@@ -76,6 +76,7 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   return (
     <div>
       <Button
+        buttonStyle="secondary"
         onClick={() => {
           props?.closeModal?.();
           props?.changeDatasource?.();
@@ -83,11 +84,13 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       >
         {SAVE_AS_DATASET}
       </Button>
-      <Button onClick={({ metaKey }) => openSQL(Boolean(metaKey))}>
+      <Button
+        buttonStyle="secondary"
+        onClick={({ metaKey }) => openSQL(Boolean(metaKey))}
+      >
         {OPEN_IN_SQL_LAB}
       </Button>
       <Button
-        buttonStyle="primary"
         onClick={() => {
           props?.closeModal?.();
         }}

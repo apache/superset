@@ -149,6 +149,7 @@ export default function transformProps(
     legendOrientation,
     legendType,
     legendMargin,
+    legendSort,
     logAxis,
     markerEnabled,
     markerSize,
@@ -167,6 +168,7 @@ export default function transformProps(
     sortSeriesType,
     sortSeriesAscending,
     timeGrainSqla,
+    forceMaxInterval,
     timeCompare,
     timeShiftColor,
     stack,
@@ -233,6 +235,8 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -247,6 +251,7 @@ export default function transformProps(
       sortSeriesAscending,
       xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
       xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisType,
     },
   );
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
@@ -259,9 +264,6 @@ export default function transformProps(
     rawSeries.map(series => series.name as string),
   );
   const isAreaExpand = stack === StackControlsValue.Expand;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
@@ -509,11 +511,17 @@ export default function transformProps(
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.Time && timeGrainSqla
+      xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
             timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ]
         : 0,
+    maxInterval:
+      xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+        ? TIMEGRAIN_TO_TIMESTAMP[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
+        : undefined,
     ...getMinAndMaxFromBounds(
       xAxisType,
       truncateXAxis,
@@ -646,7 +654,10 @@ export default function transformProps(
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data: legendData as string[],
+      data: legendData.sort((a: string, b: string) => {
+        if (!legendSort) return 0;
+        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      }) as string[],
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {

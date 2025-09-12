@@ -30,7 +30,7 @@ from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -607,7 +607,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
-    def get_default_schema_for_query(self, query: Query) -> str | None:
+    def get_default_schema_for_query(
+        self, query: Query, template_params: Optional[dict[str, Any]] = None
+    ) -> str | None:
         """
         Return the default schema for a given query.
 
@@ -621,7 +623,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         default schema is defined in the SQLAlchemy URI; and in others the default schema
         might be determined by the database itself (like `public` for Postgres).
         """  # noqa: E501
-        return self.db_engine_spec.get_default_schema_for_query(self, query)
+        return self.db_engine_spec.get_default_schema_for_query(
+            self, query, template_params
+        )
 
     @staticmethod
     def post_process_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -671,7 +675,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
-    ) -> tuple[Any, list[tuple[Any, ...]] | None]:
+    ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
 
@@ -679,7 +683,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param fetch_last_result: Whether to fetch results from last statement
-        :return: Tuple of (cursor, rows) where rows is None if not fetching
+        :return: Tuple of (cursor, rows, description) where rows and description
+        are None if not fetching.
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
 
@@ -701,6 +706,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             rows = None
+            description = None
 
             for i, statement in enumerate(script.statements):
                 sql_ = self.mutate_sql_based_on_config(
@@ -718,12 +724,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
+                    # Capture cursor.description while it's still valid
+                    description = cursor.description
                     rows = self.db_engine_spec.fetch_data(cursor)
                 else:
                     # Consume results without storing
                     cursor.fetchall()
 
-            return cursor, rows
+            return cursor, rows, description
 
     def execute_sql_statements(
         self,
@@ -759,13 +767,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        cursor, rows = self._execute_sql_with_mutation_and_logging(
+        cursor, rows, description = self._execute_sql_with_mutation_and_logging(
             sql, catalog, schema, fetch_last_result=True
         )
 
         df = None
         if rows is not None:
-            df = self.load_into_dataframe(cursor.description, rows)
+            df = self.load_into_dataframe(description, rows)
 
         if mutator:
             df = mutator(df)
@@ -852,6 +860,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         return script.format()
 
+    def get_column_description_limit_size(self) -> int:
+        return self.db_engine_spec.get_column_description_limit_size()
+
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
@@ -922,6 +933,44 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 }
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+    @cache_util.memoized_func(
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:materialized_view_list",
+        cache=cache_manager.cache,
+    )
+    def get_all_materialized_view_names_in_schema(
+        self,
+        catalog: str | None,
+        schema: str,
+    ) -> set[Table]:
+        """Get all materialized views in the specified schema.
+
+        Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param catalog: optional catalog name
+        :param schema: schema name
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :return: set of materialized views
+        """
+        try:
+            with self.get_inspector(catalog=catalog, schema=schema) as inspector:
+                return {
+                    Table(view, schema, catalog)
+                    for view in self.db_engine_spec.get_materialized_view_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+        return set()
 
     @contextmanager
     def get_inspector(
@@ -1156,7 +1205,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
             # do not pass "" as an empty schema; force null
-            return engine.has_table(table.table, table.schema or None)
+            if engine.has_table(table.table, table.schema or None):
+                return True
+            return engine.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:

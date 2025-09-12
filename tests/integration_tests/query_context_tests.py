@@ -153,7 +153,7 @@ class TestQueryContext(SupersetTestCase):
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(payload["datasource"]["type"]),
-            datasource_id=payload["datasource"]["id"],
+            database_id_or_uuid=payload["datasource"]["id"],
         )
         description_original = datasource.description
         datasource.description = "temporary description"
