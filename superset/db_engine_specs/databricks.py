@@ -24,7 +24,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -521,11 +521,14 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             return default_catalog
 
         with database.get_sqla_engine() as engine:
-            catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
-            if len(catalogs) == 1:
-                return catalogs.pop()
+            with engine.connect() as connection:
+                catalogs = {
+                    catalog for (catalog,) in connection.execute(text("SHOW CATALOGS"))
+                }
+                if len(catalogs) == 1:
+                    return catalogs.pop()
 
-            return engine.execute("SELECT current_catalog()").scalar()
+                return connection.execute(text("SELECT current_catalog()")).scalar()
 
     @classmethod
     def get_prequeries(

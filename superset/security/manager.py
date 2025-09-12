@@ -1291,9 +1291,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         role_pvms = [
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
-        # Ensure role is in the session for SQLAlchemy 2.0 compatibility
-        if role not in self.session:
-            role = self.session.merge(role)
         role.permissions = role_pvms
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:

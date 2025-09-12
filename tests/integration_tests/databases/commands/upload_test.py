@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import pytest
 from flask.ctx import AppContext
+from sqlalchemy import text
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import (
@@ -78,8 +79,11 @@ def _setup_csv_upload(allowed_schemas: list[str] | None = None):
 
     upload_db = get_upload_db()
     with upload_db.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
-        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
+        with engine.connect() as connection:
+            connection.execute(text(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}"))  # noqa: S608
+            connection.execute(
+                text(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
+            )  # noqa: S608
     db.session.delete(upload_db)
     db.session.commit()
 
@@ -112,7 +116,10 @@ def test_csv_upload_with_nulls():
             CSVReader({"null_values": ["N/A", "None"]}),
         ).run()
     with upload_database.get_sqla_engine() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()  # noqa: S608
+        with engine.connect() as connection:
+            data = connection.execute(
+                text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
+            ).fetchall()
         assert data == [
             ("name1", None, "city1", "1-1-1980"),
             ("name2", 29, None, "1-1-1981"),
@@ -156,7 +163,10 @@ def test_csv_upload_with_index():
             CSVReader({"dataframe_index": True, "index_label": "id"}),
         ).run()
     with upload_database.get_sqla_engine() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()  # noqa: S608
+        with engine.connect() as connection:
+            data = connection.execute(
+                text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
+            ).fetchall()
         assert data == [
             (0, "name1", 30, "city1", "1-1-1980"),
             (1, "name2", 29, "city2", "1-1-1981"),
@@ -165,7 +175,9 @@ def test_csv_upload_with_index():
         # assert column names
         assert [  # noqa: C416
             col
-            for col in engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").keys()  # noqa: S608
+            for col in connection.execute(
+                text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
+            ).keys()
         ] == [
             "id",
             "Name",
