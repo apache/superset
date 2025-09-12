@@ -49,9 +49,9 @@ def create_user_and_group(
 
 
 def cleanup(user, group):
-    security_manager.get_session.delete(user)
-    security_manager.get_session.delete(group)
-    security_manager.get_session.commit()
+    security_manager.session.delete(user)
+    security_manager.session.delete(group)
+    security_manager.session.commit()
 
 
 @pytest.fixture
