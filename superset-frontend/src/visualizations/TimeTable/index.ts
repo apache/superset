@@ -22,7 +22,6 @@ import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.jpg';
 import exampleDark from './images/example-dark.jpg';
-import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Table'),
