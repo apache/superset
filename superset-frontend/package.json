@@ -259,7 +259,6 @@
     "@types/react-resizable": "^3.0.8",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-transition-group": "^4.4.12",
-    "@types/react-ultimate-pagination": "^1.2.4",
     "@types/react-virtualized-auto-sizer": "^1.0.8",
     "@types/react-window": "^1.8.8",
     "@types/redux-localstorage": "^1.0.8",
