@@ -49,19 +49,10 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
-// Mock the heavy dependencies that cause test issues
-jest.mock('./DeckGLContainer', () => {
-  const mockReact = require('react');
-  return {
-    DeckGLContainerStyledWrapper: mockReact.forwardRef((props: any, ref: any) =>
-      mockReact.createElement('div', {
-        'data-testid': 'deck-gl-container',
-        ...props,
-        ref,
-      }),
-    ),
-  };
-});
+// Mock the heavy dependencies that cause test issues  
+jest.mock('./DeckGLContainer', () => ({
+  DeckGLContainerStyledWrapper: 'div',
+}));
 
 jest.mock('./utils/colors', () => ({
   hexToRGB: jest.fn(() => [255, 0, 0, 255]),
