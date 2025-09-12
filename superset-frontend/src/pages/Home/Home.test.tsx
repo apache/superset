@@ -128,7 +128,10 @@ const mockedProps = {
     isAnonymous: false,
     permissions: {},
     roles: {
-      sql_lab: [['can_read', 'SavedQuery']],
+      sql_lab: [
+        ['can_read', 'SavedQuery'],
+        ['can_write', 'Chart'],
+      ],
     },
   },
 };
@@ -138,7 +141,25 @@ const mockedPropsWithoutSqlRole = {
     ...mockedProps,
     user: {
       ...mockedProps.user,
-      roles: {},
+      roles: {
+        sql_lab: mockedProps.user.roles.sql_lab.filter(
+          ([a, b]) => !(a === 'can_read' && b === 'SavedQuery'),
+        ),
+      },
+    },
+  },
+};
+
+const mockedPropsWithoutChartWriteRole = {
+  ...{
+    ...mockedProps,
+    user: {
+      ...mockedProps.user,
+      roles: {
+        sql_lab: mockedProps.user.roles.sql_lab.filter(
+          ([a, b]) => !(a === 'can_write' && b === 'Chart'),
+        ),
+      },
     },
   },
 };
@@ -162,12 +183,12 @@ afterEach(() => {
   fetchMock.resetHistory();
 });
 
-test('With sql role - renders', async () => {
+test('With sql and chart role - renders', async () => {
   await renderWelcome();
   expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 });
 
-test('With sql role - renders all panels on the page on page load', async () => {
+test('With sql and chart role - renders all panels on the page on page load', async () => {
   await renderWelcome();
   const panels = await screen.findAllByText(
     /Dashboards|Charts|Recents|Saved queries/,
@@ -175,7 +196,7 @@ test('With sql role - renders all panels on the page on page load', async () => 
   expect(panels).toHaveLength(4);
 });
 
-test('With sql role - renders distinct recent activities', async () => {
+test('With sql and chart role - renders distinct recent activities', async () => {
   await renderWelcome();
   const recentPanel = screen.getByRole('button', { name: 'collapsed Recents' });
   userEvent.click(recentPanel);
@@ -189,7 +210,7 @@ test('With sql role - renders distinct recent activities', async () => {
   ).toHaveLength(1);
 });
 
-test('With sql role - calls api methods in parallel on page load', async () => {
+test('With sql and chart role - calls api methods in parallel on page load', async () => {
   await renderWelcome();
   expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
   expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
@@ -219,6 +240,31 @@ test('Without sql role - calls api methods in parallel on page load', async () =
   expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
   expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
   expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+});
+
+test('Without chart role - renders', async () => {
+  /*
+  We ignore the ts error here because the type does not recognize the absence of a role entry
+  */
+  // @ts-ignore-next-line
+  await renderWelcome(mockedPropsWithoutChartWriteRole);
+  expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+});
+
+test('Without chart role - renders all panels on the page on page load', async () => {
+  // @ts-ignore-next-line
+  await renderWelcome(mockedPropsWithoutChartWriteRole);
+  const panels = await screen.findAllByText(/Dashboards|Recents|Saved queries/);
+  expect(panels).toHaveLength(3);
+});
+
+test('Without chart role - calls api methods in parallel on page load', async () => {
+  // @ts-ignore-next-line
+  await renderWelcome(mockedPropsWithoutChartWriteRole);
+  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(1);
   expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
 });
 
