@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { t, SupersetClient, getColumnLabel } from '@superset-ui/core';
 import { Select, Space } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -73,15 +73,19 @@ export default function MatrixifyDimensionControl(
   const [loadingValues, setLoadingValues] = useState(false);
   const [loadingTopN, setLoadingTopN] = useState(false);
   const [topNError, setTopNError] = useState<string | null>(null);
+  const prevSelectionMode = useRef(selectionMode);
 
   // Reset values when selection mode changes
   useEffect(() => {
-    if (value?.values && value.values.length > 0) {
-      onChange({
-        dimension: value.dimension,
-        values: [],
-        topNValues: [],
-      });
+    if (prevSelectionMode.current !== selectionMode) {
+      prevSelectionMode.current = selectionMode;
+      if (value?.values && value.values.length > 0) {
+        onChange({
+          dimension: value.dimension,
+          values: [],
+          topNValues: [],
+        });
+      }
     }
   }, [selectionMode, value, onChange]);
 
