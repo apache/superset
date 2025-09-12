@@ -221,7 +221,7 @@ export class QueryErrorResultContext
       endDttm?: number;
       templateParams?: string;
       tempTable?: string;
-      requestedLimist?: number;
+      requestedLimit?: number;
       queryId?: number;
     } = {},
   ) {
