@@ -109,10 +109,10 @@ def update_dashboards(session, uuid_map):
     for i, dashboard in enumerate(query.all()):
         update_position_json(dashboard, session, uuid_map)
         if i and i % default_batch_size == 0:
-            session.commit()
+            session.commit()  # pylint: disable=consider-using-transaction
         print(f"{message} {i + 1}/{dashboard_count}\r", end="")
 
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
     # Extra whitespace to override very long numbers, e.g. 99999/99999.
     print(f"{message} Done.      \n")
 
