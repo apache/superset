@@ -37,7 +37,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
+from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -471,12 +471,6 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
 
-    if auth_type == AUTH_OID:
-        oid_providers = []
-        for provider in appbuilder.sm.openid_providers:
-            oid_providers.append(provider)
-        frontend_config["AUTH_PROVIDERS"] = oid_providers
-
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
         "static_assets_prefix": app.config["STATIC_ASSETS_PREFIX"],
@@ -603,9 +597,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
-                security_manager.get_session.query(
-                    security_manager.permissionview_model
-                )
+                db.session.query(security_manager.permissionview_model)
                 .filter_by(view_menu=view_menu)
                 .all()
             )
@@ -614,10 +606,10 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 self.post_delete(item)
 
                 for pv in pvs:
-                    security_manager.get_session.delete(pv)
+                    db.session.delete(pv)
 
                 if view_menu:
-                    security_manager.get_session.delete(view_menu)
+                    db.session.delete(view_menu)
 
                 db.session.commit()  # pylint: disable=consider-using-transaction
 

@@ -69,9 +69,9 @@ import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from flask import current_app as app, g, request
-from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
+from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
@@ -613,7 +613,7 @@ def readfile(file_path: str) -> str | None:
 
 
 def generic_find_constraint_name(
-    table: str, columns: set[str], referenced: str, database: SQLA
+    table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
     tbl = sa.Table(

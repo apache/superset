@@ -20,7 +20,8 @@ from typing import Any, Callable, Optional
 
 import celery
 from flask import Flask
-from flask_appbuilder import AppBuilder, SQLA
+from flask_appbuilder import AppBuilder
+from flask_appbuilder.utils.legacy import get_sqla_class
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -123,7 +124,7 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = SQLA()  # pylint: disable=disallowed-name
+db = get_sqla_class()()
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))

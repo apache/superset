@@ -22,7 +22,7 @@ from alembic import context
 from alembic.operations.ops import MigrationScript
 from alembic.runtime.migration import MigrationContext
 from flask import current_app
-from flask_appbuilder import Base
+from flask_appbuilder import Model
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
@@ -45,7 +45,7 @@ if "sqlite" in DATABASE_URI:
 # Escape % chars in the database URI to avoid interpolation errors in ConfigParser
 escaped_uri = DATABASE_URI.replace("%", "%%")
 config.set_main_option("sqlalchemy.url", escaped_uri)
-target_metadata = Base.metadata  # pylint: disable=no-member
+target_metadata = Model.metadata  # pylint: disable=no-member
 
 
 # other values from the config, defined by the needs of env.py,

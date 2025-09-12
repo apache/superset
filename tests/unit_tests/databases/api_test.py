@@ -67,7 +67,7 @@ def test_filter_by_uuid(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -135,7 +135,7 @@ def test_password_mask(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -191,7 +191,7 @@ def test_database_connection(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -355,7 +355,7 @@ def test_update_with_password_mask(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -502,7 +502,7 @@ def test_delete_ssh_tunnel(
         from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -580,7 +580,7 @@ def test_delete_ssh_tunnel_not_found(
         from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -658,7 +658,7 @@ def test_apply_dynamic_database_filter(
         from superset.databases.api import DatabaseRestApi
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -753,7 +753,7 @@ def test_oauth2_happy_path(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -822,7 +822,7 @@ def test_oauth2_permissions(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -888,7 +888,7 @@ def test_oauth2_multiple_tokens(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
