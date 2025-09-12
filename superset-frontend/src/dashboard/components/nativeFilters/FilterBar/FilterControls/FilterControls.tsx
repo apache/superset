@@ -102,7 +102,7 @@ const SectionContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 2}px 0;
 `;
 
-const Divider = styled.div`
+const StyledDivider = styled.div`
   height: 1px;
   background: ${({ theme }) => theme.colorSplit};
   margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
@@ -249,7 +249,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             {(hideHeader || sectionsOpen.filters) && (
               <SectionContent>{filtersInScope.map(renderer)}</SectionContent>
             )}
-            {(hideHeader || sectionsOpen.filters) && <Divider />}
+            {(hideHeader || sectionsOpen.filters) && <StyledDivider />}
           </SectionContainer>
         )}
 
@@ -307,7 +307,9 @@ const FilterControls: FC<FilterControlsProps> = ({
                 </ChartCustomizationContent>
               </SectionContent>
             )}
-            {(hideHeader || sectionsOpen.chartCustomization) && <Divider />}
+            {(hideHeader || sectionsOpen.chartCustomization) && (
+              <StyledDivider />
+            )}
           </SectionContainer>
         )}
       </>
@@ -324,7 +326,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       SectionContainer,
       SectionHeader,
       SectionContent,
-      Divider,
+      StyledDivider,
       StyledIcon,
       ChartCustomizationContent,
       hideHeader,
