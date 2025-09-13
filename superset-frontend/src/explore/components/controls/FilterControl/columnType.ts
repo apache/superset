@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+import { Column } from '@superset-ui/core';
 
-export interface AggregateOption {
-  aggregate_name: string;
-}
+export type ColumnType = Pick<Column, 'column_name' | 'type'>;
+
+// For backward compatibility with PropTypes usage - create a placeholder object
+const columnType = {} as any;
+export default columnType;

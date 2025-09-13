@@ -16,12 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+import getDirectPathToTabIndex from './getDirectPathToTabIndex';
 
-export interface AggregateOption {
-  aggregate_name: string;
-}
+describe('getDirectPathToTabIndex', () => {
+  it('builds path using parents, id, and child at index', () => {
+    const tabs = {
+      id: 'TABS_ID',
+      parents: ['ROOT', 'ROW_1'],
+      children: ['TAB_A', 'TAB_B', 'TAB_C'],
+    };
+    expect(getDirectPathToTabIndex(tabs, 1)).toEqual([
+      'ROOT',
+      'ROW_1',
+      'TABS_ID',
+      'TAB_B',
+    ]);
+  });
+
+  it('handles missing parents', () => {
+    const tabs = {
+      id: 'TABS_ID',
+      children: ['TAB_A'],
+    };
+    expect(getDirectPathToTabIndex(tabs, 0)).toEqual(['TABS_ID', 'TAB_A']);
+  });
+});

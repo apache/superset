@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+import type { ControlPanelState, Dataset } from '@superset-ui/chart-controls';
 
-export interface AggregateOption {
-  aggregate_name: string;
+interface TimeGrainOverrideState {
+  choices: [string, string][] | null;
 }
+
+export default {
+  default: null,
+  mapStateToProps: (state: ControlPanelState): TimeGrainOverrideState => ({
+    choices:
+      state.datasource && 'time_grain_sqla' in state.datasource
+        ? ((state.datasource as Dataset).time_grain_sqla?.filter(
+            (o: [string, string]) => o[0] !== null,
+          ) ?? null)
+        : null,
+  }),
+};

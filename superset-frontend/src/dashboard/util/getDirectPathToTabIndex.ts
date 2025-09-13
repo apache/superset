@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+export interface TabsComponentLike {
+  id: string;
+  parents?: string[];
+  children: string[];
+  [key: string]: unknown;
+}
 
-export interface AggregateOption {
-  aggregate_name: string;
+export default function getDirectPathToTabIndex(
+  tabsComponent: TabsComponentLike,
+  tabIndex: number,
+): string[] {
+  const directPathToFilter = (tabsComponent.parents || []).slice();
+  directPathToFilter.push(tabsComponent.id);
+  directPathToFilter.push(tabsComponent.children[tabIndex]);
+
+  return directPathToFilter;
 }

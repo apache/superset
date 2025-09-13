@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+export { savedMetricType } from './types';
 
-export interface AggregateOption {
-  aggregate_name: string;
-}
+// For backward compatibility with PropTypes usage
+export { savedMetricType as default } from './types';

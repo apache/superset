@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
 
-export interface AggregateOption {
-  aggregate_name: string;
+export default function roundDecimal(
+  number: number,
+  precision?: number,
+): number {
+  let roundedNumber: number;
+  if (precision) {
+    const p = 10 ** precision;
+    roundedNumber = Math.round(number * p) / p;
+  } else {
+    roundedNumber = Math.round(number);
+  }
+
+  return roundedNumber;
 }

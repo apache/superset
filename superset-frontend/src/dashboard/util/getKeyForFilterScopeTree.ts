@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+import { safeStringify } from '../../utils/safeStringify';
 
-export interface AggregateOption {
-  aggregate_name: string;
+interface GetKeyForFilterScopeTreeProps {
+  activeFilterField?: string;
+  checkedFilterFields: string[];
+}
+
+export default function getKeyForFilterScopeTree({
+  activeFilterField,
+  checkedFilterFields,
+}: GetKeyForFilterScopeTreeProps): string {
+  return safeStringify(
+    activeFilterField ? [activeFilterField] : checkedFilterFields,
+  );
 }

@@ -16,12 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+import type { ComponentType, Layout } from 'src/dashboard/types';
+import getComponentWidthFromDrop from './getComponentWidthFromDrop';
 
-export interface AggregateOption {
-  aggregate_name: string;
+export interface DropResult {
+  source: { id: string };
+  destination: { id: string };
+  dragging: {
+    id?: string;
+    type?: ComponentType;
+  };
+}
+
+export default function doesChildOverflowParent(
+  dropResult: DropResult,
+  layout: Layout,
+): boolean {
+  const childWidth = getComponentWidthFromDrop({ dropResult, layout });
+  return typeof childWidth === 'number' && childWidth < 0;
 }

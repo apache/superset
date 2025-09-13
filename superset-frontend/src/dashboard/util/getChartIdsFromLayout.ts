@@ -16,12 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type savedMetricType = {
-  metric_name: string;
-  verbose_name?: string;
-  expression: string;
-};
+import { CHART_TYPE } from './componentTypes';
+import type { DashboardLayout } from '../types';
 
-export interface AggregateOption {
-  aggregate_name: string;
+export default function getChartIdsFromLayout(
+  layout: DashboardLayout,
+): number[] {
+  return Object.values(layout).reduce(
+    (chartIds: number[], currentComponent) => {
+      if (
+        currentComponent &&
+        currentComponent.type === CHART_TYPE &&
+        currentComponent.meta &&
+        currentComponent.meta.chartId
+      ) {
+        chartIds.push(currentComponent.meta.chartId);
+      }
+      return chartIds;
+    },
+    [],
+  );
 }
