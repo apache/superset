@@ -17,14 +17,33 @@
  * under the License.
  */
 import { throttle } from 'lodash';
+import { DropTargetMonitor } from 'react-dnd';
 import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
 import getDropPosition from 'src/dashboard/util/getDropPosition';
 import handleScroll from './handleScroll';
 
 const HOVER_THROTTLE_MS = 100;
 
-function handleHover(props, monitor, Component) {
-  // this may happen due to throttling
+interface ComponentType {
+  type: string;
+}
+
+interface DragDroppableProps {
+  component: ComponentType;
+  onHover?: () => void;
+}
+
+interface DragDroppableComponent {
+  mounted: boolean;
+  setState: (updater: () => { dropIndicator: string | null }) => void;
+  props: DragDroppableProps;
+}
+
+function handleHover(
+  props: DragDroppableProps,
+  monitor: DropTargetMonitor,
+  Component: DragDroppableComponent,
+): void {
   if (!Component.mounted) return;
 
   const dropPosition = getDropPosition(monitor, Component);
@@ -40,12 +59,11 @@ function handleHover(props, monitor, Component) {
     return;
   }
 
-  Component?.props?.onHover();
+  Component?.props?.onHover?.();
 
   Component.setState(() => ({
     dropIndicator: dropPosition,
   }));
 }
 
-// this is called very frequently by react-dnd
 export default throttle(handleHover, HOVER_THROTTLE_MS);
