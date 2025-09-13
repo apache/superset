@@ -66,6 +66,7 @@ export default function OptionWrapper(
   const labelRef = useRef<HTMLDivElement>(null);
 
   const [{ isDragging }, drag] = useDrag({
+    type,
     item: {
       type,
       dragIndex: index,

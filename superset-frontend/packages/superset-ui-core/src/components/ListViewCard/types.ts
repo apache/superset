@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactNode, ComponentType, ReactElement } from 'react';
+import type {
+  ReactNode,
+  ComponentType,
+  ReactElement,
+  PropsWithChildren,
+} from 'react';
 import type { BackgroundPosition } from './ImageLoader';
 
 export interface LinkProps {
@@ -27,7 +32,7 @@ export interface ListViewCardProps {
   title?: ReactNode;
   subtitle?: ReactNode;
   url?: string;
-  linkComponent?: ComponentType<LinkProps>;
+  linkComponent?: ComponentType<PropsWithChildren<LinkProps>>;
   imgURL?: string | null;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;

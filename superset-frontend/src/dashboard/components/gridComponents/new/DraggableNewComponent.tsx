@@ -81,7 +81,7 @@ export default class DraggableNewComponent extends PureComponent<DraggableNewCom
         depth={0}
         editMode
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: { dragSourceRef: any }) => (
           <NewComponent ref={dragSourceRef} data-test="new-component">
             <NewComponentPlaceholder
               className={cx('new-component-placeholder', className)}

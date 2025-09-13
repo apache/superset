@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -35,11 +34,6 @@ import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import './hooks/useLocale';
 
 configure();
-
-// Set hot reloader config
-if (process.env.WEBPACK_MODE === 'development') {
-  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
 
 // Grab initial bootstrap data
 const bootstrapData = getBootstrapData();

@@ -29,6 +29,7 @@ import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
+import { PropsWithChildren } from 'react';
 import { store } from './store';
 import '../preamble';
 
@@ -36,7 +37,9 @@ const { common } = getBootstrapData();
 const themeController = new ThemeController();
 const extensionsRegistry = getExtensionsRegistry();
 
-export const RootContextProviders: React.FC = ({ children }) => {
+export const RootContextProviders: React.FC<PropsWithChildren> = ({
+  children,
+}) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
