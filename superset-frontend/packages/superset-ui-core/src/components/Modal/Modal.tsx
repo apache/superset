@@ -368,13 +368,9 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// Theme-aware confirmation modal - now inherits theme through App wrapper in SupersetThemeProvider
-const themedConfirm = (props: Parameters<typeof AntdModal.confirm>[0]) =>
-  AntdModal.confirm(props);
-
 export const Modal = Object.assign(CustomModal, {
   error: AntdModal.error,
   warning: AntdModal.warning,
-  confirm: themedConfirm,
+  confirm: AntdModal.confirm,
   useModal: AntdModal.useModal,
 });
