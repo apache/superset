@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
+import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
 
@@ -73,7 +74,7 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
   padding-top: ${theme.sizeUnit * 6}px;
 
   background: linear-gradient(
-    ${addAlpha(theme.colorBgLayout, 0)},
+    ${tinycolor(theme.colorBgLayout).setAlpha(0).toRgbString()},
     ${theme.colorBgContainer} 20%
   );
 
