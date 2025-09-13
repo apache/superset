@@ -45,13 +45,14 @@ class AuditMixinNullable(AuditMixin):
     Allows creating objects programmatically outside of CRUD
     """
 
+    __allow_unmapped__ = True
     created_on = Column(DateTime, default=datetime.now, nullable=True)
     changed_on = Column(
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
     )
 
     @declared_attr
-    def created_by_fk(self) -> Column:
+    def created_by_fk(self):
         return Column(
             Integer,
             ForeignKey("ab_user.id"),
@@ -60,7 +61,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> Column:
+    def changed_by_fk(self):
         return Column(
             Integer,
             ForeignKey("ab_user.id"),

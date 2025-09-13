@@ -31,7 +31,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, Mapped, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
@@ -119,19 +119,19 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "report_schedule"
     __table_args__ = (UniqueConstraint("name", "type"),)
 
-    id = Column(Integer, primary_key=True)
-    type = Column(String(50), nullable=False)
-    name = Column(String(150), nullable=False)
-    description = Column(Text)
-    context_markdown = Column(Text)
-    active = Column(Boolean, default=True, index=True)
-    crontab = Column(String(1000), nullable=False)
-    creation_method = Column(
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    type: Mapped[str] = Column(String(50), nullable=False)
+    name: Mapped[str] = Column(String(150), nullable=False)
+    description: Mapped[str | None] = Column(Text)
+    context_markdown: Mapped[str | None] = Column(Text)
+    active: Mapped[bool] = Column(Boolean, default=True, index=True)
+    crontab: Mapped[str] = Column(String(1000), nullable=False)
+    creation_method: Mapped[str] = Column(
         String(255), server_default=ReportCreationMethod.ALERTS_REPORTS
     )
-    timezone = Column(String(100), default="UTC", nullable=False)
-    report_format = Column(String(50), default=ReportDataFormat.PNG)
-    sql = Column(MediumText())
+    timezone: Mapped[str] = Column(String(100), default="UTC", nullable=False)
+    report_format: Mapped[str] = Column(String(50), default=ReportDataFormat.PNG)
+    sql: Mapped[str | None] = Column(MediumText())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
     chart = relationship(Slice, backref="report_schedules", foreign_keys=[chart_id])

@@ -56,7 +56,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -102,17 +102,17 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
-    id = Column(Integer, primary_key=True)
-    value = Column(utils.MediumText(), nullable=False)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    value: Mapped[str] = Column(utils.MediumText(), nullable=False)
 
 
 class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
-    id = Column(Integer, primary_key=True)
-    template_name = Column(String(250))
-    css = Column(utils.MediumText(), default="")
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    template_name: Mapped[str | None] = Column(String(250))
+    css: Mapped[str] = Column(utils.MediumText(), default="")
 
 
 class Theme(AuditMixinNullable, ImportExportMixin, Model):
@@ -124,12 +124,12 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
         sqla.Index("idx_theme_is_system_dark", "is_system_dark"),
     )
 
-    id = Column(Integer, primary_key=True)
-    theme_name = Column(String(250))
-    json_data = Column(utils.MediumText(), default="")
-    is_system = Column(Boolean, default=False, nullable=False)
-    is_system_default = Column(Boolean, default=False, nullable=False)
-    is_system_dark = Column(Boolean, default=False, nullable=False)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    theme_name: Mapped[str | None] = Column(String(250))
+    json_data: Mapped[str] = Column(utils.MediumText(), default="")
+    is_system: Mapped[bool] = Column(Boolean, default=False, nullable=False)
+    is_system_default: Mapped[bool] = Column(Boolean, default=False, nullable=False)
+    is_system_dark: Mapped[bool] = Column(Boolean, default=False, nullable=False)
 
     export_fields = ["theme_name", "json_data"]
 
@@ -146,25 +146,25 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     type = "table"
     __table_args__ = (UniqueConstraint("database_name"),)
 
-    id = Column(Integer, primary_key=True)
-    verbose_name = Column(String(250), unique=True)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    verbose_name: Mapped[str | None] = Column(String(250), unique=True)
     # short unique name, used in permissions
-    database_name = Column(String(250), unique=True, nullable=False)
-    sqlalchemy_uri = Column(String(1024), nullable=False)
-    password = Column(encrypted_field_factory.create(String(1024)))
-    cache_timeout = Column(Integer)
-    select_as_create_table_as = Column(Boolean, default=False)
-    expose_in_sqllab = Column(Boolean, default=True)
-    configuration_method = Column(
+    database_name: Mapped[str] = Column(String(250), unique=True, nullable=False)
+    sqlalchemy_uri: Mapped[str] = Column(String(1024), nullable=False)
+    password: Mapped[str | None] = Column(encrypted_field_factory.create(String(1024)))
+    cache_timeout: Mapped[int | None] = Column(Integer)
+    select_as_create_table_as: Mapped[bool | None] = Column(Boolean, default=False)
+    expose_in_sqllab: Mapped[bool | None] = Column(Boolean, default=True)
+    configuration_method: Mapped[str] = Column(
         String(255), server_default=ConfigurationMethod.SQLALCHEMY_FORM.value
     )
-    allow_run_async = Column(Boolean, default=False)
-    allow_file_upload = Column(Boolean, default=False)
-    allow_ctas = Column(Boolean, default=False)
-    allow_cvas = Column(Boolean, default=False)
-    allow_dml = Column(Boolean, default=False)
-    force_ctas_schema = Column(String(250))
-    extra = Column(
+    allow_run_async: Mapped[bool | None] = Column(Boolean, default=False)
+    allow_file_upload: Mapped[bool | None] = Column(Boolean, default=False)
+    allow_ctas: Mapped[bool | None] = Column(Boolean, default=False)
+    allow_cvas: Mapped[bool | None] = Column(Boolean, default=False)
+    allow_dml: Mapped[bool | None] = Column(Boolean, default=False)
+    force_ctas_schema: Mapped[str | None] = Column(String(250))
+    extra: Mapped[str | None] = Column(
         Text,
         default=textwrap.dedent(
             """\
@@ -177,11 +177,15 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     """
         ),
     )
-    encrypted_extra = Column(encrypted_field_factory.create(Text), nullable=True)
-    impersonate_user = Column(Boolean, default=False)
-    server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
-    is_managed_externally = Column(Boolean, nullable=False, default=False)
-    external_url = Column(Text, nullable=True)
+    encrypted_extra: Mapped[str | None] = Column(
+        encrypted_field_factory.create(Text), nullable=True
+    )
+    impersonate_user: Mapped[bool | None] = Column(Boolean, default=False)
+    server_cert: Mapped[str | None] = Column(
+        encrypted_field_factory.create(Text), nullable=True
+    )
+    is_managed_externally: Mapped[bool] = Column(Boolean, nullable=False, default=False)
+    external_url: Mapped[str | None] = Column(Text, nullable=True)
 
     export_fields = [
         "database_name",
@@ -1205,9 +1209,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
             # do not pass "" as an empty schema; force null
-            if engine.has_table(table.table, table.schema or None):
+            from sqlalchemy import inspect
+
+            inspector = inspect(engine)
+            if inspector.has_table(table.table, table.schema or None):
                 return True
-            return engine.has_table(table.table.lower(), table.schema or None)
+            return inspector.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
@@ -1313,25 +1320,31 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     __tablename__ = "database_user_oauth2_tokens"
     __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = Column(Integer, primary_key=True)
 
-    user_id = Column(
+    user_id: Mapped[int] = Column(
         Integer,
         ForeignKey("ab_user.id", ondelete="CASCADE"),
         nullable=False,
     )
-    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+    user: Mapped[Any] = relationship(
+        security_manager.user_model, foreign_keys=[user_id]
+    )
 
-    database_id = Column(
+    database_id: Mapped[int] = Column(
         Integer,
         ForeignKey("dbs.id", ondelete="CASCADE"),
         nullable=False,
     )
-    database = relationship("Database", foreign_keys=[database_id])
+    database: Mapped["Database"] = relationship("Database", foreign_keys=[database_id])
 
-    access_token = Column(encrypted_field_factory.create(Text), nullable=True)
-    access_token_expiration = Column(DateTime, nullable=True)
-    refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
+    access_token: Mapped[str | None] = Column(
+        encrypted_field_factory.create(Text), nullable=True
+    )
+    access_token_expiration: Mapped[datetime | None] = Column(DateTime, nullable=True)
+    refresh_token: Mapped[str | None] = Column(
+        encrypted_field_factory.create(Text), nullable=True
+    )
 
 
 class Log(Model):  # pylint: disable=too-few-public-methods
@@ -1339,18 +1352,18 @@ class Log(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "logs"
 
-    id = Column(Integer, primary_key=True)
-    action = Column(String(512))
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
-    dashboard_id = Column(Integer)
-    slice_id = Column(Integer)
-    json = Column(utils.MediumText())
-    user = relationship(
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    action: Mapped[str | None] = Column(String(512))
+    user_id: Mapped[int | None] = Column(Integer, ForeignKey("ab_user.id"))
+    dashboard_id: Mapped[int | None] = Column(Integer)
+    slice_id: Mapped[int | None] = Column(Integer)
+    json: Mapped[str | None] = Column(utils.MediumText())
+    user: Mapped[Any] = relationship(
         security_manager.user_model, backref="logs", foreign_keys=[user_id]
     )
-    dttm = Column(DateTime, default=datetime.utcnow)
-    duration_ms = Column(Integer)
-    referrer = Column(String(1024))
+    dttm: Mapped[datetime | None] = Column(DateTime, default=datetime.utcnow)
+    duration_ms: Mapped[int | None] = Column(Integer)
+    referrer: Mapped[str | None] = Column(String(1024))
 
 
 class FavStarClassName(StrEnum):
@@ -1361,8 +1374,8 @@ class FavStarClassName(StrEnum):
 class FavStar(UUIDMixin, Model):
     __tablename__ = "favstar"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
-    class_name = Column(String(50))
-    obj_id = Column(Integer)
-    dttm = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = Column(Integer, ForeignKey("ab_user.id"))
+    class_name: Mapped[str | None] = Column(String(50))
+    obj_id: Mapped[int | None] = Column(Integer)
+    dttm: Mapped[datetime | None] = Column(DateTime, default=datetime.utcnow)

@@ -27,7 +27,7 @@ import prison
 import pytest
 import yaml
 from freezegun import freeze_time
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
@@ -869,9 +869,13 @@ class TestDatasetApi(SupersetTestCase):
 
         example_db = get_example_database()
         with example_db.get_sqla_engine() as engine:
-            engine.execute(
-                f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
-            )
+            with engine.connect() as connection:
+                connection.execute(
+                    text(
+                        f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names "
+                        f"AS SELECT 2 as two"
+                    )
+                )
 
         self.login(ADMIN_USERNAME)
         table_data = {
@@ -890,7 +894,8 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.delete(uri)
         assert rv.status_code == 200
         with example_db.get_sqla_engine() as engine:
-            engine.execute(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names")
+            with engine.connect() as connection:
+                connection.execute(text(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"))
 
     def test_create_dataset_validate_database(self):
         """
@@ -2930,8 +2935,13 @@ class TestDatasetApi(SupersetTestCase):
 
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_create_sqla_table_api")
-            engine.execute("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
+            with engine.connect() as connection:
+                connection.execute(
+                    text("DROP TABLE IF EXISTS test_create_sqla_table_api")
+                )
+                connection.execute(
+                    text("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
+                )
 
         rv = self.client.post(
             "api/v1/dataset/get_or_create/",
@@ -2955,7 +2965,8 @@ class TestDatasetApi(SupersetTestCase):
         self.items_to_delete = [table]
 
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE test_create_sqla_table_api")
+            with engine.connect() as connection:
+                connection.execute(text("DROP TABLE test_create_sqla_table_api"))
 
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"

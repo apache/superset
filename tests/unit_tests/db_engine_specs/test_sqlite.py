@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.engine import create_engine
 
 from superset.constants import TimeGrain
@@ -121,11 +122,11 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  
 
     engine = create_engine("sqlite://")
     connection = engine.connect()
-    connection.execute("CREATE TABLE t (dttm DATETIME)")
-    connection.execute("INSERT INTO t VALUES (?)", dttm)
+    connection.execute(text("CREATE TABLE t (dttm DATETIME)"))
+    connection.execute(text("INSERT INTO t VALUES (?)"), (dttm,))
 
     # pylint: disable=protected-access
     expression = SqliteEngineSpec._time_grain_expressions[grain].format(col="dttm")
     sql = f"SELECT {expression} FROM t"  # noqa: S608
-    result = connection.execute(sql).scalar()
+    result = connection.execute(text(sql)).scalar()
     assert result == expected

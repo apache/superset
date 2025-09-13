@@ -18,10 +18,7 @@
 
 import prison
 import pytest
-from flask import (
-    current_app,
-    escape,  # noqa: F401
-)
+from flask import current_app
 
 from superset.daos.dashboard import DashboardDAO
 from superset.utils import json

@@ -55,7 +55,7 @@ from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, validates
+from sqlalchemy.orm import Mapped, Mapper, validates
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -181,7 +181,7 @@ def convert_uuids(obj: Any) -> Any:
 
 
 class UUIDMixin:  # pylint: disable=too-few-public-methods
-    uuid = sa.Column(
+    uuid: Mapped[uuid.UUID] = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
@@ -495,13 +495,15 @@ class AuditMixinNullable(AuditMixin):
     Allows creating objects programmatically outside of CRUD
     """
 
-    created_on = sa.Column(sa.DateTime, default=datetime.now, nullable=True)
-    changed_on = sa.Column(
+    created_on: Mapped[datetime | None] = sa.Column(
+        sa.DateTime, default=datetime.now, nullable=True
+    )
+    changed_on: Mapped[datetime | None] = sa.Column(
         sa.DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
     )
 
     @declared_attr
-    def created_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
+    def created_by_fk(self) -> Mapped[int | None]:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -510,7 +512,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
+    def changed_by_fk(self) -> Mapped[int | None]:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -622,7 +624,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
 class ExtraJSONMixin:
     """Mixin to add an `extra` column (JSON) and utility methods"""
 
-    extra_json = sa.Column(MediumText(), default="{}")
+    __allow_unmapped__ = True
+    extra_json: Mapped[str] = sa.Column(MediumText(), default="{}")
 
     @property
     def extra(self) -> dict[str, Any]:
@@ -657,7 +660,7 @@ class ExtraJSONMixin:
 class CertificationMixin:
     """Mixin to add extra certification fields"""
 
-    extra = sa.Column(sa.Text, default="{}")
+    extra: Mapped[str] = sa.Column(sa.Text, default="{}")
 
     def get_extra_dict(self) -> dict[str, Any]:
         try:
@@ -1541,15 +1544,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Select:
         """Build validation query based on expression type. Raises on error."""
         if expression_type == SqlExpressionType.COLUMN:
-            return sa.select([sa.literal_column(expression).label("test_col")])
+            return sa.select(sa.literal_column(expression).label("test_col"))
         elif expression_type == SqlExpressionType.METRIC:
-            return sa.select([sa.literal_column(expression).label("test_metric")])
+            return sa.select(sa.literal_column(expression).label("test_metric"))
         elif expression_type == SqlExpressionType.WHERE:
-            return sa.select([sa.literal(1)]).where(sa.text(expression))
+            return sa.select(sa.literal(1)).where(sa.text(expression))
         elif expression_type == SqlExpressionType.HAVING:
             dummy_col = sa.literal("A").label("dummy")
             return (
-                sa.select([dummy_col])
+                sa.select(dummy_col)
                 .group_by(sa.text("dummy"))
                 .having(sa.text(expression))
             )
@@ -1948,7 +1951,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
-        qry = sa.select(select_exprs)
+        qry = sa.select(*select_exprs)
 
         tbl, cte = self.get_from_clause(template_processor)
 
@@ -2217,7 +2220,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     inner_select_exprs.append(inner)
 
                 inner_select_exprs += [inner_main_metric_expr]
-                subq = sa.select(inner_select_exprs).select_from(tbl)
+                subq = sa.select(*inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
@@ -2282,7 +2285,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
                     # Reconstruct query with modified expressions
-                    qry = sa.select(select_exprs)
+                    qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
                 else:
@@ -2345,7 +2348,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
                     # Reconstruct query with modified expressions
-                    qry = sa.select(select_exprs)
+                    qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
                 else:
@@ -2361,7 +2364,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             label = "rowcount"
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
-            qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
+            qry = sa.select(col).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
 
         filter_columns = [flt.get("col") for flt in filter] if filter else []

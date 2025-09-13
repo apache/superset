@@ -28,12 +28,13 @@ down_revision = "b4a38aa87893"
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 
 def upgrade():
     with op.batch_alter_table("dashboards") as batch_op:
         batch_op.add_column(sa.Column("published", sa.Boolean(), nullable=True))
-    op.execute("UPDATE dashboards SET published='1'")
+    op.execute(text("UPDATE dashboards SET published='1'"))
 
 
 def downgrade():
