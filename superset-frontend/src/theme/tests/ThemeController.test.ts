@@ -558,6 +558,41 @@ describe('ThemeController', () => {
 
       expect(mockSetConfig).toHaveBeenCalledTimes(initialCallCount);
     });
+
+    it('should switch to dark theme when system is dark and mode is SYSTEM', () => {
+      // Setup with both light and dark themes available
+      mockGetBootstrapData.mockReturnValue(
+        createMockBootstrapData({
+          default: DEFAULT_THEME,
+          dark: DARK_THEME,
+        }),
+      );
+
+      // Setup mock media query to return dark mode preference
+      const mockMediaQueryDark = {
+        matches: true, // System is in dark mode
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      };
+      mockMatchMedia.mockReturnValue(mockMediaQueryDark);
+
+      // Create fresh controller instance with dark system preference
+      controller = new ThemeController({
+        themeObject: mockThemeObject,
+      });
+
+      // Verify system mode is set by default
+      expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+
+      // Verify that dark theme was applied during initialization
+      expect(mockSetConfig).toHaveBeenCalled();
+      const lastCall =
+        mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+      expect(lastCall.token.colorBgBase).toBe(DARK_THEME.token!.colorBgBase);
+      expect(lastCall.token.colorTextBase).toBe(
+        DARK_THEME.token!.colorTextBase,
+      );
+    });
   });
 
   describe('Persistence', () => {
