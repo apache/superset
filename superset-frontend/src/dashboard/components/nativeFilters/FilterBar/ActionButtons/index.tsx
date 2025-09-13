@@ -30,6 +30,7 @@ import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
@@ -38,6 +39,7 @@ interface ActionButtonsProps {
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
+  chartCustomizationItems?: ChartCustomizationItem[];
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
 }
@@ -106,17 +108,31 @@ const ActionButtons = ({
   dataMaskSelected,
   isApplyDisabled,
   filterBarOrientation = FilterBarOrientation.Vertical,
+  chartCustomizationItems,
 }: ActionButtonsProps) => {
-  const isClearAllEnabled = useMemo(
-    () =>
-      Object.values(dataMaskApplied).some(
-        filter =>
-          isDefined(dataMaskSelected[filter.id]?.filterState?.value) ||
-          (!dataMaskSelected[filter.id] &&
-            isDefined(filter.filterState?.value)),
-      ),
-    [dataMaskApplied, dataMaskSelected],
-  );
+  const isClearAllEnabled = useMemo(() => {
+    const hasSelectedChanges = Object.entries(dataMaskSelected).some(
+      ([, mask]) => {
+        const hasValue = isDefined(mask?.filterState?.value);
+        const hasGroupBy = isDefined(mask?.ownState?.column);
+        return hasValue || hasGroupBy;
+      },
+    );
+
+    const hasAppliedChanges = Object.entries(dataMaskApplied).some(
+      ([, mask]) => {
+        const hasValue = isDefined(mask?.filterState?.value);
+        const hasGroupBy = isDefined(mask?.ownState?.column);
+        return hasValue || hasGroupBy;
+      },
+    );
+
+    const hasChartCustomizations = chartCustomizationItems?.some(
+      item => item.customization?.column && !item.removed,
+    );
+
+    return hasSelectedChanges || hasAppliedChanges || hasChartCustomizations;
+  }, [dataMaskSelected, dataMaskApplied, chartCustomizationItems]);
   const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
   return (
