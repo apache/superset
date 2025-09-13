@@ -30,6 +30,7 @@ import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import ResultSet from 'src/SqlLab/components/ResultSet';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   cachedQuery,
   failedQueryWithErrors,
@@ -52,6 +53,7 @@ jest.mock(
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
+const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
 
 const mockedProps = {
   cache: true,
@@ -153,6 +155,10 @@ const setup = (props?: any, store?: Store) =>
 describe('ResultSet', () => {
   beforeAll(() => {
     setupAGGridModules();
+  });
+
+  beforeEach(() => {
+    applicationRootMock.mockReturnValue('');
   });
 
   // Add cleanup after each test
@@ -483,26 +489,36 @@ describe('ResultSet', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('should allow download as CSV when user has permission to export data', async () => {
-    const { queryByTestId } = setup(
-      mockedProps,
-      mockStore({
-        ...initialState,
-        user: {
-          ...user,
-          roles: {
-            sql_lab: [['can_export_csv', 'SQLLab']],
+  describe('should allow download as CSV when user has permission to export data.', () => {
+    it.each(['', '/myapp'])('href should contain %s', async app_root => {
+      applicationRootMock.mockReturnValue(app_root);
+      const { queryByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: {
+            ...user,
+            roles: {
+              sql_lab: [['can_export_csv', 'SQLLab']],
+            },
           },
-        },
-        sqlLab: {
-          ...initialState.sqlLab,
-          queries: {
-            [queries[0].id]: queries[0],
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: queries[0],
+            },
           },
-        },
-      }),
-    );
-    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+        }),
+      );
+      expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+      const export_csv_button = screen.getByTestId('export-csv-button');
+      expect(export_csv_button).toHaveAttribute(
+        'href',
+        expect.stringMatching(
+          new RegExp(`^${app_root}/api/v1/sqllab/export/[a-zA-Z0-9]+/$`),
+        ),
+      );
+    });
   });
 
   test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
