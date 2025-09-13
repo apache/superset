@@ -47,6 +47,7 @@ const propTypes = {
   bounds: PropTypes.array,
   d3format: PropTypes.string,
   dateFormat: PropTypes.string,
+  sparkType: PropTypes.string,
   onChange: PropTypes.func,
 };
 
@@ -64,6 +65,7 @@ const defaultProps = {
   bounds: [null, null],
   d3format: '',
   dateFormat: '',
+  sparkType: 'line',
 };
 
 const comparisonTypeOptions = [
@@ -78,6 +80,12 @@ const colTypeOptions = [
   { value: 'contrib', label: t('Contribution'), key: 'contrib' },
   { value: 'spark', label: t('Sparkline'), key: 'spark' },
   { value: 'avg', label: t('Period average'), key: 'avg' },
+];
+
+const sparkTypeOptions = [
+  { value: 'line', label: t('Line Chart'), key: 'line' },
+  { value: 'bar', label: t('Bar Chart'), key: 'bar' },
+  { value: 'area', label: t('Area Chart'), key: 'area' },
 ];
 
 const StyledRow = styled(Row)`
@@ -130,6 +138,7 @@ export default class TimeSeriesColumnControl extends Component {
       bounds: this.props.bounds,
       d3format: this.props.d3format,
       dateFormat: this.props.dateFormat,
+      sparkType: this.props.sparkType,
       popoverVisible: false,
     };
   }
@@ -229,6 +238,18 @@ export default class TimeSeriesColumnControl extends Component {
           />,
         )}
         <Divider />
+        {this.state.colType === 'spark' &&
+          this.formRow(
+            t('Chart Type'),
+            t('Type of chart to display in sparkline'),
+            'spark-type',
+            <Select
+              ariaLabel={t('Chart Type')}
+              value={this.state.sparkType || undefined}
+              onChange={this.onSelectChange.bind(this, 'sparkType')}
+              options={sparkTypeOptions}
+            />,
+          )}
         {this.state.colType === 'spark' &&
           this.formRow(
             t('Width'),
