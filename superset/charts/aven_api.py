@@ -1,25 +1,25 @@
+import logging
+
 import pandas as pd
 from flask import Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
 from superset.charts.post_processing import apply_post_process
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
-from superset.common.chart_data import ChartDataResultType, ChartDataResultFormat
-from superset.constants import RouteMethod, MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.models.slice import Slice
 from superset.utils.google_sheets import GoogleSheetsExport
-from superset.views.base_api import statsd_metrics, BaseSupersetModelRestApi
-import logging
-from marshmallow import ValidationError
-
+from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +42,12 @@ class AvenRestApi(BaseSupersetModelRestApi):
     @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_chart_to_google_sheet",
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.export_chart_to_google_sheet",
         log_to_statsd=False,
     )
-    def export_chart_to_google_sheet(self, id_or_slug: str) -> Response:
+    def export_chart_to_google_sheet(self, id_or_slug: str) -> Response:  # pylint: disable=too-many-locals
         """Export a chart to a google sheet.
         ---
         get:
@@ -77,39 +79,41 @@ class AvenRestApi(BaseSupersetModelRestApi):
         if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
             return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
         slice_id = id_or_slug
-        logger.info(f"Exporting chart with slice id {slice_id} to Google Sheets")
+        logger.info("Exporting chart with slice id %s to Google Sheets", slice_id)
         try:
             chart = ChartDAO.find_by_id(slice_id)
             chart_dfs: list[tuple[str, pd.DataFrame]] = []
+
+            if not chart:
+                logger.info("Could not find any chart with id %s", slice_id)
+                return self.response_400(f"Could not find any chart with id {slice_id}")
+
+            if not chart.datasource:
+                logger.info("Chart %s as it does not have a datasource", chart.id)
+                return self.response_400(f"Chart {chart.id} does not have a datasource")
+
             # this is based on the structure of "chart_warmup" to pull down the data
             form_data = chart.form_data
             viz_type = chart.viz_type
 
-            if not chart:
-                logger.info(
-                    f"Could not find any chart with id {slice_id}")
-                return self.response_400(f"Could not find any chart with id {slice_id}")
-
-            if not chart.datasource:
-                logger.info(
-                    f"Chart {chart.id} as it does not have a datasource")
-                return self.response_400(f"Chart {chart.id} does not have a datasource")
-
-            if not viz_type in ["table", "pivot_table_v2"]:
-                logger.info(
-                    f"Chart {chart.id} as it is not a table or pivot_table")
+            if viz_type not in ["table", "pivot_table_v2"]:
+                logger.info("Chart %s as it is not a table or pivot_table", chart.id)
                 return self.response_400(
                     message="Only table and pivot_table charts can be exported to Google Sheets"
                 )
 
             logger.info(
-                f"Exporting chart {chart.id} to Google Sheets, viz_type: {viz_type}")
+                "Exporting chart %s to Google Sheets, viz_type: %s", chart.id, viz_type
+            )
 
             query_context = chart.get_query_context()
 
             if not query_context:
-                logger.warn(
-                    f"Chart {chart.slice_name} {chart.id} as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.")
+                logger.warning(
+                    "Chart %s %s as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.",
+                    chart.slice_name,
+                    chart.id,
+                )
                 return self.response_400(
                     message="does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart."
                 )
@@ -143,27 +147,24 @@ class AvenRestApi(BaseSupersetModelRestApi):
             }
             event_rep = repr(event_info)
             logger.debug(
-                "GSheet exported: %s", event_rep,
-                extra={"superset_event": event_info}
+                "GSheet exported: %s", event_rep, extra={"superset_event": event_info}
             )
             google_sheets_export = GoogleSheetsExport()
             sheet_id = google_sheets_export.upload_dfs_to_new_sheet(
-                chart.slice_name, chart_dfs)
+                chart.slice_name, chart_dfs
+            )
             return self.response(200, sheet_id=sheet_id)
         except DatasourceNotFound:
             logger.error("Datasource not found")
             return self.response_404()
         except QueryObjectValidationError as error:
-            logger.error(f"Query object validation error {error}")
+            logger.error("Query object validation error %s", error)
             return self.response_400(message=error.message)
         except ValidationError as error:
-            logger.error(f"Validation error {error.normalized_messages()}")
-            return self.response_400(
-                message=error.normalized_messages()
-            )
+            logger.error("Validation error %s", error.normalized_messages())
+            return self.response_400(message=error.normalized_messages())
         except DashboardAccessDeniedError:
             return self.response_403()
-
 
     @expose("/<id_or_slug>/export/dashboard_to_google_sheet", methods=("GET",))
     @protect()
@@ -171,11 +172,12 @@ class AvenRestApi(BaseSupersetModelRestApi):
     @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args,
-                      **kwargs: f"{self.__class__.__name__}.export_dashboard_to_google_sheet",
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.export_dashboard_to_google_sheet",
         log_to_statsd=False,
     )
-    def export_dashboard_to_google_sheet(self, id_or_slug: str) -> Response:
+    def export_dashboard_to_google_sheet(self, id_or_slug: str) -> Response:  # pylint: disable=invalid-name,too-many-locals
         """Export a dashboard's charts to a google sheet.
         ---
         get:
@@ -207,7 +209,7 @@ class AvenRestApi(BaseSupersetModelRestApi):
         if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
             return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
         dashboard_id = id_or_slug
-        logger.info(f"Exporting dashboard {dashboard_id} to Google Sheets")
+        logger.info("Exporting dashboard %s to Google Sheets", dashboard_id)
         try:
             dashboard = DashboardDAO().get_by_id_or_slug(id_or_slug)
             charts = DashboardDAO.get_charts_for_dashboard(dashboard_id)
@@ -219,22 +221,31 @@ class AvenRestApi(BaseSupersetModelRestApi):
 
                 if not chart.datasource:
                     logger.info(
-                        f"Skipping chart {chart.id} as it does not have a datasource")
+                        "Skipping chart %s as it does not have a datasource", chart.id
+                    )
                     continue
 
-                if not viz_type in ["table", "pivot_table_v2"]:
+                if viz_type not in ["table", "pivot_table_v2"]:
                     logger.info(
-                        f"Skipping chart {chart.id} as it is not a table or pivot_table")
+                        "Skipping chart %s as it is not a table or pivot_table",
+                        chart.id,
+                    )
                     continue
 
                 logger.info(
-                    f"Exporting chart {chart.id} to Google Sheets, viz_type: {viz_type}")
+                    "Exporting chart %s to Google Sheets, viz_type: %s",
+                    chart.id,
+                    viz_type,
+                )
 
                 query_context = chart.get_query_context()
 
                 if not query_context:
-                    logger.warn(
-                        f"Skipping chart {chart.slice_name} {chart.id} as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.")
+                    logger.warning(
+                        "Skipping chart %s %s as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.",
+                        chart.slice_name,
+                        chart.id,
+                    )
                     continue
 
                 query_context.result_type = ChartDataResultType.POST_PROCESSED
@@ -267,22 +278,23 @@ class AvenRestApi(BaseSupersetModelRestApi):
                 }
                 event_rep = repr(event_info)
                 logger.debug(
-                    "GSheet exported: %s", event_rep, extra={"superset_event": event_info}
+                    "GSheet exported: %s",
+                    event_rep,
+                    extra={"superset_event": event_info},
                 )
             google_sheets_export = GoogleSheetsExport()
             sheet_id = google_sheets_export.upload_dfs_to_new_sheet(
-                dashboard.dashboard_title, chart_dfs)
+                dashboard.dashboard_title, chart_dfs
+            )
             return self.response(200, sheet_id=sheet_id)
         except DatasourceNotFound:
             logger.error("Datasource not found")
             return self.response_404()
         except QueryObjectValidationError as error:
-            logger.error(f"Query object validation error {error}")
+            logger.error("Query object validation error %s", error)
             return self.response_400(message=error.message)
         except ValidationError as error:
-            logger.error(f"Validation error {error.normalized_messages()}")
-            return self.response_400(
-                message=error.normalized_messages()
-            )
+            logger.error("Validation error %s", error.normalized_messages())
+            return self.response_400(message=error.normalized_messages())
         except DashboardAccessDeniedError:
             return self.response_403()

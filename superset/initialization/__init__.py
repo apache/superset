@@ -128,6 +128,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
+        from superset.charts.aven_api import AvenRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
             RowLevelSecurityView,
@@ -178,7 +179,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
-        from superset.views.export import ExportView, ExportChartView
+        from superset.views.export import ExportChartView, ExportView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -190,7 +191,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
-        from superset.charts.avenApi import AvenRestApi
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
 
         set_app_error_handlers(self.superset_app)

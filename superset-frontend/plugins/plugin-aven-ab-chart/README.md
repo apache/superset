@@ -18,6 +18,7 @@ npm run dev
 ```
 
 To add the package to Superset, go to the `superset-frontend` subdirectory in your Superset source folder (assuming both the `plugin-aven-ab-chart` plugin and `superset` repos are in the same root directory) and run
+
 ```
 npm i -S ../../plugin-aven-ab-chart
 ```
@@ -29,6 +30,7 @@ import { AvenABChartPlugin } from 'plugin-aven-ab-chart';
 ```
 
 to import the plugin and later add the following to the array that's passed to the `plugins` property:
+
 ```js
 new AvenABChartPlugin().configure({ key: 'plugin-aven-ab-chart' }),
 ```

@@ -16,12 +16,12 @@
 # under the License.
 import contextlib
 
-import simplejson as json
 from flask import request
 from flask_appbuilder.api import expose
 
 from superset import event_logger
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 
 from .base import BaseSupersetView
 
@@ -32,7 +32,8 @@ class ExportView(BaseSupersetView):
     @expose("/dashboard/<string:dashboard_id>/google-sheets/", methods=("GET",))
     @event_logger.log_this
     def google_sheets(
-        self, dashboard_id: int  # pylint: disable=unused-argument
+        self,
+        dashboard_id: int,  # pylint: disable=unused-argument
     ) -> FlaskResponse:
         payload = {}
         if form_data := request.form.get("form_data"):
@@ -47,7 +48,8 @@ class ExportChartView(BaseSupersetView):
     @expose("/chart/<string:slice_id>/google-sheets/", methods=("GET",))
     @event_logger.log_this
     def google_sheets(
-        self, slice_id: int  # pylint: disable=unused-argument
+        self,
+        slice_id: int,  # pylint: disable=unused-argument
     ) -> FlaskResponse:
         payload = {}
         if form_data := request.form.get("form_data"):
