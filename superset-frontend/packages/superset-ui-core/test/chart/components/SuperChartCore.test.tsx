@@ -203,7 +203,13 @@ describe('SuperChartCore', () => {
       );
 
       await waitFor(() => {
-        expect(container).toBeEmptyDOMElement();
+        // The container will have the Ant Design App wrapper, but no chart content
+        const testComponent = container.querySelector('.test-component');
+        expect(testComponent).not.toBeInTheDocument();
+
+        // Ensure only the Ant Design App wrapper is present
+        const antApp = container.querySelector('.ant-app');
+        expect(antApp).toBeInTheDocument();
       });
     });
   });
