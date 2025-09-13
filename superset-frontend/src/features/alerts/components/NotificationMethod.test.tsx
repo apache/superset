@@ -38,6 +38,7 @@ const mockOnUpdate = jest.fn();
 const mockOnRemove = jest.fn();
 const mockOnInputChange = jest.fn();
 const mockSetErrorSubject = jest.fn();
+const mockSetErrorCsvFilename = jest.fn();
 
 const mockSetting: NotificationSetting = {
   method: NotificationMethodOption.Email,
@@ -51,6 +52,8 @@ const mockSetting: NotificationSetting = {
 
 const mockEmailSubject = 'Test Subject';
 const mockDefaultSubject = 'Default Subject';
+const mockCsvFilename = 'test.csv';
+const mockDefaultCsvFilename = 'default.csv';
 
 describe('NotificationMethod', () => {
   beforeEach(() => {
@@ -69,6 +72,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -90,6 +96,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -110,6 +119,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -135,6 +147,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -212,6 +227,9 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -239,6 +257,9 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -266,6 +287,9 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -294,6 +318,9 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -327,6 +354,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -363,6 +393,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -404,6 +437,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -438,6 +474,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
@@ -472,6 +511,9 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
       />,
     );
 
