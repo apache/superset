@@ -66,6 +66,7 @@ name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
 email_subject_description = "The report schedule subject line"
+csv_filename_description = "The CSV filename for report attachments"
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -164,6 +165,14 @@ class ReportSchedulePostSchema(Schema):
         metadata={
             "description": email_subject_description,
             "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
+    csv_filename = fields.String(
+        metadata={
+            "description": csv_filename_description,
+            "example": "sales_report.csv",
         },
         allow_none=True,
         required=False,
@@ -298,6 +307,14 @@ class ReportSchedulePutSchema(Schema):
         metadata={
             "description": email_subject_description,
             "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
+    csv_filename = fields.String(
+        metadata={
+            "description": csv_filename_description,
+            "example": "sales_report.csv",
         },
         allow_none=True,
         required=False,

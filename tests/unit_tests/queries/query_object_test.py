@@ -39,6 +39,7 @@ def test_default_query_object_to_dict():
     query_object = QueryObject(row_limit=1)
     assert query_object.to_dict() == {
         "apply_fetch_values_predicate": False,
+        "chart_id": None,
         "columns": [],
         "extras": {},
         "filter": [],

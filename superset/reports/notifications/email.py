@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 import textwrap
 from dataclasses import dataclass
+from datetime import datetime
 from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
@@ -34,6 +36,65 @@ from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
+
+
+def replace_date_placeholders(text: str) -> str:
+    """
+    Replace date placeholders in text with current date.
+    Supports user-friendly date format patterns within curly braces.
+    
+    Examples:
+    - {yyyyMMdd} -> 20240912
+    - {yyyy-MM-dd} -> 2024-09-12
+    - {yyMMdd} -> 240912
+    - {yyyyMMdd_HHmmss} -> 20240912_143045
+    - {yyyy/MM/dd} -> 2024/09/12
+    """
+    if not text:
+        return text
+    
+    now = datetime.now()
+    
+    # Convert user-friendly format to Python strftime format
+    def convert_format(user_format):
+        # Replace common user-friendly patterns with Python strftime codes
+        # Use a more robust approach to avoid double replacements
+        replacements = [
+            ('yyyy', '%Y'),  # 4-digit year
+            ('yy', '%y'),    # 2-digit year
+            ('MM', '%m'),    # 2-digit month
+            ('dd', '%d'),    # 2-digit day
+            ('HH', '%H'),    # 24-hour format
+            ('hh', '%I'),    # 12-hour format
+            ('mm', '%M'),    # minutes
+            ('ss', '%S'),    # seconds
+        ]
+        
+        python_format = user_format
+        for user_code, python_code in replacements:
+            python_format = python_format.replace(user_code, python_code)
+        
+        # Handle single character patterns after double character patterns
+        python_format = re.sub(r'(?<!%)(?<![a-zA-Z])M(?!%)(?![a-zA-Z])', '%m', python_format)
+        python_format = re.sub(r'(?<!%)(?<![a-zA-Z])d(?!%)(?![a-zA-Z])', '%d', python_format)
+        
+        return python_format
+    
+    # Find all date format patterns like {yyyyMMdd}, {yyyy-MM-dd}, etc.
+    def replace_date_format(match):
+        user_format = match.group(1)  # Extract the format string inside braces
+        try:
+            python_format = convert_format(user_format)
+            return now.strftime(python_format)
+        except ValueError:
+            # If the format is invalid, return the original placeholder
+            return match.group(0)
+    
+    # Replace patterns like {yyyyMMdd}, {yyyy-MM-dd}, etc.
+    text = re.sub(r'\{([^}]+)\}', replace_date_format, text)
+    
+    return text
+
 
 TABLE_TAGS = {"table", "th", "tr", "td", "thead", "tbody", "tfoot"}
 TABLE_ATTRIBUTES = {"colspan", "rowspan", "halign", "border", "class"}
@@ -175,7 +236,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         csv_data = None
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+            # Use custom CSV filename if provided, otherwise use the default name
+            csv_name = self._content.csv_filename or __("%(name)s.csv", name=self._content.name)
+            # Replace date placeholders in CSV filename
+            csv_name = replace_date_placeholders(csv_name)
+            csv_data = {csv_name: self._content.csv}
 
         pdf_data = None
         if self._content.pdf:
@@ -190,6 +255,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_subject(self) -> str:
+        if self._content.email_subject:
+            # Use custom email subject with date placeholder replacement
+            subject = replace_date_placeholders(self._content.email_subject)
+            return __(
+                "%(prefix)s %(title)s",
+                prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+                title=subject,
+            )
         return __(
             "%(prefix)s %(title)s",
             prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
