@@ -16,7 +16,7 @@
 # under the License.
 from typing import Union
 
-from marshmallow import fields, Schema, ValidationError
+from marshmallow import fields, Schema, ValidationError, validate
 from marshmallow.validate import Length
 
 from superset.utils import json
@@ -60,10 +60,10 @@ class AnnotationPostSchema(Schema):
         metadata={"description": annotation_short_descr},
         required=True,
         allow_none=False,
-        validate=[Length(1, 500)],
+        validate=[validate.And(Length(1, 500),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     long_descr = fields.String(
-        metadata={"description": annotation_long_descr}, allow_none=True
+        metadata={"description": annotation_long_descr}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     start_dttm = fields.DateTime(
         metadata={"description": annotation_start_dttm},
@@ -84,10 +84,10 @@ class AnnotationPutSchema(Schema):
     short_descr = fields.String(
         metadata={"description": annotation_short_descr},
         required=False,
-        validate=[Length(1, 500)],
+        validate=[validate.And(Length(1, 500),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     long_descr = fields.String(
-        metadata={"description": annotation_long_descr}, required=False, allow_none=True
+        metadata={"description": annotation_long_descr}, required=False, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     start_dttm = fields.DateTime(
         metadata={"description": annotation_start_dttm}, required=False
