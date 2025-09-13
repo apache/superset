@@ -201,7 +201,10 @@ export const DrillByMenuItems = ({
   };
 
   // Don't render drill by menu items when matrixify is enabled
-  if (formData.matrixify_enabled) {
+  if (
+    formData.matrixify_enable_vertical_layout === true ||
+    formData.matrixify_enable_horizontal_layout === true
+  ) {
     return null;
   }
 

@@ -99,6 +99,10 @@ export interface MatrixifyFormData {
   // Enable/disable matrixify functionality
   matrixify_enabled?: boolean;
 
+  // Layout enable controls
+  matrixify_enable_vertical_layout?: boolean;
+  matrixify_enable_horizontal_layout?: boolean;
+
   // Row axis configuration
   matrixify_mode_rows?: MatrixifyMode;
   matrixify_rows?: AdhocMetric[];
@@ -177,8 +181,12 @@ export function getMatrixifyConfig(
  * Check if Matrixify is enabled and properly configured
  */
 export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
-  // First check if matrixify is explicitly enabled via checkbox
-  if (!formData.matrixify_enabled) {
+  // Check if either vertical or horizontal layout is enabled
+  const hasVerticalLayout = formData.matrixify_enable_vertical_layout === true;
+  const hasHorizontalLayout =
+    formData.matrixify_enable_horizontal_layout === true;
+
+  if (!hasVerticalLayout && !hasHorizontalLayout) {
     return false;
   }
 
@@ -216,7 +224,11 @@ export function getMatrixifyValidationErrors(
   const errors: string[] = [];
 
   // Only validate if matrixify is enabled
-  if (!formData.matrixify_enabled) {
+  const hasVerticalLayout = formData.matrixify_enable_vertical_layout === true;
+  const hasHorizontalLayout =
+    formData.matrixify_enable_horizontal_layout === true;
+
+  if (!hasVerticalLayout && !hasHorizontalLayout) {
     return errors;
   }
 
