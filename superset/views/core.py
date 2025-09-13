@@ -938,3 +938,25 @@ class Superset(BaseSupersetView):
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
         return redirect(url_for("SqllabView.history"))
+
+    @has_access
+    @expose("/swagger/v1")
+    def swagger_ui_redirect(self) -> FlaskResponse:
+        """
+        Redirect to Flask-AppBuilder's swagger UI with proper APPLICATION_ROOT support.
+
+        This fixes the issue where /swagger/v1 doesn't work in subdirectory deployments
+        by redirecting to Flask-AppBuilder's existing swagger endpoint.
+        """
+        # Check if swagger is enabled
+        if not app.config.get("FAB_API_SWAGGER_UI", False):
+            abort(404, "Swagger UI is disabled")
+
+        # Get the application root
+        app_root = app.config.get("APPLICATION_ROOT", "/").rstrip("/")
+
+        # Flask-AppBuilder's swagger endpoint is typically /api/v1/swagger
+        # Redirect to it with the proper application root prefix
+        fab_swagger_path = f"{app_root}/api/v1/swagger"
+
+        return redirect(fab_swagger_path)
