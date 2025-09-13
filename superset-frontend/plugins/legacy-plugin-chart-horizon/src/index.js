@@ -19,7 +19,9 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import example from './images/Horizon_Chart.jpg';
+import exampleDark from './images/Horizon_Chart-dark.jpg';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -28,10 +30,11 @@ const metadata = new ChartMetadata({
   description: t(
     'Compares how a metric changes over time between different groups. Each group is mapped to a row and change over time is visualized bar lengths and color.',
   ),
-  exampleGallery: [{ url: example }],
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Horizon Chart'),
   tags: [t('Legacy')],
   thumbnail,
+  thumbnailDark,
   useLegacyApi: true,
 });
 

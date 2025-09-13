@@ -21,10 +21,15 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/Pie1.jpg';
+import example1Dark from './images/Pie1-dark.jpg';
 import example2 from './images/Pie2.jpg';
+import example2Dark from './images/Pie2-dark.jpg';
 import example3 from './images/Pie3.jpg';
+import example3Dark from './images/Pie3-dark.jpg';
 import example4 from './images/Pie4.jpg';
+import example4Dark from './images/Pie4-dark.jpg';
 import { EchartsPieChartProps, EchartsPieFormData } from './types';
 import { EchartsChartPlugin } from '../types';
 
@@ -60,10 +65,10 @@ export default class EchartsPieChartPlugin extends EchartsChartPlugin<
 
         Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.`),
         exampleGallery: [
-          { url: example1 },
-          { url: example2 },
-          { url: example3 },
-          { url: example4 },
+          { url: example1, urlDark: example1Dark },
+          { url: example2, urlDark: example2Dark },
+          { url: example3, urlDark: example3Dark },
+          { url: example4, urlDark: example4Dark },
         ],
         name: t('Pie Chart'),
         tags: [
@@ -77,6 +82,7 @@ export default class EchartsPieChartPlugin extends EchartsChartPlugin<
           t('Nightingale'),
         ],
         thumbnail,
+        thumbnailDark,
       },
       transformProps,
     });
