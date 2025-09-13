@@ -30,6 +30,20 @@
 
     {% block head_meta %}{% endblock %}
 
+    <style>
+      body {
+        background: #fff;
+        color: #000;
+      }
+    
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #000;
+          color: #fff;
+        }
+      }
+    </style>
+
     {% block head_css %}
       {% for favicon in favicons %}
         <link
@@ -69,11 +83,11 @@
     {% endblock %}
   </head>
 
-  {% set tokens = theme_tokens | default({}) %}
-  <body {% if standalone_mode %}class="standalone"{% endif %} style="margin: 0; padding: 0; background-color: {{ tokens.get('colorBgBase', '#ffffff') }};">
+  <body {% if standalone_mode %}class="standalone"{% endif %}>
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
+        {% set tokens = theme_tokens | default({}) %}
         {% set spinner_style = "width: 70px; height: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" %}
 
         {% if spinner_svg %}
@@ -85,10 +99,14 @@
           <!-- Custom URL from theme -->
           <img
             src="{{ tokens.brandSpinnerUrl }}"
-            alt=""
+            alt="Loading..."
             style="{{ spinner_style }}"
           />
-        {# Remove fallback text - let React app handle loading state #}
+        {% else %}
+          <!-- Fallback: This should rarely happen with new logic -->
+          <div style="{{ spinner_style }}">
+            Loading...
+          </div>
         {% endif %}
       </div>
     {% endblock %}
