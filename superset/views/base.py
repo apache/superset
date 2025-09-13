@@ -120,6 +120,7 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_QUERY_RESULT_TIMEOUT",
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
+    "MAPBOX_API_KEY",
 )
 
 logger = logging.getLogger(__name__)
