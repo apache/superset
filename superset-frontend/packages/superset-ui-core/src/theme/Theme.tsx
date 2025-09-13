@@ -19,7 +19,7 @@
 /* eslint-disable react-prefer-function-component/react-prefer-function-component */
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
-import { theme as antdThemeImport, ConfigProvider } from 'antd';
+import { theme as antdThemeImport, ConfigProvider, App } from 'antd';
 
 // @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
 /* eslint-disable import/extensions */
@@ -243,7 +243,7 @@ export class Theme {
         <ThemeProvider theme={themeState.theme}>
           <GlobalStyles />
           <ConfigProvider theme={themeState.antdConfig}>
-            {children}
+            <App>{children}</App>
           </ConfigProvider>
         </ThemeProvider>
       </EmotionCacheProvider>

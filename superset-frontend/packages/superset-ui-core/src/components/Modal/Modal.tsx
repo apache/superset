@@ -368,77 +368,9 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// Theme-aware confirmation modal that applies current Superset theme
-const themedConfirm = (props: Parameters<typeof AntdModal.confirm>[0]) => {
-  // Get current theme from CSS custom properties or fallback to defaults
-  const getCurrentTheme = () => {
-    const style = getComputedStyle(document.documentElement);
-    const isDark = document.body.classList.contains('theme-dark');
-
-    return {
-      colorBgContainer:
-        style.getPropertyValue('--theme-color-bg-container') ||
-        (isDark ? '#141414' : '#ffffff'),
-      colorText:
-        style.getPropertyValue('--theme-color-text') ||
-        (isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)'),
-      colorSplit:
-        style.getPropertyValue('--theme-color-split') ||
-        (isDark ? '#434343' : '#d9d9d9'),
-    };
-  };
-
-  const theme = getCurrentTheme();
-  const confirmId = `superset-confirm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  // Inject themed styles using specific selectors (no !important)
-  const injectConfirmStyles = () => {
-    const styleId = `${confirmId}-styles`;
-    if (document.getElementById(styleId)) return;
-
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      .${confirmId}.ant-modal-root .ant-modal-content {
-        background-color: ${theme.colorBgContainer};
-        color: ${theme.colorText};
-      }
-      .${confirmId}.ant-modal-root .ant-modal-header {
-        background-color: ${theme.colorBgContainer};
-        border-bottom-color: ${theme.colorSplit};
-      }
-      .${confirmId}.ant-modal-root .ant-modal-title {
-        color: ${theme.colorText};
-      }
-      .${confirmId}.ant-modal-root .ant-modal-body {
-        color: ${theme.colorText};
-      }
-      .${confirmId}.ant-modal-root .ant-modal-footer {
-        background-color: ${theme.colorBgContainer};
-        border-top-color: ${theme.colorSplit};
-      }
-      .${confirmId}.ant-modal-root .ant-modal-footer .ant-btn {
-        border-color: ${theme.colorSplit};
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Clean up styles when no longer needed
-    setTimeout(() => {
-      const existingStyle = document.getElementById(styleId);
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-    }, 5000);
-  };
-
-  injectConfirmStyles();
-
-  return AntdModal.confirm({
-    ...props,
-    rootClassName: `${confirmId} ${props?.rootClassName || ''}`,
-  });
-};
+// Theme-aware confirmation modal - now inherits theme through App wrapper in SupersetThemeProvider
+const themedConfirm = (props: Parameters<typeof AntdModal.confirm>[0]) =>
+  AntdModal.confirm(props);
 
 export const Modal = Object.assign(CustomModal, {
   error: AntdModal.error,
