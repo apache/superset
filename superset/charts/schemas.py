@@ -1374,11 +1374,12 @@ class ChartDataQueryContextSchema(Schema):
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
         query_context = self.get_query_context_factory().create(**data)
         try:
-            if query_context.slice_.id:
+            if query_context.slice_ and query_context.slice_.id:
                 for query in query_context.queries:
                     query.chart_id = query_context.slice_.id
-        except:
-            # If the slice is not available, we ignore it
+        except Exception:  # pylint: disable=broad-exception-caught
+            # If the slice is not available or any other error occurs, we ignore it
+            # This is intentional as we don't want to fail the entire query context creation
             pass
         return query_context
 

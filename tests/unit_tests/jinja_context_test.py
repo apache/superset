@@ -472,7 +472,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     assert (
         dataset_macro(1)
         == f"""(
--- SUPERSET CHART None 
+-- SUPERSET CHART None
 SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit{space}
 FROM my_schema.old_dataset
 ) AS dataset_1"""
@@ -481,7 +481,7 @@ FROM my_schema.old_dataset
     assert (
         dataset_macro(1, include_metrics=True)
         == f"""(
--- SUPERSET CHART None 
+-- SUPERSET CHART None
 SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit, COUNT(*) AS cnt{space}
 FROM my_schema.old_dataset GROUP BY ds, num_boys, revenue, expenses, revenue-expenses
 ) AS dataset_1"""
@@ -490,7 +490,7 @@ FROM my_schema.old_dataset GROUP BY ds, num_boys, revenue, expenses, revenue-exp
     assert (
         dataset_macro(1, include_metrics=True, columns=["ds"])
         == f"""(
--- SUPERSET CHART None 
+-- SUPERSET CHART None
 SELECT ds AS ds, COUNT(*) AS cnt{space}
 FROM my_schema.old_dataset GROUP BY ds
 ) AS dataset_1"""

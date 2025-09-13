@@ -19,7 +19,6 @@
 
 import datetime
 import logging
-import os
 
 import pandas as pd
 from flask import current_app
@@ -35,53 +34,77 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 class GoogleSheetsExport:
     client: "gspread.Client"
     share_permissions: dict[str, str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         assert feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT")
-        assert LIB_GSPREAD_AVAILABLE, 'GOOGLE_SHEETS_EXPORT: Missing package.'
+        assert LIB_GSPREAD_AVAILABLE, "GOOGLE_SHEETS_EXPORT: Missing package."
         assert isinstance(
             current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON"],
             dict,
-        ), 'GOOGLE_SHEETS_EXPORT: Required valid service-account json.'
+        ), "GOOGLE_SHEETS_EXPORT: Required valid service-account json."
         assert isinstance(
             current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"],
             dict,
-        ), 'GOOGLE_SHEETS_EXPORT: Required share permissions.'
-        if current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"].get('perm_type') == 'anyone':
-            assert 'email_address' in \
-                current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"] and \
-                current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"]['email_address']\
-                == None, \
+        ), "GOOGLE_SHEETS_EXPORT: Required share permissions."
+        if (
+            current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"].get(
+                "perm_type"
+            )
+            == "anyone"
+        ):
+            assert (
+                "email_address"
+                in current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"]
+                and current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"][
+                    "email_address"
+                ]
+                is None
+            ), (
                 'GOOGLE_SHEETS_EXPORT: For perm_type == "anyone", email_address must be set \
                 to None'
+            )
         else:
             assert {"email_address", "perm_type", "role"} <= current_app.config[
                 "GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"
             ].keys()
         self.client = gspread.service_account_from_dict(
             current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON"],
-            http_client=gspread.BackOffHTTPClient
+            http_client=gspread.BackOffHTTPClient,
         )
-        self.share_permissions = current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"]
+        self.share_permissions = current_app.config[
+            "GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"
+        ]
 
     def upload_df_to_new_sheet(self, name: str, df: pd.DataFrame) -> str:
-        spreadsheet = self.client.create(f"{name} {datetime.datetime.utcnow().isoformat()}")
+        spreadsheet = self.client.create(
+            f"{name} {datetime.datetime.utcnow().isoformat()}"
+        )
         spreadsheet.sheet1.update(
             range_name="A1",
             values=([df.columns.values.tolist()] + df.values.tolist()),
         )
         spreadsheet.share(**self.share_permissions)
         return spreadsheet.id
-    
-    def upload_dfs_to_new_sheet(self, name: str, dfs: list[tuple[str, pd.DataFrame]]) -> str:
-        spreadsheet = self.client.create(f"{name} {datetime.datetime.utcnow().isoformat()}")
+
+    def upload_dfs_to_new_sheet(
+        self, name: str, dfs: list[tuple[str, pd.DataFrame]]
+    ) -> str:
+        spreadsheet = self.client.create(
+            f"{name} {datetime.datetime.utcnow().isoformat()}"
+        )
         for sheet_name, df in dfs:
-            logging.info(f"Uploading {sheet_name} to {spreadsheet.id} with shape {df.shape}.")
+            logging.info(
+                "Uploading %s to %s with shape %s.",
+                sheet_name,
+                spreadsheet.id,
+                df.shape,
+            )
             worksheet = spreadsheet.add_worksheet(sheet_name, df.shape[0], df.shape[1])
             set_with_dataframe(worksheet, df, include_index=True)
         spreadsheet.share(**self.share_permissions)
-        spreadsheet.del_worksheet(spreadsheet.sheet1) # delete the default sheet
+        spreadsheet.del_worksheet(spreadsheet.sheet1)  # delete the default sheet
         return spreadsheet.id

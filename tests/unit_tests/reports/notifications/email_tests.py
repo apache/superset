@@ -16,6 +16,7 @@
 # under the License.
 import pandas as pd
 
+
 def test_render_description_with_html() -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
@@ -45,7 +46,11 @@ def test_render_description_with_html() -> None:
     )
     email_body = (
         EmailNotification(
-            recipient=ReportRecipients(type=ReportRecipientType.EMAIL, recipient_config_json='{"target": "test@example.com"}'), content=content
+            recipient=ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json='{"target": "test@example.com"}',
+            ),
+            content=content,
         )
         ._get_content()
         .body
@@ -81,11 +86,16 @@ def test_dont_include_cta_for_external_email() -> None:
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
+            "slack_channels": None,
         },
     )
     email_body = (
         EmailNotification(
-            recipient=ReportRecipients(type=ReportRecipientType.EMAIL, recipient_config_json='{"target": "test@example.com, test@aven.com, test@gmail.com"}'), content=content
+            recipient=ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json='{"target": "test@example.com, test@aven.com, test@gmail.com"}',
+            ),
+            content=content,
         )
         ._get_content()
         .body
@@ -95,8 +105,7 @@ def test_dont_include_cta_for_external_email() -> None:
         in email_body
     )
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
-    assert ('Explore in Superset' not in email_body)
-
+    assert "Explore in Superset" not in email_body
 
 
 def test_include_cta_for_internal_email() -> None:
@@ -123,11 +132,16 @@ def test_include_cta_for_internal_email() -> None:
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
+            "slack_channels": None,
         },
     )
     email_body = (
         EmailNotification(
-            recipient=ReportRecipients(type=ReportRecipientType.EMAIL, recipient_config_json='{"target": "test@aven.com, test2@aven.com"}'), content=content
+            recipient=ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json='{"target": "test@aven.com, test2@aven.com"}',
+            ),
+            content=content,
         )
         ._get_content()
         .body
@@ -137,4 +151,4 @@ def test_include_cta_for_internal_email() -> None:
         in email_body
     )
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
-    assert ('Explore in Superset' in email_body)
+    assert "Explore in Superset" in email_body

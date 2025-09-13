@@ -232,24 +232,6 @@ def test_get_dataset_access_denied(
     assert data["message"] == message
 
 
-@patch("superset.security.SupersetSecurityManager.can_access_datasource")
-def test_get_dataset_access_denied(
-    mock_can_access_datasource, test_client, login_as_admin, dataset
-):
-    message = "Dataset access denied"
-    mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
-        message=message, datasource_id=dataset.id, datasource_type=dataset.type
-    )
-    resp = test_client.get(
-        f"api/v1/explore/?datasource_id={dataset.id}&datasource_type={dataset.type}"
-    )
-    data = json.loads(resp.data.decode("utf-8"))
-    assert resp.status_code == 403
-    assert data["datasource_id"] == dataset.id
-    assert data["datasource_type"] == dataset.type
-    assert data["message"] == message
-
-
 @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
 def test_wrong_endpoint(mock_get_datasource, test_client, login_as_admin, dataset):
     dataset.default_endpoint = "another_endpoint"

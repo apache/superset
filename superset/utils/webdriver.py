@@ -21,14 +21,11 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
-from typing import Any, TYPE_CHECKING, Dict
+from typing import Any, Dict, TYPE_CHECKING
 from urllib.parse import urlparse
-from werkzeug.http import parse_cookie
 
-
-from flask import current_app, request, Response, session
+from flask import current_app, Response, session
 from flask_login import login_user
-
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -39,12 +36,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from superset.utils.urls import headless_url
-
+from werkzeug.http import parse_cookie
 
 from superset import feature_flag_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
+from superset.utils.urls import headless_url
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
@@ -115,7 +112,6 @@ class WebDriverPlaywright(WebDriverProxy):
         )
         return browser_context
 
-
     @staticmethod
     def get_auth_cookies(user: User) -> Dict[str, str]:
         # Login with the user specified to get the reports
@@ -139,7 +135,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 cookies[cookie_tuple[0]] = cookie_tuple[1]
 
         return cookies
-    
+
     @staticmethod
     def find_unexpected_errors(page: Page) -> list[str]:
         error_messages = []
@@ -193,9 +189,9 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                 except PlaywrightError:
                     logger.exception("Failed to update error messages using alert_div")
-        except PlaywrightError:
-            logger.exception("Failed to capture unexpected errors")
         except PlaywrightTimeout:
+            logger.exception("Failed to capture unexpected errors")
+        except PlaywrightError:
             logger.exception("Failed to capture unexpected errors")
 
         return error_messages
@@ -216,9 +212,7 @@ class WebDriverPlaywright(WebDriverProxy):
             )
             context = self.auth(user, context)
             page = context.new_page()
-            page.goto(
-                url, wait_until='load'
-            )
+            page.goto(url, wait_until="load")
             img: bytes | None = None
             selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
@@ -231,10 +225,15 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                     # override the dashboard selector, otherwise use the element name as a class selecto
                     if element_name == "standalone":
-                        element = page.wait_for_selector(f"#GRID_ID", timeout=self._screenshot_locate_wait * 1000)
+                        element = page.wait_for_selector(
+                            "#GRID_ID", timeout=self._screenshot_locate_wait * 1000
+                        )
                     else:
-                        element = page.wait_for_selector(f".{element_name}", timeout=self._screenshot_locate_wait * 1000)
-                except PlaywrightTimeout as ex:
+                        element = page.wait_for_selector(
+                            f".{element_name}",
+                            timeout=self._screenshot_locate_wait * 1000,
+                        )
+                except PlaywrightTimeout:
                     # page didn't load
                     logger.exception("Timed out requesting url %s", url)
                     raise
@@ -245,7 +244,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     page.wait_for_selector(
                         ".slice_container", timeout=self._screenshot_locate_wait * 1000
                     )
-                except PlaywrightTimeout as ex:
+                except PlaywrightTimeout:
                     logger.exception(
                         "Timed out waiting for chart containers to draw at url %s",
                         url,
@@ -261,7 +260,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         timeout=self._screenshot_load_wait * 1000,
                         state="detached",
                     )
-                except PlaywrightTimeout as ex:
+                except PlaywrightTimeout:
                     logger.exception(
                         "Timed out waiting for charts to load at url %s", url
                     )
