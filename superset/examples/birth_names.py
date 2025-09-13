@@ -108,7 +108,7 @@ def load_birth_names(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
-        logger.debug(f"Creating table [{tbl_name}] reference")
+        logger.debug("Creating table [%s] reference", tbl_name)
         obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
@@ -138,13 +138,14 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
         columns.append(
             TableColumn(
                 column_name="num_california",
-                expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
+                expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END"
+                % (col_state, col_num),
             )
         )
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
+        metrics.append(SqlMetric(metric_name="sum__num", expression="SUM(%s)" % col))
 
     for col in columns:
         if col.column_name == "ds":  # type: ignore
