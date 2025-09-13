@@ -24,7 +24,6 @@ from flask_wtf.csrf import same_origin
 from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
-from superset.utils import json
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
 
 
@@ -76,7 +75,7 @@ class EmbeddedView(BaseSupersetView):
             dashboard_version="v2",
         )
 
-        bootstrap_data = {
+        extra_bootstrap_data = {
             "config": {
                 "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
             },
@@ -86,10 +85,7 @@ class EmbeddedView(BaseSupersetView):
             },
         }
 
-        return self.render_template(
-            "superset/spa.html",
+        return self.render_app_template(
+            extra_bootstrap_data=extra_bootstrap_data,
             entry="embedded",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
-            ),
         )
