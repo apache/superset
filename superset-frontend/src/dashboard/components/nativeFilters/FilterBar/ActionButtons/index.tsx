@@ -25,6 +25,7 @@ import {
   isDefined,
   SupersetTheme,
   styled,
+  addAlpha,
 } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
