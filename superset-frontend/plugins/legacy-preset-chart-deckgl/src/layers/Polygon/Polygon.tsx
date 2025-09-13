@@ -336,7 +336,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
   const accessor = (d: JsonObject) => d[metricLabel];
 
   const colorSchemeType = formData.color_scheme_type;
-  const buckets = colorSchemeType
+  const buckets = colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
     ? getColorBreakpointsBuckets(formData.color_breakpoints)
     : getBuckets(formData, payload.data.features, accessor);
 
