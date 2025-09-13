@@ -186,7 +186,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <body>
                 <div class="report-description">{description}</div>
                 <br>
-                {df.to_html(na_rep="", index=True, escape=False)}
+                {df.to_html(na_rep="", index=True, escape=True)}
             </body>
             </html>
             """
