@@ -37,6 +37,10 @@ class CreateFormDataCommand(BaseCommand):
     def __init__(self, cmd_params: CommandParameters):
         self._cmd_params = cmd_params
 
+    def _get_session_id(self) -> str:
+        """Get session ID. Can be overridden in subclasses."""
+        return session.get("_id")
+
     def run(self) -> str:
         self.validate()
         try:
@@ -47,7 +51,7 @@ class CreateFormDataCommand(BaseCommand):
             form_data = self._cmd_params.form_data
             check_access(datasource_id, chart_id, datasource_type)
             contextual_key = cache_key(
-                session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
+                self._get_session_id(), tab_id, datasource_id, chart_id, datasource_type
             )
             key = cache_manager.explore_form_data_cache.get(contextual_key)
             if not key or not tab_id:
