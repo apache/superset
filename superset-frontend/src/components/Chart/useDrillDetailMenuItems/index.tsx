@@ -37,11 +37,11 @@ import {
   t,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { type ItemType } from '@superset-ui/core/components/Menu';
 import { RootState } from 'src/dashboard/types';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
-import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import { TruncatedMenuLabel } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
 
 const DRILL_TO_DETAIL = t('Drill to detail');
@@ -60,26 +60,6 @@ const DISABLED_REASONS = {
     'Drill to detail by value is not yet supported for this chart type.',
   ),
 };
-
-const DisabledMenuItem = ({
-  children,
-  menuKey,
-  ...rest
-}: {
-  children: ReactNode;
-  menuKey: string;
-}) => (
-  <Menu.Item disabled key={menuKey} {...rest}>
-    <div
-      css={css`
-        white-space: normal;
-        max-width: 160px;
-      `}
-    >
-      {children}
-    </div>
-  </Menu.Item>
-);
 
 const Filter = ({
   children,
@@ -118,7 +98,7 @@ export type DrillDetailMenuItemsProps = {
   isLoadingDataset?: boolean;
 };
 
-const DrillDetailMenuItems = ({
+export const useDrillDetailMenuItems = ({
   formData,
   filters = [],
   isContextMenu = false,
@@ -130,7 +110,7 @@ const DrillDetailMenuItems = ({
   setShowModal,
   key,
   ...props
-}: DrillDetailMenuItemsProps) => {
+}: DrillDetailMenuItemsProps): ItemType[] => {
   const drillToDetailDisabled = useSelector<RootState, boolean | undefined>(
     ({ datasources }) =>
       datasources[formData.datasource]?.database?.disable_drill_to_detail,
@@ -143,7 +123,7 @@ const DrillDetailMenuItems = ({
       setFilters(filters);
       setShowModal(true);
     },
-    [onClick, onSelection],
+    [onClick, onSelection, setFilters, setShowModal],
   );
 
   // Check for Behavior.DRILL_TO_DETAIL to tell if plugin handles the `contextmenu`
@@ -192,62 +172,90 @@ const DrillDetailMenuItems = ({
     drillByDisabled = DISABLED_REASONS.NOT_SUPPORTED;
   }
 
-  const drillToDetailMenuItem = drillDisabled ? (
-    <DisabledMenuItem menuKey="drill-to-detail-disabled" {...props}>
-      {DRILL_TO_DETAIL}
-      <MenuItemTooltip title={drillDisabled} />
-    </DisabledMenuItem>
-  ) : (
-    <Menu.Item key="drill-to-detail" onClick={openModal.bind(null, [])}>
-      {DRILL_TO_DETAIL}
-    </Menu.Item>
-  );
+  const drillToDetailMenuItem: ItemType = drillDisabled
+    ? {
+        key: 'drill-to-detail-disabled',
+        disabled: true,
+        label: (
+          <div
+            css={css`
+              white-space: normal;
+              max-width: 160px;
+            `}
+          >
+            {DRILL_TO_DETAIL}
+            <MenuItemTooltip title={drillDisabled} />
+          </div>
+        ),
+        ...props,
+      }
+    : {
+        key: 'drill-to-detail',
+        onClick: openModal.bind(null, []),
+        label: DRILL_TO_DETAIL,
+      };
 
-  const drillToDetailByMenuItem = drillByDisabled ? (
-    <DisabledMenuItem menuKey="drill-to-detail-by-disabled" {...props}>
-      {DRILL_TO_DETAIL_BY}
-      <MenuItemTooltip title={drillByDisabled} />
-    </DisabledMenuItem>
-  ) : (
-    <Menu.SubMenu
-      popupOffset={[0, submenuYOffset]}
-      popupClassName="chart-context-submenu"
-      title={DRILL_TO_DETAIL_BY}
-      key={key}
-      {...props}
-    >
-      <div data-test="drill-to-detail-by-submenu">
-        {filters.map((filter, i) => (
-          <MenuItemWithTruncation
-            tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
-            menuKey={`drill-detail-filter-${i}`}
-            onClick={openModal.bind(null, [filter])}
-          >
-            {`${DRILL_TO_DETAIL_BY} `}
-            <StyledFilter stripHTML>{filter.formattedVal}</StyledFilter>
-          </MenuItemWithTruncation>
-        ))}
-        {filters.length > 1 && (
-          <Menu.Item
-            key="drill-detail-filter-all"
-            onClick={openModal.bind(null, filters)}
-          >
-            <div>
-              {`${DRILL_TO_DETAIL_BY} `}
-              <StyledFilter stripHTML={false}>{t('all')}</StyledFilter>
+  const drillToDetailByMenuItem: ItemType | null = !isContextMenu
+    ? null
+    : drillByDisabled
+      ? {
+          key: 'drill-to-detail-by-disabled',
+          disabled: true,
+          label: (
+            <div
+              css={css`
+                white-space: normal;
+                max-width: 160px;
+              `}
+            >
+              {DRILL_TO_DETAIL_BY}
+              <MenuItemTooltip title={drillByDisabled} />
             </div>
-          </Menu.Item>
-        )}
-      </div>
-    </Menu.SubMenu>
-  );
+          ),
+          ...props,
+        }
+      : {
+          key: key || 'drill-to-detail-by',
+          label: DRILL_TO_DETAIL_BY,
+          popupOffset: [0, submenuYOffset],
+          popupClassName: 'chart-context-submenu',
+          children: [
+            ...filters.map((filter, i) => ({
+              key: `drill-detail-filter-${i}`,
+              onClick: openModal.bind(null, [filter]),
+              label: (
+                <TruncatedMenuLabel
+                  tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
+                >
+                  {`${DRILL_TO_DETAIL_BY} `}
+                  <StyledFilter stripHTML>{filter.formattedVal}</StyledFilter>
+                </TruncatedMenuLabel>
+              ),
+            })),
+            ...(filters.length > 1
+              ? [
+                  {
+                    key: 'drill-detail-filter-all',
+                    onClick: openModal.bind(null, filters),
+                    label: (
+                      <div>
+                        {`${DRILL_TO_DETAIL_BY} `}
+                        <StyledFilter stripHTML={false}>
+                          {t('all')}
+                        </StyledFilter>
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
+          ],
+          ...props,
+        };
 
-  return (
-    <>
-      {drillToDetailMenuItem}
-      {isContextMenu && drillToDetailByMenuItem}
-    </>
-  );
+  const menuItems: ItemType[] = [drillToDetailMenuItem];
+  if (drillToDetailByMenuItem) {
+    menuItems.push(drillToDetailByMenuItem);
+  }
+
+  return menuItems;
 };
-
-export default DrillDetailMenuItems;

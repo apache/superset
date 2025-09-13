@@ -58,7 +58,7 @@ const HoverStyleOverrides = styled.div`
     top: ${({ theme }) => theme.sizeUnit * -6}px;
     left: 50%;
     transform: translate(-50%);
-    padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
+    padding: 0;
     display: flex;
     flex-direction: row;
     justify-content: center;
