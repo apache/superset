@@ -45,6 +45,13 @@ from superset.utils.screenshot_utils import take_tiled_screenshot
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
+# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
+PLAYWRIGHT_INSTALL_MESSAGE = (
+    "To complete the migration from Cypress "
+    "and enable WebGL/Canvas screenshot support, install Playwright with: "
+    "pip install playwright && playwright install chromium"
+)
+
 if TYPE_CHECKING:
     from typing import Any
 
@@ -69,6 +76,58 @@ except ImportError:
     Locator = Any
     Page = Any
     sync_playwright = None
+
+
+# Check Playwright availability at module level
+def check_playwright_availability() -> bool:
+    """
+    Comprehensive check for Playwright availability.
+
+    Verifies not only that the module is imported, but also that
+    browser binaries are installed and can be launched.
+    """
+    if sync_playwright is None:
+        return False
+
+    try:
+        # Try to actually launch a browser to ensure binaries are installed
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            return True
+    except Exception as e:
+        logger.warning(
+            "Playwright module is installed but browser launch failed. "
+            "Run 'playwright install chromium' to install browser binaries. "
+            "Error: %s",
+            str(e),
+        )
+        return False
+
+
+PLAYWRIGHT_AVAILABLE = check_playwright_availability()
+
+
+def validate_webdriver_config() -> dict[str, Any]:
+    """
+    Validate webdriver configuration and dependencies.
+
+    Used to check migration status from Cypress to Playwright.
+    Returns a dictionary with the status of available webdrivers
+    and feature flags.
+    """
+    from superset import feature_flag_manager
+
+    return {
+        "selenium_available": True,  # Always available as required dependency
+        "playwright_available": PLAYWRIGHT_AVAILABLE,
+        "playwright_feature_enabled": feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ),
+        "recommended_action": (
+            PLAYWRIGHT_INSTALL_MESSAGE if not PLAYWRIGHT_AVAILABLE else None
+        ),
+    }
 
 
 class DashboardStandaloneMode(Enum):
@@ -151,6 +210,14 @@ class WebDriverPlaywright(WebDriverProxy):
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info(
+                "Playwright not available - falling back to Selenium. "
+                "Note: WebGL/Canvas charts may not render correctly with Selenium. "
+                f"{PLAYWRIGHT_INSTALL_MESSAGE}"
+            )
+            return None
+
         with sync_playwright() as playwright:
             browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
