@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc3",
+  "version": "0.0.1-rc4",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
