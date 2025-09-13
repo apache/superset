@@ -23,8 +23,9 @@ export function getContrastingColor(color: string, thresholds = 186) {
   let r = 0;
   let g = 0;
   let b = 0;
-  if (color.length > 7) {
-    // rgb
+
+  // Check for RGB format first (regardless of length)
+  if (color.startsWith('rgb')) {
     const matchColor = rgbRegex.exec(color);
     if (!matchColor) {
       throw new Error(`Invalid color: ${color}`);
@@ -33,15 +34,21 @@ export function getContrastingColor(color: string, thresholds = 186) {
     g = parseInt(matchColor[2], 10);
     b = parseInt(matchColor[3], 10);
   } else {
-    // hex
+    // hex format (3, 6, or 8 digits)
     let hex = color;
     if (hex.startsWith('#')) {
       hex = hex.substring(1);
     }
-    // #FFF
+
+    // #FFF -> #FFFFFF
     if (hex.length === 3) {
       hex = [hex[0], hex[0], hex[1], hex[1], hex[2], hex[2]].join('');
     }
+    // #FFFFFFFF -> #FFFFFF (ignore alpha for contrast calculation)
+    else if (hex.length === 8) {
+      hex = hex.slice(0, 6);
+    }
+
     if (hex.length !== 6) {
       throw new Error(`Invalid color: ${color}`);
     }
@@ -80,11 +87,18 @@ export function addAlpha(color: string, opacity: number): string {
   if (opacity > 1 || opacity < 0) {
     throw new Error(`The opacity should between 0 and 1, but got: ${opacity}`);
   }
+
   // the alpha value is between 00 - FF
   const alpha = `0${Math.round(opacity * 255)
     .toString(16)
     .toUpperCase()}`.slice(-2);
 
+  // If color already has alpha channel (8-digit hex), replace it
+  if (color.startsWith('#') && color.length === 9) {
+    return `${color.slice(0, 7)}${alpha}`;
+  }
+
+  // Otherwise, append alpha to the color
   return `${color}${alpha}`;
 }
 
@@ -93,17 +107,24 @@ export function hexToRgb(h: string) {
   let g = '0';
   let b = '0';
 
-  // 3 digits
+  // 3 digits: #FFF
   if (h.length === 4) {
     r = `0x${h[1]}${h[1]}`;
     g = `0x${h[2]}${h[2]}`;
     b = `0x${h[3]}${h[3]}`;
-
-    // 6 digits
-  } else if (h.length === 7) {
+  }
+  // 6 digits: #FFFFFF
+  else if (h.length === 7) {
     r = `0x${h[1]}${h[2]}`;
     g = `0x${h[3]}${h[4]}`;
     b = `0x${h[5]}${h[6]}`;
+  }
+  // 8 digits: #FFFFFFFF (ignore alpha channel for RGB conversion)
+  else if (h.length === 9) {
+    r = `0x${h[1]}${h[2]}`;
+    g = `0x${h[3]}${h[4]}`;
+    b = `0x${h[5]}${h[6]}`;
+    // Alpha channel (h[7] and h[8]) is ignored for RGB output
   }
 
   return `rgb(${+r}, ${+g}, ${+b})`;

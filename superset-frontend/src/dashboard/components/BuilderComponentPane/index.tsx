@@ -17,9 +17,8 @@
  * under the License.
  */
 /* eslint-env browser */
-import { rgba } from 'emotion-rgba';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t, css, SupersetTheme, useTheme } from '@superset-ui/core';
+import { t, css, SupersetTheme, useTheme, addAlpha } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
@@ -68,7 +67,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => {
           position: absolute;
           height: 100%;
           width: ${BUILDER_PANE_WIDTH}px;
-          box-shadow: -4px 0 4px 0 ${rgba(theme.colorBorder, 0.1)};
+          box-shadow: -4px 0 4px 0 ${addAlpha(theme.colorBorder, 0.1)};
           background-color: ${theme.colorBgBase};
         `}
       >

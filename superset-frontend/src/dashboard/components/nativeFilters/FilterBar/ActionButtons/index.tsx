@@ -25,10 +25,10 @@ import {
   isDefined,
   SupersetTheme,
   styled,
+  addAlpha,
 } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
-import { rgba } from 'emotion-rgba';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
 
@@ -73,7 +73,7 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
   padding-top: ${theme.sizeUnit * 6}px;
 
   background: linear-gradient(
-    ${rgba(theme.colorBgLayout, 0)},
+    ${addAlpha(theme.colorBgLayout, 0)},
     ${theme.colorBgContainer} 20%
   );
 
