@@ -30,10 +30,11 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t, useTheme } from '@superset-ui/core';
 // import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
+import { Skeleton } from 'antd';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
 import { VerticalBarProps } from './types';
@@ -133,6 +134,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   toggleFiltersBar,
   width,
 }) => {
+  const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
@@ -228,8 +230,15 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <Bar className={cx({ open: filtersOpen })} width={width}>
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
-            <div css={{ height }}>
-              <Loading />
+            <div css={{ height, padding: `${theme.sizeUnit * 4}px` }}>
+              <div css={{ display: 'flex', flexDirection: 'column', gap: `${theme.sizeUnit * 4}px` }}>
+                {filterValues.map((_, i) => (
+                  <div key={i} css={{ display: 'flex', flexDirection: 'column', gap: `${theme.sizeUnit}px` }}>
+                    <Skeleton.Input active size="small" style={{ width: '60%', height: 20 }} />
+                    <Skeleton.Input active size="small" style={{ width: '100%', height: 32 }} />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>

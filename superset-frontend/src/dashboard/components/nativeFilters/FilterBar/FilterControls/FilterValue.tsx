@@ -44,7 +44,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import Loading from 'src/components/Loading';
+import { Skeleton } from 'antd';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
@@ -320,7 +320,7 @@ const FilterValue: FC<FilterControlProps> = ({
   return (
     <StyledDiv data-test="form-item-value">
       {isLoading ? (
-        <Loading position="inline-centered" />
+        <Skeleton.Input active size="small" style={{ width: '100%', height: HEIGHT }} />
       ) : (
         <SuperChart
           height={HEIGHT}
