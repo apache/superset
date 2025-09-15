@@ -169,12 +169,12 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
           }));
         }
         case COLOR_SCHEME_TYPES.color_breakpoints: {
-          const defaultBreakpointColor = fd.deafult_breakpoint_color
+          const defaultBreakpointColor = fd.default_breakpoint_color
             ? [
-                fd.deafult_breakpoint_color.r,
-                fd.deafult_breakpoint_color.g,
-                fd.deafult_breakpoint_color.b,
-                fd.deafult_breakpoint_color.a * 255,
+                fd.default_breakpoint_color.r,
+                fd.default_breakpoint_color.g,
+                fd.default_breakpoint_color.b,
+                fd.default_breakpoint_color.a * 255,
               ]
             : [
                 DEFAULT_DECKGL_COLOR.r,
