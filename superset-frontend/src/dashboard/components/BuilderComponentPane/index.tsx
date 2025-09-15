@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import tinycolor from 'tinycolor2';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t, css, SupersetTheme, useTheme, addAlpha } from '@superset-ui/core';
+import { t, css, SupersetTheme, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
