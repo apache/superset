@@ -865,4 +865,5 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)  # noqa: TID251
     dash.slug = "births"
+    db.session.commit()
     return dash

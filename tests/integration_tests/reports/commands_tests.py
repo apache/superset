@@ -190,7 +190,7 @@ def create_test_table_context(database: Database):
     yield db.session
     with database.get_sqla_engine() as engine:
         with engine.connect() as connection:
-            connection.execute(sa.text("DROP TABLE test_table CASCADE"))
+            connection.execute(sa.text("DROP TABLE test_table"))
             connection.commit()
 
 
