@@ -88,7 +88,9 @@ const config: ControlPanelConfig = {
               label: t('Increase label'),
               type: 'TextControl',
               renderTrigger: true,
-              description: t('Change the increase label to text'),
+              description: t(
+                'Customize the label displayed for increasing values in the chart tooltips and legend.',
+              ),
             },
           },
         ],
@@ -116,7 +118,9 @@ const config: ControlPanelConfig = {
               label: t('Decrease label'),
               type: 'TextControl',
               renderTrigger: true,
-              description: t('Change the decrease label to text'),
+              description: t(
+                'Customize the label displayed for decreasing values in the chart tooltips and legend.',
+              ),
             },
           },
         ],
@@ -145,7 +149,9 @@ const config: ControlPanelConfig = {
               label: t('Total label'),
               type: 'TextControl',
               renderTrigger: true,
-              description: t('Change the total label to text'),
+              description: t(
+                'Customize the label displayed for total values in the chart tooltips, legend, and chart axis.',
+              ),
             },
           },
         ],
