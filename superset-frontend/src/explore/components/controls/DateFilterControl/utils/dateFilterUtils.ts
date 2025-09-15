@@ -40,12 +40,12 @@ export const guessFrame = (timeRange: string): FrameType => {
     return 'Current';
   }
   if (timeRange === NO_TIME_RANGE) {
-    return 'No filter';
+    return 'Custom';
   }
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';
   }
-  return 'Advanced';
+  return 'Custom';
 };
 
 export function useDefaultTimeFilter() {

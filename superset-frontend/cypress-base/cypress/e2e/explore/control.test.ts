@@ -169,37 +169,13 @@ describe('Time range filter', () => {
     interceptChart({ legacy: true }).as('chartData');
   });
 
-  it('Advanced time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      time_range: '100 years ago : now',
-      metrics: [NUM_METRIC],
-    };
-
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.footer').find('button').its('length').should('eq', 2);
-        cy.get('.ant-popover-content').within(() => {
-          cy.get('input[value="100 years ago"]');
-          cy.get('input[value="now"]');
-        });
-        cy.get('[data-test=cancel-button]').click();
-        cy.wait(500);
-        cy.get('.ant-popover').should('not.exist');
-      });
-  });
 
   it('Common time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       viz_type: 'line',
       metrics: [NUM_METRIC],
-      time_range: 'Last year',
+      time_range: 'Last month',
     };
 
     cy.visitChartByParams(formData);
@@ -208,8 +184,8 @@ describe('Time range filter', () => {
     cy.get('[data-test=time-range-trigger]')
       .click()
       .then(() => {
-        cy.get('.ant-radio-group').children().its('length').should('eq', 5);
-        cy.get('.ant-radio-checked + span').contains('Last year');
+        cy.get('.ant-radio-group').children().its('length').should('eq', 3);
+        cy.get('.ant-radio-checked + span').contains('Last month');
         cy.get('[data-test=cancel-button]').click();
       });
   });

@@ -124,7 +124,7 @@ const ActionButtons = ({
         onClick={onClearAll}
         {...getFilterBarTestId('clear-button')}
       >
-        {t('Clear all')}
+        {t('Reset All')}
       </Button>
     </div>
   );

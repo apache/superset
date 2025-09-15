@@ -185,9 +185,9 @@ describe('FilterBar', () => {
     expect(screen.getByText('Filters')).toBeInTheDocument();
   });
 
-  it('should render the "Clear all" option', () => {
+  it('should render the "Reset All" option', () => {
     renderWrapper();
-    expect(screen.getByText('Clear all')).toBeInTheDocument();
+    expect(screen.getByText('Reset All')).toBeInTheDocument();
   });
 
 
