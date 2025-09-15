@@ -378,4 +378,300 @@ describe('SelectFilterPlugin', () => {
     userEvent.type(screen.getByRole('combobox'), 'new value');
     expect(await screen.findByTitle('new value')).toBeInTheDocument();
   });
+
+  test('preserves backend order when sortMetric is specified', () => {
+    const testData = [
+      { gender: 'zebra' },
+      { gender: 'alpha' },
+      { gender: 'beta' },
+    ];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        sortMetric: 'count',
+        sortAscending: true,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: testData,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // When sortMetric is specified, options should appear in the original data order
+    // (zebra, alpha, beta) not alphabetically sorted
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('zebra');
+    expect(options[1]).toHaveTextContent('alpha');
+    expect(options[2]).toHaveTextContent('beta');
+  });
+
+  test('applies alphabetical sorting when sortMetric is not specified', () => {
+    const testData = [
+      { gender: 'zebra' },
+      { gender: 'alpha' },
+      { gender: 'beta' },
+    ];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        sortMetric: undefined,
+        sortAscending: true,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: testData,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // When sortMetric is not specified, options should be sorted alphabetically
+    // (alpha, beta, zebra)
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('alpha');
+    expect(options[1]).toHaveTextContent('beta');
+    expect(options[2]).toHaveTextContent('zebra');
+  });
+
+  test('applies descending alphabetical sorting when sortAscending is false and no sortMetric', () => {
+    const testData = [
+      { gender: 'zebra' },
+      { gender: 'alpha' },
+      { gender: 'beta' },
+    ];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        sortMetric: undefined,
+        sortAscending: false,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: testData,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // When sortAscending is false and no sortMetric, options should be sorted
+    // in descending alphabetical order (zebra, beta, alpha)
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('zebra');
+    expect(options[1]).toHaveTextContent('beta');
+    expect(options[2]).toHaveTextContent('alpha');
+  });
+
+  test('preserves backend order even when sortAscending is false and sortMetric is specified', () => {
+    const testData = [
+      { gender: 'zebra' },
+      { gender: 'alpha' },
+      { gender: 'beta' },
+    ];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        sortMetric: 'count',
+        sortAscending: false,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: testData,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // When sortMetric is specified, original order should be preserved regardless
+    // of sortAscending value (zebra, alpha, beta)
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('zebra');
+    expect(options[1]).toHaveTextContent('alpha');
+    expect(options[2]).toHaveTextContent('beta');
+  });
 });
