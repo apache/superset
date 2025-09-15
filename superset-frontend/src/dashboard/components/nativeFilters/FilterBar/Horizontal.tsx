@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
+import { Skeleton } from 'antd';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import FilterControls from './FilterControls/FilterControls';
@@ -144,35 +145,16 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   return (
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
-        {/* {!isInitialized ? (
-          <Loading position="inline-centered" />
+        {!isInitialized ? (
+          <>
+            {filterValues.map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
+                <Skeleton.Input active size="small" style={{ width: 80, height: 20, marginRight: 8 }} />
+                <Skeleton.Input active size="small" style={{ width: 120, height: 32 }} />
+              </div>
+            ))}
+          </>
         ) : (
-          <>
-            <FilterBarSettings />
-            {canEdit && (
-              <FiltersLinkContainer hasFilters={hasFilters}>
-                <FilterConfigurationLink
-                  dashboardId={dashboardId}
-                  createNewOnOpen={filterValues.length === 0}
-                >
-                  <Icons.PlusSmall /> {t('Add/Edit Filters')}
-                </FilterConfigurationLink>
-              </FiltersLinkContainer>
-            )}
-            {!hasFilters && (
-              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
-                {t('No filters are currently added to this dashboard.')}
-              </FilterBarEmptyStateContainer>
-            )}
-            {hasFilters && (
-              <FilterControls
-                dataMaskSelected={dataMaskSelected}
-                onFilterSelectionChange={onSelectionChange}
-              />
-            )}
-            {actions}
-          </>
-        )} */}
 
           <>
             <FilterBarSettings />
@@ -199,7 +181,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
             )}
             {actions}
           </>
-
+        )}
       </HorizontalBarContent>
     </HorizontalBar>
   );
