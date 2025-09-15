@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { rgba } from 'emotion-rgba';
+import tinycolor from 'tinycolor2';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { t, css, SupersetTheme, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
@@ -68,7 +68,8 @@ const BuilderComponentPane = ({ topOffset = 0 }) => {
           position: absolute;
           height: 100%;
           width: ${BUILDER_PANE_WIDTH}px;
-          box-shadow: -4px 0 4px 0 ${rgba(theme.colorBorder, 0.1)};
+          box-shadow: -4px 0 4px 0
+            ${tinycolor(theme.colorBorder).setAlpha(0.1).toRgbString()};
           background-color: ${theme.colorBgBase};
         `}
       >
