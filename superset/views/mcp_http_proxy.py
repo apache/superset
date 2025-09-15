@@ -40,7 +40,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 # Create the MCP proxy blueprint (no URL prefix, like health blueprint)
-mcp_bp = Blueprint("mcp_proxy", __name__)
+mcp_bp = Blueprint("mcp_http_proxy", __name__)
 
 # HTTP client with connection pooling for performance
 HTTP_CLIENT = httpx.Client(
@@ -596,7 +596,7 @@ def cleanup_http_client() -> Iterator[httpx.Client]:
         pass  # httpx.Client handles cleanup automatically
 
 
-def cleanup_mcp_proxy() -> None:
+def cleanup_mcp_http_proxy() -> None:
     """Cleanup function for MCP proxy resources."""
     try:
         HTTP_CLIENT.close()

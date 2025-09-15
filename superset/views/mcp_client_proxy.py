@@ -38,7 +38,7 @@ from superset.mcp_service.app import mcp as mcp_server
 from superset.utils import json as superset_json
 
 # Import helper functions from the existing HTTP proxy
-from superset.views.mcp_proxy import (
+from superset.views.mcp_http_proxy import (
     CircuitBreaker,
     get_mcp_service_config,
     RateLimiter,
