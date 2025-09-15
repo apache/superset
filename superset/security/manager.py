@@ -1198,6 +1198,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 merge=True,
             )
         self.create_missing_perms()
+
+        # SQLAlchemy 2.x deadlock fix: Commit bulk operations before DELETE cleanup
+        # This prevents deadlock between many concurrent INSERTs
+        # (role-permission relationships)
+        # and DELETE operations (permission cleanup) by releasing locks between phases
+        self.session.commit()
+
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
