@@ -302,8 +302,8 @@ class ImportV1DatasetSchema(Schema):
             except ValueError:
                 data["extra"] = None
 
-        if 'template_params' in data and data['template_params'] == '':
-            data['template_params'] = None
+        if "template_params" in data and data["template_params"] == "":
+            data["template_params"] = None
 
         return data
 
