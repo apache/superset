@@ -123,7 +123,7 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  
     engine = create_engine("sqlite://")
     connection = engine.connect()
     connection.execute(text("CREATE TABLE t (dttm DATETIME)"))
-    connection.execute(text("INSERT INTO t VALUES (?)"), (dttm,))
+    connection.execute(text("INSERT INTO t VALUES (:dttm)"), {"dttm": dttm})
 
     # pylint: disable=protected-access
     expression = SqliteEngineSpec._time_grain_expressions[grain].format(col="dttm")

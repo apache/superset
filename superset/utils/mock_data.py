@@ -208,10 +208,12 @@ def add_data(
         metadata.create_all(engine)
 
         if not append:
-            engine.execute(table.delete())
+            with engine.connect() as connection:
+                connection.execute(table.delete())
 
         data = generate_data(columns, num_rows)
-        engine.execute(table.insert(), data)
+        with engine.connect() as connection:
+            connection.execute(table.insert(), data)
 
 
 def get_column_objects(columns: list[ColumnInfo]) -> list[Column]:
