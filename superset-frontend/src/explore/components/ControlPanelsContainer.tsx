@@ -752,7 +752,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
     if (!showMatrixifyTab) return false;
-    
+
     return matrixifySections.some(section =>
       section.controlSetRows.some(rows =>
         rows.some(item => {
@@ -774,48 +774,55 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }, [showMatrixifyTab, matrixifySections, props.controls]);
 
   // Create Matrixify tab label with Beta tag and validation errors
-  const matrixifyTabLabel = useMemo(() => (
-    <>
-      <span>{t('Matrixify')}</span>
-      {matrixifyHasErrors && (
-        <span
-          css={(theme: SupersetTheme) => css`
-            margin-left: ${theme.sizeUnit * 2}px;
-          `}
-        >
-          {' '}
-          <Tooltip
-            id="matrixify-validation-error-tooltip"
-            placement="right"
-            title={t('This section contains validation errors')}
+  const matrixifyTabLabel = useMemo(
+    () => (
+      <>
+        <span>{t('Matrixify')}</span>
+        {matrixifyHasErrors && (
+          <span
+            css={(theme: SupersetTheme) => css`
+              margin-left: ${theme.sizeUnit * 2}px;
+            `}
           >
-            <Icons.InfoCircleOutlined
-              data-test="matrixify-validation-error-tooltip-trigger"
-              iconColor={theme.colorErrorText}
-              iconSize="s"
-            />
-          </Tooltip>
-        </span>
-      )}
-      {' '}
-      <Tooltip
-        title={t(
-          'This feature is experimental and may change or have limitations',
-        )}
-        placement="top"
-      >
-        <Label
-          type="info"
-          css={css`
-            margin-left: ${theme.sizeUnit}px;
-            font-size: ${theme.fontSizeSM}px;
-          `}
+            {' '}
+            <Tooltip
+              id="matrixify-validation-error-tooltip"
+              placement="right"
+              title={t('This section contains validation errors')}
+            >
+              <Icons.InfoCircleOutlined
+                data-test="matrixify-validation-error-tooltip-trigger"
+                iconColor={theme.colorErrorText}
+                iconSize="s"
+              />
+            </Tooltip>
+          </span>
+        )}{' '}
+        <Tooltip
+          title={t(
+            'This feature is experimental and may change or have limitations',
+          )}
+          placement="top"
         >
-          {t('beta')}
-        </Label>
-      </Tooltip>
-    </>
-  ), [matrixifyHasErrors, theme.colorErrorText, theme.sizeUnit, theme.fontSizeSM]);
+          <Label
+            type="info"
+            css={css`
+              margin-left: ${theme.sizeUnit}px;
+              font-size: ${theme.fontSizeSM}px;
+            `}
+          >
+            {t('beta')}
+          </Label>
+        </Tooltip>
+      </>
+    ),
+    [
+      matrixifyHasErrors,
+      theme.colorErrorText,
+      theme.sizeUnit,
+      theme.fontSizeSM,
+    ],
+  );
 
   return (
     <Styles ref={containerRef}>

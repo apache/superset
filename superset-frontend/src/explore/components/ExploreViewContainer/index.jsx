@@ -548,8 +548,7 @@ function ExploreViewContainer(props) {
     // Include all controls with validation errors (for button disabling)
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
-        control.validationErrors && 
-        control.validationErrors.length > 0,
+        control.validationErrors && control.validationErrors.length > 0,
     );
     if (controlsWithErrors.length === 0) {
       return null;
@@ -590,7 +589,7 @@ function ExploreViewContainer(props) {
   const dataTabErrorMessage = useMemo(() => {
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
-        control.validationErrors && 
+        control.validationErrors &&
         control.validationErrors.length > 0 &&
         control.tabOverride !== 'matrixify', // Exclude matrixify controls from Data tab
     );

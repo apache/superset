@@ -166,20 +166,20 @@ export default function MatrixifyDimensionControl(
     if (typeof topNValue === 'string') {
       if (topNValue === '') return null;
       const num = parseInt(topNValue, 10);
-      return isNaN(num) ? null : num;
+      return Number.isNaN(num) ? null : num;
     }
     return typeof topNValue === 'number' ? topNValue : null;
   }, [topNValue]);
 
   // Load TopN values when in TopN mode
   useEffect(() => {
-    if (
-      !value?.dimension ||
-      !datasource ||
-      selectionMode !== 'topn'
-    ) {
+    if (!value?.dimension || !datasource || selectionMode !== 'topn') {
       // Clear values when switching away from topn mode
-      if (selectionMode !== 'topn' && value?.values && value.values.length > 0) {
+      if (
+        selectionMode !== 'topn' &&
+        value?.values &&
+        value.values.length > 0
+      ) {
         onChange({
           dimension: value.dimension,
           values: [],
