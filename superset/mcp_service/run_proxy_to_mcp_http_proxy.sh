@@ -23,4 +23,4 @@ else
 fi
 
 # Run the proxy script
-"$PYTHON_PATH" "$SCRIPT_DIR/simple_proxy_to_mcp_proxy.py"
+"$PYTHON_PATH" "$SCRIPT_DIR/simple_proxy_to_mcp_http_proxy.py"
