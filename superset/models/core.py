@@ -405,7 +405,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # do not over-write the password with the password mask
             self.password = conn.password
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
-        self.sqlalchemy_uri = str(conn)  # hides the password
+        self.sqlalchemy_uri = conn.render_as_string(
+            hide_password=False
+        )  # hides the password
 
     def get_effective_user(self, object_url: URL) -> str | None:
         """
@@ -1187,7 +1189,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 conn = conn.set(password=self.password)
         else:
             conn = conn.set(password=self.password)
-        return str(conn)
+        return conn.render_as_string(hide_password=False)
 
     @property
     def sql_url(self) -> str:
