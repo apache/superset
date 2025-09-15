@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DASHBOARD_ROOT_TYPE, DASHBOARD_GRID_TYPE } from './componentTypes';
+import type { ComponentType } from '../types';
 
 import {
   DASHBOARD_GRID_ID,
@@ -24,7 +25,22 @@ import {
   DASHBOARD_VERSION_KEY,
 } from './constants';
 
-export default function getEmptyLayout() {
+// Basic layout item for empty dashboard (simplified version without meta)
+interface BasicLayoutItem {
+  type: ComponentType;
+  id: string;
+  children: string[];
+  parents?: string[];
+}
+
+// Empty layout structure
+type EmptyLayout = {
+  [DASHBOARD_VERSION_KEY]: string;
+  [DASHBOARD_ROOT_ID]: BasicLayoutItem;
+  [DASHBOARD_GRID_ID]: BasicLayoutItem;
+};
+
+export default function getEmptyLayout(): EmptyLayout {
   return {
     [DASHBOARD_VERSION_KEY]: 'v2',
     [DASHBOARD_ROOT_ID]: {
