@@ -895,7 +895,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         with example_db.get_sqla_engine() as engine:
             with engine.connect() as connection:
-                connection.execute(text(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names CASCADE"))
+                connection.execute(text(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"))
 
     def test_create_dataset_validate_database(self):
         """

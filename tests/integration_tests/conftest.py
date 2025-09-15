@@ -156,7 +156,7 @@ def drop_from_schema(engine: Engine, schema_name: str):
             sa.text(f"SHOW TABLES in {schema_name}")
         ).fetchall()
         for tv in tables_or_views:
-            connection.execute(sa.text(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]} CASCADE"))
+            connection.execute(sa.text(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]}"))
             connection.execute(sa.text(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}"))
         connection.commit()
 
@@ -426,7 +426,7 @@ def physical_dataset():
         connection.execute(
             sa.text(
                 """
-            DROP TABLE physical_dataset CASCADE;
+            DROP TABLE physical_dataset;
         """
             )
         )
