@@ -276,7 +276,10 @@ def test_get_catalog_names(
     # Mock the connection context manager
     mock_connection = Mock()
     mock_connection.execute.return_value = mock_catalogs
-    inspector.bind.connect.return_value.__enter__.return_value = mock_connection
+    mock_context_manager = Mock()
+    mock_context_manager.__enter__.return_value = mock_connection
+    mock_context_manager.__exit__.return_value = None
+    inspector.bind.connect.return_value = mock_context_manager
 
     catalogs = DorisEngineSpec.get_catalog_names(database, inspector)
 
