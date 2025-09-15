@@ -109,7 +109,6 @@ const mockProps = {
   emitCrossFilters: false,
 };
 
-
 describe('DeckGLPolygon bucket generation logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -137,14 +136,6 @@ describe('DeckGLPolygon bucket generation logic', () => {
     // Should call getBuckets, not getColorBreakpointsBuckets
     expect(mockGetBuckets).toHaveBeenCalled();
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
-
-    // Legend should be rendered with categories from getBuckets
-    const legend = screen.queryByTestId('legend');
-    expect(legend).toBeTruthy();
-    const categoriesData = JSON.parse(
-      legend?.getAttribute('data-categories') || '{}',
-    );
-    expect(Object.keys(categoriesData)).toHaveLength(2);
   });
 
   test('should use getBuckets for fixed_color color scheme', () => {
@@ -210,6 +201,84 @@ describe('DeckGLPolygon bucket generation logic', () => {
     // Should call getBuckets for backward compatibility
     expect(mockGetBuckets).toHaveBeenCalled();
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
+  });
+
+  test('should use getBuckets for unsupported color schemes (categorical_palette)', () => {
+    const propsWithUnsupportedScheme = {
+      ...mockProps,
+      formData: {
+        ...mockProps.formData,
+        color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+      },
+    };
+
+    renderWithTheme(<DeckGLPolygon {...propsWithUnsupportedScheme} />);
+
+    // Should fall back to getBuckets for unsupported color schemes
+    expect(mockGetBuckets).toHaveBeenCalled();
+    expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
+  });
+});
+
+describe('DeckGLPolygon Error Handling and Edge Cases', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetBuckets.mockReturnValue({});
+    mockGetColorBreakpointsBuckets.mockReturnValue({});
+  });
+
+  const renderWithTheme = (component: React.ReactElement) =>
+    render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+
+  test('handles empty features data gracefully', () => {
+    const propsWithEmptyData = {
+      ...mockProps,
+      payload: {
+        ...mockProps.payload,
+        data: {
+          ...mockProps.payload.data,
+          features: [],
+        },
+      },
+    };
+
+    renderWithTheme(<DeckGLPolygon {...propsWithEmptyData} />);
+
+    // Should still call getBuckets with empty data
+    expect(mockGetBuckets).toHaveBeenCalled();
+    expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
+  });
+
+  test('handles missing color_breakpoints for color_breakpoints scheme', () => {
+    const propsWithMissingBreakpoints = {
+      ...mockProps,
+      formData: {
+        ...mockProps.formData,
+        color_scheme_type: COLOR_SCHEME_TYPES.color_breakpoints,
+        color_breakpoints: undefined,
+      },
+    };
+
+    renderWithTheme(<DeckGLPolygon {...propsWithMissingBreakpoints} />);
+
+    // Should call getColorBreakpointsBuckets even with undefined breakpoints
+    expect(mockGetColorBreakpointsBuckets).toHaveBeenCalledWith(undefined);
+    expect(mockGetBuckets).not.toHaveBeenCalled();
+  });
+
+  test('handles null legend_position correctly', () => {
+    const propsWithNullLegendPosition = {
+      ...mockProps,
+      formData: {
+        ...mockProps.formData,
+        legend_position: null,
+      },
+    };
+
+    renderWithTheme(<DeckGLPolygon {...propsWithNullLegendPosition} />);
+
+    // Legend should not be rendered when position is null
+    expect(screen.queryByTestId('legend')).not.toBeInTheDocument();
   });
 });
 

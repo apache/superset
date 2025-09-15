@@ -336,9 +336,10 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
   const accessor = (d: JsonObject) => d[metricLabel];
 
   const colorSchemeType = formData.color_scheme_type;
-  const buckets = colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
-    ? getColorBreakpointsBuckets(formData.color_breakpoints)
-    : getBuckets(formData, payload.data.features, accessor);
+  const buckets =
+    colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
+      ? getColorBreakpointsBuckets(formData.color_breakpoints)
+      : getBuckets(formData, payload.data.features, accessor);
 
   return (
     <div style={{ position: 'relative' }}>
