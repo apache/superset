@@ -568,7 +568,10 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    mock_inspector.bind.execute.assert_called_with('SHOW COLUMNS FROM schema."table"')
+    # Check that execute was called with the correct SQL string
+    assert mock_connection.execute.call_count == 1
+    called_arg = mock_connection.execute.call_args[0][0]
+    assert str(called_arg) == 'SHOW COLUMNS FROM schema."table"'
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
@@ -678,21 +681,30 @@ def test_adjust_engine_params_fully_qualified() -> None:
     url = make_url("trino://user:pass@localhost:8080/system/default")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -700,7 +712,10 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -712,21 +727,30 @@ def test_adjust_engine_params_catalog_only() -> None:
     url = make_url("trino://user:pass@localhost:8080/system")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -734,7 +758,10 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 @pytest.mark.parametrize(
