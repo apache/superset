@@ -233,9 +233,16 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             <div css={{ height, padding: `${theme.sizeUnit * 4}px` }}>
               <div css={{ display: 'flex', flexDirection: 'column', gap: `${theme.sizeUnit * 4}px` }}>
                 {filterValues.map((_, i) => (
-                  <div key={i} css={{ display: 'flex', flexDirection: 'column', gap: `${theme.sizeUnit}px` }}>
-                    <Skeleton.Input active size="small" style={{ width: '60%', height: 20 }} />
-                    <Skeleton.Input active size="small" style={{ width: '100%', height: 32 }} />
+                  <div key={i}>
+                    <Skeleton.Input 
+                      active 
+                      size="large" 
+                      style={{ 
+                        width: '100%', 
+                        height: 60,
+                        borderRadius: '6px'
+                      }} 
+                    />
                   </div>
                 ))}
               </div>
