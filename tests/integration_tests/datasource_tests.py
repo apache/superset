@@ -63,7 +63,7 @@ def create_test_table_context(database: Database):
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
     with database.get_sqla_engine() as engine:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             connection.execute(
                 text(
                     f"CREATE TABLE IF NOT EXISTS {full_table_name} "
@@ -80,7 +80,7 @@ def create_test_table_context(database: Database):
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             connection.execute(text(f"DROP TABLE {full_table_name}"))
 
 
@@ -104,7 +104,8 @@ def create_and_cleanup_table(table=None):
 
 class TestDatasource(SupersetTestCase):
     def setUp(self):
-        db.session.begin()
+        # SQLAlchemy 2.x has autobegin - no need to explicitly begin
+        pass
 
     def tearDown(self):
         db.session.rollback()
@@ -652,12 +653,14 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     if get_example_database().backend == "sqlite":
         return
 
-    TableColumn(
+    bad_column = TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
+    db.session.add(bad_column)
+    db.session.commit()
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
