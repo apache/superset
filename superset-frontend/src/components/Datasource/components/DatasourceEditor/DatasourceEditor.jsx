@@ -82,6 +82,11 @@ import Fieldset from '../Fieldset';
 import Field from '../Field';
 import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
+import {
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_METRICS_FOLDER_UUID,
+} from '../../folderUtils';
+import FoldersEditor from '../../FoldersEditor';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -211,6 +216,7 @@ const TABS_KEYS = {
   COLUMNS: 'COLUMNS',
   CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
   USAGE: 'USAGE',
+  FOLDERS: 'FOLDERS',
   SETTINGS: 'SETTINGS',
   SPATIAL: 'SPATIAL',
 };
@@ -628,6 +634,7 @@ class DatasourceEditor extends PureComponent {
       calculatedColumns: props.datasource.columns.filter(
         col => !!col.expression,
       ),
+      folders: props.datasource.folders || [],
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -657,6 +664,7 @@ class DatasourceEditor extends PureComponent {
     this.handleTabSelect = this.handleTabSelect.bind(this);
     this.formatSql = this.formatSql.bind(this);
     this.fetchUsageData = this.fetchUsageData.bind(this);
+    this.handleFoldersChange = this.handleFoldersChange.bind(this);
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -677,6 +685,7 @@ class DatasourceEditor extends PureComponent {
       ...this.state.datasource,
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
+      folders: this.state.folders,
     };
 
     this.props.onChange(newDatasource, this.state.errors);
@@ -708,6 +717,17 @@ class DatasourceEditor extends PureComponent {
     // Call onChange after setting datasourceType to ensure
     // SQL is cleared when switching to a physical dataset
     this.setState({ datasourceType }, this.onChange);
+  }
+
+  handleFoldersChange(folders) {
+    const userMadeFolders = folders.filter(
+      f =>
+        f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
+        f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
+        f.children.length > 0,
+    );
+    this.setState({ folders: userMadeFolders });
+    this.onDatasourceChange({ ...this.state.datasource, folders: userMadeFolders });
   }
 
   setColumns(obj) {
@@ -2033,6 +2053,27 @@ class DatasourceEditor extends PureComponent {
                 </StyledTableTabWrapper>
               ),
             },
+            ...(isFeatureEnabled(FeatureFlag.DatasetFolders)
+              ? [
+                  {
+                    key: TABS_KEYS.FOLDERS,
+                    label: (
+                      <CollectionTabTitle
+                        collection={this.state.folders}
+                        title={t('Folders')}
+                      />
+                    ),
+                    children: (
+                      <FoldersEditor
+                        folders={this.state.folders}
+                        metrics={sortedMetrics}
+                        columns={this.state.databaseColumns}
+                        onChange={this.handleFoldersChange}
+                      />
+                    ),
+                  },
+                ]
+              : []),
             {
               key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
