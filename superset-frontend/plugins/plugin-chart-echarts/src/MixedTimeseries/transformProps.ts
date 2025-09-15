@@ -214,6 +214,7 @@ export default function transformProps(
     sortSeriesAscending,
     sortSeriesAscendingB,
     timeGrainSqla,
+    forceMaxInterval,
     percentageThreshold,
     showQueryIdentifiers = false,
     metrics = [],
@@ -583,11 +584,17 @@ export default function transformProps(
       },
       minorTick: { show: minorTicks },
       minInterval:
-        xAxisType === AxisType.Time && timeGrainSqla
+        xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
               timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : 0,
+      maxInterval:
+        xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
+          : undefined,
       ...getMinAndMaxFromBounds(
         xAxisType,
         truncateXAxis,

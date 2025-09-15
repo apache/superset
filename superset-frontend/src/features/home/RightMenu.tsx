@@ -39,7 +39,7 @@ import {
   Typography,
   TelemetryPixel,
 } from '@superset-ui/core/components';
-import type { MenuItem } from '@superset-ui/core/components/Menu';
+import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -62,14 +62,6 @@ import {
 } from './types';
 
 const extensionsRegistry = getExtensionsRegistry();
-
-const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
-    ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
-  color: ${theme.colorText};
-  font-size: ${theme.fontSizeSM}px;
-  white-space: nowrap;
-`;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
@@ -520,42 +512,42 @@ const RightMenu = ({
       if (navbarRight.version_string || navbarRight.version_sha) {
         items.push({ type: 'divider', key: 'version-info-divider' });
 
-        items.push({
+        const aboutItem: ItemType = {
           type: 'group',
           label: t('About'),
           key: 'about-section',
           children: [
             {
               key: 'about-info',
+              style: { height: 'auto', minHeight: 'auto' },
               label: (
-                <div className="about-section">
-                  {navbarRight.show_watermark && (
-                    <div css={versionInfoStyles}>
-                      {t('Powered by Apache Superset')}
-                    </div>
-                  )}
-                  {navbarRight.version_string && (
-                    <div css={versionInfoStyles}>
-                      {t('Version')}: {navbarRight.version_string}
-                    </div>
-                  )}
-                  {navbarRight.version_sha && (
-                    <div css={versionInfoStyles}>
-                      {t('SHA')}: {navbarRight.version_sha}
-                    </div>
-                  )}
-                  {navbarRight.build_number && (
-                    <div css={versionInfoStyles}>
-                      {t('Build')}: {navbarRight.build_number}
-                    </div>
-                  )}
+                <div
+                  css={(theme: SupersetTheme) => css`
+                    font-size: ${theme.fontSizeSM}px;
+                    color: ${theme.colorTextSecondary || theme.colorText};
+                    white-space: pre-wrap;
+                    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+                  `}
+                >
+                  {[
+                    navbarRight.show_watermark &&
+                      t('Powered by Apache Superset'),
+                    navbarRight.version_string &&
+                      `${t('Version')}: ${navbarRight.version_string}`,
+                    navbarRight.version_sha &&
+                      `${t('SHA')}: ${navbarRight.version_sha}`,
+                    navbarRight.build_number &&
+                      `${t('Build')}: ${navbarRight.build_number}`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n')}
                 </div>
               ),
             },
           ],
-        });
+        };
+        items.push(aboutItem);
       }
-
       return items;
     };
 

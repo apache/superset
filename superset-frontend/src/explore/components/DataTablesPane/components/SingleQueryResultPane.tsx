@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { t } from '@superset-ui/core';
 import {
   TableView,
@@ -55,6 +55,11 @@ export const SingleQueryResultPane = ({
   );
   const filteredData = useFilteredTableData(filterText, data);
 
+  const handleInputChange = useCallback(
+    (input: string) => setFilterText(input),
+    [],
+  );
+
   return (
     <>
       <TableControls
@@ -63,7 +68,7 @@ export const SingleQueryResultPane = ({
         columnTypes={coltypes}
         rowcount={rowcount}
         datasourceId={datasourceId}
-        onInputChange={input => setFilterText(input)}
+        onInputChange={handleInputChange}
         isLoading={false}
         canDownload={canDownload}
       />
