@@ -96,6 +96,7 @@ export type ControlPanelsContainerProps = {
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
   errorMessage: ReactNode;
+  buttonErrorMessage?: ReactNode; // Error message for RunQueryButton (includes all errors)
   onQuery: () => void;
   onStop: () => void;
   canStopQuery: boolean;
@@ -913,7 +914,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         <RunQueryButton
           onQuery={props.onQuery}
           onStop={props.onStop}
-          errorMessage={props.errorMessage}
+          errorMessage={props.buttonErrorMessage || props.errorMessage}
           loading={props.chart.chartStatus === 'loading'}
           isNewChart={!props.chart.queriesResponse}
           canStopQuery={props.canStopQuery}

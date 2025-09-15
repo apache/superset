@@ -545,12 +545,11 @@ function ExploreViewContainer(props) {
   }
 
   const errorMessage = useMemo(() => {
-    // Filter out matrixify controls from validation errors
+    // Include all controls with validation errors (for button disabling)
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
         control.validationErrors && 
-        control.validationErrors.length > 0 &&
-        control.tabOverride !== 'matrixify', // Exclude matrixify controls
+        control.validationErrors.length > 0,
     );
     if (controlsWithErrors.length === 0) {
       return null;
@@ -587,11 +586,54 @@ function ExploreViewContainer(props) {
     return errorMessage;
   }, [props.controls]);
 
+  // Error message for Data tab only (excludes matrixify controls)
+  const dataTabErrorMessage = useMemo(() => {
+    const controlsWithErrors = Object.values(props.controls).filter(
+      control =>
+        control.validationErrors && 
+        control.validationErrors.length > 0 &&
+        control.tabOverride !== 'matrixify', // Exclude matrixify controls from Data tab
+    );
+    if (controlsWithErrors.length === 0) {
+      return null;
+    }
+
+    const errorMessages = controlsWithErrors.map(
+      control => control.validationErrors,
+    );
+    const uniqueErrorMessages = [...new Set(errorMessages.flat())];
+
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control =>
+            typeof control.label === 'function'
+              ? control.label(props.exploreState)
+              : control.label,
+          );
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
+        </div>
+      ));
+
+    let dataTabErrorMessage;
+    if (errors.length > 0) {
+      dataTabErrorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
+    }
+    return dataTabErrorMessage;
+  }, [props.controls]);
+
   function renderChartContainer() {
     return (
       <ExploreChartPanel
         {...props}
-        errorMessage={errorMessage}
+        errorMessage={dataTabErrorMessage}
         chartIsStale={chartIsStale}
         onQuery={onQuery}
       />
@@ -737,7 +779,8 @@ function ExploreViewContainer(props) {
             onQuery={onQuery}
             onStop={onStop}
             canStopQuery={props.can_add || props.can_overwrite}
-            errorMessage={errorMessage}
+            errorMessage={dataTabErrorMessage}
+            buttonErrorMessage={errorMessage}
             chartIsStale={chartIsStale}
           />
         </Resizable>

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { t, SupersetClient, getColumnLabel } from '@superset-ui/core';
 import { Select, Space } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -46,6 +46,7 @@ interface MatrixifyDimensionControlProps {
   topNValue?: number;
   topNOrder?: 'ASC' | 'DESC';
   formData?: any; // For access to filters and time range
+  validationErrors?: string[];
 }
 
 export default function MatrixifyDimensionControl(
@@ -57,13 +58,13 @@ export default function MatrixifyDimensionControl(
     onChange,
     label,
     description,
-    hovered,
     renderTrigger,
     selectionMode = 'members',
     topNMetric,
     topNValue,
     topNOrder = 'DESC',
     formData,
+    validationErrors,
   } = props;
 
   const [dimensionOptions, setDimensionOptions] = useState<
@@ -74,6 +75,8 @@ export default function MatrixifyDimensionControl(
   >([]);
   const [loadingValues, setLoadingValues] = useState(false);
   const [topNError, setTopNError] = useState<string | null>(null);
+  const [dimensionHovered, setDimensionHovered] = useState(false);
+  const [valuesHovered, setValuesHovered] = useState(false);
   const prevSelectionMode = useRef(selectionMode);
 
   // Reset values when selection mode changes
@@ -156,30 +159,38 @@ export default function MatrixifyDimensionControl(
   }, [value?.dimension, datasource, selectionMode]);
 
   // Convert topNValue to number for consistent comparison
-  const topNValueNum =
-    typeof topNValue === 'string' ? parseInt(topNValue, 10) : topNValue;
+  const topNValueNum = useMemo(() => {
+    if (topNValue === null || topNValue === undefined) {
+      return null;
+    }
+    if (typeof topNValue === 'string') {
+      if (topNValue === '') return null;
+      const num = parseInt(topNValue, 10);
+      return isNaN(num) ? null : num;
+    }
+    return typeof topNValue === 'number' ? topNValue : null;
+  }, [topNValue]);
 
   // Load TopN values when in TopN mode
   useEffect(() => {
     if (
       !value?.dimension ||
       !datasource ||
-      selectionMode !== 'topn' ||
-      !topNMetric ||
-      !topNValueNum
+      selectionMode !== 'topn'
     ) {
-      // Clear the values when not in topn mode
-      if (
-        selectionMode !== 'topn' &&
-        value?.values &&
-        value.values.length > 0
-      ) {
+      // Clear values when switching away from topn mode
+      if (selectionMode !== 'topn' && value?.values && value.values.length > 0) {
         onChange({
           dimension: value.dimension,
           values: [],
           topNValues: [],
         });
       }
+      return undefined;
+    }
+
+    // If we don't have the required topN parameters, just return without loading
+    if (!topNMetric || !topNValueNum || topNValueNum <= 0) {
       return undefined;
     }
 
@@ -233,7 +244,7 @@ export default function MatrixifyDimensionControl(
     datasource,
     selectionMode,
     topNMetric,
-    topNValueNum, // Use the converted number
+    topNValueNum, // Use the converted/validated number
     topNOrder,
     formData?.adhoc_filters,
     formData?.time_range,
@@ -256,45 +267,58 @@ export default function MatrixifyDimensionControl(
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Select
-        ariaLabel={t('Select dimension')}
-        value={value?.dimension || undefined}
-        header={
-          <ControlHeader
-            label={label || t('Dimension')}
-            description={description || t('Select a dimension')}
-            hovered={hovered}
-            renderTrigger={renderTrigger}
-          />
-        }
-        onChange={handleDimensionChange}
-        options={dimensionOptions.map(([val, label]) => ({
-          value: val,
-          label,
-        }))}
-        placeholder={t('Select a dimension')}
-        allowClear
-      />
-
-      {value?.dimension && selectionMode === 'members' && (
+      <div
+        onMouseEnter={() => setDimensionHovered(true)}
+        onMouseLeave={() => setDimensionHovered(false)}
+      >
         <Select
-          ariaLabel={t('Select dimension values')}
-          value={value?.values || []}
+          ariaLabel={t('Select dimension')}
+          value={value?.dimension || undefined}
           header={
             <ControlHeader
-              label={t('Dimension values')}
-              description={t('Select dimension values')}
+              label={label || t('Dimension')}
+              description={description || t('Select a dimension')}
+              hovered={dimensionHovered}
+              renderTrigger={renderTrigger}
+              validationErrors={validationErrors}
             />
           }
-          mode="multiple"
-          onChange={handleValuesChange}
-          options={valueOptions}
-          placeholder={t('Select values')}
-          loading={loadingValues}
+          onChange={handleDimensionChange}
+          options={dimensionOptions.map(([val, label]) => ({
+            value: val,
+            label,
+          }))}
+          placeholder={t('Select a dimension')}
           allowClear
-          showSearch
-          notFoundContent={t('No results')}
         />
+      </div>
+
+      {value?.dimension && selectionMode === 'members' && (
+        <div
+          onMouseEnter={() => setValuesHovered(true)}
+          onMouseLeave={() => setValuesHovered(false)}
+        >
+          <Select
+            ariaLabel={t('Select dimension values')}
+            value={value?.values || []}
+            header={
+              <ControlHeader
+                label={t('Dimension values')}
+                description={t('Select dimension values')}
+                renderTrigger={renderTrigger}
+                hovered={valuesHovered}
+              />
+            }
+            mode="multiple"
+            onChange={handleValuesChange}
+            options={valueOptions}
+            placeholder={t('Select values')}
+            loading={loadingValues}
+            allowClear
+            showSearch
+            notFoundContent={t('No results')}
+          />
+        </div>
       )}
 
       {value?.dimension && selectionMode === 'topn' && topNError && (

@@ -97,6 +97,25 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         'members',
       );
 
+      const isVisible =
+        controls?.[
+          `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+        ]?.value === true &&
+        controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions';
+
+      // Validate dimension is selected when visible
+      const dimensionValidator = (value: any) => {
+        if (!value?.dimension) {
+          return t('Dimension is required');
+        }
+        return false;
+      };
+
+      // Additional validation for topN mode
+      const validators = isVisible
+        ? [dimensionValidator, validateNonEmpty]
+        : [];
+
       return {
         datasource,
         selectionMode,
@@ -104,6 +123,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         topNValue: getValue(`matrixify_topn_value_${axis}`),
         topNOrder: getValue(`matrixify_topn_order_${axis}`),
         formData: form_data,
+        validators,
       };
     },
     visibility: ({ controls }) =>
@@ -166,13 +186,14 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
     mapStateToProps: ({ controls }) => {
-      const isVisible = 
+      const isVisible =
         controls?.[
           `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
         ]?.value === true &&
         controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value === 'topn';
-      
+        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+          'topn';
+
       return {
         validators: isVisible ? [validateNonEmpty] : [],
       };
@@ -193,18 +214,19 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
-    mapStateToProps: (state) => {
+    mapStateToProps: (state, controlState) => {
       const { controls, datasource } = state;
-      const isVisible = 
+      const isVisible =
         controls?.[
           `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
         ]?.value === true &&
         controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
-        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value === 'topn';
-      
-      // Get the original props from dndAdhocMetricControl's mapStateToProps
-      const originalProps = dndAdhocMetricControl.mapStateToProps?.(state) || {};
-      
+        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
+          'topn';
+
+      const originalProps =
+        dndAdhocMetricControl.mapStateToProps?.(state, controlState) || {};
+
       return {
         ...originalProps,
         columns: datasource?.columns || [],
