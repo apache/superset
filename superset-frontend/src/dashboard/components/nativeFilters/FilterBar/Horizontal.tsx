@@ -148,9 +148,16 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
         {!isInitialized ? (
           <>
             {filterValues.map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', marginRight: 16 }}>
-                <Skeleton.Input active size="small" style={{ width: 80, height: 20, marginRight: 8 }} />
-                <Skeleton.Input active size="small" style={{ width: 120, height: 32 }} />
+              <div key={i} style={{ marginRight: 16 }}>
+                <Skeleton.Input 
+                  active 
+                  size="large" 
+                  style={{ 
+                    width: 200, 
+                    height: 40,
+                    borderRadius: '6px'
+                  }} 
+                />
               </div>
             ))}
           </>

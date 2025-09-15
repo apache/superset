@@ -320,7 +320,7 @@ const FilterValue: FC<FilterControlProps> = ({
   return (
     <StyledDiv data-test="form-item-value">
       {isLoading ? (
-        <Skeleton.Input active size="small" style={{ width: '100%', height: HEIGHT }} />
+        <Skeleton.Input active size="large" style={{ width: '100%', height: HEIGHT, borderRadius: '6px' }} />
       ) : (
         <SuperChart
           height={HEIGHT}
