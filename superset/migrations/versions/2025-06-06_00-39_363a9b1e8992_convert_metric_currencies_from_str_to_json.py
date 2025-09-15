@@ -55,7 +55,7 @@ def upgrade():
     currency_configs = session.query(SqlMetric).filter(SqlMetric.currency.isnot(None))
     for metric in paginated_update(
         currency_configs,
-        lambda current, total: logger.info((f"Upgrading {current}/{total} metrics")),
+        lambda current, total: logger.info("Upgrading %s/%s metrics", current, total),
     ):
         while True:
             if isinstance(metric.currency, str):
@@ -63,7 +63,7 @@ def upgrade():
                     metric.currency = json.loads(metric.currency)
                 except Exception as e:
                     logger.error(
-                        f"Error loading metric {metric.metric_name} as json: {e}"
+                        "Error loading metric %s as json: %s", metric.metric_name, e
                     )
                     metric.currency = {}
                     break

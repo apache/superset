@@ -199,7 +199,7 @@ def delete_all_inserted_dashboards():
             try:
                 delete_dashboard(dashboard, False)
             except Exception:
-                logger.error(f"failed to delete {dashboard.id}", exc_info=True)
+                logger.error("failed to delete %s", dashboard.id, exc_info=True)
                 raise
         if len(inserted_dashboards_ids) > 0:
             db.session.commit()
@@ -210,7 +210,7 @@ def delete_all_inserted_dashboards():
 
 
 def delete_dashboard(dashboard: Dashboard, do_commit: bool = False) -> None:
-    logger.info(f"deleting dashboard{dashboard.id}")
+    logger.info("deleting dashboard%s", dashboard.id)
     delete_dashboard_roles_associations(dashboard)
     delete_dashboard_users_associations(dashboard)
     delete_dashboard_slices_associations(dashboard)
@@ -246,7 +246,7 @@ def delete_all_inserted_slices():
             try:
                 delete_slice(slice, False)
             except Exception:
-                logger.error(f"failed to delete {slice.id}", exc_info=True)
+                logger.error("failed to delete %s", slice.id, exc_info=True)
                 raise
         if len(inserted_slices_ids) > 0:
             db.session.commit()
@@ -257,7 +257,7 @@ def delete_all_inserted_slices():
 
 
 def delete_slice(slice_: Slice, do_commit: bool = False) -> None:
-    logger.info(f"deleting slice{slice_.id}")
+    logger.info("deleting slice%s", slice_.id)
     delete_slice_users_associations(slice_)
     db.session.delete(slice_)
     if do_commit:
@@ -279,7 +279,7 @@ def delete_all_inserted_tables():
             try:
                 delete_sqltable(table, False)
             except Exception:
-                logger.error(f"failed to delete {table.id}", exc_info=True)
+                logger.error("failed to delete %s", table.id, exc_info=True)
                 raise
         if len(inserted_sqltables_ids) > 0:
             db.session.commit()
@@ -290,7 +290,7 @@ def delete_all_inserted_tables():
 
 
 def delete_sqltable(table: SqlaTable, do_commit: bool = False) -> None:
-    logger.info(f"deleting table{table.id}")
+    logger.info("deleting table%s", table.id)
     delete_table_users_associations(table)
     db.session.delete(table)
     if do_commit:
@@ -314,7 +314,7 @@ def delete_all_inserted_dbs():
             try:
                 delete_database(database, False)
             except Exception:
-                logger.error(f"failed to delete {database.id}", exc_info=True)
+                logger.error("failed to delete %s", database.id, exc_info=True)
                 raise
         if len(inserted_databases_ids) > 0:
             db.session.commit()
@@ -325,7 +325,7 @@ def delete_all_inserted_dbs():
 
 
 def delete_database(database: Database, do_commit: bool = False) -> None:
-    logger.info(f"deleting database{database.id}")
+    logger.info("deleting database%s", database.id)
     db.session.delete(database)
     if do_commit:
         db.session.commit()
