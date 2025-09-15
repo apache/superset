@@ -107,6 +107,9 @@ export async function embedDashboard({
   iframeSandboxExtras = [],
   referrerPolicy,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
+  let refreshTimerId: NodeJS.Timeout | null = null;
+  let isUnmounted = false;
+  
   function log(...info: unknown[]) {
     if (debug) {
       console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
@@ -226,15 +229,51 @@ export async function embedDashboard({
   log('sent guest token');
 
   async function refreshGuestToken() {
-    const newGuestToken = await fetchGuestToken();
-    ourPort.emit('guestToken', { guestToken: newGuestToken });
-    setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+    // Check if unmounted before proceeding
+    if (isUnmounted) {
+      log("skipping token refresh - component unmounted");
+      return;
+    }
+
+    try {
+      const newGuestToken = await fetchGuestToken();
+      
+      // Check again after async operation
+      if (isUnmounted) {
+        log("skipping token emission - component unmounted during fetch");
+        return;
+      }
+
+      ourPort.emit("guestToken", { guestToken: newGuestToken });
+      
+      // Schedule next refresh only if not unmounted
+      if (!isUnmounted) {
+        refreshTimerId = setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+      }
+    } catch (error) {
+      log("error refreshing guest token:", error);
+      // Still schedule retry if not unmounted (you might want to add exponential backoff here)
+      if (!isUnmounted) {
+        refreshTimerId = setTimeout(refreshGuestToken, 30000); // retry in 30 seconds
+      }
+    }
   }
 
   setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
   function unmount() {
-    log('unmounting');
+    log("unmounting");
+    // Set unmount flag to prevent further operations
+    isUnmounted = true;
+    
+    // Clear any pending refresh timer
+    if (refreshTimerId) {
+      clearTimeout(refreshTimerId);
+      refreshTimerId = null;
+      log("cleared refresh timer");
+    }
+    
+    // Clear the DOM
     //@ts-ignore
     mountPoint.replaceChildren();
   }
