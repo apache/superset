@@ -70,7 +70,29 @@ def get_query_by_id(id: int):
 
 @pytest.fixture(autouse=True, scope="module")
 def setup_sqllab():
+    # Clean up any orphaned views/tables from previous test runs BEFORE tests start
+    # This is important for SQLAlchemy 2.x where views can block table drops
+    with app.app_context():
+        for tbl in TMP_TABLES:
+            # Clean up views/tables without schema prefix
+            drop_table_if_exists(
+                f"{tbl}_{CTASMethod.VIEW.name.lower()}", CTASMethod.VIEW
+            )
+            drop_table_if_exists(
+                f"{tbl}_{CTASMethod.TABLE.name.lower()}", CTASMethod.TABLE
+            )
+            # Clean up views/tables with schema prefix
+            drop_table_if_exists(
+                f"{CTAS_SCHEMA_NAME}.{tbl}_{CTASMethod.VIEW.name.lower()}",
+                CTASMethod.VIEW,
+            )
+            drop_table_if_exists(
+                f"{CTAS_SCHEMA_NAME}.{tbl}_{CTASMethod.TABLE.name.lower()}",
+                CTASMethod.TABLE,
+            )
+
     yield
+
     # clean up after all tests are done
     # use a new app context
     with app.app_context():
@@ -121,7 +143,7 @@ def drop_table_if_exists(table_name: str, table_type: CTASMethod) -> None:
     sql = f"DROP {table_type.name} IF EXISTS {table_name}"
     database = get_example_database()
     with database.get_sqla_engine() as engine:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             connection.execute(text(sql))
 
 
@@ -578,7 +600,7 @@ def test_in_app_context():
 
 
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
-    with db.get_engine().connect() as connection:
+    with db.get_engine().begin() as connection:
         connection.execute(text(f"DROP {ctas_method.name} IF EXISTS {name}"))
 
 

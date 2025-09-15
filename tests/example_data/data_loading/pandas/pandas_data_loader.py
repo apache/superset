@@ -75,7 +75,7 @@ class PandasDataLoader(DataLoader):
         return None
 
     def remove_table(self, table_name: str) -> None:
-        with self._db_engine.connect() as connection:
+        with self._db_engine.begin() as connection:
             connection.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
 
 
