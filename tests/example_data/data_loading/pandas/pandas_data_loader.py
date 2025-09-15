@@ -20,6 +20,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from pandas import DataFrame
+from sqlalchemy import text
 from sqlalchemy.inspection import inspect
 
 from tests.common.logger_utils import log
@@ -74,7 +75,8 @@ class PandasDataLoader(DataLoader):
         return None
 
     def remove_table(self, table_name: str) -> None:
-        self._db_engine.execute(f"DROP TABLE IF EXISTS {table_name}")
+        with self._db_engine.connect() as connection:
+            connection.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
 
 
 class TableToDfConvertor(ABC):
