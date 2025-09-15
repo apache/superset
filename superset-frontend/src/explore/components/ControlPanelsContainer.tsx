@@ -741,11 +741,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     props.errorMessage,
   ]);
 
-  const controlPanelRegistry = getChartControlPanelRegistry();
-  if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
-    return <Loading />;
-  }
-
   const showCustomizeTab = customizeSections.length > 0;
   const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
 
@@ -823,6 +818,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       theme.fontSizeSM,
     ],
   );
+
+  const controlPanelRegistry = getChartControlPanelRegistry();
+  if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
+    return <Loading />;
+  }
 
   return (
     <Styles ref={containerRef}>
