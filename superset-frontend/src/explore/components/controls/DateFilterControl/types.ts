@@ -25,9 +25,7 @@ export type FrameType =
   | 'Common'
   | 'Calendar'
   | 'Current'
-  | 'Custom'
-  | 'Advanced'
-  | 'No filter';
+  | 'Custom';
 
 export type DateTimeGrainType =
   | 'second'
@@ -51,7 +49,7 @@ export type CustomRangeKey =
   | 'anchorMode'
   | 'anchorValue';
 
-export type DateTimeModeType = 'specific' | 'relative' | 'now' | 'today';
+export type DateTimeModeType = 'specific' | 'now' | 'today';
 
 export type CustomRangeType = {
   sinceMode: DateTimeModeType;
@@ -74,9 +72,7 @@ export type CustomRangeDecodeType = {
 export type CommonRangeType =
   | 'Last day'
   | 'Last week'
-  | 'Last month'
-  | 'Last quarter'
-  | 'Last year';
+  | 'Last month';
 
 export const PreviousCalendarWeek = 'previous calendar week';
 export const PreviousCalendarMonth = 'previous calendar month';

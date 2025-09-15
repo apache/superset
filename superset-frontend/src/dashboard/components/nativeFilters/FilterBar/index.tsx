@@ -251,18 +251,37 @@ const FilterBar: FC<FiltersBarProps> = ({
     const clearDataMaskIds: string[] = [];
 
     filtersInScope.filter(isNativeFilter).forEach(filter => {
-      const { id } = filter;
+      const { id, filterType } = filter;
       if (dataMaskSelected[id] || dataMaskApplied[id]) {
         clearDataMaskIds.push(id);
-        setDataMaskSelected(draft => {
-          // Clear the filter from selected state
-          delete draft[id];
-        });
+        
+        // For time filters, set to "Current month" instead of clearing
+        if (filterType === 'filter_time') {
+          setDataMaskSelected(draft => {
+            draft[id] = {
+              ...draft[id],
+              filterState: {
+                ...draft[id]?.filterState,
+                value: 'Current month',
+              },
+            };
+          });
+          // Update the applied filter immediately with "Current month"
+          dispatch(updateDataMask(id, {
+            filterState: {
+              value: 'Current month',
+            },
+          }));
+        } else {
+          setDataMaskSelected(draft => {
+            // Clear other filters from selected state
+            delete draft[id];
+          });
+          // Clear other applied filters immediately
+          dispatch(clearDataMask(id));
+        }
       }
     });
-
-    // Clear applied filters immediately
-    clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
   }, [
     dataMaskSelected,
     dataMaskApplied,

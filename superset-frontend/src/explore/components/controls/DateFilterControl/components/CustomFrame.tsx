@@ -25,15 +25,11 @@ import { isInteger } from 'lodash';
 // @ts-ignore
 import { locales } from 'antd/dist/antd-with-locales';
 import { Col, Row } from 'src/components';
-import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
-import { Radio } from 'src/components/Radio';
 import Select from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
-  SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
-  UNTIL_GRAIN_OPTIONS,
   UNTIL_MODE_OPTIONS,
   MOMENT_FORMAT,
   MIDNIGHT,
@@ -163,31 +159,6 @@ export function CustomFrame(props: FrameComponentProps) {
               />
             </Row>
           )}
-          {sinceMode === 'relative' && (
-            <Row gutter={8}>
-              <Col span={11}>
-                {/* Make sure sinceGrainValue looks like a positive integer */}
-                <InputNumber
-                  placeholder={t('Relative quantity')}
-                  value={Math.abs(sinceGrainValue)}
-                  min={1}
-                  defaultValue={1}
-                  onChange={value =>
-                    onGrainValue('sinceGrainValue', value || 1)
-                  }
-                  onStep={value => onGrainValue('sinceGrainValue', value || 1)}
-                />
-              </Col>
-              <Col span={13}>
-                <Select
-                  ariaLabel={t('Relative period')}
-                  options={SINCE_GRAIN_OPTIONS}
-                  value={sinceGrain}
-                  onChange={(value: string) => onChange('sinceGrain', value)}
-                />
-              </Col>
-            </Row>
-          )}
         </Col>
         <Col span={12}>
           <div className="control-label">
@@ -216,67 +187,8 @@ export function CustomFrame(props: FrameComponentProps) {
               />
             </Row>
           )}
-          {untilMode === 'relative' && (
-            <Row gutter={8}>
-              <Col span={11}>
-                <InputNumber
-                  placeholder={t('Relative quantity')}
-                  value={untilGrainValue}
-                  min={1}
-                  defaultValue={1}
-                  onChange={value =>
-                    onGrainValue('untilGrainValue', value || 1)
-                  }
-                  onStep={value => onGrainValue('untilGrainValue', value || 1)}
-                />
-              </Col>
-              <Col span={13}>
-                <Select
-                  ariaLabel={t('Relative period')}
-                  options={UNTIL_GRAIN_OPTIONS}
-                  value={untilGrain}
-                  onChange={(value: string) => onChange('untilGrain', value)}
-                />
-              </Col>
-            </Row>
-          )}
         </Col>
       </Row>
-      {sinceMode === 'relative' && untilMode === 'relative' && (
-        <div className="control-anchor-to">
-          <div className="control-label">{t('Anchor to')}</div>
-          <Row align="middle">
-            <Col>
-              <Radio.Group
-                onChange={onAnchorMode}
-                defaultValue="now"
-                value={anchorMode}
-              >
-                <Radio key="now" value="now">
-                  {t('NOW')}
-                </Radio>
-                <Radio key="specific" value="specific">
-                  {t('Date/Time')}
-                </Radio>
-              </Radio.Group>
-            </Col>
-            {anchorMode !== 'now' && (
-              <Col>
-                <DatePicker
-                  showTime
-                  defaultValue={convertToTimezone(anchorValue)}
-                  onChange={(datetime: Moment) =>
-                    onChange('anchorValue', convertFromTimezone(datetime))
-                  }
-                  allowClear={false}
-                  className="control-anchor-to-datetime"
-                  locale={datePickerLocale}
-                />
-              </Col>
-            )}
-          </Row>
-        </div>
-      )}
     </div>
   );
 }

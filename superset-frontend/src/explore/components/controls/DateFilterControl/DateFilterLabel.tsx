@@ -51,7 +51,6 @@ import {
   CommonFrame,
   CalendarFrame,
   CustomFrame,
-  AdvancedFrame,
   DateLabel,
 } from './components';
 import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
@@ -305,8 +304,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         if (
           guessedFrame === 'Common' ||
           guessedFrame === 'Calendar' ||
-          guessedFrame === 'Current' ||
-          guessedFrame === 'No filter'
+          guessedFrame === 'Current'
         ) {
           // Pill shows HRT (value); tooltip shows ADR (converted)
           setActualTimeRange(value);
@@ -402,7 +400,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         value={frame}
         onChange={onChangeFrame}
       />
-      {frame !== 'No filter' && <Divider />}
+      <Divider />
       {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
@@ -415,13 +413,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           onChange={setTimeRangeValue}
         />
       )}
-      {frame === 'Advanced' && (
-        <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>

@@ -38,16 +38,12 @@ export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Calendar', label: t('Previous') },
   { value: 'Current', label: t('Current') },
   { value: 'Custom', label: t('Custom') },
-  { value: 'Advanced', label: t('Advanced') },
-  { value: 'No filter', label: t('No filter') },
 ];
 
 export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: 'Last day', label: t('Last day') },
-  { value: 'Last week', label: t('Last week') },
-  { value: 'Last month', label: t('Last month') },
-  { value: 'Last quarter', label: t('Last quarter') },
-  { value: 'Last year', label: t('Last year') },
+  { value: 'Last day', label: t('Last 24 hours') },
+  { value: 'Last week', label: t('Last 7 Days') },
+  { value: 'Last month', label: t('Last 30 Days') },
 ];
 export const COMMON_RANGE_VALUES_SET = new Set(
   COMMON_RANGE_OPTIONS.map(({ value }) => value),
@@ -100,7 +96,6 @@ export const UNTIL_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
 
 export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'specific', label: t('Specific Date/Time') },
-  { value: 'relative', label: t('Relative Date/Time') },
   { value: 'now', label: t('Now') },
   { value: 'today', label: t('Midnight') },
 ];
@@ -112,8 +107,6 @@ export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
   'Last day',
   'Last week',
   'Last month',
-  'Last quarter',
-  'Last year',
 ]);
 
 export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([

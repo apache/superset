@@ -456,8 +456,8 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   cy.get('.ant-popover-content .ant-select-selector')
     .should('be.visible')
     .click();
-  cy.get(`[label="Advanced"]`).should('be.visible').click();
-  cy.get('.section-title').contains('Advanced Time Range').should('be.visible');
+  cy.get(`[label="Custom"]`).should('be.visible').click();
+  cy.get('.section-title').contains('Configure custom time range').should('be.visible');
   if (startRange) {
     cy.get('.ant-popover-inner-content')
       .find('[class^=ant-input]')

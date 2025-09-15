@@ -40,10 +40,10 @@ const createProps = () => ({
   },
 });
 
-test('should render the "Clear all" button as disabled', () => {
+test('should render the "Reset All" button as disabled', () => {
   const mockedProps = createProps();
   render(<ActionButtons {...mockedProps} />, { useRedux: true });
-  const clearBtn = screen.getByText('Clear all');
+  const clearBtn = screen.getByText('Reset All');
   expect(clearBtn.parentElement).toBeDisabled();
 });
 
@@ -67,7 +67,7 @@ test('should call onClearAll when clear all button is clicked', () => {
     },
   };
   render(<ActionButtons {...mockedProps} />, { useRedux: true });
-  const clearBtn = screen.getByText('Clear all');
+  const clearBtn = screen.getByText('Reset All');
   expect(clearBtn.parentElement).toBeEnabled();
   expect(mockedProps.onClearAll).not.toHaveBeenCalled();
   userEvent.click(clearBtn);

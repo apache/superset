@@ -175,7 +175,7 @@ test('uses configured default time range if not set', () => {
     datasources: {},
     common: {
       conf: {
-        DEFAULT_TIME_FILTER: 'Last year',
+        DEFAULT_TIME_FILTER: 'Last month',
       },
     },
     explore: {},
@@ -187,7 +187,7 @@ test('uses configured default time range if not set', () => {
       data: expect.objectContaining({
         explore: expect.objectContaining({
           form_data: expect.objectContaining({
-            time_range: 'Last year',
+            time_range: 'Last month',
           }),
         }),
       }),
