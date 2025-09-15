@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { mergeReplaceArrays } from './lodash';
+import { mergeReplaceArrays } from './merge';
 
 describe('lodash utilities', () => {
   describe('mergeReplaceArrays', () => {
