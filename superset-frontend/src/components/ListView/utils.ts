@@ -48,15 +48,22 @@ import {
 // Define custom RisonParam for proper encoding/decoding; note that
 // %, &, +, and # must be encoded to avoid breaking the url
 const RisonParam: QueryParamConfig<string, any> = {
-  encode: (data?: any | null) =>
-    data === undefined
-      ? undefined
-      : rison
-          .encode(data)
-          .replace(/%/g, '%25')
-          .replace(/&/g, '%26')
-          .replace(/\+/g, '%2B')
-          .replace(/#/g, '%23'),
+  encode: (data?: any | null) => {
+    if (data === undefined || data === null) return undefined;
+
+    const cleanData = JSON.parse(
+      JSON.stringify(data, (key, value) =>
+        value === undefined ? null : value,
+      ),
+    );
+
+    return rison
+      .encode(cleanData)
+      .replace(/%/g, '%25')
+      .replace(/&/g, '%26')
+      .replace(/\+/g, '%2B')
+      .replace(/#/g, '%23');
+  },
   decode: (dataStr?: string | string[]) =>
     dataStr === undefined || Array.isArray(dataStr)
       ? undefined
@@ -319,7 +326,7 @@ export function useListViewState({
       filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
-    if (sortBy[0]) {
+    if (sortBy?.[0]?.id !== undefined && sortBy[0].id !== null) {
       queryParams.sortColumn = sortBy[0].id;
       queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
     }

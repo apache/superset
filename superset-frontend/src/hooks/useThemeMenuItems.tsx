@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { Icons } from '@superset-ui/core/components';
+import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
-import { t, ThemeMode, useTheme, ThemeAlgorithm } from '@superset-ui/core';
+import { t, ThemeMode, ThemeAlgorithm } from '@superset-ui/core';
 
 export interface ThemeSubMenuOption {
   key: ThemeMode;
@@ -43,8 +43,6 @@ export const useThemeMenuItems = ({
   onClearLocalSettings,
   allowOSPreference = true,
 }: ThemeSubMenuProps): MenuItem => {
-  const theme = useTheme();
-
   const handleSelect = (mode: ThemeMode) => {
     setThemeMode(mode);
   };
@@ -63,11 +61,13 @@ export const useThemeMenuItems = ({
   const selectedThemeModeIcon = useMemo(
     () =>
       hasLocalOverride ? (
-        <Icons.FormatPainterOutlined style={{ color: theme.colorError }} />
+        <Tooltip title={t('This theme is set locally')} placement="bottom">
+          <Icons.ThunderboltOutlined />
+        </Tooltip>
       ) : (
         themeIconMap[themeMode]
       ),
-    [hasLocalOverride, theme.colorError, themeIconMap, themeMode],
+    [hasLocalOverride, themeIconMap, themeMode],
   );
 
   const themeOptions: MenuItem[] = [
