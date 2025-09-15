@@ -18,9 +18,10 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import { SharedControlConfig } from '../types';
 import { dndAdhocMetricControl } from './dndControls';
+import { defineSavedMetrics } from '../utils';
 
 /**
  * Matrixify control definitions
@@ -43,6 +44,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       ['dimensions', t('Dimension members')],
     ],
     renderTrigger: true,
+    tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -55,6 +57,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     multi: true,
     validators: [], // No validation - rely on visibility
     renderTrigger: true,
+    tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -70,6 +73,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     default: { dimension: '', values: [] },
     validators: [], // No validation - rely on visibility
     renderTrigger: true,
+    tabOverride: 'matrixify',
     shouldMapStateToProps: (prevState, state) => {
       // Recalculate when any relevant form_data field changes
       const fieldsToCheck = [
@@ -136,6 +140,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       ['topn', t('Top n')],
     ],
     renderTrigger: true,
+    tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -150,8 +155,9 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     description: t(`How many top values to select`),
     default: 10,
     isInt: true,
-    validators: [], // No validation - rely on visibility
+    validators: [],
     renderTrigger: true,
+    tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -159,14 +165,27 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
+    mapStateToProps: ({ controls }) => {
+      const isVisible = 
+        controls?.[
+          `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+        ]?.value === true &&
+        controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value === 'topn';
+      
+      return {
+        validators: isVisible ? [validateNonEmpty] : [],
+      };
+    },
   };
 
   matrixifyControls[`matrixify_topn_metric_${axis}`] = {
     ...dndAdhocMetricControl,
     label: t(`Metric for ordering`),
     multi: false,
-    validators: [], // No validation - rely on visibility
+    validators: [],
     description: t(`Metric to use for ordering Top N values`),
+    tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -174,6 +193,27 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
       controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value ===
         'topn',
+    mapStateToProps: (state) => {
+      const { controls, datasource } = state;
+      const isVisible = 
+        controls?.[
+          `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
+        ]?.value === true &&
+        controls?.[`matrixify_mode_${axis}`]?.value === 'dimensions' &&
+        controls?.[`matrixify_dimension_selection_mode_${axis}`]?.value === 'topn';
+      
+      // Get the original props from dndAdhocMetricControl's mapStateToProps
+      const originalProps = dndAdhocMetricControl.mapStateToProps?.(state) || {};
+      
+      return {
+        ...originalProps,
+        columns: datasource?.columns || [],
+        savedMetrics: defineSavedMetrics(datasource),
+        datasource,
+        datasourceType: datasource?.type,
+        validators: isVisible ? [validateNonEmpty] : [],
+      };
+    },
   };
 
   matrixifyControls[`matrixify_topn_order_${axis}`] = {
@@ -185,6 +225,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
       ['desc', t('Descending')],
     ],
     renderTrigger: true,
+    tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       controls?.[
         `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`
@@ -243,6 +284,7 @@ matrixifyControls.matrixify_enable_vertical_layout = {
   description: t('Create matrix rows by stacking charts vertically'),
   default: false,
   renderTrigger: true,
+  tabOverride: 'matrixify',
 };
 
 matrixifyControls.matrixify_enable_horizontal_layout = {
@@ -251,6 +293,7 @@ matrixifyControls.matrixify_enable_horizontal_layout = {
   description: t('Create matrix columns by placing charts side-by-side'),
   default: false,
   renderTrigger: true,
+  tabOverride: 'matrixify',
 };
 
 // Cell title control for Matrixify
@@ -274,6 +317,7 @@ matrixifyControls.matrixify_show_row_labels = {
   description: t('Display labels for each row on the left side of the matrix'),
   default: true,
   renderTrigger: true,
+  tabOverride: 'matrixify',
   visibility: ({ controls }) =>
     controls?.matrixify_enable_vertical_layout?.value === true,
 };
@@ -284,6 +328,7 @@ matrixifyControls.matrixify_show_column_headers = {
   description: t('Display headers for each column at the top of the matrix'),
   default: true,
   renderTrigger: true,
+  tabOverride: 'matrixify',
   visibility: ({ controls }) =>
     controls?.matrixify_enable_horizontal_layout?.value === true,
 };

@@ -748,10 +748,55 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const showCustomizeTab = customizeSections.length > 0;
   const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
 
-  // Create Matrixify tab label with Beta tag
-  const matrixifyTabLabel = (
+  // Check if matrixify sections have validation errors
+  const matrixifyHasErrors = useMemo(() => {
+    if (!showMatrixifyTab) return false;
+    
+    return matrixifySections.some(section =>
+      section.controlSetRows.some(rows =>
+        rows.some(item => {
+          const controlName =
+            typeof item === 'string'
+              ? item
+              : item && 'name' in item
+                ? item.name
+                : null;
+          return (
+            controlName &&
+            controlName in props.controls &&
+            props.controls[controlName].validationErrors &&
+            props.controls[controlName].validationErrors.length > 0
+          );
+        }),
+      ),
+    );
+  }, [showMatrixifyTab, matrixifySections, props.controls]);
+
+  // Create Matrixify tab label with Beta tag and validation errors
+  const matrixifyTabLabel = useMemo(() => (
     <>
-      {t('Matrixify')}{' '}
+      <span>{t('Matrixify')}</span>
+      {matrixifyHasErrors && (
+        <span
+          css={(theme: SupersetTheme) => css`
+            margin-left: ${theme.sizeUnit * 2}px;
+          `}
+        >
+          {' '}
+          <Tooltip
+            id="matrixify-validation-error-tooltip"
+            placement="right"
+            title={t('This section contains validation errors')}
+          >
+            <Icons.InfoCircleOutlined
+              data-test="matrixify-validation-error-tooltip-trigger"
+              iconColor={theme.colorErrorText}
+              iconSize="s"
+            />
+          </Tooltip>
+        </span>
+      )}
+      {' '}
       <Tooltip
         title={t(
           'This feature is experimental and may change or have limitations',
@@ -769,7 +814,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         </Label>
       </Tooltip>
     </>
-  );
+  ), [matrixifyHasErrors, theme.colorErrorText, theme.sizeUnit, theme.fontSizeSM]);
 
   return (
     <Styles ref={containerRef}>
