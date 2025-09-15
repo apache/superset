@@ -86,7 +86,6 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { _isColumnsSortingCoupledToGroup } from 'ag-grid-community';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { StandardModal, ModalFormField } from 'src/components/Modal';
 import NumberInput from './components/NumberInput';
@@ -851,12 +850,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (currentAlert?.extra?.dashboard) {
       // Filter out empty native filters (where both filter name and values are empty/null)
       const validNativeFilters = nativeFilterData.filter(filter => {
-        const hasFilterName = filter.filterName && filter.filterName.trim() !== '';
-        const hasFilterValues = filter.filterValues && filter.filterValues.length > 0;
+        const hasFilterName =
+          filter.filterName && filter.filterName.trim() !== '';
+        const hasFilterValues =
+          filter.filterValues && filter.filterValues.length > 0;
         // Keep filter if it has either a name or values (or both)
         return hasFilterName || hasFilterValues;
       });
-      
+
       currentAlert.extra.dashboard.nativeFilters = validNativeFilters.map(
         ({
           columnName,
@@ -2426,6 +2427,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ))}
                               <div className="filters-add-container">
                                 {filterNativeFilterOptions().length > 0 && (
+                                  // eslint-disable-next-line jsx-a11y/anchor-is-valid
                                   <a
                                     className="filters-add-btn"
                                     role="button"
