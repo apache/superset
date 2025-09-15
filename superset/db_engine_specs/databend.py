@@ -265,7 +265,9 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
-        return str(URL.create(f"{cls.engine}", **url_params))
+        return URL.create(f"{cls.engine}", **url_params).render_as_string(
+            hide_password=False
+        )
 
     @classmethod
     def get_parameters_from_uri(
