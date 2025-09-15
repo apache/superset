@@ -44,14 +44,18 @@ SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
 const MIDNIGHT = new Date();
 MIDNIGHT.setHours(0, 0, 0, 0);
 
+const ONE_DAY_AGO = new Date();
+ONE_DAY_AGO.setDate(ONE_DAY_AGO.getDate() - 1);
+ONE_DAY_AGO.setHours(0, 0, 0, 0);
+
+const NOW = new Date();
+
 const defaultCustomRange: CustomRangeType = {
-  sinceDatetime: SEVEN_DAYS_AGO.setDate(
-    SEVEN_DAYS_AGO.getDate() - 7,
-  ).toString(),
-  sinceMode: 'relative',
+  sinceDatetime: ONE_DAY_AGO.toISOString().replace('Z', ''),
+  sinceMode: 'specific',
   sinceGrain: 'day',
   sinceGrainValue: -7,
-  untilDatetime: MIDNIGHT.toString(),
+  untilDatetime: NOW.toISOString().replace('Z', ''),
   untilMode: 'specific',
   untilGrain: 'day',
   untilGrainValue: 7,
