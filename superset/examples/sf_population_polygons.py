@@ -59,7 +59,7 @@ def load_sf_population_polygons(
                 index=False,
             )
 
-    logger.debug(f"Creating table {tbl_name} reference")
+    logger.debug("Creating table %s reference", tbl_name)
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
