@@ -545,9 +545,12 @@ function ExploreViewContainer(props) {
   }
 
   const errorMessage = useMemo(() => {
+    // Filter out matrixify controls from validation errors
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
-        control.validationErrors && control.validationErrors.length > 0,
+        control.validationErrors && 
+        control.validationErrors.length > 0 &&
+        control.tabOverride !== 'matrixify', // Exclude matrixify controls
     );
     if (controlsWithErrors.length === 0) {
       return null;
