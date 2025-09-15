@@ -578,7 +578,8 @@ def test_in_app_context():
 
 
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
-    db.get_engine().execute(f"DROP {ctas_method.name} IF EXISTS {name}")
+    with db.get_engine().connect() as connection:
+        connection.execute(text(f"DROP {ctas_method.name} IF EXISTS {name}"))
 
 
 def wait_for_success(result):
