@@ -27,7 +27,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -388,9 +388,10 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
-            )
-        }
+        with inspector.bind.connect() as connection:
+            return {
+                catalog
+                for (catalog,) in connection.execute(
+                    text("SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;")
+                )
+            }

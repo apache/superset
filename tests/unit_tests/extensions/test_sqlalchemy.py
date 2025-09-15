@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy import text
 from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm.session import Session
@@ -63,13 +64,15 @@ def database1(session: Session) -> Iterator["Database"]:
 def table1(session: Session, database1: "Database") -> Iterator[None]:
     with database1.get_sqla_engine() as engine:
         conn = engine.connect()
-        conn.execute("CREATE TABLE table1 (a INTEGER NOT NULL PRIMARY KEY, b INTEGER)")
-        conn.execute("INSERT INTO table1 (a, b) VALUES (1, 10), (2, 20)")
+        conn.execute(
+            text("CREATE TABLE table1 (a INTEGER NOT NULL PRIMARY KEY, b INTEGER)")
+        )
+        conn.execute(text("INSERT INTO table1 (a, b) VALUES (1, 10), (2, 20)"))
         db.session.commit()
 
         yield
 
-        conn.execute("DROP TABLE table1")
+        conn.execute(text("DROP TABLE table1"))
         db.session.commit()
 
 
@@ -97,13 +100,15 @@ def database2(session: Session) -> Iterator["Database"]:
 def table2(session: Session, database2: "Database") -> Iterator[None]:
     with database2.get_sqla_engine() as engine:
         conn = engine.connect()
-        conn.execute("CREATE TABLE table2 (a INTEGER NOT NULL PRIMARY KEY, b TEXT)")
-        conn.execute("INSERT INTO table2 (a, b) VALUES (1, 'ten'), (2, 'twenty')")
+        conn.execute(
+            text("CREATE TABLE table2 (a INTEGER NOT NULL PRIMARY KEY, b TEXT)")
+        )
+        conn.execute(text("INSERT INTO table2 (a, b) VALUES (1, 'ten'), (2, 'twenty')"))
         db.session.commit()
 
         yield
 
-        conn.execute("DROP TABLE table2")
+        conn.execute(text("DROP TABLE table2"))
         db.session.commit()
 
 
@@ -254,18 +259,20 @@ def test_dml(
 
     conn = engine.connect()
 
-    conn.execute('INSERT INTO "database1.table1" (a, b) VALUES (3, 30)')
-    results = conn.execute('SELECT * FROM "database1.table1"')
+    conn.execute(text('INSERT INTO "database1.table1" (a, b) VALUES (3, 30)'))
+    results = conn.execute(text('SELECT * FROM "database1.table1"'))
     assert list(results) == [(1, 10), (2, 20), (3, 30)]
-    conn.execute('UPDATE "database1.table1" SET b=35 WHERE a=3')
-    results = conn.execute('SELECT * FROM "database1.table1"')
+    conn.execute(text('UPDATE "database1.table1" SET b=35 WHERE a=3'))
+    results = conn.execute(text('SELECT * FROM "database1.table1"'))
     assert list(results) == [(1, 10), (2, 20), (3, 35)]
-    conn.execute('DELETE FROM "database1.table1" WHERE b>20')
-    results = conn.execute('SELECT * FROM "database1.table1"')
+    conn.execute(text('DELETE FROM "database1.table1" WHERE b>20'))
+    results = conn.execute(text('SELECT * FROM "database1.table1"'))
     assert list(results) == [(1, 10), (2, 20)]
 
     with pytest.raises(ProgrammingError) as excinfo:
-        conn.execute("""INSERT INTO "database2.table2" (a, b) VALUES (3, 'thirty')""")
+        conn.execute(
+            text("""INSERT INTO "database2.table2" (a, b) VALUES (3, 'thirty')""")
+        )
     assert str(excinfo.value).strip() == (
         "(shillelagh.exceptions.ProgrammingError) DML not enabled in database "
         '"database2"\n[SQL: INSERT INTO "database2.table2" (a, b) '

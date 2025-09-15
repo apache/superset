@@ -552,7 +552,8 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+        with inspector.bind.connect() as connection:
+            return {catalog for (catalog,) in connection.execute(text("SHOW CATALOGS"))}
 
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
@@ -644,7 +645,8 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+        with inspector.bind.connect() as connection:
+            return {catalog for (catalog,) in connection.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(

@@ -298,8 +298,9 @@ class DorisEngineSpec(MySQLEngineSpec):
         CatalogId, CatalogName, Type, IsCurrent, CreateTime, LastUpdateTime, Comment
         We need to extract just the CatalogName column.
         """
-        result = inspector.bind.execute("SHOW CATALOGS")
-        return {row.CatalogName for row in result}
+        with inspector.bind.connect() as connection:
+            result = connection.execute(text("SHOW CATALOGS"))
+            return {row.CatalogName for row in result}
 
     @classmethod
     def get_schema_from_engine_params(
