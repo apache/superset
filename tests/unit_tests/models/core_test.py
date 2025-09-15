@@ -329,8 +329,10 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
     )
 
     get_inspector = mocker.patch.object(database, "get_inspector")
+    mock_connection = mocker.MagicMock()
+    mock_connection.execute.return_value = [("examples",), ("other",)]
     with get_inspector() as inspector:
-        inspector.bind.execute.return_value = [("examples",), ("other",)]
+        inspector.bind.connect.return_value.__enter__.return_value = mock_connection
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
     get_inspector.assert_called_with(ssh_tunnel=None)

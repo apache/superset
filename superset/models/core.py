@@ -1100,7 +1100,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 table.table,
                 meta,
                 schema=table.schema or None,
-                autoload=True,
                 autoload_with=engine,
             )
 

@@ -324,7 +324,6 @@ class SupersetShillelaghAdapter(Adapter):
                     self.table,
                     metadata,
                     schema=self.schema,
-                    autoload=True,
                     autoload_with=engine,
                 )
             except NoSuchTableError as ex:

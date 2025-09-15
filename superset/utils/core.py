@@ -616,9 +616,7 @@ def generic_find_constraint_name(
     table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
-    tbl = sa.Table(
-        table, database.metadata, autoload=True, autoload_with=database.engine
-    )
+    tbl = sa.Table(table, database.metadata, autoload_with=database.engine)
 
     for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:

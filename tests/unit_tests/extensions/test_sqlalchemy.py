@@ -138,7 +138,7 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
         pytest.skip(f"Superset dialect not available: {e}")
 
     conn = engine.connect()
-    results = conn.execute('SELECT * FROM "database1.table1"')
+    results = conn.execute(text('SELECT * FROM "database1.table1"'))
     assert list(results) == [(1, 10), (2, 20)]
 
 
@@ -179,7 +179,7 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
         pytest.skip(f"Superset dialect not available: {e}")
 
     conn = engine.connect()
-    results = conn.execute('SELECT * FROM "database1.table1"')
+    results = conn.execute(text('SELECT * FROM "database1.table1"'))
     assert list(results) == [(1, 10)]
 
 
@@ -215,12 +215,12 @@ def test_superset_joins(
 
     conn = engine.connect()
     results = conn.execute(
-        """
+        text("""
         SELECT t1.b, t2.b
         FROM "database1.table1" AS t1
         JOIN "database2.table2" AS t2
         ON t1.a = t2.a
-        """
+        """)
     )
     assert list(results) == [(10, "ten"), (20, "twenty")]
 
@@ -326,7 +326,7 @@ def test_security_manager(
 
     conn = engine.connect()
     with pytest.raises(SupersetSecurityException) as excinfo:
-        conn.execute('SELECT * FROM "database1.table1"')
+        conn.execute(text('SELECT * FROM "database1.table1"'))
     assert str(excinfo.value) == (
         "You need access to the following tables: `table1`,\n            "
         "`all_database_access` or `all_datasource_access` permission"
@@ -360,11 +360,11 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
 
     conn = engine.connect()
 
-    results = conn.execute('SELECT * FROM "database1.table1"')
+    results = conn.execute(text('SELECT * FROM "database1.table1"'))
     assert list(results) == [(1, 10), (2, 20)]
 
     with pytest.raises(ProgrammingError) as excinfo:
-        conn.execute('SELECT * FROM "database2.table2"')
+        conn.execute(text('SELECT * FROM "database2.table2"'))
     assert str(excinfo.value) == (
         """
 (shillelagh.exceptions.ProgrammingError) Unsupported table: database2.table2
