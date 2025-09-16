@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 # Custom filterable fields for dashboards
 DASHBOARD_CUSTOM_FIELDS = {
     "tags": ["eq", "in_", "like"],
-    "owner": ["eq", "in_"],
+    "owners": ["eq", "in_"],
     "published": ["eq"],
 }
 
