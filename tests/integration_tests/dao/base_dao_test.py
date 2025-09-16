@@ -1548,8 +1548,8 @@ def test_convert_value_for_column_uuid(app_context: Session) -> None:
 
     # Test with invalid UUID string
     invalid = DashboardDAO._convert_value_for_column(uuid_column, "not-a-uuid")
-    # Should return None or original value for invalid UUID
-    assert invalid == "not-a-uuid" or invalid is None
+    # Should return None for invalid UUID
+    assert invalid is None
 
 
 def test_convert_value_for_column_non_uuid(app_context: Session) -> None:
