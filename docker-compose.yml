@@ -31,7 +31,7 @@ services:
       <<: *common-build
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
-    env_file: ./rmcdocker/.env # <-- ADD THIS LINE
+    env_file: ./rmcdocker/.env 
     depends_on:
       db:
         condition: service_healthy
@@ -54,7 +54,7 @@ services:
       <<: *common-build
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: ./rmcdocker/.env # <-- ADD THIS LINE
+    env_file: ./rmcdocker/.env 
     depends_on:
       db:
         condition: service_healthy
@@ -70,7 +70,7 @@ services:
       <<: *common-build
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file: ./rmcdocker/.env # <-- ADD THIS LINE
+    env_file: ./rmcdocker/.env 
     depends_on:
       db:
         condition: service_healthy

@@ -127,7 +127,6 @@ AUTH_TYPE = AUTH_OAUTH
 AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "myportaluser"
 
-# Ensure OAuth-only access (disable any fallback authentication)
 PUBLIC_ROLE_LIKE = None  # Disable anonymous/public access
 AUTH_ROLE_PUBLIC = None  # No public role
 
@@ -176,7 +175,6 @@ JWT_COOKIE_CSRF_PROTECT = False  # Set to True in production
 JWT_ACCESS_TOKEN_EXPIRES = 3600 * 8  # 8 hours
 JWT_COOKIE_DOMAIN = '.rmcare.com'  # Match session cookie domain
  
-# Enhanced Security Manager for Unified Authentication
 class UnifiedSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
         super(CustomSecurityManager, self).__init__(appbuilder)
@@ -194,7 +192,6 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         logging.critical(f"OAuth userinfo: {userinfo}")
         
         try:
-            # Extract user identity from OAuth userinfo (UPN is the primary identifier)
             user_id = userinfo.get('userPrincipalName') or userinfo.get('upn') or userinfo.get('unique_name')
             if not user_id:
                 logging.critical("No user identifier found in OAuth userinfo")
@@ -289,7 +286,6 @@ class UnifiedSecurityManager(SupersetSecurityManager):
             decoded_token = decode_token(token, allow_expired=True)
             logging.critical(f"Token decoded successfully")
            
-            # CRITICAL SECURITY: Replay protection using jti (FAIL SECURE)
             try:
                 jti = decoded_token.get('jti')
                 exp = decoded_token.get('exp')
@@ -297,12 +293,10 @@ class UnifiedSecurityManager(SupersetSecurityManager):
                     logging.critical("JWT missing jti or exp claims - replay protection not possible")
                     return None
                     
-                # Check for replay attack
                 if REPLAY_CACHE.get(jti):
                     logging.critical(f"SECURITY VIOLATION: Replay detected for jti={jti}")
                     return None
                     
-                # Store JTI to prevent replay
                 ttl = max(int(exp - datetime.datetime.now().timestamp()), 60)
                 REPLAY_CACHE.set(jti, 1, timeout=ttl)
                 logging.critical(f"JTI {jti} stored in replay cache with TTL {ttl}")
@@ -310,7 +304,7 @@ class UnifiedSecurityManager(SupersetSecurityManager):
             except Exception as replay_err:
                 logging.critical(f"SECURITY ERROR: Replay cache failure: {str(replay_err)}")
                 logging.critical("SECURITY: Redis unavailable - failing JWT validation for security")
-                return None  # FAIL SECURE: If Redis is down, reject all JWT tokens
+                return None  
                 
             # Map identity and basic profile from Azure AD OBO token
             user_id = decoded_token.get(self.auth_user_jwt_username_key)  # upn
