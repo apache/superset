@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""
+Simple MCP proxy server that connects to FastMCP server on localhost:5008
+"""
+
+import logging
+import signal
+import sys
+import time
+from typing import Any, Optional
+
+from fastmcp import FastMCP
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# Global proxy instance for cleanup
+proxy: Optional[FastMCP] = None
+
+
+def signal_handler(signum: int, frame: Any) -> None:
+    """Handle shutdown signals gracefully"""
+    logger.info("Received signal %s, shutting down gracefully...", signum)
+    if proxy:
+        try:
+            # Give the proxy a moment to clean up
+            time.sleep(0.1)
+        except Exception as e:
+            logger.warning("Error during proxy cleanup: %s", e)
+    sys.exit(0)
+
+
+def main() -> None:
+    """Main function to run the proxy"""
+    global proxy
+
+    try:
+        from fastmcp import FastMCP
+
+        # Set up signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        logger.info("Starting MCP proxy server...")
+
+        # Create a proxy to the remote FastMCP server
+        proxy = FastMCP.as_proxy(
+            "http://localhost:5008/mcp/", name="Superset MCP Proxy"
+        )
+
+        logger.info("Proxy created successfully, starting...")
+
+        # Run the proxy (this will block until interrupted)
+        proxy.run()
+
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt, shutting down...")
+        sys.exit(0)
+    except ImportError as e:
+        logger.error("Failed to import FastMCP: %s", e)
+        logger.error("Please install fastmcp: pip install fastmcp")
+        sys.exit(1)
+    except Exception as e:
+        logger.error("Unexpected error: %s", e)
+        sys.exit(1)
+    finally:
+        logger.info("Proxy server stopped")
+
+
+if __name__ == "__main__":
+    main()
