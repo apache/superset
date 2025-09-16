@@ -177,7 +177,7 @@ JWT_COOKIE_DOMAIN = '.rmcare.com'  # Match session cookie domain
  
 class UnifiedSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
-        super(CustomSecurityManager, self).__init__(appbuilder)
+        super(UnifiedSecurityManager, self).__init__(appbuilder)
         logging.critical("Unified Security Manager initialized with OAuth + JWT support")
         self.auth_user_jwt_username_key = JWT_IDENTITY_CLAIM
        
