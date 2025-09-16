@@ -740,12 +740,12 @@ def test_base_dao_list_paging(user_with_data: Session) -> None:
     user_with_data.commit()
 
     # Test first page
-    page1_results, page1_total = UserDAO.list(page=0, page_size=5)
+    page1_results, page1_total = UserDAO.list(page=0, page_size=5, order_column="id")
     assert len(page1_results) <= 5
     assert page1_total >= 10  # At least our 10 users
-
+ 
     # Test second page
-    page2_results, page2_total = UserDAO.list(page=1, page_size=5)
+    page2_results, page2_total = UserDAO.list(page=1, page_size=5, order_column="id")
     assert len(page2_results) <= 5
     assert page2_total >= 10
 
