@@ -31,6 +31,7 @@ export type RunQueryButtonProps = {
   canStopQuery: boolean;
   chartIsStale: boolean;
 };
+
 export const RunQueryButton = ({
   loading,
   onQuery,

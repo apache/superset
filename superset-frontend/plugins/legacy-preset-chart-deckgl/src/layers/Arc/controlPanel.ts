@@ -38,6 +38,8 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
   deckGLCategoricalColor,
   deckGLCategoricalColorSchemeSelect,
   deckGLCategoricalColorSchemeTypeSelect,
@@ -77,6 +79,8 @@ const config: ControlPanelConfig = {
         ],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {

@@ -17,7 +17,11 @@
  * under the License.
  */
 import { GridLayer } from '@deck.gl/aggregation-layers';
-import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 
 import {
   commonLayerProps,
@@ -29,20 +33,21 @@ import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
-function setTooltipContent(o: JsonObject) {
+function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
+  const metricLabel = formData.size?.label || formData.size?.value || 'Height';
+
   return (
     <div className="deckgl-tooltip">
+      {CommonTooltipRows.centroid(o)}
       <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Longitude and Latitude') + ': '}
-        value={`${o.coordinate[0]}, ${o.coordinate[1]}`}
-      />
-      <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Height') + ': '}
-        value={`${o.object.elevationValue}`}
+        label={`${metricLabel}: `}
+        value={`${o.object?.elevationValue || o.object?.value || 'N/A'}`}
       />
     </div>
   );
@@ -63,7 +68,6 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
@@ -80,6 +84,10 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   });
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+
+  const tooltipContent = createTooltipContent(fd, (o: JsonObject) =>
+    defaultTooltipGenerator(o, fd),
+  );
 
   const colorAggFunc =
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
@@ -105,7 +113,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
       formData: fd,
       setDataMask,
       setTooltip,
-      setTooltipContent,
+      setTooltipContent: tooltipContent,
       filterState,
       onContextMenu,
       emitCrossFilters,

@@ -76,7 +76,7 @@ export const HandlebarsViewer = ({
   return <p>{t('Loading...')}</p>;
 };
 
-//  usage: {{dateFormat my_date format="MMMM YYYY"}}
+//  usage: {{ dateFormat my_date format="MMMM YYYY" }}
 Handlebars.registerHelper('dateFormat', function (context, block) {
   const f = block.hash.format || 'YYYY-MM-DD';
   return dayjs(context).format(f);
