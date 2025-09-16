@@ -28,24 +28,26 @@ import { ListView } from './ListView';
 
 jest.mock('@superset-ui/core/components', () => ({
   Alert: jest.fn(({ children, ...props }) => <div {...props}>{children}</div>),
-  DropdownButton: ({
-    children,
-    onClick,
-    'data-test': dataTest,
-    ...props
-  }) => (
+  DropdownButton: ({ children, onClick, 'data-test': dataTest, ...props }) => (
     <button type="button" onClick={onClick} data-test={dataTest} {...props}>
       {children}
     </button>
   ),
   Icons: {
-    AppstoreOutlined: ({ iconSize, ...props }) => <span {...props} role="img" aria-label="appstore" />,
-    UnorderedListOutlined: ({ iconSize, ...props }) => <span {...props} role="img" aria-label="unordered-list" />,
-    DeleteOutlined: ({ iconSize, ...props }) => <span {...props} role="img" aria-label="delete" />,
+    AppstoreOutlined: ({ iconSize, ...props }) => (
+      <span {...props} role="img" aria-label="appstore" />
+    ),
+    UnorderedListOutlined: ({ iconSize, ...props }) => (
+      <span {...props} role="img" aria-label="unordered-list" />
+    ),
+    DeleteOutlined: ({ iconSize, ...props }) => (
+      <span {...props} role="img" aria-label="delete" />
+    ),
   },
   EmptyState: ({ children, ...props }) => <div {...props}>{children}</div>,
   Checkbox: ({ children, ...props }) => <input type="checkbox" {...props} />,
   Loading: () => <div>Loading...</div>,
+  Flex: ({ children, ...props }) => <div {...props}>{children}</div>,
   Menu: {
     Item: ({ children, ...props }) => <div {...props}>{children}</div>,
   },
