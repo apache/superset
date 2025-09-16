@@ -774,7 +774,6 @@ describe('ChartList - List View Tests', () => {
     const bulkActionButton = screen.getByTestId('bulk-select-action');
     expect(bulkActionButton).toBeInTheDocument();
   });
-  });
 
   it('can bulk add tags to selected charts', async () => {
     // Enable tagging system feature flag

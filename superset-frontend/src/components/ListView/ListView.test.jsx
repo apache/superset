@@ -27,23 +27,20 @@ import fetchMock from 'fetch-mock';
 import { ListView } from './ListView';
 
 // Mock DropdownButton to ensure it works properly in tests
-jest.mock('@superset-ui/core/components', () => {
-  const actual = jest.requireActual('@superset-ui/core/components');
-  return {
-    ...actual,
-    Alert: actual.Alert || (() => null),
-    DropdownButton: ({
-      children,
-      onClick,
-      'data-test': dataTest,
-      ...props
-    }) => (
-      <button type="button" onClick={onClick} data-test={dataTest} {...props}>
-        {children}
-      </button>
-    ),
-  };
-});
+jest.mock('@superset-ui/core/components', () => ({
+  ...jest.requireActual('@superset-ui/core/components'),
+  Alert: jest.fn(({ children, ...props }) => <div {...props}>{children}</div>),
+  DropdownButton: ({
+    children,
+    onClick,
+    'data-test': dataTest,
+    ...props
+  }) => (
+    <button type="button" onClick={onClick} data-test={dataTest} {...props}>
+      {children}
+    </button>
+  ),
+}));
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
