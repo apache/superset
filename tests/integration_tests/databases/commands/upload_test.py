@@ -167,18 +167,21 @@ def test_csv_upload_with_index():
             data = connection.execute(
                 text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
             ).fetchall()
+
+            # assert column names - must be inside connection context
+            column_names = list(
+                connection.execute(
+                    text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
+                ).keys()
+            )
+
         assert data == [
             (0, "name1", 30, "city1", "1-1-1980"),
             (1, "name2", 29, "city2", "1-1-1981"),
             (2, "name3", 28, "city3", "1-1-1982"),
         ]
-        # assert column names
-        assert [  # noqa: C416
-            col
-            for col in connection.execute(
-                text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
-            ).keys()
-        ] == [
+
+        assert column_names == [
             "id",
             "Name",
             "Age",

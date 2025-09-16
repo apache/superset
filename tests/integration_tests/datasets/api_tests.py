@@ -2935,7 +2935,7 @@ class TestDatasetApi(SupersetTestCase):
 
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            with engine.connect() as connection:
+            with engine.begin() as connection:
                 connection.execute(
                     text("DROP TABLE IF EXISTS test_create_sqla_table_api")
                 )
