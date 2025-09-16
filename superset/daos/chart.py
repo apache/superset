@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 # Custom filterable fields for charts
 CHART_CUSTOM_FIELDS = {
     "tags": ["eq", "in_", "like"],
-    "owner": ["eq", "in_"],
     "viz_type": ["eq", "in_", "like"],
     "datasource_name": ["eq", "in_", "like"],
 }
