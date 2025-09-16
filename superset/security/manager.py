@@ -2329,7 +2329,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.session.expunge(query)
+            # SQLAlchemy compatibility: Only expunge if the object is actually
+            # in the session In SQLAlchemy 1.4.x, objects might be auto-added;
+            # in 2.x they're transient
+            if query in self.session:
+                self.session.expunge(query)
 
         if database and table or query:
             if query:
