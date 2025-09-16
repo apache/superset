@@ -79,7 +79,7 @@ def _setup_csv_upload(allowed_schemas: list[str] | None = None):
 
     upload_db = get_upload_db()
     with upload_db.get_sqla_engine() as engine:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             connection.execute(text(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}"))  # noqa: S608
             connection.execute(
                 text(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
