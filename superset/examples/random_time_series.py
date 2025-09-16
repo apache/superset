@@ -68,7 +68,7 @@ def load_random_time_series_data(
         logger.debug("Done loading table!")
         logger.debug("-" * 80)
 
-    logger.debug(f"Creating table [{tbl_name}] reference")
+    logger.debug("Creating table [%s] reference", tbl_name)
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:

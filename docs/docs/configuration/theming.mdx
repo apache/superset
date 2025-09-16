@@ -165,6 +165,206 @@ Or in the CRUD interface theme JSON:
 
 This feature works with the stock Docker image - no custom build required!
 
+## ECharts Configuration Overrides
+
+:::note
+Available since Superset 6.0
+:::
+
+Superset provides fine-grained control over ECharts visualizations through theme-level configuration overrides. This allows you to customize the appearance and behavior of all ECharts-based charts without modifying individual chart configurations.
+
+### Global ECharts Overrides
+
+Apply settings to all ECharts visualizations using `echartsOptionsOverrides`:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... other Ant Design tokens
+    },
+    "echartsOptionsOverrides": {
+        "grid": {
+            "left": "10%",
+            "right": "10%",
+            "top": "15%",
+            "bottom": "15%"
+        },
+        "tooltip": {
+            "backgroundColor": "rgba(0, 0, 0, 0.8)",
+            "borderColor": "#ccc",
+            "textStyle": {
+                "color": "#fff"
+            }
+        },
+        "legend": {
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold"
+            }
+        }
+    }
+}
+```
+
+### Chart-Specific Overrides
+
+Target specific chart types using `echartsOptionsOverridesByChartType`:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... other tokens
+    },
+    "echartsOptionsOverridesByChartType": {
+        "echarts_pie": {
+            "legend": {
+                "orient": "vertical",
+                "right": 10,
+                "top": "center"
+            }
+        },
+        "echarts_timeseries": {
+            "xAxis": {
+                "axisLabel": {
+                    "rotate": 45,
+                    "fontSize": 12
+                }
+            },
+            "dataZoom": [{
+                "type": "slider",
+                "show": True,
+                "start": 0,
+                "end": 100
+            }]
+        },
+        "echarts_bubble": {
+            "grid": {
+                "left": "15%",
+                "bottom": "20%"
+            }
+        }
+    }
+}
+```
+
+### UI Configuration
+
+You can also configure ECharts overrides through the theme CRUD interface:
+
+```json
+{
+  "token": {
+    "colorPrimary": "#2893B3"
+  },
+  "echartsOptionsOverrides": {
+    "grid": {
+      "left": "10%",
+      "right": "10%"
+    },
+    "tooltip": {
+      "backgroundColor": "rgba(0, 0, 0, 0.8)"
+    }
+  },
+  "echartsOptionsOverridesByChartType": {
+    "echarts_pie": {
+      "legend": {
+        "orient": "vertical",
+        "right": 10
+      }
+    }
+  }
+}
+```
+
+### Override Precedence
+
+The system applies overrides in the following order (last wins):
+
+1. **Base ECharts theme** - Default Superset styling
+2. **Plugin options** - Chart-specific configurations
+3. **Global overrides** - `echartsOptionsOverrides`
+4. **Chart-specific overrides** - `echartsOptionsOverridesByChartType[chartType]`
+
+This ensures chart-specific overrides take precedence over global ones.
+
+### Common Chart Types
+
+Available chart types for `echartsOptionsOverridesByChartType`:
+
+- `echarts_timeseries` - Time series/line charts
+- `echarts_pie` - Pie and donut charts
+- `echarts_bubble` - Bubble/scatter charts
+- `echarts_funnel` - Funnel charts
+- `echarts_gauge` - Gauge charts
+- `echarts_radar` - Radar charts
+- `echarts_boxplot` - Box plot charts
+- `echarts_treemap` - Treemap charts
+- `echarts_sunburst` - Sunburst charts
+- `echarts_graph` - Network/graph charts
+- `echarts_sankey` - Sankey diagrams
+- `echarts_heatmap` - Heatmaps
+- `echarts_mixed_timeseries` - Mixed time series
+
+### Best Practices
+
+1. **Start with global overrides** for consistent styling across all charts
+2. **Use chart-specific overrides** for unique requirements per visualization type
+3. **Test thoroughly** as overrides use deep merge - nested objects are combined, but arrays are completely replaced
+4. **Document your overrides** to help team members understand custom styling
+5. **Consider performance** - complex overrides may impact chart rendering speed
+
+### Example: Corporate Branding
+
+```python
+# Complete corporate theme with ECharts customization
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#1B4D3E",
+        "fontFamily": "Corporate Sans, Arial, sans-serif"
+    },
+    "echartsOptionsOverrides": {
+        "grid": {
+            "left": "8%",
+            "right": "8%",
+            "top": "12%",
+            "bottom": "12%"
+        },
+        "textStyle": {
+            "fontFamily": "Corporate Sans, Arial, sans-serif"
+        },
+        "title": {
+            "textStyle": {
+                "color": "#1B4D3E",
+                "fontSize": 18,
+                "fontWeight": "bold"
+            }
+        }
+    },
+    "echartsOptionsOverridesByChartType": {
+        "echarts_timeseries": {
+            "xAxis": {
+                "axisLabel": {
+                    "color": "#666",
+                    "fontSize": 11
+                }
+            }
+        },
+        "echarts_pie": {
+            "legend": {
+                "textStyle": {
+                    "fontSize": 12
+                },
+                "itemGap": 20
+            }
+        }
+    }
+}
+```
+
+This feature provides powerful theming capabilities while maintaining the flexibility of ECharts' extensive configuration options.
+
 ## Advanced Features
 
 - **System Themes**: Manage system-wide default and dark themes via UI or configuration
