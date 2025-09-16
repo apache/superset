@@ -4,7 +4,10 @@
     "composite": true,
     "rootDir": "src",
     "outDir": "lib",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@superset-ui/core/components": ["../../packages/superset-ui-core/src/components"]
+    }
   },
   "include": ["src/**/*", "types/**/*"],
   "exclude": ["lib", "test"],

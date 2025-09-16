@@ -18,31 +18,91 @@
  */
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position } from '@deck.gl/core';
-import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
+import {
+  t,
+  getSequentialSchemeRegistry,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { createTooltipContent } from '../../utilities/tooltipUtils';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
-function setTooltipContent(o: JsonObject) {
-  return (
-    <div className="deckgl-tooltip">
-      <TooltipRow
-        label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o?.coordinate[0]}, ${o?.coordinate[1]})`}
-      />
-    </div>
-  );
+function setTooltipContent(formData: QueryFormData) {
+  const defaultTooltipGenerator = (o: JsonObject) => {
+    const metricLabel =
+      formData.size?.label || formData.size?.value || 'Weight';
+    const lon = o.coordinate?.[0];
+    const lat = o.coordinate?.[1];
+
+    const hasCustomTooltip =
+      formData.tooltip_template ||
+      (formData.tooltip_contents && formData.tooltip_contents.length > 0);
+    const hasObjectData = o.object && Object.keys(o.object).length > 0;
+
+    return (
+      <div className="deckgl-tooltip">
+        <TooltipRow
+          label={`${t('Longitude and Latitude')}: `}
+          value={`${lon?.toFixed(6)}, ${lat?.toFixed(6)}`}
+        />
+        <TooltipRow label="LON: " value={lon?.toFixed(6)} />
+        <TooltipRow label="LAT: " value={lat?.toFixed(6)} />
+        <TooltipRow
+          label={`${metricLabel}: `}
+          value={`${o.object?.weight || o.object?.value || 'Aggregated Cell'}`}
+        />
+        {hasCustomTooltip && !hasObjectData && (
+          <TooltipRow
+            label={`${t('Note')}: `}
+            value={t('Custom fields not available in aggregated heatmap cells')}
+          />
+        )}
+      </div>
+    );
+  };
+
+  return (o: JsonObject) => {
+    // Try to find the closest data point to the hovered coordinate
+    let closestPoint = null;
+    if (o.coordinate && o.layer?.props?.data) {
+      const [hoveredLon, hoveredLat] = o.coordinate;
+      let minDistance = Infinity;
+
+      for (const point of o.layer.props.data) {
+        if (point.position) {
+          const [pointLon, pointLat] = point.position;
+          const distance = Math.sqrt(
+            Math.pow(hoveredLon - pointLon, 2) +
+              Math.pow(hoveredLat - pointLat, 2),
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestPoint = point;
+          }
+        }
+      }
+    }
+    const modifiedO = {
+      ...o,
+      object: closestPoint || o.object,
+    };
+
+    return createTooltipContent(formData, defaultTooltipGenerator)(modifiedO);
+  };
 }
+
 export const getLayer: GetLayerType<HeatmapLayer> = ({
   formData,
+  payload,
+  setTooltip,
+  setDataMask,
   onContextMenu,
   filterState,
-  setDataMask,
-  setTooltip,
-  payload,
   emitCrossFilters,
 }) => {
   const fd = formData;
@@ -56,7 +116,6 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
   let data = payload.data.features;
 
   if (jsFnMutator) {
-    // Applying user defined data mutator if defined
     const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutatorFunction(data);
   }
@@ -74,6 +133,8 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     colorScale,
   })?.reverse();
 
+  const tooltipContent = setTooltipContent(fd);
+
   return new HeatmapLayer({
     id: `heatmap-layer-${fd.slice_id}` as const,
     data,
@@ -84,10 +145,12 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { position: number[]; weight: number }) =>
       d.weight ? d.weight : 1,
+    opacity: 0.8,
+    threshold: 0.03,
     ...commonLayerProps({
       formData: fd,
       setTooltip,
-      setTooltipContent,
+      setTooltipContent: tooltipContent,
       setDataMask,
       filterState,
       onContextMenu,

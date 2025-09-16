@@ -39,6 +39,7 @@ export default function Option({
   isExtra,
   datasourceWarningMessage,
   canDelete = true,
+  multiValueWarningMessage,
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
@@ -69,6 +70,13 @@ export default function Option({
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
+      {!!multiValueWarningMessage && (
+        <StyledInfoTooltip
+          type="warning"
+          placement="top"
+          tooltip={multiValueWarningMessage}
+        />
+      )}
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltip
           type="warning"

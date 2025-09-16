@@ -17,8 +17,6 @@
  * under the License.
  */
 
-// These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
-
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -42,6 +40,7 @@ import {
   ColorSchemeType,
   isColorSchemeTypeVisible,
 } from './utils';
+import { TooltipTemplateControl } from './TooltipTemplateControl';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -344,9 +343,7 @@ export const viewport = {
     label: t('Viewport'),
     renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
-    // default is whole world mostly centered
     default: DEFAULT_VIEWPORT,
-    // Viewport changes shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
   },
 };
@@ -442,6 +439,78 @@ export const geojsonColumn = {
     description: t('Select the geojson column'),
     mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
+    }),
+  },
+};
+
+const extractMetricsFromFormData = (formData: any) => {
+  const metrics = new Set<string>();
+
+  if (formData.metrics) {
+    (Array.isArray(formData.metrics)
+      ? formData.metrics
+      : [formData.metrics]
+    ).forEach((metric: any) => metrics.add(metric));
+  }
+
+  if (formData.point_radius_fixed?.value) {
+    metrics.add(formData.point_radius_fixed.value);
+  }
+
+  Object.entries(formData).forEach(([, value]) => {
+    if (!value || typeof value !== 'object') return;
+    if ((value as any).type === 'metric' && (value as any).value) {
+      metrics.add((value as any).value);
+    }
+  });
+
+  return Array.from(metrics).filter(metric => metric != null);
+};
+
+export const tooltipContents = {
+  name: 'tooltip_contents',
+  config: {
+    type: 'DndColumnMetricSelect',
+    label: t('Tooltip contents'),
+    multi: true,
+    freeForm: true,
+    clearable: true,
+    default: [],
+    description: t(
+      'Drag columns and metrics here to customize tooltip content. Order matters - items will appear in the same order in tooltips. Click the button to manually select columns and metrics.',
+    ),
+    ghostButtonText: t('Drop columns/metrics here or click'),
+    disabledTabs: new Set(['saved', 'sqlExpression']),
+    mapStateToProps: (state: any) => {
+      const { datasource, form_data: formData } = state;
+
+      const selectedMetrics = formData
+        ? extractMetricsFromFormData(formData)
+        : [];
+
+      return {
+        columns: datasource?.columns || [],
+        savedMetrics: datasource?.metrics || [],
+        datasource,
+        selectedMetrics,
+        disabledTabs: new Set(['saved', 'sqlExpression']),
+        formData,
+      };
+    },
+  },
+};
+
+export const tooltipTemplate = {
+  name: 'tooltip_template',
+  config: {
+    type: TooltipTemplateControl,
+    label: t('Customize tooltips template'),
+    debounceDelay: 30,
+    default: '',
+    description: '',
+    placeholder: '',
+    mapStateToProps: (state: any, control: any) => ({
+      value: control.value,
     }),
   },
 };

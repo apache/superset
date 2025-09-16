@@ -60,6 +60,7 @@ export default function OptionWrapper(
     datasourceWarningMessage,
     canDelete = true,
     tooltipOverlay,
+    multiValueWarningMessage,
     ...rest
   } = props;
   const ref = useRef<HTMLDivElement>(null);
@@ -188,6 +189,7 @@ export default function OptionWrapper(
         isExtra={isExtra}
         datasourceWarningMessage={datasourceWarningMessage}
         canDelete={canDelete}
+        multiValueWarningMessage={multiValueWarningMessage}
       >
         <Label />
       </Option>

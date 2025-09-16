@@ -1653,6 +1653,66 @@ class BaseDeckGLViz(BaseViz):
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
     spatial_control_keys: list[str] = []
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        """Extract column names from tooltip_contents configuration."""
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        """Add tooltip columns to the appropriate query field."""
+        if not tooltip_columns:
+            return
+
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
+    def _integrate_tooltip_columns(self, query_obj: QueryObjectDict) -> QueryObjectDict:
+        """Helper method to integrate tooltip columns into query object."""
+        tooltip_columns = self._extract_tooltip_columns()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
+
+    def _add_tooltip_properties(
+        self, properties: dict[str, Any], data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Helper method to add tooltip fields to properties dictionary."""
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                properties[col] = data[col]
+        return properties
+
+    def _get_base_properties(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Get base properties common to most deck.gl layers."""
+        return {
+            "position": data.get("spatial"),
+            "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
+        }
+
+    def _setup_metric_label(self) -> None:
+        """Setup metric label for the visualization."""
+        self.metric_label: str | None = (  # pylint: disable=attribute-defined-outside-init
+            utils.get_metric_name(self.metric) if self.metric else None
+        )
+
     def __init__(
         self, datasource: BaseDatasource, form_data: dict[str, Any], **kwargs: Any
     ) -> None:
@@ -1910,7 +1970,9 @@ class DeckScatterViz(BaseDeckGLViz):
             "type": "fix",
             "value": 500,
         }
-        return super().query_obj()
+
+        query_obj = super().query_obj()
+        return self._integrate_tooltip_columns(query_obj)
 
     @deprecated(deprecated_in="3.0")
     def get_metrics(self) -> list[str]:
@@ -1923,7 +1985,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "metric": data.get(self.metric_label) if self.metric_label else None,
             "radius": (
                 self.fixed_value
@@ -1937,10 +1999,12 @@ class DeckScatterViz(BaseDeckGLViz):
             DTTM_ALIAS: data.get(DTTM_ALIAS),
         }
 
+        return self._add_tooltip_properties(properties, data)
+
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
+        self._setup_metric_label()
         # pylint: disable=attribute-defined-outside-init
-        self.metric_label = utils.get_metric_name(self.metric) if self.metric else None
         self.point_radius_fixed = self.form_data.get("point_radius_fixed")
         self.fixed_value = None
         self.dim = self.form_data.get("dimension")
@@ -1957,18 +2021,68 @@ class DeckScreengrid(BaseDeckGLViz):
     spatial_control_keys = ["spatial"]
     is_timeseries = True
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        """Extract column names from tooltip_contents configuration."""
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        """Add tooltip columns to the appropriate query field."""
+        if not tooltip_columns:
+            return
+
+        if query_obj.get("metrics"):
+            # Add to groupby when metrics exist
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            # Add to columns when no metrics
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
-        return super().query_obj()
+        tooltip_columns = self._extract_tooltip_columns()
+        query_obj = super().query_obj()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
 
     @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
             "__timestamp": data.get(DTTM_ALIAS) or data.get("__time"),
         }
+
+        # For Screengrid, the frontend handles the cell-to-points mapping
+        # The backend just provides the aggregated data and tooltip fields
+
+        # For Screengrid, automatically collect all values for tooltip fields
+        # When user selects LON as tooltip field, {{ LON }} will show all LON values
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                # For Screengrid, each cell contains multiple points, provide as-is
+                # The frontend will handle displaying multiple values appropriately
+                properties[col] = data[col]
+
+        return properties
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1979,18 +2093,31 @@ class DeckScreengrid(BaseDeckGLViz):
 
 
 class DeckGrid(BaseDeckGLViz):
-    """deck.gl's DeckLayer"""
+    """deck.gl's GridLayer"""
 
     viz_type = "deck_grid"
     verbose_name = _("Deck.gl - 3D Grid")
     spatial_control_keys = ["spatial"]
 
     @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        tooltip_columns = self._extract_tooltip_columns()
+        query_obj = super().query_obj()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
+
+    @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
         }
+        # Add tooltip fields to properties
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                properties[col] = data[col]
+        return properties
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2025,10 +2152,39 @@ class DeckPathViz(BaseDeckGLViz):
         "geohash": geohash_to_json,
     }
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        if not tooltip_columns:
+            return
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
         self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
+        tooltip_columns = self._extract_tooltip_columns()
         query_obj = super().query_obj()
         self.metric = self.form_data.get("metric")
         line_col = self.form_data.get("line_column")
@@ -2038,6 +2194,7 @@ class DeckPathViz(BaseDeckGLViz):
         else:
             self.has_metrics = False
             query_obj["columns"].append(line_col)
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
         return query_obj
 
     @deprecated(deprecated_in="3.0")
@@ -2049,8 +2206,6 @@ class DeckPathViz(BaseDeckGLViz):
         if self.form_data.get("reverse_long_lat"):
             path = [(o[1], o[0]) for o in path]
         data[self.deck_viz_key] = path
-        if line_type != "geohash":
-            del data[line_column]
         data["__timestamp"] = data.get(DTTM_ALIAS) or data.get("__time")
         return data
 
@@ -2069,14 +2224,44 @@ class DeckPolygon(DeckPathViz):
     deck_viz_key = "polygon"
     verbose_name = _("Deck.gl - Polygon")
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        if not tooltip_columns:
+            return
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        # pylint: disable=attribute-defined-outside-init
         self.elevation = self.form_data.get("point_radius_fixed") or {
             "type": "fix",
             "value": 500,
         }
-        return super().query_obj()
+        tooltip_columns = self._extract_tooltip_columns()
+        query_obj = super().query_obj()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
 
     @deprecated(deprecated_in="3.0")
     def get_metrics(self) -> list[str]:
@@ -2106,11 +2291,24 @@ class DeckHex(BaseDeckGLViz):
     spatial_control_keys = ["spatial"]
 
     @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        tooltip_columns = self._extract_tooltip_columns()
+        query_obj = super().query_obj()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
+
+    @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
         }
+        # Add tooltip fields to properties
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                properties[col] = data[col]
+        return properties
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2127,12 +2325,27 @@ class DeckHeatmap(BaseDeckGLViz):
     verbose_name = _("Deck.gl - Heatmap")
     spatial_control_keys = ["spatial"]
 
+    @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        tooltip_columns = self._extract_tooltip_columns()
+        query_obj = super().query_obj()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
+
+    @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
         }
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                properties[col] = data[col]
 
+        return properties
+
+    @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
         self.metric_label = (  # pylint: disable=attribute-defined-outside-init
             utils.get_metric_name(self.metric) if self.metric else None
@@ -2147,11 +2360,31 @@ class DeckContour(BaseDeckGLViz):
     verbose_name = _("Deck.gl - Contour")
     spatial_control_keys = ["spatial"]
 
+    @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        query_obj = super().query_obj()
+
+        # Extract and add tooltip columns
+        tooltip_columns = self._extract_tooltip_columns()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+
+        return query_obj
+
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
+            # Include all original data for tooltip access
+            "_originalData": data,
         }
+
+        # Add tooltip data at top level too for backward compatibility
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                properties[col] = data[col]
+
+        return properties
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         self.metric_label = (  # pylint: disable=attribute-defined-outside-init
@@ -2188,26 +2421,62 @@ class DeckArc(BaseDeckGLViz):
     spatial_control_keys = ["start_spatial", "end_spatial"]
     is_timeseries = True
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        if not tooltip_columns:
+            return
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
-        return super().query_obj()
+        tooltip_columns = self._extract_tooltip_columns()
+        query_obj = super().query_obj()
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+        return query_obj
 
     @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
         dim = self.form_data.get("dimension")
-        return {
+        properties = {
             "sourcePosition": data.get("start_spatial"),
             "targetPosition": data.get("end_spatial"),
             "cat_color": data.get(dim) if dim else None,
             DTTM_ALIAS: data.get(DTTM_ALIAS),
         }
+        # Add tooltip fields to properties
+        tooltip_columns = self._extract_tooltip_columns()
+        for col in tooltip_columns:
+            if col in data:
+                properties[col] = data[col]
+        return properties
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-
         return {
             "features": super().get_data(df)["features"],
             "mapboxApiKey": current_app.config["MAPBOX_API_KEY"],
