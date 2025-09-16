@@ -688,7 +688,7 @@ def test_base_dao_list_ordering(user_with_data: Session) -> None:
     users = []
     for i in range(3):
         user = User(
-            id=200 + i,  # Ensure predictable IDs
+            # Let database auto-generate IDs to avoid conflicts
             username=f"order_test_{i}",
             first_name=f"Order{i}",
             last_name="Test",
