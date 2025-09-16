@@ -472,9 +472,7 @@ class BaseDAO(Generic[T]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 continue
-            col = c.col
-            opr = c.opr
-            value = c.value
+            col, opr, value = c.col, c.opr, c.value
             if not col or not hasattr(cls.model_cls, col):
                 model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
                 logging.error(
