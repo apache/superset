@@ -31,7 +31,7 @@ services:
       <<: *common-build
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
-    env_file: ./rmcdocker/.env 
+    env_file: ./rmcdocker/.env
     depends_on:
       db:
         condition: service_healthy
@@ -39,6 +39,7 @@ services:
         condition: service_started
     volumes:
       - superset_home:/app/superset_home
+      # Mount your custom freetds configuration
       - ./freetds:/etc/freetds
       - ./rmcdocker/superset_config.py:/app/pythonpath/superset_config.py
       - ./docker/pythonpath_dev/custom_security:/app/pythonpath/custom_security
@@ -50,26 +51,26 @@ services:
       start_period: 60s
 
   superset-worker:
-    build:
-      <<: *common-build
-    container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: ./rmcdocker/.env 
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    volumes:
-      - superset_home:/app/superset_home
-      - ./rmcdocker/superset_config.py:/app/pythonpath/superset_config.py
-      - ./docker/pythonpath_dev/custom_security:/app/pythonpath/custom_security
+      build:
+        <<: *common-build
+      container_name: superset_worker
+      command: ["celery", "--app=superset.tasks.celery_app:app", "worker", "--loglevel=INFO"]
+      env_file: ./rmcdocker/.env 
+      depends_on:
+        db:
+          condition: service_healthy
+        redis:
+          condition: service_started
+      volumes:
+        - superset_home:/app/superset_home
+        - ./rmcdocker/superset_config.py:/app/pythonpath/superset_config.py
+        - ./docker/pythonpath_dev/custom_security:/app/pythonpath/custom_security
 
   superset-worker-beat:
     build:
       <<: *common-build
     container_name: superset_worker_beat
-    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    command: ["celery", "--app=superset.tasks.celery_app:app", "beat","--loglevel=INFO","--schedule", "/app/superset_home/celerybeat-schedule"]
     env_file: ./rmcdocker/.env 
     depends_on:
       db:

@@ -6,9 +6,7 @@ services:
   superset:
     ports:
       - "8089:8088" # Map internal port 8088 to host port 8089
-    env_file:
-      - ./rmcdocker/staging.env
 
   db:
     ports:
-      - "5432:5432" # Expose the database port for easier debugging
+      - "5433:5432" # Staging database on port 5433 to avoid production conflict
