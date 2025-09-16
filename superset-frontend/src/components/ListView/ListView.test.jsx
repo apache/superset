@@ -26,9 +26,7 @@ import fetchMock from 'fetch-mock';
 // Only import components that are directly referenced in tests
 import { ListView } from './ListView';
 
-// Mock DropdownButton to ensure it works properly in tests
 jest.mock('@superset-ui/core/components', () => ({
-  ...jest.requireActual('@superset-ui/core/components'),
   Alert: jest.fn(({ children, ...props }) => <div {...props}>{children}</div>),
   DropdownButton: ({
     children,
@@ -40,6 +38,17 @@ jest.mock('@superset-ui/core/components', () => ({
       {children}
     </button>
   ),
+  Icons: {
+    AppstoreOutlined: ({ iconSize, ...props }) => <span {...props} role="img" aria-label="appstore" />,
+    UnorderedListOutlined: ({ iconSize, ...props }) => <span {...props} role="img" aria-label="unordered-list" />,
+    DeleteOutlined: ({ iconSize, ...props }) => <span {...props} role="img" aria-label="delete" />,
+  },
+  EmptyState: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Checkbox: ({ children, ...props }) => <input type="checkbox" {...props} />,
+  Loading: () => <div>Loading...</div>,
+  Menu: {
+    Item: ({ children, ...props }) => <div {...props}>{children}</div>,
+  },
 }));
 
 const middlewares = [thunk];

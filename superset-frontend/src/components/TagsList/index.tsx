@@ -49,7 +49,7 @@ export const TagsList = ({
 }: TagsListProps) => {
   const sortedTags = useMemo(
     () =>
-      tags.toSorted((a, b) => {
+      [...tags].sort((a, b) => {
         const nameA = a.name ?? '';
         const nameB = b.name ?? '';
         return nameA.localeCompare(nameB);
