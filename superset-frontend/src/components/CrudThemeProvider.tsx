@@ -19,6 +19,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { Theme } from '@superset-ui/core';
+import { Loading } from '@superset-ui/core/components';
 
 interface CrudThemeProviderProps {
   children: ReactNode;
@@ -62,9 +63,14 @@ export default function CrudThemeProvider({
     }
   }, [themeId, globalThemeContext]);
 
-  // If no dashboard theme, just render children (they use global theme)
-  if (!themeId || !dashboardTheme) {
+  // If no themeId, just render children (they use global theme)
+  if (!themeId) {
     return <>{children}</>;
+  }
+
+  // If themeId exists, but theme is not loaded yet, return null to prevent re-mounting children
+  if (!dashboardTheme) {
+    return <Loading />;
   }
 
   // Render children with the dashboard theme provider from controller
