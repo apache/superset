@@ -319,7 +319,10 @@ class BaseDAO(Generic[T]):
         converted_ids: list[str | int | uuid_lib.UUID] = []
         for id_val in model_ids:
             converted_value = cls._convert_value_for_column(id_col, id_val)
-            if converted_value is not None:
+            if converted_value is None:
+                # Preserve original value if conversion fails to avoid silent data loss
+                converted_ids.append(id_val)
+            else:
                 converted_ids.append(converted_value)
 
         # Validate type consistency for better error handling
