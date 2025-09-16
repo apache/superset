@@ -63,12 +63,6 @@ const restrictedImportsRules = {
     name: 'antd',
     message: 'Please import Ant components from the index of src/components',
   },
-  'no-superset-theme': {
-    name: '@superset-ui/core',
-    importNames: ['supersetTheme'],
-    message:
-      'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
-  },
   'no-query-string': {
     name: 'query-string',
     message: 'Please use the URLSearchParams API instead of query-string.',
@@ -278,7 +272,6 @@ module.exports = {
             paths: [
               restrictedImportsRules['no-moment'],
               restrictedImportsRules['no-lodash-memoize'],
-              restrictedImportsRules['no-superset-theme'],
             ],
             patterns: [],
           },

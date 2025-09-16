@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import transformProps from '../../src/Tree/transformProps';
 import { EchartsTreeChartProps } from '../../src/Tree/types';
 
@@ -35,7 +35,6 @@ describe('EchartsTree transformProps', () => {
     formData,
     width: 800,
     height: 600,
-    theme: supersetTheme,
   };
   it('should transform when parent present before child', () => {
     const queriesData = [
@@ -189,7 +188,6 @@ describe('EchartsTree transformProps', () => {
       formData,
       width: 800,
       height: 600,
-      theme: supersetTheme,
     };
     const queriesData = [
       {
@@ -269,7 +267,6 @@ describe('EchartsTree transformProps', () => {
       formData,
       width: 800,
       height: 600,
-      theme: supersetTheme,
     };
     const queriesData = [
       {
@@ -351,7 +348,6 @@ describe('EchartsTree transformProps', () => {
       formData,
       width: 800,
       height: 600,
-      theme: supersetTheme,
     };
     const queriesData = [
       {

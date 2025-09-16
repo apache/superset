@@ -30,7 +30,6 @@ import {
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
-  supersetTheme,
   VizType,
 } from '@superset-ui/core';
 
@@ -131,7 +130,6 @@ describe('ChartPlugin', () => {
         width: 400,
         height: 400,
         queriesData: [{}],
-        theme: supersetTheme,
       });
       it('defaults to identity function', () => {
         const plugin = new ChartPlugin({

@@ -19,10 +19,8 @@
 
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider } from '@superset-ui/core';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
-import { supersetTheme } from '../../../theme';
 
 // Mock the MatrixifyGridGenerator
 jest.mock('./MatrixifyGridGenerator', () => ({
@@ -40,9 +38,6 @@ jest.mock('./MatrixifyGridCell', () =>
 const mockGenerateMatrixifyGrid = generateMatrixifyGrid as jest.MockedFunction<
   typeof generateMatrixifyGrid
 >;
-
-const renderWithTheme = (component: React.ReactElement) =>
-  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -81,9 +76,7 @@ test('should create single group when fitting columns dynamically', () => {
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // When fitting dynamically, should have only one column group with all 5 columns
   // Check for the presence of the grid structure
@@ -130,9 +123,7 @@ test('should create multiple groups when not fitting columns dynamically', () =>
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // With 5 columns and charts_per_row=3, should have 2 groups (3+2)
   // With 2 rows and wrapping, we should see headers repeated
@@ -165,9 +156,7 @@ test('should handle exact division of columns', () => {
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // With 4 columns and charts_per_row=2, should have exactly 2 groups (2+2)
   // Check that we have column headers - should be 4 total (2 per group)
@@ -193,9 +182,7 @@ test('should handle case where charts_per_row exceeds total columns', () => {
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // Should create only one group with all columns
   const columnHeaders = container.querySelectorAll('.matrixify-col-header');
@@ -223,9 +210,7 @@ test('should show headers for each group when wrapping occurs', () => {
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // With wrapping (multiple column groups), headers should appear for each group
   const columnHeaders = container.querySelectorAll('.matrixify-col-header');
@@ -256,9 +241,7 @@ test('should show headers only on first row when not wrapping', () => {
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // Without wrapping, headers should appear only once (first row)
   const columnHeaders = container.querySelectorAll('.matrixify-col-header');
@@ -284,9 +267,7 @@ test('should hide headers when disabled', () => {
     matrixify_show_column_headers: false,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   const columnHeaders = container.querySelectorAll('.matrixify-col-header');
   expect(columnHeaders).toHaveLength(0);
@@ -313,9 +294,7 @@ test('should place cells correctly in wrapped layout', () => {
     matrixify_show_column_headers: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // All cells should be rendered
   const cells = container.querySelectorAll('[data-testid^="grid-cell-"]');
@@ -339,9 +318,7 @@ test('should handle null grid gracefully', () => {
     matrixify_enabled: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   expect(container).toBeEmptyDOMElement();
 });
@@ -360,9 +337,7 @@ test('should handle empty grid gracefully', () => {
     matrixify_enabled: true,
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // Should render container but no cells
   expect(container).not.toBeEmptyDOMElement();
@@ -385,9 +360,7 @@ test('should use default values for missing configuration', () => {
     // Missing optional configurations
   };
 
-  const { container } = renderWithTheme(
-    <MatrixifyGridRenderer formData={formData} />,
-  );
+  const { container } = render(<MatrixifyGridRenderer formData={formData} />);
 
   // Should still render with defaults
   expect(container).not.toBeEmptyDOMElement();

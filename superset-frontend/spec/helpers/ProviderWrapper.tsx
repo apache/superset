@@ -17,15 +17,16 @@
  * under the License.
  */
 
-import { ThemeProvider } from '@superset-ui/core';
+import { Theme } from '@superset-ui/core';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 
 export function ProviderWrapper(props: any) {
-  const { children, theme } = props;
+  const { children } = props;
+  const themeInstance = Theme.fromConfig();
 
   return (
-    <ThemeProvider theme={theme}>
+    <themeInstance.SupersetThemeProvider>
       <Router>
         <QueryParamProvider
           ReactRouterRoute={Route}
@@ -34,6 +35,6 @@ export function ProviderWrapper(props: any) {
           {children}
         </QueryParamProvider>
       </Router>
-    </ThemeProvider>
+    </themeInstance.SupersetThemeProvider>
   );
 }

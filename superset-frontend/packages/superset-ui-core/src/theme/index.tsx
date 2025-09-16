@@ -35,7 +35,6 @@ export {
   css,
   keyframes,
   jsx,
-  ThemeProvider,
   CacheProvider as EmotionCacheProvider,
   withTheme,
 } from '@emotion/react';
@@ -58,22 +57,13 @@ export function useTheme() {
   return theme;
 }
 
+// Note: Use Theme.fromConfig().SupersetThemeProvider for proper theming
+// EmotionThemeProvider available for advanced cases only
+export { ThemeProvider as EmotionThemeProvider } from '@emotion/react';
+
 const styled: CreateStyled = emotionStyled;
 
-const themeObject: Theme = Theme.fromConfig();
-
-const { theme } = themeObject;
-const supersetTheme = theme;
-
-export {
-  Theme,
-  ThemeAlgorithm,
-  ThemeMode,
-  themeObject,
-  styled,
-  theme,
-  supersetTheme,
-};
+export { Theme, ThemeAlgorithm, ThemeMode, styled };
 
 export type {
   SupersetTheme,

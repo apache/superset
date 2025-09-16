@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import { EchartsTreemapChartProps } from '../../src/Treemap/types';
 import transformProps from '../../src/Treemap/transformProps';
 
@@ -40,7 +40,6 @@ describe('Treemap transformProps', () => {
         ],
       },
     ],
-    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {

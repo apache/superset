@@ -1,8 +1,11 @@
 // themeDecorator.js
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { Theme } from '@superset-ui/core';
+
+// Create dynamic theme for demo storybook
+const dynamicTheme = Theme.fromConfig();
 
 const ThemeDecorator = Story => (
-  <ThemeProvider theme={supersetTheme}>{<Story />}</ThemeProvider>
+  <dynamicTheme.SupersetThemeProvider>{<Story />}</dynamicTheme.SupersetThemeProvider>
 );
 
 export default ThemeDecorator;

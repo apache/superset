@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import {
   EchartsWaterfallChartProps,
   WaterfallChartTransformedProps,
@@ -59,7 +59,6 @@ describe('Waterfall tranformProps', () => {
           data,
         },
       ],
-      theme: supersetTheme,
     });
     const transformedProps = transformProps(
       chartProps as unknown as EchartsWaterfallChartProps,
@@ -82,7 +81,6 @@ describe('Waterfall tranformProps', () => {
           data,
         },
       ],
-      theme: supersetTheme,
     });
     const transformedProps = transformProps(
       chartProps as unknown as EchartsWaterfallChartProps,

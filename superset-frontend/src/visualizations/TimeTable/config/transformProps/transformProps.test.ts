@@ -20,9 +20,9 @@ import {
   DatasourceType,
   ChartProps,
   Behavior,
-  supersetTheme,
   Metric,
 } from '@superset-ui/core';
+
 import { transformProps, TableChartProps } from './transformProps';
 
 interface ExtendedMetric extends Omit<Metric, 'uuid'> {
@@ -111,7 +111,6 @@ function createMockChartProps(
     queriesData: defaultQueryData,
     width: 800,
     behaviors: [] as Behavior[],
-    theme: supersetTheme,
   });
 
   const tableChartProps: TableChartProps = {

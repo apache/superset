@@ -21,7 +21,6 @@ import {
   ChartPropsConfig,
   getNumberFormatter,
   SqlaFormData,
-  supersetTheme,
 } from '@superset-ui/core';
 import { EchartsBubbleChartProps } from 'plugins/plugin-chart-echarts/src/Bubble/types';
 
@@ -82,7 +81,6 @@ const chartConfig: ChartPropsConfig = {
   height: 800,
   width: 800,
   queriesData,
-  theme: supersetTheme,
 };
 
 describe('Bubble transformProps', () => {

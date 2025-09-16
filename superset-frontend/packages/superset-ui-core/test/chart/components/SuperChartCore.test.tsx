@@ -19,7 +19,7 @@
 
 import '@testing-library/jest-dom';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
@@ -134,7 +134,6 @@ describe('SuperChartCore', () => {
     it('uses preTransformProps when specified', async () => {
       const chartPropsWithPayload = new ChartProps({
         queriesData: [{ message: 'hulk' }],
-        theme: supersetTheme,
       });
 
       render(

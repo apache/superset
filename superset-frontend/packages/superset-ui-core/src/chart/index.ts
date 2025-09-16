@@ -17,12 +17,15 @@
  * under the License.
  */
 
-import ChartProps, { ChartPropsConfig } from './models/ChartProps';
+import ChartProps, {
+  ChartPropsConfig,
+  DEFAULT_THEME,
+} from './models/ChartProps';
 
 export { default as ChartClient } from './clients/ChartClient';
 export { default as ChartMetadata } from './models/ChartMetadata';
 export { default as ChartPlugin } from './models/ChartPlugin';
-export { ChartProps };
+export { ChartProps, DEFAULT_THEME };
 export type { ChartPropsConfig };
 
 export { default as createLoadableRenderer } from './components/createLoadableRenderer';
