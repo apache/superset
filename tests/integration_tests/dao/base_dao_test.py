@@ -68,8 +68,6 @@ class ExampleModelDAO(BaseDAO[ExampleModel]):
     base_filter = None
 
 
-
-
 @pytest.fixture(autouse=True)
 def mock_g_user(app_context):
     """Mock the flask g.user for security context."""
@@ -743,7 +741,7 @@ def test_base_dao_list_paging(user_with_data: Session) -> None:
     page1_results, page1_total = UserDAO.list(page=0, page_size=5, order_column="id")
     assert len(page1_results) <= 5
     assert page1_total >= 10  # At least our 10 users
- 
+
     # Test second page
     page2_results, page2_total = UserDAO.list(page=1, page_size=5, order_column="id")
     assert len(page2_results) <= 5
