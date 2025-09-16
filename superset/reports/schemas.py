@@ -413,3 +413,15 @@ class SlackChannelSchema(Schema):
     name = fields.String()
     is_member = fields.Boolean()
     is_private = fields.Boolean()
+
+
+class ReportScheduleExecuteResponseSchema(Schema):
+    """
+    Schema for the response when executing a report schedule immediately.
+    """
+
+    class Meta:
+        unknown = EXCLUDE
+
+    execution_id = fields.String(description="UUID to track the execution status")
+    message = fields.String(description="Success message")

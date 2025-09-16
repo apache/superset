@@ -2049,3 +2049,88 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
 
         assert json.loads(report_schedule.extra_json) == extra_json
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @patch("superset.tasks.scheduler.execute.apply_async")
+    def test_execute_report_schedule(self, mock_execute):
+        """
+        ReportSchedule Api: Test execute report schedule
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "execution_id" in data
+        assert "message" in data
+        assert data["message"] == "Report schedule execution started successfully"
+
+        # Verify the task was called
+        mock_execute.assert_called_once()
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_execute_report_schedule_not_found(self):
+        """
+        ReportSchedule Api: Test execute report schedule not found
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/9999999/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_execute_report_schedule_not_owned(self):
+        """
+        ReportSchedule Api: Test execute report schedule not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 403
+
+    def test_execute_report_schedule_disabled(self):
+        """
+        ReportSchedule Api: Test execute report schedule 404s when feature is disabled
+        """
+        self.login(ADMIN_USERNAME)
+        with patch("superset.is_feature_enabled", return_value=False):
+            uri = "api/v1/report/1/execute"
+            rv = self.client.post(uri)
+            assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @patch("superset.tasks.scheduler.execute.apply_async")
+    def test_execute_report_schedule_celery_error(self, mock_execute):
+        """
+        ReportSchedule Api: Test execute report schedule with Celery backend error
+        """
+        # Simulate Celery backend not configured
+        mock_execute.side_effect = Exception(
+            "kombu.exceptions.ConnectionError: broker connection"
+        )
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 503
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "Celery backend" in data["message"]
+        assert "broker" in data["message"].lower()
