@@ -118,6 +118,7 @@ class TestDashboardDAO(SupersetTestCase):
             "duplicate_slices": False,
         }
         dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
+        db.session.commit()
         assert dash.params_dict["native_filter_configuration"] == [{"mock": "filter"}]
 
         db.session.delete(dash)
