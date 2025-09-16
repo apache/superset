@@ -16,6 +16,9 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 
+from typing import Any, Optional
+
+import prison
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -182,6 +185,117 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     @renders("crontab")
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
+
+    def get_native_filters_params(self) -> str:
+        params: dict[str, Any] = {}
+        dashboard = self.extra.get("dashboard")
+        if dashboard and dashboard.get("nativeFilters"):
+            for filter in dashboard.get("nativeFilters") or []:  # type: ignore
+                params = {
+                    **params,
+                    **self._generate_native_filter(
+                        filter["nativeFilterId"],
+                        filter["filterType"],
+                        filter["columnName"],
+                        filter["filterValues"],
+                    ),
+                }
+        # hack(hughhh): workaround for escaping prison not handling quotes right
+        rison = prison.dumps(params)
+        rison = rison.replace("'", "%27")
+        return rison
+
+    def _generate_native_filter(
+        self,
+        native_filter_id: str,
+        filter_type: str,
+        column_name: str,
+        values: list[Optional[str]],
+    ) -> dict[str, Any]:
+        if filter_type == "filter_time":
+            # For select filters, we need to use the "IN" operator
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {"time_range": values[0]},
+                    "filterState": {"value": values[0]},
+                    "ownState": {},
+                }
+            }
+        elif filter_type == "filter_timegrain":
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {
+                        "time_grain_sqla": values[0],  # grain
+                    },
+                    "filterState": {
+                        # "label": "30 second", # grain_label
+                        "value": values  # grain
+                    },
+                    "ownState": {},
+                }
+            }
+
+        elif filter_type == "filter_timecolumn":
+            return {
+                native_filter_id or "": {
+                    "extraFormData": {
+                        "granularity_sqla": values[0]  # column_name
+                    },
+                    "filterState": {
+                        "value": values  # column_name
+                    },
+                }
+            }
+
+        elif filter_type == "filter_select":
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {
+                        "filters": [
+                            {"col": column_name or "", "op": "IN", "val": values or []}
+                        ]
+                    },
+                    "filterState": {
+                        "label": column_name or "",
+                        "validateStatus": False,
+                        "value": values or [],
+                    },
+                    "ownState": {},
+                }
+            }
+        elif filter_type == "filter_range":
+            # For range filters, values should be [min, max] or [value] for single value
+            min_val = values[0] if len(values) > 0 else None
+            max_val = values[1] if len(values) > 1 else None
+
+            filters = []
+            if min_val is not None:
+                filters.append({"col": column_name or "", "op": ">=", "val": min_val})
+            if max_val is not None:
+                filters.append({"col": column_name or "", "op": "<=", "val": max_val})
+
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {"filters": filters},
+                    "filterState": {
+                        "value": [min_val, max_val],
+                        "label": f"{min_val} ≤ x ≤ {max_val}"
+                        if min_val and max_val
+                        else f"x ≥ {min_val}"
+                        if min_val
+                        else f"x ≤ {max_val}"
+                        if max_val
+                        else "",
+                    },
+                    "ownState": {},
+                }
+            }
+
+        return {}
 
 
 class ReportRecipients(Model, AuditMixinNullable):
