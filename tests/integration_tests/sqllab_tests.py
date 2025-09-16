@@ -166,7 +166,7 @@ class TestSqlLab(SupersetTestCase):
             db.session.commit()
             examples_db = get_example_database()
             with examples_db.get_sqla_engine() as engine:
-                with engine.connect() as connection:
+                with engine.begin() as connection:
                     data = connection.execute(
                         sa.text(f"SELECT * FROM admin_database.{tmp_table_name}")  # noqa: S608
                     ).fetchall()
@@ -261,7 +261,9 @@ class TestSqlLab(SupersetTestCase):
         )
 
         with examples_db.get_sqla_engine() as engine:
-            with engine.connect() as connection:
+            with (
+                engine.begin() as connection
+            ):  # SQLAlchemy 2.x: Use begin() for auto-commit
                 connection.execute(
                     sa.text(
                         f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table "

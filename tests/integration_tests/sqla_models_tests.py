@@ -172,18 +172,23 @@ class TestDatabaseModel(SupersetTestCase):
             "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
-        TableColumn(
+        db.session.add(table)  # SQLAlchemy 2.x: Must explicitly add to session
+
+        column = TableColumn(
             column_name="expr",
             expression="case when '{{ current_username() }}' = 'abc' "
             "then 'yes' else 'no' end",
             type="VARCHAR(100)",
             table=table,
         )
-        SqlMetric(
+        db.session.add(column)  # SQLAlchemy 2.x: Must explicitly add to session
+
+        metric = SqlMetric(
             metric_name="count_timegrain",
             expression="count('{{ 'bar_' + time_grain }}')",
             table=table,
         )
+        db.session.add(metric)  # SQLAlchemy 2.x: Must explicitly add to session
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
