@@ -101,41 +101,46 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
 # Map SQLAlchemy types to supported operators
 TYPE_OPERATOR_MAP = {
     "string": [
-        "eq",
-        "ne",
-        "sw",
-        "ew",
-        "in_",
-        "nin",
-        "like",
-        "ilike",
-        "is_null",
-        "is_not_null",
+        ColumnOperatorEnum.eq,
+        ColumnOperatorEnum.ne,
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.in_,
+        ColumnOperatorEnum.nin,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+        ColumnOperatorEnum.is_null,
+        ColumnOperatorEnum.is_not_null,
     ],
-    "boolean": ["eq", "ne", "is_null", "is_not_null"],
+    "boolean": [
+        ColumnOperatorEnum.eq,
+        ColumnOperatorEnum.ne,
+        ColumnOperatorEnum.is_null,
+        ColumnOperatorEnum.is_not_null,
+    ],
     "number": [
-        "eq",
-        "ne",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in_",
-        "nin",
-        "is_null",
-        "is_not_null",
+        ColumnOperatorEnum.eq,
+        ColumnOperatorEnum.ne,
+        ColumnOperatorEnum.gt,
+        ColumnOperatorEnum.gte,
+        ColumnOperatorEnum.lt,
+        ColumnOperatorEnum.lte,
+        ColumnOperatorEnum.in_,
+        ColumnOperatorEnum.nin,
+        ColumnOperatorEnum.is_null,
+        ColumnOperatorEnum.is_not_null,
     ],
     "datetime": [
-        "eq",
-        "ne",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in_",
-        "nin",
-        "is_null",
-        "is_not_null",
+        ColumnOperatorEnum.eq,
+        ColumnOperatorEnum.ne,
+        ColumnOperatorEnum.gt,
+        ColumnOperatorEnum.gte,
+        ColumnOperatorEnum.lt,
+        ColumnOperatorEnum.lte,
+        ColumnOperatorEnum.in_,
+        ColumnOperatorEnum.nin,
+        ColumnOperatorEnum.is_null,
+        ColumnOperatorEnum.is_not_null,
     ],
 }
 
@@ -341,21 +346,23 @@ class BaseDAO(Generic[T]):
         return results
 
     @classmethod
-    def find_all(cls) -> list[T]:
+    def find_all(cls, skip_base_filter: bool = False) -> list[T]:
         """
         Get all that fit the `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        query = cls._apply_base_filter(query)
+        query = cls._apply_base_filter(query, skip_base_filter)
         return query.all()
 
     @classmethod
-    def find_one_or_none(cls, **filter_by: Any) -> T | None:
+    def find_one_or_none(
+        cls, skip_base_filter: bool = False, **filter_by: Any
+    ) -> T | None:
         """
         Get the first that fit the `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        query = cls._apply_base_filter(query)
+        query = cls._apply_base_filter(query, skip_base_filter)
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
@@ -508,7 +515,7 @@ class BaseDAO(Generic[T]):
         # custom_fields = {"tags": ["eq", "in_", "like"], ...}
         custom_fields: Dict[str, List[str]] = {}
 
-        filterable = {}
+        filterable: Dict[str, Any] = {}
         for name, col in columns.items():
             if isinstance(col.type, (sa.String, sa.Text)):
                 filterable[name] = TYPE_OPERATOR_MAP["string"]
@@ -520,13 +527,31 @@ class BaseDAO(Generic[T]):
                 filterable[name] = TYPE_OPERATOR_MAP["datetime"]
             else:
                 # Fallback to eq/ne/null
-                filterable[name] = ["eq", "ne", "is_null", "is_not_null"]
+                filterable[name] = [
+                    ColumnOperatorEnum.eq,
+                    ColumnOperatorEnum.ne,
+                    ColumnOperatorEnum.is_null,
+                    ColumnOperatorEnum.is_not_null,
+                ]
         # Add hybrid properties as string fields by default
         for name in hybrids:
             filterable[name] = TYPE_OPERATOR_MAP["string"]
         # Add custom fields
         filterable.update(custom_fields)
-        return filterable
+
+        # Convert enum values to strings for the return type
+        result: Dict[str, List[str]] = {}
+        for key, operators in filterable.items():
+            if isinstance(operators, list):
+                # Convert enums to strings
+                result[key] = [
+                    op.value if isinstance(op, ColumnOperatorEnum) else op
+                    for op in operators
+                ]
+            else:
+                result[key] = operators
+
+        return result
 
     @classmethod
     def _build_query(
