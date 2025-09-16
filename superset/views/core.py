@@ -847,17 +847,24 @@ class Superset(BaseSupersetView):
             return redirect(url_for("DashboardModelView.list"))
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
+
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = url_for(
             "Superset.dashboard", dashboard_id_or_slug=dashboard_id, permalink_key=key
         )
         if url_params := state.get("urlParams"):
-            params = parse.urlencode(url_params)
-            url = f"{url}&{params}"
+            for param_key, param_val in url_params:
+                if param_key == "native_filters":
+                    # native_filters doesnt need to be encoded here
+                    url = f"{url}&native_filters={param_val}"
+                else:
+                    params = parse.urlencode([param_key, param_val])  # type: ignore
+                    url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
+
         return redirect(url)
 
     @api

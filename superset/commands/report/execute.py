@@ -245,16 +245,34 @@ class BaseReportState:
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
         """  # noqa: E501
         force = "true" if self._report_schedule.force_screenshot else "false"
+
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            native_filter_params = self._report_schedule.get_native_filters_params()
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list: list[str] = json.loads(anchor)
-                    return self._get_tabs_urls(anchor_list, user_friendly=user_friendly)
+                    urls = self._get_tabs_urls(
+                        anchor_list,
+                        native_filter_params=native_filter_params,
+                        user_friendly=user_friendly,
+                    )
+                    return urls
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
-            return [self._get_tab_url(dashboard_state)]
+
+            return [
+                self._get_tab_url(
+                    {
+                        "urlParams": [
+                            ["native_filters", native_filter_params]  # type: ignore
+                        ],
+                        **dashboard_state,
+                    },
+                    user_friendly=user_friendly,
+                )
+            ]
 
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
@@ -281,6 +299,7 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
+
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
@@ -288,7 +307,10 @@ class BaseReportState:
         )
 
     def _get_tabs_urls(
-        self, tab_anchors: list[str], user_friendly: bool = False
+        self,
+        tab_anchors: list[str],
+        native_filter_params: Optional[str] = None,
+        user_friendly: bool = False,
     ) -> list[str]:
         """
         Get multple tabs urls
@@ -299,7 +321,9 @@ class BaseReportState:
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": None,
+                    "urlParams": [
+                        ["native_filters", native_filter_params]  # type: ignore
+                    ],
                 },
                 user_friendly=user_friendly,
             )
@@ -338,7 +362,6 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
-
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
@@ -500,6 +523,7 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
