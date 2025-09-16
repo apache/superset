@@ -247,6 +247,28 @@ function setSidebarWidths(key, dimension) {
   setItem(key, newDimension);
 }
 
+// Chart types that use aggregation and can have multiple values in tooltips
+const AGGREGATED_CHART_TYPES = [
+  // Deck.gl aggregated charts
+  'deck_screengrid',
+  'deck_heatmap',
+  'deck_contour',
+  'deck_hex',
+  'deck_grid',
+  // Other aggregated chart types can be added here
+  'heatmap',
+  'treemap',
+  'sunburst',
+  'pie',
+  'donut',
+  'histogram',
+  'table',
+];
+
+function isAggregatedChartType(vizType) {
+  return AGGREGATED_CHART_TYPES.includes(vizType);
+}
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -348,6 +370,15 @@ function ExploreViewContainer(props) {
     props.chart.id,
     props.form_data,
   ]);
+
+  // Simple debounced auto-query for non-renderTrigger controls
+  const debouncedAutoQuery = useMemo(
+    () =>
+      debounce(() => {
+        onQuery();
+      }, 1000), // 1 second delay
+    [onQuery],
+  );
 
   const handleKeydown = useCallback(
     event => {
@@ -488,6 +519,53 @@ function ExploreViewContainer(props) {
           ),
       );
 
+      if (changedControlKeys.includes('tooltip_contents')) {
+        const tooltipContents = props.controls.tooltip_contents?.value || [];
+        const currentTemplate = props.controls.tooltip_template?.value || '';
+
+        if (tooltipContents.length > 0) {
+          const getFieldName = item => {
+            if (typeof item === 'string') return item;
+            if (item?.item_type === 'column') return item.column_name;
+            if (item?.item_type === 'metric') {
+              return item.metric_name || item.label;
+            }
+            return null;
+          };
+
+          const vizType = props.form_data?.viz_type || '';
+          const isAggregatedChart = isAggregatedChartType(vizType);
+
+          const DEFAULT_TOOLTIP_LIMIT = 10; // Maximum number of values to show in aggregated tooltips
+
+          const fieldNames = tooltipContents.map(getFieldName).filter(Boolean);
+          const missingVariables = fieldNames.filter(
+            fieldName =>
+              !currentTemplate.includes(`{{ ${fieldName} }}`) &&
+              !currentTemplate.includes(`{{ limit ${fieldName}`),
+          );
+
+          if (missingVariables.length > 0) {
+            const newVariables = missingVariables.map(fieldName => {
+              const item = tooltipContents[fieldNames.indexOf(fieldName)];
+              const isColumn =
+                item?.item_type === 'column' || typeof item === 'string';
+
+              if (isAggregatedChart && isColumn) {
+                return `{{ limit ${fieldName} ${DEFAULT_TOOLTIP_LIMIT} }}`;
+              }
+              return `{{ ${fieldName} }}`;
+            });
+            const updatedTemplate =
+              currentTemplate +
+              (currentTemplate ? ' ' : '') +
+              newVariables.join(' ');
+
+            props.actions.setControlValue('tooltip_template', updatedTemplate);
+          }
+        }
+      }
+
       // this should also be handled by the actions that are actually changing the controls
       const displayControlsChanged = changedControlKeys.filter(
         key => props.controls[key].renderTrigger,
@@ -495,8 +573,25 @@ function ExploreViewContainer(props) {
       if (displayControlsChanged.length > 0) {
         reRenderChart(displayControlsChanged);
       }
+
+      // Auto-update for non-renderTrigger controls
+      const queryControlsChanged = changedControlKeys.filter(
+        key =>
+          !props.controls[key].renderTrigger &&
+          !props.controls[key].dontRefreshOnChange,
+      );
+      if (queryControlsChanged.length > 0) {
+        // Check if there are no validation errors before auto-updating
+        const hasErrors = Object.values(props.controls).some(
+          control =>
+            control.validationErrors && control.validationErrors.length > 0,
+        );
+        if (!hasErrors) {
+          debouncedAutoQuery();
+        }
+      }
     }
-  }, [props.controls, props.ownState]);
+  }, [props.controls, props.ownState, debouncedAutoQuery]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
@@ -835,7 +930,7 @@ function mapStateToProps(state) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const hasQueryMode = !!controls.query_mode?.value;
+  const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});
@@ -880,6 +975,7 @@ function mapStateToProps(state) {
   }
 
   if (
+    controls &&
     form_data.viz_type === 'big_number_total' &&
     slice?.form_data?.subheader &&
     (!controls.subtitle?.value || controls.subtitle.value === '')

@@ -23,7 +23,7 @@ import {
   logging,
 } from '@superset-ui/core';
 import type { contributions, core } from '@apache-superset/core';
-import { ExtensionContext } from '../core/core';
+import { ExtensionContext } from '../core/models';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;

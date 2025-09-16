@@ -152,16 +152,20 @@ class TestWebDriverSelenium:
         assert call_kwargs["connect_timeout"] is None
         assert call_kwargs["Page_Load_Timeout"] is None
 
-        # Check that warnings were logged
+        # Check that warnings were logged with lazy logging format
         assert mock_logger.warning.call_count == 3
         mock_logger.warning.assert_any_call(
-            "Invalid timeout value for timeout: invalid, setting to None"
+            "Invalid timeout value for %s: %s, setting to None", "timeout", "invalid"
         )
         mock_logger.warning.assert_any_call(
-            "Invalid timeout value for connect_timeout: not_a_number, setting to None"
+            "Invalid timeout value for %s: %s, setting to None",
+            "connect_timeout",
+            "not_a_number",
         )
         mock_logger.warning.assert_any_call(
-            "Invalid timeout value for Page_Load_Timeout: abc123, setting to None"
+            "Invalid timeout value for %s: %s, setting to None",
+            "Page_Load_Timeout",
+            "abc123",
         )
 
     @patch("superset.utils.webdriver.app")
