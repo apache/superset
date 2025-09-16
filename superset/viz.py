@@ -2206,7 +2206,6 @@ class DeckPathViz(BaseDeckGLViz):
         if self.form_data.get("reverse_long_lat"):
             path = [(o[1], o[0]) for o in path]
         data[self.deck_viz_key] = path
-        # Do not delete the original line_column (e.g., path_json), keep it for tooltips
         data["__timestamp"] = data.get(DTTM_ALIAS) or data.get("__time")
         return data
 

@@ -42,8 +42,8 @@ import {
 } from '../../utilities/tooltipUtils';
 
 const MoreRecordsIndicator = styled.div`
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: ${({ theme }) => theme.sizeUnit}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colorTextSecondary};
 `;
 
