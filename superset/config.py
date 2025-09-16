@@ -626,6 +626,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
     # Enable Matrixify feature for matrix-style chart layouts
     "MATRIXIFY": False,
+    # Force garbage collection after every request
+    "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST": False,
 }
 
 # ------------------------------
