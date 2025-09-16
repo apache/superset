@@ -37,8 +37,7 @@ logger = logging.getLogger(__name__)
 
 # Custom filterable fields for datasets
 DATASET_CUSTOM_FIELDS = {
-    "tags": ["eq", "in_", "like"],
-    "owner": ["eq", "in_"],
+    "schema": ["eq", "in_"],
 }
 
 

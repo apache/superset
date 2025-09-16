@@ -68,14 +68,6 @@ class ExampleModelDAO(BaseDAO[ExampleModel]):
     base_filter = None
 
 
-class MockModel:
-    def __init__(self, id=1, name="test"):
-        self.id = id
-        self.name = name
-
-
-class TestDAO(BaseDAO[MockModel]):
-    model_cls = MockModel
 
 
 @pytest.fixture(autouse=True)
@@ -696,7 +688,7 @@ def test_base_dao_list_ordering(user_with_data: Session) -> None:
     users = []
     for i in range(3):
         user = User(
-            id=200 + i,  # Ensure predictable IDs
+            # Let database auto-generate IDs to avoid conflicts
             username=f"order_test_{i}",
             first_name=f"Order{i}",
             last_name="Test",
@@ -748,12 +740,12 @@ def test_base_dao_list_paging(user_with_data: Session) -> None:
     user_with_data.commit()
 
     # Test first page
-    page1_results, page1_total = UserDAO.list(page=0, page_size=5)
+    page1_results, page1_total = UserDAO.list(page=0, page_size=5, order_column="id")
     assert len(page1_results) <= 5
     assert page1_total >= 10  # At least our 10 users
-
+ 
     # Test second page
-    page2_results, page2_total = UserDAO.list(page=1, page_size=5)
+    page2_results, page2_total = UserDAO.list(page=1, page_size=5, order_column="id")
     assert len(page2_results) <= 5
     assert page2_total >= 10
 
@@ -1149,7 +1141,8 @@ def test_find_methods_case_sensitivity(app_context: Session) -> None:
         assert found_lower.username == "casesensitive"
 
     finally:
-        pass
+        db.session.rollback()
+        db.session.remove()
 
 
 def test_find_by_ids_empty_and_none_handling(app_context: Session) -> None:
@@ -1555,8 +1548,8 @@ def test_convert_value_for_column_uuid(app_context: Session) -> None:
 
     # Test with invalid UUID string
     invalid = DashboardDAO._convert_value_for_column(uuid_column, "not-a-uuid")
-    # Should return None or original value for invalid UUID
-    assert invalid == "not-a-uuid" or invalid is None
+    # Should return None for invalid UUID
+    assert invalid is None
 
 
 def test_convert_value_for_column_non_uuid(app_context: Session) -> None:
