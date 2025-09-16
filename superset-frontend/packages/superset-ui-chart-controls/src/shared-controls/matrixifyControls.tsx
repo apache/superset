@@ -170,7 +170,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
 
   // TopN controls
   matrixifyControls[`matrixify_topn_value_${axis}`] = {
-    type: 'TextControl',
+    type: 'NumberControl',
     label: t(`Number of top values`),
     description: t(`How many top values to select`),
     default: 10,
