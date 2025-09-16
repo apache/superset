@@ -726,7 +726,6 @@ def test_base_dao_list_paging(user_with_data: Session) -> None:
     users = []
     for i in range(10):
         user = User(
-            id=300 + i,
             username=f"page_test_{i}",
             first_name=f"Page{i}",
             last_name="Test",
