@@ -68,14 +68,6 @@ class ExampleModelDAO(BaseDAO[ExampleModel]):
     base_filter = None
 
 
-class MockModel:
-    def __init__(self, id=1, name="test"):
-        self.id = id
-        self.name = name
-
-
-class TestDAO(BaseDAO[MockModel]):
-    model_cls = MockModel
 
 
 @pytest.fixture(autouse=True)
