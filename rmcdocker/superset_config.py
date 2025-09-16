@@ -563,7 +563,7 @@ def current_username():
         try:
             from flask_jwt_extended import decode_token
             decoded = decode_token(token, allow_expired=True)
-            username = decoded.get('username')
+            username = decoded.get(JWT_IDENTITY_CLAIM)  # Use 'upn' not 'username'
             logging.critical(f"Found username in JWT: {username}")
             return username
         except Exception as e:
@@ -729,7 +729,7 @@ def flask_app_mutator(app):
            
             try:
                 decoded = decode_token(token, allow_expired=True)
-                username = decoded.get('username')
+                username = decoded.get(JWT_IDENTITY_CLAIM)  # Use 'upn' not 'username'
                
                 if username:
                     logging.critical(f"TOKEN USERNAME: {username}")
@@ -1086,3 +1086,4 @@ def flask_app_mutator(app):
     return app
  
 FLASK_APP_MUTATOR = flask_app_mutator
+RECAPTCHA_PUBLIC_KEY = ""
