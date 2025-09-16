@@ -252,7 +252,7 @@ export async function embedDashboard({
       }
     } catch (error) {
       log("error refreshing guest token:", error);
-      // Still schedule retry if not unmounted (you might want to add exponential backoff here)
+      // Still schedule retry if not unmounted
       if (!isUnmounted) {
         refreshTimerId = setTimeout(refreshGuestToken, 30000); // retry in 30 seconds
       }
