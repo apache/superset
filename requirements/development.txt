@@ -19,7 +19,9 @@ amqp==5.3.1
     #   -c requirements/base-constraint.txt
     #   kombu
 annotated-types==0.7.0
-    # via pydantic
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pydantic
 anyio==4.9.0
     # via
     #   httpx
@@ -238,6 +240,7 @@ flask-appbuilder==5.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
 flask-babel==3.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -676,12 +679,16 @@ pycparser==2.22
     #   cffi
 pydantic==2.11.7
     # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   fastmcp
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
 pydantic-core==2.33.2
-    # via pydantic
+    # via
+    #   -c requirements/base-constraint.txt
+    #   pydantic
 pydantic-settings==2.10.1
     # via mcp
 pydata-google-auth==1.9.0
@@ -958,6 +965,7 @@ typing-extensions==4.14.0
     #   typing-inspection
 typing-inspection==0.4.1
     # via
+    #   -c requirements/base-constraint.txt
     #   pydantic
     #   pydantic-settings
 tzdata==2025.2
