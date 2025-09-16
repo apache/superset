@@ -42,11 +42,14 @@ def test_database_get_extra_with_multiple_engines(sqlalchemy_uri):
     """
     Test that Database.get_extra() works correctly with all database engine specs.
 
-    This test verifies the actual production call pattern:
+    This test verifies the normal production call pattern:
     Database.get_extra() -> self.db_engine_spec.get_extra_params(self, source)
 
-    The bug: get_extra_params methods are declared as @staticmethod but called
-    as if they were @classmethod, causing argument count mismatch errors
+    NOTE: This tests the standard flow where db_engine_spec returns a CLASS.
+    Both @staticmethod and @classmethod work in this scenario because Python
+    calls the method directly on the class. The bug requiring @classmethod
+    manifests in dynamic class creation scenarios (see
+    test_dynamic_class_method_copying).
     """
     database = Database(database_name="test_db", sqlalchemy_uri=sqlalchemy_uri)
 
@@ -68,6 +71,8 @@ def test_database_engine_spec_contract():
     work correctly with the actual method signatures and decorators.
 
     Tests the integration between layers, not just isolated unit tests.
+    Like test_database_get_extra_with_multiple_engines, this tests the normal
+    flow where methods are called directly on classes.
     """
     # Test engines that override get_extra_params
     test_engines = [
@@ -106,12 +111,10 @@ def test_database_engine_spec_contract():
 
 def test_regression_snowflake_oauth2_get_extra_params():
     """
-    Regression test for the specific issue reported.
-
-    Bug: SnowflakeOAuth2Override.get_extra_params() takes 2 positional
-    arguments but 3 were given
-
-    This test reproduces the exact scenario that caused the error.
+    Regression test for Snowflake OAuth2 get_extra_params bug.
+    This test reproduces the standard scenario to ensure it works.
+    The actual "SnowflakeOAuth2Override" bug is tested in
+    test_dynamic_class_method_copying.
     """
     database = Database(
         database_name="snowflake_oauth_test",
@@ -131,6 +134,84 @@ def test_regression_snowflake_oauth2_get_extra_params():
             pytest.fail(
                 f"Snowflake OAuth2 method signature issue not fixed: {e}. "
                 "get_extra_params should use @classmethod, not @staticmethod."
+            )
+        else:
+            raise
+
+
+def test_dynamic_class_method_copying():
+    """
+    Test that engine spec methods work when copied to dynamic classes.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    # Simulate creating a dynamic override class (like SnowflakeOAuth2Override)
+    # This is what likely happens in OAuth2 configurations or extensions
+    dynamic_override = type(
+        "SnowflakeOAuth2Override",
+        (),
+        {"get_extra_params": SnowflakeEngineSpec.get_extra_params},
+    )
+
+    # Create an instance of the dynamic class
+    override_instance = dynamic_override()
+
+    # Create a database for testing
+    database = Database(
+        database_name="test_dynamic_override",
+        sqlalchemy_uri="snowflake://user:pass@account/db",
+    )
+
+    # Test calling the method through the instance (this is where the bug occurred)
+    # With @staticmethod: fails with "takes 2 positional arguments but 3 were given"
+    # With @classmethod: works correctly
+    try:
+        result = override_instance.get_extra_params(database, QuerySource.SQL_LAB)
+        assert isinstance(result, dict)
+        assert "engine_params" in result
+        assert "connect_args" in result["engine_params"]
+        assert "application" in result["engine_params"]["connect_args"]
+    except TypeError as e:
+        if "takes 2 positional arguments but 3 were given" in str(e):
+            pytest.fail(
+                f"Dynamic class method copying failed: {e}. "
+                "This indicates get_extra_params uses @staticmethod when it should "
+                "use @classmethod. The bug manifests when methods are copied to "
+                "dynamic classes and called through instances."
+            )
+        else:
+            raise
+
+
+def test_method_reassignment_compatibility():
+    """
+    Test that engine spec methods can be reassigned and remain compatible.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    # Test method reassignment (another pattern that can cause issues)
+    class CustomEngineSpec:
+        pass
+
+    # Assign the method to a different class
+    CustomEngineSpec.get_extra_params = SnowflakeEngineSpec.get_extra_params
+
+    database = Database(
+        database_name="test_reassignment",
+        sqlalchemy_uri="snowflake://user:pass@account/db",
+    )
+
+    # Test calling through the reassigned class
+    try:
+        result = CustomEngineSpec.get_extra_params(database, QuerySource.SQL_LAB)
+        assert isinstance(result, dict)
+        assert "engine_params" in result
+    except TypeError as e:
+        if "positional arguments" in str(e):
+            pytest.fail(
+                f"Method reassignment failed: {e}. "
+                "This suggests the method decorator is incompatible with method "
+                "reassignment patterns."
             )
         else:
             raise
