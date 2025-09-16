@@ -328,22 +328,6 @@ class BaseDAO(Generic[T]):
             ) from ex
 
         return results
-        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
-        if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
-
-        try:
-            results = query.all()
-        except SQLAlchemyError as ex:
-            model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
-            raise DAOFindFailedError(
-                f"Failed to find {model_name} with ids: {model_ids}"
-            ) from ex
-
-        return results
 
     @classmethod
     def find_all(cls) -> list[T]:
@@ -476,7 +460,7 @@ class BaseDAO(Generic[T]):
             if not col or not hasattr(cls.model_cls, col):
                 model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
                 logging.error(
-                    f"Invalid filter: column '{col}' does not exist on {model_name}"
+                    "Invalid filter: column '%s' does not exist on %s", col, model_name
                 )
                 raise ValueError(
                     f"Invalid filter: column '{col}' does not exist on {model_name}"
@@ -487,7 +471,7 @@ class BaseDAO(Generic[T]):
                 operator_enum = ColumnOperatorEnum(opr)
                 query = query.filter(operator_enum.apply(column, value))
             except Exception as e:
-                logging.error(f"Error applying filter on column '{col}': {e}")
+                logging.error("Error applying filter on column '%s': %s", col, e)
                 raise
         return query
 
