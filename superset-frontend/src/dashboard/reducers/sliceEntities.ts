@@ -23,10 +23,12 @@ import {
   FETCH_ALL_SLICES_STARTED,
   ADD_SLICES,
   SET_SLICES,
+  SliceEntitiesState,
+  SliceEntitiesActionPayload,
 } from '../actions/sliceEntities';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
-export const initSliceEntities = {
+export const initSliceEntities: SliceEntitiesState = {
   slices: {},
   isLoading: true,
   errorMessage: null,
@@ -34,37 +36,34 @@ export const initSliceEntities = {
 };
 
 export default function sliceEntitiesReducer(
-  state = initSliceEntities,
-  action,
-) {
-  const actionHandlers = {
-    [HYDRATE_DASHBOARD]() {
+  state: SliceEntitiesState = initSliceEntities,
+  action: SliceEntitiesActionPayload,
+): SliceEntitiesState {
+  switch (action.type) {
+    case HYDRATE_DASHBOARD:
       return {
         ...action.data.sliceEntities,
       };
-    },
-    [FETCH_ALL_SLICES_STARTED]() {
+    case FETCH_ALL_SLICES_STARTED:
       return {
         ...state,
         isLoading: true,
       };
-    },
-    [ADD_SLICES]() {
+    case ADD_SLICES:
       return {
         ...state,
         isLoading: false,
         slices: { ...state.slices, ...action.payload.slices },
         lastUpdated: new Date().getTime(),
       };
-    },
-    [SET_SLICES]() {
+    case SET_SLICES:
       return {
+        ...state,
         isLoading: false,
         slices: { ...action.payload.slices },
         lastUpdated: new Date().getTime(),
       };
-    },
-    [FETCH_ALL_SLICES_FAILED]() {
+    case FETCH_ALL_SLICES_FAILED:
       return {
         ...state,
         isLoading: false,
@@ -72,11 +71,7 @@ export default function sliceEntitiesReducer(
         errorMessage:
           action.payload.error || t('Could not fetch all saved charts'),
       };
-    },
-  };
-
-  if (action.type in actionHandlers) {
-    return actionHandlers[action.type]();
+    default:
+      return state;
   }
-  return state;
 }

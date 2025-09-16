@@ -18,7 +18,9 @@
  */
 import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-export default function getLeafComponentIdFromPath(directPathToChild = []) {
+export default function getLeafComponentIdFromPath(
+  directPathToChild: string[] = [],
+): string | null {
   if (directPathToChild.length > 0) {
     const currentPath = directPathToChild.slice();
 
@@ -26,7 +28,10 @@ export default function getLeafComponentIdFromPath(directPathToChild = []) {
       const componentId = currentPath.pop();
       const componentType = componentId && componentId.split('-')[0];
 
-      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+      if (
+        componentType &&
+        !IN_COMPONENT_ELEMENT_TYPES.includes(componentType)
+      ) {
         return componentId;
       }
     }
