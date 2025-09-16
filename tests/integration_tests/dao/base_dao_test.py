@@ -1141,7 +1141,8 @@ def test_find_methods_case_sensitivity(app_context: Session) -> None:
         assert found_lower.username == "casesensitive"
 
     finally:
-        pass
+        db.session.rollback()
+        db.session.remove()
 
 
 def test_find_by_ids_empty_and_none_handling(app_context: Session) -> None:
