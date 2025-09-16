@@ -123,7 +123,7 @@ else:
 from flask_appbuilder.security.manager import AUTH_OAUTH
 
 # Primary authentication: OAuth with Azure AD
-AUTH_TYPE = AUTH_OAUTH
+# AUTH_TYPE = AUTH_OAUTH  # Commented out for JWT-only testing
 AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "myportaluser"
 
@@ -137,23 +137,23 @@ SESSION_PERMANENT = False
 PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
 
 # Azure OAuth Configuration
-OAUTH_PROVIDERS = [
-    {
-        'name': 'azure',
-        'token_key': 'access_token',
-        'icon': 'fa-microsoft',
-        'remote_app': {
-            'client_id': os.getenv('AZURE_CLIENT_ID'),
-            'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
-            'api_base_url': 'https://graph.microsoft.com/v1.0/',
-            'client_kwargs': {
-                'scope': 'openid email profile User.Read Group.Read.All'
-            },
-            'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
-            'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
-        }
-    }
-]
+# OAUTH_PROVIDERS = [  # Commented out for JWT-only testing
+#     {
+#         'name': 'azure',
+#         'token_key': 'access_token',
+#         'icon': 'fa-microsoft',
+#         'remote_app': {
+#             'client_id': os.getenv('AZURE_CLIENT_ID'),
+#             'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
+#             'api_base_url': 'https://graph.microsoft.com/v1.0/',
+#             'client_kwargs': {
+#                 'scope': 'openid email profile User.Read Group.Read.All'
+#             },
+#             'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
+#             'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
+#         }
+#     }
+# ]
 
 # JWT Configuration (for WordPress OBO tokens)
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "mJJWaB@x8mtD!@U6oR4n!85")
@@ -502,17 +502,16 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         logging.critical(f"Invalid JWT token: {error_string}")
         return None
     
-    def login_url(self, next_url=None):
-
-        from flask import url_for
-        logging.critical("login_url called - forcing OAuth redirect")
-        
-        oauth_login_url = url_for('AuthOAuthView.login', provider='azure')
-        if next_url:
-            oauth_login_url += f'?next={next_url}'
-        
-        logging.critical(f"Redirecting to OAuth: {oauth_login_url}")
-        return oauth_login_url
+    # def login_url(self, next_url=None):  # Commented out for JWT-only testing
+    #     from flask import url_for
+    #     logging.critical("login_url called - forcing OAuth redirect")
+    #     
+    #     oauth_login_url = url_for('AuthOAuthView.login', provider='azure')
+    #     if next_url:
+    #         oauth_login_url += f'?next={next_url}'
+    #     
+    #     logging.critical(f"Redirecting to OAuth: {oauth_login_url}")
+    #     return oauth_login_url
  
  
 CUSTOM_SECURITY_MANAGER = UnifiedSecurityManager
