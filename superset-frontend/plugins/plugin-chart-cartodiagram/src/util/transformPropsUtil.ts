@@ -426,7 +426,7 @@ export const reserveLabelColors = (
 ) => {
   // Call color singleton to reserve label colors
   // get needed control values from underlying chart config
-  const { colorScheme = '', groupby, dateFormat } = formData;
+  const { colorScheme = '', groupby = [], dateFormat } = formData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const groupbyLabels = groupby.map(getColumnLabel);
   Object.keys(dataByLocation).forEach(location => {
