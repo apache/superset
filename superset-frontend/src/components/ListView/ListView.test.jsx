@@ -32,8 +32,13 @@ jest.mock('@superset-ui/core/components', () => {
   return {
     ...actual,
     Alert: actual.Alert || (() => null),
-    DropdownButton: ({ children, onClick, 'data-test': dataTest, ...props }) => (
-      <button onClick={onClick} data-test={dataTest} {...props}>
+    DropdownButton: ({
+      children,
+      onClick,
+      'data-test': dataTest,
+      ...props
+    }) => (
+      <button type="button" onClick={onClick} data-test={dataTest} {...props}>
         {children}
       </button>
     ),
