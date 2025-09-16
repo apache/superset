@@ -397,9 +397,18 @@ describe('ChartList Card View Tests', () => {
       );
     });
 
-    // Click bulk delete button (find by text since there are multiple bulk-select-action buttons)
-    const bulkDeleteButton = screen.getByText('Delete');
-    fireEvent.click(bulkDeleteButton);
+    // Open the bulk actions dropdown to access Delete
+    const bulkActionDropdown = screen.getByTestId('bulk-select-action');
+    expect(bulkActionDropdown).toBeInTheDocument();
+
+    // The dropdown should show on hover or click (depending on implementation)
+    fireEvent.mouseEnter(bulkActionDropdown);
+
+    await waitFor(() => {
+      const deleteButton = screen.getByText('Delete');
+      expect(deleteButton).toBeInTheDocument();
+      fireEvent.click(deleteButton);
+    });
 
     // Verify delete confirmation appears
     await waitFor(() => {
@@ -447,11 +456,18 @@ describe('ChartList Card View Tests', () => {
       );
     });
 
-    // Since TAGGING_SYSTEM is enabled, the tag button should be present
-    const bulkTagButton = screen.getByTestId('bulk-select-tag-btn');
-    expect(bulkTagButton).toBeInTheDocument();
+    // Open the bulk actions dropdown to access Add Tag
+    const bulkActionDropdown = screen.getByTestId('bulk-select-action');
+    expect(bulkActionDropdown).toBeInTheDocument();
 
-    fireEvent.click(bulkTagButton);
+    // The dropdown should show on hover or click (depending on implementation)
+    fireEvent.mouseEnter(bulkActionDropdown);
+
+    await waitFor(() => {
+      const addTagButton = screen.getByText('Add Tag');
+      expect(addTagButton).toBeInTheDocument();
+      fireEvent.click(addTagButton);
+    });
 
     // Verify tag modal appears
     await waitFor(() => {

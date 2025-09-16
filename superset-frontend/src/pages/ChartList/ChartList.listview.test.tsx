@@ -722,12 +722,12 @@ describe('ChartList - List View Tests', () => {
       );
     });
 
-    // Click bulk export button
-    const bulkActions = screen.getAllByTestId('bulk-select-action');
-    const exportButton = bulkActions.find(btn => btn.textContent === 'Export');
+    // Click bulk export button (should be the primary action button)
+    const exportButton = screen.getByTestId('bulk-select-action');
     expect(exportButton).toBeInTheDocument();
+    expect(exportButton).toHaveTextContent('Export');
 
-    fireEvent.click(exportButton!);
+    fireEvent.click(exportButton);
 
     // Verify export function was called with all chart IDs
     await waitFor(() => {
@@ -771,12 +771,18 @@ describe('ChartList - List View Tests', () => {
       );
     });
 
-    // Click bulk delete button
-    const bulkActions = screen.getAllByTestId('bulk-select-action');
-    const deleteButton = bulkActions.find(btn => btn.textContent === 'Delete');
-    expect(deleteButton).toBeInTheDocument();
+    // Open the bulk actions dropdown to access Delete
+    const bulkActionDropdown = screen.getByTestId('bulk-select-action');
+    expect(bulkActionDropdown).toBeInTheDocument();
 
-    fireEvent.click(deleteButton!);
+    // The dropdown should show on hover or click (depending on implementation)
+    fireEvent.mouseEnter(bulkActionDropdown);
+
+    await waitFor(() => {
+      const deleteButton = screen.getByText('Delete');
+      expect(deleteButton).toBeInTheDocument();
+      fireEvent.click(deleteButton);
+    });
 
     // Should open delete confirmation modal
     await waitFor(() => {
@@ -829,9 +835,18 @@ describe('ChartList - List View Tests', () => {
       );
     });
 
-    const addTagButton = screen.queryByText('Add Tag') as HTMLButtonElement;
-    expect(addTagButton).toBeInTheDocument();
-    fireEvent.click(addTagButton);
+    // Open the bulk actions dropdown to access Add Tag
+    const bulkActionDropdown = screen.getByTestId('bulk-select-action');
+    expect(bulkActionDropdown).toBeInTheDocument();
+
+    // The dropdown should show on hover or click (depending on implementation)
+    fireEvent.mouseEnter(bulkActionDropdown);
+
+    await waitFor(() => {
+      const addTagButton = screen.getByText('Add Tag');
+      expect(addTagButton).toBeInTheDocument();
+      fireEvent.click(addTagButton);
+    });
 
     await waitFor(() => {
       const tagModal = screen.getByRole('dialog');

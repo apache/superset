@@ -129,6 +129,15 @@ const BulkSelectWrapper = styled(Alert)`
       margin-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
       flex-shrink: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+
+      &:hover {
+        color: ${theme.colorPrimaryHover};
+      }
     }
 
     .divider {
@@ -175,6 +184,9 @@ const ViewModeContainer = styled.div`
       border-radius: ${theme.borderRadius}px;
       padding: ${theme.sizeUnit}px;
       padding-bottom: ${theme.sizeUnit * 0.5}px;
+      background: none;
+      border: none;
+      cursor: pointer;
 
       &:first-of-type {
         margin-right: ${theme.sizeUnit * 2}px;
@@ -209,9 +221,8 @@ const ViewModeToggle = ({
   setMode: (mode: 'table' | 'card') => void;
 }) => (
   <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={e => {
         e.currentTarget.blur();
         setMode('card');
@@ -219,10 +230,9 @@ const ViewModeToggle = ({
       className={cx('toggle-button', { active: mode === 'card' })}
     >
       <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
+    </button>
+    <button
+      type="button"
       onClick={e => {
         e.currentTarget.blur();
         setMode('table');
@@ -230,7 +240,7 @@ const ViewModeToggle = ({
       className={cx('toggle-button', { active: mode === 'table' })}
     >
       <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
+    </button>
   </ViewModeContainer>
 );
 
@@ -456,16 +466,14 @@ export function ListView<T extends object = any>({
                   </span>
                   {Boolean(selectedFlatRows.length) && (
                     <>
-                      <span
+                      <button
+                        type="button"
                         data-test="bulk-select-deselect-all"
-                        style={{ cursor: 'pointer' }}
-                        role="button"
-                        tabIndex={0}
                         className="deselect-all"
                         onClick={() => toggleAllRowsSelected(false)}
                       >
                         {t('Deselect all')}
-                      </span>
+                      </button>
                       {firstAction && (
                         <>
                           <div className="divider" />

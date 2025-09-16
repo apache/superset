@@ -94,13 +94,15 @@ describe('Dashboards list', () => {
         .should('be.checked')
         .should('have.length', 6);
       cy.getBySel('bulk-select-copy').contains('5 Selected');
-      cy.getBySel('bulk-select-action')
-        .should('have.length', 3)
-        .then($btns => {
-          expect($btns).to.contain('Delete');
-          expect($btns).to.contain('Export');
-          expect($btns).to.contain('Certify');
-        });
+
+      // First action should be Export (primary button)
+      cy.getBySel('bulk-select-action').should('contain', 'Export');
+
+      // Hover to open dropdown and check other actions
+      cy.getBySel('bulk-select-action').trigger('mouseenter');
+      cy.contains('Certify').should('be.visible');
+      cy.contains('Delete').should('be.visible');
+
       cy.getBySel('bulk-select-deselect-all').click();
       cy.get('input[type="checkbox"]:checked').should('have.length', 0);
       cy.getBySel('bulk-select-copy').contains('0 Selected');
@@ -123,13 +125,15 @@ describe('Dashboards list', () => {
       toggleBulkSelect();
       cy.getBySel('styled-card').click({ multiple: true });
       cy.getBySel('bulk-select-copy').contains('5 Selected');
-      cy.getBySel('bulk-select-action')
-        .should('have.length', 3)
-        .then($btns => {
-          expect($btns).to.contain('Delete');
-          expect($btns).to.contain('Export');
-          expect($btns).to.contain('Certify');
-        });
+
+      // First action should be Export (primary button)
+      cy.getBySel('bulk-select-action').should('contain', 'Export');
+
+      // Hover to open dropdown and check other actions
+      cy.getBySel('bulk-select-action').trigger('mouseenter');
+      cy.contains('Certify').should('be.visible');
+      cy.contains('Delete').should('be.visible');
+
       cy.getBySel('bulk-select-deselect-all').click();
       cy.getBySel('bulk-select-copy').contains('0 Selected');
       cy.getBySel('bulk-select-action').should('not.exist');
@@ -184,7 +188,10 @@ describe('Dashboards list', () => {
 
       cy.getBySel('styled-card').eq(0).contains('1 - Sample dashboard').click();
       cy.getBySel('styled-card').eq(1).contains('2 - Sample dashboard').click();
-      cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
+
+      // Open dropdown and click Delete
+      cy.getBySel('bulk-select-action').trigger('mouseenter');
+      cy.contains('Delete').click();
       confirmDelete(true);
       cy.getBySel('styled-card')
         .eq(0)
@@ -199,7 +206,10 @@ describe('Dashboards list', () => {
       cy.getBySel('table-row').eq(1).contains('4 - Sample dashboard');
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(0).click();
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
-      cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
+
+      // Open dropdown and click Delete
+      cy.getBySel('bulk-select-action').trigger('mouseenter');
+      cy.contains('Delete').click();
       confirmDelete(true);
       cy.getBySel('loading-indicator').should('exist');
       cy.getBySel('loading-indicator').should('not.exist');
