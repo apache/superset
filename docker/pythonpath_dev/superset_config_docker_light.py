@@ -35,4 +35,4 @@ THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
 
 # Disable Celery entirely for lightweight mode
-CELERY_CONFIG = None  # type: ignore[assignment,misc]
+CELERY_CONFIG = None  # type: ignore[assignment, misc]
