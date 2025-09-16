@@ -7,6 +7,10 @@ import traceback
 from flask import request, redirect, url_for, g
 from superset.security import SupersetSecurityManager
 from flask_jwt_extended import decode_token
+import hmac
+import hashlib
+import base64
+import requests
 
 # redis and celery
 import os
@@ -24,13 +28,9 @@ logging.getLogger('werkzeug').setLevel(logging.DEBUG)
 jwt_logger = logging.getLogger('superset.jwt')
 jwt_logger.setLevel(logging.DEBUG)
  
-# Set SECRET_KEY
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY")
- 
-# --- CRITICAL FIX: Set SQLALCHEMY_DATABASE_URI directly ---
 SQLALCHEMY_DATABASE_URI = os.getenv("SUPERSET_DB_URI")
  
-# Check if the URI is actually set, and provide a helpful error if not:
 if not SQLALCHEMY_DATABASE_URI:
     raise RuntimeError(
         "The SUPERSET_DB_URI environment variable is not set! "
@@ -79,14 +79,13 @@ RESULTS_BACKEND = RedisCache(
     db=2
 )
 
-# # Visual Customizations
-# APP_NAME = "RMC_SUPERSET_APP"
-# APP_ICON = "/static/assets/custom/RMC_100.png"
-# APP_ICON_WIDTH = 200
-# # Path for routing when APP_ICON image is clicked
-# LOGO_TARGET_PATH = 'http://www.rockymountaincare.com/' # Forwards to /superset/welcome/home
-# LOGO_TOOLTIP = "rockymountaincare.com" # Text displayed when hovering.
-# FAVICONS = [{"href": "/static/assets/custom/RMC_100.png"}]
+# Replay protection cache for JWT jti values
+REPLAY_CACHE = RedisCache(
+    host=REDIS_HOST,
+    port=int(REDIS_PORT),
+    key_prefix="superset_jti_",
+    db=3
+)
 
 # Visual Customizations (Modern Method)
 FAVICONS = [{"href": "/static/assets/custom/RMC_100.png"}]
@@ -95,10 +94,9 @@ APP_FAB_UI_BRAND_INFO = {
     "logo_icon_width": 200,
     "logo_icon_target_path": "http://www.rockymountaincare.com/",
     "logo_icon_tooltip": "rockymountaincare.com",
-    "brand_text": "RMC SUPERSET APP", # Optional: if you want text next to the logo
+    "brand_text": "RMC SUPERSET APP",
 }
 
-# Increase max number of rows included in table views and csv downloads
 SQL_MAX_ROW = 50000
 VIZ_ROW_LIMIT = 50000
  
@@ -121,39 +119,168 @@ else:
     print(f"Value NOT FOUND or EMPTY for os.getenv('MAPBOX_API_KEY')")
 
  
-# OAuth Config
-AUTH_TYPE = 1
+# Unified OAuth + JWT Configuration
+from flask_appbuilder.security.manager import AUTH_OAUTH
+
+# Primary authentication: OAuth with Azure AD
+AUTH_TYPE = AUTH_OAUTH
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = "myportaluser"
+
+# Ensure OAuth-only access (disable any fallback authentication)
+PUBLIC_ROLE_LIKE = None  # Disable anonymous/public access
+AUTH_ROLE_PUBLIC = None  # No public role
+
+# Production security settings
+ENABLE_PROXY_FIX = True  # Handle reverse proxy headers
+WTF_CSRF_ENABLED = True  # CSRF protection
+SESSION_PERMANENT = False
+PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
+
+# Azure OAuth Configuration
+OAUTH_PROVIDERS = [
+    {
+        'name': 'azure',
+        'token_key': 'access_token',
+        'icon': 'fa-microsoft',
+        'remote_app': {
+            'client_id': os.getenv('AZURE_CLIENT_ID'),
+            'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
+            'api_base_url': 'https://graph.microsoft.com/v1.0/',
+            'client_kwargs': {
+                'scope': 'openid email profile User.Read Group.Read.All'
+            },
+            'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
+            'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
+        }
+    }
+]
+
+# JWT Configuration (for WordPress OBO tokens)
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "mJJWaB@x8mtD!@U6oR4n!85")
 JWT_TOKEN_LOCATION = ['headers', 'query_string']
 JWT_QUERY_STRING_NAME = 'proof'
 JWT_ALGORITHM = 'HS256'
 FLASK_ENV = 'development'
 FLASK_DEBUG = True
-JWT_IDENTITY_CLAIM = 'username'
+JWT_IDENTITY_CLAIM = 'upn'
 JWT_DECODE_AUDIENCE = None
 JWT_DECODE_LEEWAY = 10
 JWT_DECODE_ALGORITHMS = ['HS256']
 JWT_ERROR_MESSAGE_KEY = 'message'
-JWT_PRIVATE_CLAIMS = ['username', 'email', 'roles']  # Not directly used by FAB, but good for documentation
+JWT_PRIVATE_CLAIMS = ['username', 'email', 'roles']
  
 # Enhanced JWT settings
 JWT_COOKIE_SECURE = False  # Set to True in production with HTTPS
 JWT_COOKIE_CSRF_PROTECT = False  # Set to True in production
 JWT_ACCESS_TOKEN_EXPIRES = 3600 * 8  # 8 hours
+JWT_COOKIE_DOMAIN = '.rmcare.com'  # Match session cookie domain
  
-# Custom Security Manager
-class CustomSecurityManager(SupersetSecurityManager):
+# Enhanced Security Manager for Unified Authentication
+class UnifiedSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
         super(CustomSecurityManager, self).__init__(appbuilder)
-        logging.critical("Custom Security Manager initialized")
+        logging.critical("Unified Security Manager initialized with OAuth + JWT support")
         self.auth_user_jwt_username_key = JWT_IDENTITY_CLAIM
        
         logging.critical(f"Using '{self.auth_user_jwt_username_key}' as the JWT username key")
  
+    def auth_user_oauth(self, userinfo):
+        """
+        OAuth authentication path - called when user authenticates via Azure AD OAuth
+        This creates the same user identity as JWT authentication for session continuity
+        """
+        logging.critical("========== AUTH_USER_OAUTH METHOD CALLED ==========")
+        logging.critical(f"OAuth userinfo: {userinfo}")
+        
+        try:
+            # Extract user identity from OAuth userinfo (UPN is the primary identifier)
+            user_id = userinfo.get('userPrincipalName') or userinfo.get('upn') or userinfo.get('unique_name')
+            if not user_id:
+                logging.critical("No user identifier found in OAuth userinfo")
+                return None
+                
+            # Get user groups from Microsoft Graph API
+            azure_groups = self._get_user_groups_from_graph(userinfo.get('access_token'))
+            
+            # Use same user creation/update logic as JWT authentication
+            return self._create_or_update_user(
+                user_id=user_id,
+                user_info={
+                    'name': userinfo.get('displayName') or userinfo.get('name') or user_id,
+                    'email': user_id,  # UPN serves as email address
+                    'given_name': userinfo.get('given_name', ''),
+                    'family_name': userinfo.get('family_name', ''),
+                    'groups': azure_groups
+                },
+                auth_source='oauth'
+            )
+            
+        except Exception as e:
+            logging.critical(f"Error in auth_user_oauth: {str(e)}")
+            logging.critical(f"OAuth auth traceback: {traceback.format_exc()}")
+            return None
+    
+    def _get_user_groups_from_graph(self, access_token):
+        """
+        Retrieve user's groups from Microsoft Graph API with retry logic
+        """
+        import time
+        
+        if not access_token:
+            logging.critical("No access token available for Graph API call")
+            return []
+            
+        headers = {'Authorization': f'Bearer {access_token}'}
+        url = 'https://graph.microsoft.com/v1.0/me/memberOf'
+        
+        # Retry logic with exponential backoff
+        max_retries = 3
+        base_delay = 1
+        
+        for attempt in range(max_retries):
+            try:
+                logging.critical(f"Graph API call attempt {attempt + 1}/{max_retries}")
+                response = requests.get(url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    groups_data = response.json()
+                    group_ids = [group['id'] for group in groups_data.get('value', [])]
+                    logging.critical(f"Retrieved {len(group_ids)} groups from Graph API")
+                    return group_ids
+                    
+                elif response.status_code in [429, 503, 502, 504]:  # Retryable errors
+                    delay = base_delay * (2 ** attempt)
+                    logging.critical(f"Graph API retryable error {response.status_code}, retrying in {delay}s")
+                    if attempt < max_retries - 1:
+                        time.sleep(delay)
+                        continue
+                    
+                else:  # Non-retryable errors
+                    logging.critical(f"Graph API non-retryable error: {response.status_code} - {response.text}")
+                    return []
+                    
+            except requests.exceptions.Timeout:
+                delay = base_delay * (2 ** attempt)
+                logging.critical(f"Graph API timeout on attempt {attempt + 1}, retrying in {delay}s")
+                if attempt < max_retries - 1:
+                    time.sleep(delay)
+                    continue
+                    
+            except Exception as e:
+                logging.critical(f"Graph API error on attempt {attempt + 1}: {str(e)}")
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+        
+        logging.critical("Graph API failed after all retry attempts")
+        return []
+
     def auth_user_jwt(self, token):
         """
-        Handles authentication and user/role mapping based on the JWT.
-        This method is called *after* the token has been validated.
+        JWT authentication path - called when WordPress provides OBO token
+        This creates the same user identity as OAuth authentication for session continuity
         """
         logging.critical("========== AUTH_USER_JWT METHOD CALLED ==========")
         logging.critical(f"Token first 10 chars: {token[:10] if token else 'None'}")
@@ -162,122 +289,239 @@ class CustomSecurityManager(SupersetSecurityManager):
             decoded_token = decode_token(token, allow_expired=True)
             logging.critical(f"Token decoded successfully")
            
-            user_id = decoded_token.get(self.auth_user_jwt_username_key)
-            roles_from_jwt = decoded_token.get('roles', [])
+            # CRITICAL SECURITY: Replay protection using jti (FAIL SECURE)
+            try:
+                jti = decoded_token.get('jti')
+                exp = decoded_token.get('exp')
+                if not jti or not exp:
+                    logging.critical("JWT missing jti or exp claims - replay protection not possible")
+                    return None
+                    
+                # Check for replay attack
+                if REPLAY_CACHE.get(jti):
+                    logging.critical(f"SECURITY VIOLATION: Replay detected for jti={jti}")
+                    return None
+                    
+                # Store JTI to prevent replay
+                ttl = max(int(exp - datetime.datetime.now().timestamp()), 60)
+                REPLAY_CACHE.set(jti, 1, timeout=ttl)
+                logging.critical(f"JTI {jti} stored in replay cache with TTL {ttl}")
+                
+            except Exception as replay_err:
+                logging.critical(f"SECURITY ERROR: Replay cache failure: {str(replay_err)}")
+                logging.critical("SECURITY: Redis unavailable - failing JWT validation for security")
+                return None  # FAIL SECURE: If Redis is down, reject all JWT tokens
+                
+            # Map identity and basic profile from Azure AD OBO token
+            user_id = decoded_token.get(self.auth_user_jwt_username_key)  # upn
+            azure_groups = decoded_token.get('groups', [])
             logging.critical(f"User ID from token: {user_id}")
-            logging.critical(f"Roles from token: {roles_from_jwt}")
+            logging.critical(f"Groups from token: {len(azure_groups)}")
+            logging.critical(f"Available token fields: {list(decoded_token.keys())}")
  
             if not user_id:
                 logging.critical("No user identifier found in JWT.")
                 return None
+                
+            # Use same user creation/update logic as OAuth authentication
+            return self._create_or_update_user(
+                user_id=user_id,
+                user_info={
+                    'name': decoded_token.get('name') or user_id,
+                    'email': user_id,  # UPN serves as email address
+                    'given_name': decoded_token.get('given_name', ''),
+                    'family_name': decoded_token.get('family_name', ''),
+                    'groups': azure_groups
+                },
+                auth_source='jwt'
+            )
+            
+        except Exception as e:
+            logging.critical(f"Error in auth_user_jwt: {str(e)}")
+            logging.critical(f"JWT auth traceback: {traceback.format_exc()}")
+            return None
+    
+    def _create_or_update_user(self, user_id, user_info, auth_source):
+        """
+        Unified user creation/update logic used by both OAuth and JWT authentication
+        Ensures consistent user identity and role assignment regardless of auth path
+        """
+        logging.critical(f"========== UNIFIED USER CREATION ({auth_source.upper()}) ==========")
+        logging.critical(f"User ID: {user_id}")
+        logging.critical(f"User info: {user_info}")
+        # Set replay protection context for JWT tokens
+        if auth_source == 'jwt':
+            # Note: Replay protection will be handled in the auth_user_jwt method
+            pass
+        
+        user = self.find_user(username=user_id)
+        if user:
+            logging.critical(f"Existing user found: {user.username}")
+        else:
+            logging.critical(f"User '{user_id}' not found. Creating...")
+            user_name = user_info['name']
+            email = user_info['email']
+            logging.critical(f"User details - Name: {user_name}, Email: {email}")
  
-            user = self.find_user(username=user_id)
-            if user:
-                logging.critical(f"Existing user found: {user.username}")
-            else:
-                logging.critical(f"User '{user_id}' not found. Creating...")
-                user_name = decoded_token.get('user_name')
-                email = decoded_token.get('email')
-               
-                logging.critical(f"User details - Name: {user_name}, Email: {email}")
- 
+            first_name = user_info.get('given_name') or ''
+            last_name = user_info.get('family_name') or ''
+            
+            if not first_name and not last_name:
                 try:
                     first_name, last_name = user_name.split(" ", 1)
                 except (ValueError, AttributeError):
-                    first_name = user_id
+                    first_name = user_id.split('@')[0]  # Use part before @ as fallback
                     last_name = ""
-                    logging.critical(f"Could not split user_name: {user_name}. Using '{first_name}' and '{last_name}'.")
+                    
+            logging.critical(f"User names - First: '{first_name}', Last: '{last_name}'")
                 
-                # Add handling for race condition caused by duplicate iframes
-                try:
-                    user = self.add_user(
-                        username=user_id,
-                        first_name=first_name,
-                        last_name=last_name,
-                        email=email,
-                        role=self.find_role('Public')
-                    )
-                    if user:
-                        logging.critical(f"User creation successful: {user.username}")
-                    else:
-                        logging.critical(f"User creation returned None")
-                except Exception as user_create_error:
-                    error_msg = str(user_create_error)
-                    logging.critical(f"Error creating user: {error_msg}")
-                    logging.critical(f"User creation traceback: {traceback.format_exc()}")
-
-                    if 'already exists' in error_msg or 'duplicate key' in error_msg:
-                        logging.critical("User already exists in DB, retrying lookup...")
-                        user = self.find_user(username=user_id)
-                        if user:
-                            logging.critical(f"User re-fetched after duplicate insert: {user.username}")
-                        else:
-                            logging.critical("User still not found after duplicate error")
-                    else:
-                        return None
-
-            if not user:
-                logging.critical("User is still None after attempted creation")
-                return None
-               
-            logging.critical(f"User {user.username} confirmed - adding roles")
-           
-            superset_roles = []
-           
-            for role_name in roles_from_jwt:
-                role = self.find_role(role_name)
-                if role:
-                    superset_roles.append(role)
-                    logging.critical(f"Adding role {role_name}")
+            try:
+                user = self.add_user(
+                    username=user_id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    role=self.find_role('Public')
+                )
+                if user:
+                    logging.critical(f"User creation successful: {user.username}")
                 else:
-                    logging.critical(f"Role '{role_name}' not found in Superset")
- 
-                    try:
-                        new_role = self.add_role(role_name)
-                        if new_role:
-                            superset_roles.append(new_role)
-                            logging.critical(f"Created and added new role: {role_name}")
-                    except Exception as role_error:
-                        logging.critical(f"Error creating role {role_name}: {str(role_error)}")
- 
-            public_role = self.find_role('Public')
-            if public_role and public_role not in superset_roles:
-                superset_roles.append(public_role)
-                logging.critical("Added 'Public' role to ensure minimal permissions")
- 
-            try:
-                user.roles = superset_roles
-                self.update_user(user)  
-                logging.critical(f"User roles updated: {[r.name for r in user.roles]}")
-            except Exception as role_update_error:
-                logging.critical(f"Error updating user roles: {str(role_update_error)}")
-                logging.critical(f"Role update traceback: {traceback.format_exc()}")
-            
-            try:
-                g.user = user
-                from flask_login import login_user
-                login_user(user)
-                logging.critical(f"User logged in via flask_login.login_user(): {user.username}")
-            except Exception as login_error:
-                logging.critical(f"Error in flask_login: {str(login_error)}")
-                logging.critical(f"Login error traceback: {traceback.format_exc()}")
-            
-            logging.critical(f"Auth successful - returning user: {user.username}")
-            return user
- 
-        except Exception as e:
-            logging.critical(f"Error in auth_user_jwt: {str(e)}")
-            logging.critical(f"Exception type: {type(e).__name__}")
-            logging.critical(f"Full traceback: {traceback.format_exc()}")
+                    logging.critical(f"User creation returned None")
+            except Exception as user_create_error:
+                error_msg = str(user_create_error)
+                logging.critical(f"Error creating user: {error_msg}")
+                logging.critical(f"User creation traceback: {traceback.format_exc()}")
+
+                if 'already exists' in error_msg or 'duplicate key' in error_msg:
+                    logging.critical("User already exists in DB, retrying lookup...")
+                    user = self.find_user(username=user_id)
+                    if user:
+                        logging.critical(f"User re-fetched after duplicate insert: {user.username}")
+                    else:
+                        logging.critical("User still not found after duplicate error")
+                else:
+                    return None
+
+        if not user:
+            logging.critical("User is still None after attempted creation")
             return None
+               
+        logging.critical(f"User {user.username} confirmed - processing roles")
+
+        superset_roles = []
+
+        resolved_role_names: list[str] = []
+        try:
+            azure_groups = user_info.get('groups', [])
+            if not isinstance(azure_groups, list):
+                azure_groups = []
+            mapping_db_uri = os.getenv('AZURE_ROLE_DB_URI')
+            mapping_table = os.getenv('AZURE_ROLE_MAPPING_TABLE', 'dbo.ActiveEntraGroups')
+            mapping_group_col = os.getenv('AZURE_ROLE_MAPPING_GROUP_COL', 'GroupId')
+            mapping_role_col = os.getenv('AZURE_ROLE_MAPPING_ROLE_COL', 'DisplayName')
+            
+            logging.critical(f"Processing {len(azure_groups)} Azure groups for role mapping")
+            
+            if mapping_db_uri and azure_groups:
+                from sqlalchemy import create_engine, text
+                engine = create_engine(mapping_db_uri, pool_pre_ping=True)
+                # Chunk guids to avoid parameter limits
+                chunk_size = int(os.getenv('AZURE_ROLE_MAPPING_CHUNK', '100'))
+                for i in range(0, len(azure_groups), chunk_size):
+                    chunk = azure_groups[i:i+chunk_size]
+                    placeholders = ','.join([f":g{j}" for j in range(len(chunk))])
+                    sql = text(
+                        f"SELECT {mapping_role_col} AS role_name FROM {mapping_table} WHERE {mapping_group_col} IN ({placeholders})"
+                    )
+                    params = {f"g{j}": chunk[j] for j in range(len(chunk))}
+                    with engine.connect() as conn:
+                        rows = conn.execute(sql, params).fetchall()
+                        resolved_role_names.extend([r.role_name for r in rows])
+                        
+                logging.critical(f"Resolved {len(resolved_role_names)} roles from Azure SQL mapping")
+                
+            # If no DB mapping, default to using Azure group GUIDs verbatim as role names
+            if not resolved_role_names and azure_groups:
+                resolved_role_names = list(azure_groups)
+                logging.critical(f"Using Azure group GUIDs as role names: {len(resolved_role_names)}")
+                
+        except Exception as map_err:
+            logging.critical(f"Azure SQL role mapping error: {str(map_err)}")
+
+        # Apply naming filters: keep roles that start with 'dashboard' or contain 'myportal' / 'beta myportal'
+        try:
+            filtered: list[str] = []
+            for rn in resolved_role_names:
+                lower = (rn or '').lower()
+                if lower.startswith('dashboard') or ('myportal' in lower) or ('beta myportal' in lower):
+                    filtered.append(rn)
+            if filtered:
+                resolved_role_names = filtered
+                logging.critical(f"Filtered to {len(resolved_role_names)} roles after name filtering")
+        except Exception as _:
+            pass
+
+        # Ensure default myportaluser
+        default_role_name = os.getenv('DEFAULT_PORTAL_ROLE', 'myportaluser')
+        if default_role_name not in resolved_role_names:
+            resolved_role_names.append(default_role_name)
+            
+        logging.critical(f"Final role list: {resolved_role_names}")
+
+        # Create/attach roles
+        for role_name in resolved_role_names:
+            try:
+                role = self.find_role(role_name)
+                if not role:
+                    role = self.add_role(role_name)
+                    logging.critical(f"Created role: {role_name}")
+                superset_roles.append(role)
+            except Exception as role_error:
+                logging.critical(f"Error ensuring role {role_name}: {str(role_error)}")
+        public_role = self.find_role('Public')
+        if public_role and public_role not in superset_roles:
+            superset_roles.append(public_role)
+            logging.critical("Added 'Public' role to ensure minimal permissions")
+ 
+        try:
+            user.roles = superset_roles
+            self.update_user(user)  
+            logging.critical(f"User roles updated: {[r.name for r in user.roles]}")
+        except Exception as role_update_error:
+            logging.critical(f"Error updating user roles: {str(role_update_error)}")
+            logging.critical(f"Role update traceback: {traceback.format_exc()}")
+        
+        try:
+            g.user = user
+            from flask_login import login_user
+            login_user(user, remember=True)  # Remember for cross-domain session sharing
+            logging.critical(f"User logged in via flask_login.login_user(): {user.username}")
+        except Exception as login_error:
+            logging.critical(f"Error in flask_login: {str(login_error)}")
+            logging.critical(f"Login error traceback: {traceback.format_exc()}")
+        
+        logging.critical(f"Unified auth successful ({auth_source}) - returning user: {user.username}")
+        return user
  
     def handle_invalid_token(self, error_string=None):
         """Handle JWT token errors more gracefully."""
         logging.critical(f"Invalid JWT token: {error_string}")
         return None
+    
+    def login_url(self, next_url=None):
+
+        from flask import url_for
+        logging.critical("login_url called - forcing OAuth redirect")
+        
+        oauth_login_url = url_for('AuthOAuthView.login', provider='azure')
+        if next_url:
+            oauth_login_url += f'?next={next_url}'
+        
+        logging.critical(f"Redirecting to OAuth: {oauth_login_url}")
+        return oauth_login_url
  
  
-CUSTOM_SECURITY_MANAGER = CustomSecurityManager
+CUSTOM_SECURITY_MANAGER = UnifiedSecurityManager
  
 # Set feature flags (enable the use of async queries, Dashboard RBAC)
 FEATURE_FLAGS = {
@@ -390,10 +634,17 @@ JINJA_CONTEXT_ADDONS = {
 # This new flag sets the horizontal layout as the default for all NEW dashboards
 DASHBOARD_HORIZONTAL_FILTER_BAR_DEFAULT = True
  
+# Unified SSO Session Configuration
+SESSION_COOKIE_DOMAIN = '.rmcare.com'  # Shared across WordPress and Superset
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+PERMANENT_SESSION_LIFETIME = 28800  # 8 hours to match JWT expiration
+
 # MyPortal Configuration
 TALISMAN_CONFIG = {
     'content_security_policy': {
-        'frame-ancestors': ["'self'", "https://beta.myportal.rmcare.com", "https://myportal.rmcare.com"],
+        'frame-ancestors': ["'self'", "https://beta.myportal.rmcare.com", "https://myportal.rmcare.com", "https://stg-dashboards.rmcare.com"],
     },
     'force_https': False,
     'session_cookie_secure': False,
@@ -402,7 +653,7 @@ ENABLE_CORS = True
 CORS_OPTIONS = {
   'supports_credentials': True,
   'allow_headers': ['Content-Type', 'Authorization'],
-  'resources': {'*': {'origins': '*'}},
+  'resources': {'*': {'origins': ['https://beta.myportal.rmcare.com', 'https://myportal.rmcare.com', 'https://stg-dashboards.rmcare.com']}},
 }
  
 # Colors schemes
@@ -568,6 +819,133 @@ def flask_app_mutator(app):
             except Exception as e:
                 logging.critical(f"JWT PROCESSING ERROR: {str(e)}")
                 logging.critical(traceback.format_exc())
+
+    @app.route('/api/rmc/sso/init', methods=['POST'])
+    def rmc_sso_init():
+        try:
+            data = request.get_json(silent=True) or {}
+            payload_b64 = data.get('payload')
+            sig = data.get('sig')
+            if not payload_b64 or not sig:
+                return (json.dumps({'error': 'missing payload or sig'}), 400, {'Content-Type': 'application/json'})
+
+            shared = os.getenv('WP_SSO_SHARED_SECRET', '')
+            if not shared:
+                return (json.dumps({'error': 'server not configured'}), 500, {'Content-Type': 'application/json'})
+
+            computed = hmac.new(shared.encode('utf-8'), payload_b64.encode('utf-8'), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(computed, sig):
+                return (json.dumps({'error': 'invalid signature'}), 401, {'Content-Type': 'application/json'})
+
+            try:
+                payload_json = base64.urlsafe_b64decode(payload_b64 + '===').decode('utf-8')
+                pointer = json.loads(payload_json)
+            except Exception as e:
+                logging.critical(f"Pointer decode error: {str(e)}")
+                return (json.dumps({'error': 'bad payload'}), 400, {'Content-Type': 'application/json'})
+
+            upn = pointer.get('upn') or pointer.get('email')
+            name = pointer.get('name') or upn
+            email = pointer.get('email') or upn
+            if not upn:
+                return (json.dumps({'error': 'missing upn'}), 400, {'Content-Type': 'application/json'})
+
+            exchange_url = os.getenv('WP_SSO_EXCHANGE_URL', '')
+            if exchange_url:
+                try:
+                    resp = requests.post(exchange_url, json={'payload': payload_b64, 'sig': sig}, timeout=5)
+                    if resp.status_code == 200:
+                        extra = resp.json()
+                        upn = extra.get('upn', upn)
+                        name = extra.get('name', name)
+                        email = extra.get('email', email)
+                except Exception as ex_err:
+                    logging.critical(f"WP exchange error: {str(ex_err)}")
+
+            resolved_role_names: list[str] = []
+            try:
+                mapping_db_uri = os.getenv('AZURE_ROLE_DB_URI')
+                if mapping_db_uri:
+                    from sqlalchemy import create_engine, text
+                    engine = create_engine(mapping_db_uri, pool_pre_ping=True)
+                    groups = pointer.get('groups') or []
+                    if isinstance(groups, list) and groups:
+                        # Map GUIDs to DisplayName
+                        group_table = os.getenv('AZURE_ROLE_MAPPING_TABLE', 'AAD_Groups')
+                        group_id_col = os.getenv('AZURE_ROLE_MAPPING_GROUP_COL', 'group_id')
+                        group_name_col = os.getenv('AZURE_ROLE_MAPPING_ROLE_COL', 'DisplayName')
+                        placeholders = ','.join([f":g{j}" for j in range(len(groups))])
+                        sql = text(
+                            f"SELECT {group_name_col} AS role_name FROM {group_table} WHERE {group_id_col} IN ({placeholders})"
+                        )
+                        params = {f"g{j}": groups[j] for j in range(len(groups))}
+                        with engine.connect() as conn:
+                            rows = conn.execute(sql, params).fetchall()
+                            resolved_role_names.extend([r.role_name for r in rows])
+                    else:
+                        # Fallback to UPN→role mapping view
+                        upn_table = os.getenv('AZURE_UPN_ROLE_VIEW', 'UserGroupMembershipView')
+                        upn_col = os.getenv('AZURE_ROLE_MAPPING_UPN_COL', 'upn')
+                        role_col = os.getenv('AZURE_ROLE_MAPPING_ROLE_COL', 'role_name')
+                        sql = text(
+                            f"SELECT {role_col} AS role_name FROM {upn_table} WHERE {upn_col} = :upn"
+                        )
+                        with engine.connect() as conn:
+                            rows = conn.execute(sql, {'upn': upn}).fetchall()
+                            resolved_role_names.extend([r.role_name for r in rows])
+            except Exception as map_err:
+                logging.critical(f"UPN role mapping error: {str(map_err)}")
+
+            default_role_name = os.getenv('DEFAULT_PORTAL_ROLE', 'myportaluser')
+            if default_role_name not in resolved_role_names:
+                resolved_role_names.append(default_role_name)
+
+            # Apply naming filters: startwith 'dashboard' or contains 'myportal'/'beta myportal'
+            try:
+                filtered: list[str] = []
+                for rn in resolved_role_names:
+                    lower = (rn or '').lower()
+                    if lower.startswith('dashboard') or ('myportal' in lower) or ('beta myportal' in lower):
+                        filtered.append(rn)
+                if filtered:
+                    resolved_role_names = filtered
+            except Exception as _:
+                pass
+
+            # Ensure user and roles
+            try:
+                sm = app.appbuilder.sm
+                user = sm.find_user(username=upn)
+                first_name = name.split(' ', 1)[0] if name else upn
+                last_name = name.split(' ', 1)[1] if name and ' ' in name else ''
+                role_objects = []
+                for rn in resolved_role_names:
+                    role = sm.find_role(rn)
+                    if not role:
+                        role = sm.add_role(rn)
+                        logging.critical(f"Created role: {rn}")
+                    role_objects.append(role)
+                if not user:
+                    user = sm.add_user(
+                        username=upn,
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=email,
+                        role=role_objects[0] if role_objects else None
+                    )
+                else:
+                    user.roles = role_objects
+                # Log in
+                from flask_login import login_user
+                login_user(user)
+                g.user = user
+                return (json.dumps({'status': 'ok', 'user': upn, 'roles': [r.name for r in user.roles]}), 200, {'Content-Type': 'application/json'})
+            except Exception as user_err:
+                logging.critical(f"User setup error: {str(user_err)}")
+                return (json.dumps({'error': 'user setup failed'}), 500, {'Content-Type': 'application/json'})
+        except Exception as e:
+            logging.critical(f"SSO init error: {str(e)}")
+            return (json.dumps({'error': 'server error'}), 500, {'Content-Type': 'application/json'})
     @app.route('/debug-jwt')
     def debug_jwt():
         token = request.args.get('proof')
