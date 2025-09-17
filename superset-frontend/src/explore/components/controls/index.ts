@@ -46,6 +46,7 @@ import DndColumnSelectControl, {
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
+  DndColumnMetricSelect,
 } from './DndColumnSelectControl';
 import XAxisSortControl from './XAxisSortControl';
 import CurrencyControl from './CurrencyControl';
@@ -80,6 +81,7 @@ const controlMap = {
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
+  DndColumnMetricSelect,
   FixedOrMetricControl,
   ColorBreakpointsControl,
   HiddenControl,

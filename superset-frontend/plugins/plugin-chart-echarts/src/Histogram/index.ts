@@ -22,8 +22,11 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/example1.png';
 import example2 from './images/example2.png';
+import example1Dark from './images/example1-dark.png';
+import example2Dark from './images/example2-dark.png';
 import { HistogramChartProps, HistogramFormData } from './types';
 
 // TODO: Implement cross filtering
@@ -55,10 +58,14 @@ export default class EchartsHistogramChartPlugin extends ChartPlugin<
           It helps visualize patterns, clusters, and outliers in the data and provides
           insights into its shape, central tendency, and spread.`,
         ),
-        exampleGallery: [{ url: example1 }, { url: example2 }],
+        exampleGallery: [
+          { url: example1, urlDark: example1Dark },
+          { url: example2, urlDark: example2Dark },
+        ],
         name: t('Histogram'),
         tags: [t('Comparison'), t('ECharts'), t('Pattern'), t('Range')],
         thumbnail,
+        thumbnailDark,
       }),
       transformProps,
     });

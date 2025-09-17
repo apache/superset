@@ -18,7 +18,7 @@
  */
 import { logging } from '@superset-ui/core';
 import type { commands as commandsType } from '@apache-superset/core';
-import { Disposable } from './core';
+import { Disposable } from '../models';
 
 const commandRegistry: Map<string, (...args: any[]) => any> = new Map();
 

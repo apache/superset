@@ -35,7 +35,7 @@ def load_examples_run(
         logger.info("Loading examples metadata")
     else:
         examples_db = database_utils.get_example_database()
-        logger.info(f"Loading examples metadata and related data into {examples_db}")
+        logger.info("Loading examples metadata and related data into %s", examples_db)
 
     # pylint: disable=import-outside-toplevel
     import superset.examples.data_loading as examples

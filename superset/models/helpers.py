@@ -574,7 +574,7 @@ class AuditMixinNullable(AuditMixin):
             humanize.i18n.deactivate()
             return result
         except Exception as e:
-            logger.warning(f"Locale '{locale}' is not supported in humanize: {e}")
+            logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
             return humanize.naturaltime(time_diff)
 
     @property

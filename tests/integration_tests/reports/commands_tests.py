@@ -1217,7 +1217,14 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 dashboard=dashboard,
-                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+                extra={
+                    "dashboard": {
+                        "anchor": "TAB-L2AB",
+                        "activeTabs": None,
+                        "dataMask": None,
+                        "urlParams": [["native_filters", "()"]],
+                    }
+                },
             )
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
@@ -1266,7 +1273,14 @@ def test_email_dashboard_report_schedule_disabled_tabs(
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 dashboard=dashboard,
-                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+                extra={
+                    "dashboard": {
+                        "anchor": "TAB-L2AB",
+                        "activeTabs": None,
+                        "dataMask": None,
+                        "urlParams": [["native_filters", "()"]],
+                    }
+                },
             )
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
