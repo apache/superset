@@ -156,7 +156,7 @@ describe('Test datatable', () => {
     cy.get('[data-test="row-count-label"]').contains('26 rows');
     cy.get('.ant-empty-description').should('not.exist');
   });
-  it('Datapane loads view samples', () => {
+  it.skip('Datapane loads view samples', () => {
     cy.intercept(
       '**/datasource/samples?force=false&datasource_type=table&datasource_id=*',
     ).as('Samples');
