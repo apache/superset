@@ -44,21 +44,21 @@ describe('Custom Frame Fixes', () => {
       expect(relativeOption).toBeUndefined();
     });
 
-    it('should only include specific, now, and today options', () => {
-      const expectedValues = ['specific', 'now', 'today'];
+    it('should only include specific option', () => {
+      const expectedValues = ['specific'];
       const actualValues = SINCE_MODE_OPTIONS.map(option => option.value);
       
       expect(actualValues).toEqual(expectedValues);
-      expect(actualValues).toHaveLength(3);
+      expect(actualValues).toHaveLength(1);
     });
 
-    it('should not allow relative as DateTimeModeType', () => {
+    it('should only allow specific as DateTimeModeType', () => {
       // This is a compile-time check, but we can verify the type constraint
-      const validModes: DateTimeModeType[] = ['specific', 'now', 'today'];
+      const validModes: DateTimeModeType[] = ['specific'];
       
       // Should not throw any TypeScript errors
       validModes.forEach(mode => {
-        expect(['specific', 'now', 'today']).toContain(mode);
+        expect(['specific']).toContain(mode);
       });
     });
   });
@@ -129,11 +129,9 @@ describe('Custom Frame Fixes', () => {
   });
 
   describe('4. Mode Options Structure', () => {
-    it('should have correct labels for available modes', () => {
+    it('should have correct label for specific mode', () => {
       const expectedOptions = [
         { value: 'specific', label: expect.any(String) },
-        { value: 'now', label: expect.any(String) },
-        { value: 'today', label: expect.any(String) },
       ];
       
       expect(SINCE_MODE_OPTIONS).toEqual(expectedOptions);
@@ -155,12 +153,12 @@ describe('Custom Frame Fixes', () => {
       expect(result.customRange.untilDatetime).toBe('2021-01-27T00:00:00');
     });
 
-    it('should still parse now and today modes correctly', () => {
-      const result = customTimeRangeDecode('now : today');
+    it('should still parse existing time ranges correctly', () => {
+      const result = customTimeRangeDecode('2021-01-01T00:00:00 : 2021-01-02T00:00:00');
       
       expect(result.matchedFlag).toBe(true);
-      expect(result.customRange.sinceMode).toBe('now');
-      expect(result.customRange.untilMode).toBe('today');
+      expect(result.customRange.sinceMode).toBe('specific');
+      expect(result.customRange.untilMode).toBe('specific');
     });
   });
 

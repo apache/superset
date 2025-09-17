@@ -36,8 +36,6 @@ export const ISO8601_AND_CONSTANT = RegExp(
   'i',
 );
 
-const SPECIFIC_MODE = ['specific', 'today', 'now'];
-
 export const dttmToMoment = (dttm: string): Moment => {
   if (dttm === 'now') {
     return moment().utc().startOf('second');
@@ -52,28 +50,10 @@ export const dttmToString = (dttm: string): string =>
   dttmToMoment(dttm).format(MOMENT_FORMAT);
 
 export const customTimeRangeEncode = (customRange: CustomRangeType): string => {
-  const {
-    sinceDatetime,
-    sinceMode,
-    sinceGrain,
-    sinceGrainValue,
-    untilDatetime,
-    untilMode,
-    untilGrain,
-    untilGrainValue,
-    anchorValue,
-  } = { ...customRange };
-  // specific : specific
-  if (SPECIFIC_MODE.includes(sinceMode) && SPECIFIC_MODE.includes(untilMode)) {
-    const since =
-      sinceMode === 'specific' ? dttmToString(sinceDatetime) : sinceMode;
-    const until =
-      untilMode === 'specific' ? dttmToString(untilDatetime) : untilMode;
-    return `${since} : ${until}`;
-  }
-
-  // Default fallback for any remaining cases
-  const since = sinceMode === 'specific' ? dttmToString(sinceDatetime) : sinceMode;
-  const until = untilMode === 'specific' ? dttmToString(untilDatetime) : untilMode;
+  const { sinceDatetime, untilDatetime } = customRange;
+  
+  // Since we only support 'specific' mode now, always use the datetime values
+  const since = dttmToString(sinceDatetime);
+  const until = dttmToString(untilDatetime);
   return `${since} : ${until}`;
 };

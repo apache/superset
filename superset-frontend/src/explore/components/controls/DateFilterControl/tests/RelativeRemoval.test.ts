@@ -28,17 +28,15 @@ describe('Relative Date/Time Removal Tests', () => {
       expect(hasRelative).toBe(false);
     });
 
-    test('should contain exactly 3 options', () => {
-      expect(SINCE_MODE_OPTIONS).toHaveLength(3);
+    test('should contain exactly 1 option (simplified)', () => {
+      expect(SINCE_MODE_OPTIONS).toHaveLength(1);
       const values = SINCE_MODE_OPTIONS.map(option => option.value);
-      expect(values).toEqual(['specific', 'now', 'today']);
+      expect(values).toEqual(['specific']);
     });
 
     test('should have correct labels', () => {
       const expectedOptions = [
         { value: 'specific', label: expect.anything() },
-        { value: 'now', label: expect.anything() },
-        { value: 'today', label: expect.anything() },
       ];
 
       expectedOptions.forEach((expected, index) => {
@@ -54,10 +52,10 @@ describe('Relative Date/Time Removal Tests', () => {
       expect(hasRelative).toBe(false);
     });
 
-    test('should contain exactly 3 options', () => {
-      expect(UNTIL_MODE_OPTIONS).toHaveLength(3);
+    test('should contain exactly 1 option (simplified)', () => {
+      expect(UNTIL_MODE_OPTIONS).toHaveLength(1);
       const values = UNTIL_MODE_OPTIONS.map(option => option.value);
-      expect(values).toEqual(['specific', 'now', 'today']);
+      expect(values).toEqual(['specific']);
     });
 
     test('should be identical to SINCE_MODE_OPTIONS', () => {
@@ -101,7 +99,7 @@ describe('Relative Date/Time Removal Tests', () => {
 
   describe('5. Backward Compatibility', () => {
     test('Available options should remain functional', () => {
-      const validModes = ['specific', 'now', 'today'];
+      const validModes = ['specific'];
       
       // Ensure all available modes are still supported
       validModes.forEach(mode => {
@@ -113,8 +111,8 @@ describe('Relative Date/Time Removal Tests', () => {
       });
     });
 
-    test('Option values should remain unchanged for API compatibility', () => {
-      const expectedValues = ['specific', 'now', 'today'];
+    test('Option values should reflect simplified API', () => {
+      const expectedValues = ['specific'];
       
       const sinceValues = SINCE_MODE_OPTIONS.map(option => option.value);
       const untilValues = UNTIL_MODE_OPTIONS.map(option => option.value);

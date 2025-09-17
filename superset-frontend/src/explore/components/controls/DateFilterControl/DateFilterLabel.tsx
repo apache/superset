@@ -209,6 +209,37 @@ function convertRangeTZ(s: string, toTZ = 'Asia/Kolkata') {
   return s.replace(matches[0], a).replace(matches[1], b);
 }
 
+// Format datetime for user-friendly display (only for UI, not API)
+function formatDateTimeForDisplay(s: string, toTZ = 'Asia/Kolkata') {
+  const isoRe =
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
+
+  const matches = [...s.matchAll(isoRe)].map(m => m[0]);
+  if (matches.length < 2) return s;
+
+  const formatForDisplay = (iso: string) => {
+    // If no offset, assume UTC
+    const src = /Z|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
+    const dt = new Date(src);
+
+    // Format as user-friendly string in target zone
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: toTZ,
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(dt);
+  };
+
+  const formattedStart = formatForDisplay(matches[0]);
+  const formattedEnd = formatForDisplay(matches[1]);
+
+  return s.replace(matches[0], formattedStart).replace(matches[1], formattedEnd);
+}
+
 export const getDateFromTimezone = (timezone: string) =>
   DateTime.now().setZone(timezone);
 export const getEzTimezoneDate = (
@@ -280,7 +311,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       setValidTimeRange(true);
       return;
     }
-    fetchTimeRange(value).then(({ value: actualRange, error }) => {
+    fetchTimeRange(value, 'date').then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
@@ -306,16 +337,18 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           guessedFrame === 'Calendar' ||
           guessedFrame === 'Current'
         ) {
-          // Pill shows HRT (value); tooltip shows ADR (converted)
+          // Pill shows HRT (value); tooltip shows ADR (user-friendly formatted)
           setActualTimeRange(value);
+          const formattedADR = convertedADR ? formatDateTimeForDisplay(convertedADR, urlTZ) : convertedADR;
           setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, value, convertedADR),
+            getTooltipTitle(labelIsTruncated, value, formattedADR),
           );
         } else {
-          // Pill shows ADR (converted); tooltip shows HRT (value)
-          setActualTimeRange(convertedADR || '');
+          // Pill shows ADR (user-friendly formatted); tooltip shows HRT (value)
+          const formattedADR = convertedADR ? formatDateTimeForDisplay(convertedADR, urlTZ) : convertedADR;
+          setActualTimeRange(formattedADR || '');
           setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, convertedADR, value),
+            getTooltipTitle(labelIsTruncated, formattedADR, value),
           );
         }
         setValidTimeRange(true);
@@ -337,7 +370,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
+        fetchTimeRange(timeRangeValue, 'date').then(({ value: actualRange, error }) => {
           if (error) {
             setEvalResponse(error || '');
             setValidTimeRange(false);
@@ -419,7 +452,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && <div>{convertRangeTZ(evalResponse, urlTZ)}</div>}
+        {validTimeRange && <div>{formatDateTimeForDisplay(evalResponse, urlTZ)}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
