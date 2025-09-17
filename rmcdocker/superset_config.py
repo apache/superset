@@ -605,9 +605,14 @@ class UnifiedSecurityManager(SupersetSecurityManager):
                     params = {f"g{j}": chunk[j] for j in range(len(chunk))}
                     with engine.connect() as conn:
                         rows = conn.execute(sql, params).fetchall()
-                        chunk_roles = [r.role_name for r in rows]
+                        chunk_roles = [r.role_name for r in rows if r.role_name is not None]
                         resolved_role_names.extend(chunk_roles)
                         logging.critical(f"Chunk {i//chunk_size + 1}: Mapped {len(chunk_roles)} roles: {chunk_roles}")
+                        
+                        # Debug: Check for None values in database results
+                        none_count = sum(1 for r in rows if r.role_name is None)
+                        if none_count > 0:
+                            logging.critical(f"WARNING: Found {none_count} NULL role names in Azure SQL database!")
                         
                 logging.critical(f"========== AZURE SQL MAPPING COMPLETE ==========")
                 logging.critical(f"Total resolved {len(resolved_role_names)} roles: {resolved_role_names}")
@@ -643,6 +648,11 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         # Create/attach roles
         for role_name in resolved_role_names:
             try:
+                # CRITICAL: Skip any None or empty role names
+                if not role_name or role_name.strip() == '':
+                    logging.critical(f"WARNING: Skipping invalid role name: {repr(role_name)}")
+                    continue
+                    
                 role = self.find_role(role_name)
                 if not role:
                     role = self.add_role(role_name)
@@ -919,7 +929,7 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES = [
 def flask_app_mutator(app):
     try:
         security_manager = app.appbuilder.sm
-        roles_to_create = ["myportaluser", "superset-group1", "superset-group2"]
+        roles_to_create = ["myportaluser"]  # Only create default role - Azure groups handle the rest
        
         for role_name in roles_to_create:
             if not security_manager.find_role(role_name):
