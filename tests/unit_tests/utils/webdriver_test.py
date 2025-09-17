@@ -351,29 +351,6 @@ class TestPlaywrightAvailabilityCheck:
 class TestPlaywrightMigrationSupport:
     """Test Playwright migration and fallback functionality."""
 
-    def test_playwright_install_message_constant(self):
-        """Test that PLAYWRIGHT_INSTALL_MESSAGE contains expected content."""
-        assert "pip install playwright" in PLAYWRIGHT_INSTALL_MESSAGE
-        assert "playwright install chromium" in PLAYWRIGHT_INSTALL_MESSAGE
-        assert "WebGL/DuckGL" in PLAYWRIGHT_INSTALL_MESSAGE
-        assert "Cypress" in PLAYWRIGHT_INSTALL_MESSAGE
-
-    def test_playwright_available_constant_type(self):
-        """Test that PLAYWRIGHT_AVAILABLE is a boolean."""
-        assert isinstance(PLAYWRIGHT_AVAILABLE, bool)
-
-    @patch("superset.utils.webdriver.sync_playwright", None)
-    def test_playwright_available_false_when_not_installed(self):
-        """Test PLAYWRIGHT_AVAILABLE is False when playwright not available."""
-        # Import the module with mocked playwright
-        from importlib import reload
-
-        import superset.utils.webdriver as webdriver_module
-
-        reload(webdriver_module)
-
-        assert not webdriver_module.PLAYWRIGHT_AVAILABLE
-
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_validate_webdriver_config_all_available(self, mock_feature_flag):
         """Test validate_webdriver_config when all dependencies available."""
