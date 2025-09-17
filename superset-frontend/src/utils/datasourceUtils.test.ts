@@ -72,6 +72,7 @@ const mockDatasource: Datasource = {
 
 const mockQueryEditor: QueryEditor = {
   id: 'query-1',
+  immutableId: 'immutable-query-1',
   version: 1,
   name: 'Test Query',
   sql: 'SELECT * FROM users',
