@@ -61,23 +61,19 @@ describe('Date Picker Visibility and UI Behavior', () => {
   });
 
   describe('Mode Switching Behavior', () => {
-    it('should maintain specific mode when switching between date picker and other modes', () => {
+    it('should maintain specific mode consistently', () => {
       let currentRange = customTimeRangeDecode('').customRange;
       
-      // Start with specific mode (default)
+      // Start with specific mode (default and only option)
       expect(currentRange.sinceMode).toBe('specific');
       
-      // Simulate changing to 'now' and back to 'specific'
-      currentRange = { ...currentRange, sinceMode: 'now' as const };
-      currentRange = { ...currentRange, sinceMode: 'specific' as const };
-      
-      // Should still work with specific mode
+      // Should always be in specific mode since it's the only option
       expect(currentRange.sinceMode).toBe('specific');
       expect(currentRange.sinceDatetime).toBeTruthy();
     });
 
-    it('should handle transitions between all available modes', () => {
-      const availableModes = ['specific', 'now', 'today'] as const;
+    it('should only support specific mode', () => {
+      const availableModes = ['specific'] as const;
       let currentRange = customTimeRangeDecode('').customRange;
       
       availableModes.forEach(mode => {
