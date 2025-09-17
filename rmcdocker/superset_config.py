@@ -6,7 +6,7 @@ import json
 import traceback
 from flask import request, redirect, url_for, g
 from superset.security import SupersetSecurityManager
-from flask_jwt_extended import decode_token
+# Removed Flask-JWT-Extended - using Azure AD token validation instead
 import hmac
 import hashlib
 import base64
@@ -133,8 +133,7 @@ AUTH_ROLE_PUBLIC = None  # No public role
 # Production security settings
 ENABLE_PROXY_FIX = True  # Handle reverse proxy headers
 WTF_CSRF_ENABLED = True  # CSRF protection
-SESSION_PERMANENT = False
-PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
+# Session configuration consolidated with CORS settings below
 
 # Azure OAuth Configuration
 # OAUTH_PROVIDERS = [  # Commented out for JWT-only testing
@@ -155,26 +154,211 @@ PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
 #     }
 # ]
 
-# JWT Configuration (for WordPress OBO tokens)
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "mJJWaB@x8mtD!@U6oR4n!85")
-JWT_TOKEN_LOCATION = ['headers', 'query_string']
+# Azure AD Configuration for OBO Token Validation
+AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID", "9b461294-9d11-4314-928e-277398086f19")
+AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "39ad4e02-9a76-4464-810b-eac74dbc0950")
+AZURE_AD_CONFIG = {
+    "tenant_id": AZURE_TENANT_ID,
+    "client_id": AZURE_CLIENT_ID,
+    "jwks_url": f"https://login.microsoftonline.com/{AZURE_TENANT_ID}/discovery/v2.0/keys",
+    "issuer": f"https://sts.windows.net/{AZURE_TENANT_ID}/",
+    "audience": f"api://{AZURE_CLIENT_ID}",
+    "leeway": 10,  # 10 seconds clock skew tolerance
+    "cache_ttl": 24 * 3600,  # 24 hours
+    "refresh_threshold": 0.75,  # Refresh at 75% TTL
+}
+
+# JWT Processing Configuration
+JWT_IDENTITY_CLAIM = 'upn'
 JWT_QUERY_STRING_NAME = 'proof'
-JWT_ALGORITHM = 'HS256'
+
+# Legacy JWT settings (kept for compatibility)
 FLASK_ENV = 'development'
 FLASK_DEBUG = True
-JWT_IDENTITY_CLAIM = 'upn'
-JWT_DECODE_AUDIENCE = None
-JWT_DECODE_LEEWAY = 10
-JWT_DECODE_ALGORITHMS = ['HS256']
-JWT_ERROR_MESSAGE_KEY = 'message'
-JWT_PRIVATE_CLAIMS = ['username', 'email', 'roles']
- 
-# Enhanced JWT settings
-JWT_COOKIE_SECURE = False  # Set to True in production with HTTPS
-JWT_COOKIE_CSRF_PROTECT = False  # Set to True in production
-JWT_ACCESS_TOKEN_EXPIRES = 3600 * 8  # 8 hours
-JWT_COOKIE_DOMAIN = '.rmcare.com'  # Match session cookie domain
- 
+
+# Azure AD Token Validator
+import jwt
+import requests
+import redis
+import json
+import time
+from datetime import datetime, timedelta
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+
+class AzureADTokenValidator:
+    def __init__(self, config):
+        self.config = config
+        self.redis_client = None
+        try:
+            self.redis_client = redis.Redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'))
+            self.redis_client.ping()  # Test connection
+            logging.info("Azure AD Token Validator: Redis connection established")
+        except Exception as e:
+            logging.warning(f"Azure AD Token Validator: Redis unavailable, using memory cache: {e}")
+            self._memory_cache = {}
+    
+    def _get_cache_key(self):
+        return f"azure_ad_keys:{self.config['tenant_id']}"
+    
+    def _get_cached_keys(self):
+        """Get JWKS keys from cache (Redis or memory fallback)"""
+        if self.redis_client:
+            try:
+                cached_data = self.redis_client.get(self._get_cache_key())
+                if cached_data:
+                    return json.loads(cached_data)
+            except Exception as e:
+                logging.warning(f"Redis cache read failed: {e}")
+        
+        # Memory fallback
+        if hasattr(self, '_memory_cache'):
+            return self._memory_cache.get(self._get_cache_key())
+        
+        return None
+    
+    def _set_cached_keys(self, keys_data):
+        """Set JWKS keys in cache with TTL"""
+        cache_data = {
+            "keys": keys_data,
+            "cached_at": time.time(),
+            "expires_at": time.time() + self.config['cache_ttl']
+        }
+        
+        if self.redis_client:
+            try:
+                self.redis_client.setex(
+                    self._get_cache_key(),
+                    self.config['cache_ttl'],
+                    json.dumps(cache_data)
+                )
+                return
+            except Exception as e:
+                logging.warning(f"Redis cache write failed: {e}")
+        
+        # Memory fallback
+        if hasattr(self, '_memory_cache'):
+            self._memory_cache[self._get_cache_key()] = cache_data
+    
+    def _fetch_jwks_keys(self):
+        """Fetch JWKS keys from Microsoft with retry logic"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(
+                    self.config['jwks_url'],
+                    timeout=10,
+                    headers={'User-Agent': 'Superset-Azure-AD-Validator/1.0'}
+                )
+                response.raise_for_status()
+                jwks_data = response.json()
+                
+                # Parse and cache RSA keys
+                parsed_keys = {}
+                for key_data in jwks_data.get('keys', []):
+                    if key_data.get('kty') == 'RSA' and key_data.get('use') == 'sig':
+                        kid = key_data.get('kid')
+                        if kid:
+                            parsed_keys[kid] = key_data
+                
+                logging.info(f"Fetched {len(parsed_keys)} JWKS keys from Azure AD")
+                self._set_cached_keys(parsed_keys)
+                return parsed_keys
+                
+            except Exception as e:
+                logging.warning(f"JWKS fetch attempt {attempt + 1}/{max_retries} failed: {e}")
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(2 ** attempt)  # Exponential backoff
+        
+        return {}
+    
+    def _get_signing_keys(self):
+        """Get signing keys with caching and refresh logic"""
+        cached_data = self._get_cached_keys()
+        
+        if cached_data:
+            expires_at = cached_data.get('expires_at', 0)
+            refresh_time = expires_at - (self.config['cache_ttl'] * (1 - self.config['refresh_threshold']))
+            
+            # Use cached keys if still valid
+            if time.time() < expires_at:
+                # Background refresh if approaching expiration
+                if time.time() > refresh_time:
+                    try:
+                        self._fetch_jwks_keys()  # Background refresh
+                    except Exception as e:
+                        logging.warning(f"Background JWKS refresh failed: {e}")
+                
+                return cached_data['keys']
+            else:
+                logging.warning("Cached JWKS keys expired, fetching fresh keys")
+        
+        # Fetch fresh keys if cache miss or expired
+        try:
+            return self._fetch_jwks_keys()
+        except Exception as e:
+            logging.error(f"Failed to fetch JWKS keys: {e}")
+            
+            # Return expired cached keys as last resort
+            if cached_data and cached_data.get('keys'):
+                logging.warning("Using expired JWKS keys as fallback")
+                return cached_data['keys']
+            
+            raise Exception("No JWKS keys available")
+    
+    def validate_token(self, token):
+        """Validate Azure AD OBO token and return claims"""
+        try:
+            # Decode header to get key ID
+            unverified_header = jwt.get_unverified_header(token)
+            kid = unverified_header.get('kid')
+            
+            if not kid:
+                raise ValueError("Token missing 'kid' (key ID) in header")
+            
+            # Get signing keys
+            signing_keys = self._get_signing_keys()
+            
+            if kid not in signing_keys:
+                raise ValueError(f"Unknown key ID: {kid}")
+            
+            # Convert JWK to PEM format for PyJWT
+            key_data = signing_keys[kid]
+            public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(key_data))
+            
+            # Validate token with full verification
+            decoded_token = jwt.decode(
+                token,
+                public_key,
+                algorithms=['RS256'],
+                audience=self.config['audience'],
+                issuer=self.config['issuer'],
+                leeway=self.config['leeway']
+            )
+            
+            logging.info(f"Token validated successfully for user: {decoded_token.get('upn', 'unknown')}")
+            return decoded_token
+            
+        except jwt.ExpiredSignatureError:
+            logging.warning("Token validation failed: Token expired")
+            raise ValueError("Token expired")
+        except jwt.InvalidAudienceError:
+            logging.warning(f"Token validation failed: Invalid audience (expected: {self.config['audience']})")
+            raise ValueError("Invalid token audience")
+        except jwt.InvalidIssuerError:
+            logging.warning(f"Token validation failed: Invalid issuer (expected: {self.config['issuer']})")
+            raise ValueError("Invalid token issuer")
+        except jwt.InvalidTokenError as e:
+            logging.warning(f"Token validation failed: Invalid token - {e}")
+            raise ValueError(f"Invalid token: {e}")
+        except Exception as e:
+            logging.error(f"Token validation error: {e}")
+            raise ValueError(f"Token validation failed: {e}")
+
+# Initialize global token validator
+azure_token_validator = AzureADTokenValidator(AZURE_AD_CONFIG)
+
 class UnifiedSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
         super(UnifiedSecurityManager, self).__init__(appbuilder)
@@ -283,7 +467,7 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         logging.critical(f"Token first 10 chars: {token[:10] if token else 'None'}")
        
         try:
-            decoded_token = decode_token(token, allow_expired=True)
+            decoded_token = azure_token_validator.validate_token(token)
             logging.critical(f"Token decoded successfully")
            
             try:
@@ -561,8 +745,7 @@ def current_username():
     
     if token:
         try:
-            from flask_jwt_extended import decode_token
-            decoded = decode_token(token, allow_expired=True)
+            decoded = azure_token_validator.validate_token(token)
             username = decoded.get(JWT_IDENTITY_CLAIM)  # Use 'upn' not 'username'
             logging.critical(f"Found username in JWT: {username}")
             return username
@@ -592,8 +775,7 @@ def current_user_id():
     
     if token:
         try:
-            from flask_jwt_extended import decode_token
-            decoded = decode_token(token, allow_expired=True)
+            decoded = azure_token_validator.validate_token(token)
             user_id = decoded.get('sub')
             logging.critical(f"Found user_id in JWT: {user_id}")
             return user_id
@@ -628,11 +810,7 @@ JINJA_CONTEXT_ADDONS = {
 DASHBOARD_HORIZONTAL_FILTER_BAR_DEFAULT = True
  
 # Unified SSO Session Configuration
-SESSION_COOKIE_DOMAIN = '.rmcare.com'  # Shared across WordPress and Superset
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-PERMANENT_SESSION_LIFETIME = 28800  # 8 hours to match JWT expiration
+# Session configuration moved to CORS section for consolidation
 
 # MyPortal Configuration
 TALISMAN_CONFIG = {
@@ -645,9 +823,18 @@ TALISMAN_CONFIG = {
 ENABLE_CORS = True
 CORS_OPTIONS = {
   'supports_credentials': True,
-  'allow_headers': ['Content-Type', 'Authorization'],
+  'allow_headers': ['Content-Type', 'Authorization', 'X-Requested-With'],
+  'expose_headers': ['Set-Cookie'],
   'resources': {'*': {'origins': ['https://beta.myportal.rmcare.com', 'https://myportal.rmcare.com', 'https://stg-dashboards.rmcare.com']}},
 }
+
+# Session Configuration for Cross-Domain Support
+SESSION_COOKIE_DOMAIN = '.rmcare.com'  # Shared across WordPress and Superset
+SESSION_COOKIE_SECURE = True  # HTTPS only in production
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'None'  # Required for iframe embedding
+SESSION_PERMANENT = False
+PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
  
 # Colors schemes
 EXTRA_CATEGORICAL_COLOR_SCHEMES = [
@@ -728,7 +915,7 @@ def flask_app_mutator(app):
             logging.critical(f"TOKEN FOUND IN REQUEST: {path}")
            
             try:
-                decoded = decode_token(token, allow_expired=True)
+                decoded = azure_token_validator.validate_token(token)
                 username = decoded.get(JWT_IDENTITY_CLAIM)  # Use 'upn' not 'username'
                
                 if username:
@@ -947,7 +1134,7 @@ def flask_app_mutator(app):
             result["received_token"] = True
             result["token_length"] = len(token)
             try:
-                decoded = decode_token(token, allow_expired=True)
+                decoded = azure_token_validator.validate_token(token)
                 result["payload"] = decoded
                 current_timestamp = datetime.datetime.now().timestamp()
                 if 'exp' in decoded:
@@ -999,7 +1186,7 @@ def flask_app_mutator(app):
         test_token = request.args.get('proof')
         if test_token:
             try:
-                decoded = decode_token(test_token, allow_expired=True)
+                decoded = azure_token_validator.validate_token(test_token)
                 result["token_test"] = {
                     "decoded": True,
                     "username": decoded.get('username'),

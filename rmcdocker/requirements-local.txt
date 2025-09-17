@@ -15,9 +15,9 @@ psycopg2-binary
 #Flask
 flask-cors
 
-#Python Javascript Web Tokens
-PyJWT>=2.8.0
-
-# OAuth and Azure AD integration
+# Azure AD authentication and JWT validation
+PyJWT[crypto]>=2.8.0
+cryptography>=41.0.0
 authlib>=1.2.0
 requests>=2.31.0
+redis>=4.0.0
