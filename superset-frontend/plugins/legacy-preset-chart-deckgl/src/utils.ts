@@ -75,6 +75,10 @@ export function getBreakPoints(
     if (minValue === undefined || maxValue === undefined) {
       return [];
     }
+    // Handle Infinity values
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+      return [];
+    }
     const delta = (maxValue - minValue) / numBuckets;
     const precision =
       delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));

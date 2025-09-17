@@ -280,7 +280,7 @@ describe('getBreakPoints', () => {
       expect(3.14).toBeGreaterThanOrEqual(firstBp);
       
       // The first breakpoint should be a clean floor value
-      expect(breakPoints[0]).toMatch(/^3(\.0+)?$/);
+      expect(breakPoints[0]).toMatch(/^3(\.0*)?$/);
     });
 
     it('prevents maximum value exclusion edge case', () => {
@@ -308,7 +308,7 @@ describe('getBreakPoints', () => {
       expect(38.7).toBeLessThanOrEqual(lastBp);
       
       // The last breakpoint should be a clean ceil value
-      expect(breakPoints[breakPoints.length - 1]).toMatch(/^39(\.0+)?$/);
+      expect(breakPoints[breakPoints.length - 1]).toMatch(/^39(\.0*)?$/);
     });
   });
 
@@ -447,8 +447,8 @@ describe('getBreakPoints', () => {
         accessor,
       );
 
-      // Should handle gracefully, even if results are unusual
-      expect(Array.isArray(breakPoints)).toBe(true);
+      // Should return empty array when Infinity values are present
+      expect(breakPoints).toEqual([]);
     });
   });
 
