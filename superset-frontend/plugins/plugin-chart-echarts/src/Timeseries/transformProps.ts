@@ -582,8 +582,20 @@ export default function transformProps(
           richTooltip,
           tooltipSortByMetric,
         );
+        const filteredForecastValue = forecastValue.filter(
+          (item: any) =>
+            !annotationLayers.some(
+              (annotation: any) => item.seriesName === annotation.name,
+            ),
+        );
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
+
+        const filteredForecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(
+            filteredForecastValue,
+            isHorizontal,
+          );
 
         const isForecast = Object.values(forecastValues).some(
           value =>
@@ -595,7 +607,7 @@ export default function transformProps(
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
 
         const rows: string[][] = [];
-        const total = Object.values(forecastValues).reduce(
+        const total = Object.values(filteredForecastValues).reduce(
           (acc, value) =>
             value.observation !== undefined ? acc + value.observation : acc,
           0,
@@ -617,7 +629,16 @@ export default function transformProps(
               seriesName: key,
               formatter,
             });
-            if (showPercentage && value.observation !== undefined) {
+
+            const annotationRow = annotationLayers.some(
+              item => item.name === key,
+            );
+
+            if (
+              showPercentage &&
+              value.observation !== undefined &&
+              !annotationRow
+            ) {
               row.push(
                 percentFormatter.format(value.observation / (total || 1)),
               );
