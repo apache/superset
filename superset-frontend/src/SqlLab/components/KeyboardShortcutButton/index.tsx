@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { styled, t, css } from '@superset-ui/core';
 import { ModalTrigger } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
@@ -91,7 +91,7 @@ const ShortcutCode = styled.code`
   padding: ${({ theme }) => `${theme.sizeUnit}px ${theme.sizeUnit * 2}px`};
 `;
 
-const KeyboardShortcutButton: FC<{}> = ({ children }) => (
+const KeyboardShortcutButton: FC<{ children: ReactNode }> = ({ children }) => (
   <ModalTrigger
     modalTitle={t('Keyboard shortcuts')}
     modalBody={

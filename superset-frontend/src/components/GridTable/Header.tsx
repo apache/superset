@@ -97,7 +97,7 @@ export const Header: React.FC<Params> = ({
   const [currentSort, setCurrentSort] = useState<string | null>(null);
   const [sortIndex, setSortIndex] = useState<number | null>();
   const onSort = useCallback(
-    event => {
+    (event: any) => {
       sortOption.current = (sortOption.current + 1) % SORT_DIRECTION.length;
       const sort = SORT_DIRECTION[sortOption.current];
       setSort(sort, event.shiftKey);

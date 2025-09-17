@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useComponentDidUpdate } from './useComponentDidUpdate';
 
 test('the effect should not be executed on the first render', () => {

@@ -16,14 +16,14 @@
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
-    "@types/react": "^17.0.83",
+    "@types/react": "^18.2.0",
     "install": "^0.13.0",
     "npm": "^11.1.0",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "antd": "^5.24.6",
-    "react": "^17.0.2"
+    "react": "^18.0.0"
   },
   "scripts": {
     "build": "babel src --out-dir lib --extensions \".ts,.tsx\" && tsc --emitDeclarationOnly",

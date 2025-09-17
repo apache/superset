@@ -95,8 +95,8 @@ const StyledPlus = styled.span`
 
 export default function TruncatedList<ListItemType>({
   items,
-  renderVisibleItem = item => item,
-  renderTooltipItem = item => item,
+  renderVisibleItem = item => item as ReactNode,
+  renderTooltipItem = item => item as ReactNode,
   getKey = item => item as unknown as Key,
   maxLinks = 20,
 }: TruncatedListProps<ListItemType>) {

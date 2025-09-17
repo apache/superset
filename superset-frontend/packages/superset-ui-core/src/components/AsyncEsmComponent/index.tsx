@@ -19,12 +19,12 @@
 import {
   useEffect,
   useState,
-  RefObject,
   forwardRef,
   ComponentType,
   ForwardRefExoticComponent,
   PropsWithoutRef,
   RefAttributes,
+  ForwardedRef,
 } from 'react';
 
 import { Loading } from '../Loading';
@@ -54,7 +54,7 @@ function DefaultPlaceholder({
  * first (if provided) and re-render once import is complete.
  */
 export function AsyncEsmComponent<
-  P = PlaceholderProps,
+  P = Record<string, unknown>,
   M = ComponentType<P> | { default: ComponentType<P> },
 >(
   /**
@@ -98,8 +98,8 @@ export function AsyncEsmComponent<
   };
 
   const AsyncComponent: AsyncComponent = forwardRef(function AsyncComponent(
-    props: FullProps,
-    ref: RefObject<ComponentType<FullProps>>,
+    props: PropsWithoutRef<FullProps>,
+    ref: ForwardedRef<ComponentType<FullProps>>,
   ) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {

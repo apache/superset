@@ -59,7 +59,7 @@ export default function TableControls({
   );
 
   const removeFilter = useCallback(
-    colName => {
+    (colName: any) => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
       setFilters([...Object.values(updatedFilterMap)]);
@@ -110,7 +110,7 @@ export default function TableControls({
             >
               {colName}
             </span>
-            <strong data-test="filter-val">{val}</strong>
+            <strong data-test="filter-val">{String(val)}</strong>
           </Tag>
         ))}
       </div>

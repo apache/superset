@@ -16,21 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DragSourceSpec, DropTargetSpec, DragSourceCollector, DropTargetCollector } from 'react-dnd';
 import handleHover from './handleHover';
 import handleDrop from './handleDrop';
 
-// note: the 'type' hook is not useful for us as dropping is contingent on other properties
+interface DragItem {
+  type: string;
+  id: string;
+  meta?: Record<string, any>;
+  index: number;
+  parentId?: string;
+  parentType?: string;
+}
+
+interface DragDroppableProps {
+  component: {
+    type: string;
+    id: string;
+    meta?: Record<string, any>;
+  };
+  parentComponent?: {
+    id: string;
+    type: string;
+  };
+  index: number;
+  disableDragDrop: boolean;
+}
+
+interface DragDroppableComponent {
+  mounted: boolean;
+}
+
 const TYPE = 'DRAG_DROPPABLE';
 
-export const dragConfig = [
+export const dragConfig: [
+  string,
+  DragSourceSpec<DragDroppableProps, DragItem>,
+  DragSourceCollector<any, any>
+] = [
   TYPE,
   {
-    canDrag(props) {
+    canDrag(props: DragDroppableProps) {
       return !props.disableDragDrop;
     },
 
-    // this defines the dragging item object returned by monitor.getItem()
-    beginDrag(props /* , monitor, component */) {
+    beginDrag(props: DragDroppableProps): DragItem {
       const { component, index, parentComponent = {} } = props;
       return {
         type: component.type,
@@ -53,23 +83,24 @@ export const dragConfig = [
   },
 ];
 
-export const dropConfig = [
+export const dropConfig: [
+  string,
+  DropTargetSpec<DragDroppableProps>,
+  DropTargetCollector<any, any>
+] = [
   TYPE,
   {
-    canDrop(props) {
+    canDrop(props: DragDroppableProps) {
       return !props.disableDragDrop;
     },
-    hover(props, monitor, component) {
+    hover(props: DragDroppableProps, monitor, component?: DragDroppableComponent) {
       if (component && component.mounted) {
         handleHover(props, monitor, component);
       }
     },
-    // note:
-    //  the react-dnd api requires that the drop() method return a result or undefined
-    //  monitor.didDrop() cannot be used because it returns true only for the most-nested target
-    drop(props, monitor, component) {
+    drop(props: DragDroppableProps, monitor, component?: DragDroppableComponent) {
       const dropResult = monitor.getDropResult();
-      if ((!dropResult || !dropResult.destination) && component.mounted) {
+      if ((!dropResult || !dropResult.destination) && component?.mounted) {
         return handleDrop(props, monitor, component);
       }
       return undefined;

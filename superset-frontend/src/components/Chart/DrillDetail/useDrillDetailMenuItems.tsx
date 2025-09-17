@@ -136,7 +136,7 @@ export const useDrillDetailMenuItems = ({
   );
 
   const openModal = useCallback(
-    (filters, event) => {
+    (filters: any, event: any) => {
       onClick(event);
       onSelection();
       setFilters(filters);

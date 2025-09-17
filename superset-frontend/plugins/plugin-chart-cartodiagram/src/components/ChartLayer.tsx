@@ -19,7 +19,7 @@
 import Layer from 'ol/layer/Layer';
 import { FrameState } from 'ol/Map';
 import { apply as applyTransform } from 'ol/transform';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { SupersetTheme } from '@superset-ui/core';
 import { ChartConfig, ChartLayerOptions, ChartSizeValues } from '../types';
 import { createChartComponent } from '../util/chartUtil';
@@ -32,6 +32,8 @@ import Loader from '../images/loading.gif';
  */
 export class ChartLayer extends Layer {
   charts: any[] = [];
+
+  chartRoots: Map<HTMLElement, any> = new Map();
 
   chartConfigs: ChartConfig = {
     type: 'FeatureCollection',
@@ -166,7 +168,11 @@ export class ChartLayer extends Layer {
    */
   removeAllChartElements() {
     this.charts.forEach(chart => {
-      ReactDOM.unmountComponentAtNode(chart.htmlElement);
+      const root = this.chartRoots.get(chart.htmlElement);
+      if (root) {
+        root.unmount();
+        this.chartRoots.delete(chart.htmlElement);
+      }
       chart.htmlElement.remove();
     });
     this.charts = [];
@@ -191,7 +197,9 @@ export class ChartLayer extends Layer {
         this.theme,
         this.locale,
       );
-      ReactDOM.render(chartComponent, container);
+      const root = createRoot(container);
+      this.chartRoots.set(container, root);
+      root.render(chartComponent);
 
       return {
         htmlElement: container,
@@ -227,7 +235,10 @@ export class ChartLayer extends Layer {
         this.theme,
         this.locale,
       );
-      ReactDOM.render(chartComponent, chart.htmlElement);
+      const root = this.chartRoots.get(chart.htmlElement);
+      if (root) {
+        root.render(chartComponent);
+      }
 
       return {
         ...chart,
