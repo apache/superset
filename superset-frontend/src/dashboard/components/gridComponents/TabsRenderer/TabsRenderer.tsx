@@ -176,36 +176,33 @@ const TabsRenderer = memo<TabsRendererProps>(
           type={editMode ? 'editable-card' : 'card'}
           items={tabItems}
           tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-          renderTabBar={
-            editMode
-              ? (tabBarProps, DefaultTabBar) => (
-                  <DndContext
-                    sensors={[sensor]}
-                    onDragEnd={onDragEnd}
-                    collisionDetection={closestCenter}
-                  >
-                    <SortableContext
-                      items={tabIds}
-                      strategy={horizontalListSortingStrategy}
-                    >
-                      <DefaultTabBar {...tabBarProps}>
-                        {(node: React.ReactElement) => (
-                          <DraggableTabNode
-                            {...(
-                              node as React.ReactElement<DraggableTabNodeProps>
-                            ).props}
-                            key={node.key}
-                            data-node-key={node.key as string}
-                          >
-                            {node}
-                          </DraggableTabNode>
-                        )}
-                      </DefaultTabBar>
-                    </SortableContext>
-                  </DndContext>
-                )
-              : undefined
-          }
+          {...(editMode && {
+            renderTabBar: (tabBarProps, DefaultTabBar) => (
+              <DndContext
+                sensors={[sensor]}
+                onDragEnd={onDragEnd}
+                collisionDetection={closestCenter}
+              >
+                <SortableContext
+                  items={tabIds}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <DefaultTabBar {...tabBarProps}>
+                    {(node: React.ReactElement) => (
+                      <DraggableTabNode
+                        {...(node as React.ReactElement<DraggableTabNodeProps>)
+                          .props}
+                        key={node.key}
+                        data-node-key={node.key as string}
+                      >
+                        {node}
+                      </DraggableTabNode>
+                    )}
+                  </DefaultTabBar>
+                </SortableContext>
+              </DndContext>
+            ),
+          })}
         />
       </StyledTabsContainer>
     );
