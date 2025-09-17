@@ -718,7 +718,15 @@ function ExploreViewContainer(props) {
 
     let dataTabErrorMessage;
     if (errors.length > 0) {
-      dataTabErrorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
+      dataTabErrorMessage = (
+        <div
+          css={css`
+            text-align: 'left';
+          `}
+        >
+          {errors}
+        </div>
+      );
     }
     return dataTabErrorMessage;
   }, [props.controls]);
