@@ -78,9 +78,9 @@ class DruidEngineSpec(BaseEngineSpec):
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
 
-    @staticmethod
+    @classmethod
     def get_extra_params(
-        database: Database, source: QuerySource | None = None
+        cls, database: Database, source: QuerySource | None = None
     ) -> dict[str, Any]:
         """
         For Druid, the path to a SSL certificate is placed in `connect_args`.

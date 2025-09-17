@@ -301,9 +301,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         return True
 
-    @staticmethod
+    @classmethod
     def get_extra_params(
-        database: Database, source: QuerySource | None = None
+        cls, database: Database, source: QuerySource | None = None
     ) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,

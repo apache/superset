@@ -135,9 +135,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ),
     }
 
-    @staticmethod
+    @classmethod
     def get_extra_params(
-        database: Database, source: QuerySource | None = None
+        cls, database: Database, source: QuerySource | None = None
     ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.

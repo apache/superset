@@ -412,9 +412,9 @@ WHERE datistemplate = false;
             inspector.get_foreign_table_names(schema)
         )
 
-    @staticmethod
+    @classmethod
     def get_extra_params(
-        database: Database, source: QuerySource | None = None
+        cls, database: Database, source: QuerySource | None = None
     ) -> dict[str, Any]:
         """
         For Postgres, the path to a SSL certificate is placed in `connect_args`.

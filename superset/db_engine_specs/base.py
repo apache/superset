@@ -2027,9 +2027,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return None
 
-    @staticmethod
+    @classmethod
     def get_extra_params(
-        database: Database, source: QuerySource | None = None
+        cls, database: Database, source: QuerySource | None = None
     ) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
