@@ -42,7 +42,7 @@ export default function childChartsDidLoad({
   const didLoad = chartIds.every((chartId: number) => {
     const query = chartQueries[chartId.toString()] || {};
     minQueryStartTime = Math.min(
-      query.chartUpdateStartTime ?? Infinity
+      query.chartUpdateStartTime ?? Infinity,
       minQueryStartTime,
     );
     return ['stopped', 'failed', 'rendered'].includes(query.chartStatus || '');
