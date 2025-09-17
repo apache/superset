@@ -216,6 +216,7 @@ flask-appbuilder==5.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
 flask-babel==3.1.0
     # via
     #   -c requirements/base-constraint.txt
