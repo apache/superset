@@ -698,6 +698,7 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         from flask import redirect
         
         logging.critical("========== UNAUTHORIZED ACCESS - REDIRECTING TO MICROSOFT ==========")
+        logging.critical("🚨 UNAUTHORIZED METHOD CALLED - OUR SECURITY MANAGER IS WORKING! 🚨")
         
         # Build Microsoft login URL manually (no dependency on OAuth configuration)
         tenant_id = AZURE_TENANT_ID
