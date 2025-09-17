@@ -122,8 +122,11 @@ else:
 # Unified OAuth + JWT Configuration
 from flask_appbuilder.security.manager import AUTH_OAUTH
 
-# Primary authentication: OAuth with Azure AD (auto-redirect to Microsoft)
-AUTH_TYPE = AUTH_OAUTH
+# PRIMARY AUTHENTICATION: JWT Only (WordPress iframe)
+# OAuth disabled - WordPress sends JWT tokens directly
+# AUTH_TYPE = AUTH_OAUTH  # COMMENTED OUT - OAuth direct access disabled
+from flask_appbuilder.security.manager import AUTH_DB
+AUTH_TYPE = AUTH_DB  # Use DB auth but override unauthorized() to redirect to Microsoft
 AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "myportaluser"
 
@@ -135,24 +138,24 @@ ENABLE_PROXY_FIX = True  # Handle reverse proxy headers
 WTF_CSRF_ENABLED = True  # CSRF protection
 # Session configuration consolidated with CORS settings below
 
-# Azure OAuth Configuration
-OAUTH_PROVIDERS = [
-    {
-        'name': 'azure',
-        'token_key': 'access_token',
-        'icon': 'fa-microsoft',
-        'remote_app': {
-            'client_id': os.getenv('AZURE_CLIENT_ID'),
-            'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
-            'api_base_url': 'https://graph.microsoft.com/v1.0/',
-            'client_kwargs': {
-                'scope': 'openid email profile User.Read Group.Read.All'
-            },
-            'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
-            'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
-        }
-    }
-]
+# Azure OAuth Configuration - COMMENTED OUT (JWT-only mode)
+# OAUTH_PROVIDERS = [
+#     {
+#         'name': 'azure',
+#         'token_key': 'access_token',
+#         'icon': 'fa-microsoft',
+#         'remote_app': {
+#             'client_id': os.getenv('AZURE_CLIENT_ID'),
+#             'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
+#             'api_base_url': 'https://graph.microsoft.com/v1.0/',
+#             'client_kwargs': {
+#                 'scope': 'openid email profile User.Read Group.Read.All'
+#             },
+#             'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
+#             'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
+#         }
+#     }
+# ]
 
 # Azure AD Configuration for OBO Token Validation
 AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID", "9b461294-9d11-4314-928e-277398086f19")
@@ -362,49 +365,22 @@ azure_token_validator = AzureADTokenValidator(AZURE_AD_CONFIG)
 class UnifiedSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
         super(UnifiedSecurityManager, self).__init__(appbuilder)
-        logging.critical("Unified Security Manager initialized with OAuth + JWT support")
+        logging.critical("========== UNIFIED SECURITY MANAGER - JWT-ONLY MODE ==========")
+        logging.critical("OAuth DISABLED - WordPress iframe JWT authentication ONLY")
+        logging.critical("Login page DISABLED - Always redirects to Microsoft")
         self.auth_user_jwt_username_key = JWT_IDENTITY_CLAIM
        
         logging.critical(f"Using '{self.auth_user_jwt_username_key}' as the JWT username key")
  
-    def auth_user_oauth(self, userinfo):
-        """
-        OAuth authentication path - called when user authenticates via Azure AD OAuth
-        This creates the same user identity as JWT authentication for session continuity
-        """
-        logging.critical("========== AUTH_USER_OAUTH METHOD CALLED ==========")
-        logging.critical(f"OAuth userinfo: {userinfo}")
-        
-        try:
-            user_id = userinfo.get('userPrincipalName') or userinfo.get('upn') or userinfo.get('unique_name')
-            if not user_id:
-                logging.critical("No user identifier found in OAuth userinfo")
-                return None
-                
-            # Get user groups from Microsoft Graph API
-            azure_groups = self._get_user_groups_from_graph(userinfo.get('access_token'))
-            
-            # Use same user creation/update logic as JWT authentication
-            return self._create_or_update_user(
-                user_id=user_id,
-                user_info={
-                    'name': userinfo.get('displayName') or userinfo.get('name') or user_id,
-                    'email': user_id,  # UPN serves as email address
-                    'given_name': userinfo.get('given_name', ''),
-                    'family_name': userinfo.get('family_name', ''),
-                    'groups': azure_groups
-                },
-                auth_source='oauth'
-            )
-            
-        except Exception as e:
-            logging.critical(f"Error in auth_user_oauth: {str(e)}")
-            logging.critical(f"OAuth auth traceback: {traceback.format_exc()}")
-            return None
+    # OAuth authentication DISABLED - JWT-only mode
+    # def auth_user_oauth(self, userinfo):
+    #     """OAuth authentication disabled - using JWT-only mode"""
+    #     logging.critical("========== AUTH_USER_OAUTH DISABLED ==========")
+    #     return None
     
     def _get_user_groups_from_graph(self, access_token):
         """
-        Retrieve user's groups from Microsoft Graph API with retry logic
+        Get user groups from Microsoft Graph API - used by JWT when OBO token lacks groups
         """
         import time
         
@@ -492,16 +468,29 @@ class UnifiedSecurityManager(SupersetSecurityManager):
                 
             # Map identity and basic profile from Azure AD OBO token
             user_id = decoded_token.get(self.auth_user_jwt_username_key)  # upn
+            
+            # STEP 1: Try to get groups from JWT token first
             azure_groups = decoded_token.get('groups', [])
             logging.critical(f"User ID from token: {user_id}")
             logging.critical(f"Groups from token: {len(azure_groups)}")
             logging.critical(f"Available token fields: {list(decoded_token.keys())}")
- 
+            
+            # STEP 2: If no groups in token, try Graph API with OBO token
+            if not azure_groups:
+                logging.critical("No groups in JWT token - attempting Graph API call with OBO token")
+                try:
+                    # Try to use the OBO token itself for Graph API
+                    azure_groups = self._get_user_groups_from_graph(token)
+                    logging.critical(f"Retrieved {len(azure_groups)} groups from Graph API using OBO token")
+                except Exception as graph_error:
+                    logging.critical(f"Graph API call failed: {str(graph_error)}")
+                    azure_groups = []
+            
             if not user_id:
                 logging.critical("No user identifier found in JWT.")
                 return None
                 
-            # Use same user creation/update logic as OAuth authentication
+            # STEP 3: Create user with Azure groups for role mapping
             return self._create_or_update_user(
                 user_id=user_id,
                 user_info={
@@ -509,7 +498,7 @@ class UnifiedSecurityManager(SupersetSecurityManager):
                     'email': user_id,  # UPN serves as email address
                     'given_name': decoded_token.get('given_name', ''),
                     'family_name': decoded_token.get('family_name', ''),
-                    'groups': azure_groups
+                    'groups': azure_groups  # These will be mapped to Superset roles
                 },
                 auth_source='jwt'
             )
@@ -598,7 +587,9 @@ class UnifiedSecurityManager(SupersetSecurityManager):
             mapping_group_col = os.getenv('AZURE_ROLE_MAPPING_GROUP_COL', 'GroupId')
             mapping_role_col = os.getenv('AZURE_ROLE_MAPPING_ROLE_COL', 'DisplayName')
             
+            logging.critical(f"========== AZURE GROUP MAPPING START ==========")
             logging.critical(f"Processing {len(azure_groups)} Azure groups for role mapping")
+            logging.critical(f"Azure group GUIDs: {azure_groups}")
             
             if mapping_db_uri and azure_groups:
                 from sqlalchemy import create_engine, text
@@ -614,9 +605,12 @@ class UnifiedSecurityManager(SupersetSecurityManager):
                     params = {f"g{j}": chunk[j] for j in range(len(chunk))}
                     with engine.connect() as conn:
                         rows = conn.execute(sql, params).fetchall()
-                        resolved_role_names.extend([r.role_name for r in rows])
+                        chunk_roles = [r.role_name for r in rows]
+                        resolved_role_names.extend(chunk_roles)
+                        logging.critical(f"Chunk {i//chunk_size + 1}: Mapped {len(chunk_roles)} roles: {chunk_roles}")
                         
-                logging.critical(f"Resolved {len(resolved_role_names)} roles from Azure SQL mapping")
+                logging.critical(f"========== AZURE SQL MAPPING COMPLETE ==========")
+                logging.critical(f"Total resolved {len(resolved_role_names)} roles: {resolved_role_names}")
                 
             # If no DB mapping, default to using Azure group GUIDs verbatim as role names
             if not resolved_role_names and azure_groups:
@@ -686,16 +680,58 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         logging.critical(f"Invalid JWT token: {error_string}")
         return None
     
-    # def login_url(self, next_url=None):  # Commented out for JWT-only testing
-    #     from flask import url_for
-    #     logging.critical("login_url called - forcing OAuth redirect")
-    #     
-    #     oauth_login_url = url_for('AuthOAuthView.login', provider='azure')
-    #     if next_url:
-    #         oauth_login_url += f'?next={next_url}'
-    #     
-    #     logging.critical(f"Redirecting to OAuth: {oauth_login_url}")
-    #     return oauth_login_url
+    def unauthorized(self):
+        """
+        CRITICAL: NEVER show login page - ALWAYS redirect to Microsoft authentication
+        This ensures WordPress iframe users and direct browser users both go to Microsoft
+        """
+        from flask import redirect
+        
+        logging.critical("========== UNAUTHORIZED ACCESS - REDIRECTING TO MICROSOFT ==========")
+        
+        # Build Microsoft login URL manually (no dependency on OAuth configuration)
+        tenant_id = AZURE_TENANT_ID
+        client_id = AZURE_CLIENT_ID
+        
+        # Microsoft OAuth URL for direct authentication
+        microsoft_login_url = (
+            f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize"
+            f"?client_id={client_id}"
+            f"&response_type=code"
+            f"&redirect_uri=https://stg-dashboards.rmcare.com/"
+            f"&scope=openid%20email%20profile%20User.Read"
+            f"&response_mode=query"
+        )
+        
+        logging.critical(f"[FORCE REDIRECT] Sending user to Microsoft: {microsoft_login_url}")
+        return redirect(microsoft_login_url)
+
+    def login_url(self, next_url=None):
+        """
+        CRITICAL: Always return Microsoft login URL - never return /login/
+        """
+        logging.critical("========== LOGIN_URL CALLED - REDIRECTING TO MICROSOFT ==========")
+        
+        # Build Microsoft login URL manually (consistent with unauthorized method)
+        tenant_id = AZURE_TENANT_ID
+        client_id = AZURE_CLIENT_ID
+        
+        microsoft_login_url = (
+            f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize"
+            f"?client_id={client_id}"
+            f"&response_type=code"
+            f"&redirect_uri=https://stg-dashboards.rmcare.com/"
+            f"&scope=openid%20email%20profile%20User.Read"
+            f"&response_mode=query"
+        )
+        
+        if next_url:
+            microsoft_login_url += f"&state={next_url}"
+            
+        logging.critical(f"[LOGIN URL] Returning Microsoft URL: {microsoft_login_url}")
+        return microsoft_login_url
+
+    # Removed auth_type property - no longer needed since we always redirect to Microsoft
  
  
 CUSTOM_SECURITY_MANAGER = UnifiedSecurityManager
