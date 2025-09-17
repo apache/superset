@@ -271,10 +271,10 @@ class WebDriverPlaywright(WebDriverProxy):
 
                     if use_tiled:
                         logger.info(
-                            (
-                                f"Large dashboard detected: {chart_count} charts, "
-                                f"{dashboard_height}px height. Using tiled screenshots."
-                            )
+                            "Large dashboard detected: %s charts, %spx height. "
+                            "Using tiled screenshots.",
+                            chart_count,
+                            dashboard_height,
                         )
                         img = take_tiled_screenshot(
                             page, element_name, viewport_height=viewport_height
@@ -352,7 +352,9 @@ class WebDriverSelenium(WebDriverProxy):
                     except (ValueError, TypeError):
                         config[key] = None
                         logger.warning(
-                            f"Invalid timeout value for {key}: {value}, setting to None"
+                            "Invalid timeout value for %s: %s, setting to None",
+                            key,
+                            value,
                         )
         return config
 

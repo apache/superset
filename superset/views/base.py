@@ -330,7 +330,8 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
                 default_theme = json.loads(default_theme_model.json_data)
             except json.JSONDecodeError:
                 logger.error(
-                    f"Invalid JSON in system default theme {default_theme_model.id}"
+                    "Invalid JSON in system default theme %s",
+                    default_theme_model.id,
                 )
                 # Fallback to config
                 default_theme = get_config_value("THEME_DEFAULT")
@@ -343,7 +344,9 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
             try:
                 dark_theme = json.loads(dark_theme_model.json_data)
             except json.JSONDecodeError:
-                logger.error(f"Invalid JSON in system dark theme {dark_theme_model.id}")
+                logger.error(
+                    "Invalid JSON in system dark theme %s", dark_theme_model.id
+                )
                 # Fallback to config
                 dark_theme = get_config_value("THEME_DARK")
         else:
@@ -404,7 +407,7 @@ def get_default_spinner_svg() -> str | None:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
-        logger.warning(f"Could not load default spinner SVG: {e}")
+        logger.warning("Could not load default spinner SVG: %s", e)
         return None
 
 
