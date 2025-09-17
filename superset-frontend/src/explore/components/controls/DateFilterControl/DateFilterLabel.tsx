@@ -169,46 +169,6 @@ function getTimezoneFromUrl(): string {
   }
 }
 
-function convertRangeTZ(s: string, toTZ = 'Asia/Kolkata') {
-  const isoRe =
-    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
-
-  const matches = [...s.matchAll(isoRe)].map(m => m[0]);
-  if (matches.length < 2) return s;
-
-  const convert = (iso: string) => {
-    // If no offset, assume UTC
-    const src = /Z|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
-    const dt = new Date(src);
-
-    // Format as ISO-like string in target zone
-    const parts = Object.fromEntries(
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone: toTZ,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      })
-        .formatToParts(dt)
-        .filter(p =>
-          ['year', 'month', 'day', 'hour', 'minute', 'second'].includes(p.type),
-        )
-        .map(p => [p.type, p.value]),
-    );
-
-    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
-  };
-
-  const a = convert(matches[0]);
-  const b = convert(matches[1]);
-
-  return s.replace(matches[0], a).replace(matches[1], b);
-}
-
 // Format datetime for user-friendly display (only for UI, not API)
 function formatDateTimeForDisplay(s: string, toTZ = 'Asia/Kolkata') {
   const isoRe =
@@ -237,7 +197,9 @@ function formatDateTimeForDisplay(s: string, toTZ = 'Asia/Kolkata') {
   const formattedStart = formatForDisplay(matches[0]);
   const formattedEnd = formatForDisplay(matches[1]);
 
-  return s.replace(matches[0], formattedStart).replace(matches[1], formattedEnd);
+  return s
+    .replace(matches[0], formattedStart)
+    .replace(matches[1], formattedEnd);
 }
 
 export const getDateFromTimezone = (timezone: string) =>
@@ -332,21 +294,29 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
+
+        // Format ADR for user-friendly display (for "Actual time range" section)
+        const formattedADR = convertedADR
+          ? formatDateTimeForDisplay(convertedADR, urlTZ)
+          : convertedADR;
+
         if (
           guessedFrame === 'Common' ||
           guessedFrame === 'Calendar' ||
           guessedFrame === 'Current'
         ) {
           // Pill shows HRT (value); tooltip shows ADR (user-friendly formatted)
+          // "Actual time range" shows formatted ADR
           setActualTimeRange(value);
-          const formattedADR = convertedADR ? formatDateTimeForDisplay(convertedADR, urlTZ) : convertedADR;
+          setEvalResponse(formattedADR || ''); // Store formatted ADR for "Actual time range" display
           setTooltipTitle(
             getTooltipTitle(labelIsTruncated, value, formattedADR),
           );
         } else {
           // Pill shows ADR (user-friendly formatted); tooltip shows HRT (value)
-          const formattedADR = convertedADR ? formatDateTimeForDisplay(convertedADR, urlTZ) : convertedADR;
+          // "Actual time range" shows formatted ADR
           setActualTimeRange(formattedADR || '');
+          setEvalResponse(formattedADR || ''); // Store formatted ADR for "Actual time range" display
           setTooltipTitle(
             getTooltipTitle(labelIsTruncated, formattedADR, value),
           );
@@ -354,10 +324,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         setValidTimeRange(true);
       }
       setLastFetchedTimeRange(value);
-      const previewADR = actualRange
-        ? convertRangeUTCToTZ(actualRange, urlTZ)
-        : actualRange;
-      setEvalResponse(previewADR || value);
     });
   }, [guessedFrame, labelIsTruncated, labelRef, value, urlTZ]);
 
@@ -370,19 +336,25 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue, 'date').then(({ value: actualRange, error }) => {
-          if (error) {
-            setEvalResponse(error || '');
-            setValidTimeRange(false);
-          } else {
-            const previewADR = actualRange
-              ? convertRangeUTCToTZ(actualRange, urlTZ)
-              : actualRange;
-            setEvalResponse(previewADR || '');
-            setValidTimeRange(true);
-          }
-          setLastFetchedTimeRange(timeRangeValue);
-        });
+        fetchTimeRange(timeRangeValue, 'date').then(
+          ({ value: actualRange, error }) => {
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              const previewADR = actualRange
+                ? convertRangeUTCToTZ(actualRange, urlTZ)
+                : actualRange;
+              // Format the preview ADR for user-friendly display
+              const formattedPreviewADR = previewADR
+                ? formatDateTimeForDisplay(previewADR, urlTZ)
+                : previewADR;
+              setEvalResponse(formattedPreviewADR || '');
+              setValidTimeRange(true);
+            }
+            setLastFetchedTimeRange(timeRangeValue);
+          },
+        );
       }
     },
     SLOW_DEBOUNCE,
@@ -452,7 +424,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && <div>{formatDateTimeForDisplay(evalResponse, urlTZ)}</div>}
+        {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
