@@ -22,19 +22,25 @@ import {
   ReactElement,
   RefObject,
   useCallback,
-  useRef,
 } from 'react';
 import { styled } from '@superset-ui/core';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,
 } from '@superset-ui/core/components/Tabs';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
-  useDrag,
-  useDrop,
-  DragSourceMonitor,
-  DropTargetMonitor,
-} from 'react-dnd';
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+} from '@dnd-kit/core';
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
@@ -82,113 +88,31 @@ export interface TabsRendererProps {
   onTabsReorder?: (oldIndex: number, newIndex: number) => void;
 }
 
-interface DragItem {
-  type: string;
-  id: string;
-  index: number;
+interface DraggableTabNodeProps extends React.HTMLAttributes<HTMLDivElement> {
+  'data-node-key': string;
 }
 
-interface DragCollectedProps {
-  isDragging: boolean;
-}
-
-interface DropCollectedProps {
-  handlerId: string | symbol | null;
-}
-
-interface DraggableTabNodeProps {
-  id: string;
-  index: number;
-  children: React.ReactElement;
-  onMoveTab: (dragIndex: number, hoverIndex: number) => void;
-}
-
-const DraggableTabNode: React.FC<DraggableTabNodeProps> = ({
-  id,
-  index,
-  children,
-  onMoveTab,
+const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
+  className,
+  ...props
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const lastHoveredIndex = useRef<number | null>(null);
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: props['data-node-key'],
+    });
 
-  const [{ handlerId }, drop] = useDrop<DragItem, void, DropCollectedProps>({
-    accept: 'DASHBOARD_TAB',
-    collect: (monitor: DropTargetMonitor) => ({
-      handlerId: monitor.getHandlerId(),
-    }),
-    hover: (item: DragItem, monitor) => {
-      if (!ref.current) {
-        return;
-      }
+  const style: React.CSSProperties = {
+    ...props.style,
+    transform: CSS.Translate.toString(transform),
+    transition,
+    cursor: 'move',
+  };
 
-      const dragIndex = item.index;
-      const hoverIndex = index;
-
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-
-      // Prevent rapid back-and-forth swapping
-      if (lastHoveredIndex.current === hoverIndex) {
-        return;
-      }
-
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current.getBoundingClientRect();
-
-      // Get horizontal middle
-      const hoverMiddleX =
-        (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
-
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-      if (!clientOffset) {
-        return;
-      }
-
-      // Get pixels to the left
-      const hoverClientX = clientOffset.x - hoverBoundingRect.left;
-
-      // Only perform the move when the mouse has crossed half of the items width
-      // When dragging left, only move when the cursor is past the middle
-      if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) {
-        return;
-      }
-
-      // When dragging right, only move when the cursor is before the middle
-      if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) {
-        return;
-      }
-
-      // Time to actually perform the action
-      onMoveTab(dragIndex, hoverIndex);
-      lastHoveredIndex.current = hoverIndex;
-    },
-  });
-
-  const [{ isDragging }, drag] = useDrag<DragItem, void, DragCollectedProps>({
-    item: { type: 'DASHBOARD_TAB', id, index },
-    collect: (monitor: DragSourceMonitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-    end: () => {
-      // Reset the hover tracking when drag ends
-      lastHoveredIndex.current = null;
-    },
-  });
-
-  drag(drop(ref));
-
-  return cloneElement(children, {
-    ref,
-    style: {
-      ...children.props.style,
-      opacity: isDragging ? 0.4 : 1,
-      cursor: 'move',
-    },
-    'data-handler-id': handlerId,
+  return cloneElement(props.children as React.ReactElement, {
+    ref: setNodeRef,
+    style,
+    ...attributes,
+    ...listeners,
   });
 };
 
@@ -211,13 +135,19 @@ const TabsRenderer = memo<TabsRendererProps>(
     tabBarPaddingLeft = 0,
     onTabsReorder,
   }) => {
-    const handleMoveTab = useCallback(
-      (dragIndex: number, hoverIndex: number) => {
-        if (onTabsReorder) {
-          onTabsReorder(dragIndex, hoverIndex);
+    const sensor = useSensor(PointerSensor, {
+      activationConstraint: { distance: 10 },
+    });
+
+    const onDragEnd = useCallback(
+      ({ active, over }: DragEndEvent) => {
+        if (active.id !== over?.id && onTabsReorder) {
+          const activeIndex = tabIds.findIndex(id => id === active.id);
+          const overIndex = tabIds.findIndex(id => id === over?.id);
+          onTabsReorder(activeIndex, overIndex);
         }
       },
-      [onTabsReorder],
+      [onTabsReorder, tabIds],
     );
 
     return (
@@ -249,23 +179,30 @@ const TabsRenderer = memo<TabsRendererProps>(
           renderTabBar={
             editMode
               ? (tabBarProps, DefaultTabBar) => (
-                  <DefaultTabBar {...tabBarProps}>
-                    {(node: React.ReactElement) => {
-                      const index = tabItems.findIndex(
-                        item => item.key === node.key,
-                      );
-                      return (
-                        <DraggableTabNode
-                          key={node.key}
-                          id={node.key as string}
-                          index={index}
-                          onMoveTab={handleMoveTab}
-                        >
-                          {node}
-                        </DraggableTabNode>
-                      );
-                    }}
-                  </DefaultTabBar>
+                  <DndContext
+                    sensors={[sensor]}
+                    onDragEnd={onDragEnd}
+                    collisionDetection={closestCenter}
+                  >
+                    <SortableContext
+                      items={tabIds}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      <DefaultTabBar {...tabBarProps}>
+                        {(node: React.ReactElement) => (
+                          <DraggableTabNode
+                            {...(
+                              node as React.ReactElement<DraggableTabNodeProps>
+                            ).props}
+                            key={node.key}
+                            data-node-key={node.key as string}
+                          >
+                            {node}
+                          </DraggableTabNode>
+                        )}
+                      </DefaultTabBar>
+                    </SortableContext>
+                  </DndContext>
                 )
               : undefined
           }
