@@ -18,7 +18,9 @@
  */
 import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
+import exampleDark from './images/example-dark.png';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
@@ -28,7 +30,8 @@ const metadata = new ChartMetadata({
   description: t('Visualizes connected points, which form a path, on a map.'),
   name: t('deck.gl Path'),
   thumbnail,
-  exampleGallery: [{ url: example }],
+  thumbnailDark,
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   useLegacyApi: true,
   tags: [t('deckGL'), t('Web')],
   behaviors: [Behavior.InteractiveChart],

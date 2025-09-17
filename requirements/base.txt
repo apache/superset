@@ -6,6 +6,8 @@ alembic==1.15.2
     # via flask-migrate
 amqp==5.3.1
     # via kombu
+annotated-types==0.7.0
+    # via pydantic
 apispec==6.6.1
     # via
     #   -r requirements/base.in
@@ -114,11 +116,11 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.8.1
+flask-appbuilder==5.0.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-flask-babel==2.0.0
+flask-babel==3.1.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
@@ -158,7 +160,6 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
-    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -297,6 +298,10 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
+pydantic==2.11.7
+    # via apache-superset (pyproject.toml)
+pydantic-core==2.33.2
+    # via pydantic
 pygments==2.19.1
     # via rich
 pyjwt==2.10.1
@@ -407,10 +412,15 @@ typing-extensions==4.14.0
     #   alembic
     #   cattrs
     #   limits
+    #   pydantic
+    #   pydantic-core
     #   pyopenssl
     #   referencing
     #   selenium
     #   shillelagh
+    #   typing-inspection
+typing-inspection==0.4.1
+    # via pydantic
 tzdata==2025.2
     # via
     #   kombu

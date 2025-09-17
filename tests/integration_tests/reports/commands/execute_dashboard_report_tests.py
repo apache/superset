@@ -47,10 +47,12 @@ def test_report_for_dashboard_with_tabs(
 ) -> None:
     dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
-
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
-        extra={"dashboard": {"active_tabs": ["TAB-L1B", "TAB-L2BB"]}},
+        extra={
+            "activeTabs": ["TAB-L1B", "TAB-L2BB"],
+            "urlParams": [["native_filters", "()"]],
+        },
         name="test report tabbed dashboard",
     ) as report_schedule:
         dashboard: Dashboard = report_schedule.dashboard
@@ -59,7 +61,7 @@ def test_report_for_dashboard_with_tabs(
         ).run()
         dashboard_state = report_schedule.extra.get("dashboard", {})
         permalink_key = CreateDashboardPermalinkCommand(
-            str(dashboard.id), dashboard_state
+            str(dashboard.uuid), dashboard_state
         ).run()
 
         expected_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
@@ -90,7 +92,10 @@ def test_report_with_header_data(
 
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
-        extra={"dashboard": {"active_tabs": ["TAB-L1B", "TAB-L2BB"]}},
+        extra={
+            "active_tabs": ["TAB-L1B", "TAB-L2BB"],
+            "urlParams": [["native_filters", "()"]],
+        },
         name="test report tabbed dashboard",
     ) as report_schedule:
         dashboard: Dashboard = report_schedule.dashboard

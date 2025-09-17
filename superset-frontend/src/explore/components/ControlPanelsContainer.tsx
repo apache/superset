@@ -149,9 +149,35 @@ const Styles = styled.div`
   }
 
   .tab-content {
-    overflow: auto;
+    overflow: visible;
     flex: 1 1 100%;
   }
+
+  // Ensure Ant Design tabs allow content to expand
+  .ant-tabs-content {
+    overflow: visible;
+    height: auto;
+  }
+
+  .ant-tabs-content-holder {
+    overflow: visible;
+    height: auto;
+  }
+
+  .ant-tabs-tabpane {
+    overflow: visible;
+    height: auto;
+  }
+
+  // Ensure collapse components can expand
+  .ant-collapse-content {
+    overflow: visible;
+  }
+
+  .ant-collapse-content-box {
+    overflow: visible;
+  }
+
   .Select__menu {
     max-width: 100%;
   }
@@ -598,7 +624,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
           </Tooltip>
         )}
       </span>
@@ -723,7 +749,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.CloseCircleOutlined
+              <Icons.InfoCircleOutlined
                 data-test="query-error-tooltip-trigger"
                 iconColor={theme.colorErrorText}
                 iconSize="s"

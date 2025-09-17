@@ -157,7 +157,7 @@ class Superset(BaseSupersetView):
             return json_error_response(err_msg)
 
         if not query:
-            query = "No query."
+            query = __("Query cannot be loaded.")
 
         return self.json_response(
             {"query": query, "language": viz_obj.datasource.query_language}
@@ -579,11 +579,8 @@ class Superset(BaseSupersetView):
         else:
             title = _("Explore")
 
-        return self.render_template(
-            "superset/spa.html",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
-            ),
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_data,
             entry="explore",
             title=title,
             standalone_mode=standalone_mode,
@@ -824,17 +821,13 @@ class Superset(BaseSupersetView):
             ),
         )
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
+        bootstrap_payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_payload,
             title=dashboard.dashboard_title,  # dashboard title is always visible
-            bootstrap_data=json.dumps(
-                {
-                    "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(),
-                },
-                default=json.pessimistic_json_iso_dttm_ser,
-            ),
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
@@ -854,17 +847,24 @@ class Superset(BaseSupersetView):
             return redirect(url_for("DashboardModelView.list"))
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
+
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = url_for(
             "Superset.dashboard", dashboard_id_or_slug=dashboard_id, permalink_key=key
         )
         if url_params := state.get("urlParams"):
-            params = parse.urlencode(url_params)
-            url = f"{url}&{params}"
+            for param_key, param_val in url_params:
+                if param_key == "native_filters":
+                    # native_filters doesnt need to be encoded here
+                    url = f"{url}&native_filters={param_val}"
+                else:
+                    params = parse.urlencode([param_key, param_val])  # type: ignore
+                    url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
+
         return redirect(url)
 
     @api
@@ -937,13 +937,7 @@ class Superset(BaseSupersetView):
             "common": common_bootstrap_payload(),
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
-        )
+        return self.render_app_template(extra_bootstrap_data=payload)
 
     @has_access
     @event_logger.log_this

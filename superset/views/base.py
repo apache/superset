@@ -37,7 +37,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
+from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -67,6 +67,7 @@ from superset.themes.utils import (
 )
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
+from superset.utils.version import get_version_metadata
 from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
@@ -214,20 +215,29 @@ class BaseSupersetView(BaseView):
         )
 
     def render_app_template(
-        self, extra_bootstrap_data: dict[str, Any] | None = None
+        self,
+        extra_bootstrap_data: dict[str, Any] | None = None,
+        entry: str | None = "spa",
+        **template_kwargs: Any,
     ) -> FlaskResponse:
-        payload = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-            **(extra_bootstrap_data or {}),
-        }
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
+        """
+        Render spa.html template with standardized context including spinner logic.
+
+        This centralizes all spa.html rendering to ensure consistent spinner behavior
+        and reduce code duplication across view methods.
+
+        Args:
+            extra_bootstrap_data: Additional data for frontend bootstrap payload
+            entry: Entry point name (spa, explore, embedded)
+            **template_kwargs: Additional template variables
+
+        Returns:
+            Flask response from render_template
+        """
+        context = get_spa_template_context(
+            entry, extra_bootstrap_data, **template_kwargs
         )
+        return self.render_template("superset/spa.html", **context)
 
 
 def get_environment_tag() -> dict[str, Any]:
@@ -263,6 +273,9 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text := app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
+    # Get centralized version metadata
+    version_metadata = get_version_metadata()
+
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
@@ -282,9 +295,9 @@ def menu_data(user: User) -> dict[str, Any]:
             "documentation_url": app.config["DOCUMENTATION_URL"],
             "documentation_icon": app.config["DOCUMENTATION_ICON"],
             "documentation_text": app.config["DOCUMENTATION_TEXT"],
-            "version_string": app.config["VERSION_STRING"],
-            "version_sha": app.config["VERSION_SHA"],
-            "build_number": app.config["BUILD_NUMBER"],
+            "version_string": version_metadata.get("version_string"),
+            "version_sha": version_metadata.get("version_sha"),
+            "build_number": version_metadata.get("build_number"),
             "languages": languages,
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
@@ -317,7 +330,8 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
                 default_theme = json.loads(default_theme_model.json_data)
             except json.JSONDecodeError:
                 logger.error(
-                    f"Invalid JSON in system default theme {default_theme_model.id}"
+                    "Invalid JSON in system default theme %s",
+                    default_theme_model.id,
                 )
                 # Fallback to config
                 default_theme = get_config_value("THEME_DEFAULT")
@@ -330,7 +344,9 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
             try:
                 dark_theme = json.loads(dark_theme_model.json_data)
             except json.JSONDecodeError:
-                logger.error(f"Invalid JSON in system dark theme {dark_theme_model.id}")
+                logger.error(
+                    "Invalid JSON in system dark theme %s", dark_theme_model.id
+                )
                 # Fallback to config
                 dark_theme = get_config_value("THEME_DARK")
         else:
@@ -363,6 +379,36 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
+
+
+def get_default_spinner_svg() -> str | None:
+    """
+    Load and cache the default spinner SVG content from frontend assets.
+
+    Returns:
+        str | None: SVG content as string, or None if file not found
+    """
+    try:
+        # Path to frontend source SVG file (used by both frontend and backend)
+        svg_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "superset-frontend",
+            "packages",
+            "superset-ui-core",
+            "src",
+            "components",
+            "assets",
+            "images",
+            "loading.svg",
+        )
+
+        with open(svg_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+        logger.warning("Could not load default spinner SVG: %s", e)
+        return None
 
 
 @cache_manager.cache.memoize(timeout=60)
@@ -428,12 +474,6 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
 
-    if auth_type == AUTH_OID:
-        oid_providers = []
-        for provider in appbuilder.sm.openid_providers:
-            oid_providers.append(provider)
-        frontend_config["AUTH_PROVIDERS"] = oid_providers
-
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
         "static_assets_prefix": app.config["STATIC_ASSETS_PREFIX"],
@@ -464,6 +504,70 @@ def common_bootstrap_payload() -> dict[str, Any]:
     }
 
 
+def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Generate standardized payload for spa.html template rendering.
+
+    Centralizes the common payload structure used across all spa.html renders.
+
+    Args:
+        extra_data: Additional data to include in payload
+
+    Returns:
+        dict[str, Any]: Complete payload for spa.html template
+    """
+    payload = {
+        "user": bootstrap_user_data(g.user, include_perms=True),
+        "common": common_bootstrap_payload(),
+        **(extra_data or {}),
+    }
+    return payload
+
+
+def get_spa_template_context(
+    entry: str | None = "spa",
+    extra_bootstrap_data: dict[str, Any] | None = None,
+    **template_kwargs: Any,
+) -> dict[str, Any]:
+    """Generate standardized template context for spa.html rendering.
+
+    Centralizes spa.html template context to eliminate duplication while
+    preserving Flask-AppBuilder context requirements.
+
+    Args:
+        entry: Entry point name (spa, explore, embedded)
+        extra_bootstrap_data: Additional data for frontend bootstrap payload
+        **template_kwargs: Additional template variables
+
+    Returns:
+        dict[str, Any]: Template context for spa.html
+    """
+    payload = get_spa_payload(extra_bootstrap_data)
+
+    # Extract theme data for template access
+    theme_data = get_theme_bootstrap_data().get("theme", {})
+    default_theme = theme_data.get("default", {})
+    theme_tokens = default_theme.get("token", {})
+
+    # Determine spinner content with precedence: theme SVG > theme URL > default SVG
+    spinner_svg = None
+    if theme_tokens.get("brandSpinnerSvg"):
+        # Use custom SVG from theme
+        spinner_svg = theme_tokens["brandSpinnerSvg"]
+    elif not theme_tokens.get("brandSpinnerUrl"):
+        # No custom URL either, use default SVG
+        spinner_svg = get_default_spinner_svg()
+
+    return {
+        "entry": entry,
+        "bootstrap_data": json.dumps(
+            payload, default=json.pessimistic_json_iso_dttm_ser
+        ),
+        "theme_tokens": theme_tokens,
+        "spinner_svg": spinner_svg,
+        **template_kwargs,
+    }
+
+
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
@@ -473,17 +577,8 @@ class SupersetModelView(ModelView):
     list_widget = SupersetListWidget
 
     def render_app_template(self) -> FlaskResponse:
-        payload = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-        }
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
-        )
+        context = get_spa_template_context()
+        return self.render_template("superset/spa.html", **context)
 
 
 class DeleteMixin:  # pylint: disable=too-few-public-methods
@@ -505,9 +600,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
-                security_manager.get_session.query(
-                    security_manager.permissionview_model
-                )
+                db.session.query(security_manager.permissionview_model)
                 .filter_by(view_menu=view_menu)
                 .all()
             )
@@ -516,10 +609,10 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 self.post_delete(item)
 
                 for pv in pvs:
-                    security_manager.get_session.delete(pv)
+                    db.session.delete(pv)
 
                 if view_menu:
-                    security_manager.get_session.delete(view_menu)
+                    db.session.delete(view_menu)
 
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
