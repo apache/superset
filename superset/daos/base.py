@@ -35,14 +35,12 @@ import sqlalchemy as sa
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_sqlalchemy import BaseQuery
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Query
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
+from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
 
 from superset.daos.exceptions import (
     DAOFindFailedError,

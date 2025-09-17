@@ -184,7 +184,7 @@ class SupersetTestCases(SupersetTestCase):
             end
             """,
         )
-        self.session.add(column)  # SQLAlchemy 2.x: Must explicitly add to session
+        db.session.add(column)
         db.session.commit()
 
         table.database.sqlalchemy_uri = "sqlite://"
