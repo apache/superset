@@ -240,7 +240,7 @@ export default class TimeSeriesColumnControl extends Component {
         <Divider />
         {this.state.colType === 'spark' &&
           this.formRow(
-            t('Chart Type'),
+            t('Chart type'),
             t('Type of chart to display in sparkline'),
             'spark-type',
             <Select
