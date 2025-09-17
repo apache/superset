@@ -118,6 +118,8 @@ services:
       POSTGRES_DB: superset_light
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
+      GITHUB_SHA: ${GITHUB_SHA:-}
 
   superset-init-light:
     build:
@@ -160,8 +162,11 @@ services:
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
+      # Webpack dev server configuration
+      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-127.0.0.1}"
+      WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
-      - "127.0.0.1:${NODE_PORT:-9001}:9000"  # Parameterized port
+      - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default

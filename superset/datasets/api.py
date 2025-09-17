@@ -76,7 +76,10 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import SupersetTemplateException
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
@@ -1181,7 +1184,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     response["result"], processor
                 )
             except SupersetTemplateException as ex:
-                return self.response_400(message=str(ex))
+                return self.response(ex.status, message=str(ex))
 
         return self.response(200, **response)
 
@@ -1321,9 +1324,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
             try:
                 data[new_key] = func(data[key])
-            except TemplateSyntaxError as ex:
-                raise SupersetTemplateException(
+            except (TemplateSyntaxError, SupersetSyntaxErrorException) as ex:
+                template_exception = SupersetTemplateException(
                     f"Unable to render expression from dataset {item_type}.",
-                ) from ex
+                )
+                raise template_exception from ex
 
         return data

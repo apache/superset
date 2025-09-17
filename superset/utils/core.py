@@ -34,6 +34,7 @@ import tempfile
 import threading
 import traceback
 import uuid
+import warnings
 import zlib
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
@@ -68,9 +69,9 @@ import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from flask import current_app as app, g, request
-from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
+from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
@@ -110,6 +111,7 @@ from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource, TableColumn
@@ -530,6 +532,80 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     return safe
 
 
+def sanitize_svg_content(svg_content: str) -> str:
+    """Basic SVG protection - remove obvious XSS vectors, trust admin input otherwise.
+
+    Minimal protection approach that removes scripts and javascript: URLs while
+    preserving all legitimate SVG features. Assumes admin-provided content.
+
+    Args:
+        svg_content: Raw SVG content string
+
+    Returns:
+        str: SVG content with obvious XSS vectors removed
+    """
+    if not svg_content or not svg_content.strip():
+        return ""
+
+    # Minimal protection: remove obvious malicious content, preserve all SVG features
+    content = re.sub(
+        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
+
+    # Remove event handlers (simple catch-all approach)
+    content = re.sub(r"\bon\w+\s*=", "", content, flags=re.IGNORECASE)
+
+    # Remove other suspicious patterns
+    content = re.sub(
+        r"<iframe[^>]*>.*?</iframe>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(
+        r"<object[^>]*>.*?</object>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"<embed[^>]*>", "", content, flags=re.IGNORECASE)
+
+    return content
+
+
+def sanitize_url(url: str) -> str:
+    """Sanitize URL using urllib.parse to block dangerous schemes.
+
+    Simple validation using standard library. Allows relative URLs and
+    safe absolute URLs while blocking javascript: and other dangerous schemes.
+
+    Args:
+        url: Raw URL string
+
+    Returns:
+        str: Sanitized URL or empty string if dangerous
+    """
+    if not url or not url.strip():
+        return ""
+
+    url = url.strip()
+
+    # Relative URLs are safe
+    if url.startswith("/"):
+        return url
+
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+
+        # Allow safe schemes only
+        if parsed.scheme.lower() in {"http", "https", ""}:
+            return url
+
+        # Block everything else (javascript:, data:, etc.)
+        return ""
+
+    except Exception:
+        return ""
+
+
 def readfile(file_path: str) -> str | None:
     with open(file_path) as f:
         content = f.read()
@@ -537,7 +613,7 @@ def readfile(file_path: str) -> str | None:
 
 
 def generic_find_constraint_name(
-    table: str, columns: set[str], referenced: str, database: SQLA
+    table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
     tbl = sa.Table(
@@ -1140,6 +1216,11 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
+    if hasattr(column, "column_name"):
+        column_name = getattr(column, "column_name", "")
+        verbose_name = getattr(column, "verbose_name", "")
+        return verbose_name or column_name
+
     if isinstance(column, dict):
         if label := column.get("label"):
             return label
@@ -1784,6 +1865,62 @@ class DateColumn:
         )
 
 
+def _process_datetime_column(
+    df: pd.DataFrame,
+    col: DateColumn,
+) -> None:
+    """Process a single datetime column with format detection."""
+    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+        dttm_series = df[col.col_label]
+        if is_numeric_dtype(dttm_series):
+            # Column is formatted as a numeric value
+            unit = col.timestamp_format.replace("epoch_", "")
+            df[col.col_label] = pd.to_datetime(
+                dttm_series,
+                utc=False,
+                unit=unit,
+                origin="unix",
+                errors="coerce",
+                exact=False,
+            )
+        else:
+            # Column has already been formatted as a timestamp.
+            try:
+                df[col.col_label] = dttm_series.apply(
+                    lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                )
+            except ValueError:
+                logger.warning(
+                    "Unable to convert column %s to datetime, ignoring",
+                    col.col_label,
+                )
+    else:
+        # Try to detect format if not specified
+        format_to_use = col.timestamp_format or detect_datetime_format(
+            df[col.col_label]
+        )
+
+        # Parse with or without format (suppress warning if no format)
+        if format_to_use:
+            df[col.col_label] = pd.to_datetime(
+                df[col.col_label],
+                utc=False,
+                format=format_to_use,
+                errors="coerce",
+                exact=False,
+            )
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*Could not infer format.*")
+                df[col.col_label] = pd.to_datetime(
+                    df[col.col_label],
+                    utc=False,
+                    format=None,
+                    errors="coerce",
+                    exact=False,
+                )
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
     dttm_cols: tuple[DateColumn, ...] = tuple(),  # noqa: C408
@@ -1792,38 +1929,8 @@ def normalize_dttm_col(
         if _col.col_label not in df.columns:
             continue
 
-        if _col.timestamp_format in ("epoch_s", "epoch_ms"):
-            dttm_series = df[_col.col_label]
-            if is_numeric_dtype(dttm_series):
-                # Column is formatted as a numeric value
-                unit = _col.timestamp_format.replace("epoch_", "")
-                df[_col.col_label] = pd.to_datetime(
-                    dttm_series,
-                    utc=False,
-                    unit=unit,
-                    origin="unix",
-                    errors="coerce",
-                    exact=False,
-                )
-            else:
-                # Column has already been formatted as a timestamp.
-                try:
-                    df[_col.col_label] = dttm_series.apply(
-                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
-                    )
-                except ValueError:
-                    logger.warning(
-                        "Unable to convert column %s to datetime, ignoring",
-                        _col.col_label,
-                    )
-        else:
-            df[_col.col_label] = pd.to_datetime(
-                df[_col.col_label],
-                utc=False,
-                format=_col.timestamp_format,
-                errors="coerce",
-                exact=False,
-            )
+        _process_datetime_column(df, _col)
+
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
         if _col.time_shift is not None:

@@ -242,12 +242,12 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.8.1
+flask-appbuilder==5.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
-flask-babel==2.0.0
+flask-babel==3.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
@@ -699,6 +699,7 @@ pydantic==2.11.7
     #   anthropic
     #   google-genai
     #   openai
+    #   apache-superset
 pydantic-core==2.33.2
     # via
     #   -c requirements/base-constraint.txt

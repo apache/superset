@@ -160,7 +160,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ needs.ephemeral-env-label.outputs.sha }} : ${{steps.get-sha.outputs.sha}} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.ephemeral-env-label.outputs.sha }}
           persist-credentials: false
@@ -220,7 +220,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 

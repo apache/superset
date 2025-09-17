@@ -40,6 +40,7 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'dbId',
   'height',
   'id',
+  'immutableId',
   'latestQueryId',
   'northPercent',
   'queryLimit',

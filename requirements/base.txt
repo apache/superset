@@ -138,11 +138,11 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.8.1
+flask-appbuilder==5.0.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-flask-babel==2.0.0
+flask-babel==3.1.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
@@ -343,9 +343,11 @@ pycparser==2.22
     # via cffi
 pydantic==2.11.7
     # via
+    #   apache-superset (pyproject.toml)
     #   anthropic
     #   google-genai
     #   openai
+    
 pydantic-core==2.33.2
     # via pydantic
 pygments==2.19.1

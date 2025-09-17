@@ -23,7 +23,6 @@ import {
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -49,6 +48,7 @@ const generateMockPayload = (dashboard = true) => {
     database: {
       database_name: 'examples',
       id: 1,
+      value: 1,
     },
     description: 'Some description',
     extra: {},
@@ -93,8 +93,9 @@ const generateMockPayload = (dashboard = true) => {
     ...mockPayload,
     chart: {
       id: 1,
-      slice_name: 'Test Chart',
-      viz_type: VizType.Table,
+      slice_name: 'test chart',
+      viz_type: 'table',
+      value: 1,
     },
   };
 };
@@ -134,7 +135,7 @@ const validAlert: AlertObject = {
   creation_method: 'alerts_reports',
   crontab: '0 0 * * *',
   dashboard_id: 0,
-  chart_id: 0,
+  chart_id: 1,
   force_screenshot: false,
   last_state: 'Not triggered',
   name: 'Test Alert',
@@ -153,6 +154,24 @@ const validAlert: AlertObject = {
   ],
   timezone: 'America/Rainy_River',
   type: 'Alert',
+  database: {
+    id: 1,
+    value: 1,
+    database_name: 'test_db',
+  } as any,
+  sql: 'SELECT COUNT(*) FROM test_table',
+  validator_config_json: {
+    op: '>',
+    threshold: 10.0,
+  },
+  working_timeout: 3600,
+  chart: {
+    id: 1,
+    value: 1,
+    label: 'Test Chart',
+    slice_name: 'Test Chart',
+    viz_type: 'table',
+  } as any,
 };
 
 jest.mock('./buildErrorTooltipMessage', () => ({
@@ -258,6 +277,10 @@ test('renders 5 checkmarks for a valid alert', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
+
+  // Wait for validation to complete by waiting for the modal to fully render
+  await screen.findByText('Edit alert');
+
   const checkmarks = await screen.findAllByRole('img', {
     name: /check-circle/i,
   });
@@ -429,7 +452,7 @@ test('renders tab selection when Dashboard is selected', async () => {
   expect(
     screen.getByRole('combobox', { name: /dashboard/i }),
   ).toBeInTheDocument();
-  expect(screen.getByText(/select tab/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
 });
 
 test('changes to content options when chart is selected', async () => {
@@ -642,4 +665,16 @@ test('removes notification method on clicking trash can', async () => {
   expect(
     screen.getAllByRole('combobox', { name: /delivery method/i }).length,
   ).toBe(1);
+});
+
+test('renders dashboard filter dropdowns', async () => {
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  const filterOptionDropdown = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  expect(filterOptionDropdown).toBeInTheDocument();
 });

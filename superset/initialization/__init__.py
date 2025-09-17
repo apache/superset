@@ -26,7 +26,7 @@ import wtforms_json
 from celery.signals import after_task_publish
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, Flask, redirect, request, session, url_for
+from flask import abort, current_app, Flask, redirect, request, session, url_for
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -304,7 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "Home",
             label=_("Home"),
             href="/superset/welcome/",
-            cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
+            cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
 
         appbuilder.add_view(
@@ -650,6 +650,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             for k, v in self.superset_app.config["DEFAULT_HTTP_HEADERS"].items():
                 if k not in response.headers:
                     response.headers[k] = v
+            return response
+
+        @self.superset_app.after_request
+        def cleanup_analytics_memory(response: Response) -> Response:
+            """Force garbage collection after each request if feature flag enabled"""
+            if feature_flag_manager.is_feature_enabled(
+                "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST"
+            ):
+                import gc
+
+                gc.collect()
             return response
 
         @self.superset_app.context_processor

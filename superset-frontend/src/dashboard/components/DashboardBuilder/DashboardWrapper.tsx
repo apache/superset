@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useState } from 'react';
+import { FC, PropsWithChildren, useEffect, useState } from 'react';
 
 import { css, styled } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -113,9 +113,7 @@ const StyledDiv = styled.div`
   `}
 `;
 
-type Props = {};
-
-const DashboardWrapper: FC<Props> = ({ children }) => {
+const DashboardWrapper: FC<PropsWithChildren<{}>> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );

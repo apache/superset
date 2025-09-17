@@ -121,6 +121,7 @@ export const legendSection: ControlSetRow[] = [
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
+  [legendSortControl],
 ];
 
 export const showValueControl: ControlSetItem = {
@@ -334,6 +335,21 @@ export const xAxisLabelInterval = {
     default: defaultXAxis.xAxisLabelInterval,
     renderTrigger: true,
     description: t('Choose how many X-Axis labels to show'),
+  },
+};
+
+export const forceMaxInterval = {
+  name: 'force_max_interval',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Force Time Grain as Max Interval'),
+    renderTrigger: true,
+    default: false,
+    description: t(
+      'Forces selected Time Grain as the maximum interval for X Axis Labels',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.time_grain_sqla?.value),
   },
 };
 

@@ -17,10 +17,11 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from './transformProps';
+import { transformProps, controlPanel } from './config';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.jpg';
-import controlPanel from './controlPanel';
+import exampleDark from './images/example-dark.jpg';
 
 const metadata = new ChartMetadata({
   category: t('Table'),
@@ -28,7 +29,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Compare multiple time series charts (as sparklines) and related metrics quickly.',
   ),
-  exampleGallery: [{ url: example }],
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   tags: [
     t('Multi-Variables'),
     t('Comparison'),
@@ -39,6 +40,7 @@ const metadata = new ChartMetadata({
     t('Trend'),
   ],
   thumbnail,
+  thumbnailDark,
   useLegacyApi: true,
 });
 

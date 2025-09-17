@@ -107,6 +107,7 @@ export type DashboardState = {
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
+  nativeFiltersBarOpen?: boolean;
   css?: string;
   focusedFilterField?: {
     chartId: number;

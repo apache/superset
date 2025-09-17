@@ -34,6 +34,8 @@ const StyledLegend = styled.div`
     outline: none;
     overflow-y: scroll;
     max-height: 200px;
+    border: 1px solid ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
 
     & ul {
       list-style: none;

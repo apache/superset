@@ -355,7 +355,7 @@ const FilterValue: FC<FilterControlProps> = ({
   return (
     <StyledDiv data-test="form-item-value">
       {isLoading ? (
-        <Loading position="inline-centered" />
+        <Loading position="inline-centered" size="s" muted />
       ) : (
         <SuperChart
           height={HEIGHT}

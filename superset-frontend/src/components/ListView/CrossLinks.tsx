@@ -30,6 +30,7 @@ export type CrossLinksProps = {
   crossLinks: Array<CrossLinkProps>;
   maxLinks?: number;
   linkPrefix?: string;
+  external?: boolean;
 };
 
 const StyledCrossLinks = styled.div`
@@ -64,6 +65,7 @@ function CrossLinks({
   crossLinks,
   maxLinks = 20,
   linkPrefix = '/superset/dashboard/',
+  external = false,
 }: CrossLinksProps) {
   const [crossLinksRef, plusRef, elementsTruncated, hasHiddenElements] =
     useTruncation();
@@ -76,13 +78,17 @@ function CrossLinks({
     () => (
       <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
         {crossLinks.map((link, index) => (
-          <Link key={link.id} to={linkPrefix + link.id}>
+          <Link
+            key={link.id}
+            to={linkPrefix + link.id}
+            {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
+          >
             {index === 0 ? link.title : `, ${link.title}`}
           </Link>
         ))}
       </span>
     ),
-    [crossLinks, crossLinksRef, linkPrefix],
+    [crossLinks, crossLinksRef, linkPrefix, external],
   );
   const tooltipLinks = useMemo(
     () =>

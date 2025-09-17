@@ -19,7 +19,6 @@
 import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
-import Pagination from '@superset-ui/core/components/Pagination';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
@@ -28,6 +27,7 @@ import {
   Checkbox,
   Icons,
   EmptyState,
+  Loading,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
@@ -70,6 +70,7 @@ const ListViewStyles = styled.div`
 
       .body {
         overflow-x: auto;
+        overflow-y: hidden;
       }
 
       .ant-empty {
@@ -90,6 +91,16 @@ const ListViewStyles = styled.div`
       margin-top: ${theme.sizeUnit * 2}px;
       color: ${theme.colorText};
     }
+  `}
+`;
+
+const FullPageLoadingWrapper = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: ${theme.sizeUnit * 16}px;
   `}
 `;
 
@@ -444,28 +455,42 @@ export function ListView<T extends object = any>({
             />
           )}
           {viewMode === 'table' && (
-            <TableCollection
-              getTableProps={getTableProps}
-              getTableBodyProps={getTableBodyProps}
-              prepareRow={prepareRow}
-              headerGroups={headerGroups}
-              setSortBy={setSortBy}
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              highlightRowId={highlightRowId}
-              columnsForWrapText={columnsForWrapText}
-              bulkSelectEnabled={bulkSelectEnabled}
-              selectedFlatRows={selectedFlatRows}
-              toggleRowSelected={(rowId, value) => {
-                const row = rows.find(r => r.id === rowId);
-                if (row) {
-                  prepareRow(row);
-                  row.toggleRowSelected(value);
-                }
-              }}
-              toggleAllRowsSelected={toggleAllRowsSelected}
-            />
+            <>
+              {loading && rows.length === 0 ? (
+                <FullPageLoadingWrapper>
+                  <Loading />
+                </FullPageLoadingWrapper>
+              ) : (
+                <TableCollection
+                  getTableProps={getTableProps}
+                  getTableBodyProps={getTableBodyProps}
+                  prepareRow={prepareRow}
+                  headerGroups={headerGroups}
+                  setSortBy={setSortBy}
+                  rows={rows}
+                  columns={columns}
+                  loading={loading && rows.length > 0}
+                  highlightRowId={highlightRowId}
+                  columnsForWrapText={columnsForWrapText}
+                  bulkSelectEnabled={bulkSelectEnabled}
+                  selectedFlatRows={selectedFlatRows}
+                  toggleRowSelected={(rowId, value) => {
+                    const row = rows.find(r => r.id === rowId);
+                    if (row) {
+                      prepareRow(row);
+                      row.toggleRowSelected(value);
+                    }
+                  }}
+                  toggleAllRowsSelected={toggleAllRowsSelected}
+                  pageIndex={pageIndex}
+                  pageSize={pageSize}
+                  totalCount={count}
+                  onPageChange={newPageIndex => {
+                    gotoPage(newPageIndex);
+                  }}
+                />
+              )}
+            </>
           )}
           {!loading && rows.length === 0 && (
             <EmptyWrapper className={viewMode} data-test="empty-state">
@@ -490,25 +515,6 @@ export function ListView<T extends object = any>({
           )}
         </div>
       </div>
-      {rows.length > 0 && (
-        <div className="pagination-container">
-          <Pagination
-            totalPages={pageCount || 0}
-            currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
-            onChange={(p: number) => gotoPage(p - 1)}
-            hideFirstAndLastPageLinks
-          />
-          <div className="row-count-container">
-            {!loading &&
-              t(
-                '%s-%s of %s',
-                pageSize * pageIndex + (rows.length && 1),
-                pageSize * pageIndex + rows.length,
-                count,
-              )}
-          </div>
-        </div>
-      )}
     </ListViewStyles>
   );
 }

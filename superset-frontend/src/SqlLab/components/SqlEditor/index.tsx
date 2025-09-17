@@ -310,8 +310,6 @@ const SqlEditor: FC<Props> = ({
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
-  const isTempId = (value: unknown): boolean => Number.isNaN(Number(value));
-
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.Table) => {
       if (!database) {
@@ -1040,9 +1038,7 @@ const SqlEditor: FC<Props> = ({
               {({ height }) =>
                 isActive && (
                   <AceEditorWrapper
-                    autocomplete={
-                      autocompleteEnabled && !isTempId(queryEditor.id)
-                    }
+                    autocomplete={autocompleteEnabled}
                     onBlur={onSqlChanged}
                     onChange={onSqlChanged}
                     queryEditorId={queryEditor.id}
