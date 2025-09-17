@@ -170,7 +170,7 @@ const SliceAddedBadge: FC<{ placeholder?: HTMLDivElement }> = ({
 const AddSliceCard: FC<{
   datasourceUrl?: string;
   datasourceName?: string;
-  innerRef?: RefObject<HTMLDivElement>;
+  innerRef?: RefObject<HTMLDivElement> | ((node: HTMLDivElement | null) => void);
   isSelected?: boolean;
   lastModified?: string;
   sliceName: string;
@@ -197,7 +197,7 @@ const AddSliceCard: FC<{
   );
 
   return (
-    <div ref={innerRef} style={style}>
+    <div ref={innerRef as any} style={style}>
       <div
         data-test="chart-card"
         css={(theme: Theme) => css`

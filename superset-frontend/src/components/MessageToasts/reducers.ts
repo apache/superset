@@ -17,8 +17,26 @@
  * under the License.
  */
 import { ADD_TOAST, REMOVE_TOAST } from './actions';
+import { ToastMeta } from './types';
 
-export default function messageToastsReducer(toasts = [], action) {
+interface AddToastAction {
+  type: typeof ADD_TOAST;
+  payload: ToastMeta;
+}
+
+interface RemoveToastAction {
+  type: typeof REMOVE_TOAST;
+  payload: {
+    id: string;
+  };
+}
+
+type ToastAction = AddToastAction | RemoveToastAction;
+
+export default function messageToastsReducer(
+  toasts: ToastMeta[] = [],
+  action: ToastAction,
+): ToastMeta[] {
   switch (action.type) {
     case ADD_TOAST: {
       const { payload: toast } = action;

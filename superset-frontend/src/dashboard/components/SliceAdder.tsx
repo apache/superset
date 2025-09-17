@@ -53,6 +53,7 @@ import { navigateTo } from 'src/utils/navigationUtils';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
+import type { ConnectDragSource } from 'react-dnd';
 
 export type SliceAdderProps = {
   theme: Theme;
@@ -312,7 +313,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
         // actual style should be applied to nested AddSliceCard component
         style={{}}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
           <AddSliceCard
             innerRef={dragSourceRef}
             style={style}

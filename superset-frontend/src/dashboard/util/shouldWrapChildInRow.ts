@@ -23,8 +23,20 @@ import {
   MARKDOWN_TYPE,
   TAB_TYPE,
 } from './componentTypes';
+import { ComponentType } from '../types';
 
-const typeToWrapChildLookup = {
+interface WrapChildParams {
+  parentType: ComponentType | undefined | null;
+  childType: ComponentType | undefined | null;
+}
+
+type ParentTypes = typeof DASHBOARD_GRID_TYPE | typeof TAB_TYPE;
+type ChildTypes = typeof CHART_TYPE | typeof COLUMN_TYPE | typeof MARKDOWN_TYPE;
+
+const typeToWrapChildLookup: Record<
+  ParentTypes,
+  Record<ChildTypes, boolean>
+> = {
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
@@ -38,11 +50,14 @@ const typeToWrapChildLookup = {
   },
 };
 
-export default function shouldWrapChildInRow({ parentType, childType }) {
+export default function shouldWrapChildInRow({
+  parentType,
+  childType,
+}: WrapChildParams): boolean {
   if (!parentType || !childType) return false;
 
-  const wrapChildLookup = typeToWrapChildLookup[parentType];
+  const wrapChildLookup = typeToWrapChildLookup[parentType as ParentTypes];
   if (!wrapChildLookup) return false;
 
-  return Boolean(wrapChildLookup[childType]);
+  return Boolean(wrapChildLookup[childType as ChildTypes]);
 }
