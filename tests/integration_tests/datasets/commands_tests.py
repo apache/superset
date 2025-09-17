@@ -268,6 +268,37 @@ class TestExportDatasetsCommand(SupersetTestCase):
             f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
         ]
 
+    @patch("superset.security.manager.g")
+    def test_export_dataset_command_unicode_chars(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE IF EXISTS 中文")
+            engine.execute("CREATE TABLE 中文 AS SELECT 2 as col")
+        if db.session.query(SqlaTable).filter_by(table_name="中文").count():
+            db.session.query(SqlaTable).filter_by(table_name="中文").delete()
+        with override_user(security_manager.find_user("admin")):
+            example_dataset = CreateDatasetCommand(
+                {
+                    "table_name": "中文",
+                    "database": examples_db.id,
+                }
+            ).run()
+
+        command = ExportDatasetsCommand([example_dataset.id], export_related=False)
+        contents = dict(command.run())
+
+        path = f"datasets/examples/{example_dataset.id}.yaml"
+        assert path in set(contents.keys())
+        yaml_content = contents[path]()
+        assert "table_name: 中文" in yaml_content
+
+        db.session.delete(example_dataset)
+        db.session.commit()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE 中文")
+        db.session.commit()
+
 
 class TestImportDatasetsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -597,6 +628,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
             assert [owner.username for owner in table.owners] == ["admin"]
 
         db.session.delete(table)
+        db.session.commit()
         with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
