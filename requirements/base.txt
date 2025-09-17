@@ -265,7 +265,7 @@ packaging==25.0
     #   limits
     #   marshmallow
     #   shillelagh
-pandas==2.1.4
+pandas==2.3.2
     # via apache-superset (pyproject.toml)
 paramiko==3.5.1
     # via
@@ -312,6 +312,8 @@ pyparsing==3.2.3
     # via apache-superset (pyproject.toml)
 pysocks==1.7.1
     # via urllib3
+python-calamine==0.5.3
+    # via pandas
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset (pyproject.toml)
