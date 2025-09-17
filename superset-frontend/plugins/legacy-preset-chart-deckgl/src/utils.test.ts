@@ -50,11 +50,7 @@ describe('getBreakPoints', () => {
 
   describe('automatic breakpoint generation', () => {
     it('generates correct number of breakpoints for given buckets', () => {
-      const features = [
-        { value: 0 },
-        { value: 50 },
-        { value: 100 },
-      ];
+      const features = [{ value: 0 }, { value: 50 }, { value: 100 }];
 
       const breakPoints = getBreakPoints(
         { break_points: [], num_buckets: '5' },
@@ -117,7 +113,7 @@ describe('getBreakPoints', () => {
       // Check that breakpoints are evenly spaced
       const numericBreakPoints = breakPoints.map(parseFloat);
       const deltas = [];
-      for (let i = 1; i < numericBreakPoints.length; i++) {
+      for (let i = 1; i < numericBreakPoints.length; i += 1) {
         deltas.push(numericBreakPoints[i] - numericBreakPoints[i - 1]);
       }
 
@@ -129,11 +125,7 @@ describe('getBreakPoints', () => {
     });
 
     it('handles single value datasets', () => {
-      const features = [
-        { value: 42 },
-        { value: 42 },
-        { value: 42 },
-      ];
+      const features = [{ value: 42 }, { value: 42 }, { value: 42 }];
 
       const breakPoints = getBreakPoints(
         { break_points: [], num_buckets: '5' },
@@ -190,11 +182,15 @@ describe('getBreakPoints', () => {
 
       const numericBreakPoints = breakPoints.map(parseFloat);
       expect(numericBreakPoints[0]).toBeLessThanOrEqual(-100);
-      expect(numericBreakPoints[numericBreakPoints.length - 1]).toBeGreaterThanOrEqual(100);
+      expect(
+        numericBreakPoints[numericBreakPoints.length - 1],
+      ).toBeGreaterThanOrEqual(100);
 
       // Verify ascending order
-      for (let i = 1; i < numericBreakPoints.length; i++) {
-        expect(numericBreakPoints[i]).toBeGreaterThan(numericBreakPoints[i - 1]);
+      for (let i = 1; i < numericBreakPoints.length; i += 1) {
+        expect(numericBreakPoints[i]).toBeGreaterThan(
+          numericBreakPoints[i - 1],
+        );
       }
     });
 
@@ -223,7 +219,7 @@ describe('getBreakPoints', () => {
     it('uses floor/ceil for boundary breakpoints to ensure inclusion', () => {
       // Test that Math.floor and Math.ceil are used for boundaries
       // This ensures all data points fall within the breakpoint range
-      
+
       const testCases = [
         { minValue: 3.14, maxValue: 100, buckets: 5 },
         { minValue: 2.345, maxValue: 10.678, buckets: 4 },
@@ -233,7 +229,7 @@ describe('getBreakPoints', () => {
 
       testCases.forEach(({ minValue, maxValue, buckets }) => {
         const features = [{ value: minValue }, { value: maxValue }];
-        
+
         const breakPoints = getBreakPoints(
           { break_points: [], num_buckets: String(buckets) },
           features,
@@ -242,13 +238,13 @@ describe('getBreakPoints', () => {
 
         const firstBp = parseFloat(breakPoints[0]);
         const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
-        
+
         // First breakpoint should be floored (always <= minValue)
         expect(firstBp).toBeLessThanOrEqual(minValue);
-        
+
         // Last breakpoint should be ceiled (always >= maxValue)
         expect(lastBp).toBeGreaterThanOrEqual(maxValue);
-        
+
         // All values should be within range
         expect(minValue).toBeGreaterThanOrEqual(firstBp);
         expect(maxValue).toBeLessThanOrEqual(lastBp);
@@ -258,13 +254,13 @@ describe('getBreakPoints', () => {
     it('prevents minimum value exclusion edge case', () => {
       // Specific edge case test for minimum value exclusion
       // Tests the exact scenario where rounding would exclude the min value
-      
+
       const features = [
         { value: 3.14 }, // This would round to 3 at precision 0
         { value: 50 },
         { value: 100 },
       ];
-      
+
       const breakPoints = getBreakPoints(
         { break_points: [], num_buckets: '5' },
         features,
@@ -272,13 +268,13 @@ describe('getBreakPoints', () => {
       );
 
       const firstBp = parseFloat(breakPoints[0]);
-      
+
       // The first breakpoint must be <= 3.14 (floor behavior)
       expect(firstBp).toBeLessThanOrEqual(3.14);
-      
+
       // Verify that 3.14 is not excluded
       expect(3.14).toBeGreaterThanOrEqual(firstBp);
-      
+
       // The first breakpoint should be a clean floor value
       expect(breakPoints[0]).toMatch(/^3(\.0*)?$/);
     });
@@ -286,13 +282,13 @@ describe('getBreakPoints', () => {
     it('prevents maximum value exclusion edge case', () => {
       // Specific edge case test for maximum value exclusion
       // Tests the exact scenario where rounding would exclude the max value
-      
+
       const features = [
         { value: 0 },
         { value: 20 },
         { value: 38.7 }, // Original bug case
       ];
-      
+
       const breakPoints = getBreakPoints(
         { break_points: [], num_buckets: '5' },
         features,
@@ -300,13 +296,13 @@ describe('getBreakPoints', () => {
       );
 
       const lastBp = parseFloat(breakPoints[breakPoints.length - 1]);
-      
+
       // The last breakpoint must be >= 38.7 (ceil behavior)
       expect(lastBp).toBeGreaterThanOrEqual(38.7);
-      
+
       // Verify that 38.7 is not excluded
       expect(38.7).toBeLessThanOrEqual(lastBp);
-      
+
       // The last breakpoint should be a clean ceil value
       expect(breakPoints[breakPoints.length - 1]).toMatch(/^39(\.0*)?$/);
     });
@@ -411,7 +407,8 @@ describe('getBreakPoints', () => {
       const breakPoints = getBreakPoints(
         { break_points: [], num_buckets: '3' },
         features,
-        (d: any) => (typeof d.value === 'string' ? parseFloat(d.value) : d.value),
+        (d: any) =>
+          typeof d.value === 'string' ? parseFloat(d.value) : d.value,
       );
 
       const firstBp = parseFloat(breakPoints[0]);
@@ -457,14 +454,14 @@ describe('getBreakPoints', () => {
       // Generate random test data
       const generateRandomData = (count: number, min: number, max: number) => {
         const data = [];
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < count; i += 1) {
           data.push({ value: Math.random() * (max - min) + min });
         }
         return data;
       };
 
       // Test with various random datasets
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 10; i += 1) {
         const features = generateRandomData(20, -1000, 1000);
         const minValue = Math.min(...features.map(f => f.value));
         const maxValue = Math.max(...features.map(f => f.value));

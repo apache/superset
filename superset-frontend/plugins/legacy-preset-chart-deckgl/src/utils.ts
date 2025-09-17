@@ -84,26 +84,24 @@ export function getBreakPoints(
       delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));
 
     // Generate breakpoints
-    const breakPoints = new Array(numBuckets + 1)
-      .fill(0)
-      .map((_, i) => {
-        const value = minValue + i * delta;
-        
-        // For the first breakpoint, floor to ensure minimum is included
-        if (i === 0) {
-          const scale = Math.pow(10, precision);
-          return (Math.floor(minValue * scale) / scale).toFixed(precision);
-        }
-        
-        // For the last breakpoint, ceil to ensure maximum is included
-        if (i === numBuckets) {
-          const scale = Math.pow(10, precision);
-          return (Math.ceil(maxValue * scale) / scale).toFixed(precision);
-        }
-        
-        // For middle breakpoints, use standard rounding
-        return value.toFixed(precision);
-      });
+    const breakPoints = new Array(numBuckets + 1).fill(0).map((_, i) => {
+      const value = minValue + i * delta;
+
+      // For the first breakpoint, floor to ensure minimum is included
+      if (i === 0) {
+        const scale = Math.pow(10, precision);
+        return (Math.floor(minValue * scale) / scale).toFixed(precision);
+      }
+
+      // For the last breakpoint, ceil to ensure maximum is included
+      if (i === numBuckets) {
+        const scale = Math.pow(10, precision);
+        return (Math.ceil(maxValue * scale) / scale).toFixed(precision);
+      }
+
+      // For middle breakpoints, use standard rounding
+      return value.toFixed(precision);
+    });
 
     return breakPoints;
   }
@@ -166,7 +164,8 @@ export function getBreakPointColorScaler(
       .range(bucketedColors);
     // Only mask values that are strictly outside the min/max bounds
     // Include values equal to the max breakpoint
-    maskPoint = value => !!value && (value > points[points.length - 1] || value < points[0]);
+    maskPoint = value =>
+      !!value && (value > points[points.length - 1] || value < points[0]);
   } else {
     // interpolate colors linearly
     const linearScaleDomain = extent(features, accessor);
