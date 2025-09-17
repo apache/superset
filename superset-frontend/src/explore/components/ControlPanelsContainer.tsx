@@ -96,6 +96,7 @@ export type ControlPanelsContainerProps = {
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
   errorMessage: ReactNode;
+  buttonErrorMessage?: ReactNode; // Error message for RunQueryButton (includes all errors)
   onQuery: () => void;
   onStop: () => void;
   canStopQuery: boolean;
@@ -766,36 +767,88 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     props.errorMessage,
   ]);
 
+  const showCustomizeTab = customizeSections.length > 0;
+  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+
+  // Check if matrixify sections have validation errors
+  const matrixifyHasErrors = useMemo(() => {
+    if (!showMatrixifyTab) return false;
+
+    return matrixifySections.some(section =>
+      section.controlSetRows.some(rows =>
+        rows.some(item => {
+          const controlName =
+            typeof item === 'string'
+              ? item
+              : item && 'name' in item
+                ? item.name
+                : null;
+          return (
+            controlName &&
+            controlName in props.controls &&
+            props.controls[controlName].validationErrors &&
+            props.controls[controlName].validationErrors.length > 0
+          );
+        }),
+      ),
+    );
+  }, [showMatrixifyTab, matrixifySections, props.controls]);
+
+  // Create Matrixify tab label with Beta tag and validation errors
+  const matrixifyTabLabel = useMemo(
+    () => (
+      <>
+        <span>{t('Matrixify')}</span>
+        {matrixifyHasErrors && (
+          <span
+            css={(theme: SupersetTheme) => css`
+              margin-left: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            {' '}
+            <Tooltip
+              id="matrixify-validation-error-tooltip"
+              placement="right"
+              title={t('This section contains validation errors')}
+            >
+              <Icons.InfoCircleOutlined
+                data-test="matrixify-validation-error-tooltip-trigger"
+                iconColor={theme.colorErrorText}
+                iconSize="s"
+              />
+            </Tooltip>
+          </span>
+        )}{' '}
+        <Tooltip
+          title={t(
+            'This feature is experimental and may change or have limitations',
+          )}
+          placement="top"
+        >
+          <Label
+            type="info"
+            css={css`
+              margin-left: ${theme.sizeUnit}px;
+              font-size: ${theme.fontSizeSM}px;
+            `}
+          >
+            {t('beta')}
+          </Label>
+        </Tooltip>
+      </>
+    ),
+    [
+      matrixifyHasErrors,
+      theme.colorErrorText,
+      theme.sizeUnit,
+      theme.fontSizeSM,
+    ],
+  );
+
   const controlPanelRegistry = getChartControlPanelRegistry();
   if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
     return <Loading />;
   }
-
-  const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
-
-  // Create Matrixify tab label with Beta tag
-  const matrixifyTabLabel = (
-    <>
-      {t('Matrixify')}{' '}
-      <Tooltip
-        title={t(
-          'This feature is experimental and may change or have limitations',
-        )}
-        placement="top"
-      >
-        <Label
-          type="info"
-          css={css`
-            margin-left: ${theme.sizeUnit}px;
-            font-size: ${theme.fontSizeSM}px;
-          `}
-        >
-          {t('beta')}
-        </Label>
-      </Tooltip>
-    </>
-  );
 
   return (
     <Styles ref={containerRef}>
@@ -894,7 +947,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         <RunQueryButton
           onQuery={props.onQuery}
           onStop={props.onStop}
-          errorMessage={props.errorMessage}
+          errorMessage={props.buttonErrorMessage || props.errorMessage}
           loading={props.chart.chartStatus === 'loading'}
           isNewChart={!props.chart.queriesResponse}
           canStopQuery={props.canStopQuery}
