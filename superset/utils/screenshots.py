@@ -197,7 +197,8 @@ class BaseScreenshot:
                 logger.info(
                     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
                     "installed. Falling back to Selenium (WebGL/Canvas charts may "
-                    f"not render correctly). {_PLAYWRIGHT_INSTALL_MESSAGE}"
+                    "not render correctly). %s",
+                    _PLAYWRIGHT_INSTALL_MESSAGE,
                 )
                 _PLAYWRIGHT_FALLBACK_LOGGED = True
 

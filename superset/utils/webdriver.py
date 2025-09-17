@@ -214,7 +214,8 @@ class WebDriverPlaywright(WebDriverProxy):
             logger.info(
                 "Playwright not available - falling back to Selenium. "
                 "Note: WebGL/Canvas charts may not render correctly with Selenium. "
-                f"{PLAYWRIGHT_INSTALL_MESSAGE}"
+                "%s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
             )
             return None
 
