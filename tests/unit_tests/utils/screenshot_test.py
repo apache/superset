@@ -246,7 +246,7 @@ class TestScreenshotCachePayloadGetImage:
 class TestBaseScreenshotDriverFallback:
     """Test BaseScreenshot.driver() fallback logic for Playwright migration."""
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_returns_playwright_when_feature_enabled_and_available(
         self, mock_feature_flag, screenshot_obj
@@ -260,7 +260,7 @@ class TestBaseScreenshotDriverFallback:
         mock_feature_flag.assert_called_once_with("PLAYWRIGHT_REPORTS_AND_THUMBNAILS")
 
     @patch("superset.utils.screenshots.logger")
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_falls_back_to_selenium_when_playwright_unavailable(
         self, mock_feature_flag, mock_logger, screenshot_obj
@@ -313,7 +313,7 @@ class TestBaseScreenshotDriverFallback:
         # Should not log since feature flag is disabled
         mock_logger.info.assert_not_called()
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_passes_window_size_to_playwright(
         self, mock_feature_flag, screenshot_obj
@@ -340,7 +340,7 @@ class TestBaseScreenshotDriverFallback:
         assert driver._window == custom_window_size
         assert driver.__class__.__name__ == "WebDriverSelenium"
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_uses_default_window_size_when_none_provided(
         self, mock_feature_flag, screenshot_obj
@@ -366,7 +366,7 @@ class TestBaseScreenshotDriverFallback:
 
         superset.utils.screenshots._PLAYWRIGHT_FALLBACK_LOGGED = False
 
-        with patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False):
+        with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False):
             # Call driver() multiple times
             screenshot_obj.driver()
             screenshot_obj.driver()
@@ -375,7 +375,7 @@ class TestBaseScreenshotDriverFallback:
         # Should log fallback message only once due to global flag
         assert mock_logger.info.call_count == 1
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_returns_different_instances_on_multiple_calls(
         self, mock_feature_flag, screenshot_obj
@@ -394,7 +394,7 @@ class TestBaseScreenshotDriverFallback:
 class TestScreenshotSubclassesDriverBehavior:
     """Test ChartScreenshot and DashboardScreenshot inherit driver behavior."""
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_chart_screenshot_uses_playwright_when_enabled(self, mock_feature_flag):
         """Test ChartScreenshot uses Playwright when feature enabled."""
@@ -407,7 +407,7 @@ class TestScreenshotSubclassesDriverBehavior:
         assert driver._window == chart_screenshot.window_size
 
     @patch("superset.utils.screenshots.logger")
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_dashboard_screenshot_falls_back_to_selenium(
         self, mock_feature_flag, mock_logger
@@ -442,7 +442,7 @@ class TestScreenshotSubclassesDriverBehavior:
         )
         assert dashboard_screenshot.window_size == DEFAULT_DASHBOARD_WINDOW_SIZE
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_custom_window_size_passed_to_driver(self, mock_feature_flag):
         """Test custom window size is passed correctly to driver."""
@@ -514,19 +514,19 @@ class TestScreenshotModuleLevelCaching:
         import superset.utils.screenshots as screenshots_module
 
         # These should be set at module import time
-        assert hasattr(screenshots_module, "_PLAYWRIGHT_AVAILABLE")
-        assert hasattr(screenshots_module, "_PLAYWRIGHT_INSTALL_MESSAGE")
+        assert hasattr(screenshots_module, "PLAYWRIGHT_AVAILABLE")
+        assert hasattr(screenshots_module, "PLAYWRIGHT_INSTALL_MESSAGE")
         assert hasattr(screenshots_module, "_PLAYWRIGHT_FALLBACK_LOGGED")
 
         # Should be boolean or None
-        assert isinstance(screenshots_module._PLAYWRIGHT_AVAILABLE, (bool, type(None)))
+        assert isinstance(screenshots_module.PLAYWRIGHT_AVAILABLE, (bool, type(None)))
         assert isinstance(
-            screenshots_module._PLAYWRIGHT_INSTALL_MESSAGE, (str, type(None))
+            screenshots_module.PLAYWRIGHT_INSTALL_MESSAGE, (str, type(None))
         )
         assert isinstance(screenshots_module._PLAYWRIGHT_FALLBACK_LOGGED, bool)
 
-    @patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False)
-    @patch("superset.utils.screenshots._PLAYWRIGHT_INSTALL_MESSAGE", "Test message")
+    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
+    @patch("superset.utils.screenshots.PLAYWRIGHT_INSTALL_MESSAGE", "Test message")
     def test_cached_values_used_in_driver_method(self, screenshot_obj):
         """Test that driver() method uses cached module-level values."""
         with patch(
@@ -550,7 +550,7 @@ class TestScreenshotModuleLevelCaching:
             "superset.extensions.feature_flag_manager.is_feature_enabled"
         ) as mock_feature_flag:
             mock_feature_flag.return_value = True
-            with patch("superset.utils.screenshots._PLAYWRIGHT_AVAILABLE", False):
+            with patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False):
                 with patch("superset.utils.screenshots.logger") as mock_logger:
                     # Create multiple screenshot instances
                     screenshot1 = BaseScreenshot("http://example1.com", "digest1")

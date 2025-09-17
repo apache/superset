@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 # Installation message for missing Playwright (Cypress doesn't work with DeckGL)
 PLAYWRIGHT_INSTALL_MESSAGE = (
     "To complete the migration from Cypress "
-    "and enable WebGL/DuckGL screenshot support, install Playwright with: "
+    "and enable WebGL/DeckGL screenshot support, install Playwright with: "
     "pip install playwright && playwright install chromium"
 )
 

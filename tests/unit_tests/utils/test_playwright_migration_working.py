@@ -42,8 +42,8 @@ class TestPlaywrightMigrationCore:
         # Check for browser installation command
         assert "playwright install chromium" in message
 
-        # Check for context about WebGL/DuckGL support
-        assert "WebGL/DuckGL" in message
+        # Check for context about WebGL/DeckGL support
+        assert "WebGL/DeckGL" in message
 
         # Check for migration context
         assert "Cypress" in message

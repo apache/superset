@@ -355,7 +355,7 @@ class TestPlaywrightMigrationSupport:
         """Test that PLAYWRIGHT_INSTALL_MESSAGE contains expected content."""
         assert "pip install playwright" in PLAYWRIGHT_INSTALL_MESSAGE
         assert "playwright install chromium" in PLAYWRIGHT_INSTALL_MESSAGE
-        assert "WebGL/Canvas" in PLAYWRIGHT_INSTALL_MESSAGE
+        assert "WebGL/DuckGL" in PLAYWRIGHT_INSTALL_MESSAGE
         assert "Cypress" in PLAYWRIGHT_INSTALL_MESSAGE
 
     def test_playwright_available_constant_type(self):
