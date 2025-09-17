@@ -21,11 +21,13 @@ import buildQuery from './buildQuery';
 import controlPanel from './Regular/Line/controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
 } from './types';
 import example from './images/Time-series_Chart.jpg';
+import exampleDark from './images/Time-series_Chart-dark.jpg';
 import { EchartsChartPlugin } from '../types';
 
 export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
@@ -48,7 +50,7 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
         description: t(
           'Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
         ),
-        exampleGallery: [{ url: example }],
+        exampleGallery: [{ url: example, urlDark: exampleDark }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
@@ -65,6 +67,7 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
           t('Transformable'),
         ],
         thumbnail,
+        thumbnailDark,
       },
       transformProps,
     });

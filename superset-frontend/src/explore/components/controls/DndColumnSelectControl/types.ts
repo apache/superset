@@ -33,6 +33,7 @@ export interface OptionProps {
   datasourceWarningMessage?: string;
   canDelete?: boolean;
   tooltipOverlay?: ReactNode;
+  multiValueWarningMessage?: string;
 }
 
 export interface OptionItemInterface {

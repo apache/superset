@@ -17,13 +17,25 @@
  * under the License.
  */
 import { ArcLayer } from '@deck.gl/layers';
-import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
-import TooltipRow from '../../TooltipRow';
 import { Point } from '../../types';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
+
+interface ArcDataItem {
+  sourceColor?: number[];
+  targetColor?: number[];
+  color?: number[];
+  sourcePosition: number[];
+  targetPosition: number[];
+  [key: string]: unknown;
+}
 
 export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
@@ -36,24 +48,14 @@ export function getPoints(data: JsonObject[]) {
 }
 
 function setTooltipContent(formData: QueryFormData) {
-  return (o: JsonObject) => (
+  const defaultTooltipGenerator = (o: JsonObject) => (
     <div className="deckgl-tooltip">
-      <TooltipRow
-        label={t('Start (Longitude, Latitude): ')}
-        value={`${o.object?.sourcePosition?.[0]}, ${o.object?.sourcePosition?.[1]}`}
-      />
-      <TooltipRow
-        label={t('End (Longitude, Latitude): ')}
-        value={`${o.object?.targetPosition?.[0]}, ${o.object?.targetPosition?.[1]}`}
-      />
-      {formData.dimension && (
-        <TooltipRow
-          label={`${formData?.dimension}: `}
-          value={`${o.object?.cat_color}`}
-        />
-      )}
+      {CommonTooltipRows.arcPositions(o)}
+      {CommonTooltipRows.category(o)}
     </div>
   );
+
+  return createTooltipContent(formData, defaultTooltipGenerator);
 }
 
 export const getLayer: GetLayerType<ArcLayer> = function ({
@@ -74,19 +76,27 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
 
   return new ArcLayer({
     data,
-    getSourceColor: (d: JsonObject) => {
+    getSourceColor: (d: ArcDataItem): [number, number, number, number] => {
       if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
         return [sc.r, sc.g, sc.b, 255 * sc.a];
       }
-
-      return d.targetColor || d.color;
+      return (d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a]) as [
+        number,
+        number,
+        number,
+        number,
+      ];
     },
-    getTargetColor: (d: any) => {
+    getTargetColor: (d: ArcDataItem): [number, number, number, number] => {
       if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
         return [tc.r, tc.g, tc.b, 255 * tc.a];
       }
-
-      return d.targetColor || d.color;
+      return (d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a]) as [
+        number,
+        number,
+        number,
+        number,
+      ];
     },
     id: `path-layer-${fd.slice_id}` as const,
     getWidth: fd.stroke_width ? fd.stroke_width : 3,
