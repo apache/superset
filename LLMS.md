@@ -136,6 +136,19 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 - **Use negation operator**: `~Model.field` instead of `== False` to avoid ruff E712 errors
 - **Example**: `~Model.is_active` instead of `Model.is_active == False`
 
+## Pull Request Guidelines
+
+**When creating pull requests:**
+
+1. **Read the current PR template**: Always check `.github/PULL_REQUEST_TEMPLATE.md` for the latest format
+2. **Use the template sections**: Include all sections from the template (SUMMARY, BEFORE/AFTER, TESTING INSTRUCTIONS, ADDITIONAL INFORMATION)
+3. **Follow PR title conventions**: Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+   - Format: `type(scope): description`
+   - Example: `fix(dashboard): load charts correctly`
+   - Types: `fix`, `feat`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
+
+**Important**: Always reference the actual template file at `.github/PULL_REQUEST_TEMPLATE.md` instead of using cached content, as the template may be updated over time.
+
 ## Pre-commit Validation
 
 **Use pre-commit hooks for quality validation:**

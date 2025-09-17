@@ -37,7 +37,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
+from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -330,7 +330,8 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
                 default_theme = json.loads(default_theme_model.json_data)
             except json.JSONDecodeError:
                 logger.error(
-                    f"Invalid JSON in system default theme {default_theme_model.id}"
+                    "Invalid JSON in system default theme %s",
+                    default_theme_model.id,
                 )
                 # Fallback to config
                 default_theme = get_config_value("THEME_DEFAULT")
@@ -343,7 +344,9 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
             try:
                 dark_theme = json.loads(dark_theme_model.json_data)
             except json.JSONDecodeError:
-                logger.error(f"Invalid JSON in system dark theme {dark_theme_model.id}")
+                logger.error(
+                    "Invalid JSON in system dark theme %s", dark_theme_model.id
+                )
                 # Fallback to config
                 dark_theme = get_config_value("THEME_DARK")
         else:
@@ -404,7 +407,7 @@ def get_default_spinner_svg() -> str | None:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
-        logger.warning(f"Could not load default spinner SVG: {e}")
+        logger.warning("Could not load default spinner SVG: %s", e)
         return None
 
 
@@ -470,12 +473,6 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
-
-    if auth_type == AUTH_OID:
-        oid_providers = []
-        for provider in appbuilder.sm.openid_providers:
-            oid_providers.append(provider)
-        frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
@@ -603,9 +600,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
-                security_manager.get_session.query(
-                    security_manager.permissionview_model
-                )
+                db.session.query(security_manager.permissionview_model)
                 .filter_by(view_menu=view_menu)
                 .all()
             )
@@ -614,10 +609,10 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 self.post_delete(item)
 
                 for pv in pvs:
-                    security_manager.get_session.delete(pv)
+                    db.session.delete(pv)
 
                 if view_menu:
-                    security_manager.get_session.delete(view_menu)
+                    db.session.delete(view_menu)
 
                 db.session.commit()  # pylint: disable=consider-using-transaction
 

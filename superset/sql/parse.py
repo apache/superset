@@ -81,7 +81,7 @@ SQLGLOT_DIALECTS = {
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
     # "ibmi": ???
-    # "impala": ???
+    "impala": Dialects.HIVE,
     # "kustosql": ???
     # "kylin": ???
     "mariadb": Dialects.MYSQL,

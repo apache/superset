@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
-from flask import g, redirect, request, Response, send_file, url_for
+from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -113,6 +113,7 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
+from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -331,8 +332,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Deterministic string representation of the API instance for etag_cache."""
         # pylint: disable=consider-using-f-string
         return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
-            self.appbuilder.app.config["VERSION_STRING"],
-            self.appbuilder.app.config["VERSION_SHA"],
+            current_app.config["VERSION_STRING"],
+            current_app.config["VERSION_SHA"],
         )
 
     @expose("/<id_or_slug>", methods=("GET",))
@@ -478,7 +479,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """  # noqa: E501
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
+            native_filters = DashboardDAO.get_native_filter_configuration(id_or_slug)
+
             result = self.tab_schema.dump(tabs)
+            result["native_filters"] = native_filters
+
             return self.response(200, result=result)
 
         except (TypeError, ValueError) as err:
@@ -1204,6 +1209,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
                 return self.response_404()
+
+            filename = get_filename(
+                dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
+            )
             if download_format == "pdf":
                 pdf_img = image.getvalue()
                 # Convert the screenshot to PDF
@@ -1212,13 +1221,18 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 return Response(
                     pdf_data,
                     mimetype="application/pdf",
-                    headers={"Content-Disposition": "inline; filename=dashboard.pdf"},
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}.pdf"'
+                    },
                     direct_passthrough=True,
                 )
             if download_format == "png":
                 return Response(
                     FileWrapper(image),
                     mimetype="image/png",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}.png"'
+                    },
                     direct_passthrough=True,
                 )
         return self.response_404()

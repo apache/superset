@@ -29,7 +29,7 @@
  * - Global APIs: Functions and events available across the entire SQL Lab interface
  */
 
-import { Event, Database } from './core';
+import { Event, Database, SupersetError, Column } from './core';
 
 /**
  * Represents an SQL editor instance within a SQL Lab tab.
@@ -109,6 +109,126 @@ export interface Tab {
    * Panels provide additional functionality like result display and schema browsing.
    */
   panels: Panel[];
+}
+
+export enum CTASMethod {
+  Table = 'TABLE',
+  View = 'VIEW',
+}
+
+export interface CTAS {
+  /**
+   * Create method for CTAS creation request.
+   */
+  method: CTASMethod;
+
+  /**
+   * Temporary table name for creation using a CTAS query.
+   */
+  tempTable: string | null;
+}
+
+export interface QueryContext {
+  /**
+   * Unique query ID on client side.
+   */
+  clientId: string;
+
+  /**
+   * Contains CTAS if the query requests table creation.
+   */
+  ctas: CTAS | null;
+
+  /**
+   * Requested row limit for the query.
+   */
+  requestedLimit: number | null;
+
+  /**
+   * True if the query execution result will be/was delivered asynchronously
+   */
+  runAsync?: boolean;
+
+  /**
+   * Start datetime for the query in a numerical timestamp
+   */
+  startDttm: number;
+
+  /**
+   * The tab instance associated with the request query
+   */
+  tab: Tab;
+
+  /**
+   * A key-value JSON associated with Jinja template variables
+   */
+  templateParameters: Record<string, any>;
+}
+
+export interface QueryErrorResultContext extends QueryContext {
+  /**
+   * Finished datetime for the query in a numerical timestamp
+   */
+  endDttm: number;
+
+  /**
+   * Error message returned from DB engine
+   */
+  errorMessage: string;
+
+  /**
+   * Error details in a SupersetError structure
+   */
+  errors: SupersetError[] | null;
+
+  /**
+   * Executed SQL after parsing Jinja templates.
+   */
+  executedSql: string | null;
+}
+
+export interface QueryResultContext extends QueryContext {
+  /**
+   * Actual number of rows returned by the query.
+   */
+  appliedLimit: number;
+
+  /**
+   * Major factor that is determining the row limit of the query results.
+   */
+  appliedLimitingFactor: string;
+
+  /**
+   * Finished datetime for the query in a numerical timestamp.
+   */
+  endDttm: number;
+
+  /**
+   * Executed SQL after parsing Jinja templates.
+   */
+  executedSql: string;
+
+  /**
+   * Remote query id stored in backend.
+   */
+  remoteId: number;
+
+  /**
+   * Query result data and metadata.
+   */
+  result: QueryResult;
+}
+
+export interface QueryResult {
+  /**
+   * Column metadata associated with the query result.
+   */
+  columns: Column[];
+
+  /**
+   * Query result data.
+   */
+  data: Record<string, any>[];
 }
 
 /**
@@ -240,30 +360,30 @@ export declare const onDidChangeTabTitle: Event<string>;
 
 /**
  * Event fired when a query starts running in the current tab.
- * Provides the editor state at the time of query execution.
+ * Provides the query request state at the time of query execution.
  *
  * @example
  * ```typescript
- * onDidQueryRun.event((editor) => {
- *   console.log('Query started on database:', editor.databaseId);
- *   console.log('Query content:', editor.content);
+ * onDidQueryRun.event((query) => {
+ *   console.log('Query started on database:', query.tab.editor.databaseId);
+ *   console.log('Query content:', query.tab.editor.content);
  * });
  * ```
  */
-export declare const onDidQueryRun: Event<Editor>;
+export declare const onDidQueryRun: Event<QueryContext>;
 
 /**
  * Event fired when a running query is stopped in the current tab.
- * Provides the editor state when the query was stopped.
+ * Provides the query request state when the query was stopped.
  *
  * @example
  * ```typescript
- * onDidQueryStop.event((editor) => {
- *   console.log('Query stopped for database:', editor.databaseId);
+ * onDidQueryStop.event((query) => {
+ *   console.log('Query stopped for database:', query.tab.editor.databaseId);
  * });
  * ```
  */
-export declare const onDidQueryStop: Event<Editor>;
+export declare const onDidQueryStop: Event<QueryContext>;
 
 /**
  * Event fired when a query fails in the current tab.
@@ -273,12 +393,12 @@ export declare const onDidQueryStop: Event<Editor>;
  *
  * @example
  * ```typescript
- * onDidQueryFail.event((error) => {
- *   console.error('Query failed:', error);
+ * onDidQueryFail.event((result) => {
+ *   console.error('Query failed:', result.errorMessage);
  * });
  * ```
  */
-export declare const onDidQueryFail: Event<string>;
+export declare const onDidQueryFail: Event<QueryErrorResultContext>;
 
 /**
  * Event fired when a query succeeds in the current tab.
@@ -288,12 +408,13 @@ export declare const onDidQueryFail: Event<string>;
  *
  * @example
  * ```typescript
- * onDidQuerySuccess.event((result) => {
- *   console.log('Query succeeded:', result);
+ * onDidQuerySuccess.event((query) => {
+ *   console.log('Query succeeded:', query.result.data);
+ *   console.log('Query executed content:', query.executedSql);
  * });
  * ```
  */
-export declare const onDidQuerySuccess: Event<string>;
+export declare const onDidQuerySuccess: Event<QueryResultContext>;
 
 /**
  * Global Events and Functions

@@ -27,63 +27,64 @@ import {
   EchartsGanttFormData,
 } from '../../src/Gantt/types';
 
+const formData: EchartsGanttFormData = {
+  viz_type: 'gantt_chart',
+  datasource: '1__table',
+
+  startTime: 'startTime',
+  endTime: 'endTime',
+  yAxis: {
+    label: 'Y Axis',
+    sqlExpression: 'y_axis',
+    expressionType: 'SQL',
+  },
+  tooltipMetrics: ['tooltip_metric'],
+  tooltipColumns: ['tooltip_column'],
+  series: 'series',
+  xAxisTimeFormat: '%H:%M',
+  tooltipTimeFormat: '%H:%M',
+  tooltipValuesFormat: 'DURATION_SEC',
+  colorScheme: 'bnbColors',
+  zoomable: true,
+  xAxisTitleMargin: undefined,
+  yAxisTitleMargin: undefined,
+  xAxisTimeBounds: [null, '19:00:00'],
+  subcategories: true,
+  legendMargin: 0,
+  legendOrientation: LegendOrientation.Top,
+  legendType: LegendType.Scroll,
+  showLegend: true,
+  sortSeriesAscending: true,
+  legendSort: null,
+};
+const queriesData = [
+  {
+    data: [
+      {
+        startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
+        endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
+        'Y Axis': 'first',
+        tooltip_column: 'tooltip value 1',
+        series: 'series value 1',
+      },
+      {
+        startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
+        endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
+        'Y Axis': 'second',
+        tooltip_column: 'tooltip value 2',
+        series: 'series value 2',
+      },
+    ],
+    colnames: ['startTime', 'endTime', 'Y Axis', 'tooltip_column', 'series'],
+  },
+];
+const chartPropsConfig = {
+  formData,
+  queriesData,
+  theme: supersetTheme,
+};
+
 describe('Gantt transformProps', () => {
-  const formData: EchartsGanttFormData = {
-    viz_type: 'gantt_chart',
-    datasource: '1__table',
-
-    startTime: 'startTime',
-    endTime: 'endTime',
-    yAxis: {
-      label: 'Y Axis',
-      sqlExpression: 'y_axis',
-      expressionType: 'SQL',
-    },
-    tooltipMetrics: ['tooltip_metric'],
-    tooltipColumns: ['tooltip_column'],
-    series: 'series',
-    xAxisTimeFormat: '%H:%M',
-    tooltipTimeFormat: '%H:%M',
-    tooltipValuesFormat: 'DURATION_SEC',
-    colorScheme: 'bnbColors',
-    zoomable: true,
-    xAxisTitleMargin: undefined,
-    yAxisTitleMargin: undefined,
-    xAxisTimeBounds: [null, '19:00:00'],
-    subcategories: true,
-    legendMargin: 0,
-    legendOrientation: LegendOrientation.Top,
-    legendType: LegendType.Scroll,
-    showLegend: true,
-    sortSeriesAscending: true,
-  };
-  const queriesData = [
-    {
-      data: [
-        {
-          startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
-          endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
-          'Y Axis': 'first',
-          tooltip_column: 'tooltip value 1',
-          series: 'series value 1',
-        },
-        {
-          startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
-          endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
-          'Y Axis': 'second',
-          tooltip_column: 'tooltip value 2',
-          series: 'series value 2',
-        },
-      ],
-      colnames: ['startTime', 'endTime', 'Y Axis', 'tooltip_column', 'series'],
-    },
-  ];
-  const chartPropsConfig = {
-    formData,
-    queriesData,
-    theme: supersetTheme,
-  };
-
   it('should transform chart props', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     const transformedProps = transformProps(
@@ -265,5 +266,40 @@ describe('Gantt transformProps', () => {
         symbol: ['none', 'none'],
       },
     });
+  });
+});
+
+describe('legend sorting', () => {
+  const createChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        ...overrides,
+      },
+    });
+
+  it('preserves original data order when no sort specified', () => {
+    const props = createChartProps({ legendSort: null });
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['series value 1', 'series value 2']);
+  });
+
+  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+    const props = createChartProps({ legendSort: 'asc' });
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['series value 1', 'series value 2']);
+  });
+
+  it('sorts alphabetically descending when legendSort is "desc"', () => {
+    const props = createChartProps({ legendSort: 'desc' });
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['series value 2', 'series value 1']);
   });
 });

@@ -27,29 +27,30 @@ import {
   PercentCalcType,
 } from '../../src/Funnel/types';
 
-describe('Funnel transformProps', () => {
-  const formData = {
-    colorScheme: 'bnbColors',
-    datasource: '3__table',
-    granularity_sqla: 'ds',
-    metric: 'sum__num',
-    groupby: ['foo', 'bar'],
-  };
-  const chartProps = new ChartProps({
-    formData,
-    width: 800,
-    height: 600,
-    queriesData: [
-      {
-        data: [
-          { foo: 'Sylvester', bar: 1, sum__num: 10 },
-          { foo: 'Arnold', bar: 2, sum__num: 2.5 },
-        ],
-      },
+const formData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'sum__num',
+  groupby: ['foo', 'bar'],
+};
+const queriesData = [
+  {
+    data: [
+      { foo: 'Sylvester', bar: 1, sum__num: 10 },
+      { foo: 'Arnold', bar: 2, sum__num: 2.5 },
     ],
-    theme: supersetTheme,
-  });
+  },
+];
+const chartProps = new ChartProps({
+  formData,
+  width: 800,
+  height: 600,
+  queriesData,
+  theme: supersetTheme,
+});
 
+describe('Funnel transformProps', () => {
   it('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
@@ -121,5 +122,51 @@ describe('formatFunnelLabel', () => {
         sanitizeName: true,
       }),
     ).toEqual(['&lt;NULL&gt;', '1.23k', '12.34%']);
+  });
+});
+
+describe('legend sorting', () => {
+  const legendQueriesData = [
+    {
+      data: [
+        { foo: 'Sylvester', sum__num: 10 },
+        { foo: 'Arnold', sum__num: 2.5 },
+        { foo: 'Mark', sum__num: 13 },
+      ],
+    },
+  ];
+  const createChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['foo'],
+        ...overrides,
+      },
+      queriesData: legendQueriesData,
+    });
+
+  it('preserves original data order when no sort specified', () => {
+    const props = createChartProps({ legendSort: null });
+    const result = transformProps(props as EchartsFunnelChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['Sylvester', 'Arnold', 'Mark']);
+  });
+
+  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+    const props = createChartProps({ legendSort: 'asc' });
+    const result = transformProps(props as EchartsFunnelChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['Arnold', 'Mark', 'Sylvester']);
+  });
+
+  it('sorts alphabetically descending when legendSort is "desc"', () => {
+    const props = createChartProps({ legendSort: 'desc' });
+    const result = transformProps(props as EchartsFunnelChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['Sylvester', 'Mark', 'Arnold']);
   });
 });

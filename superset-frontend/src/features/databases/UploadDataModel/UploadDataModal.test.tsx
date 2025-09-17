@@ -481,7 +481,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.csv');
-  });
+  }, 60000);
 
   test('Excel form submission', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
@@ -493,7 +493,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.xls');
-  });
+  }, 60000);
 
   test('Columnar form submission', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });

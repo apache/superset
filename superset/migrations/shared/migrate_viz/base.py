@@ -180,7 +180,7 @@ class MigrateViz:
             slc.params = json.dumps({**clz.data, **backup})
 
         except Exception as e:
-            logger.warning(f"Failed to migrate slice {slc.id}: {e}")
+            logger.warning("Failed to migrate slice %s: %s", slc.id, e)
 
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> None:
@@ -202,14 +202,14 @@ class MigrateViz:
                     slc.query_context = None
 
         except Exception as e:
-            logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
+            logger.warning("Failed to downgrade slice %s: %s", slc.id, e)
 
     @classmethod
     def upgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
-            lambda current, total: logger.info(f"Upgraded {current}/{total} charts"),
+            lambda current, total: logger.info("Upgraded %s/%s charts", current, total),
         ):
             cls.upgrade_slice(slc)
 
@@ -223,7 +223,9 @@ class MigrateViz:
         )
         for slc in paginated_update(
             slices,
-            lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
+            lambda current, total: logger.info(
+                "Downgraded %s/%s charts", current, total
+            ),
         ):
             cls.downgrade_slice(slc)
 

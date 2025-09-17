@@ -25,7 +25,6 @@ import {
   getXAxisLabel,
   Metric,
   getValueFormatter,
-  supersetTheme,
   t,
   tooltipHtml,
 } from '@superset-ui/core';
@@ -281,7 +280,7 @@ export default function transformProps(
                 },
                 {
                   offset: 1,
-                  color: supersetTheme.colorBgContainer,
+                  color: 'transparent',
                 },
               ]),
             },
