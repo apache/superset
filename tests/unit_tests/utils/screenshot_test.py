@@ -468,9 +468,7 @@ class TestDriverMethodThreadSafety:
 
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
-    def test_driver_method_thread_safe_feature_flag_calls(
-        self, mock_playwright_available, mock_feature_flag
-    ):
+    def test_driver_method_thread_safe_feature_flag_calls(self, mock_feature_flag):
         """Test that feature flag calls are thread safe."""
         mock_feature_flag.return_value = True
         screenshot_obj = BaseScreenshot("http://example.com", "digest")
@@ -504,8 +502,8 @@ class TestDriverMethodThreadSafety:
         for driver in drivers:
             assert driver.__class__.__name__ == "WebDriverSelenium"
 
-        # Should have logged fallback message for each call
-        assert mock_logger.info.call_count == 5
+        # Should have logged fallback message only once (to avoid log spam)
+        assert mock_logger.info.call_count == 1
 
 
 class TestScreenshotModuleLevelCaching:
@@ -576,7 +574,7 @@ class TestScreenshotDriverPerformance:
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     def test_driver_selection_performance_with_playwright_available(
-        self, mock_playwright_available, mock_feature_flag
+        self, mock_feature_flag
     ):
         """Test that driver selection is fast when Playwright available."""
         mock_feature_flag.return_value = True

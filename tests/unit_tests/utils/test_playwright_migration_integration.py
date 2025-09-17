@@ -359,8 +359,8 @@ class TestPlaywrightMigrationIntegration:
             assert chart_driver.__class__.__name__ == "WebDriverSelenium"
             assert dashboard_driver.__class__.__name__ == "WebDriverSelenium"
 
-            # Both should log fallback messages
-            assert mock_logger.info.call_count == 2
+            # Should log fallback message only once (to avoid log spam)
+            assert mock_logger.info.call_count == 1
 
             # Verify window sizes are preserved correctly
             assert chart_driver._window == chart_screenshot.window_size
@@ -393,9 +393,7 @@ class TestPlaywrightMigrationEdgeCases:
 
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
-    def test_memory_behavior_with_many_driver_instances(
-        self, mock_playwright_available, mock_feature_flag
-    ):
+    def test_memory_behavior_with_many_driver_instances(self, mock_feature_flag):
         """Test memory behavior when creating many driver instances."""
         mock_feature_flag.return_value = True
         screenshot_obj = BaseScreenshot("http://example.com", "memory_digest")

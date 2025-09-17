@@ -41,23 +41,18 @@ from superset.utils.webdriver import (
 
 logger = logging.getLogger(__name__)
 
-# Cache Playwright availability check at module level to avoid repeated imports
-# This optimization prevents checking for Playwright on every screenshot generation
-_PLAYWRIGHT_AVAILABLE: bool | None = None
-_PLAYWRIGHT_INSTALL_MESSAGE: str | None = None
-_PLAYWRIGHT_FALLBACK_LOGGED = False  # Track if we've already logged the fallback
-
+# Import Playwright availability and install message
 try:
     from superset.utils.webdriver import (
         PLAYWRIGHT_AVAILABLE,
         PLAYWRIGHT_INSTALL_MESSAGE,
     )
-
-    _PLAYWRIGHT_AVAILABLE = PLAYWRIGHT_AVAILABLE
-    _PLAYWRIGHT_INSTALL_MESSAGE = PLAYWRIGHT_INSTALL_MESSAGE
 except ImportError:
-    _PLAYWRIGHT_AVAILABLE = False
-    _PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
+    PLAYWRIGHT_AVAILABLE = False
+    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
+
+# Track if we've already logged the fallback to avoid log spam
+_PLAYWRIGHT_FALLBACK_LOGGED = False
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
 DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
@@ -188,7 +183,7 @@ class BaseScreenshot:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
             # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
-            if _PLAYWRIGHT_AVAILABLE:
+            if PLAYWRIGHT_AVAILABLE:
                 return WebDriverPlaywright(self.driver_type, window_size)
 
             # Log fallback only once to avoid log spam on repeated operations
@@ -198,7 +193,7 @@ class BaseScreenshot:
                     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
                     "installed. Falling back to Selenium (WebGL/Canvas charts may "
                     "not render correctly). %s",
-                    _PLAYWRIGHT_INSTALL_MESSAGE,
+                    PLAYWRIGHT_INSTALL_MESSAGE,
                 )
                 _PLAYWRIGHT_FALLBACK_LOGGED = True
 

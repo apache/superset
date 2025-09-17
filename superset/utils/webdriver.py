@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 # Installation message for missing Playwright (Cypress doesn't work with DeckGL)
 PLAYWRIGHT_INSTALL_MESSAGE = (
     "To complete the migration from Cypress "
-    "and enable WebGL/Canvas screenshot support, install Playwright with: "
+    "and enable WebGL/DuckGL screenshot support, install Playwright with: "
     "pip install playwright && playwright install chromium"
 )
 
@@ -146,8 +146,8 @@ class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        self._screenshot_locate_wait = app.config["SCREENSHOT_LOCATE_WAIT"]
-        self._screenshot_load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
+        self._screenshot_locate_wait = app.config.get("SCREENSHOT_LOCATE_WAIT", 10)
+        self._screenshot_load_wait = app.config.get("SCREENSHOT_LOAD_WAIT", 60)
 
     @abstractmethod
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:

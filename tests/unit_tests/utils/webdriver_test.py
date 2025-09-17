@@ -435,7 +435,8 @@ class TestWebDriverPlaywrightFallback:
         assert "Playwright not available" in log_call
         assert "falling back to Selenium" in log_call
         assert "WebGL/Canvas charts may not render correctly" in log_call
-        assert PLAYWRIGHT_INSTALL_MESSAGE in log_call
+        # Check the substituted parameter
+        assert mock_logger.info.call_args[0][1] == PLAYWRIGHT_INSTALL_MESSAGE
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
