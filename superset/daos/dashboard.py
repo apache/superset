@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -45,9 +45,23 @@ from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for dashboards
+DASHBOARD_CUSTOM_FIELDS = {
+    "tags": ["eq", "in_", "like"],
+    "owners": ["eq", "in_"],
+    "published": ["eq"],
+}
+
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields for dashboards
+        filterable.update(DASHBOARD_CUSTOM_FIELDS)
+        return filterable
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
