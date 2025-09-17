@@ -122,8 +122,8 @@ else:
 # Unified OAuth + JWT Configuration
 from flask_appbuilder.security.manager import AUTH_OAUTH
 
-# Primary authentication: OAuth with Azure AD
-# AUTH_TYPE = AUTH_OAUTH  # Commented out for JWT-only testing
+# Primary authentication: OAuth with Azure AD (auto-redirect to Microsoft)
+AUTH_TYPE = AUTH_OAUTH
 AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "myportaluser"
 
