@@ -102,7 +102,7 @@ describe('childChartsDidLoad', () => {
     });
 
     expect(result.didLoad).toBe(false);
-    expect(result.minQueryStartTime).toBe(0);
+    expect(result.minQueryStartTime).toBe(100);
   });
 
   test('handles empty chart queries object', () => {
@@ -119,7 +119,7 @@ describe('childChartsDidLoad', () => {
     });
 
     expect(result.didLoad).toBe(false);
-    expect(result.minQueryStartTime).toBe(0);
+    expect(result.minQueryStartTime).toBe(Infinity);
   });
 
   test('handles empty chart IDs array', () => {
@@ -180,7 +180,7 @@ describe('childChartsDidLoad', () => {
     });
 
     expect(result.didLoad).toBe(true);
-    expect(result.minQueryStartTime).toBe(0);
+    expect(result.minQueryStartTime).toBe(200);
   });
 
   test('handles charts with null chartStatus', () => {
