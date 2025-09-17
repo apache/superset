@@ -136,23 +136,23 @@ WTF_CSRF_ENABLED = True  # CSRF protection
 # Session configuration consolidated with CORS settings below
 
 # Azure OAuth Configuration
-# OAUTH_PROVIDERS = [  # Commented out for JWT-only testing
-#     {
-#         'name': 'azure',
-#         'token_key': 'access_token',
-#         'icon': 'fa-microsoft',
-#         'remote_app': {
-#             'client_id': os.getenv('AZURE_CLIENT_ID'),
-#             'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
-#             'api_base_url': 'https://graph.microsoft.com/v1.0/',
-#             'client_kwargs': {
-#                 'scope': 'openid email profile User.Read Group.Read.All'
-#             },
-#             'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
-#             'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
-#         }
-#     }
-# ]
+OAUTH_PROVIDERS = [
+    {
+        'name': 'azure',
+        'token_key': 'access_token',
+        'icon': 'fa-microsoft',
+        'remote_app': {
+            'client_id': os.getenv('AZURE_CLIENT_ID'),
+            'client_secret': os.getenv('AZURE_CLIENT_SECRET'),
+            'api_base_url': 'https://graph.microsoft.com/v1.0/',
+            'client_kwargs': {
+                'scope': 'openid email profile User.Read Group.Read.All'
+            },
+            'access_token_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/token',
+            'authorize_url': f'https://login.microsoftonline.com/{os.getenv("AZURE_TENANT_ID")}/oauth2/v2.0/authorize',
+        }
+    }
+]
 
 # Azure AD Configuration for OBO Token Validation
 AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID", "9b461294-9d11-4314-928e-277398086f19")
