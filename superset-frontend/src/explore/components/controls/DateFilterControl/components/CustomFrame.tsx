@@ -20,7 +20,6 @@ import { useSelector } from 'react-redux';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { Moment } from 'moment';
 import moment from 'moment-timezone';
-import { useTimezone } from 'src/components/TimezoneContext';
 // @ts-ignore
 import { locales } from 'antd/dist/antd-with-locales';
 import { Col, Row } from 'src/components';
@@ -38,7 +37,19 @@ import {
 import { ExplorePageState } from 'src/explore/types';
 
 export function CustomFrame(props: FrameComponentProps) {
-  const { timezone } = useTimezone();
+  // Use the same URL timezone logic as DateFilterLabel for consistency
+  const getTimezoneFromUrl = (): string => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tz = params.get('timezone');
+      const fallback = 'Asia/Kolkata';
+      return tz?.trim() || fallback;
+    } catch {
+      return 'Asia/Kolkata';
+    }
+  };
+  const timezone = getTimezoneFromUrl();
+
   const { customRange: coreCustomRange, matchedFlag } = customTimeRangeDecode(
     props.value,
   );
