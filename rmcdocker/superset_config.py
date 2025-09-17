@@ -312,6 +312,7 @@ class AzureADTokenValidator:
     
     def validate_token(self, token):
         """Validate Azure AD OBO token and return claims"""
+        logging.critical(f"[JWT Debug] validate_token called with token length: {len(token) if token else 0}")
         try:
             # Decode header to get key ID
             unverified_header = jwt.get_unverified_header(token)
@@ -441,6 +442,8 @@ class UnifiedSecurityManager(SupersetSecurityManager):
         """
         logging.critical("========== AUTH_USER_JWT METHOD CALLED ==========")
         logging.critical(f"Token first 10 chars: {token[:10] if token else 'None'}")
+        logging.critical(f"Request URL: {request.url if hasattr(request, 'url') else 'Unknown'}")
+        logging.critical(f"Request headers: {dict(request.headers) if hasattr(request, 'headers') else 'Unknown'}")
        
         try:
             decoded_token = azure_token_validator.validate_token(token)
@@ -1321,3 +1324,26 @@ def flask_app_mutator(app):
  
 FLASK_APP_MUTATOR = flask_app_mutator
 RECAPTCHA_PUBLIC_KEY = ""
+
+# Global request logging to debug WordPress-to-Superset connectivity
+def log_all_requests(app):
+    @app.before_request
+    def before_request():
+        logging.critical(f"BEFORE_REQUEST FIRED: {request.path}")
+        logging.critical(f"Method: {request.method}")
+        logging.critical(f"Headers: {dict(request.headers)}")
+        logging.critical(f"Query params: {dict(request.args)}")
+        if request.path.startswith('/superset/') or 'proof=' in request.query_string.decode():
+            logging.critical("*** WORDPRESS JWT REQUEST DETECTED ***")
+            logging.critical(f"Full URL: {request.url}")
+    
+    return app
+
+# Apply request logging
+if not hasattr(FLASK_APP_MUTATOR, '__wrapped__'):
+    original_mutator = FLASK_APP_MUTATOR
+    def enhanced_mutator(app):
+        app = original_mutator(app)
+        app = log_all_requests(app)
+        return app
+    FLASK_APP_MUTATOR = enhanced_mutator
