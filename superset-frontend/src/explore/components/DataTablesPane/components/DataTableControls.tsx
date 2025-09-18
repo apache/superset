@@ -62,7 +62,8 @@ export const TableControls = ({
         name &&
         !originalTimeColumns.includes(name),
     )
-    .map(([colname]) => colname);
+    .map(([colname]) => colname)
+    .filter((name): name is string => name !== undefined);
   const formattedData = useMemo(
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],

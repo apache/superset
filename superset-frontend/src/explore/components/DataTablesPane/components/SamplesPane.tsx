@@ -29,6 +29,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
+import { TabularData } from 'src/utils/common';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
@@ -55,6 +56,18 @@ export const SamplesPane = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
   const [responseError, setResponseError] = useState<string>('');
+
+  // Convert nested array data to TabularData format
+  const convertToTabularData = (
+    rows: Record<string, any>[][],
+    columnNames: string[],
+  ): TabularData => 
+    rows.map(row => 
+      columnNames.reduce((obj, colName, index) => {
+        obj[colName] = row[index];
+        return obj;
+      }, {} as any)
+    );
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
     [datasource],
@@ -92,17 +105,20 @@ export const SamplesPane = ({
   }, [datasource, isRequest, queryForce]);
 
   // this is to preserve the order of the columns, even if there are integer values,
+  // Convert data to TabularData format
+  const tabularData = useMemo(() => convertToTabularData(data, colnames), [data, colnames]);
+  
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
     colnames,
     coltypes,
-    data,
+    tabularData,
     datasourceId,
     isVisible,
     {}, // moreConfig
     true, // allowHTML
   );
-  const filteredData = useFilteredTableData(filterText, data);
+  const filteredData = useFilteredTableData(filterText, tabularData);
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),

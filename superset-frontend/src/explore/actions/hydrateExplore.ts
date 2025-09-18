@@ -113,7 +113,7 @@ export const hydrateExplore =
       datasource: initialDatasource,
     };
     const initialControls = getControlsState(
-      initialExploreState,
+      { ...getState(), explore: { ...getState().explore, ...initialExploreState } },
       initialFormData,
     ) as ControlStateMapping;
     const colorSchemeKey = initialControls.color_scheme && 'color_scheme';

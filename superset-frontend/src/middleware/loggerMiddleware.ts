@@ -32,6 +32,7 @@ import {
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
 import { ensureAppRoot } from '../utils/pathUtils';
 import type { RootState } from '../views/store';
+import type { QueryEditor } from '../SqlLab/types';
 
 // Types for log events
 interface LogAction extends AnyAction {
@@ -62,8 +63,6 @@ interface LogEventData {
   path?: string;
   [key: string]: unknown;
 }
-
-type LogEventSource = 'dashboard' | 'explore' | 'sqlLab' | 'slice';
 
 const LOG_ENDPOINT = '/superset/log/?explode=events';
 const sendBeacon = (events: LogEventData[]): void => {
@@ -148,7 +147,7 @@ const loggerMiddleware: Middleware<{}, RootState, Dispatch<AnyAction>> =
         };
       } else if (path?.includes('/sqllab/')) {
         const editor = sqlLab.queryEditors.find(
-          ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
+          ({ id }: QueryEditor) => id === sqlLab.tabHistory.slice(-1)[0],
         );
         logMetadata = {
           source: 'sqlLab',

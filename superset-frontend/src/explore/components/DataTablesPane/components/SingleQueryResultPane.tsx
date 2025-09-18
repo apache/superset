@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { t } from '@superset-ui/core';
 import {
   TableView,
@@ -27,6 +27,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
+import { TabularData } from 'src/utils/common';
 import { TableControls } from './DataTableControls';
 import { SingleQueryResultPaneProp } from '../types';
 
@@ -42,18 +43,33 @@ export const SingleQueryResultPane = ({
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
+  // Convert nested array data to TabularData format
+  const convertToTabularData = (
+    rows: Record<string, any>[][],
+    columnNames: string[],
+  ): TabularData => 
+    rows.map(row => 
+      columnNames.reduce((obj, colName, index) => {
+        obj[colName] = row[index];
+        return obj;
+      }, {} as any)
+    );
+
+  // Convert data to TabularData format
+  const tabularData = useMemo(() => convertToTabularData(data, colnames), [data, colnames]);
+
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
     colnames,
     coltypes,
-    data,
+    tabularData,
     datasourceId,
     isVisible,
     {}, // moreConfig
     true, // allowHTML
   );
-  const filteredData = useFilteredTableData(filterText, data);
+  const filteredData = useFilteredTableData(filterText, tabularData);
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),

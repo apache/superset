@@ -38,7 +38,7 @@ import {
   Radio,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import { prepareCopyToClipboardTabularData, TabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
@@ -62,7 +62,7 @@ export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
-  data?: Record<string, any>;
+  data?: TabularData;
   columns?: string[];
 }) => (
   <CopyToClipboard
@@ -230,11 +230,11 @@ const DataTableTemporalHeaderCell = ({
 
 export const useFilteredTableData = (
   filterText: string,
-  data?: Record<string, any>[],
+  data?: TabularData,
 ) => {
   const rowsAsStrings = useMemo(
     () =>
-      data?.map((row: Record<string, any>) =>
+      data?.map(row =>
         Object.values(row).map(value =>
           value ? value.toString().toLowerCase() : t('N/A'),
         ),
@@ -259,7 +259,7 @@ const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 export const useTableColumns = (
   colnames?: string[],
   coltypes?: GenericDataType[],
-  data?: Record<string, any>[],
+  data?: TabularData,
   datasourceId?: string,
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
@@ -317,7 +317,7 @@ export const useTableColumns = (
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
                 id: key || index,
-                accessor: (row: Record<string, any>) => row[key],
+                accessor: (row: any) => row[key],
                 Header:
                   colType === GenericDataType.Temporal &&
                   typeof firstValue !== 'string' ? (

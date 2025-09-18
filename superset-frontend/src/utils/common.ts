@@ -21,7 +21,7 @@ import {
   getTimeFormatter,
   TimeFormats,
   ensureIsArray,
-  SupersetApiResult,
+  JsonResponse,
 } from '@superset-ui/core';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
@@ -63,9 +63,10 @@ export function storeQuery(query: Record<string, unknown>): Promise<string> {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
-  }).then((response: SupersetApiResult<StoreQueryResponse>) => {
+  }).then((response: JsonResponse) => {
+    const responseData = response.json as StoreQueryResponse;
     const baseUrl = window.location.origin + window.location.pathname;
-    const url = `${baseUrl}?id=${response.json.id}`;
+    const url = `${baseUrl}?id=${responseData.id}`;
     return url;
   });
 }
@@ -159,9 +160,13 @@ export function applyFormattingToTabularData(
     ...formattedColumns.reduce(
       (acc: Record<string, unknown>, colName: string) => {
         if (row[colName] !== null && row[colName] !== undefined) {
-          acc[colName] = DATETIME_FORMATTER(
-            row[colName] as string | number | Date,
-          );
+          const cellValue = row[colName];
+          // Convert string to Date if needed for time formatter
+          const timeValue =
+            typeof cellValue === 'string'
+              ? new Date(cellValue)
+              : (cellValue as number | Date);
+          acc[colName] = DATETIME_FORMATTER(timeValue);
         }
         return acc;
       },
@@ -191,5 +196,5 @@ export const detectOS = (): OSType => {
 export const isSafari = (): boolean => {
   const { userAgent } = navigator;
 
-  return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
+  return Boolean(userAgent && /^((?!chrome|android).)*safari/i.test(userAgent));
 };
