@@ -1177,6 +1177,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "TAB-hyTv5L7zz": "P1 - T2 - T2",
                     "TAB-qL7fSzr3jl": "Parent Tab 1",
                 },
+                "native_filters": {},
                 "tab_tree": [
                     {
                         "children": [

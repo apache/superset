@@ -320,17 +320,20 @@ class BaseDAO(Generic[T]):
         for id_val in model_ids:
             converted_value = cls._convert_value_for_column(id_col, id_val)
             if converted_value is not None:
+                # Only add successfully converted values
                 converted_ids.append(converted_value)
-
-        # Validate type consistency for better error handling
-        if len(converted_ids) > 1:
-            types_found = set(map(type, converted_ids))
-            if len(types_found) > 1:
+            else:
+                # Log warning for failed conversions
                 logger.warning(
-                    "Mixed ID types detected for %s: %s",
+                    "Failed to convert ID '%s' for column %s.%s",
+                    id_val,
                     cls.model_cls.__name__ if cls.model_cls else "Unknown",
-                    [t.__name__ for t in types_found],
+                    column,
                 )
+
+        # If no valid IDs after conversion, return empty list
+        if not converted_ids:
+            return []
 
         query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
@@ -472,9 +475,7 @@ class BaseDAO(Generic[T]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 continue
-            col = c.col
-            opr = c.opr
-            value = c.value
+            col, opr, value = c.col, c.opr, c.value
             if not col or not hasattr(cls.model_cls, col):
                 model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
                 logging.error(

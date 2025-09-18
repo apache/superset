@@ -29,6 +29,7 @@ import {
   useEffect,
   useImperativeHandle,
   useState,
+  isValidElement,
   useRef,
 } from 'react';
 import { isEqual } from 'lodash';
@@ -110,7 +111,9 @@ export const DeckGLContainer = memo(
     const layers = useCallback(() => {
       if (
         (props.mapStyle?.startsWith(TILE_LAYER_PREFIX) ||
-          OSM_LAYER_KEYWORDS.some(tilek => props.mapStyle?.includes(tilek))) &&
+          OSM_LAYER_KEYWORDS.some((tilek: string) =>
+            props.mapStyle?.includes(tilek),
+          )) &&
         props.layers.some(
           l => typeof l !== 'function' && l?.id === 'tile-layer',
         ) === false
@@ -132,6 +135,20 @@ export const DeckGLContainer = memo(
       return props.layers as Layer[];
     }, [props.layers, props.mapStyle]);
 
+    const isCustomTooltip = (content: ReactNode): boolean =>
+      isValidElement(content) &&
+      content.props?.['data-tooltip-type'] === 'custom';
+
+    const renderTooltip = (tooltipState: TooltipProps['tooltip']) => {
+      if (!tooltipState) return null;
+
+      if (isCustomTooltip(tooltipState.content)) {
+        return <Tooltip tooltip={tooltipState} variant="custom" />;
+      }
+
+      return <Tooltip tooltip={tooltipState} />;
+    };
+
     const { children = null, height, width } = props;
 
     return (
@@ -150,7 +167,7 @@ export const DeckGLContainer = memo(
             layers={layers()}
             viewState={viewState}
             onViewStateChange={onViewStateChange}
-            onAfterRender={context => {
+            onAfterRender={(context: any) => {
               glContextRef.current = context.gl;
             }}
           >
@@ -164,7 +181,7 @@ export const DeckGLContainer = memo(
           </DeckGL>
           {children}
         </div>
-        <Tooltip tooltip={tooltip} />
+        {renderTooltip(tooltip)}
       </>
     );
   }),

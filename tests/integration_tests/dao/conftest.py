@@ -30,7 +30,7 @@ Key features:
 """
 
 from typing import Generator
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch
 
 import pytest
 from flask import Flask
@@ -93,26 +93,26 @@ def app_context(app: Flask) -> Generator[Session, None, None]:
     with app.app_context():
         # Patch db.session to use our in-memory session
         with patch.object(db, "session", session):
+            # Import models to ensure they're registered
+            from flask_appbuilder.security.sqla.models import User as FABUser
+
             # Create all tables in the in-memory database
-            db.Model.metadata.create_all(engine)
+            # Flask-AppBuilder models use a different metadata object
+            # We need to create tables from both metadata objects
 
-            # Patch SupersetSecurityManager to use our session
-            # This avoids circular dependency issues with User model
-            from superset.security import SupersetSecurityManager
+            # First create Flask-AppBuilder tables (User, Role, etc.)
+            FABUser.metadata.create_all(engine)
 
-            with patch.object(
-                SupersetSecurityManager,
-                "get_session",
-                new_callable=PropertyMock,
-                return_value=session,
-            ):
-                try:
-                    yield session
-                finally:
-                    # Clean up: rollback any pending transactions
-                    session.rollback()
-                    session.close()
-                    engine.dispose()
+            # Then create Superset-specific tables
+            db.metadata.create_all(engine)
+
+            try:
+                yield session
+            finally:
+                # Clean up: rollback any pending transactions
+                session.rollback()
+                session.close()
+                engine.dispose()
 
 
 @pytest.fixture

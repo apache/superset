@@ -36,9 +36,7 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 # Custom filterable fields for datasets
-DATASET_CUSTOM_FIELDS = {
-    "schema": ["eq", "in_"],
-}
+DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {}
 
 
 class DatasetDAO(BaseDAO[SqlaTable]):

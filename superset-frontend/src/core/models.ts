@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType, sqlLab as sqlLabType } from '@apache-superset/core';
-import { getExtensionsContextValue } from '../extensions/ExtensionsContextUtils';
-
-const { GenericDataType } = coreType;
+import { core as coreType } from '@apache-superset/core';
 
 export class Table implements coreType.Table {
   name: string;
@@ -114,71 +111,3 @@ export class Disposable implements coreType.Disposable {
 export class ExtensionContext implements coreType.ExtensionContext {
   disposables: coreType.Disposable[] = [];
 }
-
-export class Panel implements sqlLabType.Panel {
-  id: string;
-
-  constructor(id: string) {
-    this.id = id;
-  }
-}
-
-export class Editor implements sqlLabType.Editor {
-  content: string;
-
-  databaseId: number;
-
-  schema: string;
-
-  // TODO: Check later if we'll use objects instead of strings.
-  catalog: string | null;
-
-  table: string | null;
-
-  constructor(
-    content: string,
-    databaseId: number,
-    catalog: string | null = null,
-    schema = '',
-    table: string | null = null,
-  ) {
-    this.content = content;
-    this.databaseId = databaseId;
-    this.catalog = catalog;
-    this.schema = schema;
-    this.table = table;
-  }
-}
-
-export class Tab implements sqlLabType.Tab {
-  id: string;
-
-  title: string;
-
-  editor: Editor;
-
-  panels: Panel[];
-
-  constructor(id: string, title: string, editor: Editor, panels: Panel[] = []) {
-    this.id = id;
-    this.title = title;
-    this.editor = editor;
-    this.panels = panels;
-  }
-}
-
-const registerViewProvider: typeof coreType.registerViewProvider = (
-  id,
-  viewProvider,
-) => {
-  const { registerViewProvider: register, unregisterViewProvider: unregister } =
-    getExtensionsContextValue();
-  register(id, viewProvider);
-  return new Disposable(() => unregister(id));
-};
-
-export const core: typeof coreType = {
-  GenericDataType,
-  registerViewProvider,
-  Disposable,
-};
