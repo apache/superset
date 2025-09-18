@@ -12,7 +12,7 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -267,9 +267,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           const startTime = start_running_time || start_time;
           const timerTime =
             end_time && startTime
-              ? extendedDayjs(
-                  extendedDayjs.utc(end_time - startTime),
-                ).format(TIME_WITH_MS)
+              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
+                  TIME_WITH_MS,
+                )
               : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
