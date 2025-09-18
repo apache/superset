@@ -402,6 +402,7 @@ export default function transformProps(
     percentageChange,
     comparisonIndicator,
     enableDetailOnHover,
+    metric: getMetricLabel(metric),
   };
 
   console.group('🚀 BigNumberTotal transformProps - FINAL RETURN PROPS');

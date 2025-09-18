@@ -104,4 +104,5 @@ export type BigNumberVizProps = {
   comparisonPeriodText?: string;
   // Hover detail properties
   enableDetailOnHover?: boolean;
+  metric?: string;
 };

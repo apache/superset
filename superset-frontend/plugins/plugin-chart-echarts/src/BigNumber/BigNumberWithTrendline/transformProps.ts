@@ -518,5 +518,6 @@ export default function transformProps(
     percentageChange,
     comparisonIndicator,
     enableDetailOnHover,
+    metric: getMetricLabel(metric),
   };
 }
