@@ -80,13 +80,14 @@ export function CustomFrame(props: FrameComponentProps) {
 
   // Helper functions for timezone-aware date handling
   const convertToTimezone = (datetime: string): Moment => {
-    const converted = moment.tz(datetime, timezone);
-    return converted;
+    // The datetime string is in UTC format, so we need to parse it as UTC first
+    // then convert to the target timezone for display
+    return moment.utc(datetime).tz(timezone);
   };
 
   const convertFromTimezone = (momentDate: Moment): string => {
-    const result = momentDate.clone().tz(timezone).format(MOMENT_FORMAT);
-    return result;
+    // Convert the moment date to the target timezone and format it
+    return momentDate.clone().tz(timezone).format(MOMENT_FORMAT);
   };
 
   return (
