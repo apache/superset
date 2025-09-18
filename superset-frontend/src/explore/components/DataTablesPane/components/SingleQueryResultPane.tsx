@@ -49,10 +49,13 @@ export const SingleQueryResultPane = ({
     columnNames: string[],
   ): TabularData =>
     rows.map(row =>
-      columnNames.reduce((obj, colName, index) => {
-        obj[colName] = row[index];
-        return obj;
-      }, {} as any),
+      columnNames.reduce(
+        (obj, colName, index) => ({
+          ...obj,
+          [colName]: row[index],
+        }),
+        {} as any,
+      ),
     );
 
   // Convert data to TabularData format

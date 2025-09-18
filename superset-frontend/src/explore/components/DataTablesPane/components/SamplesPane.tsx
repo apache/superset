@@ -63,10 +63,13 @@ export const SamplesPane = ({
     columnNames: string[],
   ): TabularData =>
     rows.map(row =>
-      columnNames.reduce((obj, colName, index) => {
-        obj[colName] = row[index];
-        return obj;
-      }, {} as any),
+      columnNames.reduce(
+        (obj, colName, index) => ({
+          ...obj,
+          [colName]: row[index],
+        }),
+        {} as any,
+      ),
     );
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
