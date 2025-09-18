@@ -316,7 +316,11 @@ export function dbReducer(
             ...extraJson,
             schemas_allowed_for_file_upload: (action.payload.value || '')
               .split(',')
-              .filter(schema => schema !== ''),
+              .map(schema => schema.trim())
+              .filter(
+                (schema, index, arr) =>
+                  index === arr.length - 1 || schema !== '',
+              ),
           }),
         };
       }
