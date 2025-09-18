@@ -235,7 +235,7 @@ export default function PopKPI(props: PopKPIProps) {
         <div css={bigValueContainerStyles}>
           {enableDetailOnHover && exactBigNumber !== null ? (
             <Tooltip
-              title={`Exact value: ${getNumberFormatter('.0f')(
+              title={`${metricName}: ${getNumberFormatter('.0f')(
                 exactBigNumber,
               )}`}
               placement="top"

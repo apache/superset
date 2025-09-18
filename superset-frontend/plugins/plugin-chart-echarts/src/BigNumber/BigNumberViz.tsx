@@ -221,6 +221,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       width,
       colorThresholdFormatters,
       enableDetailOnHover,
+      metric,
     } = this.props;
     // @ts-ignore
     const text = bigNumber === null ? '0' : headerFormatter(bigNumber);
@@ -285,7 +286,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     // Show tooltip with exact value if enabled and the formatted text is different from exact value
     if (enableDetailOnHover && bigNumber !== null && text !== exactValue) {
       return (
-        <Tooltip title={`Exact value: ${exactValue}`} placement="top">
+        <Tooltip title={`${metric}: ${exactValue}`} placement="top">
           {headerContent}
         </Tooltip>
       );
