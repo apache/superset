@@ -722,14 +722,11 @@ describe('ChartList - List View Tests', () => {
       );
     });
 
-    // Click bulk export button (should be the primary action button)
-    const exportButton = screen.getByTestId('bulk-select-action');
+    const exportButton = screen.getByText('Export');
     expect(exportButton).toBeInTheDocument();
-    expect(exportButton).toHaveTextContent('Export');
 
     fireEvent.click(exportButton);
 
-    // Verify export function was called with all chart IDs
     await waitFor(() => {
       expect(mockHandleResourceExport).toHaveBeenCalledWith(
         'chart',
