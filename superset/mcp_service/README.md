@@ -28,8 +28,8 @@ git clone https://github.com/apache/superset.git
 cd superset
 
 # 2. Start Superset and MCP service with docker-compose-light
-docker-compose -f docker-compose-light.yml --profile mcp build
-docker-compose -f docker-compose-light.yml --profile mcp up -d
+docker compose -f docker-compose-light.yml --profile mcp build
+docker compose -f docker-compose-light.yml --profile mcp up -d
 
 # 3. Initialize Superset (first time only)
 docker exec -it superset-superset-light-1 superset fab create-admin \
@@ -58,7 +58,7 @@ docker exec -it superset-superset-light-1 superset init
 #### Customizing ports:
 ```bash
 # Use different ports if defaults are in use
-NODE_PORT=9002 MCP_PORT=5009 docker-compose -f docker-compose-light.yml --profile mcp up -d
+NODE_PORT=9002 MCP_PORT=5009 docker compose -f docker-compose-light.yml --profile mcp up -d
 ```
 
 ### Option 2: Manual Setup
@@ -211,10 +211,10 @@ Then restart Claude Desktop. That's it! ✨
 For Docker setup:
 ```bash
 # Check if services are running
-docker-compose -f docker-compose-light.yml ps
+docker compose -f docker-compose-light.yml ps
 
 # Check MCP service logs
-docker-compose -f docker-compose-light.yml logs superset-mcp-light
+docker compose -f docker-compose-light.yml logs superset-mcp-light
 ```
 
 For manual setup:
@@ -235,10 +235,10 @@ Then in Claude Desktop, try:
 
 | Command | Description |
 |---------|-------------|
-| `docker-compose -f docker-compose-light.yml --profile mcp up -d` | Start Superset + MCP service |
-| `docker-compose -f docker-compose-light.yml down` | Stop all services |
-| `docker-compose -f docker-compose-light.yml logs -f` | View logs |
-| `docker-compose -f docker-compose-light.yml ps` | Check service status |
+| `docker compose -f docker-compose-light.yml --profile mcp up -d` | Start Superset + MCP service |
+| `docker compose -f docker-compose-light.yml down` | Stop all services |
+| `docker compose -f docker-compose-light.yml logs -f` | View logs |
+| `docker compose -f docker-compose-light.yml ps` | Check service status |
 | `docker exec -it superset_superset-light_1 bash` | Shell into Superset container |
 
 ### Manual Setup Commands
@@ -257,10 +257,10 @@ Then in Claude Desktop, try:
 
 | Issue | Solution |
 |-------|----------|
-| Container name conflicts | Use different project names: `docker-compose -p myproject -f docker-compose-light.yml up` |
-| Port already in use | Change ports: `NODE_PORT=9002 MCP_PORT=5009 docker-compose -f docker-compose-light.yml up` |
-| Database connection errors | Ensure db-light service is running: `docker-compose -f docker-compose-light.yml ps` |
-| MCP service not starting | Check logs: `docker-compose -f docker-compose-light.yml logs superset-mcp-light` |
+| Container name conflicts | Use different project names: `docker compose -p myproject -f docker-compose-light.yml up` |
+| Port already in use | Change ports: `NODE_PORT=9002 MCP_PORT=5009 docker compose -f docker-compose-light.yml up` |
+| Database connection errors | Ensure db-light service is running: `docker compose -f docker-compose-light.yml ps` |
+| MCP service not starting | Check logs: `docker compose -f docker-compose-light.yml logs superset-mcp-light` |
 | Permission errors | Run with proper user permissions or adjust docker group membership |
 
 ### General Issues
