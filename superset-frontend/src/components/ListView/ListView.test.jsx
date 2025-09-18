@@ -27,31 +27,111 @@ import fetchMock from 'fetch-mock';
 import { ListView } from './ListView';
 
 jest.mock('@superset-ui/core/components', () => ({
-  Alert: jest.fn(({ children, ...props }) => <div {...props}>{children}</div>),
+  Alert: ({ children, message, ...props }) => (
+    <div {...props}>{message || children}</div>
+  ),
   DropdownButton: ({ children, onClick, 'data-test': dataTest, ...props }) => (
     <button type="button" onClick={onClick} data-test={dataTest} {...props}>
       {children}
     </button>
   ),
   Icons: {
-    AppstoreOutlined: ({ iconSize, ...props }) => (
+    AppstoreOutlined: props => (
       <span {...props} role="img" aria-label="appstore" />
     ),
-    UnorderedListOutlined: ({ iconSize, ...props }) => (
+    UnorderedListOutlined: props => (
       <span {...props} role="img" aria-label="unordered-list" />
     ),
-    DeleteOutlined: ({ iconSize, ...props }) => (
-      <span {...props} role="img" aria-label="delete" />
-    ),
+    DeleteOutlined: props => <span {...props} role="img" aria-label="delete" />,
   },
   EmptyState: ({ children, ...props }) => <div {...props}>{children}</div>,
-  Checkbox: ({ children, ...props }) => <input type="checkbox" {...props} />,
+  Checkbox: props => <input type="checkbox" {...props} />,
   Loading: () => <div>Loading...</div>,
   Flex: ({ children, ...props }) => <div {...props}>{children}</div>,
   Menu: {
     Item: ({ children, ...props }) => <div {...props}>{children}</div>,
   },
+  Modal: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Select: ({ children, onChange, onSelect, value, ...props }) => (
+    <select
+      role="combobox"
+      value={value}
+      onChange={e => {
+        onChange && onChange(e.target.value);
+        onSelect && onSelect(e.target.value);
+      }}
+      {...props}
+    >
+      {children}
+    </select>
+  ),
+  Pagination: props => <div {...props}>Pagination</div>,
+  TableCollection: props => <div {...props}>TableCollection</div>,
+  AsyncEsmComponent:
+    () =>
+    ({ children, ...props }) => <div {...props}>{children}</div>,
 }));
+
+jest.mock('./Filters', () => {
+  const React = require('react');
+  return React.forwardRef((props, ref) =>
+    React.createElement(
+      'div',
+      { ref, ...props },
+      React.createElement(
+        'select',
+        {
+          role: 'combobox',
+          onChange: () =>
+            props.updateFilterValue?.(0, { label: 'foo', value: 'bar' }),
+        },
+        React.createElement(
+          'option',
+          {
+            value: 'bar',
+            onClick: () =>
+              props.updateFilterValue?.(0, { label: 'foo', value: 'bar' }),
+          },
+          'foo',
+        ),
+      ),
+      React.createElement(
+        'select',
+        {
+          role: 'combobox',
+          onChange: () =>
+            props.updateFilterValue?.(2, {
+              label: 'age_option',
+              value: 'age_value',
+            }),
+        },
+        React.createElement('option', { value: 'age_value' }, 'age_option'),
+      ),
+      React.createElement('input', {
+        placeholder: 'Type a value',
+        onBlur: e =>
+          e.target.value && props.updateFilterValue?.(1, e.target.value),
+      }),
+    ),
+  );
+});
+
+jest.mock('./CardCollection', () => props => <div {...props} />);
+
+jest.mock('./CardSortSelect', () => ({
+  CardSortSelect: props => (
+    <select
+      data-test="card-sort-select"
+      role="combobox"
+      onChange={props.onChange}
+      {...props}
+    >
+      <option value="alphabetical">Alphabetical</option>
+    </select>
+  ),
+}));
+
+jest.mock('src/features/tags/BulkTagModal', () => props => <div {...props} />);
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
