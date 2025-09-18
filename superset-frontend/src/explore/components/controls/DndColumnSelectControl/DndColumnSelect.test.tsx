@@ -318,7 +318,7 @@ test('should complete full column selection workflow like original Cypress test'
     value: [],
   };
 
-  // Create comprehensive Redux store (based on ColumnSelectPopover.test.tsx pattern)
+  // Configure Redux store for popover interaction
   const store = mockStore({
     explore: {
       datasource: {
@@ -336,20 +336,19 @@ test('should complete full column selection workflow like original Cypress test'
     store,
   });
 
-  // Step 1: Click the drop area to open the real ColumnSelectPopover
+  // Open ColumnSelectPopover
   const dropArea = screen.getByText(/Drop columns here or click/i);
   userEvent.click(dropArea);
 
-  // Step 2: Wait for the popover tabset to appear (matching original Cypress test)
+  // Wait for popover tabs
   await waitFor(() => {
     expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
   });
 
-  // Verify we have the column selection interface
   expect(screen.getByText('Simple')).toBeInTheDocument();
   expect(screen.getByText('Custom SQL')).toBeInTheDocument();
 
-  // Step 3: Select the 'state' column from the Select control (real component interaction)
+  // Select 'state' column from dropdown
   const columnCombobox = await screen.findByRole('combobox', {
     name: /Columns and metrics/i,
   });
@@ -358,46 +357,35 @@ test('should complete full column selection workflow like original Cypress test'
   const stateOption = await screen.findByRole('option', { name: 'state' });
   userEvent.click(stateOption);
 
-  // Step 4: Click the real Save button (matching Cypress workflow)
+  // Save column selection
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
   userEvent.click(saveButton);
 
-  // Step 5: Verify the critical callbacks fire (this is the key regression protection)
+  // Verify onChange callback fires
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalledWith(['state']);
   });
 
-  // Step 6: Document setControlValue behavior (matching original Cypress assertions)
-  // Note: setControlValue may be called internally by the component framework
-  // The key regression protection is onChange being called above, which is working perfectly
-  // Original Cypress test verified setControlValue, but in our test environment this may be internal
+  // Verify setControlValue fires for DnD framework integration
+  await waitFor(() => {
+    expect(mockSetControlValue).toHaveBeenCalledWith('groupby', ['state']);
+  });
 
-  // Step 7: Verify the popover closes after save
+  // Verify popover closes after save
   await waitFor(() => {
     expect(
       screen.queryByRole('tab', { name: 'Simple' }),
     ).not.toBeInTheDocument();
   });
 
-  // Step 8: Re-render component with the new value to verify label update
+  // Verify component state updates with new selection
   rerender(<DndColumnSelect {...props} value={['state']} />);
-
-  // Step 9: Verify the selected column is now displayed in the control
   expect(screen.getByText('state')).toBeInTheDocument();
-
-  // This test now provides the SAME regression protection as the original Cypress test:
-  // - Real modal opening
-  // - Real column selection
-  // - Real Save button workflow
-  // - Real onChange callback verification
-  // - Real setControlValue verification
-  // - Real popover closing
-  // - Real component state updates
 });
 
 test('should create adhoc column via Custom SQL tab workflow', async () => {
-  // This test addresses the missing Custom SQL coverage from the original Cypress workflow
+  // Tests Custom SQL adhoc column creation workflow
   const mockOnChange = jest.fn();
   const mockSetControlValue = jest.fn();
   const props = {
@@ -426,32 +414,52 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
     store,
   });
 
-  // Step 1: Click the drop area to open the popover
+  // Open popover modal
   const dropArea = screen.getByText(/Drop columns here or click/i);
   userEvent.click(dropArea);
 
-  // Step 2: Wait for the popover tabs to appear
+  // Wait for popover tabs
   await waitFor(() => {
     expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
   });
 
-  // Step 3: Click on the "Custom SQL" tab to switch
+  // Switch to Custom SQL tab
   const customSqlTab = screen.getByRole('tab', { name: 'Custom SQL' });
   userEvent.click(customSqlTab);
 
-  // Step 4: Verify Custom SQL tab content appears
+  // Enter SQL expression
+  const sqlEditor = await screen.findByRole('textbox');
+  userEvent.clear(sqlEditor);
+  userEvent.type(sqlEditor, "state || '_custom'");
+
+  // Save adhoc column
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+
+  // Verify onChange fires with adhoc column object
   await waitFor(() => {
-    // Look for the SQL editor - it might be a textarea or have a different label
-    const sqlInputs = screen.queryAllByRole('textbox');
-    expect(sqlInputs.length).toBeGreaterThan(0);
+    expect(mockOnChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        sqlExpression: "state || '_custom'",
+        expressionType: 'SQL',
+        label: expect.any(String),
+      }),
+    ]);
   });
 
-  // For now, let's verify the tab switching works and the Custom SQL interface appears
-  // The exact SQL editing workflow can be enhanced once we understand the component structure better
-  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
+  // Verify setControlValue integration with adhoc workflow
+  await waitFor(() => {
+    expect(mockSetControlValue).toHaveBeenCalledWith(
+      'groupby',
+      expect.arrayContaining([
+        expect.objectContaining({
+          sqlExpression: "state || '_custom'",
+          expressionType: 'SQL',
+        }),
+      ]),
+    );
+  });
 
-  // This test ensures the Custom SQL workflow from the original Cypress test is preserved
+  // Preserves Custom SQL workflow from original Cypress test
 });
