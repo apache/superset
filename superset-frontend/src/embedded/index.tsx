@@ -91,14 +91,14 @@ const EmbededLazyDashboardPage = () => {
 };
 
 const EmbeddedRoute = () => (
-  <Suspense fallback={<Loading />}>
-    <EmbeddedContextProviders>
+  <EmbeddedContextProviders>
+    <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
-    </EmbeddedContextProviders>
-  </Suspense>
+    </Suspense>
+  </EmbeddedContextProviders>
 );
 
 const EmbeddedApp = () => (
