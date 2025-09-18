@@ -47,7 +47,10 @@ import {
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
-import type { LineStyleOption } from 'echarts/types/src/util/types';
+import type {
+  LineStyleOption,
+  CallbackDataParams,
+} from 'echarts/types/src/util/types';
 import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
@@ -575,7 +578,9 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[xIndex]
           : params.value[xIndex];
-        const forecastValue: any[] = richTooltip ? params : [params];
+        const forecastValue: CallbackDataParams[] = richTooltip
+          ? params
+          : [params];
         const sortedKeys = extractTooltipKeys(
           forecastValue,
           yIndex,
@@ -583,9 +588,10 @@ export default function transformProps(
           tooltipSortByMetric,
         );
         const filteredForecastValue = forecastValue.filter(
-          (item: any) =>
+          (item: CallbackDataParams) =>
             !annotationLayers.some(
-              (annotation: any) => item.seriesName === annotation.name,
+              (annotation: AnnotationLayer) =>
+                item.seriesName === annotation.name,
             ),
         );
         const forecastValues: Record<string, ForecastValue> =
