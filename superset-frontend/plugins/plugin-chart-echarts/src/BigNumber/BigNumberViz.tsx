@@ -262,10 +262,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       }
     };
 
-    // Create a formatter that shows the exact number without rounding
-    const exactFormatter = getNumberFormatter('.0f');
-    const exactValue =
-      bigNumber === null ? '0' : exactFormatter(bigNumber as number);
+    // Show the exact number without any formatting/rounding
+    const exactValue = bigNumber === null ? '0' : String(bigNumber);
 
     const headerContent = (
       <div

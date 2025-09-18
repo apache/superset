@@ -25,7 +25,6 @@ import {
   styled,
   t,
   useTheme,
-  getNumberFormatter,
 } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
@@ -85,6 +84,7 @@ export default function PopKPI(props: PopKPIProps) {
     shift,
     dashboardTimeRange,
     enableDetailOnHover = true,
+    metricName,
   } = props;
 
   const [comparisonRange, setComparisonRange] = useState<string>('');
@@ -234,12 +234,7 @@ export default function PopKPI(props: PopKPIProps) {
       >
         <div css={bigValueContainerStyles}>
           {enableDetailOnHover && exactBigNumber !== null ? (
-            <Tooltip
-              title={`${metricName}: ${getNumberFormatter('.0f')(
-                exactBigNumber,
-              )}`}
-              placement="top"
-            >
+            <Tooltip title={`${metricName}: ${exactBigNumber}`} placement="top">
               <span>{bigNumber}</span>
             </Tooltip>
           ) : (
