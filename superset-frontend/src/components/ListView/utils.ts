@@ -273,23 +273,23 @@ export function useListViewState({
   } = useTable(
     {
       columns: columnsWithSelect,
-      count,
       data,
       disableFilters: true,
       disableSortRemove: true,
-      initialState,
+      initialState: initialState as any,
       manualFilters: true,
       manualPagination: true,
       manualSortBy: true,
       autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
+      ...({ count } as any),
     },
     useFilters,
     useSortBy,
     usePagination,
     useRowState,
     useRowSelect,
-  );
+  ) as any;
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters && initialFilters.length

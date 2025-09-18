@@ -419,7 +419,7 @@ export function ListView<T extends object = any>({
                           cta
                           onClick={() =>
                             action.onSelect(
-                              selectedFlatRows.map(r => r.original),
+                              selectedFlatRows.map((r: any) => r.original),
                             )
                           }
                         >
@@ -475,10 +475,10 @@ export function ListView<T extends object = any>({
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {
-                    const row = rows.find(r => r.id === rowId);
+                    const row = rows.find((r: any) => r.id === rowId);
                     if (row) {
                       prepareRow(row);
-                      row.toggleRowSelected(value);
+                      (row as any).toggleRowSelected(value);
                     }
                   }}
                   toggleAllRowsSelected={toggleAllRowsSelected}
