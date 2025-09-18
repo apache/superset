@@ -33,6 +33,7 @@ module.exports = {
     '^@superset-ui/([^/]+)$': '<rootDir>/node_modules/@superset-ui/$1/src',
     // mapping @apache-superset/core to local package
     '^@apache-superset/core$': '<rootDir>/packages/superset-core/src',
+    '^@apache-superset/core/(.*)$': '<rootDir>/packages/superset-core/src/$1',
   },
   testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],

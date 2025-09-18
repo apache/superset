@@ -42,8 +42,8 @@ import {
   FeatureFlag,
   isFeatureEnabled,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
-import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';

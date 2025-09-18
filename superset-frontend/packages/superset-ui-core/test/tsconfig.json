@@ -2,14 +2,8 @@
   "compilerOptions": {
     "composite": false,
     "emitDeclarationOnly": false,
-    "noEmit": true,
     "rootDir": "."
   },
   "extends": "../../../tsconfig.json",
-  "include": ["**/*", "../types/**/*", "../../../types/**/*"],
-  "references": [
-    {
-      "path": ".."
-    }
-  ]
+  "include": ["**/*", "../types/**/*", "../../../types/**/*"]
 }

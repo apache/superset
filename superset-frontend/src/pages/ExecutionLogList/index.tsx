@@ -18,14 +18,16 @@
  */
 
 import { css, styled, t } from '@superset-ui/core';
-import dayjs from 'dayjs';
+import {
+  extendedDayjs as dayjs,
+  fDuration,
+} from '@superset-ui/core/utils/dates';
 import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Tooltip } from '@superset-ui/core/components';
 import { ListView } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { fDuration } from '@superset-ui/core/utils/dates';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import {
   useListViewResource,

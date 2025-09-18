@@ -30,6 +30,7 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "echarts": "*",

@@ -206,7 +206,7 @@ export default function TimeOffsetControls({
         .subtract(1, 'day');
       setStartDate(resetDate.toString());
       setFormatedDate(resetDate);
-      onChange(extendedDayjs.utc(resetDate).format(DAYJS_FORMAT));
+      onChange(extendedDayjs(resetDate).utc().format(DAYJS_FORMAT));
       setIsDateSelected(true);
     }
   }, [formatedFilterDate, formatedDate, customStartDateInFilter]);

@@ -24,6 +24,7 @@
     "lib"
   ],
   "dependencies": {
+    "@apache-superset/core": "*",
     "@ant-design/icons": "^5.2.6",
     "@babel/runtime": "^7.28.2",
     "@fontsource/fira-code": "^5.2.6",
