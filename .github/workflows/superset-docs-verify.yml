@@ -28,6 +28,7 @@ jobs:
           linksToSkip: >-
             ^https://github.com/apache/(superset|incubator-superset)/(pull|issues)/\d+,
             ^https://github.com/apache/(superset|incubator-superset)/commit/[a-f0-9]+,
+            superset-frontend/.*CHANGELOG\.md,
             http://localhost:8088/,
             http://127.0.0.1:3000/,
             http://localhost:9001/,
