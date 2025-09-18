@@ -312,7 +312,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && metadataBar}
+      {/* {!bootstrapping && metadataBar} */}
       {!bootstrapping && (
         <TableControls
           filters={filters}
