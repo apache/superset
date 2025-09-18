@@ -151,11 +151,11 @@ TALISMAN_CONFIG = {
   * **Use a Dedicated Database User:** The database connection configured in Superset should use a dedicated, limited-privilege database user. This user should only have the minimum required permissions (e.g., `SELECT` on specific schemas) for the data sources it needs to query. It should **not** have `INSERT`, `UPDATE`, `DELETE`, or administrative privileges.
   * **Restrict Dangerous SQL Functions:** To mitigate potential SQL injection risks, configure the `DISALLOWED_SQL_FUNCTIONS` list in your `superset_config.py`. Be aware that this is a defense-in-depth measure, not a substitute for proper database permissions.
 
-### **7. Additional Security Layers**
+### **Additional Security Layers**
 
   * **Web Application Firewall (WAF):** Deploying Superset behind a WAF (e.g., Cloudflare, AWS WAF) is strongly recommended. A WAF with a standard ruleset (like the OWASP Core Rule Set) provides a critical layer of defense against common attacks like SQL Injection, XSS, and remote code execution.
 
-### **8. Monitoring and Logging**
+### **Monitoring and Logging**
 
   * **Configure Structured Logging:** Set up a robust logging configuration to capture important security events.
   * **Centralize Logs:** Ship logs from all Superset components (frontend, worker, etc.) to a centralized SIEM (Security Information and Event Management) system for analysis and alerting.
