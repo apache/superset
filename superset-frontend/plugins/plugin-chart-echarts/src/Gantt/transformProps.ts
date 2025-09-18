@@ -325,6 +325,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           show: true,
           position: 'start',
           formatter: '{b}',
+          color: theme.colorText,
         },
         data: categoryLines,
       },
