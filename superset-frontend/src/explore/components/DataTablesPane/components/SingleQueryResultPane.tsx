@@ -47,16 +47,19 @@ export const SingleQueryResultPane = ({
   const convertToTabularData = (
     rows: Record<string, any>[][],
     columnNames: string[],
-  ): TabularData => 
-    rows.map(row => 
+  ): TabularData =>
+    rows.map(row =>
       columnNames.reduce((obj, colName, index) => {
         obj[colName] = row[index];
         return obj;
-      }, {} as any)
+      }, {} as any),
     );
 
   // Convert data to TabularData format
-  const tabularData = useMemo(() => convertToTabularData(data, colnames), [data, colnames]);
+  const tabularData = useMemo(
+    () => convertToTabularData(data, colnames),
+    [data, colnames],
+  );
 
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys

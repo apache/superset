@@ -32,8 +32,8 @@ import {
   StandardizedFormDataInterface,
 } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
-import { getFormDataFromControls } from './getFormDataFromControls';
 import type { ExplorePageState } from 'src/explore/types';
+import { getFormDataFromControls } from './getFormDataFromControls';
 
 export const sharedMetricsKey = [
   'metric', // via sharedControls, scalar
@@ -188,7 +188,7 @@ export class StandardizedFormData {
 
   transform(
     targetVizType: string,
-    exploreState: Record<string, any> & { 
+    exploreState: Record<string, any> & {
       form_data: QueryFormData;
     },
   ): {
@@ -212,11 +212,14 @@ export class StandardizedFormData {
         publicFormData[key] = exploreState.form_data[key];
       }
     });
-    const targetControlsState = getControlsState(exploreState as Partial<ExplorePageState>, {
-      ...latestFormData,
-      ...publicFormData,
-      viz_type: targetVizType,
-    });
+    const targetControlsState = getControlsState(
+      exploreState as Partial<ExplorePageState>,
+      {
+        ...latestFormData,
+        ...publicFormData,
+        viz_type: targetVizType,
+      },
+    );
     const targetFormData = {
       ...getFormDataFromControls(targetControlsState),
       standardizedFormData: this.serialize(),
@@ -240,13 +243,19 @@ export class StandardizedFormData {
       getStandardizedControls().clear();
       rv = {
         formData: transformed,
-        controlsState: getControlsState(exploreState as Partial<ExplorePageState>, transformed),
+        controlsState: getControlsState(
+          exploreState as Partial<ExplorePageState>,
+          transformed,
+        ),
       };
     }
 
     // refresh validator message
     rv.controlsState = getControlsState(
-      { ...exploreState, controls: rv.controlsState } as Partial<ExplorePageState>,
+      {
+        ...exploreState,
+        controls: rv.controlsState,
+      } as Partial<ExplorePageState>,
       rv.formData,
     );
     return rv;

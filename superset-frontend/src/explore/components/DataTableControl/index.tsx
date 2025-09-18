@@ -38,7 +38,10 @@ import {
   Radio,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { prepareCopyToClipboardTabularData, TabularData } from 'src/utils/common';
+import {
+  prepareCopyToClipboardTabularData,
+  TabularData,
+} from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
