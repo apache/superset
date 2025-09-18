@@ -724,11 +724,19 @@ class SchemasResponseSchema(Schema):
     result = fields.List(
         fields.String(metadata={"description": "A database schema name"})
     )
+    default = fields.String(
+        allow_none=True,
+        metadata={"description": "The default schema for this database"},
+    )
 
 
 class CatalogsResponseSchema(Schema):
     result = fields.List(
         fields.String(metadata={"description": "A database catalog name"})
+    )
+    default = fields.String(
+        allow_none=True,
+        metadata={"description": "The default catalog for this database"},
     )
 
 
