@@ -239,7 +239,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const start = extendedDayjs.utc(start_time).local();
+          const start = ((extendedDayjs as any).utc(start_time) as any).local();
           const formattedStartTimeData = start
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
@@ -267,9 +267,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           const startTime = start_running_time || start_time;
           const timerTime =
             end_time && startTime
-              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
-                  TIME_WITH_MS,
-                )
+              ? extendedDayjs(
+                  (extendedDayjs as any).utc(end_time - startTime),
+                ).format(TIME_WITH_MS)
               : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
