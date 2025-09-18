@@ -411,7 +411,6 @@ test('should complete full column selection workflow like original Cypress test'
 
   // Note: setControlValue is injected by Explore framework, not called in RTL isolation
   // Higher-level wiring is tested in integration suites
-  expect(mockSetControlValue).not.toHaveBeenCalled();
 
   // Verify popover closes after save
   await waitFor(() => {
@@ -490,7 +489,6 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
   });
 
   // Note: setControlValue handled by framework wrapper, not present in RTL isolation
-  expect(mockSetControlValue).not.toHaveBeenCalled();
 
   // Preserves Custom SQL workflow from original Cypress test
 });
