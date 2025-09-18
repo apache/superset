@@ -38,7 +38,71 @@ import {
   GRID_COLUMN_COUNT,
 } from './constants';
 
-const typeToDefaultMetaData = {
+import type { ComponentType, LayoutItem } from '../types';
+
+// Define interfaces for different component metadata types
+interface ChartMeta {
+  width: number;
+  height: number;
+}
+
+interface ColumnMeta {
+  width: number;
+  background: string;
+}
+
+interface HeaderMeta {
+  text: string;
+  headerSize: string;
+  background: string;
+}
+
+interface MarkdownMeta {
+  width: number;
+  height: number;
+}
+
+interface RowMeta {
+  background: string;
+}
+
+interface TabMeta {
+  text: string;
+  defaultText: string;
+  placeholder: string;
+}
+
+interface DynamicMeta {
+  width: number;
+  background: string;
+}
+
+// Union type for all possible meta types
+type ComponentMeta =
+  | ChartMeta
+  | ColumnMeta
+  | HeaderMeta
+  | MarkdownMeta
+  | RowMeta
+  | TabMeta
+  | DynamicMeta
+  | Record<string, unknown>
+  | null;
+
+// Type mapping for component types to their default metadata
+type DefaultMetaDataMap = {
+  [CHART_TYPE]: ChartMeta;
+  [COLUMN_TYPE]: ColumnMeta;
+  [DIVIDER_TYPE]: null;
+  [HEADER_TYPE]: HeaderMeta;
+  [MARKDOWN_TYPE]: MarkdownMeta;
+  [ROW_TYPE]: RowMeta;
+  [TABS_TYPE]: null;
+  [TAB_TYPE]: TabMeta;
+  [DYNAMIC_TYPE]: DynamicMeta;
+};
+
+const typeToDefaultMetaData: DefaultMetaDataMap = {
   [CHART_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [COLUMN_TYPE]: {
     width: GRID_DEFAULT_CHART_WIDTH,
@@ -64,19 +128,25 @@ const typeToDefaultMetaData = {
   },
 };
 
-function uuid(type) {
+function uuid(type: ComponentType): string {
   return `${type}-${nanoid()}`;
 }
 
-export default function entityFactory(type, meta, parents = []) {
+function entityFactory(
+  type: ComponentType,
+  meta?: Partial<ComponentMeta>,
+  parents: string[] = [],
+): LayoutItem {
   return {
     type,
     id: uuid(type),
     children: [],
     parents,
     meta: {
-      ...typeToDefaultMetaData[type],
+      ...(typeToDefaultMetaData[type as keyof DefaultMetaDataMap] || {}),
       ...meta,
-    },
+    } as LayoutItem['meta'],
   };
 }
+
+export default entityFactory;

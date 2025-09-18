@@ -21,6 +21,7 @@ import {
   getTimeFormatter,
   TimeFormats,
   ensureIsArray,
+  SupersetApiResult,
 } from '@superset-ui/core';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
@@ -36,18 +37,40 @@ export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
-export function storeQuery(query) {
+export interface OptionType {
+  value: string | number | boolean | null;
+  label: string;
+}
+
+export interface ColumnDefinition {
+  name?: string;
+}
+
+export type ColumnType = string | ColumnDefinition;
+
+export interface TabularDataRow {
+  [key: string]: unknown;
+  [key: number]: unknown;
+}
+
+export type TabularData = TabularDataRow[];
+
+export interface StoreQueryResponse {
+  id: string;
+}
+
+export function storeQuery(query: Record<string, unknown>): Promise<string> {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
-  }).then(response => {
+  }).then((response: SupersetApiResult<StoreQueryResponse>) => {
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?id=${response.json.id}`;
     return url;
   });
 }
 
-export function optionLabel(opt) {
+export function optionLabel(opt: unknown): string {
   if (opt === null) {
     return NULL_STRING;
   }
@@ -60,34 +83,47 @@ export function optionLabel(opt) {
   if (opt === false) {
     return FALSE_STRING;
   }
-  if (typeof opt !== 'string' && opt.toString) {
-    return opt.toString();
+  if (
+    typeof opt !== 'string' &&
+    opt &&
+    typeof (opt as { toString?: () => string }).toString === 'function'
+  ) {
+    return (opt as { toString: () => string }).toString();
   }
-  return opt;
+  return String(opt);
 }
 
-export function optionValue(opt) {
+export function optionValue(opt: unknown): string | unknown {
   if (opt === null) {
     return NULL_STRING;
   }
   return opt;
 }
 
-export function optionFromValue(opt) {
+export function optionFromValue(opt: unknown): OptionType {
   // From a list of options, handles special values & labels
-  return { value: optionValue(opt), label: optionLabel(opt) };
+  return {
+    value: optionValue(opt) as string | number | boolean | null,
+    label: optionLabel(opt),
+  };
 }
 
-function getColumnName(column) {
-  return column.name || column;
+function getColumnName(column: ColumnType): string {
+  if (typeof column === 'object' && column?.name) {
+    return column.name;
+  }
+  return String(column);
 }
 
-export function prepareCopyToClipboardTabularData(data, columns) {
+export function prepareCopyToClipboardTabularData(
+  data: TabularData,
+  columns: ColumnType[],
+): string {
   let result = columns.length
     ? `${columns.map(getColumnName).join('\t')}\n`
     : '';
   for (let i = 0; i < data.length; i += 1) {
-    const row = {};
+    const row: { [key: number]: unknown } = {};
     for (let j = 0; j < columns.length; j += 1) {
       // JavaScript does not maintain the order of a mixed set of keys (i.e integers and strings)
       // the below function orders the keys based on the column names.
@@ -103,31 +139,43 @@ export function prepareCopyToClipboardTabularData(data, columns) {
   return result;
 }
 
-export function applyFormattingToTabularData(data, timeFormattedColumns) {
+export function applyFormattingToTabularData(
+  data: TabularData | null | undefined,
+  timeFormattedColumns: string | string[],
+): TabularData {
   if (
     !data ||
     data.length === 0 ||
     ensureIsArray(timeFormattedColumns).length === 0
   ) {
-    return data;
+    return data || [];
   }
+
+  const formattedColumns = ensureIsArray(timeFormattedColumns);
 
   return data.map(row => ({
     ...row,
     /* eslint-disable no-underscore-dangle */
-    ...timeFormattedColumns.reduce((acc, colName) => {
-      if (row[colName] !== null && row[colName] !== undefined) {
-        acc[colName] = DATETIME_FORMATTER(row[colName]);
-      }
-      return acc;
-    }, {}),
+    ...formattedColumns.reduce(
+      (acc: Record<string, unknown>, colName: string) => {
+        if (row[colName] !== null && row[colName] !== undefined) {
+          acc[colName] = DATETIME_FORMATTER(
+            row[colName] as string | number | Date,
+          );
+        }
+        return acc;
+      },
+      {},
+    ),
   }));
 }
 
-export const noOp = () => undefined;
+export const noOp = (): undefined => undefined;
+
+export type OSType = 'Windows' | 'MacOS' | 'UNIX' | 'Linux' | 'Unknown OS';
 
 // Detects the user's OS through the browser
-export const detectOS = () => {
+export const detectOS = (): OSType => {
   const { appVersion } = navigator;
 
   // Leveraging this condition because of stackOverflow
@@ -140,7 +188,7 @@ export const detectOS = () => {
   return 'Unknown OS';
 };
 
-export const isSafari = () => {
+export const isSafari = (): boolean => {
   const { userAgent } = navigator;
 
   return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
