@@ -73,6 +73,7 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
+    enableDetailOnHover = true,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -273,7 +274,7 @@ export default function transformProps(
           if (bigNumber !== null && previousPeriodValue !== null) {
             const bigNumberValue = bigNumber as number;
             let calculatedPercentageChange: number;
-            
+
             // Handle special cases
             if (previousPeriodValue === 0) {
               if (bigNumberValue === 0) {
@@ -285,7 +286,7 @@ export default function transformProps(
                 calculatedPercentageChange = 1; // 100% change as maximum
                 comparisonIndicator = 'positive';
               } else {
-                // Previous was 0, now negative - treat as negative  
+                // Previous was 0, now negative - treat as negative
                 calculatedPercentageChange = -1; // -100% change as minimum
                 comparisonIndicator = 'negative';
               }
@@ -298,7 +299,7 @@ export default function transformProps(
               calculatedPercentageChange =
                 (bigNumberValue - previousPeriodValue) /
                 Math.abs(previousPeriodValue);
-              
+
               if (calculatedPercentageChange > 0) {
                 comparisonIndicator = 'positive';
               } else if (calculatedPercentageChange < 0) {
@@ -307,7 +308,7 @@ export default function transformProps(
                 comparisonIndicator = 'neutral';
               }
             }
-            
+
             percentageChange = calculatedPercentageChange;
             console.log(
               'BigNumberWithTrendline transformProps - Percentage change calculation:',
@@ -516,5 +517,6 @@ export default function transformProps(
     previousPeriodValue,
     percentageChange,
     comparisonIndicator,
+    enableDetailOnHover,
   };
 }

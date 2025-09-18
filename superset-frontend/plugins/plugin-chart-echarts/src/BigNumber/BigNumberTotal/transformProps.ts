@@ -54,6 +54,7 @@ export default function transformProps(
     yAxisFormat,
     conditionalFormatting,
     currencyFormat,
+    enableDetailOnHover = true,
   } = formData;
   const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
@@ -400,6 +401,7 @@ export default function transformProps(
     previousPeriodValue,
     percentageChange,
     comparisonIndicator,
+    enableDetailOnHover,
   };
 
   console.group('🚀 BigNumberTotal transformProps - FINAL RETURN PROPS');

@@ -23,7 +23,11 @@ import {
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  enableDetailOnHover,
+} from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
@@ -62,7 +66,9 @@ const config: ControlPanelConfig = {
               type: 'HiddenControl',
               label: t('URL parameters'),
               hidden: true,
-              description: t('Extra parameters for use in jinja templated queries'),
+              description: t(
+                'Extra parameters for use in jinja templated queries',
+              ),
             },
           },
         ],
@@ -115,6 +121,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [enableDetailOnHover],
         [
           {
             name: 'comparison_color_enabled',

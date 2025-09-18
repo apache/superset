@@ -26,7 +26,11 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  enableDetailOnHover,
+} from '../sharedControls';
 
 export default {
   sectionOverrides: {
@@ -64,7 +68,9 @@ export default {
               type: 'HiddenControl',
               label: t('URL parameters'),
               hidden: true,
-              description: t('Extra parameters for use in jinja templated queries'),
+              description: t(
+                'Extra parameters for use in jinja templated queries',
+              ),
             },
           },
         ],
@@ -104,6 +110,7 @@ export default {
       controlSetRows: [
         [headerFontSize],
         [subheaderFontSize],
+        [enableDetailOnHover],
         ['y_axis_format'],
         ['currency_format'],
         [

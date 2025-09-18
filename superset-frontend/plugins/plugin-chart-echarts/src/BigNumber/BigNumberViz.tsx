@@ -27,6 +27,7 @@ import {
   styled,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/chart-controls';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
@@ -214,8 +215,13 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   }
 
   renderHeader(maxHeight: number) {
-    const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
-      this.props;
+    const {
+      bigNumber,
+      headerFormatter,
+      width,
+      colorThresholdFormatters,
+      enableDetailOnHover,
+    } = this.props;
     // @ts-ignore
     const text = bigNumber === null ? '0' : headerFormatter(bigNumber);
 
@@ -255,7 +261,12 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       }
     };
 
-    return (
+    // Create a formatter that shows the exact number without rounding
+    const exactFormatter = getNumberFormatter('.0f');
+    const exactValue =
+      bigNumber === null ? '0' : exactFormatter(bigNumber as number);
+
+    const headerContent = (
       <div
         className="header-line"
         style={{
@@ -270,6 +281,17 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         {text}
       </div>
     );
+
+    // Show tooltip with exact value if enabled and the formatted text is different from exact value
+    if (enableDetailOnHover && bigNumber !== null && text !== exactValue) {
+      return (
+        <Tooltip title={`Exact value: ${exactValue}`} placement="top">
+          {headerContent}
+        </Tooltip>
+      );
+    }
+
+    return headerContent;
   }
 
   renderSubheader(maxHeight: number) {
