@@ -30,7 +30,7 @@ export const useIsDark = () => {
   return tinycolor(theme.colorBgContainer).isDark();
 };
 
-const useTableTheme = () => {
+const useTableTheme = (): ReturnType<typeof themeQuartz.withPart> => {
   const baseTheme = themeQuartz;
   const isDarkTheme = useIsDark();
   const tableTheme = isDarkTheme
