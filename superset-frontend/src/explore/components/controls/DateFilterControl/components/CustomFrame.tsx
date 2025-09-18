@@ -25,6 +25,7 @@ import { locales } from 'antd/dist/antd-with-locales';
 import { Col, Row } from 'src/components';
 import { DatePicker } from 'src/components/DatePicker';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { getCurrentTimezone } from 'src/utils/dateUtils';
 import {
   MOMENT_FORMAT,
   customTimeRangeEncode,
@@ -37,18 +38,8 @@ import {
 import { ExplorePageState } from 'src/explore/types';
 
 export function CustomFrame(props: FrameComponentProps) {
-  // Use the same URL timezone logic as DateFilterLabel for consistency
-  const getTimezoneFromUrl = (): string => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const tz = params.get('timezone');
-      const fallback = 'Asia/Kolkata';
-      return tz?.trim() || fallback;
-    } catch {
-      return 'Asia/Kolkata';
-    }
-  };
-  const timezone = getTimezoneFromUrl();
+  // Use the centralized timezone utility for consistency with DateFilterLabel
+  const timezone = getCurrentTimezone();
 
   const { customRange: coreCustomRange, matchedFlag } = customTimeRangeDecode(
     props.value,

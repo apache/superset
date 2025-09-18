@@ -38,6 +38,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
+import { getCurrentTimezone } from 'src/utils/dateUtils';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -157,49 +158,74 @@ const getTooltipTitle = (
  * We convert backend-evaluated UTC ranges into this timezone for display.
  */
 
-// Read timezone from URL (?timezone=Asia/Kolkata). Defaults to Asia/Kolkata.
-function getTimezoneFromUrl(): string {
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tz = urlParams.get('timezone');
-    const fallback = 'Asia/Kolkata';
-    return tz?.trim() || fallback;
-  } catch {
-    return 'Asia/Kolkata';
-  }
-}
+// Use centralized timezone utility for consistency
+const getTimezoneFromUrl = getCurrentTimezone;
 
 // Format datetime for user-friendly display (only for UI, not API)
 function formatDateTimeForDisplay(s: string, toTZ = 'Asia/Kolkata') {
+  // Pattern for full ISO datetime stamps
   const isoRe =
     /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
 
-  const matches = [...s.matchAll(isoRe)].map(m => m[0]);
-  if (matches.length < 2) return s;
+  // Pattern for date-only formats (YYYY-MM-DD)
+  const dateOnlyRe = /\d{4}-\d{2}-\d{2}(?!\d)/g;
 
-  const formatForDisplay = (iso: string) => {
-    // If no offset, assume UTC
-    const src = /Z|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
-    const dt = new Date(src);
+  // Try full datetime format first
+  const isoMatches = [...s.matchAll(isoRe)].map(m => m[0]);
+  if (isoMatches.length >= 2) {
+    const formatForDisplay = (iso: string) => {
+      // If no offset, assume UTC
+      const src = /Z|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
+      const dt = new Date(src);
 
-    // Format as user-friendly string in target zone
-    return new Intl.DateTimeFormat('en-US', {
-      timeZone: toTZ,
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(dt);
-  };
+      // Format as user-friendly string in target zone
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: toTZ,
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).format(dt);
+    };
 
-  const formattedStart = formatForDisplay(matches[0]);
-  const formattedEnd = formatForDisplay(matches[1]);
+    const formattedStart = formatForDisplay(isoMatches[0]);
+    const formattedEnd = formatForDisplay(isoMatches[1]);
 
-  return s
-    .replace(matches[0], formattedStart)
-    .replace(matches[1], formattedEnd);
+    return s
+      .replace(isoMatches[0], formattedStart)
+      .replace(isoMatches[1], formattedEnd);
+  }
+
+  // Try date-only format (for Last/Previous/Current frames)
+  const dateMatches = [...s.matchAll(dateOnlyRe)].map(m => m[0]);
+  if (dateMatches.length >= 2) {
+    const formatDateOnly = (dateStr: string) => {
+      // Convert date-only to datetime at start of day in target timezone
+      const dt = new Date(`${dateStr}T00:00:00`);
+
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: toTZ,
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).format(dt);
+    };
+
+    const formattedStart = formatDateOnly(dateMatches[0]);
+    const formattedEnd = formatDateOnly(dateMatches[1]);
+
+    return s
+      .replace(dateMatches[0], formattedStart)
+      .replace(dateMatches[1], formattedEnd);
+  }
+
+  // Return original string if no recognized patterns
+  return s;
 }
 
 export const getDateFromTimezone = (timezone: string) =>
