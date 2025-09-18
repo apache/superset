@@ -38,6 +38,7 @@ export type BigNumberTotalFormData = QueryFormData & {
   metric?: QueryFormMetric;
   yAxisFormat?: string;
   forceTimestampFormatting?: boolean;
+  enableDetailOnHover?: boolean;
 };
 
 export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
@@ -101,4 +102,6 @@ export type BigNumberVizProps = {
   percentageChange?: number;
   comparisonIndicator?: 'positive' | 'negative' | 'neutral';
   comparisonPeriodText?: string;
+  // Hover detail properties
+  enableDetailOnHover?: boolean;
 };

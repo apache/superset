@@ -81,12 +81,11 @@ test('should render the title', async () => {
   expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
-test('should render the button', async () => {
+test('should render the close button', async () => {
   await renderModal();
-  expect(
-    screen.getByRole('button', { name: 'Edit chart' }),
-  ).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
+  // Check that our footer close button is present
+  expect(screen.getByTestId('close-drilltodetail-modal')).toBeInTheDocument();
 });
 
 test('should close the modal', async () => {
@@ -96,20 +95,19 @@ test('should close the modal', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-test('should forward to Explore', async () => {
+test('should not have edit chart functionality', async () => {
   await renderModal();
-  userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
-  expect(mockHistoryPush).toHaveBeenCalledWith(
-    `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
-  );
+  // Edit chart button should not be present
+  expect(screen.queryByRole('button', { name: 'Edit chart' })).not.toBeInTheDocument();
 });
 
-test('should render "Edit chart" as disabled without can_explore permission', async () => {
+test('should not have edit chart button regardless of permissions', async () => {
   await renderModal({
     user: {
       ...drillToDetailModalState.user,
       roles: { Admin: [['invalid_permission', 'Superset']] },
     },
   });
-  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
+  // Edit chart button should not be present regardless of permissions
+  expect(screen.queryByRole('button', { name: 'Edit chart' })).not.toBeInTheDocument();
 });

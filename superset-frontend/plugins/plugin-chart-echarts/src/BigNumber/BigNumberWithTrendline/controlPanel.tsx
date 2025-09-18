@@ -27,7 +27,11 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  enableDetailOnHover,
+} from '../sharedControls';
 
 const config: ControlPanelConfig = {
   sectionOverrides: {
@@ -65,7 +69,9 @@ const config: ControlPanelConfig = {
               type: 'HiddenControl',
               label: t('URL parameters'),
               hidden: true,
-              description: t('Extra parameters for use in jinja templated queries'),
+              description: t(
+                'Extra parameters for use in jinja templated queries',
+              ),
             },
           },
         ],
@@ -177,6 +183,7 @@ const config: ControlPanelConfig = {
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
+        [enableDetailOnHover],
         ['y_axis_format'],
         ['currency_format'],
         [

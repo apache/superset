@@ -25,6 +25,7 @@ import {
   styled,
   t,
   useTheme,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
@@ -70,6 +71,7 @@ export default function PopKPI(props: PopKPIProps) {
     height,
     width,
     bigNumber,
+    exactBigNumber,
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString,
@@ -82,6 +84,7 @@ export default function PopKPI(props: PopKPIProps) {
     startDateOffset,
     shift,
     dashboardTimeRange,
+    enableDetailOnHover = true,
   } = props;
 
   const [comparisonRange, setComparisonRange] = useState<string>('');
@@ -230,7 +233,18 @@ export default function PopKPI(props: PopKPIProps) {
         }
       >
         <div css={bigValueContainerStyles}>
-          {bigNumber}
+          {enableDetailOnHover && exactBigNumber !== null ? (
+            <Tooltip
+              title={`Exact value: ${getNumberFormatter('.0f')(
+                exactBigNumber,
+              )}`}
+              placement="top"
+            >
+              <span>{bigNumber}</span>
+            </Tooltip>
+          ) : (
+            bigNumber
+          )}
           {percentDifferenceNumber !== 0 && (
             <span css={arrowIndicatorStyle}>
               {percentDifferenceNumber > 0 ? '↑' : '↓'}

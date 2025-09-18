@@ -89,6 +89,7 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
+    enableDetailOnHover = true,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
@@ -187,6 +188,7 @@ export default function transformProps(chartProps: ChartProps) {
   }
 
   const compType = compTitles[formData.timeComparison];
+  const exactBigNumber = bigNumber; // Store exact value before formatting
   bigNumber = numberFormatter(bigNumber);
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
@@ -198,6 +200,7 @@ export default function transformProps(chartProps: ChartProps) {
     data,
     metricName,
     bigNumber,
+    exactBigNumber,
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
@@ -213,5 +216,6 @@ export default function transformProps(chartProps: ChartProps) {
     startDateOffset,
     shift: timeComparison,
     dashboardTimeRange: formData?.extraFormData?.time_range,
+    enableDetailOnHover,
   };
 }

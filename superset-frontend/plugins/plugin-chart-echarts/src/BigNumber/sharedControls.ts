@@ -88,3 +88,16 @@ export const subheaderFontSize: CustomControlItem = {
     ],
   },
 };
+
+export const enableDetailOnHover: CustomControlItem = {
+  name: 'enable_detail_on_hover',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Enable detail on hover'),
+    renderTrigger: true,
+    default: true,
+    description: t(
+      'Show exact number in tooltip when hovering over rounded values',
+    ),
+  },
+};

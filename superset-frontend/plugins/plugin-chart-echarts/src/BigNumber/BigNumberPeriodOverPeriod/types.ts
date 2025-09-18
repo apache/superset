@@ -56,6 +56,7 @@ export type PopKPIProps = PopKPIStylesProps &
     metrics: Metric[];
     metricName: string;
     bigNumber: string;
+    exactBigNumber: number;
     prevNumber: string;
     valueDifference: string;
     percentDifferenceFormattedString: string;
@@ -66,6 +67,7 @@ export type PopKPIProps = PopKPIStylesProps &
     startDateOffset?: string;
     shift: string;
     dashboardTimeRange?: string;
+    enableDetailOnHover?: boolean;
   };
 
 export enum ColorSchemeEnum {
