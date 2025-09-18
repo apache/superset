@@ -58,8 +58,8 @@ const setMockApiNotFound = () => {
 };
 
 const setup = () => {
-  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
   resetMockApi();
+  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
 };
 
 beforeEach(() => {
@@ -99,7 +99,7 @@ test('renders the correct actions when dashboard is ready to embed', async () =>
 
 test('renders the correct actions when dashboard is not ready to embed', async () => {
   setMockApiNotFound();
-  setup();
+  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
   expect(
     await screen.findByRole('button', { name: 'Enable embedding' }),
   ).toBeInTheDocument();
@@ -107,13 +107,14 @@ test('renders the correct actions when dashboard is not ready to embed', async (
 
 test('enables embedding', async () => {
   setMockApiNotFound();
-  setup();
+  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
 
   const enableEmbed = await screen.findByRole('button', {
     name: 'Enable embedding',
   });
   expect(enableEmbed).toBeInTheDocument();
 
+  resetMockApi();
   fireEvent.click(enableEmbed);
 
   expect(
@@ -164,11 +165,13 @@ test('adds extension to DashboardEmbedModal', async () => {
   ));
 
   setupCodeOverrides();
-  setup();
+  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
 
   expect(
     await screen.findByText('dashboard.embed.modal.extension component'),
   ).toBeInTheDocument();
+
+  extensionsRegistry.set('embedded.modal', undefined);
 });
 
 describe('Modal.useModal integration', () => {

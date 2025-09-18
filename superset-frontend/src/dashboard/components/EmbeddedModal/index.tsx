@@ -131,7 +131,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           });
       },
     });
-  }, [endpoint]);
+  }, [endpoint, modal]);
 
   useEffect(() => {
     setReady(false);
