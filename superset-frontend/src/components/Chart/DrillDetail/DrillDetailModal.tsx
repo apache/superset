@@ -27,8 +27,7 @@ import {
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { RootState } from 'src/dashboard/types';
-import { findPermission } from 'src/utils/findPermission';
+import { Slice } from 'src/types/Chart';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {
@@ -37,26 +36,18 @@ interface ModalFooterProps {
   exploreChart: () => void;
 }
 
-const ModalFooter = ({
-  canExplore,
-  closeModal,
-  exploreChart,
-}: ModalFooterProps) => {
-  const theme = useTheme();
-
-  return (
-    <>
-      <Button
-        buttonStyle="primary"
-        buttonSize="small"
-        onClick={closeModal}
-        data-test="close-drilltodetail-modal"
-      >
-        {t('Close')}
-      </Button>
-    </>
-  );
-};
+const ModalFooter = ({ closeModal }: ModalFooterProps) => (
+  <>
+    <Button
+      buttonStyle="primary"
+      buttonSize="small"
+      onClick={closeModal}
+      data-test="close-drilltodetail-modal"
+    >
+      {t('Close')}
+    </Button>
+  </>
+);
 
 interface DrillDetailModalProps {
   chartId: number;
@@ -74,8 +65,9 @@ export default function DrillDetailModal({
   onHideModal,
 }: DrillDetailModalProps) {
   const theme = useTheme();
-  const canExplore = useSelector((state: RootState) =>
-    findPermission('can_explore', 'Superset', state.user?.roles),
+  const { slice_name: chartName } = useSelector(
+    (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
+      state.sliceEntities.slices[chartId],
   );
 
   const exploreChart = () => {
@@ -92,8 +84,13 @@ export default function DrillDetailModal({
           flex-direction: column;
         }
       `}
+      title={t('Drill to detail: %s', chartName)}
       footer={
-        <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
+        <ModalFooter
+          exploreChart={exploreChart}
+          canExplore={false}
+          closeModal={onHideModal}
+        />
       }
       responsive
       resizable
