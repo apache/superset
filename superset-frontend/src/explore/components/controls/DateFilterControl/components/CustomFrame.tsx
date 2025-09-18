@@ -104,7 +104,7 @@ export function CustomFrame(props: FrameComponentProps) {
           <Row>
             <DatePicker
               showTime
-              defaultValue={convertToTimezone(sinceDatetime)}
+              value={convertToTimezone(sinceDatetime)}
               onChange={(datetime: Moment) =>
                 onChange('sinceDatetime', convertFromTimezone(datetime))
               }
@@ -124,7 +124,7 @@ export function CustomFrame(props: FrameComponentProps) {
           <Row>
             <DatePicker
               showTime
-              defaultValue={convertToTimezone(untilDatetime)}
+              value={convertToTimezone(untilDatetime)}
               onChange={(datetime: Moment) =>
                 onChange('untilDatetime', convertFromTimezone(datetime))
               }
