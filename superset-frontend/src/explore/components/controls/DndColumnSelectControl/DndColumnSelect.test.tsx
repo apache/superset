@@ -187,9 +187,21 @@ test('should display selected column values correctly', async () => {
     options: [{ column_name: 'state' }, { column_name: 'city' }],
   };
 
+  const store = mockStore({
+    explore: {
+      datasource: {
+        type: 'table',
+        id: 1,
+        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      },
+      form_data: {},
+      controls: {},
+    },
+  });
+
   render(<DndColumnSelect {...props} />, {
     useDnd: true,
-    useRedux: true,
+    store,
   });
 
   // Should display the selected column
@@ -208,9 +220,21 @@ test('should handle multiple column selections for groupby', async () => {
     ],
   };
 
+  const store = mockStore({
+    explore: {
+      datasource: {
+        type: 'table',
+        id: 1,
+        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      },
+      form_data: {},
+      controls: {},
+    },
+  });
+
   render(<DndColumnSelect {...props} />, {
     useDnd: true,
-    useRedux: true,
+    store,
   });
 
   // Should display both selected columns
@@ -252,8 +276,8 @@ test('should support adhoc column creation workflow', async () => {
   // Should display the adhoc column
   expect(screen.getByText('State Column')).toBeInTheDocument();
 
-  // Should show the calculator icon for adhoc columns
-  expect(screen.getByLabelText('calculator')).toBeInTheDocument();
+  // Should show the function icon for adhoc columns
+  expect(screen.getByLabelText('function type icon')).toBeInTheDocument();
 });
 
 test('should verify onChange callback integration (core regression protection)', async () => {
