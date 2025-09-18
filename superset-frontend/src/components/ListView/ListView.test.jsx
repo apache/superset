@@ -57,8 +57,8 @@ jest.mock('@superset-ui/core/components', () => ({
       role="combobox"
       value={value}
       onChange={e => {
-        onChange && onChange(e.target.value);
-        onSelect && onSelect(e.target.value);
+        if (onChange) onChange(e.target.value);
+        if (onSelect) onSelect(e.target.value);
       }}
       {...props}
     >
@@ -73,6 +73,7 @@ jest.mock('@superset-ui/core/components', () => ({
 }));
 
 jest.mock('./Filters', () => {
+  // eslint-disable-next-line global-require
   const React = require('react');
   return React.forwardRef((props, ref) =>
     React.createElement(
@@ -109,8 +110,9 @@ jest.mock('./Filters', () => {
       ),
       React.createElement('input', {
         placeholder: 'Type a value',
-        onBlur: e =>
-          e.target.value && props.updateFilterValue?.(1, e.target.value),
+        onBlur: e => {
+          if (e.target.value) props.updateFilterValue?.(1, e.target.value);
+        },
       }),
     ),
   );
