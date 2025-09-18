@@ -175,8 +175,10 @@ export const DrillBySubmenu = ({
     tooltip = t('Drill by is not available for this data point');
   }
 
-  // Don't render drill by menu items when matrixify is enabled
-  if (formData.matrixify_enabled) {
+  if (
+    formData.matrixify_enable_vertical_layout === true ||
+    formData.matrixify_enable_horizontal_layout === true
+  ) {
     return null;
   }
 
@@ -208,6 +210,7 @@ export const DrillBySubmenu = ({
     <div
       role="menu"
       tabIndex={0}
+      data-test="drill-by-submenu"
       css={css`
         width: 220px;
         max-width: 220px;

@@ -270,9 +270,9 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
   );
 });
 
-test('matrixify_enabled should not render component', () => {
+test('matrixify_enable_vertical_layout should not render component', () => {
   const { container } = renderSubmenu({
-    formData: { ...defaultFormData, matrixify_enabled: true },
+    formData: { ...defaultFormData, matrixify_enable_vertical_layout: true },
   });
   expect(container).toBeEmptyDOMElement();
 });

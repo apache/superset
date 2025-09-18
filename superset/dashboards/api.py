@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
-from flask import g, redirect, request, Response, send_file, url_for
+from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -332,8 +332,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Deterministic string representation of the API instance for etag_cache."""
         # pylint: disable=consider-using-f-string
         return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
-            self.appbuilder.app.config["VERSION_STRING"],
-            self.appbuilder.app.config["VERSION_SHA"],
+            current_app.config["VERSION_STRING"],
+            current_app.config["VERSION_SHA"],
         )
 
     @expose("/<id_or_slug>", methods=("GET",))
@@ -479,7 +479,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """  # noqa: E501
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
+            native_filters = DashboardDAO.get_native_filter_configuration(id_or_slug)
+
             result = self.tab_schema.dump(tabs)
+            result["native_filters"] = native_filters
+
             return self.response(200, result=result)
 
         except (TypeError, ValueError) as err:

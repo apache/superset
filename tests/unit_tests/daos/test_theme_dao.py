@@ -77,12 +77,14 @@ class TestThemeDAO:
         # Call the method
         result = ThemeDAO.find_system_default()
 
-        # Verify warning was logged
+        # Verify warning was logged with lazy logging format
         mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
         assert (
-            "Multiple system default themes found (2)"
-            in mock_logger.warning.call_args[0][0]
+            call_args[0][0]
+            == "Multiple system default themes found (%s), falling back to config theme"
         )
+        assert call_args[0][1] == 2
 
         # Verify the result is the fallback theme
         assert result == mock_fallback
@@ -169,12 +171,14 @@ class TestThemeDAO:
         # Call the method
         result = ThemeDAO.find_system_dark()
 
-        # Verify warning was logged
+        # Verify warning was logged with lazy logging format
         mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
         assert (
-            "Multiple system dark themes found (2)"
-            in mock_logger.warning.call_args[0][0]
+            call_args[0][0]
+            == "Multiple system dark themes found (%s), falling back to config theme"
         )
+        assert call_args[0][1] == 2
 
         # Verify the result is the fallback theme
         assert result == mock_fallback

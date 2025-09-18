@@ -175,7 +175,7 @@ describe('Charts list', () => {
       interceptDelete();
       cy.getBySel('sort-header').contains('Name').click();
 
-      // Modal closes immediatly without this
+      // Modal closes immediately without this
       cy.wait(2000);
 
       cy.getBySel('table-row').eq(0).contains('3 - Sample chart');

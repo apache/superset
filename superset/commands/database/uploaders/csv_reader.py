@@ -123,7 +123,7 @@ class CSVReader(BaseDataReader):
         except Exception as ex:
             # Any other error, fall back to c engine
             logger.warning(
-                f"Error selecting CSV engine: {ex}, falling back to 'c' engine"
+                "Error selecting CSV engine: %s, falling back to 'c' engine", ex
             )
             return "c"
 
@@ -208,8 +208,8 @@ class CSVReader(BaseDataReader):
             invalid_value = df.loc[idx, column]
             line_number = idx + kwargs.get("header", 0) + 2
             error_details.append(
-                f"  • Line {line_number}: '{invalid_value}' cannot be converted to "
-                f"{dtype}"
+                "  • Line %s: '%s' cannot be converted to %s"
+                % (line_number, invalid_value, dtype)
             )
 
         return error_details, total_errors

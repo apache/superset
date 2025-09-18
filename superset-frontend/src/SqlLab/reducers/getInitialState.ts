@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { nanoid } from 'nanoid';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import {
@@ -55,6 +56,7 @@ export default function getInitialState({
   let queryEditors: Record<string, QueryEditor> = {};
   const defaultQueryEditor = {
     version: LatestQueryEditorVersion,
+    immutableId: nanoid(11),
     loaded: true,
     name: t('Untitled query'),
     sql: '',
@@ -78,6 +80,7 @@ export default function getInitialState({
       queryEditor = {
         version: activeTab.extra_json?.version ?? QueryEditorVersion.V1,
         id: id.toString(),
+        immutableId: activeTab.extra_json?.immutableId ?? nanoid(11),
         loaded: true,
         name: activeTab.label,
         sql: activeTab.sql || '',
@@ -100,6 +103,7 @@ export default function getInitialState({
       queryEditor = {
         ...defaultQueryEditor,
         id: id.toString(),
+        immutableId: nanoid(11),
         loaded: false,
         name: label,
         dbId: undefined,

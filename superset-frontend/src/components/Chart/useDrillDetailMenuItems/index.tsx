@@ -226,6 +226,7 @@ export const useDrillDetailMenuItems = ({
               label: (
                 <TruncatedMenuLabel
                   tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
+                  aria-label={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
                 >
                   {`${DRILL_TO_DETAIL_BY} `}
                   <StyledFilter stripHTML>{filter.formattedVal}</StyledFilter>
@@ -238,7 +239,7 @@ export const useDrillDetailMenuItems = ({
                     key: 'drill-detail-filter-all',
                     onClick: openModal.bind(null, filters),
                     label: (
-                      <div>
+                      <div aria-label={`${DRILL_TO_DETAIL_BY} ${t('all')}`}>
                         {`${DRILL_TO_DETAIL_BY} `}
                         <StyledFilter stripHTML={false}>
                           {t('all')}

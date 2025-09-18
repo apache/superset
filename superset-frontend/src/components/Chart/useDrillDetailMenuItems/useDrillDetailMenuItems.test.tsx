@@ -128,8 +128,10 @@ const renderMenu = ({
   );
 };
 
-const setupMenu = (filters: BinaryQueryObjectFilterClause[]) => {
+const setupMenu = async (filters: BinaryQueryObjectFilterClause[]) => {
   cleanup();
+  // Small delay to ensure DOM cleanup is complete
+  await new Promise(resolve => setTimeout(resolve, 10));
   renderMenu({
     chartId: defaultChartId,
     formData: defaultFormData,
@@ -233,9 +235,10 @@ const expectDrillToDetailByEnabled = async () => {
     .getAllByRole('menuitem')
     .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
   await expectMenuItemEnabled(drillToDetailBy!);
+
   userEvent.hover(drillToDetailBy!);
 
-  const submenu = await screen.findByRole('menu');
+  const submenu = await screen.findByRole('menu', {});
   expect(submenu).toBeInTheDocument();
 };
 
@@ -255,9 +258,14 @@ const expectDrillToDetailByDisabled = async (tooltipContent?: string) => {
 const expectDrillToDetailByDimension = async (
   filter: BinaryQueryObjectFilterClause,
 ) => {
-  userEvent.hover(screen.getByRole('menuitem', { name: 'Drill to detail by' }));
+  const drillByMenuItem = screen.getByRole('menuitem', {
+    name: 'Drill to detail by',
+  });
 
-  await screen.findByRole('menu');
+  userEvent.hover(drillByMenuItem);
+
+  const submenu = await screen.findByRole('menu');
+  expect(submenu).toBeInTheDocument();
 
   const menuItemName = `Drill to detail by ${filter.formattedVal}`;
   const drillToDetailBySubmenuItem = await screen.findByRole('menuitem', {
@@ -274,11 +282,15 @@ const expectDrillToDetailByDimension = async (
 const expectDrillToDetailByAll = async (
   filters: BinaryQueryObjectFilterClause[],
 ) => {
-  userEvent.hover(screen.getByRole('menuitem', { name: 'Drill to detail by' }));
+  const drillByMenuItem = screen.getByRole('menuitem', {
+    name: 'Drill to detail by',
+  });
+
+  userEvent.hover(drillByMenuItem);
 
   await screen.findByRole('menu');
 
-  const drillToDetailBySubmenuItem = await screen.findByText(/all/i);
+  const drillToDetailBySubmenuItem = await screen.findByText(/all/i, {});
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
 
@@ -379,20 +391,20 @@ test('context menu for supported chart, dimensions, 1 filter', async () => {
 
 test('context menu for supported chart, dimensions, filter A', async () => {
   const filters = [filterA, filterB];
-  setupMenu(filters);
+  await setupMenu(filters);
   await expectDrillToDetailByEnabled();
   await expectDrillToDetailByDimension(filterA);
 });
 
 test('context menu for supported chart, dimensions, filter B', async () => {
   const filters = [filterA, filterB];
-  setupMenu(filters);
+  await setupMenu(filters);
   await expectDrillToDetailByEnabled();
   await expectDrillToDetailByDimension(filterB);
 });
 
 test.skip('context menu for supported chart, dimensions, all filters', async () => {
   const filters = [filterA, filterB];
-  setupMenu(filters);
+  await setupMenu(filters);
   await expectDrillToDetailByAll(filters);
 });
