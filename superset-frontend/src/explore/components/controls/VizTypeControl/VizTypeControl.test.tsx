@@ -277,4 +277,72 @@ describe('VizTypeControl', () => {
     // Restore the original focus method
     HTMLInputElement.prototype.focus = originalFocus;
   });
+
+  it('Navigate categories and select visualization type', async () => {
+    await waitForRenderWrapper();
+
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+
+    // Click on the "KPI" category button as per the original Cypress test
+    const kpiTab = screen.getByRole('tab', { name: 'KPI' });
+    expect(kpiTab).toBeInTheDocument();
+    userEvent.click(kpiTab);
+
+    // Verify KPI category charts are shown
+    await waitFor(() => {
+      expect(
+        within(visualizations).getByText('Big Number'),
+      ).toBeInTheDocument();
+    });
+
+    // Select Big Number chart type as per original Cypress test
+    const bigNumberChart = within(visualizations).getByText('Big Number');
+    userEvent.click(bigNumberChart);
+
+    // Click the Select button to confirm selection
+    const selectButton = screen.getByText('Select');
+    expect(selectButton).toBeInTheDocument();
+    userEvent.click(selectButton);
+
+    // Verify onChange was called with Big Number viz type
+    expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.BigNumberTotal);
+  });
+
+  it('Handle category switching between different chart types', async () => {
+    await waitForRenderWrapper();
+
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+
+    // Start with All charts
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await waitFor(() => {
+      expect(
+        within(visualizations).getByText('Line Chart'),
+      ).toBeInTheDocument();
+    });
+
+    // Switch to KPI category
+    userEvent.click(screen.getByRole('tab', { name: 'KPI' }));
+    await waitFor(() => {
+      expect(
+        within(visualizations).getByText('Big Number'),
+      ).toBeInTheDocument();
+      // Line Chart should not be visible in KPI category
+      expect(
+        within(visualizations).queryByText('Line Chart'),
+      ).not.toBeInTheDocument();
+    });
+
+    // Switch back to All charts
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await waitFor(() => {
+      expect(
+        within(visualizations).getByText('Line Chart'),
+      ).toBeInTheDocument();
+      // Should still see Big Number since it's part of all charts
+      expect(
+        within(visualizations).getByText('Big Number'),
+      ).toBeInTheDocument();
+    });
+  });
 });
