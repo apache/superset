@@ -225,21 +225,57 @@ npm run test -- path/to/file.js
 
 ### E2E Integration Testing
 
-For E2E testing, we recommend that you use a `docker compose` backend
+**Note: We are migrating from Cypress to Playwright. Use Playwright for new tests.**
+
+#### Playwright (Recommended - NEW)
+
+For E2E testing with Playwright, use the same `docker compose` backend:
 
 ```bash
 CYPRESS_CONFIG=true docker compose up --build
 ```
-`docker compose` will get to work and expose a Cypress-ready Superset app.
-This app uses a different database schema (`superset_cypress`) to keep it isolated from
-your other dev environment(s), a specific set of examples, and a set of configurations that
-aligns with the expectations within the end-to-end tests.  Also note that it's served on a
-different port than the default port for the backend (`8088`).
 
-Now in another terminal, let's get ready to execute some Cypress commands. First, tell cypress
-to connect to the Cypress-ready Superset backend.
+The backend setup is identical - this exposes a test-ready Superset app on port 8081 with isolated database schema (`superset_cypress`), test data, and configurations.
 
+Now in another terminal, run Playwright tests:
+
+```bash
+# Navigate to frontend directory (Playwright config is here)
+cd superset-frontend
+
+# Run all Playwright tests
+npm run playwright:test
+# or: npx playwright test
+
+# Run with interactive UI for debugging
+npm run playwright:ui
+# or: npx playwright test --ui
+
+# Run in headed mode (see browser)
+npm run playwright:headed
+# or: npx playwright test --headed
+
+# Run specific test file
+npx playwright test tests/auth/login.spec.ts
+
+# Run with debug mode (step through tests)
+npm run playwright:debug tests/auth/login.spec.ts
+# or: npx playwright test --debug tests/auth/login.spec.ts
+
+# Generate test report
+npx playwright show-report
 ```
+
+Configuration is in `superset-frontend/playwright.config.ts`. Base URL is automatically set to `http://localhost:8088` but will use `PLAYWRIGHT_BASE_URL` if provided.
+
+#### Cypress (DEPRECATED - will be removed in Phase 5)
+
+:::warning
+Cypress is being phased out in favor of Playwright. Use Playwright for all new tests.
+:::
+
+```bash
+# Set base URL for Cypress
 CYPRESS_BASE_URL=http://localhost:8081
 ```
 
