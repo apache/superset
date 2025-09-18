@@ -271,7 +271,7 @@ function AlertList({
           },
         }: any) =>
           lastEvalDttm
-            ? (extendedDayjs.utc(lastEvalDttm) as any)
+            ? extendedDayjs.utc(lastEvalDttm)
                 .local()
                 .format(DATETIME_WITH_TIME_ZONE)
             : '',
