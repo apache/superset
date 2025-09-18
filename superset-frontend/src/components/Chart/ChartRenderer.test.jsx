@@ -182,7 +182,6 @@ test('should handle matrixify-related form data changes', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
-      matrixify_enabled: false,
       regular_control: 'value1',
     },
     queriesResponse: [{ data: 'current' }],

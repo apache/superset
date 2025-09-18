@@ -96,9 +96,6 @@ export interface MatrixifyAxisConfig {
  * Complete Matrixify configuration in form data
  */
 export interface MatrixifyFormData {
-  // Enable/disable matrixify functionality
-  matrixify_enabled?: boolean;
-
   // Layout enable controls
   matrixify_enable_vertical_layout?: boolean;
   matrixify_enable_horizontal_layout?: boolean;
