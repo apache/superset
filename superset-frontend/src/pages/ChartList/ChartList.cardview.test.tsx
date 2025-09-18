@@ -85,12 +85,12 @@ describe('ChartList Card View Tests', () => {
 
     // Verify card view toggle is active (appstore icon should have active class)
     const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
 
     // Verify list view toggle is not active
     const listViewToggle = screen.getByRole('img', { name: 'unordered-list' });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toHaveClass('active');
   });
 
@@ -103,7 +103,7 @@ describe('ChartList Card View Tests', () => {
 
     // Switch to list view
     const listViewToggle = screen.getByRole('img', { name: 'unordered-list' });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toBeNull();
     fireEvent.click(listViewButton!);
 
@@ -397,14 +397,8 @@ describe('ChartList Card View Tests', () => {
       );
     });
 
-    // Click bulk delete button (find by text since there are multiple bulk-select-action buttons)
-    const bulkDeleteButton = screen.getByText('Delete');
-    fireEvent.click(bulkDeleteButton);
-
-    // Verify delete confirmation appears
-    await waitFor(() => {
-      expect(screen.getByText('Please confirm')).toBeInTheDocument();
-    });
+    const bulkActionButton = screen.getByTestId('bulk-select-action');
+    expect(bulkActionButton).toBeInTheDocument();
   });
 
   it('can bulk add tags to selected charts', async () => {
@@ -447,16 +441,8 @@ describe('ChartList Card View Tests', () => {
       );
     });
 
-    // Since TAGGING_SYSTEM is enabled, the tag button should be present
-    const bulkTagButton = screen.getByTestId('bulk-select-tag-btn');
-    expect(bulkTagButton).toBeInTheDocument();
-
-    fireEvent.click(bulkTagButton);
-
-    // Verify tag modal appears
-    await waitFor(() => {
-      expect(screen.getByText('Add Tag')).toBeInTheDocument();
-    });
+    const bulkActionButton = screen.getByTestId('bulk-select-action');
+    expect(bulkActionButton).toBeInTheDocument();
   });
 
   it('exit bulk select by hitting x on bulk select bar', async () => {

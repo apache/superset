@@ -1,18 +1,18 @@
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * with the License. You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -23,10 +23,11 @@ import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Alert,
-  Button,
   Checkbox,
   Icons,
   EmptyState,
+  DropdownButton,
+  Menu,
   Loading,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
@@ -111,20 +112,39 @@ const BulkSelectWrapper = styled(Alert)`
     color: ${theme.colorText};
     background-color: ${theme.colorPrimaryBg};
 
+    .ant-alert-message {
+      display: flex;
+      align-items: center;
+    }
+
     .selectedCopy {
       display: inline-block;
       padding: ${theme.sizeUnit * 2}px 0;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .deselect-all, .tag-btn {
       color: ${theme.colorPrimary};
       margin-left: ${theme.sizeUnit * 4}px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+
+      &:hover {
+        color: ${theme.colorPrimaryHover};
+      }
     }
 
     .divider {
-      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px`};
+      margin-left: ${theme.sizeUnit * 4}px;
+      margin-right: ${theme.sizeUnit * 4}px;
       width: 1px;
-      height: ${theme.sizeUnit * 8}px;
+      height: 32px;
       box-shadow: inset -1px 0px 0px ${theme.colorBorder};
       display: inline-flex;
       vertical-align: middle;
@@ -164,6 +184,9 @@ const ViewModeContainer = styled.div`
       border-radius: ${theme.borderRadius}px;
       padding: ${theme.sizeUnit}px;
       padding-bottom: ${theme.sizeUnit * 0.5}px;
+      background: none;
+      border: none;
+      cursor: pointer;
 
       &:first-of-type {
         margin-right: ${theme.sizeUnit * 2}px;
@@ -198,9 +221,8 @@ const ViewModeToggle = ({
   setMode: (mode: 'table' | 'card') => void;
 }) => (
   <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={e => {
         e.currentTarget.blur();
         setMode('card');
@@ -208,10 +230,9 @@ const ViewModeToggle = ({
       className={cx('toggle-button', { active: mode === 'card' })}
     >
       <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
+    </button>
+    <button
+      type="button"
       onClick={e => {
         e.currentTarget.blur();
         setMode('table');
@@ -219,7 +240,7 @@ const ViewModeToggle = ({
       className={cx('toggle-button', { active: mode === 'table' })}
     >
       <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
+    </button>
   </ViewModeContainer>
 );
 
@@ -267,7 +288,7 @@ export function ListView<T extends object = any>({
   initialSort = [],
   className = '',
   filters = [],
-  bulkActions = [],
+  bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
@@ -283,6 +304,20 @@ export function ListView<T extends object = any>({
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
+  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+
+  const bulkActions = [...initialBulkActions];
+  if (enableBulkTag) {
+    const insertIndex = bulkActions.length > 0 ? 1 : 0;
+    bulkActions.splice(insertIndex, 0, {
+      key: 'tag',
+      name: t('Add Tag'),
+      type: 'secondary',
+      onSelect: () => setShowBulkTagModal(true),
+    });
+  }
+
   const {
     getTableProps,
     getTableBodyProps,
@@ -336,7 +371,6 @@ export function ListView<T extends object = any>({
   }, [query.filters]);
 
   const cardViewEnabled = Boolean(renderCard);
-  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -348,6 +382,38 @@ export function ListView<T extends object = any>({
       gotoPage(0);
     }
   }, [gotoPage, loading, pageCount, pageIndex]);
+
+  const firstAction = bulkActions[0];
+  const dropdownActions = bulkActions.slice(1);
+
+  const handleMenuClick = (info: { key: React.Key }) => {
+    const keyStr = String(info.key);
+    const action = dropdownActions.find(a => a.key === keyStr);
+    if (action) {
+      action.onSelect(selectedFlatRows.map(r => r.original));
+    }
+  };
+
+  const handleBulkActionClick = async () => {
+    if (!firstAction) return;
+
+    setIsBulkActionLoading(true);
+    try {
+      await firstAction.onSelect(selectedFlatRows.map(r => r.original));
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
+  const dropdownMenu = (
+    <Menu onClick={handleMenuClick}>
+      {dropdownActions.map(action => (
+        <Menu.Item key={action.key} data-test="bulk-select-action">
+          {action.name}
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
 
   return (
     <ListViewStyles>
@@ -395,48 +461,34 @@ export function ListView<T extends object = any>({
               onClose={disableBulkSelect}
               message={
                 <>
-                  <div className="selectedCopy" data-test="bulk-select-copy">
+                  <span className="selectedCopy" data-test="bulk-select-copy">
                     {renderBulkSelectCopy(selectedFlatRows)}
-                  </div>
+                  </span>
                   {Boolean(selectedFlatRows.length) && (
                     <>
-                      <span
+                      <button
+                        type="button"
                         data-test="bulk-select-deselect-all"
-                        style={{ cursor: 'pointer' }}
-                        role="button"
-                        tabIndex={0}
                         className="deselect-all"
                         onClick={() => toggleAllRowsSelected(false)}
                       >
                         {t('Deselect all')}
-                      </span>
-                      <div className="divider" />
-                      {bulkActions.map(action => (
-                        <Button
-                          data-test="bulk-select-action"
-                          key={action.key}
-                          buttonStyle={action.type}
-                          cta
-                          onClick={() =>
-                            action.onSelect(
-                              selectedFlatRows.map(r => r.original),
-                            )
-                          }
-                        >
-                          {action.name}
-                        </Button>
-                      ))}
-                      {enableBulkTag && (
-                        <span
-                          data-test="bulk-select-tag-btn"
-                          role="button"
-                          style={{ cursor: 'pointer' }}
-                          tabIndex={0}
-                          className="tag-btn"
-                          onClick={() => setShowBulkTagModal(true)}
-                        >
-                          {t('Add Tag')}
-                        </span>
+                      </button>
+                      {firstAction && (
+                        <>
+                          <div className="divider" />
+                          <DropdownButton
+                            popupRender={() =>
+                              dropdownActions.length > 0 ? dropdownMenu : <></>
+                            }
+                            onClick={handleBulkActionClick}
+                            loading={isBulkActionLoading}
+                            type="primary"
+                            data-test="bulk-select-action"
+                          >
+                            {firstAction.name}
+                          </DropdownButton>
+                        </>
                       )}
                     </>
                   )}

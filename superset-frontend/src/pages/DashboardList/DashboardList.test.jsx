@@ -151,11 +151,11 @@ describe('DashboardList', () => {
 
     // Switch to table view
     const listViewIcon = screen.getByRole('img', { name: 'appstore' });
-    const listViewButton = listViewIcon.closest('[role="button"]');
+    const listViewButton = listViewIcon.closest('button');
     fireEvent.click(listViewButton);
 
     // Switch back to card view
-    const cardViewButton = cardViewIcon.closest('[role="button"]');
+    const cardViewButton = cardViewIcon.closest('button');
     fireEvent.click(cardViewButton);
   });
 

@@ -26,6 +26,115 @@ import fetchMock from 'fetch-mock';
 // Only import components that are directly referenced in tests
 import { ListView } from './ListView';
 
+jest.mock('@superset-ui/core/components', () => ({
+  Alert: ({ children, message, ...props }) => (
+    <div {...props}>{message || children}</div>
+  ),
+  DropdownButton: ({ children, onClick, 'data-test': dataTest, ...props }) => (
+    <button type="button" onClick={onClick} data-test={dataTest} {...props}>
+      {children}
+    </button>
+  ),
+  Icons: {
+    AppstoreOutlined: props => (
+      <span {...props} role="img" aria-label="appstore" />
+    ),
+    UnorderedListOutlined: props => (
+      <span {...props} role="img" aria-label="unordered-list" />
+    ),
+    DeleteOutlined: props => <span {...props} role="img" aria-label="delete" />,
+  },
+  EmptyState: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Checkbox: props => <input type="checkbox" {...props} />,
+  Loading: () => <div>Loading...</div>,
+  Flex: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Menu: {
+    Item: ({ children, ...props }) => <div {...props}>{children}</div>,
+  },
+  Modal: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Select: ({ children, onChange, onSelect, value, ...props }) => (
+    <select
+      role="combobox"
+      value={value}
+      onChange={e => {
+        if (onChange) onChange(e.target.value);
+        if (onSelect) onSelect(e.target.value);
+      }}
+      {...props}
+    >
+      {children}
+    </select>
+  ),
+  Pagination: props => <div {...props}>Pagination</div>,
+  TableCollection: props => <div {...props}>TableCollection</div>,
+  AsyncEsmComponent:
+    () =>
+    ({ children, ...props }) => <div {...props}>{children}</div>,
+}));
+
+jest.mock('./Filters', () => {
+  // eslint-disable-next-line global-require
+  const React = require('react');
+  return React.forwardRef((props, ref) =>
+    React.createElement(
+      'div',
+      { ref, ...props },
+      React.createElement(
+        'select',
+        {
+          role: 'combobox',
+          onChange: () =>
+            props.updateFilterValue?.(0, { label: 'foo', value: 'bar' }),
+        },
+        React.createElement(
+          'option',
+          {
+            value: 'bar',
+            onClick: () =>
+              props.updateFilterValue?.(0, { label: 'foo', value: 'bar' }),
+          },
+          'foo',
+        ),
+      ),
+      React.createElement(
+        'select',
+        {
+          role: 'combobox',
+          onChange: () =>
+            props.updateFilterValue?.(2, {
+              label: 'age_option',
+              value: 'age_value',
+            }),
+        },
+        React.createElement('option', { value: 'age_value' }, 'age_option'),
+      ),
+      React.createElement('input', {
+        placeholder: 'Type a value',
+        onBlur: e => {
+          if (e.target.value) props.updateFilterValue?.(1, e.target.value);
+        },
+      }),
+    ),
+  );
+});
+
+jest.mock('./CardCollection', () => props => <div {...props} />);
+
+jest.mock('./CardSortSelect', () => ({
+  CardSortSelect: props => (
+    <select
+      data-test="card-sort-select"
+      role="combobox"
+      onChange={props.onChange}
+      {...props}
+    >
+      <option value="alphabetical">Alphabetical</option>
+    </select>
+  ),
+}));
+
+jest.mock('src/features/tags/BulkTagModal', () => props => <div {...props} />);
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
@@ -201,19 +310,33 @@ describe('ListView', () => {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
+    // Verify bulk select controls are visible
+    expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
+
     const bulkActionButton = within(
       screen.getByTestId('bulk-select-controls'),
     ).getByTestId('bulk-select-action');
+
+    // Verify the button exists and is clickable
+    expect(bulkActionButton).toBeInTheDocument();
+
+    // Click the bulk action button
     await userEvent.click(bulkActionButton);
 
-    expect(mockedProps.bulkActions[0].onSelect).toHaveBeenCalledWith([
-      {
-        age: 10,
-        id: 1,
-        name: 'data 1',
-        time: '2020-11-18T07:53:45.354Z',
+    // Wait for the async handleBulkActionClick to complete and mock to be called
+    await waitFor(
+      () => {
+        expect(mockedProps.bulkActions[0].onSelect).toHaveBeenCalledWith([
+          {
+            age: 10,
+            id: 1,
+            name: 'data 1',
+            time: '2020-11-18T07:53:45.354Z',
+          },
+        ]);
       },
-    ]);
+      { timeout: 2000 },
+    );
   });
 
   // Update UI filters test to use more specific selector

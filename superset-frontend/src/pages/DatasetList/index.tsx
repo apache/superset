@@ -886,20 +886,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
-            bulkActions.push({
-              key: 'delete',
-              name: t('Delete'),
-              onSelect: confirmDelete,
-              type: 'danger',
-            });
-          }
           if (canExport) {
             bulkActions.push({
               key: 'export',
               name: t('Export'),
               type: 'primary',
               onSelect: handleBulkDatasetExport,
+            });
+          }
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
             });
           }
           return (
