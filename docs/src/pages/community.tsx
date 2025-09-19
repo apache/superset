@@ -20,6 +20,7 @@ import { useState } from 'react';
 import styled from '@emotion/styled';
 import { List } from 'antd';
 import Layout from '@theme/Layout';
+import Head from '@docusaurus/Head';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
@@ -176,10 +177,11 @@ const Community = () => {
   };
 
   return (
-    <Layout
-      title="Community"
-      description="Community website for Apache Superset™, a data visualization and data exploration platform"
-    >
+    <Layout>
+      <Head>
+        <title>Community</title>
+        <meta name="description" content="Community website for Apache Superset™, a data visualization and data exploration platform" />
+      </Head>
       <main>
         <BlurredSection>
           <SectionHeader
