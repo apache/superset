@@ -112,7 +112,7 @@ const PropertiesModal = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
@@ -207,7 +207,6 @@ const PropertiesModal = ({
   );
 
   const fetchDashboardDetails = useCallback(() => {
-    setIsLoading(true);
     // We fetch the dashboard details because not all code
     // that renders this component have all the values we need.
     // At some point when we have a more consistent frontend
@@ -382,10 +381,6 @@ const PropertiesModal = ({
     if (onlyApply) {
       setIsApplying(true);
       try {
-        console.log('Apply CSS debug:', {
-          css_being_sent: customCss,
-          onSubmitProps_css: onSubmitProps.css,
-        });
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('Dashboard properties updated'));
@@ -422,10 +417,15 @@ const PropertiesModal = ({
 
   useEffect(() => {
     if (show) {
+      // Reset loading state when modal opens
+      setIsLoading(true);
+
       if (!currentDashboardInfo) {
         fetchDashboardDetails();
       } else {
         handleDashboardData(currentDashboardInfo);
+        // Data is immediately available, so we can stop loading
+        setIsLoading(false);
       }
 
       // Fetch themes (excluding system themes)
@@ -522,6 +522,11 @@ const PropertiesModal = ({
         key: 'basic',
         name: t('General information'),
         validator: () => {
+          // Don't validate while loading
+          if (isLoading) {
+            return [];
+          }
+
           const errors = [];
           const values = form.getFieldsValue();
 
@@ -547,6 +552,11 @@ const PropertiesModal = ({
         key: 'refresh',
         name: t('Refresh settings'),
         validator: () => {
+          // Don't validate while loading
+          if (isLoading) {
+            return [];
+          }
+
           const errors = [];
           const refreshLimit =
             dashboardInfo?.common?.conf
@@ -575,6 +585,11 @@ const PropertiesModal = ({
         key: 'advanced',
         name: t('Advanced settings'),
         validator: () => {
+          // Don't validate while loading
+          if (isLoading) {
+            return [];
+          }
+
           if (jsonAnnotations.length > 0) {
             return [t('Invalid JSON metadata')];
           }
@@ -582,7 +597,7 @@ const PropertiesModal = ({
         },
       },
     ],
-    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
+    [form, jsonAnnotations, refreshFrequency, dashboardInfo, isLoading],
   );
 
   const {
@@ -595,20 +610,26 @@ const PropertiesModal = ({
     sections: modalSections,
   });
 
-  // Validate basic section when title changes
+  // Validate basic section when title changes (but not while loading)
   useEffect(() => {
-    validateSection('basic');
-  }, [dashboardTitle, validateSection]);
+    if (!isLoading) {
+      validateSection('basic');
+    }
+  }, [dashboardTitle, isLoading, validateSection]);
 
-  // Validate advanced section when JSON changes
+  // Validate advanced section when JSON changes (but not while loading)
   useEffect(() => {
-    validateSection('advanced');
-  }, [jsonMetadata, validateSection]);
+    if (!isLoading) {
+      validateSection('advanced');
+    }
+  }, [jsonMetadata, isLoading, validateSection]);
 
-  // Validate refresh section when refresh frequency changes
+  // Validate refresh section when refresh frequency changes (but not while loading)
   useEffect(() => {
-    validateSection('refresh');
-  }, [refreshFrequency, validateSection]);
+    if (!isLoading) {
+      validateSection('refresh');
+    }
+  }, [refreshFrequency, isLoading, validateSection]);
 
   return (
     <StandardModal
@@ -639,8 +660,10 @@ const PropertiesModal = ({
         form={form}
         onFinish={onFinish}
         onFieldsChange={() => {
-          // Re-validate sections when form fields change
-          setTimeout(() => validateSection('basic'), 100);
+          // Re-validate sections when form fields change (but not while loading)
+          if (!isLoading) {
+            setTimeout(() => validateSection('basic'), 100);
+          }
         }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
