@@ -123,7 +123,6 @@ export const FilterableTable = ({
     <div className="filterable-table-container" data-test="table-container">
       <GridTable
         size={GridSize.Small}
-        usePagination={false}
         height={height}
         columns={columns}
         data={data}

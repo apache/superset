@@ -19,7 +19,7 @@
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Menu } from './Menu';
 
@@ -492,13 +492,26 @@ test('should render the About section and version_string, sha or build_number wh
   });
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
-  const version = await screen.findAllByText(`Version: ${version_string}`);
-  const sha = await screen.findAllByText(`SHA: ${version_sha}`);
-  const build = await screen.findAllByText(`Build: ${build_number}`);
+
+  // The version information is rendered as combined text in a single element
+  // Use getAllByText to get all matching elements and check the first one
+  const versionTexts = await screen.findAllByText(
+    (_, element) =>
+      element?.textContent?.includes(`Version: ${version_string}`) ?? false,
+  );
+  const shaTexts = await screen.findAllByText(
+    (_, element) =>
+      element?.textContent?.includes(`SHA: ${version_sha}`) ?? false,
+  );
+  const buildTexts = await screen.findAllByText(
+    (_, element) =>
+      element?.textContent?.includes(`Build: ${build_number}`) ?? false,
+  );
+
   expect(about).toBeInTheDocument();
-  expect(version[0]).toBeInTheDocument();
-  expect(sha[0]).toBeInTheDocument();
-  expect(build[0]).toBeInTheDocument();
+  expect(versionTexts[0]).toBeInTheDocument();
+  expect(shaTexts[0]).toBeInTheDocument();
+  expect(buildTexts[0]).toBeInTheDocument();
 });
 
 test('should render the Documentation link when available', async () => {
@@ -597,7 +610,7 @@ test('should render an extension component if one is supplied', async () => {
     <>navbar.right extension component</>
   ));
 
-  setupExtensions();
+  setupCodeOverrides();
 
   render(<Menu {...mockedProps} />, {
     useRouter: true,

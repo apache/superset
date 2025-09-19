@@ -18,7 +18,9 @@
  */
 import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
+import exampleDark from './images/example-dark.png';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
@@ -28,9 +30,10 @@ const metadata = new ChartMetadata({
   description: t(
     'The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts).',
   ),
-  exampleGallery: [{ url: example }],
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('deck.gl Geojson'),
   thumbnail,
+  thumbnailDark,
   useLegacyApi: true,
   tags: [t('deckGL'), t('2D')],
   behaviors: [Behavior.InteractiveChart],

@@ -100,8 +100,8 @@ class SupersetApp(Flask):
                 return super().send_static_file(filename)
             except NotFound:
                 logger.debug(
-                    "Webpack hot-update file not found (likely HMR "
-                    f"race condition): {filename}"
+                    "Webpack hot-update file not found (likely HMR race condition): %s",
+                    filename,
                 )
                 return Response("", status=204)  # No Content
         return super().send_static_file(filename)

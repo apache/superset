@@ -40,11 +40,11 @@ class LocalExtensionFileHandler(FileSystemEventHandler):
         if event.is_directory:
             return
 
-        logger.info(f"File change detected in LOCAL_EXTENSIONS: {event.src_path}")
+        logger.info("File change detected in LOCAL_EXTENSIONS: %s", event.src_path)
 
         # Touch superset/__init__.py to trigger Flask's file watcher
         superset_init = Path("superset/__init__.py")
-        logger.info(f"Triggering restart by touching {superset_init}")
+        logger.info("Triggering restart by touching %s", superset_init)
         os.utime(superset_init, (time.time(), time.time()))
 
 
@@ -70,12 +70,12 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
 
         ext_path = Path(ext_path).resolve()
         if not ext_path.exists():
-            logger.warning(f"LOCAL_EXTENSIONS path does not exist: {ext_path}")
+            logger.warning("LOCAL_EXTENSIONS path does not exist: %s", ext_path)
             continue
 
         dist_path = ext_path / "dist"
         watch_dirs.append(str(dist_path))
-        logger.info(f"Watching LOCAL_EXTENSIONS dist directory: {dist_path}")
+        logger.info("Watching LOCAL_EXTENSIONS dist directory: %s", dist_path)
 
     if not watch_dirs:
         return
@@ -89,18 +89,19 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
             try:
                 observer.schedule(event_handler, watch_dir, recursive=True)
             except Exception as e:
-                logger.warning(f"Failed to watch directory {watch_dir}: {e}")
+                logger.warning("Failed to watch directory %s: %s", watch_dir, e)
                 continue
 
         observer.daemon = True
         observer.start()
 
         logger.info(
-            f"LOCAL_EXTENSIONS file watcher started for {len(watch_dirs)} directories"  # noqa: E501
+            "LOCAL_EXTENSIONS file watcher started for %s directories",  # noqa: E501
+            len(watch_dirs),
         )
 
     except Exception as e:
-        logger.error(f"Failed to start LOCAL_EXTENSIONS file watcher: {e}")
+        logger.error("Failed to start LOCAL_EXTENSIONS file watcher: %s", e)
 
 
 def start_local_extensions_watcher_thread(app: Flask) -> None:

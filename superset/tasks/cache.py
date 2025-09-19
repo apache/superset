@@ -294,7 +294,7 @@ def cache_warmup(
         if class_.name == strategy_name:  # type: ignore
             break
     else:
-        message = f"No strategy {strategy_name} found!"
+        message = "No strategy %s found!" % strategy_name
         logger.error(message, exc_info=True)
         return message
 
@@ -316,7 +316,7 @@ def cache_warmup(
                 user = security_manager.get_user_by_username(username)
                 cookies = MachineAuthProvider.get_auth_cookies(user)
                 headers = {
-                    "Cookie": f"session={cookies.get('session', '')}",
+                    "Cookie": "session=%s" % cookies.get("session", ""),
                     "Content-Type": "application/json",
                 }
                 logger.info("Scheduling %s", payload)
@@ -326,6 +326,6 @@ def cache_warmup(
                 logger.exception("Error scheduling fetch_url for payload: %s", payload)
                 results["errors"].append(payload)
         else:
-            logger.warn("Executor not found for %s", payload)
+            logger.warning("Executor not found for %s", payload)
 
     return results

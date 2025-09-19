@@ -27,7 +27,6 @@ import {
   getValueFormatter,
   rgbToHex,
   addAlpha,
-  supersetTheme,
   tooltipHtml,
 } from '@superset-ui/core';
 import memoizeOne from 'memoize-one';
@@ -78,7 +77,8 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource } = chartProps;
+  const { width, height, formData, queriesData, datasource, theme } =
+    chartProps;
   const {
     bottomMargin,
     xAxis,
@@ -176,9 +176,9 @@ export default function transformProps(
       },
       emphasis: {
         itemStyle: {
-          borderColor: supersetTheme.colorBgContainer,
+          borderColor: 'transparent',
           shadowBlur: 10,
-          shadowColor: supersetTheme.colorTextBase,
+          shadowColor: addAlpha(theme.colorText, 0.3),
         },
       },
     },

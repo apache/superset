@@ -73,7 +73,7 @@ export default function AllEntitiesTable({
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <Typography.Link href={o.url}>{o.name}</Typography.Link>,
-      modified: extendedDayjs.utc(o.changed_on).fromNow(),
+      modified: o.changed_on ? extendedDayjs.utc(o.changed_on).fromNow() : '',
       tags: o.tags,
       owners: o.owners,
     }));

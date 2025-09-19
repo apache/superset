@@ -21,43 +21,43 @@ import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 import { EchartsGraphChartProps } from '../../src/Graph/types';
 
+const formData: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'count',
+  source: 'source_column',
+  target: 'target_column',
+  category: null,
+  viz_type: 'graph',
+};
+const queriesData = [
+  {
+    colnames: ['source_column', 'target_column', 'count'],
+    data: [
+      {
+        source_column: 'source_value_1',
+        target_column: 'target_value_1',
+        count: 6,
+      },
+      {
+        source_column: 'source_value_2',
+        target_column: 'target_value_2',
+        count: 5,
+      },
+    ],
+  },
+];
+const chartPropsConfig = {
+  formData,
+  width: 800,
+  height: 600,
+  queriesData,
+  theme: supersetTheme,
+};
+
 describe('EchartsGraph transformProps', () => {
   it('should transform chart props for viz without category', () => {
-    const formData: SqlaFormData = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'count',
-      source: 'source_column',
-      target: 'target_column',
-      category: null,
-      viz_type: 'graph',
-    };
-    const queriesData = [
-      {
-        colnames: ['source_column', 'target_column', 'count'],
-        data: [
-          {
-            source_column: 'source_value_1',
-            target_column: 'target_value_1',
-            count: 6,
-          },
-          {
-            source_column: 'source_value_2',
-            target_column: 'target_value_2',
-            count: 5,
-          },
-        ],
-      },
-    ];
-    const chartPropsConfig = {
-      formData,
-      width: 800,
-      height: 600,
-      queriesData,
-      theme: supersetTheme,
-    };
-
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
@@ -261,5 +261,93 @@ describe('EchartsGraph transformProps', () => {
         }),
       }),
     );
+  });
+});
+
+describe('legend sorting', () => {
+  const queriesData = [
+    {
+      colnames: [
+        'source_column',
+        'target_column',
+        'source_category_column',
+        'target_category_column',
+        'count',
+      ],
+      data: [
+        {
+          source_column: 'source_value',
+          target_column: 'target_value',
+          source_category_column: 'category_value_1',
+          target_category_column: 'category_value_3',
+          count: 6,
+        },
+        {
+          source_column: 'source_value',
+          target_column: 'target_value',
+          source_category_column: 'category_value_3',
+          target_category_column: 'category_value_2',
+          count: 5,
+        },
+        {
+          source_column: 'source_value',
+          target_column: 'target_value',
+          source_category_column: 'category_value_2',
+          target_category_column: 'category_value_1',
+          count: 4,
+        },
+      ],
+    },
+  ];
+
+  const getChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        ...overrides,
+        sourceCategory: 'source_category_column',
+        targetCategory: 'target_category_column',
+      },
+      queriesData,
+    });
+
+  it('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'category_value_1',
+      'category_value_3',
+      'category_value_2',
+    ]);
+  });
+
+  it('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'category_value_1',
+      'category_value_2',
+      'category_value_3',
+    ]);
+  });
+
+  it('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'category_value_3',
+      'category_value_2',
+      'category_value_1',
+    ]);
   });
 });

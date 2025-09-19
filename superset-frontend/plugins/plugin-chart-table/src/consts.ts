@@ -20,7 +20,7 @@ import { formatSelectOptions } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 
 export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
-  [0, t('page_size.all')],
+  [0, t('All')],
   10,
   20,
   50,

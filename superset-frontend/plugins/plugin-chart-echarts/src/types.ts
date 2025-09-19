@@ -55,6 +55,7 @@ export interface EchartsProps {
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
   refs: Refs;
+  vizType?: string;
 }
 
 export interface EchartsHandler {
@@ -98,6 +99,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
+  legendSort: 'asc' | 'desc' | null;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;

@@ -242,7 +242,7 @@ class TestCore(SupersetTestCase):
                 (slc.slice_name, "explore", slc.slice_url),
             ]
         for name, method, url in urls:
-            logger.info(f"[{name}]/[{method}]: {url}")
+            logger.info("[%s]/[%s]: %s", name, method, url)
             print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             assert resp.status_code == 200

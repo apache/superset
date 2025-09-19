@@ -84,7 +84,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         logger.debug("Done loading table!")
         logger.debug("-" * 80)
 
-    logger.debug(f"Creating table [{tbl_name}] reference")
+    logger.debug("Creating table [%s] reference", tbl_name)
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -125,7 +125,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         }
 
         slc = Slice(
-            slice_name=f"Calendar Heatmap multiformat {i}",
+            slice_name="Calendar Heatmap multiformat %s" % i,
             viz_type="cal_heatmap",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,

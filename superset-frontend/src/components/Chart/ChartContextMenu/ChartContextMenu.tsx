@@ -188,7 +188,10 @@ const ChartContextMenu = (
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy) &&
-    !formData.matrixify_enabled; // Disable drill by when matrixify is enabled
+    !(
+      formData.matrixify_enable_vertical_layout === true ||
+      formData.matrixify_enable_horizontal_layout === true
+    ); // Disable drill by when matrixify is enabled
 
   const datasetResource = useDatasetDrillInfo(
     formData.datasource,

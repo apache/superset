@@ -109,7 +109,7 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
     dist_path = os.path.join(base_path, "dist")
 
     if not os.path.isdir(dist_path):
-        raise Exception(f"Expected directory {dist_path} does not exist.")
+        raise Exception("Expected directory %s does not exist." % dist_path)
 
     for root, _, files in os.walk(dist_path):
         for file in files:
@@ -137,7 +137,7 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
                 if "name" not in manifest:
                     raise Exception("Missing 'name' in manifest")
             except Exception as e:
-                raise Exception(f"Invalid manifest.json: {e}") from e
+                raise Exception("Invalid manifest.json: %s" % e) from e
 
         elif (match := FRONTEND_REGEX.match(filename)) is not None:
             frontend[match.group(1)] = content
@@ -146,7 +146,7 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
             backend[match.group(1)] = content
 
         else:
-            raise Exception(f"Unexpected file in bundle: {filename}")
+            raise Exception("Unexpected file in bundle: %s" % filename)
 
     id_ = manifest["id"]
     name = manifest["name"]
@@ -176,7 +176,8 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         remote_entry = frontend["remoteEntry"]
         extension_data.update(
             {
-                "remoteEntry": f"/api/v1/extensions/{manifest['id']}/{remote_entry}",  # noqa: E501
+                "remoteEntry": "/api/v1/extensions/%s/%s"
+                % (manifest["id"], remote_entry),  # noqa: E501
                 "exposedModules": module_federation.get("exposes", []),
                 "contributions": frontend.get("contributions", {}),
             }
@@ -194,8 +195,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
         extension_id = extension.manifest["id"]
         extensions[extension_id] = extension
         logger.info(
-            f"Loading extension {extension.name} (ID: {extension_id}) "
-            "from local filesystem"
+            "Loading extension %s (ID: %s) from local filesystem",
+            extension.name,
+            extension_id,
         )
 
     # Load extensions from discovery path (.supx files)
@@ -207,13 +209,16 @@ def get_extensions() -> dict[str, LoadedExtension]:
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
                 logger.info(
-                    f"Loading extension {extension.name} (ID: {extension_id}) "
-                    "from discovery path"
+                    "Loading extension %s (ID: %s) from discovery path",
+                    extension.name,
+                    extension_id,
                 )
             else:
                 logger.info(
-                    f"Extension {extension.name} (ID: {extension_id}) already "
-                    "loaded from LOCAL_EXTENSIONS, skipping discovery version"
+                    "Extension %s (ID: %s) already loaded from LOCAL_EXTENSIONS, "
+                    "skipping discovery version",
+                    extension.name,
+                    extension_id,
                 )
 
     return extensions

@@ -356,3 +356,215 @@ describe('Embedded mode behavior', () => {
     );
   });
 });
+
+describe('Table view with pagination', () => {
+  beforeEach(() => {
+    // Mock a large dataset response for pagination testing
+    const mockLargeDataset = {
+      result: [
+        {
+          data: Array.from({ length: 100 }, (_, i) => ({
+            state: `State${i}`,
+            sum__num: 1000 + i,
+          })),
+          colnames: ['state', 'sum__num'],
+          coltypes: [1, 0],
+        },
+      ],
+    };
+
+    fetchMock.post(CHART_DATA_ENDPOINT, mockLargeDataset, {
+      overwriteRoutes: true,
+    });
+  });
+
+  afterEach(() => {
+    fetchMock.restore();
+  });
+
+  test('should render table view when Table radio is selected', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    // Wait for table to render
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Check that pagination is rendered (there's also a breadcrumb list)
+    const lists = screen.getAllByRole('list');
+    const paginationList = lists.find(list =>
+      list.className?.includes('pagination'),
+    );
+    expect(paginationList).toBeInTheDocument();
+  });
+
+  test('should handle pagination in table view', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Check that first page data is shown
+    expect(screen.getByText('State0')).toBeInTheDocument();
+
+    // Check pagination controls exist
+    const nextPageButton = screen.getByTitle('Next Page');
+    expect(nextPageButton).toBeInTheDocument();
+
+    // Click next page
+    userEvent.click(nextPageButton);
+
+    // Verify page changed (State0 should not be visible on page 2)
+    await waitFor(() => {
+      expect(screen.queryByText('State0')).not.toBeInTheDocument();
+    });
+  });
+
+  test('should maintain table state when switching between Chart and Table views', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const chartRadio = screen.getByRole('radio', { name: /chart/i });
+    const tableRadio = screen.getByRole('radio', { name: /table/i });
+
+    // Switch to table view
+    userEvent.click(tableRadio);
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Switch back to chart view
+    userEvent.click(chartRadio);
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
+    });
+
+    // Switch back to table view - should maintain state
+    userEvent.click(tableRadio);
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+  });
+
+  test('should not cause infinite re-renders with pagination', async () => {
+    // Mock console.error to catch potential infinite loop warnings
+    const originalError = console.error;
+    const consoleErrorSpy = jest.fn();
+    console.error = consoleErrorSpy;
+
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Check that no infinite loop errors were logged
+    expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('Maximum update depth exceeded'),
+    );
+
+    console.error = originalError;
+  });
+
+  test('should handle empty results in table view', async () => {
+    // Mock empty dataset response
+    fetchMock.post(
+      CHART_DATA_ENDPOINT,
+      {
+        result: [
+          {
+            data: [],
+            colnames: ['state', 'sum__num'],
+            coltypes: [1, 0],
+          },
+        ],
+      },
+      { overwriteRoutes: true },
+    );
+
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Should show empty state
+    expect(screen.getByText('No data')).toBeInTheDocument();
+  });
+
+  test('should handle sorting in table view', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Find sortable column header
+    const sortableHeaders = screen.getAllByTestId('sort-header');
+    expect(sortableHeaders.length).toBeGreaterThan(0);
+
+    // Click to sort
+    userEvent.click(sortableHeaders[0]);
+
+    // Table should still be rendered without crashes
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+  });
+});

@@ -143,7 +143,7 @@ jobs:
       - name: tsc
         run: |
           docker run --rm $TAG bash -c \
-          "npm run type"
+          "npm run plugins:build && npm run type"
 
   validate-frontend:
     needs: frontend-build

@@ -61,7 +61,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 filter = model.uuid == database_id_or_uuid
             except ValueError as err:
                 logger.warning(
-                    f"database_id_or_uuid {database_id_or_uuid} isn't valid uuid"
+                    "database_id_or_uuid %s isn't valid uuid", database_id_or_uuid
                 )
                 raise DatasourceValueIsIncorrect() from err
 

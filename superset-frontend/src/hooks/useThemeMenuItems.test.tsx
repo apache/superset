@@ -188,7 +188,7 @@ describe('useThemeMenuItems', () => {
 
   it('displays override icon when hasLocalOverride is true', () => {
     renderThemeMenu({ ...defaultProps, hasLocalOverride: true });
-    expect(screen.getByTestId('format-painter')).toBeInTheDocument();
+    expect(screen.getByTestId('thunderbolt')).toBeInTheDocument();
   });
 
   it('renders Theme group header', async () => {

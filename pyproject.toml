@@ -48,7 +48,7 @@ dependencies = [
     "cryptography>=42.0.4, <45.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <3.0.0",
-    "flask-appbuilder>=4.8.1, <5.0.0",
+    "flask-appbuilder>=5.0.0,<6",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
@@ -84,6 +84,7 @@ dependencies = [
     "pgsanity",
     "Pillow>=11.0.0, <12",
     "polyline>=2.0.0, <3.0",
+    "pydantic>=2.8.0",
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
@@ -313,6 +314,7 @@ select = [
     "E",
     "F",
     "F",
+    "G",
     "I",
     "N",
     "PT",
@@ -328,6 +330,7 @@ ignore = [
     "PT006",
     "T201",
     "N999",
+    "G201",
 ]
 extend-select = ["I"]
 

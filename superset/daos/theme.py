@@ -47,8 +47,9 @@ class ThemeDAO(BaseDAO[Theme]):
 
         if len(system_defaults) > 1:
             logger.warning(
-                f"Multiple system default themes found ({len(system_defaults)}), "
-                "falling back to config theme"
+                "Multiple system default themes found (%s), "
+                "falling back to config theme",
+                len(system_defaults),
             )
 
         # Fallback to is_system=True theme with name 'THEME_DEFAULT'
@@ -75,8 +76,8 @@ class ThemeDAO(BaseDAO[Theme]):
 
         if len(system_darks) > 1:
             logger.warning(
-                f"Multiple system dark themes found ({len(system_darks)}), "
-                "falling back to config theme"
+                "Multiple system dark themes found (%s), falling back to config theme",
+                len(system_darks),
             )
 
         # Fallback to is_system=True theme with name 'THEME_DARK'

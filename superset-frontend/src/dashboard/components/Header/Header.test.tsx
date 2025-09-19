@@ -22,7 +22,7 @@ import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import getOwnerName from 'src/utils/getOwnerName';
 import { render, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
@@ -546,7 +546,7 @@ test('should render an extension component if one is supplied', () => {
   extensionsRegistry.set('dashboard.nav.right', () => (
     <>dashboard.nav.right extension component</>
   ));
-  setupExtensions();
+  setupCodeOverrides();
 
   setup();
   expect(

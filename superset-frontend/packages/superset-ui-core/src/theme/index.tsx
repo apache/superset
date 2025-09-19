@@ -60,10 +60,7 @@ export function useTheme() {
 
 const styled: CreateStyled = emotionStyled;
 
-// launching in in dark mode for now while iterating
-const themeObject: Theme = Theme.fromConfig({
-  algorithm: ThemeAlgorithm.DEFAULT,
-});
+const themeObject: Theme = Theme.fromConfig();
 
 const { theme } = themeObject;
 const supersetTheme = theme;

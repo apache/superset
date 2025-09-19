@@ -160,6 +160,44 @@ test('should add renameOperator if exists derived metrics', () => {
   });
 });
 
+test('should add renameOperator if isTimeComparisonValue without columns', () => {
+  [
+    ComparisonType.Difference,
+    ComparisonType.Ratio,
+    ComparisonType.Percentage,
+  ].forEach(type => {
+    expect(
+      renameOperator(
+        {
+          ...formData,
+          ...{
+            comparison_type: type,
+            time_compare: ['1 year ago'],
+          },
+        },
+        {
+          ...queryObject,
+          ...{
+            columns: [],
+            metrics: ['sum(val)', 'avg(val2)'],
+          },
+        },
+      ),
+    ).toEqual({
+      operation: 'rename',
+      options: {
+        columns: {
+          [`${type}__avg(val2)__avg(val2)__1 year ago`]:
+            'avg(val2), 1 year ago',
+          [`${type}__sum(val)__sum(val)__1 year ago`]: 'sum(val), 1 year ago',
+        },
+        inplace: true,
+        level: 0,
+      },
+    });
+  });
+});
+
 test('should add renameOperator if x_axis does not exist', () => {
   expect(
     renameOperator(
