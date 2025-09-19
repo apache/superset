@@ -37,9 +37,13 @@ import {
   Input,
   Col,
   Row,
+  Checkbox,
   type FormProps,
 } from '@superset-ui/core/components';
-import { ConditionalFormattingConfig } from './types';
+import {
+  ConditionalFormattingConfig,
+  ConditionalFormattingFlag,
+} from './types';
 
 // TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
 // used to be imported but main app shouldn't depend on plugins...
@@ -237,11 +241,16 @@ export const FormattingPopoverContent = ({
   onChange,
   columns = [],
   extraColorChoices = [],
+  conditionalFormattingFlag = {
+    toAllRowCheck: false,
+    toColorTextCheck: false,
+  },
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; value: string }[];
+  conditionalFormattingFlag?: ConditionalFormattingFlag;
 }) => {
   const theme = useTheme();
   const [form] = Form.useForm();
@@ -251,6 +260,28 @@ export const FormattingPopoverContent = ({
       (config?.colorScheme !== ColorSchemeEnum.Green &&
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
+
+  const [toAllRow, setToAllRow] = useState(() => Boolean(config?.toAllRow));
+  const [toTextColor, setToTextColor] = useState(() =>
+    Boolean(config?.toTextColor),
+  );
+
+  const showToAllRow = useMemo(
+    () =>
+      conditionalFormattingFlag && conditionalFormattingFlag.toAllRowCheck
+        ? config?.toAllRow === undefined
+        : config?.toAllRow !== undefined,
+    [conditionalFormattingFlag, config],
+  );
+
+  const showToColorText = useMemo(
+    () =>
+      conditionalFormattingFlag && conditionalFormattingFlag.toColorTextCheck
+        ? config?.toTextColor === undefined
+        : config?.toTextColor !== undefined,
+    [conditionalFormattingFlag, config],
+  );
+
   const handleChange = (event: any) => {
     setShowOperatorFields(
       !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
@@ -344,6 +375,47 @@ export const FormattingPopoverContent = ({
           </Row>
         )}
       </FormItem>
+      <Row style={{ display: 'flex', height: '40px' }}>
+        {showOperatorFields && showToAllRow && (
+          <>
+            <Col span={1}>
+              <FormItem
+                name="toAllRow"
+                valuePropName="checked"
+                initialValue={toAllRow}
+              >
+                <Checkbox
+                  onChange={event => setToAllRow(event.target.checked)}
+                  checked={toAllRow}
+                />
+              </FormItem>
+            </Col>
+            <Col style={{ padding: '5px' }}>
+              <FormItem required label={t('Apply to entire row')} />
+            </Col>
+          </>
+        )}
+        {showOperatorFields && showToColorText && (
+          <>
+            <Col span={1}>
+              <FormItem
+                name="toTextColor"
+                valuePropName="checked"
+                initialValue={toTextColor}
+              >
+                <Checkbox
+                  onChange={event => setToTextColor(event.target.checked)}
+                  checked={toTextColor}
+                />
+              </FormItem>
+            </Col>
+            <Col style={{ padding: '5px' }}>
+              <FormItem required label={t('Apply to text color')} />
+            </Col>
+          </>
+        )}
+      </Row>
+
       <FormItem>
         <JustifyEnd>
           <Button htmlType="submit" buttonStyle="primary">
