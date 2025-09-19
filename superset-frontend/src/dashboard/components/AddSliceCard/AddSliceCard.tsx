@@ -199,7 +199,7 @@ const AddSliceCard: FC<{
   );
 
   return (
-    <div ref={innerRef as any} style={style}>
+    <div ref={innerRef} style={style}>
       <div
         data-test="chart-card"
         css={(theme: Theme) => css`
