@@ -460,47 +460,25 @@ const ExtraOptions = ({
           ),
           children: (
             <>
-              <StyledInputContainer>
-                <div className="control-label">{t('Secure extra')}</div>
+              <StyledInputContainer
+                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
+              >
                 <div className="input-container">
-                  <StyledJsonEditor
-                    name="masked_encrypted_extra"
-                    value={db?.masked_encrypted_extra || ''}
-                    placeholder={t('Secure extra')}
-                    onChange={(json: string) =>
-                      onEditorChange({ json, name: 'masked_encrypted_extra' })
-                    }
-                    width="100%"
-                    height="160px"
-                    annotations={secureExtraAnnotations}
-                  />
-                </div>
-                <div className="helper">
-                  <div>
-                    {t(
-                      'JSON string containing additional connection configuration. ' +
-                        'This is used to provide connection information for systems ' +
-                        'like Hive, Presto and BigQuery which do not conform to the ' +
-                        'username:password syntax normally used by SQLAlchemy.',
+                  <Checkbox
+                    id="per_user_caching"
+                    name="per_user_caching"
+                    indeterminate={false}
+                    checked={!!extraJson?.per_user_caching}
+                    onChange={onExtraInputChange}
+                  >
+                    {t('Per user caching')}
+                  </Checkbox>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Cache data separately for each user based on their data access roles and permissions. ' +
+                        'When disabled, a single cache will be used for all users.',
                     )}
-                  </div>
-                </div>
-              </StyledInputContainer>
-              <StyledInputContainer>
-                <div className="control-label">{t('Root certificate')}</div>
-                <div className="input-container">
-                  <Input.TextArea
-                    name="server_cert"
-                    value={db?.server_cert || ''}
-                    placeholder={t('Enter CA_BUNDLE')}
-                    onChange={onTextChange}
                   />
-                </div>
-                <div className="helper">
-                  {t(
-                    'Optional CA_BUNDLE contents to validate HTTPS requests. Only ' +
-                      'available on certain database engines.',
-                  )}
                 </div>
               </StyledInputContainer>
               <StyledInputContainer
@@ -569,6 +547,49 @@ const ExtraOptions = ({
                   </div>
                 </StyledInputContainer>
               )}
+              <StyledInputContainer>
+                <div className="control-label">{t('Secure extra')}</div>
+                <div className="input-container">
+                  <StyledJsonEditor
+                    name="masked_encrypted_extra"
+                    value={db?.masked_encrypted_extra || ''}
+                    placeholder={t('Secure extra')}
+                    onChange={(json: string) =>
+                      onEditorChange({ json, name: 'masked_encrypted_extra' })
+                    }
+                    width="100%"
+                    height="160px"
+                    annotations={secureExtraAnnotations}
+                  />
+                </div>
+                <div className="helper">
+                  <div>
+                    {t(
+                      'JSON string containing additional connection configuration. ' +
+                        'This is used to provide connection information for systems ' +
+                        'like Hive, Presto and BigQuery which do not conform to the ' +
+                        'username:password syntax normally used by SQLAlchemy.',
+                    )}
+                  </div>
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="control-label">{t('Root certificate')}</div>
+                <div className="input-container">
+                  <Input.TextArea
+                    name="server_cert"
+                    value={db?.server_cert || ''}
+                    placeholder={t('Enter CA_BUNDLE')}
+                    onChange={onTextChange}
+                  />
+                </div>
+                <div className="helper">
+                  {t(
+                    'Optional CA_BUNDLE contents to validate HTTPS requests. Only ' +
+                      'available on certain database engines.',
+                  )}
+                </div>
+              </StyledInputContainer>
             </>
           ),
         },

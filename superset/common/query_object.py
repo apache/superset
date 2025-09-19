@@ -454,13 +454,19 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             cache_dict["annotation_layers"] = annotation_layers
 
         # Add an impersonation key to cache if impersonation is enabled on the db
-        # or if the CACHE_QUERY_BY_USER flag is on
+        # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
+        #  the database
         try:
             database = self.datasource.database  # type: ignore
+            extra = json.loads(database.extra or "{}")
             if (
-                feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
-                and database.impersonate_user
-            ) or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER"):
+                (
+                    feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
+                    and database.impersonate_user
+                )
+                or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER")
+                or extra.get("per_user_caching", False)
+            ):
                 if key := database.db_engine_spec.get_impersonation_key(
                     getattr(g, "user", None)
                 ):
