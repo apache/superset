@@ -15,33 +15,4 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# superset/mcp_service/__init__.py
-
-"""
-Apache Superset MCP Service
-
-This package provides the Model Context Protocol (MCP) service for Apache Superset,
-enabling programmatic access to Superset's functionality through a standardized API.
-
-The MCP service operates as a standalone FastMCP server.
-
-Quick Start:
------------
-# Run the MCP server
-superset mcp run --port 5009
-
-# The service will be available at:
-# http://localhost:5009/mcp/
-"""
-
-__version__ = "1.0.0"
-
-# Import tools to register them with the MCP service
-try:
-    from superset.mcp_service.system.tool import health_check  # noqa: F401
-except ImportError:
-    pass  # Tool import is optional
-
-__all__ = [
-    "__version__",
-]
+"""System tools for MCP service."""
