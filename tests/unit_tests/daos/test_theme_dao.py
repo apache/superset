@@ -54,25 +54,12 @@ class TestThemeDAO:
         mock_theme2 = MagicMock(spec=Theme)
         mock_theme2.is_system_default = True
 
-        # Create mock fallback theme
-        mock_fallback = MagicMock(spec=Theme)
-        mock_fallback.is_system = True
-        mock_fallback.theme_name = "THEME_DEFAULT"
-
-        # Mock the query chains - need separate mocks for each query call
-        mock_query1 = MagicMock()
-        mock_query2 = MagicMock()
-        mock_session.query.side_effect = [mock_query1, mock_query2]
-
-        # First query returns multiple themes
-        mock_filter1 = MagicMock()
-        mock_query1.filter.return_value = mock_filter1
-        mock_filter1.all.return_value = [mock_theme1, mock_theme2]
-
-        # Second query returns fallback theme
-        mock_filter2 = MagicMock()
-        mock_query2.filter.return_value = mock_filter2
-        mock_filter2.first.return_value = mock_fallback
+        # Mock the query chain
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [mock_theme1, mock_theme2]
 
         # Call the method
         result = ThemeDAO.find_system_default()
@@ -82,41 +69,28 @@ class TestThemeDAO:
         call_args = mock_logger.warning.call_args
         assert (
             call_args[0][0]
-            == "Multiple system default themes found (%s), falling back to config theme"
+            == "Multiple system default themes found (%s), none will be used"
         )
         assert call_args[0][1] == 2
 
-        # Verify the result is the fallback theme
-        assert result == mock_fallback
+        # Verify the result is None (no fallback)
+        assert result is None
 
     @patch("superset.daos.theme.db.session")
     def test_find_system_default_none(self, mock_session):
         """Test finding system default theme when none exist"""
-        # Create mock fallback theme
-        mock_fallback = MagicMock(spec=Theme)
-        mock_fallback.is_system = True
-        mock_fallback.theme_name = "THEME_DEFAULT"
-
-        # Mock the query chains - need separate mocks for each query call
-        mock_query1 = MagicMock()
-        mock_query2 = MagicMock()
-        mock_session.query.side_effect = [mock_query1, mock_query2]
-
-        # First query returns no themes
-        mock_filter1 = MagicMock()
-        mock_query1.filter.return_value = mock_filter1
-        mock_filter1.all.return_value = []
-
-        # Second query returns fallback theme
-        mock_filter2 = MagicMock()
-        mock_query2.filter.return_value = mock_filter2
-        mock_filter2.first.return_value = mock_fallback
+        # Mock the query chain
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = []
 
         # Call the method
         result = ThemeDAO.find_system_default()
 
-        # Verify the result is the fallback theme
-        assert result == mock_fallback
+        # Verify the result is None (no fallback)
+        assert result is None
 
     @patch("superset.daos.theme.db.session")
     def test_find_system_dark_single(self, mock_session):
@@ -148,25 +122,12 @@ class TestThemeDAO:
         mock_theme2 = MagicMock(spec=Theme)
         mock_theme2.is_system_dark = True
 
-        # Create mock fallback theme
-        mock_fallback = MagicMock(spec=Theme)
-        mock_fallback.is_system = True
-        mock_fallback.theme_name = "THEME_DARK"
-
-        # Mock the query chains - need separate mocks for each query call
-        mock_query1 = MagicMock()
-        mock_query2 = MagicMock()
-        mock_session.query.side_effect = [mock_query1, mock_query2]
-
-        # First query returns multiple themes
-        mock_filter1 = MagicMock()
-        mock_query1.filter.return_value = mock_filter1
-        mock_filter1.all.return_value = [mock_theme1, mock_theme2]
-
-        # Second query returns fallback theme
-        mock_filter2 = MagicMock()
-        mock_query2.filter.return_value = mock_filter2
-        mock_filter2.first.return_value = mock_fallback
+        # Mock the query chain
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [mock_theme1, mock_theme2]
 
         # Call the method
         result = ThemeDAO.find_system_dark()
@@ -176,41 +137,28 @@ class TestThemeDAO:
         call_args = mock_logger.warning.call_args
         assert (
             call_args[0][0]
-            == "Multiple system dark themes found (%s), falling back to config theme"
+            == "Multiple system dark themes found (%s), none will be used"
         )
         assert call_args[0][1] == 2
 
-        # Verify the result is the fallback theme
-        assert result == mock_fallback
+        # Verify the result is None (no fallback)
+        assert result is None
 
     @patch("superset.daos.theme.db.session")
     def test_find_system_dark_none_with_fallback(self, mock_session):
-        """Test finding system dark theme when none exist but fallback does"""
-        # Create mock fallback theme
-        mock_fallback = MagicMock(spec=Theme)
-        mock_fallback.is_system = True
-        mock_fallback.theme_name = "THEME_DARK"
-
-        # Mock the query chains - need separate mocks for each query call
-        mock_query1 = MagicMock()
-        mock_query2 = MagicMock()
-        mock_session.query.side_effect = [mock_query1, mock_query2]
-
-        # First query returns no themes
-        mock_filter1 = MagicMock()
-        mock_query1.filter.return_value = mock_filter1
-        mock_filter1.all.return_value = []
-
-        # Second query returns fallback theme
-        mock_filter2 = MagicMock()
-        mock_query2.filter.return_value = mock_filter2
-        mock_filter2.first.return_value = mock_fallback
+        """Test finding system dark theme when none exist"""
+        # Mock the query chain
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = []
 
         # Call the method
         result = ThemeDAO.find_system_dark()
 
-        # Verify the result is the fallback theme
-        assert result == mock_fallback
+        # Verify the result is None (no fallback)
+        assert result is None
 
     @patch("superset.daos.theme.db.session")
     def test_find_system_dark_none_without_fallback(self, mock_session):

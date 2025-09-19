@@ -36,7 +36,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Iterator, Literal, Optional, TYPE_CHECKING, TypedDict
 
 import click
 from celery.schedules import crontab
@@ -723,46 +723,89 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# ---------------------------------------------------
-# Theme Configuration for Superset
-# ---------------------------------------------------
+# -----------------------------------------------------------------------------
+# Theme System Configuration
+# -----------------------------------------------------------------------------
 # Superset supports custom theming through Ant Design's theme structure.
-# This allows users to customize colors, fonts, and other UI elements.
+#
+# Theme Hierarchy (layers apply in order, each overriding previous):
+# 1. BASE_THEME_DEFAULT/BASE_THEME_DARK - Foundation tokens ALWAYS present
+# 2. THEME_DEFAULT/THEME_DARK - Config themes (overlay on BASE themes)
+# 3. System CRUD themes (when ENABLE_UI_THEME_ADMINISTRATION=True) - Set via UI
+# 4. Dashboard CRUD themes - Applied locally per dashboard with bolt button
+#
+# Theme Merging:
+# - Base themes are ALWAYS the foundation - never removed, only overridden
+# - Each layer only adds/modifies specific tokens, preserving all others
+# - Empty theme {} or None means "no custom tokens at this layer"
+# - All themes are merged: base + config overlays + system overlays + dashboard overlays
+#
+# System Theme Behavior (UI Administration):
+# - Only themes explicitly marked as system (via moon/sun buttons) are used
+# - Removing a system theme falls back to config theme (or base if config is None)
+# - No automatic fallback to other themes in the database
 #
 # Theme Generation:
 # - Use the Ant Design theme editor: https://ant.design/theme-editor
-# - Export or copy the generated theme JSON and assign to the variables below
-# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
+# - Export the generated JSON and assign to the theme variables
+# - To expose a JSON theme editor modal in the UI, set ENABLE_THEME_EDITOR
+#   feature flag to True
 #
-# To expose a JSON theme editor modal that can be triggered from the navbar
-# set the `ENABLE_THEME_EDITOR` feature flag to True.
-#
-# Theme Structure:
-# Each theme should follow Ant Design's theme format.
-# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
-# and copy the generated JSON configuration.
-#
-# Example theme definition:
-# THEME_DEFAULT = {
-#       "token": {
-#            "colorPrimary": "#2893B3",
-#            "colorSuccess": "#5ac189",
-#            "colorWarning": "#fcc700",
-#            "colorError": "#e04355",
-#            "fontFamily": "'Inter', Helvetica, Arial",
-#            ... # other tokens
-#       },
-#       ... # other theme properties
-# }
+# Example: If BASE_THEME_DEFAULT sets colorPrimary: "#2893B3" and a custom theme sets
+# colorPrimary: "#FF0000", the final theme will have colorPrimary: "#FF0000"
+# -----------------------------------------------------------------------------
 
+# Base theme with Superset's default tokens (foundation for all themes)
+BASE_THEME_DEFAULT: Theme = {
+    "token": {
+        # Brand
+        "brandLogoAlt": "Apache Superset",
+        "brandLogoUrl": "/static/assets/images/superset-logo-horiz.png",
+        "brandLogoMargin": "18px",
+        "brandLogoHref": "/",
+        "brandLogoHeight": "24px",
+        # Spinner
+        "brandSpinnerUrl": None,
+        "brandSpinnerSvg": None,
+        # Default colors
+        "colorPrimary": "#2893B3",  # NOTE: previous lighter primary color was #20a7c9 # noqa: E501
+        "colorLink": "#2893B3",
+        "colorError": "#e04355",
+        "colorWarning": "#fcc700",
+        "colorSuccess": "#5ac189",
+        "colorInfo": "#66bcfe",
+        # Fonts
+        "fontFamily": "'Inter', Helvetica, Arial",
+        "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
+        # Extra tokens
+        "transitionTiming": 0.3,
+        "brandIconMaxWidth": 37,
+        "fontSizeXS": "8",
+        "fontSizeXXL": "28",
+        "fontWeightNormal": "400",
+        "fontWeightLight": "300",
+        "fontWeightStrong": 500,
+    },
+    "algorithm": "default",
+}
+
+# Base dark theme configuration - foundation tokens for dark mode
+# Inherits all tokens from BASE_THEME_DEFAULT and adds dark algorithm
+# This ensures dark mode gets the correct algorithm even if THEME_DARK is empty
+BASE_THEME_DARK: Theme = {
+    **BASE_THEME_DEFAULT,
+    "algorithm": "dark",
+}
 
 # Default theme configuration
-# Leave empty to use Superset's default theme
-THEME_DEFAULT: Theme = {"algorithm": "default"}
+# Set to None to use BASE_THEME_DEFAULT directly
+# Set to a Theme dict to layer custom tokens on top of BASE_THEME_DEFAULT
+THEME_DEFAULT: Optional[Theme] = None
 
 # Dark theme configuration
-# Applied when user selects dark mode
-THEME_DARK: Theme = {"algorithm": "dark"}
+# Set to None to use BASE_THEME_DARK directly
+# Set to a Theme dict to layer custom tokens on top of BASE_THEME_DARK
+THEME_DARK: Optional[Theme] = None
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None

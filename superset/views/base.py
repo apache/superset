@@ -311,6 +311,61 @@ def menu_data(user: User) -> dict[str, Any]:
     }
 
 
+# Determine if themes need to fall back to base themes
+# A theme needs fallback if it's None or empty
+def should_use_base(theme: dict[str, Any] | None) -> bool:
+    """Check if a theme should be replaced with base theme entirely"""
+    if theme is None or theme == {}:
+        return True
+
+    return False
+
+
+def _load_theme_from_model(
+    theme_model: Any | None, fallback_theme: dict[str, Any] | None, theme_type: str
+) -> dict[str, Any] | None:
+    """Load and parse theme from database model, with fallback to config theme."""
+    if theme_model:
+        try:
+            return json.loads(theme_model.json_data)
+        except json.JSONDecodeError:
+            logger.error(
+                "Invalid JSON in system %s theme %s", theme_type, theme_model.id
+            )
+            return fallback_theme
+    return fallback_theme
+
+
+def _process_theme(theme: dict[str, Any] | None, theme_type: str) -> dict[str, Any]:
+    """Process and validate a theme, returning an empty dict if invalid."""
+    if should_use_base(theme):
+        # When config theme is None, don't provide a custom theme
+        # The frontend will use base theme only
+        return {}
+    elif theme is not None and not is_valid_theme(theme):
+        logger.warning(
+            "Invalid %s theme configuration: %s, clearing it",
+            theme_type,
+            theme,
+        )
+        return {}
+    return theme or {}
+
+
+def _validate_base_theme(
+    base_theme: dict[str, Any] | None, theme_type: str
+) -> dict[str, Any] | None:
+    """Validate base theme configuration."""
+    if base_theme is not None and not is_valid_theme(base_theme):
+        logger.warning(
+            "Invalid %s theme configuration: %s, ignoring",
+            theme_type,
+            base_theme,
+        )
+        return None
+    return base_theme
+
+
 def get_theme_bootstrap_data() -> dict[str, Any]:
     """
     Returns the theme data to be sent to the client.
@@ -318,64 +373,43 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Check if UI theme administration is enabled
     enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
+    # Get config themes to use as fallback
+    config_theme_default = get_config_value("THEME_DEFAULT")
+    config_theme_dark = get_config_value("THEME_DARK")
+
     if enable_ui_admin:
         # Try to load themes from database
         default_theme_model = ThemeDAO.find_system_default()
         dark_theme_model = ThemeDAO.find_system_dark()
 
         # Parse theme JSON from database models
-        default_theme = {}
-        if default_theme_model:
-            try:
-                default_theme = json.loads(default_theme_model.json_data)
-            except json.JSONDecodeError:
-                logger.error(
-                    "Invalid JSON in system default theme %s",
-                    default_theme_model.id,
-                )
-                # Fallback to config
-                default_theme = get_config_value("THEME_DEFAULT")
-        else:
-            # No system default theme in database, use config
-            default_theme = get_config_value("THEME_DEFAULT")
-
-        dark_theme = {}
-        if dark_theme_model:
-            try:
-                dark_theme = json.loads(dark_theme_model.json_data)
-            except json.JSONDecodeError:
-                logger.error(
-                    "Invalid JSON in system dark theme %s", dark_theme_model.id
-                )
-                # Fallback to config
-                dark_theme = get_config_value("THEME_DARK")
-        else:
-            # No system dark theme in database, use config
-            dark_theme = get_config_value("THEME_DARK")
+        default_theme = _load_theme_from_model(
+            default_theme_model, config_theme_default, "default"
+        )
+        dark_theme = _load_theme_from_model(dark_theme_model, config_theme_dark, "dark")
     else:
-        # UI theme administration disabled, use config-based themes
-        default_theme = get_config_value("THEME_DEFAULT")
-        dark_theme = get_config_value("THEME_DARK")
+        # UI theme administration disabled - use config-based themes
+        default_theme = config_theme_default
+        dark_theme = config_theme_dark
 
-    # Validate theme configurations
-    if not is_valid_theme(default_theme):
-        logger.warning(
-            "Invalid default theme configuration: %s, using empty theme",
-            default_theme,
-        )
-        default_theme = {}
+    # Get base themes from config (with fallback for backwards compatibility)
+    base_theme = app.config.get("BASE_THEME_DEFAULT", None)
+    base_theme_dark = app.config.get("BASE_THEME_DARK", None)
 
-    if not is_valid_theme(dark_theme):
-        logger.warning(
-            "Invalid dark theme configuration: %s, using empty theme",
-            dark_theme,
-        )
-        dark_theme = {}
+    # Process and validate themes
+    default_theme = _process_theme(default_theme, "default")
+    dark_theme = _process_theme(dark_theme, "dark")
+
+    # Validate base theme configurations
+    base_theme = _validate_base_theme(base_theme, "base")
+    base_theme_dark = _validate_base_theme(base_theme_dark, "base dark")
 
     return {
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
+            "baseThemeDefault": base_theme,
+            "baseThemeDark": base_theme_dark,
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
