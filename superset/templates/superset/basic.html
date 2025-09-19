@@ -26,6 +26,13 @@ governing permissions and limitations under the License. #}
     %}sizes={{favicon.sizes}}{% endif %} href="{{ "" if
     favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}" > {%
     endfor %}
+
+
+    <!-- Boltic streams -->
+    <script>
+      !function () { var e = window.stelios = window.stelios || []; if (!e.initialize) { if (e.invoked) window.console && console.error && console.error("Stelios snippet included twice."); else { e.invoked = !0, e.methods = ["trackSubmit", "trackClick", "trackLink", "trackForm", "pageview", "identify", "reset", "group", "track", "ready", "alias", "debug", "page", "once", "off", "on", "addSourceMiddleware", "addIntegrationMiddleware", "setAnonymousId", "addDestinationMiddleware",], e.factory = function (t) { return function () { var i = Array.prototype.slice.call(arguments); return i.unshift(t), e.push(i), e } }; for (var t = 0; t < e.methods.length; t++) { var i = e.methods[t]; e[i] = e.factory(i) } e.load = function (i, o) { var a = document.createElement("script"); a.type = "text/javascript", a.async = !0, a.onload = o, a.src = "https://cdn.pixelbin.io/v2/fyndcloud/fyndpd/original/m1/stelios/v1.54.8/prod/stelios.min.index.js"; var r = document.getElementsByTagName("script")[0]; r.parentNode.insertBefore(a, r), e._loadOptions = t }, e._writeKey = "Zc7Og8DXevJG85xZyjKPJBAgkOITWUdtpDB8EsyQWxyx8JgqZIsGz-smhWqpsCcLJ0_wPw-3_NMkljT0x1SLsQ", e._cdn = "https://apiv2-streams.boltic.io", e.SNIPPET_VERSION = "4.15.3", e.load("Zc7Og8DXevJG85xZyjKPJBAgkOITWUdtpDB8EsyQWxyx8JgqZIsGz-smhWqpsCcLJ0_wPw-3_NMkljT0x1SLsQ", function () { window.stelios = window.stelios.AnalyticsBrowser.load({ writeKey: e._writeKey }), window.stelios.page() }) } } }(); 
+    </script>
+
     <link
       rel="stylesheet"
       type="text/css"
