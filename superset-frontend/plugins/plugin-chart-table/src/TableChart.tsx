@@ -184,10 +184,11 @@ function cellBackground({
     return color;
   }
 
-  const r = value < 0 ? 150 : 0;
   const color = isThemeDark(theme)
-    ? `rgba(255,255,255,0.3)`
-    : `rgba(${r},0,0,0.2)`;
+    ? value < 0
+      ? `rgba(255,100,100,0.4)`
+      : `rgba(255,255,255,0.3)`
+    : `rgba(${value < 0 ? 150 : 0},0,0,0.2)`;
   return color;
 }
 
