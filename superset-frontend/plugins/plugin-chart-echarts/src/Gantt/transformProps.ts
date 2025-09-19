@@ -33,8 +33,8 @@ import {
   t,
   tooltipHtml,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import dayjs from 'dayjs';
 import {
   Cartesian2dCoordSys,
   EchartsGanttChartProps,
@@ -325,6 +325,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           show: true,
           position: 'start',
           formatter: '{b}',
+          color: theme.colorText,
         },
         data: categoryLines,
       },
