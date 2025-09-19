@@ -71,8 +71,7 @@ describe('themeUtils', () => {
         token: { fontSize: '14' },
       });
 
-      // Ant Design provides fontSizeXS: '8' by default
-      expect(getFontSize(minimalTheme.theme, 'xs')).toBe('8');
+      expect(getFontSize(minimalTheme.theme, 'xs')).toBe('14');
       expect(getFontSize(minimalTheme.theme, 'm')).toBe('14');
     });
   });

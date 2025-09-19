@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, styled, css } from '@superset-ui/core';
 import {
   Tag,
   DeleteModal,
@@ -340,14 +340,28 @@ function ThemesList({
               )}
               {original.is_system_default && (
                 <Tooltip title={t('This is the system default theme')}>
-                  <Tag color="warning">
+                  <Tag
+                    color="warning"
+                    css={theme => css`
+                      display: flex;
+                      align-items: center;
+                      gap: ${theme.sizeUnit}px;
+                    `}
+                  >
                     <Icons.SunOutlined /> {t('Default')}
                   </Tag>
                 </Tooltip>
               )}
               {original.is_system_dark && (
                 <Tooltip title={t('This is the system dark theme')}>
-                  <Tag color="default">
+                  <Tag
+                    color="default"
+                    css={theme => css`
+                      display: flex;
+                      align-items: center;
+                      gap: ${theme.sizeUnit}px;
+                    `}
+                  >
                     <Icons.MoonOutlined /> {t('Dark')}
                   </Tag>
                 </Tooltip>
