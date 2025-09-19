@@ -22,7 +22,6 @@ MCP server for Apache Superset
 import logging
 import os
 
-# Apply Flask-AppBuilder compatibility patches before any Superset imports
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import get_mcp_factory_config
 

@@ -204,7 +204,10 @@ Then restart Claude Desktop. That's it! ✨
     "superset": {
       "command": "npx",
       "args": ["/absolute/path/to/your/superset/superset/mcp_service", "--stdio"],
-      "env": {}
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/your/superset",
+        "MCP_ADMIN_USERNAME": "admin"
+      }
     }
   }
 }
