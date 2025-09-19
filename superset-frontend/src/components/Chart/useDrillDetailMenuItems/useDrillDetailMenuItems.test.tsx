@@ -22,6 +22,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import setupPlugins from 'src/setup/setupPlugins';
@@ -258,19 +259,35 @@ const expectDrillToDetailByDisabled = async (tooltipContent?: string) => {
 const expectDrillToDetailByDimension = async (
   filter: BinaryQueryObjectFilterClause,
 ) => {
+  const formattedVal = filter.formattedVal as string;
   const drillByMenuItem = screen.getByRole('menuitem', {
     name: 'Drill to detail by',
   });
 
   userEvent.hover(drillByMenuItem);
 
-  const submenu = await screen.findByRole('menu');
-  expect(submenu).toBeInTheDocument();
+  const submenuPopup = (await waitFor(() =>
+    screen
+      .getAllByRole('menu', { hidden: true })
+      .find(menu =>
+        (menu.textContent ?? '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .includes(formattedVal),
+      ),
+  )) as HTMLElement;
+
+  const drillToDetailBySubmenuItem = (await waitFor(() => {
+    const items = within(submenuPopup).getAllByRole('menuitem');
+    return items.find(item =>
+      (item.textContent ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .includes(`Drill to detail by ${filter.formattedVal}`),
+    );
+  })) as HTMLElement;
 
   const menuItemName = `Drill to detail by ${filter.formattedVal}`;
-  const drillToDetailBySubmenuItem = await screen.findByRole('menuitem', {
-    name: menuItemName,
-  });
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
   await expectDrillToDetailModal(menuItemName, [filter]);

@@ -117,10 +117,8 @@ const expectDrillByEnabled = async () => {
 
   userEvent.hover(drillByButton);
 
-  await waitFor(() => {
-    const popover = screen.getByRole('menu');
-    expect(popover).toBeInTheDocument();
-  });
+  const popover = await screen.findByRole('menu');
+  expect(popover).toBeInTheDocument();
 };
 
 getChartMetadataRegistry().registerValue(
@@ -159,9 +157,8 @@ test('render disabled menu item for supported chart, no columns', async () => {
   renderSubmenu({ dataset: emptyDataset });
   await expectDrillByEnabled();
 
-  await waitFor(() => {
-    expect(screen.getByText('No columns found')).toBeInTheDocument();
-  });
+  const noColumnsText = await screen.findByText('No columns found');
+  expect(noColumnsText).toBeInTheDocument();
 });
 
 test('render menu item with submenu without searchbox', async () => {
@@ -175,9 +172,8 @@ test('render menu item with submenu without searchbox', async () => {
   await expectDrillByEnabled();
 
   // Check that the column appears in the popover
-  await waitFor(() => {
-    expect(screen.getByText('col1')).toBeInTheDocument();
-  });
+  const col1Element = await screen.findByText('col1');
+  expect(col1Element).toBeInTheDocument();
 
   // Should not have search box for small number of columns
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -187,11 +183,12 @@ test('render menu item with submenu and searchbox', async () => {
   renderSubmenu({ dataset: mockDataset });
   await expectDrillByEnabled();
 
-  // Wait for all columns to be visible in the popover
-  await waitFor(() => {
-    defaultColumns.forEach(column => {
-      expect(screen.getByText(column.column_name)).toBeInTheDocument();
-    });
+  // Wait for first column to ensure menu is loaded
+  await screen.findByText('col1');
+
+  // Then check all columns are visible
+  defaultColumns.forEach(column => {
+    expect(screen.getByText(column.column_name)).toBeInTheDocument();
   });
 
   const searchbox = screen.getByPlaceholderText('Search columns');
@@ -201,11 +198,15 @@ test('render menu item with submenu and searchbox', async () => {
 
   const expectedFilteredColumnNames = ['col1', 'col10', 'col11'];
 
-  // Wait for filtered results
+  // Wait for filtering to take effect by checking for first filtered item
   await waitFor(() => {
-    expectedFilteredColumnNames.forEach(colName => {
-      expect(screen.getByText(colName)).toBeInTheDocument();
-    });
+    // Check that non-matching columns are not visible
+    expect(screen.queryByText('col2')).not.toBeInTheDocument();
+  });
+
+  // Then verify all expected columns are visible
+  expectedFilteredColumnNames.forEach(colName => {
+    expect(screen.getByText(colName)).toBeInTheDocument();
   });
 
   // Check that non-matching columns are not visible
@@ -234,14 +235,15 @@ test('Do not display excluded column in the menu', async () => {
 
   await expectDrillByEnabled();
 
-  // Wait for menu items to be loaded
-  await waitFor(() => {
-    defaultColumns
-      .filter(column => !excludedColNames.includes(column.column_name))
-      .forEach(column => {
-        expect(screen.getByText(column.column_name)).toBeInTheDocument();
-      });
-  });
+  // Wait for first column to ensure menu is loaded
+  await screen.findByText('col1');
+
+  // Then check all non-excluded columns are visible
+  defaultColumns
+    .filter(column => !excludedColNames.includes(column.column_name))
+    .forEach(column => {
+      expect(screen.getByText(column.column_name)).toBeInTheDocument();
+    });
 
   excludedColNames.forEach(colName => {
     expect(screen.queryByText(colName)).not.toBeInTheDocument();
@@ -258,7 +260,7 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
   await expectDrillByEnabled();
 
   // Wait for col1 to be visible before clicking
-  const col1Element = await waitFor(() => screen.getByText('col1'));
+  const col1Element = await screen.findByText('col1');
   userEvent.click(col1Element);
 
   expect(onSelectionMock).toHaveBeenCalledWith(
