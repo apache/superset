@@ -484,6 +484,7 @@ const Chart = props => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel}
+        ownState={dataMask[props.id]?.ownState}
       />
 
       {/*
