@@ -16,11 +16,12 @@
 # under the License.
 """Setup utilities for MCP service configuration"""
 
-import secrets
 from pathlib import Path
 
 import click
 from colorama import Fore, Style
+
+from superset.mcp_service.mcp_config import generate_secret_key
 
 
 def run_setup(force: bool) -> None:
@@ -55,36 +56,16 @@ def _create_config_file(config_path: Path) -> None:
     click.echo("Creating new superset_config.py...")
 
     config_content = f"""# Apache Superset Configuration
-SECRET_KEY = '{secrets.token_urlsafe(42)}'
+SECRET_KEY = '{generate_secret_key()}'
 
-# Session configuration for local development
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = False
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_NAME = 'superset_session'
-PERMANENT_SESSION_LIFETIME = 86400
+# Import MCP configuration
+from superset.mcp_service.mcp_config import get_mcp_config, MCP_FEATURE_FLAGS
 
-# CSRF Protection (disable if login loop occurs)
-WTF_CSRF_ENABLED = True
-WTF_CSRF_TIME_LIMIT = None
-
-# MCP Service Configuration
-MCP_ADMIN_USERNAME = 'admin'
-MCP_DEV_USERNAME = 'admin'
-SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'
-
-# WebDriver Configuration for screenshots
-WEBDRIVER_BASEURL = 'http://localhost:9001/'
-WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+# Apply MCP configuration
+locals().update(get_mcp_config())
 
 # Feature flags
-FEATURE_FLAGS = {{
-    "MCP_SERVICE": True,
-}}
-
-# MCP Service Host/Port
-MCP_SERVICE_HOST = "localhost"
-MCP_SERVICE_PORT = 5008
+FEATURE_FLAGS = MCP_FEATURE_FLAGS.copy()
 """
 
     config_path.write_text(config_content)
@@ -99,22 +80,17 @@ def _update_config_file(config_path: Path) -> None:
 
     # Check for missing settings
     if "SECRET_KEY" not in content:
-        additions.append(f"SECRET_KEY = '{secrets.token_urlsafe(42)}'")
+        additions.append(f"SECRET_KEY = '{generate_secret_key()}'")
         updated = True
 
-    # Add MCP configuration block if missing
-    if "MCP_ADMIN_USERNAME" not in content:
-        additions.append("\n# MCP Service Configuration")
-        additions.append("MCP_ADMIN_USERNAME = 'admin'")
-        additions.append("MCP_DEV_USERNAME = 'admin'")
-        additions.append("SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'")
-        updated = True
-
-    # Add WebDriver configuration if missing
-    if "WEBDRIVER_BASEURL" not in content:
-        additions.append("\n# WebDriver Configuration for screenshots")
-        additions.append("WEBDRIVER_BASEURL = 'http://localhost:9001/'")
-        additions.append("WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL")
+    # Add MCP configuration import if missing
+    if "from superset.mcp_service.mcp_config import" not in content:
+        additions.append("\n# Import MCP configuration")
+        additions.append("from superset.mcp_service.mcp_config import (")
+        additions.append("    get_mcp_config, MCP_FEATURE_FLAGS")
+        additions.append(")")
+        additions.append("\n# Apply MCP configuration")
+        additions.append("locals().update(get_mcp_config())")
         updated = True
 
     # Add feature flags if missing
@@ -123,22 +99,11 @@ def _update_config_file(config_path: Path) -> None:
         if "FEATURE_FLAGS" in content:
             # Need to update existing FEATURE_FLAGS
             click.echo("Updating FEATURE_FLAGS to enable MCP_SERVICE...")
-            # This is more complex - would need careful regex replacement
-            # For now, just append a note
             additions.append("\n# Enable MCP Service feature flag")
-            additions.append("# Add 'MCP_SERVICE': True to your FEATURE_FLAGS dict")
+            additions.append("FEATURE_FLAGS.update(MCP_FEATURE_FLAGS)")
         else:
             additions.append("\n# Feature flags")
-            additions.append("FEATURE_FLAGS = {")
-            additions.append('    "MCP_SERVICE": True,')
-            additions.append("}")
-        updated = True
-
-    # Add MCP host/port if missing
-    if "MCP_SERVICE_HOST" not in content:
-        additions.append("\n# MCP Service Host/Port")
-        additions.append('MCP_SERVICE_HOST = "localhost"')
-        additions.append("MCP_SERVICE_PORT = 5008")
+            additions.append("FEATURE_FLAGS = MCP_FEATURE_FLAGS.copy()")
         updated = True
 
     if updated:
