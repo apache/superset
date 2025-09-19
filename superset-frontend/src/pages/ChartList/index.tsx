@@ -315,6 +315,14 @@ function ChartList(props: ChartListProps) {
     };
   };
 
+  const hasFavoritesOnPage = useMemo(
+    () =>
+      charts.length > 0 &&
+      Object.keys(favoriteStatus).length === charts.length &&
+      Object.values(favoriteStatus).some(status => status === true),
+    [charts.length, favoriteStatus],
+  );
+
   const columns = useMemo(
     () => [
       {
@@ -334,7 +342,7 @@ function ChartList(props: ChartListProps) {
         id: 'id',
         disableSortBy: true,
         size: 'xs',
-        hidden: !userId,
+        hidden: !userId || !hasFavoritesOnPage,
       },
       {
         Cell: ({
