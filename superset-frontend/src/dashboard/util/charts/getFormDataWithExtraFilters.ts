@@ -235,8 +235,8 @@ function applyChartSpecificGroupBy(
           ? nonConflictingGroupByColumns
           : existingGroupBy;
     } else {
-      groupByFormData.x_axis = groupByColumns[0];
-      groupByFormData.groupby = [];
+      groupByFormData.groupby =
+        groupByColumns.length > 0 ? groupByColumns : existingGroupBy;
     }
   } else if (chartType === 'word_cloud') {
     const { limitedColumns } = limitColumnsForChartType(
