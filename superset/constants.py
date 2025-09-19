@@ -132,6 +132,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related_objects": "read",
     "tables": "read",
     "schemas": "read",
+    "schema_tables": "read",
     "catalogs": "read",
     "select_star": "read",
     "table_metadata": "read",
@@ -174,6 +175,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "put_filters": "write",
     "put_colors": "write",
     "sync_permissions": "write",
+    "llm_defaults": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

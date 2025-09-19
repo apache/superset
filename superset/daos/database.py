@@ -24,7 +24,12 @@ from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
-from superset.models.core import Database, DatabaseUserOAuth2Tokens
+from superset.models.core import (
+    Database,
+    DatabaseUserOAuth2Tokens,
+    LlmConnection,
+    LlmContextOptions,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
@@ -58,6 +63,24 @@ class DatabaseDAO(BaseDAO[Database]):
                 item.encrypted_extra,
                 attributes["encrypted_extra"],
             )
+
+        if "llm_connection" in attributes:
+            llm_conn_data = attributes.pop("llm_connection")
+            if llm_conn_data:
+                if item.llm_connection:
+                    for k, v in llm_conn_data.items():
+                        setattr(item.llm_connection, k, v)
+                else:
+                    item.llm_connection = LlmConnection(**llm_conn_data)
+
+        if "llm_context_options" in attributes:
+            llm_ctx_data = attributes.pop("llm_context_options")
+            if llm_ctx_data:
+                if item.llm_context_options:
+                    for k, v in llm_ctx_data.items():
+                        setattr(item.llm_context_options, k, v)
+                else:
+                    item.llm_context_options = LlmContextOptions(**llm_ctx_data)
 
         return super().update(item, attributes)
 

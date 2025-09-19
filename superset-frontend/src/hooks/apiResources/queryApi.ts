@@ -81,6 +81,8 @@ export const api = createApi({
     'TableMetadatas',
     'SqlLabInitialState',
     'EditorQueries',
+    'LlmContextStatus',
+    'LlmDefaults',
   ],
   endpoints: () => ({}),
   baseQuery: supersetClientQuery,

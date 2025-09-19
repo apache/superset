@@ -65,6 +65,25 @@ class UpdateDatabaseCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
 
+        # Log the operation without sensitive data
+        safe_properties = {
+            k: v
+            for k, v in self._properties.items()
+            if k
+            not in {
+                "password",
+                "api_key",
+                "encrypted_extra",
+                "masked_encrypted_extra",
+                "sqlalchemy_uri",
+                "ssh_tunnel",
+            }
+        }
+        logger.info(
+            "Updating database %s with fields: %s",
+            self._model_id,
+            list(safe_properties.keys()),
+        )
         self.validate()
 
         if "masked_encrypted_extra" in self._properties:
@@ -97,7 +116,6 @@ class UpdateDatabaseCommand(BaseCommand):
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
         new_catalog = database.get_default_catalog()
-
         # update assets when the database catalog changes, if the database was not
         # configured with multi-catalog support; if it was enabled or is enabled in the
         # update we don't update the assets

@@ -16,21 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { skipToken } from '@reduxjs/toolkit/query/react';
-export {
-  useApiResourceFullBody,
-  useApiV1Resource,
-  useTransformedResource,
-} from './apiResources';
 
-// A central catalog of API Resource hooks.
-// Add new API hooks here, organized under
-// different files for different resource types.
-export * from './catalogs';
-export * from './charts';
-export * from './dashboards';
-export * from './tables';
-export * from './schemas';
-export * from './queryValidations';
-export * from './settings';
-export * from './llms';
+import { useApiV1Resource } from './apiResources';
+
+export const useDatabaseTables = (id: string | number) =>
+  useApiV1Resource<{ [schema: string]: string[] }>(
+    `/api/v1/database/${id}/schema_tables/`,
+  );
