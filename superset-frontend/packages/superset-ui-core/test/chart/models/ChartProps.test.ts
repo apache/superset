@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Behavior, ChartProps, supersetTheme } from '@superset-ui/core';
+import { Behavior, ChartProps } from '@superset-ui/core';
 
 const RAW_FORM_DATA = {
   some_field: 1,
@@ -42,7 +42,6 @@ describe('ChartProps', () => {
         height: 600,
         formData: RAW_FORM_DATA,
         queriesData: QUERIES_DATA,
-        theme: supersetTheme,
       });
       expect(props).toBeInstanceOf(ChartProps);
     });
@@ -53,7 +52,6 @@ describe('ChartProps', () => {
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
         queriesData: QUERIES_DATA,
-        theme: supersetTheme,
       });
       expect(props.formData.someField as number).toEqual(1);
       expect(props.datasource.columnFormats).toEqual(
@@ -77,7 +75,6 @@ describe('ChartProps', () => {
         queriesData: QUERIES_DATA,
         behaviors: BEHAVIORS,
         isRefreshing: false,
-        theme: supersetTheme,
       });
       const props2 = selector({
         width: 800,
@@ -87,7 +84,6 @@ describe('ChartProps', () => {
         queriesData: QUERIES_DATA,
         behaviors: BEHAVIORS,
         isRefreshing: false,
-        theme: supersetTheme,
       });
       expect(props1).toBe(props2);
     });
@@ -105,7 +101,6 @@ describe('ChartProps', () => {
         queriesData: QUERIES_DATA,
         behaviors: BEHAVIORS,
         isRefreshing: false,
-        theme: supersetTheme,
       });
       const props2 = selector({
         width: 800,
@@ -115,7 +110,6 @@ describe('ChartProps', () => {
         queriesData: QUERIES_DATA,
         behaviors: BEHAVIORS,
         isRefreshing: true,
-        theme: supersetTheme,
       });
       expect(props1).not.toBe(props2);
     });
@@ -126,7 +120,6 @@ describe('ChartProps', () => {
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
         queriesData: QUERIES_DATA,
-        theme: supersetTheme,
       });
       const props2 = selector({
         width: 800,
@@ -134,7 +127,6 @@ describe('ChartProps', () => {
         datasource: RAW_DATASOURCE,
         formData: { new_field: 3 },
         queriesData: QUERIES_DATA,
-        theme: supersetTheme,
       });
       const props3 = selector({
         width: 800,
@@ -142,7 +134,6 @@ describe('ChartProps', () => {
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
         queriesData: QUERIES_DATA,
-        theme: supersetTheme,
       });
       expect(props1).not.toBe(props2);
       expect(props1).toBe(props3);

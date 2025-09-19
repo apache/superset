@@ -20,7 +20,6 @@ import {
   ChartProps,
   getNumberFormatter,
   SqlaFormData,
-  supersetTheme,
 } from '@superset-ui/core';
 import type { PieSeriesOption } from 'echarts/charts';
 import type {
@@ -56,7 +55,6 @@ describe('Pie transformProps', () => {
         ],
       },
     ],
-    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {
@@ -152,7 +150,6 @@ describe('Pie label string template', () => {
           ],
         },
       ],
-      theme: supersetTheme,
     }) as EchartsPieChartProps;
   };
 
@@ -253,7 +250,6 @@ describe('Total value positioning with legends', () => {
           ],
         },
       ],
-      theme: supersetTheme,
     }) as EchartsPieChartProps;
   };
 
@@ -426,7 +422,6 @@ describe('Other category', () => {
           ],
         },
       ],
-      theme: supersetTheme,
     });
 
   it('generates Other category', () => {
@@ -497,7 +492,6 @@ describe('legend sorting', () => {
           ],
         },
       ],
-      theme: supersetTheme,
     });
 
   it('sort legend by data', () => {

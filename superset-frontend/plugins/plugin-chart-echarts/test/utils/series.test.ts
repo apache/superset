@@ -23,8 +23,9 @@ import {
   GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
+  DEFAULT_THEME,
 } from '@superset-ui/core';
+
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -50,6 +51,8 @@ import {
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
+
+const theme = DEFAULT_THEME;
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],

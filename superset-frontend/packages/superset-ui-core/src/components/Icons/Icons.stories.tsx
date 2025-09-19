@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, supersetTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { Input } from '../Input';
 import { Icons, IconNameType } from '.';
 import type { IconType } from './types';
@@ -28,16 +28,17 @@ export default {
   component: BaseIconComponent,
 };
 
-const palette: Record<string, string | null> = {
+// Icon style options for Storybook controls
+const iconStyleOptions: Record<string, string | null> = {
   Default: null,
-  Primary: supersetTheme.colorPrimary,
-  Success: supersetTheme.colorSuccess,
-  Warning: supersetTheme.colorWarning,
-  Error: supersetTheme.colorError,
-  Info: supersetTheme.colorInfo,
-  Text: supersetTheme.colorText,
-  'Text Secondary': supersetTheme.colorTextSecondary,
-  Icon: supersetTheme.colorIcon,
+  Primary: 'primary',
+  Success: 'success',
+  Warning: 'warning',
+  Error: 'error',
+  Info: 'info',
+  Text: 'text',
+  'Text Secondary': 'textSecondary',
+  Icon: 'icon',
 };
 
 const IconSet = styled.div`
@@ -116,7 +117,7 @@ InteractiveIcons.argTypes = {
   iconColor: {
     defaultValue: null,
     control: { type: 'select' },
-    options: palette,
+    options: iconStyleOptions,
   },
   theme: {
     table: {

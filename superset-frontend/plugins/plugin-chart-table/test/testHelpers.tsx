@@ -19,19 +19,22 @@
 import {
   EmotionCacheProvider,
   createEmotionCache,
-  supersetTheme,
-  ThemeProvider,
+  Theme,
 } from '@superset-ui/core';
+
+const themeInstance = Theme.fromConfig();
 
 const emotionCache = createEmotionCache({
   key: 'test',
 });
 
 export function ProviderWrapper(props: any) {
-  const { children, theme = supersetTheme } = props;
+  const { children } = props;
   return (
     <EmotionCacheProvider value={emotionCache}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+      <themeInstance.SupersetThemeProvider>
+        {children}
+      </themeInstance.SupersetThemeProvider>
     </EmotionCacheProvider>
   );
 }

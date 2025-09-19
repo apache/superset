@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  getNumberFormatter,
-  supersetTheme,
-} from '@superset-ui/core';
+import { ChartProps, getNumberFormatter } from '@superset-ui/core';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,
@@ -47,7 +43,6 @@ const chartProps = new ChartProps({
   width: 800,
   height: 600,
   queriesData,
-  theme: supersetTheme,
 });
 
 describe('Funnel transformProps', () => {

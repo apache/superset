@@ -19,7 +19,8 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemeProvider as EmotionThemeProvider } from '@emotion/react';
+import { DEFAULT_THEME } from '../../chart';
 import { ThemedAgGridReact } from './index';
 import * as themeUtils from '../../theme/utils/themeUtils';
 
@@ -81,15 +82,15 @@ test('renders the AgGridReact component', () => {
 
 test('applies light theme when background is light', () => {
   const lightTheme = {
-    ...supersetTheme,
+    ...DEFAULT_THEME,
     colorBgBase: '#ffffff',
     colorText: '#000000',
   };
 
   render(
-    <ThemeProvider theme={lightTheme}>
+    <EmotionThemeProvider theme={lightTheme}>
       <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 
   const agGrid = screen.getByTestId('ag-grid-react');
@@ -104,15 +105,15 @@ test('applies dark theme when background is dark', () => {
   (themeUtils.useThemeMode as jest.Mock).mockReturnValue(true);
 
   const darkTheme = {
-    ...supersetTheme,
+    ...DEFAULT_THEME,
     colorBgBase: '#1a1a1a',
     colorText: '#ffffff',
   };
 
   render(
-    <ThemeProvider theme={darkTheme}>
+    <EmotionThemeProvider theme={darkTheme}>
       <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 
   const agGrid = screen.getByTestId('ag-grid-react');
@@ -173,15 +174,15 @@ test('passes all props through to AgGridReact', () => {
 
 test('applies custom theme colors from Superset theme', () => {
   const customTheme = {
-    ...supersetTheme,
+    ...DEFAULT_THEME,
     colorFillTertiary: '#e5e5e5',
     colorSplit: '#d9d9d9',
   };
 
   render(
-    <ThemeProvider theme={customTheme}>
+    <EmotionThemeProvider theme={customTheme}>
       <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 
   const agGrid = screen.getByTestId('ag-grid-react');
@@ -205,14 +206,14 @@ test('wraps component with proper container div', () => {
 
 test('handles missing theme gracefully', () => {
   const incompleteTheme = {
-    ...supersetTheme,
+    ...DEFAULT_THEME,
     colorBgBase: undefined,
   };
 
   render(
-    <ThemeProvider theme={incompleteTheme}>
+    <EmotionThemeProvider theme={incompleteTheme}>
       <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 
   // Should still render without crashing

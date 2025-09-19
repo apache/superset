@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import { RadarSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Radar/transformProps';
 import {
@@ -88,7 +88,6 @@ const chartProps = new ChartProps({
   width: 800,
   height: 600,
   queriesData,
-  theme: supersetTheme,
 });
 
 describe('Radar transformProps', () => {

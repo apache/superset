@@ -34,7 +34,10 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { supersetTheme, SupersetTheme } from '../../theme';
+import { SupersetTheme, Theme } from '../../theme';
+
+// Singleton default theme - created once, reused
+export const DEFAULT_THEME = Theme.fromConfig().theme;
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -102,8 +105,8 @@ export interface ChartPropsConfig {
   isRefreshing?: boolean;
   /** chart ref */
   inputRef?: RefObject<any>;
-  /** Theme object */
-  theme: SupersetTheme;
+  /** Theme object - defaults to singleton theme if not provided */
+  theme?: SupersetTheme;
   /* legend index */
   legendIndex?: number;
   inContextMenu?: boolean;
@@ -162,7 +165,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   constructor(
     config: ChartPropsConfig & { formData?: FormData } = {
-      theme: supersetTheme,
+      theme: DEFAULT_THEME,
     },
   ) {
     const {
@@ -185,7 +188,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       inputRef,
       inContextMenu = false,
       emitCrossFilters = false,
-      theme,
+      theme = DEFAULT_THEME,
     } = config;
     this.width = width;
     this.height = height;

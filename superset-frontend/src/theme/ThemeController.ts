@@ -24,7 +24,6 @@ import {
   type ThemeStorage,
   Theme,
   ThemeMode,
-  themeObject as supersetThemeObject,
 } from '@superset-ui/core';
 import {
   getAntdConfig,
@@ -105,8 +104,8 @@ export class ThemeController {
   constructor({
     storage = new LocalStorageAdapter(),
     modeStorageKey = STORAGE_KEYS.THEME_MODE,
-    themeObject = supersetThemeObject,
-    defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
+    themeObject = Theme.fromConfig(),
+    defaultTheme = Theme.fromConfig().theme as AnyThemeConfig,
     onChange = undefined,
   }: ThemeControllerOptions = {}) {
     this.storage = storage;

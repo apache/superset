@@ -27,10 +27,11 @@ import {
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  supersetTheme,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
+  DEFAULT_THEME,
 } from '@superset-ui/core';
+
 import { OrientationType } from '../../src';
 import {
   transformEventAnnotation,
@@ -133,7 +134,7 @@ describe('transformIntervalAnnotation', () => {
         mockData,
         mockIntervalAnnotationData,
         CategoricalColorNamespace.getScale(''),
-        supersetTheme,
+        DEFAULT_THEME,
       )
         .map(annotation => annotation.markArea)
         .map(markArea => markArea.data),
@@ -160,7 +161,7 @@ describe('transformIntervalAnnotation', () => {
         mockData,
         mockIntervalAnnotationData,
         CategoricalColorNamespace.getScale(''),
-        supersetTheme,
+        DEFAULT_THEME,
         undefined,
         OrientationType.Horizontal,
       )
@@ -224,7 +225,7 @@ describe('transformEventAnnotation', () => {
         mockData,
         mockEventAnnotationData,
         CategoricalColorNamespace.getScale(''),
-        supersetTheme,
+        DEFAULT_THEME,
       )
         .map(annotation => annotation.markLine)
         .map(markLine => markLine.data),
@@ -246,7 +247,7 @@ describe('transformEventAnnotation', () => {
         mockData,
         mockEventAnnotationData,
         CategoricalColorNamespace.getScale(''),
-        supersetTheme,
+        DEFAULT_THEME,
         undefined,
         OrientationType.Horizontal,
       )

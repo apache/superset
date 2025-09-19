@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { supersetTheme, themeObject } from '@superset-ui/core';
+import { Theme, useTheme } from '@superset-ui/core';
 
 const colorTypes = [
   'primary',
@@ -66,7 +66,8 @@ const AntDFunctionalColors = () => {
               <strong>{type}</strong>
             </td>
             {variants.map(variant => {
-              const color = themeObject.getColorVariants(type)[variant];
+              const dynamicTheme = Theme.fromConfig();
+              const color = dynamicTheme.getColorVariants(type)[variant];
               return (
                 <td
                   key={variant}
@@ -89,7 +90,8 @@ const AntDFunctionalColors = () => {
 };
 
 export const ThemeColors = () => {
-  const { colors } = supersetTheme;
+  const theme = useTheme();
+  const { colors } = theme;
 
   // Define tones to be displayed in columns
   const tones = [
@@ -154,9 +156,9 @@ export const ThemeColors = () => {
       <h2>Ant Design Theme Colors</h2>
       <h3>Functional Colors</h3>
       <AntDFunctionalColors />
-      <h2>The supersetTheme object</h2>
+      <h2>The Dynamic Theme Object</h2>
       <pre>
-        <code>{JSON.stringify(supersetTheme, null, 2)}</code>
+        <code>{JSON.stringify(theme, null, 2)}</code>
       </pre>
     </div>
   );

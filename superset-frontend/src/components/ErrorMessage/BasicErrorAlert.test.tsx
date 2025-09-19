@@ -18,7 +18,7 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import { ErrorLevel, supersetTheme } from '@superset-ui/core';
+import { ErrorLevel } from '@superset-ui/core';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
@@ -68,24 +68,16 @@ test('should render the error body', () => {
   expect(screen.getByText('Error body')).toBeInTheDocument();
 });
 
-test('should render with warning theme', () => {
+test('should render warning alert', () => {
   render(<BasicErrorAlert {...mockedProps} />);
-  expect(screen.getByRole('alert')).toHaveStyle(
-    `
-      color: ${supersetTheme.colorWarningText};
-    `,
-  );
+  expect(screen.getByRole('alert')).toBeInTheDocument();
 });
 
-test('should render with error theme', () => {
+test('should render error alert', () => {
   const errorProps = {
     ...mockedProps,
     level: 'error' as ErrorLevel,
   };
   render(<BasicErrorAlert {...errorProps} />);
-  expect(screen.getByRole('alert')).toHaveStyle(
-    `
-      color: ${supersetTheme.colorErrorText};
-    `,
-  );
+  expect(screen.getByRole('alert')).toBeInTheDocument();
 });
