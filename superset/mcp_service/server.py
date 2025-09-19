@@ -31,17 +31,26 @@ def configure_logging(debug: bool = False) -> None:
     import sys
 
     if debug or os.environ.get("SQLALCHEMY_DEBUG"):
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            stream=sys.stderr,  # Always log to stderr, not stdout
-        )
+        # Only configure basic logging if no handlers exist (respects logging.ini)
+        root_logger = logging.getLogger()
+        if not root_logger.handlers:
+            logging.basicConfig(
+                level=logging.INFO,
+                format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                stream=sys.stderr,  # Always log to stderr, not stdout
+            )
+
+        # Only override SQLAlchemy logger levels if they're not explicitly configured
         for logger_name in [
             "sqlalchemy.engine",
             "sqlalchemy.pool",
             "sqlalchemy.dialects",
         ]:
-            logging.getLogger(logger_name).setLevel(logging.INFO)
+            logger = logging.getLogger(logger_name)
+            # Only set level if it's still at default (WARNING for SQLAlchemy)
+            if logger.level == logging.WARNING or logger.level == logging.NOTSET:
+                logger.setLevel(logging.INFO)
+
         # Use logging instead of print to avoid stdout contamination
         logging.info("🔍 SQL Debug logging enabled")
 
