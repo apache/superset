@@ -55,6 +55,18 @@ MCP_CSRF_CONFIG = {
     "WTF_CSRF_TIME_LIMIT": None,
 }
 
+# FastMCP Factory Configuration
+MCP_FACTORY_CONFIG = {
+    "name": "Superset MCP Server",
+    "instructions": None,  # Will use default from app.py
+    "auth": None,  # No authentication by default
+    "lifespan": None,  # No custom lifespan
+    "tools": None,  # Auto-discover tools
+    "include_tags": None,  # Include all tags
+    "exclude_tags": None,  # Exclude no tags
+    "config": None,  # No additional config
+}
+
 
 def generate_secret_key() -> str:
     """Generate a secure random secret key for Superset"""
@@ -84,3 +96,16 @@ def get_mcp_config() -> Dict[str, Any]:
     config.update(MCP_CSRF_CONFIG)
 
     return config
+
+
+def get_mcp_factory_config() -> Dict[str, Any]:
+    """
+    Get FastMCP factory configuration.
+
+    This can be customized by users to provide their own auth providers,
+    middleware, lifespan handlers, and other FastMCP configuration.
+
+    Returns:
+        Dictionary of FastMCP factory configuration options
+    """
+    return MCP_FACTORY_CONFIG.copy()
