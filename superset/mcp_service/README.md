@@ -73,11 +73,51 @@ source venv/bin/activate
 pip install -e .[development,fastmcp]
 cd superset-frontend && npm ci && npm run build && cd ..
 
-# 4. Initialize database
+# 4. Configure Superset manually
+# Create superset_config.py in your current directory:
+cat > superset_config.py << 'EOF'
+# Apache Superset Configuration
+SECRET_KEY = '<your secret here - hint: `secrets.token_urlsafe(42)`>'
+
+# Session configuration for local development
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_NAME = 'superset_session'
+PERMANENT_SESSION_LIFETIME = 86400
+
+# CSRF Protection (disable if login loop occurs)
+WTF_CSRF_ENABLED = True
+WTF_CSRF_TIME_LIMIT = None
+
+# MCP Service Configuration
+MCP_ADMIN_USERNAME = 'admin'
+MCP_DEV_USERNAME = 'admin'
+SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'
+
+# WebDriver Configuration for screenshots
+WEBDRIVER_BASEURL = 'http://localhost:9001/'
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+
+import os
+
+# Enable MCP service integration
+FEATURE_FLAGS = {
+    "MCP_SERVICE": True,
+}
+
+# MCP Service Connection
+MCP_SERVICE_HOST = os.environ.get("MCP_SERVICE_HOST", "localhost")
+MCP_SERVICE_PORT = int(os.environ.get("MCP_SERVICE_PORT", 5008))
+
+EOF
+
+# 5. Initialize database
+export FLASK_APP=superset
 superset db upgrade
 superset init
 
-# 5. Create admin user
+# 6. Create admin user
 superset fab create-admin \
   --username admin \
   --firstname Admin \
@@ -85,19 +125,29 @@ superset fab create-admin \
   --email admin@localhost \
   --password admin
 
-# 6. Start Superset (in one terminal)
+# 7. Start Superset (in one terminal)
 superset run -p 9001 --with-threads --reload --debugger
 
-# 7. Start frontend (in another terminal)
+# 8. Start frontend (in another terminal)
 cd superset-frontend && npm run dev
 
-# 8. Start MCP service (in another terminal, optional)
+# 9. Start MCP service (in another terminal, only if you want MCP features)
 source venv/bin/activate
-superset mcp setup
 superset mcp run --port 5008 --debug
 ```
 
 Access Superset at http://localhost:9001 (login: admin/admin)
+
+### Automated MCP Setup (Optional)
+
+If you prefer, you can use the automated setup script instead of manually creating `superset_config.py`:
+
+```bash
+# After step 3 above, run this instead of creating the config manually:
+superset mcp setup
+
+# Then continue with steps 5-9
+```
 
 ## 🔌 Step 2: Connect Claude Desktop
 

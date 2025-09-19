@@ -25,7 +25,6 @@ import io
 import logging
 import os
 import sys
-import warnings
 from typing import Any
 
 # Must redirect click output BEFORE importing anything that uses it
@@ -86,9 +85,6 @@ def main() -> None:
                     new_handlers.append(h)
             logger.handlers = new_handlers
 
-        # Suppress warnings
-        warnings.filterwarnings("ignore")
-
         # Capture any print statements during initialization
         captured_output = io.StringIO()
 
@@ -104,7 +100,7 @@ def main() -> None:
 
         # Log captured output to stderr for debugging (optional)
         captured = captured_output.getvalue()
-        if captured and os.environ.get("MCP_DEBUG"):
+        if captured and flask_app.config.get("MCP_DEBUG"):
             sys.stderr.write(f"[MCP] Suppressed initialization output:\n{captured}\n")
 
         # Run in Flask app context
