@@ -17,9 +17,7 @@
 """CLI module for MCP service"""
 
 import click
-from flask.cli import with_appcontext
 
-from superset.mcp_service.scripts.setup import run_setup
 from superset.mcp_service.server import run_server
 
 
@@ -36,11 +34,3 @@ def mcp() -> None:
 def run(host: str, port: int, debug: bool) -> None:
     """Run the MCP service"""
     run_server(host=host, port=port, debug=debug)
-
-
-@mcp.command()
-@click.option("--force", is_flag=True, help="Force setup even if configuration exists")
-@with_appcontext
-def setup(force: bool) -> None:
-    """Set up MCP service for Apache Superset"""
-    run_setup(force)
