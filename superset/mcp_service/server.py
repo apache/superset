@@ -23,7 +23,8 @@ import logging
 import os
 
 # Apply Flask-AppBuilder compatibility patches before any Superset imports
-from superset.mcp_service.app import init_fastmcp_server, mcp
+from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.mcp_config import get_mcp_factory_config
 
 
 def configure_logging(debug: bool = False) -> None:
@@ -46,23 +47,41 @@ def configure_logging(debug: bool = False) -> None:
         logging.info("🔍 SQL Debug logging enabled")
 
 
-def run_server(host: str = "127.0.0.1", port: int = 5008, debug: bool = False) -> None:
+def run_server(
+    host: str = "127.0.0.1",
+    port: int = 5008,
+    debug: bool = False,
+    use_factory_config: bool = False,
+) -> None:
     """
     Run the MCP service server with FastMCP endpoints.
     Uses streamable-http transport for HTTP server mode.
+
+    Args:
+        host: Host to bind to
+        port: Port to bind to
+        debug: Enable debug logging
+        use_factory_config: Use configuration from get_mcp_factory_config()
     """
 
     configure_logging(debug)
-    # Use logging to stderr instead of print to stdout
-    logging.info("Creating MCP app...")
-    init_fastmcp_server()  # This will register middleware, etc.
+
+    if use_factory_config:
+        # Use factory configuration for customization
+        logging.info("Creating MCP app from factory configuration...")
+        factory_config = get_mcp_factory_config()
+        mcp_instance = create_mcp_app(**factory_config)
+    else:
+        # Use default initialization
+        logging.info("Creating MCP app with default configuration...")
+        mcp_instance = init_fastmcp_server()
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
         os.environ[env_key] = "1"
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
-            mcp.run(transport="streamable-http", host=host, port=port)
+            mcp_instance.run(transport="streamable-http", host=host, port=port)
         except Exception as e:
             logging.error("FastMCP failed: %s", e)
             os.environ.pop(env_key, None)
