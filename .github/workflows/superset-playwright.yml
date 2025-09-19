@@ -1,0 +1,141 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'The branch or tag to checkout'
+        required: false
+        default: ''
+      pr_id:
+        description: 'The pull request ID to checkout'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  playwright-tests:
+    runs-on: ubuntu-22.04
+    # Allow workflow to succeed even if tests fail during shadow mode
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: read
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ["chromium"]
+        app_root: ["", "/app/prefix"]
+    env:
+      SUPERSET_ENV: development
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      PYTHONPATH: ${{ github.workspace }}
+      REDIS_PORT: 16379
+      GITHUB_TOKEN: ${{ github.token }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          - 15432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16379:6379
+    steps:
+      # -------------------------------------------------------
+      # Conditional checkout based on context (same as Cypress workflow)
+      - name: Checkout for push or pull_request event
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          submodules: recursive
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Checkout using ref (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.inputs.ref }}
+          submodules: recursive
+      - name: Checkout using PR ID (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
+          submodules: recursive
+      # -------------------------------------------------------
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+      - name: Setup postgres
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
+      - name: Import test data
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: testdata
+      - name: Setup Node.js
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: './superset-frontend/.nvmrc'
+      - name: Install npm dependencies
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: npm-install
+      - name: Build javascript packages
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-instrumented-assets
+      - name: Install Playwright
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: playwright-install
+      - name: Run Playwright
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        with:
+          run: playwright-run ${{ matrix.app_root }}
+      - name: Set safe app root
+        if: failure()
+        id: set-safe-app-root
+        run: |
+          APP_ROOT="${{ matrix.app_root }}"
+          SAFE_APP_ROOT=${APP_ROOT//\//_}
+          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
+      - name: Upload Playwright Artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: |
+            ${{ github.workspace }}/superset-frontend/playwright-results/
+            ${{ github.workspace }}/superset-frontend/test-results/
+          name: playwright-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}

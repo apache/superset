@@ -1,19 +1,9 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "declaration": true,
-    "declarationDir": "lib",
-    "outDir": "lib",
-    "strict": true,
-    "rootDir": "src",
-    "jsx": "preserve",
-    "baseUrl": ".",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "skipLibCheck": true,
-    "target": "es2020",
-    "esModuleInterop": true
+    "baseUrl": "../..",
+    "outDir": "lib"
   },
-  "include": ["src/**/*.ts*"],
-  "exclude": ["lib"]
+  "include": ["src/**/*", "types/**/*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.stories.*"]
 }

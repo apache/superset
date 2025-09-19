@@ -74,7 +74,8 @@ test('should create single group when fitting columns dynamically', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: true,
     matrixify_charts_per_row: 3,
     matrixify_show_row_labels: true,
@@ -123,7 +124,8 @@ test('should create multiple groups when not fitting columns dynamically', () =>
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 3,
     matrixify_show_row_labels: true,
@@ -158,7 +160,8 @@ test('should handle exact division of columns', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 2,
     matrixify_show_row_labels: true,
@@ -186,7 +189,8 @@ test('should handle case where charts_per_row exceeds total columns', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 5,
     matrixify_show_row_labels: true,
@@ -216,7 +220,8 @@ test('should show headers for each group when wrapping occurs', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 2,
     matrixify_show_row_labels: true,
@@ -250,7 +255,8 @@ test('should show headers only on first row when not wrapping', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: true, // No wrapping
     matrixify_show_row_labels: true,
     matrixify_show_column_headers: true,
@@ -279,7 +285,8 @@ test('should hide headers when disabled', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_show_row_labels: false,
     matrixify_show_column_headers: false,
   };
@@ -306,7 +313,8 @@ test('should place cells correctly in wrapped layout', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 2,
     matrixify_show_row_labels: true,
@@ -336,7 +344,8 @@ test('should handle null grid gracefully', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
   };
 
   const { container } = renderWithTheme(
@@ -357,7 +366,8 @@ test('should handle empty grid gracefully', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
   };
 
   const { container } = renderWithTheme(
@@ -381,7 +391,8 @@ test('should use default values for missing configuration', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
     // Missing optional configurations
   };
 
