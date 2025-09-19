@@ -67,19 +67,6 @@ export const CHART_TYPE_LIMITATIONS: Record<string, ChartTypeLimitation> = {
     warningMessage: (usedColumns, ignoredColumns) =>
       `Bubble charts only support two dimensions (series and entity). Using "${usedColumns[0]}" for series and "${usedColumns[1]}" for entity. Additional columns (${ignoredColumns.join(', ')}) will be ignored.`,
   },
-
-  echarts_timeseries: {
-    maxDimensions: 1,
-    dimensionNames: ['x-axis'],
-    warningMessage: (usedColumns, ignoredColumns) =>
-      `Time series charts only support one x-axis dimension. Using "${usedColumns[0]}" only. Additional columns (${ignoredColumns.join(', ')}) will be ignored.`,
-  },
-  echarts_area: {
-    maxDimensions: 1,
-    dimensionNames: ['x-axis'],
-    warningMessage: (usedColumns, ignoredColumns) =>
-      `Time series charts only support one x-axis dimension. Using "${usedColumns[0]}" only. Additional columns (${ignoredColumns.join(', ')}) will be ignored.`,
-  },
 };
 
 export const CHARTS_WITHOUT_GROUPBY = [
@@ -89,7 +76,6 @@ export const CHARTS_WITHOUT_GROUPBY = [
   'cal_heatmap',
   'country_map',
   'gantt',
-  'table',
   'world_map',
   'deck_arc',
   'deck_geojson',
