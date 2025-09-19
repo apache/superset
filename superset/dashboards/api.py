@@ -1342,6 +1342,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         self.incr_stats("from_cache", self.thumbnail.__name__)
         try:
             image = cache_payload.get_image()
+            if not image or not hasattr(image, "read"):
+                return self.response_404()
         except ScreenshotImageNotAvailableException:
             return self.response_404()
         return Response(
