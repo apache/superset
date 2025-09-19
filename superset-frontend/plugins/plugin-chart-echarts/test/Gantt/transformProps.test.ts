@@ -256,6 +256,7 @@ describe('Gantt transformProps', () => {
           show: true,
           position: 'start',
           formatter: '{b}',
+          color: 'rgba(0,0,0,0.88)',
         },
         lineStyle: expect.objectContaining({
           color: '#00000000',
