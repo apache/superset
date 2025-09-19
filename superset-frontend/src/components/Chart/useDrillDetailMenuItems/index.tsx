@@ -224,13 +224,27 @@ export const useDrillDetailMenuItems = ({
               key: `drill-detail-filter-${i}`,
               onClick: openModal.bind(null, [filter]),
               label: (
-                <TruncatedMenuLabel
-                  tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
-                  aria-label={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
+                <div
+                  css={css`
+                    max-width: 200px;
+                  `}
                 >
-                  {`${DRILL_TO_DETAIL_BY} `}
-                  <StyledFilter stripHTML>{filter.formattedVal}</StyledFilter>
-                </TruncatedMenuLabel>
+                  <TruncatedMenuLabel
+                    tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
+                    aria-label={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
+                  >
+                    <span
+                      css={css`
+                        display: inline;
+                      `}
+                    >
+                      {DRILL_TO_DETAIL_BY}{' '}
+                      <StyledFilter stripHTML>
+                        {filter.formattedVal}
+                      </StyledFilter>
+                    </span>
+                  </TruncatedMenuLabel>
+                </div>
               ),
             })),
             ...(filters.length > 1
@@ -239,7 +253,12 @@ export const useDrillDetailMenuItems = ({
                     key: 'drill-detail-filter-all',
                     onClick: openModal.bind(null, filters),
                     label: (
-                      <div aria-label={`${DRILL_TO_DETAIL_BY} ${t('all')}`}>
+                      <div
+                        aria-label={`${DRILL_TO_DETAIL_BY} ${t('all')}`}
+                        css={css`
+                          max-width: 200px;
+                        `}
+                      >
                         {`${DRILL_TO_DETAIL_BY} `}
                         <StyledFilter stripHTML={false}>
                           {t('all')}

@@ -95,7 +95,7 @@ export const DrillBySubmenu = ({
 
   const handleSelection = useCallback(
     (event, column) => {
-      onClick(event);
+      onClick(event as MouseEvent);
       onSelection(column, drillByConfig);
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
@@ -115,9 +115,10 @@ export const DrillBySubmenu = ({
   );
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     if (popoverOpen) {
       // Small delay to ensure popover is rendered
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         ref.current?.input?.focus({ preventScroll: true });
       }, 100);
     } else {
@@ -125,6 +126,9 @@ export const DrillBySubmenu = ({
       setSearchInput('');
       setDebouncedSearchInput('');
     }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [popoverOpen]);
 
   const hasDrillBy = drillByConfig?.groupbyFieldName;

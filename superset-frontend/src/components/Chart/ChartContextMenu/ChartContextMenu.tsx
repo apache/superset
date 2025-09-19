@@ -18,6 +18,7 @@
  */
 import {
   forwardRef,
+  ReactNode,
   RefObject,
   useCallback,
   useImperativeHandle,
@@ -38,6 +39,7 @@ import {
   isFeatureEnabled,
   QueryFormData,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { MenuItem } from '@superset-ui/core/components/Menu';
@@ -51,6 +53,7 @@ import { useDrillDetailMenuItems } from '../useDrillDetailMenuItems';
 import { getMenuAdjustedY } from '../utils';
 import { DrillBySubmenu } from '../DrillBy/DrillBySubmenu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
+import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -91,6 +94,7 @@ const ChartContextMenu = (
   ref: RefObject<ChartContextMenuRef>,
 ) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const { canDrillToDetail, canDrillBy, canDownload } = usePermissions();
 
   const crossFiltersEnabled = useSelector<RootState, boolean>(
@@ -277,12 +281,56 @@ const ChartContextMenu = (
       !crossFiltersEnabled ||
       !filters?.crossFilter;
 
+    let crossFilteringTooltipTitle: ReactNode = null;
+    if (!isCrossFilterDisabled) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>
+            {t(
+              'Cross-filter will be applied to all of the charts that use this dataset.',
+            )}
+          </div>
+          <div>
+            {t('You can also just click on the chart to apply cross-filter.')}
+          </div>
+        </>
+      );
+    } else if (!crossFiltersEnabled) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>{t('Cross-filtering is not enabled for this dashboard.')}</div>
+        </>
+      );
+    } else if (!isCrossFilteringSupportedByChart) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>
+            {t('This visualization type does not support cross-filtering.')}
+          </div>
+        </>
+      );
+    } else if (!filters?.crossFilter) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>{t(`You can't apply cross-filter on this data point.`)}</div>
+        </>
+      );
+    }
+
     menuItems.push(
       {
         key: 'cross-filtering-menu-item',
-        label: filters?.crossFilter?.isCurrentValueSelected
-          ? t('Remove cross-filter')
-          : t('Add cross-filter'),
+        label: filters?.crossFilter?.isCurrentValueSelected ? (
+          t('Remove cross-filter')
+        ) : (
+          <span>
+            {t('Add cross-filter')}
+            <MenuItemTooltip
+              title={crossFilteringTooltipTitle}
+              color={!isCrossFilterDisabled ? theme.colorIcon : undefined}
+            />
+          </span>
+        ),
         disabled: isCrossFilterDisabled,
         onClick: () => {
           if (filters?.crossFilter) {
