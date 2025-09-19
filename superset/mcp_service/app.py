@@ -16,21 +16,21 @@
 # under the License.
 
 """
-FastMCP app instance and initialization for Superset MCP service.
-This file provides the global FastMCP instance (mcp) and a function to initialize
-the server. All tool modules should import mcp from here and use @mcp.tool decorators.
+FastMCP app factory and initialization for Superset MCP service.
+This file provides a configurable factory function to create FastMCP instances
+following the Flask application factory pattern. All tool modules should import
+mcp from here and use @mcp.tool decorators.
 """
 
 import logging
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
 
-# Create MCP instance without auth for scaffold
-mcp = FastMCP(
-    "Superset MCP Server",
-    instructions="""
+# Default instructions for the Superset MCP service
+DEFAULT_INSTRUCTIONS = """
 You are connected to the Apache Superset MCP (Model Context Protocol) service.
 This service provides programmatic access to Superset dashboards, charts, datasets,
 SQL Lab, and instance metadata via a comprehensive set of tools.
@@ -86,15 +86,179 @@ General usage tips:
 
 If you are unsure which tool to use, start with get_superset_instance_info
 or use the superset_quickstart prompt for an interactive guide.
-""",
-)
+"""
 
 
-def init_fastmcp_server() -> FastMCP:
+def _build_mcp_kwargs(
+    name: str,
+    instructions: str,
+    auth: Optional[Any],
+    lifespan: Optional[Callable[..., Any]],
+    tools: Optional[List[Any]],
+    include_tags: Optional[Set[str]],
+    exclude_tags: Optional[Set[str]],
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Build FastMCP constructor arguments."""
+    mcp_kwargs: Dict[str, Any] = {
+        "name": name,
+        "instructions": instructions,
+    }
+
+    # Add optional parameters if provided
+    if auth is not None:
+        mcp_kwargs["auth"] = auth
+    if lifespan is not None:
+        mcp_kwargs["lifespan"] = lifespan
+    if tools is not None:
+        mcp_kwargs["tools"] = tools
+    if include_tags is not None:
+        mcp_kwargs["include_tags"] = include_tags
+    if exclude_tags is not None:
+        mcp_kwargs["exclude_tags"] = exclude_tags
+
+    # Add any additional kwargs
+    mcp_kwargs.update(kwargs)
+    return mcp_kwargs
+
+
+def _apply_config(mcp_instance: FastMCP, config: Optional[Dict[str, Any]]) -> None:
+    """Apply additional configuration to FastMCP instance."""
+    if config:
+        for key, value in config.items():
+            setattr(mcp_instance, key, value)
+
+
+def _log_instance_creation(
+    name: str,
+    auth: Optional[Any],
+    include_tags: Optional[Set[str]],
+    exclude_tags: Optional[Set[str]],
+) -> None:
+    """Log FastMCP instance creation details."""
+    logger.info("Created FastMCP instance: %s", name)
+    if auth:
+        logger.info("Authentication enabled")
+    if include_tags or exclude_tags:
+        logger.info(
+            "Tag filtering enabled - include: %s, exclude: %s",
+            include_tags,
+            exclude_tags,
+        )
+
+
+def create_mcp_app(
+    name: str = "Superset MCP Server",
+    instructions: Optional[str] = None,
+    auth: Optional[Any] = None,
+    lifespan: Optional[Callable[..., Any]] = None,
+    tools: Optional[List[Any]] = None,
+    include_tags: Optional[Set[str]] = None,
+    exclude_tags: Optional[Set[str]] = None,
+    config: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
+) -> FastMCP:
+    """
+    Application factory for creating FastMCP instances.
+
+    This follows the Flask application factory pattern, allowing users to
+    configure the FastMCP instance with custom authentication, middleware,
+    and other settings.
+
+    Args:
+        name: Human-readable server name
+        instructions: Server description and usage instructions
+        auth: Authentication provider for securing HTTP transports
+        lifespan: Async context manager for startup/shutdown logic
+        tools: List of tools or functions to add to the server
+        include_tags: Set of tags to include (whitelist)
+        exclude_tags: Set of tags to exclude (blacklist)
+        config: Additional configuration dictionary
+        **kwargs: Additional FastMCP constructor arguments
+
+    Returns:
+        Configured FastMCP instance
+    """
+    # Use default instructions if none provided
+    if instructions is None:
+        instructions = DEFAULT_INSTRUCTIONS
+
+    # Build FastMCP constructor arguments
+    mcp_kwargs = _build_mcp_kwargs(
+        name, instructions, auth, lifespan, tools, include_tags, exclude_tags, **kwargs
+    )
+
+    # Create the FastMCP instance
+    mcp_instance = FastMCP(**mcp_kwargs)
+
+    # Apply any additional configuration
+    _apply_config(mcp_instance, config)
+
+    # Log instance creation
+    _log_instance_creation(name, auth, include_tags, exclude_tags)
+
+    return mcp_instance
+
+
+# Create default MCP instance for backward compatibility
+# Tool modules can import this and use @mcp.tool decorators
+mcp = create_mcp_app()
+
+
+def init_fastmcp_server(
+    name: str = "Superset MCP Server",
+    instructions: Optional[str] = None,
+    auth: Optional[Any] = None,
+    lifespan: Optional[Callable[..., Any]] = None,
+    tools: Optional[List[Any]] = None,
+    include_tags: Optional[Set[str]] = None,
+    exclude_tags: Optional[Set[str]] = None,
+    config: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
+) -> FastMCP:
     """
     Initialize and configure the FastMCP server.
-    This should be called before running the server.
+
+    This function provides a way to create a custom FastMCP instance
+    instead of using the default global one. If parameters are provided,
+    a new instance will be created with those settings.
+
+    Args:
+        Same as create_mcp_app()
+
+    Returns:
+        FastMCP instance (either the global one or a new custom one)
     """
-    logger.setLevel(logging.DEBUG)
-    logger.info("MCP Server initialized - scaffold version without auth")
-    return mcp
+    # If any custom parameters are provided, create a new instance
+    custom_params_provided = any(
+        [
+            name != "Superset MCP Server",
+            instructions is not None,
+            auth is not None,
+            lifespan is not None,
+            tools is not None,
+            include_tags is not None,
+            exclude_tags is not None,
+            config is not None,
+            kwargs,
+        ]
+    )
+
+    if custom_params_provided:
+        logger.info("Creating custom FastMCP instance with provided configuration")
+        return create_mcp_app(
+            name=name,
+            instructions=instructions,
+            auth=auth,
+            lifespan=lifespan,
+            tools=tools,
+            include_tags=include_tags,
+            exclude_tags=exclude_tags,
+            config=config,
+            **kwargs,
+        )
+    else:
+        # Use the default global instance
+        logger.setLevel(logging.DEBUG)
+        logger.info("Using default FastMCP instance - scaffold version without auth")
+        return mcp
