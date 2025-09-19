@@ -1,18 +1,9 @@
 {
-  "compilerOptions": {
-    "declarationDir": "lib",
-    "outDir": "lib",
-    "rootDir": "src"
-  },
-  "exclude": [
-    "lib",
-    "src/**/*.test.ts"
-  ],
   "extends": "../../tsconfig.json",
-  "include": [
-    "src/**/*",
-    "types/**/*",
-    "../../types/**/*"
-  ],
-  "references": []
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "outDir": "lib"
+  },
+  "include": ["src/**/*", "types/**/*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.stories.*"]
 }
