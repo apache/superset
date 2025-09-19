@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, Fragment, useEffect, useState } from 'react';
+import { FC, Fragment, useCallback, useEffect, useState } from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getClientErrorObject,
+  JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
@@ -33,6 +34,7 @@ import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
   latestQueryFormData: QueryFormData;
+  ownState?: JsonObject;
 }
 
 type Result = {
@@ -48,17 +50,18 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
+const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadChartData = (resultType: string) => {
+  const loadChartData = useCallback((resultType: string) => {
     setIsLoading(true);
     getChartDataRequest({
       formData: latestQueryFormData,
       resultFormat: 'json',
       resultType,
+      ownState: ownState || {},
     })
       .then(({ json }) => {
         setResult(ensureIsArray(json.result) as Result[]);
@@ -76,10 +79,10 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
           setIsLoading(false);
         });
       });
-  };
+  }, [latestQueryFormData, ownState]);
   useEffect(() => {
     loadChartData('query');
-  }, [JSON.stringify(latestQueryFormData)]);
+  }, [loadChartData]);
 
   if (isLoading) {
     return <Loading />;

@@ -36,6 +36,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
+  JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
@@ -143,6 +144,8 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  ownState?: JsonObject;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -482,7 +485,12 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View query')}</div>
           }
           modalTitle={t('View query')}
-          modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+          modalBody={
+            <ViewQueryModal
+              latestQueryFormData={props.formData}
+              ownState={props.ownState}
+            />
+          }
           draggable
           resizable
           responsive

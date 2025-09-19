@@ -701,6 +701,18 @@ const Chart = (props: ChartProps) => {
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
         chartHolderRef={props.chartHolderRef}
+        ownState={createOwnStateWithChartState(
+          (dataMask[props.id]?.ownState as JsonObject) || EMPTY_OBJECT,
+          {
+            state:
+              getChartStateWithFallback(
+                chartState as { state?: JsonObject } | undefined,
+                formData as JsonObject,
+                slice.viz_type,
+              ) ?? undefined,
+          },
+          slice.viz_type,
+        )}
       />
 
       {/*
