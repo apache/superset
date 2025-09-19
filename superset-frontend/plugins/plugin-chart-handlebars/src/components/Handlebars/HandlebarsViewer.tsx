@@ -18,8 +18,8 @@
  */
 import { styled, t } from '@superset-ui/core';
 import { SafeMarkdown } from '@superset-ui/core/components';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
-import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';

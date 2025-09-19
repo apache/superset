@@ -18,9 +18,9 @@
  */
 import { useEffect, useState, memo } from 'react';
 import { styled, t } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';
-import dayjs from 'dayjs';
 import { isPlainObject } from 'lodash';
 
 export interface HandlebarsRendererProps {
