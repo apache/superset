@@ -1002,6 +1002,85 @@ describe('async actions', () => {
           }),
         );
       });
+
+      it('uses tabViewId when available', () => {
+        const tableName = 'table';
+        const catalogName = null;
+        const schemaName = 'schema';
+        const expectedDbId = 473892;
+        const tabViewId = '123';
+        const queryWithTabViewId = { ...query, tabViewId };
+
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            unsavedQueryEditor: {
+              id: query.id,
+              dbId: expectedDbId,
+            },
+          },
+        });
+
+        const request = actions.addTable(
+          queryWithTabViewId,
+          tableName,
+          catalogName,
+          schemaName,
+        );
+        request(store.dispatch, store.getState);
+
+        expect(store.getActions()[0]).toEqual(
+          expect.objectContaining({
+            table: expect.objectContaining({
+              name: tableName,
+              catalog: catalogName,
+              schema: schemaName,
+              dbId: expectedDbId,
+              queryEditorId: tabViewId, // Should use tabViewId, not id
+            }),
+          }),
+        );
+      });
+
+      it('falls back to id when tabViewId is not available', () => {
+        const tableName = 'table';
+        const catalogName = null;
+        const schemaName = 'schema';
+        const expectedDbId = 473892;
+        const queryWithoutTabViewId = { ...query, tabViewId: undefined };
+
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            unsavedQueryEditor: {
+              id: query.id,
+              dbId: expectedDbId,
+            },
+          },
+        });
+
+        const request = actions.addTable(
+          queryWithoutTabViewId,
+          tableName,
+          catalogName,
+          schemaName,
+        );
+        request(store.dispatch, store.getState);
+
+        expect(store.getActions()[0]).toEqual(
+          expect.objectContaining({
+            table: expect.objectContaining({
+              name: tableName,
+              catalog: catalogName,
+              schema: schemaName,
+              dbId: expectedDbId,
+              queryEditorId: query.id, // Should use id when tabViewId is not available
+            }),
+          }),
+        );
+      });
     });
 
     describe('syncTable', () => {
