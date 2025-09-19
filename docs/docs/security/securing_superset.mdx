@@ -17,10 +17,6 @@ Running Superset without HTTPS (TLS) is not secure. Without it, all network traf
 * **Enforce Modern TLS:** Configure your proxy to enforce TLS 1.2 or higher with strong, industry-standard cipher suites.
 * **Implement HSTS:** Use the HTTP Strict Transport Security (HSTS) header to ensure browsers only connect to your Superset instance over HTTPS. This can be configured in your reverse proxy or within Superset's Talisman settings.
 
-> #### ⚠️ Warning: Never Run Superset on HTTP in Production
->
-> Exposing Superset directly over HTTP is a critical security risk that exposes your entire instance to network interception attacks.
-
 ### **`SUPERSET_SECRET_KEY` Management (CRITICAL)**
 
 This is the most critical security setting for your Superset instance. It is used to sign all session cookies and encrypt sensitive information in the metadata database, such as database connection credentials.
@@ -95,6 +91,13 @@ SESSION_COOKIE_HTTPONLY = True    # Prevent client-side JS from accessing the co
 SESSION_COOKIE_SAMESITE = 'Lax'   # Provide protection against CSRF attacks
 ```
 
+> ##### Note on iFrame Embedding and `SESSION_COOKIE_SAMESITE`
+>The recommended default setting `'Lax'` provides good CSRF protection for most use cases. However, if you need to embed Superset dashboards into other applications using an iFrame, you will need to change this setting to `'None'`.
+
+SESSION_COOKIE_SAMESITE = 'None'
+
+Setting SameSite to 'None' requires that SESSION_COOKIE_SECURE is also set to True. Be aware that this configuration disables some of the browser's built-in CSRF protections to allow for cross-domain functionality, so it should only be used when iFrame embedding is necessary.
+
 ### **Authentication and Authorization**
 
 While Superset's built-in database authentication is convenient, for production it's highly recommended to integrate with an enterprise-grade identity provider (IdP).
@@ -135,7 +138,7 @@ TALISMAN_CONFIG = {
         'style-src': ["'self'", "'unsafe-inline'"],
         'script-src': ["'self'"],
     },
-    'force_https': False, # HTTPS should be handled by a reverse proxy
+    'force_https': False, # HTTPS should be handled by a reverse proxy and workers may need the HTTP route for Alerts & Reports
     'strict_transport_security': True,
     'session_cookie_secure': True,
     'frame_options': 'SAMEORIGIN',
@@ -188,18 +191,13 @@ TALISMAN_CONFIG = {
   - [ ] Regularly apply Superset security updates.
   - [ ] Rotate the `SUPERSET_SECRET_KEY` periodically (e.g., quarterly) and after any potential security incident.
   - [ ] Conduct quarterly access reviews for all users.
-  - [ ] Review security monitoring alerts weekly.
+  - [ ] Assuming logging and monitoring is in place, review security monitoring alerts weekly.
 
-### **Appendix B: Emergency Procedure for a Compromised `SECRET_KEY`**
+### **Appendix B: `SECRET_KEY` Rotation and Compromise Response**
 
-If you suspect your `SUPERSET_SECRET_KEY` has been compromised, follow these steps immediately to contain the incident:
+**Why and When to Rotate the `SECRET_KEY`**
+Rotating the `SUPERSET_SECRET_KEY` is a critical security procedure. It is mandatory after a known or suspected compromise and is a best practice when an employee with access to the key departs. While periodic rotation can limit the window of exposure for an unknown leak, it is a high-impact operation that will invalidate all user sessions and requires careful execution to avoid breaking your instance. The principles behind managing this key align with general best practices for cryptographic storage, which are further detailed in the OWASP Cryptographic Storage Cheat Sheet here: https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
 
-1.  **Generate a new `SUPERSET_SECRET_KEY`** using `openssl rand -base64 42`.
-2.  **Update the Key:** Update the environment variable or secrets vault with the new key.
-3.  **Re-encrypt Existing Secrets:** Run the Superset CLI command to re-encrypt all credentials and other secrets stored in the metadata database with the new key.
-    ```bash
-    superset re-encrypt-secrets
-    ```
-4.  **Restart All Services:** Perform a full restart of all Superset web servers and workers to ensure they load the new key.
-5.  **Invalidate All Sessions:** The key rotation will automatically invalidate all existing user sessions, forcing all users to log in again.
-6.  **Monitor:** Closely monitor Superset and database logs for any suspicious activity.
+**Procedure for Rotating the Key**
+The procedure for safely rotating the SECRET_KEY must be followed precisely to avoid locking yourself out of your instance. The official Apache Superset documentation maintains the correct, up-to-date procedure. Please follow the official guide here:
+https://superset.apache.org/docs/configuration/configuring-superset/#rotating-to-a-newer-secret_key
