@@ -45,13 +45,14 @@ def get_flask_app() -> Flask:
 
         try:
             from superset.app import create_app
-            from superset.mcp_service.config import DEFAULT_CONFIG
+            from superset.mcp_service.mcp_config import get_mcp_config
 
             # Create the Flask app instance
             _flask_app = create_app()
 
             # Apply MCP-specific defaults to app.config if not already set
-            for key, value in DEFAULT_CONFIG.items():
+            mcp_config = get_mcp_config()
+            for key, value in mcp_config.items():
                 if key not in _flask_app.config:
                     _flask_app.config[key] = value
 
