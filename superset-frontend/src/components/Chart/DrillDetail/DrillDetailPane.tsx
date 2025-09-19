@@ -33,6 +33,7 @@ import {
   GenericDataType,
   JsonObject,
   QueryFormData,
+  StatefulChart,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -40,7 +41,7 @@ import { useResizeDetector } from 'react-resize-detector';
 import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
 import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import { EmptyState, Flex, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, {
   ColumnsType,
@@ -81,10 +82,12 @@ export default function DrillDetailPane({
   formData,
   initialFilters,
   dataset,
+  drillThroughFormData,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
   dataset?: Dataset;
+  drillThroughFormData?: QueryFormData | null;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -161,7 +164,7 @@ export default function DrillDetailPane({
           ) : (
             dataset?.verbose_map?.[column] || column
           ),
-        render: value => {
+        render: (value: any) => {
           if (value === true || value === false) {
             return <BooleanCell value={value} />;
           }
@@ -233,6 +236,10 @@ export default function DrillDetailPane({
 
   // Download page of results & trim cache if page not in cache
   useEffect(() => {
+    // Skip table data fetching if we're using a drill-through chart
+    if (dataset?.drill_through_chart_id) {
+      return;
+    }
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(formData, filters) ?? {};
@@ -282,12 +289,27 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  const bootstrapping = !responseError && !resultsPages.size;
+  const bootstrapping =
+    !dataset?.drill_through_chart_id && !responseError && !resultsPages.size;
 
   const allowHTML = formData.allow_render_html ?? true;
 
   let tableContent = null;
-  if (responseError) {
+
+  // If a drill-through chart is configured, use it instead of the table
+  if (dataset?.drill_through_chart_id && drillThroughFormData) {
+    tableContent = (
+      <Flex vertical style={{ height: '100%' }}>
+        <StatefulChart
+          chartId={dataset.drill_through_chart_id}
+          formDataOverrides={drillThroughFormData}
+          height="100%"
+          width="100%"
+          showLoading
+        />
+      </Flex>
+    );
+  } else if (responseError) {
     // Render error if page download failed
     tableContent = (
       <pre
@@ -331,7 +353,7 @@ export default function DrillDetailPane({
   return (
     <>
       {!bootstrapping && metadataBarComponent}
-      {!bootstrapping && (
+      {!bootstrapping && !dataset?.drill_through_chart_id && (
         <TableControls
           filters={filters}
           setFilters={setFilters}
