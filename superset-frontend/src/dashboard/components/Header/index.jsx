@@ -100,7 +100,7 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 const extensionsRegistry = getExtensionsRegistry();
 
 const headerContainerStyle = theme => css`
-  border-bottom: 1px solid ${theme.colorSplit};
+  border-bottom: 1px solid ${theme.colorBorder};
 `;
 
 const editButtonStyle = theme => css`
