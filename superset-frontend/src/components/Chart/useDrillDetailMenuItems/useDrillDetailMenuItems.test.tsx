@@ -29,15 +29,13 @@ import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
-import DrillDetailMenuItems, {
-  DrillDetailMenuItemsProps,
-} from './DrillDetailMenuItems';
-import DrillDetailModal from './DrillDetailModal';
+import DrillDetailModal from '../DrillDetail/DrillDetailModal';
+import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
 jest.mock(
-  './DrillDetailPane',
+  '../DrillDetail/DrillDetailPane',
   () =>
     ({
       initialFilters,
@@ -87,17 +85,17 @@ const MockRenderChart = ({
     BinaryQueryObjectFilterClause[] | undefined
   >(filters);
 
+  const menuItems = useDrillDetailMenuItems({
+    setFilters,
+    formData: formData ?? defaultFormData,
+    filters: modalFilters,
+    isContextMenu,
+    setShowModal: setShowMenu,
+  });
+
   return (
     <>
-      <Menu forceSubMenuRender>
-        <DrillDetailMenuItems
-          setFilters={setFilters}
-          formData={formData ?? defaultFormData}
-          filters={modalFilters}
-          isContextMenu={isContextMenu}
-          setShowModal={setShowMenu}
-        />
-      </Menu>
+      <Menu forceSubMenuRender items={menuItems} />
 
       <DrillDetailModal
         chartId={chartId ?? defaultChartId}
@@ -130,8 +128,10 @@ const renderMenu = ({
   );
 };
 
-const setupMenu = (filters: BinaryQueryObjectFilterClause[]) => {
+const setupMenu = async (filters: BinaryQueryObjectFilterClause[]) => {
   cleanup();
+  // Small delay to ensure DOM cleanup is complete
+  await new Promise(resolve => setTimeout(resolve, 10));
   renderMenu({
     chartId: defaultChartId,
     formData: defaultFormData,
@@ -235,11 +235,11 @@ const expectDrillToDetailByEnabled = async () => {
     .getAllByRole('menuitem')
     .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
   await expectMenuItemEnabled(drillToDetailBy!);
+
   userEvent.hover(drillToDetailBy!);
 
-  const submenus = await screen.findAllByTestId('drill-to-detail-by-submenu');
-
-  expect(submenus.length).toEqual(2);
+  const submenu = await screen.findByRole('menu', {});
+  expect(submenu).toBeInTheDocument();
 };
 
 /**
@@ -258,17 +258,21 @@ const expectDrillToDetailByDisabled = async (tooltipContent?: string) => {
 const expectDrillToDetailByDimension = async (
   filter: BinaryQueryObjectFilterClause,
 ) => {
-  userEvent.hover(screen.getByRole('menuitem', { name: 'Drill to detail by' }));
-  const drillToDetailBySubMenus = await screen.findAllByTestId(
-    'drill-to-detail-by-submenu',
-  );
+  const drillByMenuItem = screen.getByRole('menuitem', {
+    name: 'Drill to detail by',
+  });
+
+  userEvent.hover(drillByMenuItem);
+
+  const submenu = await screen.findByRole('menu');
+  expect(submenu).toBeInTheDocument();
 
   const menuItemName = `Drill to detail by ${filter.formattedVal}`;
-  const drillToDetailBySubmenuItems = await within(
-    drillToDetailBySubMenus[1],
-  ).findAllByRole('menuitem');
+  const drillToDetailBySubmenuItem = await screen.findByRole('menuitem', {
+    name: menuItemName,
+  });
 
-  await expectMenuItemEnabled(drillToDetailBySubmenuItems[0]);
+  await expectMenuItemEnabled(drillToDetailBySubmenuItem);
   await expectDrillToDetailModal(menuItemName, [filter]);
 };
 
@@ -278,14 +282,15 @@ const expectDrillToDetailByDimension = async (
 const expectDrillToDetailByAll = async (
   filters: BinaryQueryObjectFilterClause[],
 ) => {
-  userEvent.hover(screen.getByRole('menuitem', { name: 'Drill to detail by' }));
-  const drillToDetailBySubMenus = await screen.findAllByTestId(
-    'drill-to-detail-by-submenu',
-  );
+  const drillByMenuItem = screen.getByRole('menuitem', {
+    name: 'Drill to detail by',
+  });
 
-  const drillToDetailBySubmenuItem = await within(
-    drillToDetailBySubMenus[1],
-  ).findByText(/all/i);
+  userEvent.hover(drillByMenuItem);
+
+  await screen.findByRole('menu');
+
+  const drillToDetailBySubmenuItem = await screen.findByText(/all/i, {});
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
 
@@ -386,20 +391,20 @@ test('context menu for supported chart, dimensions, 1 filter', async () => {
 
 test('context menu for supported chart, dimensions, filter A', async () => {
   const filters = [filterA, filterB];
-  setupMenu(filters);
+  await setupMenu(filters);
   await expectDrillToDetailByEnabled();
   await expectDrillToDetailByDimension(filterA);
 });
 
 test('context menu for supported chart, dimensions, filter B', async () => {
   const filters = [filterA, filterB];
-  setupMenu(filters);
+  await setupMenu(filters);
   await expectDrillToDetailByEnabled();
   await expectDrillToDetailByDimension(filterB);
 });
 
 test.skip('context menu for supported chart, dimensions, all filters', async () => {
   const filters = [filterA, filterB];
-  setupMenu(filters);
+  await setupMenu(filters);
   await expectDrillToDetailByAll(filters);
 });
