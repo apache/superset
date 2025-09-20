@@ -21,7 +21,9 @@ import { Form } from '@superset-ui/core/components';
 import BasicInfoSection from './BasicInfoSection';
 
 const defaultProps = {
-  form: {} as any,
+  form: {
+    getFieldValue: jest.fn(() => 'Test Dashboard'),
+  } as any,
   isLoading: false,
   validationStatus: {
     basic: { hasErrors: false, errors: [], name: 'Basic' },
