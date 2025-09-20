@@ -16,27 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+export interface ChartLoadTimestamps {
+  chartUpdateStartTime?: number;
+  chartUpdateEndTime?: number | null;
+  // allow extra fields without narrowing
+  [key: string]: unknown;
+}
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
-
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
+export default function isDashboardLoading(
+  charts: Record<string, ChartLoadTimestamps>,
+): boolean {
+  return Object.values(charts).some(chart => {
+    const start = chart.chartUpdateStartTime ?? 0;
+    const end = chart.chartUpdateEndTime ?? 0;
+    return start > end;
   });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+}

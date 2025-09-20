@@ -16,27 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+/* eslint-disable no-param-reassign */
+import { CHART_TYPE } from './componentTypes';
+import type { DashboardLayout, LayoutItem } from '../types';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
-
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+export default function getLayoutComponentFromChartId(
+  layout: DashboardLayout,
+  chartId: number,
+): LayoutItem | undefined {
+  return Object.values(layout).find(
+    currentComponent =>
+      currentComponent &&
+      currentComponent.type === CHART_TYPE &&
+      currentComponent.meta &&
+      currentComponent.meta.chartId === chartId,
+  );
+}
