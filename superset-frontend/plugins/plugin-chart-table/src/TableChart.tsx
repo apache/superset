@@ -53,6 +53,7 @@ import {
   tn,
   useTheme,
   SupersetTheme,
+  isThemeDark,
 } from '@superset-ui/core';
 import {
   Input,
@@ -170,12 +171,25 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
+  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
+  theme: SupersetTheme;
 }) {
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  return `rgba(${r},0,0,0.2)`;
+  if (!colorPositiveNegative) {
+    const color = isThemeDark(theme)
+      ? 'rgba(255,255,255,0.3)'
+      : 'rgba(0,0,0,0.2)';
+    return color;
+  }
+
+  const color = isThemeDark(theme)
+    ? value < 0
+      ? `rgba(255,100,100,0.4)`
+      : `rgba(255,255,255,0.3)`
+    : `rgba(${value < 0 ? 150 : 0},0,0,0.2)`;
+  return color;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -881,6 +895,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 background-color: ${cellBackground({
                   value: value as number,
                   colorPositiveNegative,
+                  theme,
                 })};
               `}
           `;
@@ -1089,6 +1104,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       totals,
       columnColorFormatters,
       columnOrderToggle,
+      theme,
     ],
   );
 
