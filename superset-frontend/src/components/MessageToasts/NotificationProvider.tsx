@@ -67,12 +67,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<NotificationContextType>(
     () => ({
       api,
-      success: args => api.success(args),
-      error: args => api.error(args),
-      warning: args => api.warning(args),
-      info: args => api.info(args),
-      open: args => api.open(args),
-      destroy: (key?: string) => api.destroy(key),
+      success: api.success,
+      error: api.error,
+      warning: api.warning,
+      info: api.info,
+      open: api.open,
+      destroy: api.destroy,
     }),
     [api],
   );
