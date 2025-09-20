@@ -119,9 +119,6 @@ function ThemesList({
   const canImport = hasPerm('can_write');
   const canApply = hasPerm('can_write'); // Only users with write permission can apply themes
 
-  addDangerToast('TEST DANGER TOAST');
-  addSuccessToast('TEST SUCCESS TOAST');
-
   // Get theme settings from bootstrap data
   const bootstrapData = getBootstrapData();
   const themeData = bootstrapData?.common?.theme || {};
