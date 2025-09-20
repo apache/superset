@@ -18,13 +18,14 @@
  */
 
 import { Route } from 'react-router-dom';
-import { getExtensionsRegistry, NotificationProvider } from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { FlashProvider, DynamicPluginProvider } from 'src/components';
+import { NotificationProvider } from 'src/components/NotificationProvider';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';

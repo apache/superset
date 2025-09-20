@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import AntdToastContainer from 'src/components/MessageToasts/AntdToastContainer';
 import { Button } from '@superset-ui/core/components';
 import { CopyToClipboard } from '.';
 
@@ -36,7 +36,7 @@ export const InteractiveCopyToClipboard = ({ copyNode, ...rest }: any) => {
   return (
     <>
       <CopyToClipboard copyNode={node} {...rest} />
-      <ToastContainer />
+      <AntdToastContainer />
     </>
   );
 };
