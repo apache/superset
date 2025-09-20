@@ -20,7 +20,7 @@ import { useEffect, useRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Interweave } from 'interweave';
-import { useNotification } from 'src/components/NotificationProvider';
+import { useNotification } from './NotificationProvider';
 import { removeToast } from './actions';
 import { ToastMeta, ToastType } from './types';
 
@@ -29,7 +29,7 @@ interface ToastContainerProps {
   removeToast: (id: string) => void;
 }
 
-function AntdToastPresenter({ toasts, removeToast }: ToastContainerProps) {
+function ToastPresenter({ toasts, removeToast }: ToastContainerProps) {
   const notification = useNotification();
   const toastKeyMap = useRef(new Map<string, string>());
   const displayedToasts = useRef(new Set<string>());
@@ -96,9 +96,9 @@ function AntdToastPresenter({ toasts, removeToast }: ToastContainerProps) {
   return null;
 }
 
-const AntdToastContainer = connect(
+const ToastContainer = connect(
   ({ messageToasts: toasts }: any) => ({ toasts }),
   dispatch => bindActionCreators({ removeToast }, dispatch),
-)(AntdToastPresenter);
+)(ToastPresenter);
 
-export default AntdToastContainer;
+export default ToastContainer;

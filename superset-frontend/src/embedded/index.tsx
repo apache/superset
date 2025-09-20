@@ -36,7 +36,7 @@ import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import AntdToastContainer from 'src/components/MessageToasts/AntdToastContainer';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
@@ -96,7 +96,7 @@ const EmbeddedRoute = () => (
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
       </ErrorBoundary>
-      <AntdToastContainer />
+      <ToastContainer />
     </Suspense>
   </EmbeddedContextProviders>
 );

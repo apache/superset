@@ -31,7 +31,7 @@ import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridRea
 import { ErrorBoundary } from 'src/components';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
-import AntdToastContainer from 'src/components/MessageToasts/AntdToastContainer';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
 import { routes, isFrontendRoute } from 'src/views/routes';
@@ -105,7 +105,7 @@ const App = () => (
           </Route>
         ))}
       </Switch>
-      <AntdToastContainer />
+      <ToastContainer />
     </RootContextProviders>
   </Router>
 );

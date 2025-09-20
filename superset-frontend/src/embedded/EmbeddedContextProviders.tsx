@@ -23,7 +23,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { FlashProvider, DynamicPluginProvider } from 'src/components';
-import { NotificationProvider } from 'src/components/NotificationProvider';
+import { NotificationProvider } from 'src/components/MessageToasts/NotificationProvider';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';

@@ -36,7 +36,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { render, act } from 'spec/helpers/testing-library';
-import AntdToastContainer from 'src/components/MessageToasts/AntdToastContainer';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { logging } from '@superset-ui/core';
 import EditorAutoSync, { INTERVAL } from '.';
@@ -216,7 +216,7 @@ test('renders an error toast when the sync failed', async () => {
   render(
     <>
       <EditorAutoSync />
-      <AntdToastContainer />
+      <ToastContainer />
     </>,
     {
       useRedux: true,
