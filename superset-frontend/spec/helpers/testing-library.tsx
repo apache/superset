@@ -44,6 +44,7 @@ import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
+import { NotificationProvider } from 'src/components/MessageToasts/NotificationProvider';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
@@ -87,7 +88,9 @@ export function createWrapper(options?: Options) {
   return ({ children }: { children?: ReactNode }) => {
     let result = (
       <ThemeProvider theme={supersetTheme}>
-        <ExtensionsProvider>{children}</ExtensionsProvider>
+        <ExtensionsProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </ExtensionsProvider>
       </ThemeProvider>
     );
 
