@@ -49,7 +49,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
@@ -1198,6 +1198,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 merge=True,
             )
         self.create_missing_perms()
+
+        # SQLAlchemy 2.x deadlock fix: Commit bulk operations before DELETE cleanup
+        # This prevents deadlock between many concurrent INSERTs
+        # (role-permission relationships)
+        # and DELETE operations (permission cleanup) by releasing locks between phases
+        self.session.commit()
+
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
@@ -1207,8 +1214,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         pvms = (
             self.session.query(self.permissionview_model)
             .options(
-                eagerload(self.permissionview_model.permission),
-                eagerload(self.permissionview_model.view_menu),
+                joinedload(self.permissionview_model.permission),
+                joinedload(self.permissionview_model.view_menu),
             )
             .all()
         )
@@ -1796,7 +1803,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         table = SqlaTable.__table__  # pylint: disable=no-member
         current_dataset = connection.execute(
             table.select().where(table.c.id == target.id)
-        ).one()
+        ).fetchone()
         current_db_id = current_dataset.database_id
         current_catalog = current_dataset.catalog
         current_schema = current_dataset.schema
@@ -2322,7 +2329,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.session.expunge(query)
+            # SQLAlchemy compatibility: Only expunge if the object is actually
+            # in the session In SQLAlchemy 1.4.x, objects might be auto-added;
+            # in 2.x they're transient
+            if query in self.session:
+                self.session.expunge(query)
 
         if database and table or query:
             if query:

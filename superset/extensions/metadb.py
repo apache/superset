@@ -324,7 +324,6 @@ class SupersetShillelaghAdapter(Adapter):
                     self.table,
                     metadata,
                     schema=self.schema,
-                    autoload=True,
                     autoload_with=engine,
                 )
             except NoSuchTableError as ex:
@@ -361,7 +360,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Build SQLAlchemy query object.
         """
-        query = select([self._table])
+        query = select(self._table)
 
         for column_name, filter_ in bounds.items():
             column = self._table.c[column_name]
@@ -445,7 +444,7 @@ class SupersetShillelaghAdapter(Adapter):
             if self._rowid:
                 return result.inserted_primary_key[0]
 
-            query = select([func.count()]).select_from(self._table)
+            query = select(func.count()).select_from(self._table)
             return connection.execute(query).scalar()
 
     @check_dml
