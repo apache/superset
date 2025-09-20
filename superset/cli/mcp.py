@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,6 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,duckdb,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
--e ./superset-extensions-cli[test]
+"""CLI module for MCP service"""
+
+import click
+
+from superset.mcp_service.server import run_server
+
+
+@click.group()
+def mcp() -> None:
+    """Model Context Protocol service commands"""
+    pass
+
+
+@mcp.command()
+@click.option("--host", default="127.0.0.1", help="Host to bind to")
+@click.option("--port", default=5008, help="Port to bind to")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+def run(host: str, port: int, debug: bool) -> None:
+    """Run the MCP service"""
+    run_server(host=host, port=port, debug=debug)
