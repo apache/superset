@@ -300,6 +300,14 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
+  const hasFavoritesOnPage = useMemo(
+    () =>
+      dashboards.length > 0 &&
+      Object.keys(favoriteStatus).length === dashboards.length &&
+      Object.values(favoriteStatus).some(status => status === true),
+    [dashboards.length, favoriteStatus],
+  );
+
   const columns = useMemo(
     () => [
       {
@@ -319,7 +327,7 @@ function DashboardList(props: DashboardListProps) {
         id: 'id',
         disableSortBy: true,
         size: 'xs',
-        hidden: !user?.userId,
+        hidden: !user?.userId || !hasFavoritesOnPage,
       },
       {
         Cell: ({
