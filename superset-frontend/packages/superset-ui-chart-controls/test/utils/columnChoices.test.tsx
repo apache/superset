@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  GenericDataType,
-  testQueryResponse,
-} from '@superset-ui/core';
+import { DatasourceType, testQueryResponse } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {

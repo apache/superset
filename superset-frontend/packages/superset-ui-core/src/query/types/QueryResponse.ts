@@ -17,18 +17,9 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { TimeseriesDataRecord } from '../../chart';
 import { AnnotationData } from './AnnotationLayer';
-
-/**
- * Generic data types, see enum of the same name in superset/utils/core.py.
- */
-export enum GenericDataType {
-  Numeric = 0,
-  String = 1,
-  Temporal = 2,
-  Boolean = 3,
-}
 
 /**
  * Primitive types for data field values.
