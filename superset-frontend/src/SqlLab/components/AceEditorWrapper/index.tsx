@@ -65,6 +65,7 @@ const AceEditorWrapper = ({
     'catalog',
     'schema',
     'templateParams',
+    'tabViewId',
   ]);
   // Prevent a maximum update depth exceeded error
   // by skipping access the unsaved query editor state
@@ -172,6 +173,7 @@ const AceEditorWrapper = ({
       dbId: queryEditor.dbId,
       catalog: queryEditor.catalog,
       schema: queryEditor.schema,
+      tabViewId: queryEditor.tabViewId,
     },
     !autocomplete,
   );
