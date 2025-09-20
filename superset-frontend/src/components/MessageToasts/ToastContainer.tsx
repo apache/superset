@@ -39,7 +39,7 @@ function ToastPresenter({ toasts, removeToast }: ToastContainerProps) {
     toasts.forEach(toast => {
       if (!displayedToasts.current.has(toast.id)) {
         displayedToasts.current.add(toast.id);
-        
+
         const notificationKey = `toast-${toast.id}`;
         toastKeyMap.current.set(toast.id, notificationKey);
 
