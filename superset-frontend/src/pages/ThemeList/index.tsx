@@ -112,6 +112,9 @@ function ThemesList({
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
+  // Use Modal.useModal hook to ensure proper theming
+  const [modal, contextHolder] = Modal.useModal();
+
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -242,7 +245,7 @@ function ThemesList({
     successMessage: string;
     errorMessage: string;
   }) => {
-    Modal.confirm({
+    modal.confirm({
       title: config.title,
       content: config.content,
       onOk: () => {
@@ -575,6 +578,7 @@ function ThemesList({
 
   return (
     <>
+      {contextHolder}
       <SubMenu {...menuData} />
       <ThemeModal
         addDangerToast={addDangerToast}

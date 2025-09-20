@@ -65,6 +65,9 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   const [embedded, setEmbedded] = useState<EmbeddedDashboard | null>(null); // the embedded dashboard config
   const [allowedDomains, setAllowedDomains] = useState<string>('');
 
+  // Use Modal.useModal hook to ensure proper theming
+  const [modal, contextHolder] = Modal.useModal();
+
   const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
   // whether saveable changes have been made to the config
   const isDirty =
@@ -100,7 +103,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   }, [endpoint, allowedDomains]);
 
   const disableEmbedded = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: t('Disable embedding?'),
       content: t('This will remove your current embed configuration.'),
       okType: 'danger',
@@ -167,6 +170,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   return (
     <>
+      {contextHolder}
       {embedded ? (
         DocsConfigDetails ? (
           <DocsConfigDetails embeddedId={embedded.uuid} />
