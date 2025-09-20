@@ -125,7 +125,7 @@ if (!versionsConfig.developer_portal.disabled) {
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'getting-started/index',
+        docId: 'get-started/your-first-plugin',
         label: 'Getting Started',
       },
     ],
