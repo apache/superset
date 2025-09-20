@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,27 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
+export default function roundDecimal(
+  number: number,
+  precision?: number,
+): number {
+  let roundedNumber: number;
+  if (precision) {
+    const p = 10 ** precision;
+    roundedNumber = Math.round(number * p) / p;
+  } else {
+    roundedNumber = Math.round(number);
+  }
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+  return roundedNumber;
+}

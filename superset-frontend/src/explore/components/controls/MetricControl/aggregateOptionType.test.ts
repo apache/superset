@@ -16,27 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
+import { AggregateOption } from './aggregateOptionType';
+
+test('AggregateOption type should enforce aggregate_name as string', () => {
+  // Test that the type can be properly used
+  const validAggregate: AggregateOption = {
+    aggregate_name: 'SUM',
   };
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
+  expect(typeof validAggregate.aggregate_name).toBe('string');
+  expect(validAggregate.aggregate_name).toBe('SUM');
+});
 
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
+test('AggregateOption should work with various aggregate names', () => {
+  const aggregates: AggregateOption[] = [
+    { aggregate_name: 'COUNT' },
+    { aggregate_name: 'AVG' },
+    { aggregate_name: 'MIN' },
+    { aggregate_name: 'MAX' },
+  ];
+
+  aggregates.forEach(aggregate => {
+    expect(typeof aggregate.aggregate_name).toBe('string');
+    expect(aggregate.aggregate_name.length).toBeGreaterThan(0);
   });
 });

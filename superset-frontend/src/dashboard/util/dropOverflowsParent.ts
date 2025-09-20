@@ -16,27 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import type { ComponentType, Layout } from 'src/dashboard/types';
+import getComponentWidthFromDrop from './getComponentWidthFromDrop';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
+export interface DropResult {
+  source: { id: string };
+  destination: { id: string };
+  dragging: {
+    id?: string;
+    type?: ComponentType;
   };
+}
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+export default function doesChildOverflowParent(
+  dropResult: DropResult,
+  layout: Layout,
+): boolean {
+  const childWidth = getComponentWidthFromDrop({ dropResult, layout });
+  return typeof childWidth === 'number' && childWidth < 0;
+}

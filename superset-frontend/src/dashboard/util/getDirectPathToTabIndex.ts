@@ -16,27 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+export interface TabsComponentLike {
+  id: string;
+  parents?: string[];
+  children: string[];
+  [key: string]: unknown;
+}
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
+export default function getDirectPathToTabIndex(
+  tabsComponent: TabsComponentLike,
+  tabIndex: number,
+): string[] {
+  const directPathToFilter = (tabsComponent.parents || []).slice();
+  directPathToFilter.push(tabsComponent.id);
+  directPathToFilter.push(tabsComponent.children[tabIndex]);
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+  return directPathToFilter;
+}

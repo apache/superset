@@ -16,27 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import getDirectPathToTabIndex from './getDirectPathToTabIndex';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
-
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
+describe('getDirectPathToTabIndex', () => {
+  it('builds path using parents, id, and child at index', () => {
+    const tabs = {
+      id: 'TABS_ID',
+      parents: ['ROOT', 'ROW_1'],
+      children: ['TAB_A', 'TAB_B', 'TAB_C'],
+    };
+    expect(getDirectPathToTabIndex(tabs, 1)).toEqual([
+      'ROOT',
+      'ROW_1',
+      'TABS_ID',
+      'TAB_B',
+    ]);
   });
 
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
+  it('handles missing parents', () => {
+    const tabs = {
+      id: 'TABS_ID',
+      children: ['TAB_A'],
+    };
+    expect(getDirectPathToTabIndex(tabs, 0)).toEqual(['TABS_ID', 'TAB_A']);
   });
 });
