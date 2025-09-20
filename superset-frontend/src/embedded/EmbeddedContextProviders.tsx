@@ -74,17 +74,17 @@ export const EmbeddedContextProviders: React.FC = ({ children }) => {
               <DynamicPluginProvider>
                 <NotificationProvider>
                   <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  stringifyOptions={{ encode: false }}
-                >
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
-                </QueryParamProvider>
+                    ReactRouterRoute={Route}
+                    stringifyOptions={{ encode: false }}
+                  >
+                    {RootContextProviderExtension ? (
+                      <RootContextProviderExtension>
+                        {children}
+                      </RootContextProviderExtension>
+                    ) : (
+                      children
+                    )}
+                  </QueryParamProvider>
                 </NotificationProvider>
               </DynamicPluginProvider>
             </EmbeddedUiConfigProvider>
