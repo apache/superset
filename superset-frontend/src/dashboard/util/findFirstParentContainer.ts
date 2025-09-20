@@ -16,27 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import { TABS_TYPE } from './componentTypes';
+import { DASHBOARD_ROOT_ID } from './constants';
+import { DashboardLayout } from '../types';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
+export default function findFirstParentContainerId(
+  layout: DashboardLayout = {},
+): string {
+  // DASHBOARD_GRID_TYPE or TABS_TYPE?
+  let parent = layout[DASHBOARD_ROOT_ID];
+  if (
+    parent &&
+    parent.children.length &&
+    layout[parent.children[0]].type === TABS_TYPE
+  ) {
+    const tabs = layout[parent.children[0]];
+    parent = layout[tabs.children[0]];
+  } else {
+    parent = layout[parent.children[0]];
+  }
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+  return parent.id;
+}

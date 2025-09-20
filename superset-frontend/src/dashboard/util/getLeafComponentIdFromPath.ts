@@ -16,27 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
+export default function getLeafComponentIdFromPath(
+  directPathToChild: string[] = [],
+): string | null {
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild.slice();
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
+    while (currentPath.length) {
+      const componentId = currentPath.pop();
+      const componentType = componentId && componentId.split('-')[0];
 
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+      if (
+        componentType &&
+        !IN_COMPONENT_ELEMENT_TYPES.includes(componentType)
+      ) {
+        return componentId;
+      }
+    }
+  }
+
+  return null;
+}

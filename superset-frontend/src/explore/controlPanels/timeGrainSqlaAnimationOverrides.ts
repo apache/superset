@@ -16,27 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import type { ControlPanelState, Dataset } from '@superset-ui/chart-controls';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout: object = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
+interface TimeGrainOverrideState {
+  choices: [string, string][] | null;
+}
 
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-
-  it('should return false for non-empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+export default {
+  default: null,
+  mapStateToProps: (state: ControlPanelState): TimeGrainOverrideState => ({
+    choices:
+      state.datasource && 'time_grain_sqla' in state.datasource
+        ? ((state.datasource as Dataset).time_grain_sqla?.filter(
+            (o: [string, string]) => o[0] !== null,
+          ) ?? null)
+        : null,
+  }),
+};
