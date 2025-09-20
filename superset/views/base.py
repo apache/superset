@@ -318,13 +318,16 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Check if UI theme administration is enabled
     enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
+    # Get config themes to use as fallback
+    config_theme_default = get_config_value("THEME_DEFAULT")
+    config_theme_dark = get_config_value("THEME_DARK")
+
     if enable_ui_admin:
         # Try to load themes from database
         default_theme_model = ThemeDAO.find_system_default()
         dark_theme_model = ThemeDAO.find_system_dark()
 
         # Parse theme JSON from database models
-        default_theme = {}
         if default_theme_model:
             try:
                 default_theme = json.loads(default_theme_model.json_data)
@@ -334,12 +337,11 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
                     default_theme_model.id,
                 )
                 # Fallback to config
-                default_theme = get_config_value("THEME_DEFAULT")
+                default_theme = config_theme_default
         else:
             # No system default theme in database, use config
-            default_theme = get_config_value("THEME_DEFAULT")
+            default_theme = config_theme_default
 
-        dark_theme = {}
         if dark_theme_model:
             try:
                 dark_theme = json.loads(dark_theme_model.json_data)
@@ -348,34 +350,74 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
                     "Invalid JSON in system dark theme %s", dark_theme_model.id
                 )
                 # Fallback to config
-                dark_theme = get_config_value("THEME_DARK")
+                dark_theme = config_theme_dark
         else:
             # No system dark theme in database, use config
-            dark_theme = get_config_value("THEME_DARK")
+            dark_theme = config_theme_dark
     else:
-        # UI theme administration disabled, use config-based themes
-        default_theme = get_config_value("THEME_DEFAULT")
-        dark_theme = get_config_value("THEME_DARK")
+        # UI theme administration disabled
+        # Use config-based themes
+        default_theme = config_theme_default
+        dark_theme = config_theme_dark
 
-    # Validate theme configurations
-    if not is_valid_theme(default_theme):
+    # Get base themes from config (with fallback for backwards compatibility)
+    base_theme = app.config.get("BASE_THEME_DEFAULT", None)
+    base_theme_dark = app.config.get("BASE_THEME_DARK", None)
+
+    # Determine if themes need to fall back to base themes
+    # A theme needs fallback if it's None or empty
+    def should_use_base(theme):
+        """Check if a theme should be replaced with base theme entirely"""
+        if theme is None or theme == {}:
+            return True
+
+        return False
+
+    # Handle default theme fallback
+    if should_use_base(default_theme):
+        # When config theme is None, don't provide a custom theme
+        # The frontend will use base theme only
+        default_theme = {}
+    elif not is_valid_theme(default_theme):
         logger.warning(
-            "Invalid default theme configuration: %s, using empty theme",
+            "Invalid default theme configuration: %s, clearing it",
             default_theme,
         )
         default_theme = {}
 
-    if not is_valid_theme(dark_theme):
+    # Handle dark theme fallback
+    if should_use_base(dark_theme):
+        # When config theme is None, don't provide a custom theme
+        # The frontend will use base dark theme only
+        dark_theme = {}
+    elif not is_valid_theme(dark_theme):
         logger.warning(
-            "Invalid dark theme configuration: %s, using empty theme",
+            "Invalid dark theme configuration: %s, clearing it",
             dark_theme,
         )
         dark_theme = {}
+
+    # Validate base theme configurations
+    if base_theme is not None and not is_valid_theme(base_theme):
+        logger.warning(
+            "Invalid base theme configuration: %s, ignoring",
+            base_theme,
+        )
+        base_theme = None
+
+    if base_theme_dark is not None and not is_valid_theme(base_theme_dark):
+        logger.warning(
+            "Invalid base dark theme configuration: %s, ignoring",
+            base_theme_dark,
+        )
+        base_theme_dark = None
 
     return {
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
+            "baseThemeDefault": base_theme,
+            "baseThemeDark": base_theme_dark,
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
