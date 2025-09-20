@@ -465,7 +465,7 @@ export default typedMemo(function DataTable<D extends object>({
                   onChange={setPageSize}
                 />
               ) : null}
-              {serverPagination && (
+              {serverPagination && searchInput && (
                 <div className="search-select-container">
                   <span className="search-by-label">Search by: </span>
                   <SearchSelectDropdown
