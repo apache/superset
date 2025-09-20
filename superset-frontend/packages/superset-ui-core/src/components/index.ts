@@ -161,7 +161,6 @@ export {
 export { Image, type ImageProps } from './Image';
 export { Popconfirm, type PopconfirmProps } from './Popconfirm';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
-// Add these to your index.ts
 export * from './Menu';
 export * from './Popover';
 export * from './Radio';
@@ -176,6 +175,7 @@ export * from './TelemetryPixel';
 export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';
+export * from './Notification';
 export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,

@@ -18,7 +18,7 @@
  */
 
 import { Route } from 'react-router-dom';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, NotificationProvider } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
@@ -48,20 +48,22 @@ export const RootContextProviders: React.FC = ({ children }) => {
           <FlashProvider messages={common.flash_messages}>
             <EmbeddedUiConfigProvider>
               <DynamicPluginProvider>
-                <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  stringifyOptions={{ encode: false }}
-                >
-                  <ExtensionsProvider>
-                    {RootContextProviderExtension ? (
-                      <RootContextProviderExtension>
-                        {children}
-                      </RootContextProviderExtension>
-                    ) : (
-                      children
-                    )}
-                  </ExtensionsProvider>
-                </QueryParamProvider>
+                <NotificationProvider>
+                  <QueryParamProvider
+                    ReactRouterRoute={Route}
+                    stringifyOptions={{ encode: false }}
+                  >
+                    <ExtensionsProvider>
+                      {RootContextProviderExtension ? (
+                        <RootContextProviderExtension>
+                          {children}
+                        </RootContextProviderExtension>
+                      ) : (
+                        children
+                      )}
+                    </ExtensionsProvider>
+                  </QueryParamProvider>
+                </NotificationProvider>
               </DynamicPluginProvider>
             </EmbeddedUiConfigProvider>
           </FlashProvider>
