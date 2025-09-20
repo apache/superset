@@ -112,9 +112,6 @@ function ThemesList({
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
-  addDangerToast('TEST DANGER TOAST');
-  addSuccessToast('TEST SUCCESS TOAST');
-
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
