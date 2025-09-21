@@ -25,7 +25,13 @@ import {
 import userEvent from '@testing-library/user-event';
 import { Metric } from '@superset-ui/chart-controls';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
-import FoldersEditor, { Column } from './FoldersEditor';
+import FoldersEditor from './FoldersEditor';
+import { Column } from './FoldersEditor/types';
+import {
+  DEFAULT_METRICS_FOLDER_UUID,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+} from './folderUtils';
+import { FoldersEditorItemType } from './types';
 
 const mockMetrics: Metric[] = [
   {
@@ -57,16 +63,20 @@ const mockColumns: Column[] = [
 
 const mockFolders: DatasourceFolder[] = [
   {
-    uuid: 'folder1',
-    type: 'folder',
+    uuid: DEFAULT_METRICS_FOLDER_UUID,
+    type: FoldersEditorItemType.Folder,
     name: 'Metrics',
-    children: [{ type: 'metric', uuid: 'metric1' }],
+    children: [
+      { type: FoldersEditorItemType.Metric, uuid: 'metric1', name: 'Count' },
+    ],
   },
   {
-    uuid: 'folder2',
-    type: 'folder',
+    uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+    type: FoldersEditorItemType.Folder,
     name: 'Columns',
-    children: [{ type: 'column', uuid: 'col1' }],
+    children: [
+      { type: FoldersEditorItemType.Column, uuid: 'col1', name: 'ID' },
+    ],
   },
 ];
 
@@ -149,10 +159,12 @@ test('selects all items when Select all is clicked', async () => {
 
   await waitFor(() => {
     const checkboxes = screen.getAllByRole('checkbox');
-    checkboxes.forEach(checkbox => {
-      if (!checkbox.closest('button')) {
-        expect(checkbox).toBeChecked();
-      }
+    const nonButtonCheckboxes = checkboxes.filter(
+      checkbox => !checkbox.closest('button'),
+    );
+    expect(nonButtonCheckboxes.length).toBeGreaterThan(0);
+    nonButtonCheckboxes.forEach(checkbox => {
+      expect(checkbox).toBeChecked();
     });
   });
 });
@@ -160,27 +172,24 @@ test('selects all items when Select all is clicked', async () => {
 test('expands and collapses folders', async () => {
   render(<FoldersEditor {...defaultProps} />);
 
-  const metricsFolder = screen.getByText('Metrics');
-
   // Folder should be expanded by default, so Count should be visible
   expect(screen.getByText('Count')).toBeInTheDocument();
 
-  // Click to collapse
-  const folderHeader = metricsFolder.closest('[draggable="true"]');
-  if (folderHeader) {
-    fireEvent.click(folderHeader);
+  // Click to collapse - click on the first caret icon to toggle folder
+  const caretIcons = screen.getAllByRole('img', { name: 'caret-down' });
+  fireEvent.click(caretIcons[0]);
 
-    await waitFor(() => {
-      expect(screen.queryByText('Count')).not.toBeInTheDocument();
-    });
+  await waitFor(() => {
+    expect(screen.queryByText('Count')).not.toBeInTheDocument();
+  });
 
-    // Click to expand again
-    fireEvent.click(folderHeader);
+  // Click to expand again - the icon should now be caret-right
+  const rightCaretIcons = screen.getAllByRole('img', { name: 'caret-right' });
+  fireEvent.click(rightCaretIcons[0]);
 
-    await waitFor(() => {
-      expect(screen.getByText('Count')).toBeInTheDocument();
-    });
-  }
+  await waitFor(() => {
+    expect(screen.getByText('Count')).toBeInTheDocument();
+  });
 });
 
 test('edits folder name when clicked in edit mode', async () => {
@@ -192,7 +201,7 @@ test('edits folder name when clicked in edit mode', async () => {
       folders={[
         {
           uuid: 'custom-folder',
-          type: 'folder',
+          type: FoldersEditorItemType.Folder,
           name: 'Custom Folder',
           children: [],
         },
@@ -204,8 +213,8 @@ test('edits folder name when clicked in edit mode', async () => {
   fireEvent.click(folderName);
 
   const input = screen.getByDisplayValue('Custom Folder');
-  await userEvent.clear(input);
-  await userEvent.type(input, 'Updated Folder');
+  userEvent.clear(input);
+  userEvent.type(input, 'Updated Folder');
   fireEvent.blur(input);
 
   await waitFor(() => {
@@ -241,13 +250,23 @@ test('renders sortable drag handles for folders', () => {
     <FoldersEditor
       {...defaultProps}
       folders={[
-        { uuid: 'custom-folder-1', name: 'Custom Folder 1', children: [] },
-        { uuid: 'custom-folder-2', name: 'Custom Folder 2', children: [] },
+        {
+          type: FoldersEditorItemType.Folder,
+          uuid: 'custom-folder-1',
+          name: 'Custom Folder 1',
+          children: [],
+        },
+        {
+          type: FoldersEditorItemType.Folder,
+          uuid: 'custom-folder-2',
+          name: 'Custom Folder 2',
+          children: [],
+        },
       ]}
     />,
   );
 
-  const dragHandles = screen.getAllByTitle('Drag to reorder');
+  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
   expect(dragHandles.length).toBeGreaterThanOrEqual(2);
 });
 
@@ -255,12 +274,19 @@ test('applies @dnd-kit dragging styles when folder is being dragged', () => {
   render(
     <FoldersEditor
       {...defaultProps}
-      folders={[{ uuid: 'custom-folder', name: 'Custom Folder', children: [] }]}
+      folders={[
+        {
+          type: FoldersEditorItemType.Folder,
+          uuid: 'custom-folder',
+          name: 'Custom Folder',
+          children: [],
+        },
+      ]}
     />,
   );
 
   // The drag handle should have the correct attributes for @dnd-kit
-  const dragHandles = screen.getAllByTitle('Drag to reorder');
+  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
   expect(dragHandles.length).toBeGreaterThan(0);
 
   // Each handle should have @dnd-kit attributes
@@ -275,7 +301,7 @@ test('renders @dnd-kit sortable context', () => {
 
   // Just test that the basic DndContext is working
   // by checking for the presence of @dnd-kit specific attributes
-  const dragHandles = screen.getAllByTitle('Drag to reorder');
+  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
   expect(dragHandles.length).toBeGreaterThan(0);
 
   // Test that sortable attributes are present
@@ -288,13 +314,20 @@ test('folders are rendered with proper @dnd-kit integration', () => {
   render(
     <FoldersEditor
       {...defaultProps}
-      folders={[{ uuid: 'test-folder', name: 'Test Folder', children: [] }]}
+      folders={[
+        {
+          type: FoldersEditorItemType.Folder,
+          uuid: 'test-folder',
+          name: 'Test Folder',
+          children: [],
+        },
+      ]}
     />,
   );
 
   // Test that the folder appears and has drag functionality
   expect(screen.getByText('Test Folder')).toBeInTheDocument();
-  const dragHandle = screen.getAllByTitle('Drag to reorder')[0];
+  const dragHandle = screen.getAllByTitle('Drag to reorder or nest')[0];
   expect(dragHandle).toHaveAttribute('tabindex', '0');
   expect(dragHandle).toHaveAttribute('role', 'button');
 });
@@ -304,9 +337,16 @@ test('items are sortable with @dnd-kit', () => {
     ...defaultProps,
     folders: [
       {
-        uuid: 'metrics-folder',
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_METRICS_FOLDER_UUID,
         name: 'Metrics',
-        children: [{ uuid: 'metric-1', type: 'metric' }],
+        children: [
+          {
+            uuid: 'metric-1',
+            type: FoldersEditorItemType.Metric,
+            name: 'Test Metric 1',
+          },
+        ],
       },
     ],
   };
@@ -339,7 +379,7 @@ test('component renders with proper drag and drop structure', () => {
   expect(screen.getByText('Add folder')).toBeInTheDocument();
 
   // Verify DndContext and sortable elements are working
-  const dragHandles = screen.getAllByTitle('Drag to reorder');
+  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
   expect(dragHandles.length).toBeGreaterThan(0);
 
   // Each drag handle should have sortable attributes
@@ -356,11 +396,20 @@ test('drag functionality integrates properly with selection state', () => {
     onChange,
     folders: [
       {
-        uuid: 'metrics-folder',
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_METRICS_FOLDER_UUID,
         name: 'Metrics',
         children: [
-          { uuid: 'metric-1', type: 'metric' },
-          { uuid: 'metric-2', type: 'metric' },
+          {
+            uuid: 'metric-1',
+            type: FoldersEditorItemType.Metric,
+            name: 'Test Metric 1',
+          },
+          {
+            uuid: 'metric-2',
+            type: FoldersEditorItemType.Metric,
+            name: 'Test Metric 2',
+          },
         ],
       },
     ],

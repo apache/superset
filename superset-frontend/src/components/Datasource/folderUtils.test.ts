@@ -23,7 +23,6 @@ import {
   createFolder,
   resetToDefault,
   filterItemsBySearch,
-  moveItems,
   renameFolder,
   canDropItems,
   validateFolders,
@@ -92,8 +91,12 @@ describe('folderUtils', () => {
 
       expect(result).toHaveLength(2);
 
-      const metricsFolder = result.find(f => f.uuid === DEFAULT_METRICS_FOLDER_UUID);
-      const columnsFolder = result.find(f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID);
+      const metricsFolder = result.find(
+        f => f.uuid === DEFAULT_METRICS_FOLDER_UUID,
+      );
+      const columnsFolder = result.find(
+        f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID,
+      );
 
       expect(metricsFolder).toBeDefined();
       expect(metricsFolder?.name).toBe('Metrics');
@@ -126,9 +129,15 @@ describe('folderUtils', () => {
   describe('renameFolder', () => {
     test('should rename folder correctly', () => {
       const folders = resetToDefault(mockMetrics, mockColumns);
-      const result = renameFolder(DEFAULT_METRICS_FOLDER_UUID, 'Custom Metrics', folders);
+      const result = renameFolder(
+        DEFAULT_METRICS_FOLDER_UUID,
+        'Custom Metrics',
+        folders,
+      );
 
-      const renamedFolder = result.find(f => f.uuid === DEFAULT_METRICS_FOLDER_UUID);
+      const renamedFolder = result.find(
+        f => f.uuid === DEFAULT_METRICS_FOLDER_UUID,
+      );
       expect(renamedFolder?.name).toBe('Custom Metrics');
     });
   });
@@ -136,14 +145,26 @@ describe('folderUtils', () => {
   describe('canDropItems', () => {
     test('should allow dropping metrics in Metrics folder', () => {
       const folders = resetToDefault(mockMetrics, mockColumns);
-      const result = canDropItems(['metric-1'], DEFAULT_METRICS_FOLDER_UUID, folders, mockMetrics, mockColumns);
+      const result = canDropItems(
+        ['metric-1'],
+        DEFAULT_METRICS_FOLDER_UUID,
+        folders,
+        mockMetrics,
+        mockColumns,
+      );
 
       expect(result).toBe(true);
     });
 
     test('should not allow dropping columns in Metrics folder', () => {
       const folders = resetToDefault(mockMetrics, mockColumns);
-      const result = canDropItems(['column-1'], DEFAULT_METRICS_FOLDER_UUID, folders, mockMetrics, mockColumns);
+      const result = canDropItems(
+        ['column-1'],
+        DEFAULT_METRICS_FOLDER_UUID,
+        folders,
+        mockMetrics,
+        mockColumns,
+      );
 
       expect(result).toBe(false);
     });
@@ -152,8 +173,20 @@ describe('folderUtils', () => {
       const customFolder = createFolder('Custom Folder');
       const folders = [customFolder];
 
-      const metricResult = canDropItems(['metric-1'], customFolder.uuid, folders, mockMetrics, mockColumns);
-      const columnResult = canDropItems(['column-1'], customFolder.uuid, folders, mockMetrics, mockColumns);
+      const metricResult = canDropItems(
+        ['metric-1'],
+        customFolder.uuid,
+        folders,
+        mockMetrics,
+        mockColumns,
+      );
+      const columnResult = canDropItems(
+        ['column-1'],
+        customFolder.uuid,
+        folders,
+        mockMetrics,
+        mockColumns,
+      );
 
       expect(metricResult).toBe(true);
       expect(columnResult).toBe(true);
@@ -192,8 +225,12 @@ describe('folderUtils', () => {
 
       expect(result).toHaveLength(2);
 
-      const metricsFolder = result.find(f => f.uuid === DEFAULT_METRICS_FOLDER_UUID);
-      const columnsFolder = result.find(f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID);
+      const metricsFolder = result.find(
+        f => f.uuid === DEFAULT_METRICS_FOLDER_UUID,
+      );
+      const columnsFolder = result.find(
+        f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID,
+      );
 
       expect(metricsFolder).toBeDefined();
       expect(columnsFolder).toBeDefined();
@@ -201,7 +238,11 @@ describe('folderUtils', () => {
 
     test('should preserve existing folders', () => {
       const existingFolders = [createFolder('Custom Folder')];
-      const result = ensureDefaultFolders(existingFolders, mockMetrics, mockColumns);
+      const result = ensureDefaultFolders(
+        existingFolders,
+        mockMetrics,
+        mockColumns,
+      );
 
       expect(result.length).toBeGreaterThan(2);
       expect(result.find(f => f.name === 'Custom Folder')).toBeDefined();

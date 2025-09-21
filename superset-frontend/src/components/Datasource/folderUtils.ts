@@ -20,7 +20,7 @@ import { Metric } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import { UniqueIdentifier } from '@dnd-kit/core';
-import { Column } from './FoldersEditor';
+import { Column } from './FoldersEditor/types';
 import { FoldersEditorItemType } from './types';
 
 export const DEFAULT_METRICS_FOLDER_UUID = 'default-metric-folder-uuid';
@@ -39,10 +39,7 @@ export interface ValidationResult {
   warnings: string[];
 }
 
-export const createFolder = (
-  name: string,
-  parentId?: string,
-): DatasourceFolder => ({
+export const createFolder = (name: string): DatasourceFolder => ({
   uuid: generateUUID(),
   type: FoldersEditorItemType.Folder,
   name,
@@ -255,8 +252,19 @@ export const canDropFolder = (
 ): boolean => {
   if (folderId === targetId) return false;
 
+  // Prevent dropping a folder into its own descendants (circular reference)
   const descendants = getFolderDescendants(folderId, folders);
-  return !descendants.includes(targetId);
+  if (descendants.includes(targetId)) {
+    return false;
+  }
+  // Prevent dropping default folders (Metrics/Columns) into other folders
+  const draggedFolder = findFolderById(folderId, folders);
+  if (draggedFolder && isDefaultFolder(draggedFolder.name)) {
+    return false;
+  }
+
+  // Allow nesting in any other case
+  return true;
 };
 
 export const canDropItems = (
