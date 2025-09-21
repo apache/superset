@@ -165,9 +165,10 @@ const FolderTitle = styled.div`
   gap: ${({ theme }) => theme.paddingSM}px;
 `;
 
-const FolderContent = styled.div`
+const FolderContent = styled.div<{ isDragging?: boolean }>`
   margin-left: ${({ theme }) => theme.paddingLG}px;
-  min-height: 20px;
+  min-height: ${({ isDragging }) => (isDragging ? '80px' : '20px')};
+  transition: min-height 0.15s ease-in-out;
 `;
 
 const FolderItem = styled.div<{ isDraggable?: boolean; isDragging?: boolean }>`
@@ -192,11 +193,13 @@ const FolderItem = styled.div<{ isDraggable?: boolean; isDragging?: boolean }>`
   `}
 `;
 
-const EmptyFolderState = styled.div`
-  ${({ theme }) => css`
+const EmptyFolderState = styled.div<{ isDragging?: boolean }>`
+  ${({ theme, isDragging }) => css`
     padding: ${theme.paddingLG}px;
     text-align: center;
     color: ${theme.colorTextTertiary};
+    min-height: ${isDragging ? '120px' : 'auto'};
+    transition: min-height 0.2s ease-in-out;
   `}
 `;
 
@@ -657,6 +660,7 @@ const FoldersEditor = ({
       return;
     }
 
+    // Handle folder reordering
     if (folderIds.includes(active.id) && overId !== active.id) {
       setFolders(prevFolders => {
         const activeIndex = prevFolders.findIndex(f => f.uuid === active.id);
@@ -686,16 +690,24 @@ const FoldersEditor = ({
       return;
     }
 
-    if (activeFolder.uuid !== overFolder.uuid) {
+    // Update drag state to show visual feedback
+    if (overFolder.uuid !== dragState.overId) {
+      setDragState(prev => ({
+        ...prev,
+        overId: overFolder.uuid || null,
+      }));
+    }
+
+    // Check if the destination folder is currently empty
+    const isDestinationEmpty =
+      !overFolder.children || overFolder.children.length === 0;
+
+    // Only move items during drag-over if the destination is NOT empty
+    // This prevents the jumping issue with empty folders
+    if (activeFolder.uuid !== overFolder.uuid && !isDestinationEmpty) {
       setFolders(prevFolders => {
         if (recentlyMovedToNewContainer.current) {
           return prevFolders;
-        }
-        if (overFolder.uuid !== dragState.overId) {
-          setDragState(prev => ({
-            ...prev,
-            overId: overFolder.uuid || null,
-          }));
         }
 
         // Get all items being dragged (could be from multiple folders)
@@ -786,22 +798,6 @@ const FoldersEditor = ({
       onChange(folders);
     }
 
-    const activeContainer = folders.find(
-      folder =>
-        folder.uuid === active.id ||
-        folder.children?.some(item => item.uuid === active.id),
-    );
-
-    if (!activeContainer) {
-      setDragState({
-        activeId: null,
-        draggedType: null,
-        draggedItems: [],
-        overId: null,
-      });
-      return;
-    }
-
     const overId = over?.id;
 
     if (overId == null) {
@@ -814,29 +810,94 @@ const FoldersEditor = ({
       return;
     }
 
-    const overContainer = folders.find(
+    const overFolder = folders.find(
       folder =>
         folder.uuid === overId ||
         folder.children?.some(item => item.uuid === overId),
     );
+    const activeFolder = folders.find(
+      folder =>
+        folder.uuid === active.id ||
+        folder.children?.some(item => item.uuid === active.id),
+    );
 
-    if (overContainer) {
+    if (!overFolder || !activeFolder) {
+      setDragState({
+        activeId: null,
+        draggedType: null,
+        draggedItems: [],
+        overId: null,
+      });
+      return;
+    }
+
+    // Check if we need to move items to an empty folder
+    const isDestinationEmpty =
+      !overFolder.children || overFolder.children.length === 0;
+
+    if (
+      isDestinationEmpty &&
+      activeFolder.uuid !== overFolder.uuid &&
+      canAcceptCurrentDrag(overFolder.uuid)
+    ) {
+      // Handle dropping into empty folder
+      const draggedItemIds =
+        dragState.draggedItems.length > 0
+          ? dragState.draggedItems
+          : [active.id as string];
+
+      // Collect the actual item objects from all folders
+      const itemsToMove: DatasourceFolderItem[] = [];
+      folders.forEach(folder => {
+        if (folder.children) {
+          folder.children.forEach(child => {
+            if (
+              child.type !== 'folder' &&
+              draggedItemIds.includes(child.uuid)
+            ) {
+              itemsToMove.push(child as DatasourceFolderItem);
+            }
+          });
+        }
+      });
+
+      const updatedFolders = folders.map(folder => {
+        // Remove dragged items from all folders
+        const filteredChildren =
+          folder.children?.filter(
+            item => !draggedItemIds.includes(item.uuid),
+          ) || [];
+
+        if (folder.uuid === overFolder.uuid) {
+          // This is the destination folder - add all items
+          return {
+            ...folder,
+            children: itemsToMove,
+          };
+        }
+        // For all other folders, just return with items removed
+        return {
+          ...folder,
+          children: filteredChildren,
+        };
+      });
+
+      setFolders(updatedFolders);
+      onChange(updatedFolders);
+    } else if (activeFolder.uuid === overFolder.uuid) {
+      // Reordering within the same folder
       const activeIndex =
-        activeContainer.children?.findIndex(item => item.uuid === active.id) ??
-        -1;
+        activeFolder.children?.findIndex(item => item.uuid === active.id) ?? -1;
       const overIndex =
-        overContainer.children?.length === 0
-          ? 0
-          : overContainer.children?.findIndex(item => item.uuid === overId) ||
-            0;
+        overFolder.children?.findIndex(item => item.uuid === overId) ?? -1;
 
-      if (activeIndex !== overIndex && activeIndex !== -1 && overIndex !== -1) {
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
         const updatedFolders = folders.map(f =>
-          f.uuid === overContainer.uuid
+          f.uuid === overFolder.uuid
             ? {
                 ...f,
                 children: arrayMove(
-                  overContainer.children || [],
+                  overFolder.children || [],
                   activeIndex,
                   overIndex,
                 ),
@@ -848,6 +909,9 @@ const FoldersEditor = ({
       } else {
         onChange(folders);
       }
+    } else {
+      // Items were already moved during drag-over for non-empty folders
+      onChange(folders);
     }
 
     setDragState({
@@ -1042,7 +1106,7 @@ const FoldersEditor = ({
                   key={folder.uuid}
                 >
                   {expandedFolderIds.has(folder.uuid) && (
-                    <FolderContent>
+                    <FolderContent isDragging={!!dragState.activeId}>
                       <SortableContext
                         items={itemIds}
                         strategy={verticalListSortingStrategy}
@@ -1109,41 +1173,62 @@ const FoldersEditor = ({
                         !folder.children.some(child =>
                           visibleItemIds.has(child.uuid),
                         )) && (
-                        <EmptyFolderState>
-                          <FolderIcon>
-                            <Icons.FileOutlined />
-                          </FolderIcon>
-                          <div>
-                            {searchTerm &&
-                            folder.children &&
-                            folder.children.length > 0 ? (
-                              t('No items match your search')
-                            ) : folder.name === t('New Folder') ? (
-                              <>
-                                <EmptyFolderMainText>
-                                  {t('This folder is currently empty')}
-                                </EmptyFolderMainText>
-                                <EmptyFolderSubText>
-                                  {t(
-                                    'Name your folder and to edit it later, click on the folder name',
-                                  )}
-                                </EmptyFolderSubText>
-                              </>
-                            ) : (
-                              <>
-                                <EmptyFolderMainText>
-                                  {t('This folder is currently empty')}
-                                </EmptyFolderMainText>
-                                {!isDefaultFolder(folder.name) && (
-                                  <EmptyFolderSubText>
-                                    {t(
-                                      "If it stays empty, it won't be saved and will be removed from this list.",
+                        <EmptyFolderState isDragging={!!dragState.activeId}>
+                          {isDragOver && canAccept ? (
+                            <div style={{ padding: '20px 0' }}>
+                              <Icons.FolderOutlined
+                                style={{
+                                  fontSize: '32px',
+                                  color: 'var(--ant-color-primary)',
+                                }}
+                              />
+                              <div
+                                style={{
+                                  marginTop: '8px',
+                                  color: 'var(--ant-color-primary)',
+                                }}
+                              >
+                                {t('Drop items here')}
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <FolderIcon>
+                                <Icons.FileOutlined />
+                              </FolderIcon>
+                              <div>
+                                {searchTerm &&
+                                folder.children &&
+                                folder.children.length > 0 ? (
+                                  t('No items match your search')
+                                ) : folder.name === t('New Folder') ? (
+                                  <>
+                                    <EmptyFolderMainText>
+                                      {t('This folder is currently empty')}
+                                    </EmptyFolderMainText>
+                                    <EmptyFolderSubText>
+                                      {t(
+                                        'Name your folder and to edit it later, click on the folder name',
+                                      )}
+                                    </EmptyFolderSubText>
+                                  </>
+                                ) : (
+                                  <>
+                                    <EmptyFolderMainText>
+                                      {t('This folder is currently empty')}
+                                    </EmptyFolderMainText>
+                                    {!isDefaultFolder(folder.name) && (
+                                      <EmptyFolderSubText>
+                                        {t(
+                                          "If it stays empty, it won't be saved and will be removed from this list.",
+                                        )}
+                                      </EmptyFolderSubText>
                                     )}
-                                  </EmptyFolderSubText>
+                                  </>
                                 )}
-                              </>
-                            )}
-                          </div>
+                              </div>
+                            </>
+                          )}
                         </EmptyFolderState>
                       )}
                     </FolderContent>
