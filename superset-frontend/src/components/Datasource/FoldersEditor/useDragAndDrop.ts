@@ -34,7 +34,7 @@ import {
   DatasourceFolder,
   DatasourceFolderItem,
 } from 'src/explore/components/DatasourcePanel/types';
-import { canDropFolder, canDropItems } from '../folderUtils';
+import { canDropFolder, canDropItems } from './folderUtils';
 import { DragState, Column } from './types';
 
 interface UseDragAndDropProps {

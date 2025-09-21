@@ -20,8 +20,8 @@ import { Metric } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import { UniqueIdentifier } from '@dnd-kit/core';
-import { Column } from './FoldersEditor/types';
-import { FoldersEditorItemType } from './types';
+import { Column } from './types';
+import { FoldersEditorItemType } from '../types';
 
 export const DEFAULT_METRICS_FOLDER_UUID = 'default-metric-folder-uuid';
 export const DEFAULT_COLUMNS_FOLDER_UUID = 'default-column-folder-uuid';

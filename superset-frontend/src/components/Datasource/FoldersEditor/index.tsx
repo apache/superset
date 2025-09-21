@@ -42,7 +42,7 @@ import {
   filterItemsBySearch,
   ensureDefaultFolders,
   isDefaultFolder,
-} from '../folderUtils';
+} from './folderUtils';
 import { useDragAndDrop } from './useDragAndDrop';
 import SortableItem from './SortableItem';
 import SortableFolder from './SortableFolder';
