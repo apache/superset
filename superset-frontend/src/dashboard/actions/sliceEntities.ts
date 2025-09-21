@@ -57,7 +57,7 @@ export type SliceEntitiesActionPayload =
     }
   | {
       type: typeof HYDRATE_DASHBOARD;
-      data: { sliceEntities: SliceEntitiesState; [key: string]: any };
+      data: { sliceEntities: SliceEntitiesState };
     };
 
 export function getDatasourceParameter(

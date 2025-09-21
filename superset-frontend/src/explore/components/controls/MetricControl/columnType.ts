@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column } from '@superset-ui/core';
 
-export type ColumnType = Pick<Column, 'column_name' | 'type'>;
+export type { AggregateOption } from './types';
 
-// For backward compatibility with PropTypes usage - create a placeholder object
-const columnType = {} as any;
-export default columnType;
+// For backward compatibility with PropTypes usage
+export { AggregateOption as default } from './types';

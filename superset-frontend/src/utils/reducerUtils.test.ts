@@ -29,7 +29,6 @@ interface TestItem {
   id?: string;
   name: string;
   value: number;
-  [key: string]: unknown;
 }
 
 const mockState = {
@@ -49,24 +48,20 @@ test('addToObject adds new object to state with generated id', () => {
 
   expect(result).not.toBe(mockState);
   expect(result.objects).not.toBe(mockState.objects);
-  expect(Object.keys(result.objects as Record<string, TestItem>)).toHaveLength(
-    3,
-  );
+  expect(Object.keys(result.objects)).toHaveLength(3);
 
-  const addedItems = Object.values(
-    result.objects as Record<string, TestItem>,
-  ).filter(item => item.name === 'New Item');
+  const addedItems = Object.values(result.objects).filter(
+    item => (item as TestItem).name === 'New Item',
+  );
   expect(addedItems).toHaveLength(1);
-  expect(addedItems[0].id).toBeTruthy();
+  expect((addedItems[0] as TestItem).id).toBeTruthy();
 });
 
 test('addToObject adds new object with existing id', () => {
   const newItem: TestItem = { id: 'item-3', name: 'Item 3', value: 30 };
   const result = addToObject(mockState, 'objects', newItem);
 
-  expect((result.objects as Record<string, TestItem>)['item-3']).toEqual(
-    newItem,
-  );
+  expect(result.objects['item-3']).toEqual(newItem);
 });
 
 test('alterInObject modifies existing object', () => {
@@ -74,10 +69,9 @@ test('alterInObject modifies existing object', () => {
   const alterations = { value: 15 };
   const result = alterInObject(mockState, 'objects', targetItem, alterations);
 
-  const resultObjects = result.objects as Record<string, TestItem>;
-  expect(resultObjects['item-1'].value).toBe(15);
-  expect(resultObjects['item-1'].name).toBe('Item 1');
-  expect(resultObjects['item-2']).toBe(mockState.objects['item-2']);
+  expect(result.objects['item-1'].value).toBe(15);
+  expect(result.objects['item-1'].name).toBe('Item 1');
+  expect(result.objects['item-2']).toBe(mockState.objects['item-2']);
 });
 
 test('alterInArr modifies existing array item', () => {
@@ -85,23 +79,17 @@ test('alterInArr modifies existing array item', () => {
   const alterations = { value: 15 };
   const result = alterInArr(mockState, 'items', targetItem, alterations);
 
-  const resultItems = result.items as TestItem[];
-  expect(resultItems[0].value).toBe(15);
-  expect(resultItems[0].name).toBe('Item 1');
-  expect(resultItems[1]).toBe(mockState.items[1]);
+  expect(result.items[0].value).toBe(15);
+  expect(result.items[0].name).toBe('Item 1');
+  expect(result.items[1]).toBe(mockState.items[1]);
 });
 
 test('removeFromArr removes item from array', () => {
-  const targetItem: Record<string, unknown> = {
-    id: 'item-1',
-    name: 'Item 1',
-    value: 10,
-  };
+  const targetItem: TestItem = { id: 'item-1', name: 'Item 1', value: 10 };
   const result = removeFromArr(mockState, 'items', targetItem);
 
-  const resultItems = result.items as TestItem[];
-  expect(resultItems).toHaveLength(1);
-  expect(resultItems[0].id).toBe('item-2');
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0].id).toBe('item-2');
 });
 
 test('removeFromArr with custom idKey', () => {
@@ -111,7 +99,7 @@ test('removeFromArr with custom idKey', () => {
       { customId: 'b', name: 'Item B' },
     ],
   };
-  const targetItem: Record<string, unknown> = { customId: 'a', name: 'Item A' };
+  const targetItem = { customId: 'a', name: 'Item A' };
   const result = removeFromArr(
     stateWithCustomKey,
     'items',
@@ -119,26 +107,23 @@ test('removeFromArr with custom idKey', () => {
     'customId',
   );
 
-  const resultItems = result.items as Array<{ customId: string; name: string }>;
-  expect(resultItems).toHaveLength(1);
-  expect(resultItems[0].customId).toBe('b');
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0].customId).toBe('b');
 });
 
 test('addToArr adds new item to array with generated id', () => {
   const newItem: TestItem = { name: 'New Item', value: 30 };
   const result = addToArr(mockState, 'items', newItem);
 
-  const resultItems = result.items as TestItem[];
-  expect(resultItems).toHaveLength(3);
-  expect(resultItems[2].name).toBe('New Item');
-  expect(resultItems[2].id).toBeTruthy();
+  expect(result.items).toHaveLength(3);
+  expect(result.items[2].name).toBe('New Item');
+  expect(result.items[2].id).toBeTruthy();
 });
 
 test('addToArr adds new item with existing id', () => {
   const newItem: TestItem = { id: 'item-3', name: 'Item 3', value: 30 };
   const result = addToArr(mockState, 'items', newItem);
 
-  const resultItems = result.items as TestItem[];
-  expect(resultItems).toHaveLength(3);
-  expect(resultItems[2]).toEqual(newItem);
+  expect(result.items).toHaveLength(3);
+  expect(result.items[2]).toEqual(newItem);
 });

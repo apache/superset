@@ -208,7 +208,7 @@ git mv Component.jsx Component.tsx
 ### Step 3: Import & Type Setup
 ```typescript
 // Import order (enforced by linting)
-import React, { FC, ReactNode } from 'react';
+import { FC, ReactNode } from 'react';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import type { Dashboard } from 'src/types/Dashboard';

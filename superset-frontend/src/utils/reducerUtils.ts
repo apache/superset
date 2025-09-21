@@ -18,25 +18,25 @@
  */
 import { nanoid } from 'nanoid';
 
-export interface ObjectWithId {
+interface ObjectWithId {
   id?: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
-export interface StateWithObjects<T = ObjectWithId> {
-  [key: string]: Record<string, T> | T[] | unknown;
+interface StateWithObject {
+  [key: string]: { [id: string]: ObjectWithId } | any;
 }
 
-export interface StateWithArrays<T = ObjectWithId> {
-  [key: string]: T[] | Record<string, T> | unknown;
+interface StateWithArray {
+  [key: string]: ObjectWithId[] | any;
 }
 
 export function addToObject<T extends ObjectWithId>(
-  state: StateWithObjects<T>,
+  state: StateWithObject,
   arrKey: string,
   obj: T,
-): StateWithObjects<T> {
-  const newObject = { ...(state[arrKey] as Record<string, T>) };
+): StateWithObject {
+  const newObject = { ...state[arrKey] };
   const copiedObject = { ...obj };
 
   if (!copiedObject.id) {
@@ -47,27 +47,27 @@ export function addToObject<T extends ObjectWithId>(
 }
 
 export function alterInObject<T extends ObjectWithId>(
-  state: StateWithObjects<T>,
+  state: StateWithObject,
   arrKey: string,
   obj: T,
   alterations: Partial<T>,
-): StateWithObjects<T> {
-  const newObject = { ...(state[arrKey] as Record<string, T>) };
+): StateWithObject {
+  const newObject = { ...state[arrKey] };
   newObject[obj.id!] = { ...newObject[obj.id!], ...alterations };
   return { ...state, [arrKey]: newObject };
 }
 
 export function alterInArr<T extends ObjectWithId>(
-  state: StateWithArrays<T>,
+  state: StateWithArray,
   arrKey: string,
   obj: T,
   alterations: Partial<T>,
-): StateWithArrays<T> {
+): StateWithArray {
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
-  const idKey = 'id' as keyof T;
+  const idKey = 'id';
   const newArr: T[] = [];
-  (state[arrKey] as T[]).forEach((arrItem: T) => {
+  state[arrKey].forEach((arrItem: T) => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push({ ...arrItem, ...alterations });
     } else {
@@ -77,15 +77,15 @@ export function alterInArr<T extends ObjectWithId>(
   return { ...state, [arrKey]: newArr };
 }
 
-export function removeFromArr<T extends Record<string, unknown>>(
-  state: StateWithArrays<T>,
+export function removeFromArr<T extends ObjectWithId>(
+  state: StateWithArray,
   arrKey: string,
   obj: T,
-  idKey: keyof T = 'id',
-): StateWithArrays<T> {
+  idKey = 'id',
+): StateWithArray {
   const newArr: T[] = [];
-  (state[arrKey] as T[]).forEach((arrItem: T) => {
-    if (!(obj[idKey] === arrItem[idKey])) {
+  state[arrKey].forEach((arrItem: T) => {
+    if (!(obj[idKey as keyof T] === arrItem[idKey as keyof T])) {
       newArr.push(arrItem);
     }
   });
@@ -93,15 +93,15 @@ export function removeFromArr<T extends Record<string, unknown>>(
 }
 
 export function addToArr<T extends ObjectWithId>(
-  state: StateWithArrays<T>,
+  state: StateWithArray,
   arrKey: string,
   obj: T,
-): StateWithArrays<T> {
+): StateWithArray {
   const newObj = { ...obj };
   if (!newObj.id) {
     newObj.id = nanoid();
   }
-  const newState: Partial<StateWithArrays<T>> = {};
-  newState[arrKey] = [...(state[arrKey] as T[]), newObj];
+  const newState: { [key: string]: T[] } = {};
+  newState[arrKey] = [...state[arrKey], newObj];
   return { ...state, ...newState };
 }
