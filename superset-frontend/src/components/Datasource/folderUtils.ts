@@ -19,6 +19,7 @@
 import { Metric } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import { UniqueIdentifier } from '@dnd-kit/core';
 import { Column } from './FoldersEditor';
 import { FoldersEditorItemType } from './types';
 
@@ -43,7 +44,7 @@ export const createFolder = (
   parentId?: string,
 ): DatasourceFolder => ({
   uuid: generateUUID(),
-  type: 'folder',
+  type: FoldersEditorItemType.Folder,
   name,
   children: [],
 });
@@ -158,17 +159,25 @@ export const moveItems = (
   targetFolderId: string,
   folders: DatasourceFolder[],
 ): DatasourceFolder[] => {
-  const itemsToMove: Array<{ type: 'metric' | 'column'; uuid: string }> = [];
+  const itemsToMove: Array<{
+    type: FoldersEditorItemType.Metric | FoldersEditorItemType.Column;
+    uuid: string;
+    name: string;
+  }> = [];
 
   const removeItems = (items: DatasourceFolder[]): DatasourceFolder[] =>
     items.map(folder => ({
       ...folder,
       children: folder.children
         ? folder.children.filter(child => {
-            if (child.type !== 'folder' && itemIds.includes(child.uuid)) {
+            if (
+              child.type !== FoldersEditorItemType.Folder &&
+              itemIds.includes(child.uuid)
+            ) {
               itemsToMove.push({
-                type: child.type as 'metric' | 'column',
+                type: child.type,
                 uuid: child.uuid,
+                name: child.name || '',
               });
               return false;
             }
@@ -204,6 +213,7 @@ export const resetToDefault = (
     children: metrics.map(m => ({
       type: FoldersEditorItemType.Metric as const,
       uuid: m.uuid,
+      name: m.metric_name || '',
     })),
   };
 
@@ -214,6 +224,7 @@ export const resetToDefault = (
     children: columns.map(c => ({
       type: FoldersEditorItemType.Column as const,
       uuid: c.uuid,
+      name: c.column_name || '',
     })),
   };
 
@@ -238,8 +249,8 @@ export const filterItemsBySearch = (
 };
 
 export const canDropFolder = (
-  folderId: string,
-  targetId: string,
+  folderId: UniqueIdentifier,
+  targetId: UniqueIdentifier,
   folders: DatasourceFolder[],
 ): boolean => {
   if (folderId === targetId) return false;
@@ -270,10 +281,10 @@ export const canDropItems = (
 };
 
 export const getFolderDescendants = (
-  folderId: string,
+  folderId: UniqueIdentifier,
   folders: DatasourceFolder[],
-): string[] => {
-  const descendants: string[] = [];
+): UniqueIdentifier[] => {
+  const descendants: UniqueIdentifier[] = [];
 
   const collectDescendants = (folder: DatasourceFolder) => {
     if (folder.children) {
@@ -295,7 +306,7 @@ export const getFolderDescendants = (
 };
 
 export const findFolderById = (
-  folderId: string,
+  folderId: UniqueIdentifier,
   folders: DatasourceFolder[],
 ): DatasourceFolder | null => {
   for (const folder of folders) {
@@ -391,17 +402,15 @@ export const isDefaultFolder = (folderName: string): boolean =>
 
 export const getAllSelectedItems = (
   selectedItemIds: Set<string>,
-  visibleItemIds: string[]
-): string[] => {
-  return visibleItemIds.filter(id => selectedItemIds.has(id));
-};
+  visibleItemIds: string[],
+): string[] => visibleItemIds.filter(id => selectedItemIds.has(id));
 
 export const areAllVisibleItemsSelected = (
   selectedItemIds: Set<string>,
-  visibleItemIds: string[]
-): boolean => {
-  return visibleItemIds.length > 0 && visibleItemIds.every(id => selectedItemIds.has(id));
-};
+  visibleItemIds: string[],
+): boolean =>
+  visibleItemIds.length > 0 &&
+  visibleItemIds.every(id => selectedItemIds.has(id));
 
 export const ensureDefaultFolders = (
   folders: DatasourceFolder[],
@@ -438,6 +447,7 @@ export const ensureDefaultFolders = (
       children: unassignedMetrics.map(m => ({
         type: FoldersEditorItemType.Metric,
         uuid: m.uuid,
+        name: m.metric_name || '',
       })),
     });
   }
@@ -463,6 +473,7 @@ export const ensureDefaultFolders = (
       children: unassignedColumns.map(c => ({
         type: FoldersEditorItemType.Column,
         uuid: c.uuid,
+        name: c.column_name || '',
       })),
     });
   }
