@@ -25,13 +25,13 @@ import {
 import userEvent from '@testing-library/user-event';
 import { Metric } from '@superset-ui/chart-controls';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
-import FoldersEditor from './FoldersEditor';
-import { Column } from './FoldersEditor/types';
+import FoldersEditor from '.';
+import { Column } from './types';
 import {
   DEFAULT_METRICS_FOLDER_UUID,
   DEFAULT_COLUMNS_FOLDER_UUID,
 } from './folderUtils';
-import { FoldersEditorItemType } from './types';
+import { FoldersEditorItemType } from '../types';
 
 const mockMetrics: Metric[] = [
   {

@@ -31,7 +31,7 @@ import {
   DEFAULT_METRICS_FOLDER_UUID,
   DEFAULT_COLUMNS_FOLDER_UUID,
 } from './folderUtils';
-import { FoldersEditorItemType } from './types';
+import { FoldersEditorItemType } from '../types';
 
 describe('folderUtils', () => {
   const mockMetrics: Metric[] = [

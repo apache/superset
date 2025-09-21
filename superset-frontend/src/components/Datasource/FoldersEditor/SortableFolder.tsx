@@ -19,7 +19,7 @@
 import { Input, Icons } from '@superset-ui/core/components';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { isDefaultFolder } from '../folderUtils';
+import { isDefaultFolder } from './folderUtils';
 import {
   FolderContainer,
   FolderHeader,
