@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from flask import current_app
@@ -83,7 +83,7 @@ class ExecuteReportScheduleNowCommand(BaseCommand):
             from superset.tasks.scheduler import execute
 
             # Set async options similar to scheduler but for immediate execution
-            async_options = {"task_id": execution_id}
+            async_options: dict[str, Any] = {"task_id": execution_id}
             if self._model.working_timeout is not None and current_app.config.get(
                 "ALERT_REPORTS_WORKING_TIME_OUT_KILL", True
             ):
