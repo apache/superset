@@ -2073,6 +2073,12 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         # Verify the task was called
         mock_execute.assert_called_once()
+        # Verify that the task was called with the correct report_schedule_id and eta
+        call_args = mock_execute.call_args
+        assert call_args[0][0] == (report_schedule.id,)
+        # Check that eta was set for manual execution
+        assert "eta" in call_args[1]
+        assert call_args[1]["eta"] is not None
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_execute_report_schedule_not_found(self):
