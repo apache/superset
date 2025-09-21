@@ -52,13 +52,14 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import {
+  DatasourceFolder,
+  DatasourceFolderItem,
+} from 'src/explore/components/DatasourcePanel/types';
 import {
   createFolder,
   resetToDefault,
-  moveItems,
   renameFolder,
-  nestFolder,
   filterItemsBySearch,
   canDropFolder,
   canDropItems,
@@ -235,7 +236,7 @@ const DragOverlayContent = styled.div`
     background: ${theme.colorBgContainer};
     border: 2px solid ${theme.colorPrimary};
     border-radius: ${theme.borderRadius}px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: ${theme.boxShadow};
     padding: ${theme.paddingXS}px ${theme.paddingMD}px;
     display: flex;
     align-items: center;
@@ -696,39 +697,83 @@ const FoldersEditor = ({
             overId: overFolder.uuid || null,
           }));
         }
-        const activeItems = activeFolder.children || [];
+
+        // Get all items being dragged (could be from multiple folders)
+        const draggedItemIds =
+          dragState.draggedItems.length > 0
+            ? dragState.draggedItems
+            : [active.id];
+
+        // Collect the actual item objects from all folders
+        const itemsToMove: DatasourceFolderItem[] = [];
+        prevFolders.forEach(folder => {
+          if (folder.children) {
+            folder.children.forEach(child => {
+              // Only include items, not subfolders
+              if (
+                child.type !== 'folder' &&
+                draggedItemIds.includes(child.uuid)
+              ) {
+                itemsToMove.push(child as DatasourceFolderItem);
+              }
+            });
+          }
+        });
+
+        // Calculate the insertion index
         const overItems = overFolder.children || [];
-        const overIndex = overItems.findIndex(item => item.uuid === overId);
-        const activeIndex = activeItems.findIndex(
-          item => item.uuid === active.id,
+
+        // First filter out dragged items to get the real index
+        const filteredOverItems = overItems.filter(
+          item => !draggedItemIds.includes(item.uuid),
+        );
+        const filteredOverIndex = filteredOverItems.findIndex(
+          item => item.uuid === overId,
         );
 
         let newIndex: number;
         if (overId && folderIds.includes(overId)) {
-          newIndex = overItems.length;
-        } else {
+          newIndex = filteredOverItems.length;
+        } else if (filteredOverIndex >= 0) {
           const isBelowOverItem =
             over &&
             active.rect.current.translated &&
             active.rect.current.translated.top >
               over.rect.top + over.rect.height;
           const modifier = isBelowOverItem ? 1 : 0;
-          newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length;
+          newIndex = filteredOverIndex + modifier;
+        } else {
+          newIndex = filteredOverItems.length;
         }
         recentlyMovedToNewContainer.current = true;
-        const newFolders = [...prevFolders];
-        newFolders[newFolders.findIndex(f => f.uuid === activeFolder.uuid)] = {
-          ...activeFolder,
-          children: activeItems.filter(item => item.uuid !== active.id),
-        };
-        newFolders[newFolders.findIndex(f => f.uuid === overFolder.uuid)] = {
-          ...overFolder,
-          children: [
-            ...overItems.slice(0, newIndex),
-            activeItems[activeIndex],
-            ...overItems.slice(newIndex),
-          ],
-        };
+
+        // Update all folders: first remove dragged items from ALL folders
+        // (including destination to avoid duplicates), then add to destination
+        const newFolders = prevFolders.map(folder => {
+          // First, remove dragged items from all folders
+          const filteredChildren =
+            folder.children?.filter(
+              item => !draggedItemIds.includes(item.uuid),
+            ) || [];
+
+          if (folder.uuid === overFolder.uuid) {
+            // This is the destination folder - add the items at the correct position
+            return {
+              ...folder,
+              children: [
+                ...filteredChildren.slice(0, newIndex),
+                ...itemsToMove,
+                ...filteredChildren.slice(newIndex),
+              ],
+            };
+          }
+          // For all other folders, just return with items removed
+          return {
+            ...folder,
+            children: filteredChildren,
+          };
+        });
+
         return newFolders;
       });
     }
@@ -815,9 +860,13 @@ const FoldersEditor = ({
 
   // Check if a folder can accept the current drag
   const canAcceptCurrentDrag = (folderId: string) => {
+    if (!dragState.activeId) {
+      return false;
+    }
     if (dragState.draggedType === 'folder') {
-      return canDropFolder(dragState.activeId!, folderId, folders);
-    } else if (dragState.draggedType === 'item') {
+      return canDropFolder(dragState.activeId, folderId, folders);
+    }
+    if (dragState.draggedType === 'item') {
       return canDropItems(
         dragState.draggedItems,
         folderId,
