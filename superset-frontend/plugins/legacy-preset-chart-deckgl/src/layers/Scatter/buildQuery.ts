@@ -21,13 +21,19 @@ import {
   ensureIsArray,
   QueryFormOrderBy,
   SqlaFormData,
+  QueryFormColumn,
+  QueryObject,
 } from '@superset-ui/core';
 import {
   getSpatialColumns,
   addSpatialNullFilters,
   SpatialFormData,
 } from '../spatialUtils';
-import { addJsColumnsToColumns, processMetricsArray } from '../buildQueryUtils';
+import {
+  addJsColumnsToColumns,
+  processMetricsArray,
+  addTooltipColumnsToQuery,
+} from '../buildQueryUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>,
@@ -44,14 +50,20 @@ export interface DeckScatterFormData
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
-  const { spatial, point_radius_fixed, category_name, js_columns } = formData;
+  const {
+    spatial,
+    point_radius_fixed,
+    category_name,
+    js_columns,
+    tooltip_contents,
+  } = formData;
 
   if (!spatial) {
     throw new Error('Spatial configuration is required for Scatter charts');
   }
 
   return buildQueryContext(formData, {
-    buildQuery: baseQueryObject => {
+    buildQuery: (baseQueryObject: QueryObject) => {
       const spatialColumns = getSpatialColumns(spatial);
       let columns = [...(baseQueryObject.columns || []), ...spatialColumns];
 
@@ -59,7 +71,13 @@ export default function buildQuery(formData: DeckScatterFormData) {
         columns.push(category_name);
       }
 
-      columns = addJsColumnsToColumns(columns.map(String), js_columns);
+      const columnStrings = columns.map(col =>
+        typeof col === 'string' ? col : col.label || col.sqlExpression || '',
+      );
+      const withJsColumns = addJsColumnsToColumns(columnStrings, js_columns);
+
+      columns = withJsColumns as QueryFormColumn[];
+      columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       const metrics = processMetricsArray([point_radius_fixed?.value]);
       const filters = addSpatialNullFilters(

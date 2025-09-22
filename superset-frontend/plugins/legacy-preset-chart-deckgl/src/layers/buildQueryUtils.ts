@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getMetricLabel, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  getMetricLabel,
+  QueryObjectFilterClause,
+  QueryFormColumn,
+  getColumnLabel,
+} from '@superset-ui/core';
 
 export function addJsColumnsToColumns(
   columns: string[],
@@ -89,4 +94,49 @@ export function addColumnsIfNotExists(
 
 export function processMetricsArray(metrics: (string | undefined)[]): string[] {
   return metrics.filter((metric): metric is string => Boolean(metric));
+}
+
+export function extractTooltipColumns(tooltipContents?: unknown[]): string[] {
+  if (!Array.isArray(tooltipContents) || !tooltipContents.length) {
+    return [];
+  }
+
+  const columns: string[] = [];
+
+  tooltipContents.forEach(item => {
+    if (typeof item === 'string') {
+      columns.push(item);
+    } else if (item && typeof item === 'object') {
+      const objItem = item as Record<string, unknown>;
+      if (
+        objItem.item_type === 'column' &&
+        typeof objItem.column_name === 'string'
+      ) {
+        columns.push(objItem.column_name);
+      }
+    }
+  });
+
+  return columns;
+}
+
+export function addTooltipColumnsToQuery(
+  baseColumns: QueryFormColumn[],
+  tooltipContents?: unknown[],
+): QueryFormColumn[] {
+  const tooltipColumns = extractTooltipColumns(tooltipContents);
+
+  const baseColumnLabels = baseColumns.map(getColumnLabel);
+  const existingLabels = new Set(baseColumnLabels);
+
+  const result: QueryFormColumn[] = [...baseColumns];
+
+  tooltipColumns.forEach(col => {
+    if (!existingLabels.has(col)) {
+      result.push(col);
+      existingLabels.add(col);
+    }
+  });
+
+  return result;
 }

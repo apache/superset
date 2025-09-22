@@ -26,6 +26,7 @@ import {
   normalizeOrderBy,
 } from '@superset-ui/core';
 import { decode } from 'ngeohash';
+import { addTooltipColumnsToQuery } from './buildQueryUtils';
 
 export interface SpatialConfiguration {
   type: 'latlong' | 'delimited' | 'geohash';
@@ -59,6 +60,8 @@ export interface SpatialFormData extends QueryFormData {
   color_scheme_type?: string;
   color_breakpoints?: number[];
   default_breakpoint_color?: string;
+  tooltip_contents?: unknown[];
+  tooltip_template?: string;
   color_picker?: string;
 }
 
@@ -116,7 +119,7 @@ export function addSpatialNullFilters(
 }
 
 export function buildSpatialQuery(formData: SpatialFormData) {
-  const { spatial, size: metric, js_columns } = formData;
+  const { spatial, size: metric, js_columns, tooltip_contents } = formData;
 
   if (!spatial) {
     throw new Error(`Spatial configuration is required for this chart`);
@@ -124,7 +127,7 @@ export function buildSpatialQuery(formData: SpatialFormData) {
   return buildQueryContext(formData, {
     buildQuery: baseQueryObject => {
       const spatialColumns = getSpatialColumns(spatial);
-      const columns = [...(baseQueryObject.columns || []), ...spatialColumns];
+      let columns = [...(baseQueryObject.columns || []), ...spatialColumns];
       const metrics = metric ? [metric] : [];
 
       if (js_columns?.length) {
@@ -134,6 +137,8 @@ export function buildSpatialQuery(formData: SpatialFormData) {
           }
         });
       }
+
+      columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       const filters = addSpatialNullFilters(
         spatial,

@@ -20,8 +20,9 @@ import {
   buildQueryContext,
   ensureIsArray,
   SqlaFormData,
+  QueryFormColumn,
 } from '@superset-ui/core';
-import { addNullFilters } from '../buildQueryUtils';
+import { addNullFilters, addTooltipColumnsToQuery } from '../buildQueryUtils';
 
 export interface DeckPathFormData extends SqlaFormData {
   line_column?: string;
@@ -29,10 +30,12 @@ export interface DeckPathFormData extends SqlaFormData {
   metric?: string;
   reverse_long_lat?: boolean;
   js_columns?: string[];
+  tooltip_contents?: unknown[];
+  tooltip_template?: string;
 }
 
 export default function buildQuery(formData: DeckPathFormData) {
-  const { line_column, metric, js_columns } = formData;
+  const { line_column, metric, js_columns, tooltip_contents } = formData;
 
   if (!line_column) {
     throw new Error('Line column is required for Path charts');
@@ -40,9 +43,13 @@ export default function buildQuery(formData: DeckPathFormData) {
 
   return buildQueryContext(formData, {
     buildQuery: baseQueryObject => {
-      const columns = ensureIsArray(baseQueryObject.columns || []);
+      const columns = ensureIsArray(
+        baseQueryObject.columns || [],
+      ) as QueryFormColumn[];
       const metrics = ensureIsArray(baseQueryObject.metrics || []);
-      const groupby = ensureIsArray(baseQueryObject.groupby || []);
+      const groupby = ensureIsArray(
+        baseQueryObject.groupby || [],
+      ) as QueryFormColumn[];
       const jsColumns = ensureIsArray(js_columns || []);
 
       if (baseQueryObject.metrics?.length || metric) {
@@ -62,6 +69,9 @@ export default function buildQuery(formData: DeckPathFormData) {
         }
       });
 
+      const finalColumns = addTooltipColumnsToQuery(columns, tooltip_contents);
+      const finalGroupby = addTooltipColumnsToQuery(groupby, tooltip_contents);
+
       const filters = addNullFilters(
         ensureIsArray(baseQueryObject.filters || []),
         [line_column],
@@ -72,9 +82,9 @@ export default function buildQuery(formData: DeckPathFormData) {
       return [
         {
           ...baseQueryObject,
-          columns,
+          columns: finalColumns,
           metrics,
-          groupby,
+          groupby: finalGroupby,
           filters,
           is_timeseries: isTimeseries,
           row_limit: baseQueryObject.row_limit,

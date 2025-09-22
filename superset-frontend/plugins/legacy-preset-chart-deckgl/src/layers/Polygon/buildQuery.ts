@@ -22,7 +22,10 @@ import {
   SqlaFormData,
   getMetricLabel,
   QueryObjectFilterClause,
+  QueryObject,
+  QueryFormColumn,
 } from '@superset-ui/core';
+import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 
 export interface DeckPolygonFormData extends SqlaFormData {
   line_column?: string;
@@ -34,6 +37,8 @@ export interface DeckPolygonFormData extends SqlaFormData {
   reverse_long_lat?: boolean;
   filter_nulls?: boolean;
   js_columns?: string[];
+  tooltip_contents?: unknown[];
+  tooltip_template?: string;
 }
 
 export default function buildQuery(formData: DeckPolygonFormData) {
@@ -43,22 +48,27 @@ export default function buildQuery(formData: DeckPolygonFormData) {
     point_radius_fixed,
     filter_nulls = true,
     js_columns,
+    tooltip_contents,
   } = formData;
 
   if (!line_column) {
     throw new Error('Polygon column is required for Polygon charts');
   }
 
-  return buildQueryContext(formData, baseQueryObject => {
-    const columns = [...(baseQueryObject.columns || []), line_column];
+  return buildQueryContext(formData, (baseQueryObject: QueryObject) => {
+    let columns: QueryFormColumn[] = [
+      ...ensureIsArray(baseQueryObject.columns || []),
+      line_column,
+    ];
 
-    // Add js_columns to ensure they're available for JavaScript functions
     const jsColumns = ensureIsArray(js_columns || []);
-    jsColumns.forEach(col => {
+    jsColumns.forEach((col: string) => {
       if (!columns.includes(col)) {
         columns.push(col);
       }
     });
+
+    columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
     const metrics = [];
     if (metric) {
@@ -68,7 +78,6 @@ export default function buildQuery(formData: DeckPolygonFormData) {
       metrics.push(point_radius_fixed.value);
     }
 
-    // Add null filters for required columns
     const filters = ensureIsArray(baseQueryObject.filters || []);
     if (filter_nulls) {
       const nullFilters: QueryObjectFilterClause[] = [
