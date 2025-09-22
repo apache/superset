@@ -29,6 +29,7 @@ x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
+  - ./superset-core:/app/superset-core
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
@@ -95,6 +96,7 @@ services:
     build:
       <<: *common-build
     container_name: superset_app
+    entrypoint: ["/app/docker/docker-entrypoint.sh"]
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
@@ -199,6 +201,7 @@ services:
     build:
       <<: *common-build
     container_name: superset_worker
+    entrypoint: ["/app/docker/docker-entrypoint.sh"]
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
       - path: docker/.env # default
@@ -225,6 +228,7 @@ services:
     build:
       <<: *common-build
     container_name: superset_worker_beat
+    entrypoint: ["/app/docker/docker-entrypoint.sh"]
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
       - path: docker/.env # default

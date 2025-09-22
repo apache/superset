@@ -18,9 +18,16 @@
 
 set -eo pipefail
 
-# Make python interactive
+# Install critical dependencies first in dev mode to fix volume mount issues
 if [ "$DEV_MODE" == "true" ]; then
     if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
+      echo "Installing critical dependencies for dev mode..."
+      # Install pydantic first as it's needed for imports
+      uv pip install --no-cache-dir "pydantic>=2.8.0"
+      echo "Installing base requirements"
+      uv pip install -r /app/requirements/base.txt
+      echo "Reinstalling superset-core in editable mode"
+      uv pip install -e /app/superset-core
       echo "Reinstalling the app in editable mode"
       uv pip install -e .
     fi
