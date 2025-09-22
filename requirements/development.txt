@@ -697,9 +697,9 @@ pydantic==2.11.7
     # via
     #   -c requirements/base-constraint.txt
     #   anthropic
+    #   apache-superset
     #   google-genai
     #   openai
-    #   apache-superset
 pydantic-core==2.33.2
     # via
     #   -c requirements/base-constraint.txt
