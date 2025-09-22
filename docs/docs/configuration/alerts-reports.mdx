@@ -374,3 +374,76 @@ the user can add the metadata required for scheduling the query.
 This information can then be retrieved from the endpoint `/api/v1/saved_query/` and used to
 schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
 Airflow, additional fields can be easily added to the configuration file above.
+
+## Scheduling Queries as Reports
+
+You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding
+extra metadata to saved queries, which are then picked up by an external scheduler (like
+[Apache Airflow](https://airflow.apache.org/)).
+
+To allow scheduled queries, add the following to `SCHEDULED_QUERIES` in your configuration file:
+
+```python
+SCHEDULED_QUERIES = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    'JSONSCHEMA': {
+        'title': 'Schedule',
+        'description': (
+            'In order to schedule a query, you need to specify when it '
+            'should start running, when it should stop running, and how '
+            'often it should run. You can also optionally specify '
+            'dependencies that should be met before the query is '
+            'executed. Please read the documentation for best practices '
+            'and more information on how to specify dependencies.'
+        ),
+        'type': 'object',
+        'properties': {
+            'output_table': {'type': 'string', 'title': 'Output table name'},
+            'start_date': {
+                'type': 'string',
+                'title': 'Start date',
+                # date-time is parsed using the chrono library
+                'format': 'date-time',
+                'default': 'tomorrow at 9am',
+            },
+            'end_date': {
+                'type': 'string',
+                'title': 'End date',
+                # date-time is parsed using the chrono library
+                'format': 'date-time',
+                'default': '9am in 30 days',
+            },
+            'schedule_interval': {'type': 'string', 'title': 'Schedule interval'},
+            'dependencies': {
+                'type': 'array',
+                'title': 'Dependencies',
+                'items': {'type': 'string'},
+            },
+        },
+    },
+    'UISCHEMA': {
+        'schedule_interval': {'ui:placeholder': '@daily, @weekly, etc.'},
+        'dependencies': {
+            'ui:help': (
+                'Check the documentation for the correct format when '
+                'defining dependencies.'
+            ),
+        },
+    },
+    'VALIDATION': [
+        # ensure that start_date <= end_date
+        {
+            'name': 'less_equal',
+            'arguments': ['start_date', 'end_date'],
+            'message': 'End date cannot be before start date',
+            'container': 'end_date',  # where the error shows
+        },
+    ],
+    # Link to your scheduler (example: Airflow)
+    'linkback': (
+        'https://airflow.example.com/admin/airflow/tree?'
+        'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+    ),
+}
