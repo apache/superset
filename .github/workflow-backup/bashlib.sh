@@ -145,7 +145,6 @@ cypress-install() {
 
 cypress-run-all() {
   local USE_DASHBOARD=$1
-  local APP_ROOT=$2
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
   # Start Flask and run it in background
@@ -153,12 +152,7 @@ cypress-run-all() {
   # so errors can print to stderr.
   local flasklog="${HOME}/flask.log"
   local port=8081
-  CYPRESS_BASE_URL="http://localhost:${port}"
-  if [ -n "$APP_ROOT" ]; then
-    export SUPERSET_APP_ROOT=$APP_ROOT
-    CYPRESS_BASE_URL=${CYPRESS_BASE_URL}${APP_ROOT}
-  fi
-  export CYPRESS_BASE_URL
+  export CYPRESS_BASE_URL="http://localhost:${port}"
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
