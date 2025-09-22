@@ -434,6 +434,8 @@ authorized_licenses = [
 polyline = "2"
 # Apache 2.0 https://github.com/hkwi/python-geohash
 python-geohash = "0"
+# Apache-2.0 AND CNRI-Python (both licenses individually approved above)
+regex = "2025.7.34"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
