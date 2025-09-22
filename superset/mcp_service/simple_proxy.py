@@ -6,7 +6,6 @@ Simple MCP proxy server that connects to FastMCP server on localhost:5008
 import logging
 import signal
 import sys
-import time
 from typing import Any, Optional
 
 from fastmcp import FastMCP
@@ -24,12 +23,7 @@ proxy: Optional[FastMCP] = None
 def signal_handler(signum: int, frame: Any) -> None:
     """Handle shutdown signals gracefully"""
     logger.info("Received signal %s, shutting down gracefully...", signum)
-    if proxy:
-        try:
-            # Give the proxy a moment to clean up
-            time.sleep(0.1)
-        except Exception as e:
-            logger.warning("Error during proxy cleanup: %s", e)
+    # FastMCP.as_proxy() handles its own cleanup
     sys.exit(0)
 
 
