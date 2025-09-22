@@ -99,17 +99,6 @@ SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'
 WEBDRIVER_BASEURL = 'http://localhost:9001/'
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
-import os
-
-# Enable MCP service integration
-FEATURE_FLAGS = {
-    "MCP_SERVICE": True,
-}
-
-# MCP Service Connection
-MCP_SERVICE_HOST = os.environ.get("MCP_SERVICE_HOST", "localhost")
-MCP_SERVICE_PORT = int(os.environ.get("MCP_SERVICE_PORT", 5008))
-
 EOF
 
 # 5. Initialize database
@@ -137,17 +126,6 @@ superset mcp run --port 5008 --debug
 ```
 
 Access Superset at http://localhost:9001 (login: admin/admin)
-
-### Automated MCP Setup (Optional)
-
-If you prefer, you can use the automated setup script instead of manually creating `superset_config.py`:
-
-```bash
-# After step 3 above, run this instead of creating the config manually:
-superset mcp setup
-
-# Then continue with steps 5-9
-```
 
 ## 🔌 Step 2: Connect Claude Desktop
 
