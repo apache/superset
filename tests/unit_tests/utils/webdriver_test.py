@@ -341,6 +341,10 @@ class TestPlaywrightAvailabilityCheck:
         mock_sync_playwright.return_value.__enter__.return_value = (
             mock_playwright_instance
         )
+        # Mock executable_path to raise exception to force fallback to launch test
+        type(mock_playwright_instance.chromium).executable_path = PropertyMock(
+            side_effect=Exception("Executable path check failed")
+        )
         mock_playwright_instance.chromium.launch.side_effect = Exception(
             "Browser binaries not installed"
         )
