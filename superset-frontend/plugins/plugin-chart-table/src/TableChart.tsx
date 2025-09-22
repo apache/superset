@@ -53,7 +53,6 @@ import {
   tn,
   useTheme,
   SupersetTheme,
-  isThemeDark,
 } from '@superset-ui/core';
 import {
   Input,
@@ -178,18 +177,14 @@ function cellBackground({
   theme: SupersetTheme;
 }) {
   if (!colorPositiveNegative) {
-    const color = isThemeDark(theme)
-      ? 'rgba(255,255,255,0.3)'
-      : 'rgba(0,0,0,0.2)';
-    return color;
+    return `${theme.colorFillSecondary}50`;
   }
 
-  const color = isThemeDark(theme)
-    ? value < 0
-      ? `rgba(255,100,100,0.4)`
-      : `rgba(255,255,255,0.3)`
-    : `rgba(${value < 0 ? 150 : 0},0,0,0.2)`;
-  return color;
+  if (value < 0) {
+    return `${theme.colorError}50`;
+  }
+
+  return `${theme.colorSuccess}50`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
