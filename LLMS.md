@@ -9,13 +9,17 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 ### Frontend Modernization
 - **NO `any` types** - Use proper TypeScript types
 - **NO JavaScript files** - Convert to TypeScript (.ts/.tsx)
-- **Use @superset-ui/core** - Don't import Ant Design directly
+- **Use @superset-ui/core** - Don't import Ant Design directly, prefer Ant Design component wrappers from @superset-ui/core/components
+- **Use antd theming tokens** - Prefer antd tokens over legacy theming tokens
+- **Avoid custom css and styles** - Follow antd best practices and avoid styling and custom CSS whenever possible
 
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
-- **Prefer integration tests** over Cypress end-to-end tests
-- **Cypress is last resort** - Actively moving away from Cypress
+- **Prefer integration tests** over end-to-end tests
+- **Use Playwright for E2E tests** - Migrating from Cypress
+- **Cypress is deprecated** - Will be removed once migration is completed
 - **Use Jest + React Testing Library** for component testing
+- **Use `test()` instead of `describe()`** - Follow [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principles
 
 ### Backend Type Safety
 - **Add type hints** - All new Python code needs proper typing
@@ -104,6 +108,18 @@ superset/
 npm run test                           # All tests
 npm run test -- filename.test.tsx     # Single file
 
+# E2E Tests (Playwright - NEW)
+npm run playwright:test                # All Playwright tests
+npm run playwright:ui                  # Interactive UI mode
+npm run playwright:headed              # See browser during tests
+npx playwright test tests/auth/login.spec.ts  # Single file
+npm run playwright:debug tests/auth/login.spec.ts  # Debug specific file
+
+# E2E Tests (Cypress - DEPRECATED)
+cd superset-frontend/cypress-base
+npm run cypress-run-chrome             # All Cypress tests (headless)
+npm run cypress-debug                  # Interactive Cypress UI
+
 # Backend  
 pytest                                 # All tests
 pytest tests/unit_tests/specific_test.py  # Single file
@@ -132,6 +148,19 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 ## SQLAlchemy Query Best Practices  
 - **Use negation operator**: `~Model.field` instead of `== False` to avoid ruff E712 errors
 - **Example**: `~Model.is_active` instead of `Model.is_active == False`
+
+## Pull Request Guidelines
+
+**When creating pull requests:**
+
+1. **Read the current PR template**: Always check `.github/PULL_REQUEST_TEMPLATE.md` for the latest format
+2. **Use the template sections**: Include all sections from the template (SUMMARY, BEFORE/AFTER, TESTING INSTRUCTIONS, ADDITIONAL INFORMATION)
+3. **Follow PR title conventions**: Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+   - Format: `type(scope): description`
+   - Example: `fix(dashboard): load charts correctly`
+   - Types: `fix`, `feat`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
+
+**Important**: Always reference the actual template file at `.github/PULL_REQUEST_TEMPLATE.md` instead of using cached content, as the template may be updated over time.
 
 ## Pre-commit Validation
 

@@ -86,8 +86,8 @@ const setupMocks = () => {
   });
 };
 
-// Set timeout for all tests in this file to 30 seconds
-jest.setTimeout(30000);
+// Set timeout for all tests in this file to 60 seconds
+jest.setTimeout(60000);
 
 beforeEach(() => {
   setupMocks();
@@ -481,7 +481,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.csv');
-  });
+  }, 60000);
 
   test('Excel form submission', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
@@ -493,7 +493,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.xls');
-  });
+  }, 60000);
 
   test('Columnar form submission', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });

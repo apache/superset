@@ -69,6 +69,10 @@ export class Theme {
     brandLogoHref: '/',
     brandLogoHeight: '24px',
 
+    // Spinner
+    brandSpinnerUrl: undefined,
+    brandSpinnerSvg: undefined,
+
     // Default colors
     colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
     colorLink: '#2893B3',

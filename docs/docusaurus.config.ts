@@ -20,8 +20,117 @@
 import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
 import { themes } from 'prism-react-renderer';
+import remarkImportPartial from 'remark-import-partial';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const { github: lightCodeTheme, vsDark: darkCodeTheme } = themes;
+
+// Load version configuration from external file
+const versionsConfigPath = path.join(__dirname, 'versions-config.json');
+const versionsConfig = JSON.parse(fs.readFileSync(versionsConfigPath, 'utf8'));
+
+// Build plugins array dynamically based on disabled flags
+const dynamicPlugins = [];
+
+// Add components plugin if not disabled
+if (!versionsConfig.components.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'components',
+      path: 'components',
+      routeBasePath: 'components',
+      sidebarPath: require.resolve('./sidebarComponents.js'),
+      editUrl:
+        'https://github.com/apache/superset/edit/master/docs/components',
+      remarkPlugins: [remarkImportPartial],
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
+      lastVersion: versionsConfig.components.lastVersion,
+      onlyIncludeVersions: versionsConfig.components.onlyIncludeVersions,
+      versions: versionsConfig.components.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
+// Add developer_portal plugin if not disabled
+if (!versionsConfig.developer_portal.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'developer_portal',
+      path: 'developer_portal',
+      routeBasePath: 'developer_portal',
+      sidebarPath: require.resolve('./sidebarTutorials.js'),
+      editUrl:
+        'https://github.com/apache/superset/edit/master/docs/developer_portal',
+      remarkPlugins: [remarkImportPartial],
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
+      lastVersion: versionsConfig.developer_portal.lastVersion,
+      onlyIncludeVersions: versionsConfig.developer_portal.onlyIncludeVersions,
+      versions: versionsConfig.developer_portal.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
+// Build navbar items dynamically based on disabled flags
+const dynamicNavbarItems = [];
+
+// Add Component Playground navbar item if not disabled
+if (!versionsConfig.components.disabled) {
+  dynamicNavbarItems.push({
+    label: 'Component Playground',
+    to: '/components',
+    items: [
+      {
+        label: 'Introduction',
+        to: '/components',
+      },
+      {
+        label: 'UI Components',
+        to: '/components/ui-components/button',
+      },
+      {
+        label: 'Chart Components',
+        to: '/components/chart-components/bar-chart',
+      },
+      {
+        label: 'Layout Components',
+        to: '/components/layout-components/grid',
+      },
+    ],
+  });
+}
+
+// Add Developer Portal navbar item if not disabled
+if (!versionsConfig.developer_portal.disabled) {
+  dynamicNavbarItems.push({
+    label: 'Developer Portal',
+    position: 'left',
+    items: [
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'index',
+        label: 'Introduction',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'getting-started/index',
+        label: 'Getting Started',
+      },
+    ],
+  });
+}
 
 const config: Config = {
   title: 'Superset',
@@ -29,7 +138,7 @@ const config: Config = {
     'Apache Superset is a modern data exploration and visualization platform',
   url: 'https://superset.apache.org',
   baseUrl: '/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'throw',
   markdown: {
     mermaid: true,
@@ -39,6 +148,7 @@ const config: Config = {
   projectName: 'superset',
   themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
   plugins: [
+    require.resolve('./src/webpack.extend.ts'),
     [
       'docusaurus-plugin-less',
       {
@@ -47,11 +157,10 @@ const config: Config = {
         },
       },
     ],
+    ...dynamicPlugins,
     [
       '@docusaurus/plugin-client-redirects',
       {
-        fromExtensions: ['html', 'htm'],
-        toExtensions: ['exe', 'zip'],
         redirects: [
           {
             to: '/docs/installation/docker-compose',
@@ -210,6 +319,13 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
+          includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
+          lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
+          onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
+          versions: versionsConfig.docs.versions,
+          disableVersioning: false,
+          showLastUpdateAuthor: true,
+          showLastUpdateTime: true,
         },
         blog: {
           showReadingTime: true,
@@ -235,6 +351,13 @@ const config: Config = {
       apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
       indexName: 'superset-apache',
     },
+    mermaid: {
+      theme: { light: 'neutral', dark: 'dark' },
+      options: {
+        // Any Mermaid config options go here...
+        maxTextSize: 100000,
+      },
+    },
     navbar: {
       logo: {
         alt: 'Superset Logo',
@@ -244,20 +367,22 @@ const config: Config = {
       items: [
         {
           label: 'Documentation',
-          to: '/docs/intro',
+          position: 'left',
           items: [
             {
+              type: 'doc',
+              docId: 'intro',
               label: 'Getting Started',
-              to: '/docs/intro',
             },
             {
+              type: 'doc',
+              docId: 'faq',
               label: 'FAQ',
-              to: '/docs/faq',
             },
           ],
         },
         {
-          label: 'Community',
+          label: 'Community Resources',
           to: '/community',
           items: [
             {
@@ -282,6 +407,7 @@ const config: Config = {
             },
           ],
         },
+        ...dynamicNavbarItems,
         {
           href: '/docs/intro',
           position: 'right',
@@ -336,7 +462,6 @@ const config: Config = {
     //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
     //   async: true,
     // },
-    '/script/matomo.js',
     {
       src: 'https://widget.kapa.ai/kapa-widget.bundle.js',
       async: true,

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
-import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
 import {
   configure,
@@ -26,12 +25,25 @@ import {
   SupersetClient,
   LanguagePack,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
+import './hooks/useLocale';
+
+// Import dayjs plugin types for global TypeScript support
+import 'dayjs/plugin/utc';
+import 'dayjs/plugin/timezone';
+import 'dayjs/plugin/calendar';
+import 'dayjs/plugin/relativeTime';
+import 'dayjs/plugin/customParseFormat';
+import 'dayjs/plugin/duration';
+import 'dayjs/plugin/updateLocale';
+import 'dayjs/plugin/localizedFormat';
+import 'dayjs/plugin/isSameOrBefore';
 
 configure();
 

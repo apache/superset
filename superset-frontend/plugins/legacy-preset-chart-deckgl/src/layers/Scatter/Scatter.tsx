@@ -17,42 +17,45 @@
  * under the License.
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
-import {
-  getMetricLabel,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
 import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
+import { createTooltipContent } from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
-export function getPoints(data: JsonObject[]) {
-  return data.map(d => d.position);
+function getMetricLabel(metric: any) {
+  if (typeof metric === 'string') {
+    return metric;
+  }
+  if (metric?.label) {
+    return metric.label;
+  }
+  if (metric?.verbose_name) {
+    return metric.verbose_name;
+  }
+  return metric?.value || 'Metric';
 }
 
 function setTooltipContent(
   formData: QueryFormData,
   verboseMap?: Record<string, string>,
 ) {
-  return (o: JsonObject) => {
+  const defaultTooltipGenerator = (o: JsonObject) => {
     const label =
       verboseMap?.[formData.point_radius_fixed.value] ||
       getMetricLabel(formData.point_radius_fixed?.value);
     return (
       <div className="deckgl-tooltip">
         <TooltipRow
-          // eslint-disable-next-line prefer-template
-          label={t('Longitude and Latitude') + ': '}
+          label={`${t('Longitude and Latitude')}: `}
           value={`${o.object?.position?.[0]}, ${o.object?.position?.[1]}`}
         />
         {o.object?.cat_color && (
           <TooltipRow
-            // eslint-disable-next-line prefer-template
-            label={t('Category') + ': '}
+            label={`${t('Category')}: `}
             value={`${o.object?.cat_color}`}
           />
         )}
@@ -62,6 +65,19 @@ function setTooltipContent(
       </div>
     );
   };
+
+  return createTooltipContent(formData, defaultTooltipGenerator);
+}
+
+interface ScatterDataItem {
+  color: number[];
+  radius: number;
+  position: number[];
+  [key: string]: unknown;
+}
+
+export function getPoints(data: JsonObject[]) {
+  return data.map(d => d.position);
 }
 
 export const getLayer: GetLayerType<ScatterplotLayer> = function ({
@@ -93,8 +109,9 @@ export const getLayer: GetLayerType<ScatterplotLayer> = function ({
     id: `scatter-layer-${fd.slice_id}` as const,
     data: dataWithRadius,
     fp64: true,
-    getFillColor: (d: any) => d.color,
-    getRadius: (d: any) => d.radius,
+    getFillColor: (d: ScatterDataItem): [number, number, number, number] =>
+      d.color as [number, number, number, number],
+    getRadius: (d: ScatterDataItem): number => d.radius,
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,

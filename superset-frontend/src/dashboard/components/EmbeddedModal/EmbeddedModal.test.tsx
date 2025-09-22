@@ -28,7 +28,7 @@ import {
   getExtensionsRegistry,
   makeApi,
 } from '@superset-ui/core';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import DashboardEmbedModal from './index';
 
 const defaultResponse = {
@@ -162,7 +162,7 @@ test('adds extension to DashboardEmbedModal', async () => {
     <>dashboard.embed.modal.extension component</>
   ));
 
-  setupExtensions();
+  setupCodeOverrides();
   setup();
 
   expect(

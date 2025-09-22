@@ -19,6 +19,7 @@
 import {
   configureStore,
   ConfigureStoreOptions,
+  createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
@@ -84,6 +85,8 @@ export const userReducer = (
   return user;
 };
 
+export const listenerMiddleware = createListenerMiddleware();
+
 const getMiddleware: ConfigureStoreOptions['middleware'] =
   getDefaultMiddleware =>
     process.env.REDUX_DEFAULT_MIDDLEWARE
@@ -97,8 +100,8 @@ const getMiddleware: ConfigureStoreOptions['middleware'] =
             ignoredPaths: [/queryController/g],
             warnAfter: 200,
           },
-        }).concat(logger, api.middleware)
-      : [thunk, logger, api.middleware];
+        }).concat(listenerMiddleware.middleware, logger, api.middleware)
+      : [listenerMiddleware.middleware, thunk, logger, api.middleware];
 
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both

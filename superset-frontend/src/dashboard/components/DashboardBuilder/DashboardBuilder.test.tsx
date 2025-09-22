@@ -244,17 +244,17 @@ describe('DashboardBuilder', () => {
   });
 
   it('should not display a loading spinner when saving is not in progress', () => {
-    const { queryByAltText } = setup();
+    const { queryByTestId } = setup();
 
-    expect(queryByAltText('Loading...')).not.toBeInTheDocument();
+    expect(queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('should display a loading spinner when saving is in progress', async () => {
-    const { findByAltText } = setup({
+    const { findByTestId } = setup({
       dashboardState: { ...mockState.dashboardState, dashboardIsSaving: true },
     });
 
-    expect(await findByAltText('Loading...')).toBeVisible();
+    expect(await findByTestId('loading-indicator')).toBeVisible();
   });
 
   it('should set FilterBar width by useStoredSidebarWidth', () => {

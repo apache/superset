@@ -1,4 +1,12 @@
-name: Ephemeral env workflow
+name: Ephemeral env workflow [DEPRECATED]
+
+# ⚠️  DEPRECATION NOTICE ⚠️
+# This workflow is deprecated and will be removed in a future version.
+# Please use the new Superset Showtime workflow instead:
+# - Use label "🎪 trigger-start" instead of "testenv-up"
+# - Showtime provides better reliability and easier management
+# - See .github/workflows/showtime.yml for the replacement
+# - Migration guide: https://github.com/mistercrunch/superset-showtime
 
 # Example manual trigger:
 # gh workflow run ephemeral-env.yml --ref fix_ephemerals --field label_name="testenv-up" --field issue_number=666
@@ -126,8 +134,11 @@ jobs:
               throw new Error("Issue number is not available.");
             }
 
-            const body = `@${user} Processing your ephemeral environment request [here](${workflowUrl}).` +
-              ` Action: **${action}**.` +
+            const body = `⚠️ **DEPRECATED WORKFLOW** ⚠️\n\n@${user} This workflow is deprecated! Please use the new **Superset Showtime** system instead:\n\n` +
+              `- Replace "testenv-up" label with "🎪 trigger-start"\n` +
+              `- Better reliability and easier management\n` +
+              `- See https://github.com/mistercrunch/superset-showtime for details\n\n` +
+              `Processing your ephemeral environment request [here](${workflowUrl}). Action: **${action}**.` +
               ` More information on [how to use or configure ephemeral environments]` +
               `(https://superset.apache.org/docs/contributing/howtos/#github-ephemeral-environments)`;
 
@@ -149,7 +160,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ needs.ephemeral-env-label.outputs.sha }} : ${{steps.get-sha.outputs.sha}} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.ephemeral-env-label.outputs.sha }}
           persist-credentials: false
@@ -209,7 +220,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 

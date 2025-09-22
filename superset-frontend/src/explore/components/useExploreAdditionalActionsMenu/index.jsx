@@ -333,8 +333,9 @@ export const useExploreAdditionalActionsMenu = (
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
           onClick: () => {
+            const sliceSelector = `#chart-id-${slice?.slice_id}`;
             exportPivotExcel(
-              '.pvtTable',
+              `${sliceSelector} .pvtTable`,
               slice?.slice_name ?? t('pivoted_xlsx'),
             );
             setIsDropdownVisible(false);

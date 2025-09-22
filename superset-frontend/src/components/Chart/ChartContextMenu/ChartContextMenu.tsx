@@ -122,6 +122,38 @@ const ChartContextMenu = (
     filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
+  // Extract matrixifyContext if present and merge cell filters
+  const enhancedFilters = useMemo(() => {
+    if (!filters) return filters;
+
+    // Check if this is from a matrixified cell
+    const matrixifyContext = (filters as any)?.matrixifyContext;
+    if (!matrixifyContext) return filters;
+
+    // Merge cell filters with drill filters
+    const enhancedDrillBy = filters.drillBy
+      ? {
+          ...filters.drillBy,
+          filters: [
+            ...(filters.drillBy.filters || []),
+            ...(matrixifyContext.cellFilters || []),
+          ],
+        }
+      : undefined;
+
+    return {
+      ...filters,
+      drillBy: enhancedDrillBy,
+    };
+  }, [filters]);
+
+  // Use cell's formData for drill-to-detail if from matrixified cell
+  const drillFormData = useMemo(() => {
+    const matrixifyContext = (filters as any)?.matrixifyContext;
+    // If this is from a matrixified cell, use the cell's formData which includes adhoc_filters
+    return matrixifyContext?.cellFormData || formData;
+  }, [filters, formData]);
+
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
@@ -155,12 +187,17 @@ const ChartContextMenu = (
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
-    isDisplayed(ContextMenuItem.DrillBy);
+    isDisplayed(ContextMenuItem.DrillBy) &&
+    !(
+      formData.matrixify_enable_vertical_layout === true ||
+      formData.matrixify_enable_horizontal_layout === true
+    ); // Disable drill by when matrixify is enabled
 
   const datasetResource = useDatasetDrillInfo(
     formData.datasource,
     dashboardId,
     formData,
+    !canDrillToDetail && !canDrillBy,
   );
 
   const isLoadingDataset = datasetResource.status === ResourceStatus.Loading;
@@ -200,9 +237,9 @@ const ChartContextMenu = (
     datasetResource.status,
     datasetResource.result,
     showDrillBy,
-    filters?.drillBy?.groupbyFieldName,
+    enhancedFilters?.drillBy?.groupbyFieldName,
     formData.x_axis,
-    formData[filters?.drillBy?.groupbyFieldName ?? ''],
+    formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
     loadDrillByOptionsExtension,
   ]);
@@ -298,7 +335,7 @@ const ChartContextMenu = (
   if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems
-        formData={formData}
+        formData={drillFormData}
         filters={filters?.drillToDetail}
         setFilters={setFilters}
         isContextMenu
@@ -322,7 +359,7 @@ const ChartContextMenu = (
     }
     menuItems.push(
       <DrillByMenuItems
-        drillByConfig={filters?.drillBy}
+        drillByConfig={enhancedFilters?.drillBy}
         onSelection={onSelection}
         onCloseMenu={closeContextMenu}
         formData={formData}
@@ -410,7 +447,7 @@ const ChartContextMenu = (
         <DrillDetailModal
           initialFilters={modalFilters}
           chartId={id}
-          formData={formData}
+          formData={drillFormData}
           showModal={drillModalIsOpen}
           onHideModal={() => {
             setDrillModalIsOpen(false);
@@ -421,10 +458,10 @@ const ChartContextMenu = (
       {showDrillByModal &&
         drillByColumn &&
         filteredDataset &&
-        filters?.drillBy && (
+        enhancedFilters?.drillBy && (
           <DrillByModal
             column={drillByColumn}
-            drillByConfig={filters?.drillBy}
+            drillByConfig={enhancedFilters?.drillBy}
             formData={formData}
             onHideModal={handleCloseDrillByModal}
             dataset={filteredDataset}

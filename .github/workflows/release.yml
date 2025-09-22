@@ -26,7 +26,7 @@ jobs:
     name: Bump version and publish package(s)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # pulls all commits (needed for lerna / semantic release to correctly version)
           fetch-depth: 0

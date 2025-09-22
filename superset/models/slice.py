@@ -363,7 +363,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get(cls, id_or_uuid: str) -> Slice:
-        qry = db.session.query(Slice).filter_by(id_or_uuid_filter(id_or_uuid))
+        qry = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
         return qry.one_or_none()
 
 

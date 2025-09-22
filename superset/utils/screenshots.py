@@ -26,6 +26,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 from flask import current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -121,10 +122,10 @@ class ScreenshotCachePayload:
         self.update_timestamp()
         self.status = StatusValues.ERROR
 
-    def get_image(self) -> BytesIO | None:
-        if not self._image:
-            return None
-        return BytesIO(self._image)
+    def get_image(self) -> BytesIO:
+        if self._image is None:
+            raise ScreenshotImageNotAvailableException()
+        return BytesIO(cast(bytes, self._image))
 
     def get_timestamp(self) -> str:
         return self._timestamp

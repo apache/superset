@@ -30,6 +30,7 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Optional,
     TYPE_CHECKING,
     TypedDict,
     Union,
@@ -707,6 +708,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
@@ -1492,6 +1494,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return views
 
     @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all materialized views.
+        """
+        return set()
+
+    @classmethod
     def get_indexes(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -1977,6 +1991,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: A list of function names useable in the database
         """
         return []
+
+    @classmethod
+    def get_column_description_limit_size(cls) -> int:
+        """
+        Get a minimum limit size for the sample SELECT column query
+        to fetch the column metadata.
+
+        :return: A number of limit size
+        """
+        return 1
 
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:

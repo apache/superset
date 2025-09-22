@@ -159,6 +159,7 @@ export {
 } from './Typography';
 
 export { Image, type ImageProps } from './Image';
+export { Popconfirm, type PopconfirmProps } from './Popconfirm';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 // Add these to your index.ts
 export * from './Menu';
@@ -180,3 +181,9 @@ export {
   type ThemedAgGridReactProps,
   setupAGGridModules,
 } from './ThemedAgGridReact';
+export {
+  CodeEditor,
+  type CodeEditorProps,
+  type CodeEditorMode,
+  type CodeEditorTheme,
+} from './CodeEditor';

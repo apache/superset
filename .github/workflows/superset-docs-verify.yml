@@ -18,7 +18,7 @@ jobs:
     name: Link Checking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Do not bump this linkinator-action version without opening
       # an ASF Infra ticket to allow the new version first!
       - uses: JustinBeckwith/linkinator-action@v1.11.0
@@ -56,7 +56,7 @@ jobs:
         working-directory: docs
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           submodules: recursive

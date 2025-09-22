@@ -240,11 +240,13 @@ describe('sqlLabReducer', () => {
       );
     });
     it('should migrate query editor by new query editor id', () => {
+      const { length } = newState.queryEditors;
       const index = newState.queryEditors.findIndex(({ id }) => id === qe.id);
       const newQueryEditor = {
         ...qe,
-        id: 'updatedNewId',
+        tabViewId: 'updatedNewId',
         schema: 'updatedSchema',
+        inLocalStorage: false,
       };
       const action = {
         type: actions.MIGRATE_QUERY_EDITOR,
@@ -252,20 +254,18 @@ describe('sqlLabReducer', () => {
         newQueryEditor,
       };
       newState = sqlLabReducer(newState, action);
-      expect(newState.queryEditors[index].id).toEqual('updatedNewId');
+      expect(newState.queryEditors[index].id).toEqual(qe.id);
+      expect(newState.queryEditors[index].tabViewId).toEqual('updatedNewId');
       expect(newState.queryEditors[index]).toEqual(newQueryEditor);
-    });
-    it('should migrate tab history by new query editor id', () => {
-      expect(newState.tabHistory).toContain(qe.id);
-      const action = {
-        type: actions.MIGRATE_TAB_HISTORY,
-        oldId: qe.id,
-        newId: 'updatedNewId',
+      const removeAction = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: newQueryEditor,
       };
-      newState = sqlLabReducer(newState, action);
-
-      expect(newState.tabHistory).toContain('updatedNewId');
-      expect(newState.tabHistory).not.toContain(qe.id);
+      newState = sqlLabReducer(newState, removeAction);
+      expect(newState.queryEditors).toHaveLength(length - 1);
+      expect(Object.keys(newState.destroyedQueryEditors)).toContain(
+        newQueryEditor.tabViewId,
+      );
     });
     it('should clear the destroyed query editors', () => {
       const expectedQEId = '1233289';

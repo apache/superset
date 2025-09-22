@@ -224,6 +224,7 @@ export const AddIconButton = styled.button`
   background-color: ${({ theme }) => theme.colorPrimaryText};
   border: none;
   border-radius: 2px;
+  cursor: pointer;
 
   :disabled {
     cursor: not-allowed;

@@ -20,8 +20,14 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
+jest.mock('src/utils/cachedSupersetGet');
+
+const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+  typeof cachedSupersetGet
+>;
 const SLICE_ID = 371;
 
 const createProps = (viz_type = VizType.Sunburst) =>
@@ -115,6 +121,19 @@ const renderWrapper = (
 const openMenu = () => {
   userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
+
+beforeEach(() => {
+  mockCachedSupersetGet.mockClear();
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [],
+        metrics: [],
+      },
+    },
+  });
+});
 
 test('Should render', () => {
   renderWrapper();
@@ -264,7 +283,7 @@ test('Should export to pivoted Excel if report is pivot table', async () => {
   userEvent.click(await screen.findByText('Export to Pivoted Excel'));
   expect(props.exportPivotExcel).toHaveBeenCalledTimes(1);
   expect(props.exportPivotExcel).toHaveBeenCalledWith(
-    '.pvtTable',
+    '#chart-id-371 .pvtTable',
     props.slice.slice_name,
   );
 });
@@ -525,4 +544,38 @@ test('Should not show the "Edit chart" button', () => {
   });
   openMenu();
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
+});
+
+test('Dataset drill info API call is made when user has drill permissions', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  renderWrapper(undefined, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
+      ['can_get_drill_info', 'Dataset'],
+    ],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: expect.stringContaining(
+      '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
+    ),
+  });
+});
+
+test('Dataset drill info API call is not made when user lacks drill permissions', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  renderWrapper(undefined, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
 });

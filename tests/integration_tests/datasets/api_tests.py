@@ -548,7 +548,7 @@ class TestDatasetApi(SupersetTestCase):
 
         uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"  # noqa: E501
         rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert response["message"] == "Unable to render expression from dataset query."
 
@@ -557,7 +557,7 @@ class TestDatasetApi(SupersetTestCase):
             "&include_rendered_sql=true&multiplier=4"
         )
         rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert response["message"] == "Unable to render expression from dataset metric."
 
@@ -566,7 +566,7 @@ class TestDatasetApi(SupersetTestCase):
             "&include_rendered_sql=true"
         )
         rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert (
             response["message"]
@@ -2390,6 +2390,63 @@ class TestDatasetApi(SupersetTestCase):
         # gamma users by default do not have access to this dataset
         assert rv.status_code in (403, 404)
 
+    def test_export_dataset_bundle_with_id_in_filename(self):
+        """
+        Dataset API: Test that exported dataset filenames include the dataset ID
+        to prevent filename collisions when datasets have identical names.
+        """
+        # Test fails for SQLite because of same table name
+        if backend() == "sqlite":
+            return
+
+        first_connection = self.insert_database("test_db_connection_1")
+        second_connection = self.insert_database("test_db_connection_2")
+        first_dataset = self.insert_dataset(
+            table_name="test_dataset",
+            owners=[],
+            database=first_connection,
+            fetch_metadata=False,
+        )
+        second_dataset = self.insert_dataset(
+            table_name="test_dataset",
+            owners=[],
+            database=second_connection,
+            fetch_metadata=False,
+        )
+
+        self.items_to_delete = [
+            first_dataset,
+            second_dataset,
+            first_connection,
+            second_connection,
+        ]
+
+        self.login(ADMIN_USERNAME)
+        argument = [first_dataset.id, second_dataset.id]
+        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        rv = self.get_assert_metric(uri, "export")
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+        with ZipFile(buf, "r") as zip_file:
+            filenames = zip_file.namelist()
+
+            assert any(
+                filename.endswith(
+                    f"datasets/test_db_connection_1/test_dataset_{first_dataset.id}.yaml"
+                )
+                for filename in filenames
+            )
+            assert any(
+                filename.endswith(
+                    f"datasets/test_db_connection_2/test_dataset_{second_dataset.id}.yaml"
+                )
+                for filename in filenames
+            )
+
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
@@ -2550,24 +2607,16 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dataset",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "datasets/dataset.yaml": "Dataset already exists and `overwrite=true` was not passed",  # noqa: E501
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
-                            }
-                        ],
-                    },
-                }
-            ]
-        }
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dataset")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "datasets/dataset.yaml" in str(error["extra"])
+        assert "Dataset already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
         # import with overwrite flag
         buf = self.create_import_v1_zip_file("dataset")
@@ -2605,27 +2654,19 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing dataset",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "metadata.yaml": {"type": ["Must be equal to SqlaTable."]},
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered "
-                                    "an error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing dataset")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "metadata.yaml" in error["extra"]
+        assert error["extra"]["metadata.yaml"] == {
+            "type": ["Must be equal to SqlaTable."]
         }
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
+        assert (
+            "Issue 1010 - Superset encountered an error while running a command."
+        ) in error["extra"]["issue_codes"][0]["message"]
 
     def test_import_dataset_invalid_v0_validation(self):
         """

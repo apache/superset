@@ -218,7 +218,7 @@ describe('ChartList Card View Tests', () => {
 
     // Verify edit modal appears (look for edit form elements)
     await waitFor(() => {
-      expect(screen.getByText('Edit Chart Properties')).toBeInTheDocument();
+      expect(screen.getByText('Chart properties')).toBeInTheDocument();
     });
   });
 

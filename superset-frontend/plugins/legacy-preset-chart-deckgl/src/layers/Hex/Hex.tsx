@@ -17,7 +17,11 @@
  * under the License.
  */
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
-import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import {
@@ -28,20 +32,22 @@ import {
 } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
 import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
-function setTooltipContent(o: JsonObject) {
+function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
+  const metricLabel = formData.size?.label || formData.size?.value || 'Height';
+
   return (
     <div className="deckgl-tooltip">
+      {CommonTooltipRows.centroid(o)}
       <TooltipRow
-        label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
-      />
-      <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Height') + ': '}
-        value={`${o.object.elevationValue}`}
+        label={`${metricLabel}: `}
+        value={`${o.object?.elevationValue}`}
       />
     </div>
   );
@@ -85,6 +91,10 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
       ? (p: number[]) => getColorForBreakpoints(aggFunc, p, colorBreakpoints)
       : aggFunc;
 
+  const tooltipContent = createTooltipContent(fd, (o: JsonObject) =>
+    defaultTooltipGenerator(o, fd),
+  );
+
   return new HexagonLayer({
     id: `hex-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}` as const,
     data,
@@ -103,7 +113,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
     ...commonLayerProps({
       formData: fd,
       setTooltip,
-      setTooltipContent,
+      setTooltipContent: tooltipContent,
       setDataMask,
       filterState,
       onContextMenu,
