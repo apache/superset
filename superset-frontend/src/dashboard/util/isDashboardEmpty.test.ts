@@ -20,7 +20,7 @@ import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
 describe('isDashboardEmpty', () => {
-  const emptyLayout: object = getEmptyLayout();
+  const emptyLayout = getEmptyLayout();
   const testLayout: object = {
     ...emptyLayout,
     'MARKDOWN-IhTGLhyiTd': {

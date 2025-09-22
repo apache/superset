@@ -204,7 +204,8 @@ test('getMatrixifyConfig should handle topn selection mode', () => {
 test('getMatrixifyValidationErrors should return empty array when matrixify is not enabled', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_enabled: false,
+    matrixify_enable_vertical_layout: false,
+    matrixify_enable_horizontal_layout: false,
   } as MatrixifyFormData;
 
   expect(getMatrixifyValidationErrors(formData)).toEqual([]);
