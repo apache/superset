@@ -729,20 +729,19 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # Superset supports custom theming through Ant Design's theme structure.
 #
 # Theme Hierarchy (layers apply in order, each overriding previous):
-# 1. BASE_THEME_DEFAULT/BASE_THEME_DARK - Foundation tokens ALWAYS present
-# 2. THEME_DEFAULT/THEME_DARK - Config themes (overlay on BASE themes)
+# 1. THEME_DEFAULT/THEME_DARK - System base themes (foundation for all users)
 # 3. System CRUD themes (when ENABLE_UI_THEME_ADMINISTRATION=True) - Set via UI
 # 4. Dashboard CRUD themes - Applied locally per dashboard with bolt button
 #
 # Theme Merging:
-# - Base themes are ALWAYS the foundation - never removed, only overridden
-# - Each layer only adds/modifies specific tokens, preserving all others
+# - System themes (THEME_DEFAULT/THEME_DARK) provide the foundation
+# - User/CRUD themes are treated as overlays/overrides on system themes
 # - Empty theme {} or None means "no custom tokens at this layer"
-# - All themes are merged: base + config overlays + system overlays + dashboard overlays
+# - Final theme = System theme + User/CRUD theme overlay (if any)
 #
 # System Theme Behavior (UI Administration):
 # - Only themes explicitly marked as system (via moon/sun buttons) are used
-# - Removing a system theme falls back to config theme (or base if config is None)
+# - Removing a system theme falls back to config theme (or base if config is None) # noqa: E501
 # - No automatic fallback to other themes in the database
 #
 # Theme Generation:
@@ -751,16 +750,17 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # - To expose a JSON theme editor modal in the UI, set ENABLE_THEME_EDITOR
 #   feature flag to True
 #
-# Example: If BASE_THEME_DEFAULT sets colorPrimary: "#2893B3" and a custom theme sets
+# Example: If THEME_DEFAULT sets colorPrimary: "#2893B3" and a custom theme sets # noqa: E501
 # colorPrimary: "#FF0000", the final theme will have colorPrimary: "#FF0000"
 # -----------------------------------------------------------------------------
 
-# Base theme with Superset's default tokens (foundation for all themes)
-BASE_THEME_DEFAULT: Theme = {
+# Default theme configuration - foundation for all themes
+# This acts as the base theme for all users
+THEME_DEFAULT: Theme = {
     "token": {
         # Brand
         "brandLogoAlt": "Apache Superset",
-        "brandLogoUrl": "/static/assets/images/superset-logo-horiz.png",
+        "brandLogoUrl": APP_ICON,
         "brandLogoMargin": "18px",
         "brandLogoHref": "/",
         "brandLogoHeight": "24px",
@@ -789,23 +789,13 @@ BASE_THEME_DEFAULT: Theme = {
     "algorithm": "default",
 }
 
-# Base dark theme configuration - foundation tokens for dark mode
-# Inherits all tokens from BASE_THEME_DEFAULT and adds dark algorithm
-# This ensures dark mode gets the correct algorithm even if THEME_DARK is empty
-BASE_THEME_DARK: Theme = {
-    **BASE_THEME_DEFAULT,
+# Dark theme configuration - foundation for dark mode
+# Inherits all tokens from THEME_DEFAULT and adds dark algorithm
+# Set to None to disable dark mode
+THEME_DARK: Optional[Theme] = {
+    **THEME_DEFAULT,
     "algorithm": "dark",
 }
-
-# Default theme configuration
-# Set to None to use BASE_THEME_DEFAULT directly
-# Set to a Theme dict to layer custom tokens on top of BASE_THEME_DEFAULT
-THEME_DEFAULT: Optional[Theme] = None
-
-# Dark theme configuration
-# Set to None to use BASE_THEME_DARK directly
-# Set to a Theme dict to layer custom tokens on top of BASE_THEME_DARK
-THEME_DARK: Optional[Theme] = None
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None

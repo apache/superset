@@ -20,7 +20,6 @@ from unittest.mock import MagicMock, patch
 from superset.views.base import (
     _load_theme_from_model,
     _process_theme,
-    _validate_base_theme,
     should_use_base,
 )
 
@@ -113,35 +112,6 @@ class TestThemeHelpers:
         result = _process_theme(None, "test")
         assert result == {}
 
-    @patch("superset.views.base.is_valid_theme")
-    def test_validate_base_theme_valid(self, mock_is_valid):
-        """Test _validate_base_theme with valid theme"""
-        mock_is_valid.return_value = True
-        theme = {"token": {"colorPrimary": "#555"}}
-
-        result = _validate_base_theme(theme, "test")
-        assert result == theme
-
-    @patch("superset.views.base.is_valid_theme")
-    def test_validate_base_theme_invalid(self, mock_is_valid):
-        """Test _validate_base_theme with invalid theme"""
-        mock_is_valid.return_value = False
-        theme = {"invalid": "base_theme"}
-
-        with patch("superset.views.base.logger") as mock_logger:
-            result = _validate_base_theme(theme, "test")
-            assert result is None
-            mock_logger.warning.assert_called_once_with(
-                "Invalid %s theme configuration: %s, ignoring",
-                "test",
-                theme,
-            )
-
-    def test_validate_base_theme_none(self):
-        """Test _validate_base_theme with None theme"""
-        result = _validate_base_theme(None, "test")
-        assert result is None
-
 
 class TestGetThemeBootstrapData:
     """Test get_theme_bootstrap_data function with various scenarios"""
@@ -186,8 +156,8 @@ class TestGetThemeBootstrapData:
         assert result["theme"]["enableUiThemeAdministration"] is True
         assert "default" in result["theme"]
         assert "dark" in result["theme"]
-        assert "baseThemeDefault" in result["theme"]
-        assert "baseThemeDark" in result["theme"]
+        assert "baseThemeDefault" not in result["theme"]
+        assert "baseThemeDark" not in result["theme"]
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")

@@ -352,20 +352,6 @@ def _process_theme(theme: dict[str, Any] | None, theme_type: str) -> dict[str, A
     return theme or {}
 
 
-def _validate_base_theme(
-    base_theme: dict[str, Any] | None, theme_type: str
-) -> dict[str, Any] | None:
-    """Validate base theme configuration."""
-    if base_theme is not None and not is_valid_theme(base_theme):
-        logger.warning(
-            "Invalid %s theme configuration: %s, ignoring",
-            theme_type,
-            base_theme,
-        )
-        return None
-    return base_theme
-
-
 def get_theme_bootstrap_data() -> dict[str, Any]:
     """
     Returns the theme data to be sent to the client.
@@ -392,24 +378,14 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
         default_theme = config_theme_default
         dark_theme = config_theme_dark
 
-    # Get base themes from config (with fallback for backwards compatibility)
-    base_theme = app.config.get("BASE_THEME_DEFAULT", None)
-    base_theme_dark = app.config.get("BASE_THEME_DARK", None)
-
     # Process and validate themes
     default_theme = _process_theme(default_theme, "default")
     dark_theme = _process_theme(dark_theme, "dark")
-
-    # Validate base theme configurations
-    base_theme = _validate_base_theme(base_theme, "base")
-    base_theme_dark = _validate_base_theme(base_theme_dark, "base dark")
 
     return {
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
-            "baseThemeDefault": base_theme,
-            "baseThemeDark": base_theme_dark,
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }

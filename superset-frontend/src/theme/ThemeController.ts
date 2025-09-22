@@ -80,10 +80,6 @@ export class ThemeController {
 
   private darkTheme: AnyThemeConfig | null;
 
-  private baseThemeDefault: AnyThemeConfig | null;
-
-  private baseThemeDark: AnyThemeConfig | null;
-
   private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
@@ -115,21 +111,14 @@ export class ThemeController {
     this.globalTheme = themeObject;
 
     // Initialize bootstrap data and themes
-    const {
-      bootstrapDefaultTheme,
-      bootstrapDarkTheme,
-      bootstrapBaseTheme,
-      bootstrapBaseDarkTheme,
-    }: BootstrapThemeData = this.loadBootstrapData();
-
-    this.baseThemeDefault = bootstrapBaseTheme || null;
-    this.baseThemeDark = bootstrapBaseDarkTheme || null;
+    const { bootstrapDefaultTheme, bootstrapDarkTheme }: BootstrapThemeData =
+      this.loadBootstrapData();
 
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
     // (or from database if UI administration is enabled)
-    // loadBootstrapData already returns null for empty themes
-    this.defaultTheme = bootstrapDefaultTheme;
+    // Use fallback defaultTheme if bootstrap theme is empty
+    this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
 
     // Initialize system theme detection
@@ -146,9 +135,7 @@ export class ThemeController {
     // Initialize theme and mode
     this.currentMode = this.determineInitialMode();
     const initialTheme =
-      this.getThemeForMode(this.currentMode) ||
-      this.baseThemeDefault ||
-      defaultTheme;
+      this.getThemeForMode(this.currentMode) || this.defaultTheme || {};
 
     // Setup change callback
     if (onChange) this.onChangeCallbacks.add(onChange);
@@ -183,10 +170,10 @@ export class ThemeController {
 
   /**
    * Check if the user can update the theme mode.
-   * Only possible if dark theme is available (or base dark theme exists)
+   * Only possible if dark theme is available
    */
   public canSetMode(): boolean {
-    return this.darkTheme !== null || this.baseThemeDark !== null;
+    return this.darkTheme !== null;
   }
 
   /**
@@ -210,7 +197,7 @@ export class ThemeController {
       // Dashboard CRUD themes should be merged with base theme
       const normalizedTheme = this.normalizeTheme(this.dashboardCrudTheme);
       const isDarkMode = this.isThemeDark(normalizedTheme);
-      const baseTheme = isDarkMode ? this.baseThemeDark : this.baseThemeDefault;
+      const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
 
       if (baseTheme) {
         const mergedTheme = Theme.fromConfig(normalizedTheme, baseTheme);
@@ -255,9 +242,7 @@ export class ThemeController {
 
         // Determine if this is a dark theme and get appropriate base
         const isDarkMode = this.isThemeDark(normalizedConfig);
-        const baseTheme = isDarkMode
-          ? this.baseThemeDark
-          : this.baseThemeDefault;
+        const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
 
         const dashboardTheme = Theme.fromConfig(
           normalizedConfig,
@@ -346,7 +331,7 @@ export class ThemeController {
   public resetTheme(): void {
     this.currentMode = ThemeMode.DEFAULT;
     const defaultTheme: AnyThemeConfig =
-      this.getThemeForMode(ThemeMode.DEFAULT) || this.baseThemeDefault || {};
+      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
     this.updateTheme(defaultTheme);
   }
@@ -435,7 +420,7 @@ export class ThemeController {
    * Allowed when dark theme is available (including base dark theme)
    */
   public canDetectOSPreference(): boolean {
-    return this.darkTheme !== null || this.baseThemeDark !== null;
+    return this.darkTheme !== null;
   }
 
   /**
@@ -503,26 +488,13 @@ export class ThemeController {
     try {
       // If no config provided, use current mode to get theme
       if (!theme) {
-        // No theme provided, use the current mode's theme (already merged with base)
+        // No theme provided, use the current mode's theme
         const modeTheme =
-          this.getThemeForMode(this.currentMode) || this.baseThemeDefault || {};
+          this.getThemeForMode(this.currentMode) || this.defaultTheme || {};
         this.applyTheme(modeTheme);
       } else {
-        // Theme provided, need to normalize and merge with base
-        const normalizedTheme = this.normalizeTheme(theme);
-
-        // Determine if this is a dark theme and get appropriate base
-        const isDarkMode = this.isThemeDark(normalizedTheme);
-        const baseTheme = isDarkMode
-          ? this.baseThemeDark
-          : this.baseThemeDefault;
-
-        if (baseTheme) {
-          const mergedTheme = Theme.fromConfig(normalizedTheme, baseTheme);
-          this.applyTheme(mergedTheme.toSerializedConfig());
-        } else {
-          this.applyTheme(normalizedTheme);
-        }
+        // Theme provided, apply it directly
+        this.applyTheme(theme);
       }
 
       this.persistMode();
@@ -541,7 +513,7 @@ export class ThemeController {
 
     // Get the default theme which will have the correct algorithm
     const defaultTheme: AnyThemeConfig =
-      this.getThemeForMode(ThemeMode.DEFAULT) || this.baseThemeDefault || {};
+      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
     this.applyTheme(defaultTheme);
     this.persistMode();
@@ -589,17 +561,10 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
-    const {
-      default: defaultTheme,
-      dark: darkTheme,
-      baseThemeDefault,
-      baseThemeDark,
-    } = theme;
+    const { default: defaultTheme, dark: darkTheme } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
-    const hasValidBase: boolean = this.isNonEmptyObject(baseThemeDefault);
-    const hasValidBaseDark: boolean = this.isNonEmptyObject(baseThemeDark);
 
     // Check if themes have actual custom tokens (not just empty or algorithm-only)
     const hasCustomDefault =
@@ -609,10 +574,6 @@ export class ThemeController {
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
-      bootstrapBaseTheme:
-        hasValidBase && baseThemeDefault ? baseThemeDefault : null,
-      bootstrapBaseDarkTheme:
-        hasValidBaseDark && baseThemeDark ? baseThemeDark : null,
       hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
   }
@@ -669,11 +630,11 @@ export class ThemeController {
    */
   private getThemeForMode(mode: ThemeMode): AnyThemeConfig | null {
     // Priority 1: Dev theme override (highest priority for development)
-    // Dev overrides affect all contexts but still merge with base
+    // Dev overrides are merged with system themes as base
     if (this.devThemeOverride) {
       const normalizedOverride = this.normalizeTheme(this.devThemeOverride);
       const isDarkMode = this.isThemeDark(normalizedOverride);
-      const baseTheme = isDarkMode ? this.baseThemeDark : this.baseThemeDefault;
+      const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
 
       if (baseTheme) {
         const mergedTheme = Theme.fromConfig(normalizedOverride, baseTheme);
@@ -682,52 +643,20 @@ export class ThemeController {
       return normalizedOverride;
     }
 
-    // Priority 2: System theme based on mode (applies to all contexts)
+    // Priority 2: System theme based on mode
     let resolvedMode: ThemeMode = mode;
 
     if (mode === ThemeMode.SYSTEM) {
-      // OS preference is allowed when dark theme exists or base dark theme exists
-      if (this.darkTheme === null && this.baseThemeDark === null) return null;
+      // OS preference is allowed when dark theme exists
+      if (this.darkTheme === null) return null;
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
-    // Get the appropriate base theme for the mode
-    let baseTheme: AnyThemeConfig | null = null;
-    let customTheme: AnyThemeConfig | null = null;
-
+    // Return the appropriate system theme (these ARE the base themes now)
     if (resolvedMode === ThemeMode.DARK) {
-      baseTheme = this.baseThemeDark || this.baseThemeDefault;
-      customTheme = this.darkTheme;
-    } else {
-      baseTheme = this.baseThemeDefault || this.baseThemeDark;
-      customTheme = this.defaultTheme;
+      return this.darkTheme;
     }
-
-    // Start with base theme as foundation
-    if (!baseTheme && !customTheme) {
-      // No themes available at all - this shouldn't happen in production
-      return null;
-    }
-
-    // If we only have base theme, return it
-    if (baseTheme && !customTheme) {
-      return baseTheme;
-    }
-
-    // If we only have custom theme (shouldn't happen but handle it), return it
-    if (!baseTheme && customTheme) {
-      return customTheme;
-    }
-
-    // We have both base and custom - merge them with base as foundation
-    if (baseTheme && customTheme) {
-      // Use Theme's static method to handle merging, then extract the config
-      const mergedTheme = Theme.fromConfig(customTheme, baseTheme);
-      return mergedTheme.toSerializedConfig();
-    }
-
-    // Shouldn't reach here but return something safe
-    return baseTheme || customTheme || null;
+    return this.defaultTheme;
   }
 
   /**
@@ -738,8 +667,8 @@ export class ThemeController {
     const savedMode: ThemeMode | null = this.loadSavedMode();
     if (savedMode && this.isValidThemeMode(savedMode)) return savedMode;
 
-    // If no dark theme is available (including base), force default mode
-    if (this.darkTheme === null && this.baseThemeDark === null) {
+    // If no dark theme is available, force default mode
+    if (this.darkTheme === null) {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
     }
@@ -776,14 +705,14 @@ export class ThemeController {
     // Validate that we have the required theme data for the mode
     switch (mode) {
       case ThemeMode.DARK:
-        // Dark mode is valid if we have either a custom dark theme or base dark theme
-        return !!(this.darkTheme || this.baseThemeDark);
+        // Dark mode is valid if we have a dark theme
+        return !!this.darkTheme;
       case ThemeMode.DEFAULT:
-        // Default mode is valid if we have either a custom default theme or base default theme
-        return !!(this.defaultTheme || this.baseThemeDefault);
+        // Default mode is valid if we have a default theme
+        return !!this.defaultTheme;
       case ThemeMode.SYSTEM:
         // System mode is valid if dark mode is available
-        return !!(this.darkTheme || this.baseThemeDark);
+        return !!this.darkTheme;
       default:
         return true;
     }

@@ -148,8 +148,6 @@ export interface MenuData {
 export interface BootstrapThemeDataConfig {
   default: SerializableThemeConfig | {};
   dark: SerializableThemeConfig | {};
-  baseThemeDefault?: SerializableThemeConfig | null;
-  baseThemeDark?: SerializableThemeConfig | null;
   enableUiThemeAdministration?: boolean;
 }
 
@@ -182,8 +180,6 @@ export interface BootstrapData {
 export interface BootstrapThemeData {
   bootstrapDefaultTheme: AnyThemeConfig | null;
   bootstrapDarkTheme: AnyThemeConfig | null;
-  bootstrapBaseTheme: AnyThemeConfig | null;
-  bootstrapBaseDarkTheme: AnyThemeConfig | null;
   hasCustomThemes: boolean;
 }
 

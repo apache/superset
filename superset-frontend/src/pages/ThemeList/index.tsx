@@ -112,6 +112,16 @@ function ThemesList({
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
+  // State for confirmation modal
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<any>;
+    successMessage: string;
+    errorMessage: string;
+  } | null>(null);
+
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -242,21 +252,31 @@ function ThemesList({
     successMessage: string;
     errorMessage: string;
   }) => {
-    Modal.confirm({
+    setConfirmModalConfig({
+      visible: true,
       title: config.title,
-      content: config.content,
-      onOk: () => {
-        config
-          .onConfirm()
-          .then(() => {
-            refreshData();
-            addSuccessToast(config.successMessage);
-          })
-          .catch(err => {
-            addDangerToast(t(config.errorMessage, err.message));
-          });
-      },
+      message: config.content,
+      onConfirm: config.onConfirm,
+      successMessage: config.successMessage,
+      errorMessage: config.errorMessage,
     });
+  };
+
+  const handleConfirmModalOk = async () => {
+    if (!confirmModalConfig) return;
+
+    try {
+      await confirmModalConfig.onConfirm();
+      refreshData();
+      addSuccessToast(confirmModalConfig.successMessage);
+      setConfirmModalConfig(null);
+    } catch (err: any) {
+      addDangerToast(t(confirmModalConfig.errorMessage, err.message));
+    }
+  };
+
+  const handleConfirmModalCancel = () => {
+    setConfirmModalConfig(null);
   };
 
   const handleSetSystemDefault = (theme: ThemeObject) => {
@@ -695,6 +715,17 @@ function ThemesList({
         }}
       </ConfirmStatusChange>
       {preparingExport && <Loading />}
+      {confirmModalConfig?.visible && (
+        <Modal
+          title={confirmModalConfig.title}
+          show={confirmModalConfig.visible}
+          onHide={handleConfirmModalCancel}
+          onHandledPrimaryAction={handleConfirmModalOk}
+          primaryButtonName={t('Yes')}
+        >
+          {confirmModalConfig.message}
+        </Modal>
+      )}
     </>
   );
 }
