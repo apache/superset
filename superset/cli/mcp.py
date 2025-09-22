@@ -18,8 +18,6 @@
 
 import click
 
-from superset.mcp_service.server import run_server
-
 
 @click.group()
 def mcp() -> None:
@@ -33,4 +31,14 @@ def mcp() -> None:
 @click.option("--debug", is_flag=True, help="Enable debug mode")
 def run(host: str, port: int, debug: bool) -> None:
     """Run the MCP service"""
-    run_server(host=host, port=port, debug=debug)
+    try:
+        from superset.mcp_service.server import run_server
+
+        run_server(host=host, port=port, debug=debug)
+    except ImportError as e:
+        click.echo(
+            f"Error: MCP service dependencies not installed: {e}\n"
+            "Please install with: pip install fastmcp",
+            err=True,
+        )
+        raise click.ClickException("MCP service not available") from e
