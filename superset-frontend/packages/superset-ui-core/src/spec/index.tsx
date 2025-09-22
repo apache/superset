@@ -20,13 +20,16 @@ import userEvent from '@testing-library/user-event';
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { themeObject } from '@superset-ui/core';
+import { Theme } from '@superset-ui/core';
 
-// Define the wrapper component outside
+// Create proper theme instance for core testing
+const coreTestTheme = Theme.fromConfig();
+
+// Define the wrapper component with full SupersetThemeProvider
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
-  <themeObject.SupersetThemeProvider>
+  <coreTestTheme.SupersetThemeProvider>
     {children}
-  </themeObject.SupersetThemeProvider>
+  </coreTestTheme.SupersetThemeProvider>
 );
 
 // Follow the exact pattern from RTL docs

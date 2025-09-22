@@ -19,7 +19,7 @@
 
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
-import { SupersetTheme, ThemeProvider } from '@superset-ui/core';
+import { Theme } from '@superset-ui/core';
 
 // CRITICAL: Don't import from the mocked path - import directly to avoid global mocks
 import AsyncIcon from '../../../src/components/Icons/AsyncIcon';
@@ -38,18 +38,15 @@ jest.mock(
   { virtual: true },
 );
 
-// Basic theme for testing
-const mockTheme: SupersetTheme = {
-  fontSize: 16,
-  sizeUnit: 4,
-} as SupersetTheme;
+// Theme instance for testing
+const themeInstance = Theme.fromConfig();
 
 describe('AsyncIcon Integration Tests (Real Component)', () => {
   it('should have data-test and aria-label attributes with real component', () => {
     const { container } = render(
-      <ThemeProvider theme={mockTheme}>
+      <themeInstance.SupersetThemeProvider>
         <AsyncIcon customIcons fileName="slack" iconSize="l" />
-      </ThemeProvider>,
+      </themeInstance.SupersetThemeProvider>,
     );
 
     // Don't wait for SVG since it's mocked - just check the span wrapper
@@ -63,9 +60,9 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
 
   it('should always have aria-label and data-test for testing', () => {
     const { container } = render(
-      <ThemeProvider theme={mockTheme}>
+      <themeInstance.SupersetThemeProvider>
         <AsyncIcon customIcons fileName="slack" iconSize="l" />
-      </ThemeProvider>,
+      </themeInstance.SupersetThemeProvider>,
     );
 
     const spanElement = container.querySelector('span');
@@ -84,14 +81,14 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
   it('should set role to button when onClick is provided in real component', () => {
     const onClick = jest.fn();
     const { container } = render(
-      <ThemeProvider theme={mockTheme}>
+      <themeInstance.SupersetThemeProvider>
         <AsyncIcon
           customIcons
           fileName="slack"
           iconSize="l"
           onClick={onClick}
         />
-      </ThemeProvider>,
+      </themeInstance.SupersetThemeProvider>,
     );
 
     const spanElement = container.querySelector('span');
@@ -107,9 +104,9 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
 
   it('should handle complex fileName patterns like BaseIcon', () => {
     const { container } = render(
-      <ThemeProvider theme={mockTheme}>
+      <themeInstance.SupersetThemeProvider>
         <AsyncIcon customIcons fileName="slack_notification" iconSize="l" />
-      </ThemeProvider>,
+      </themeInstance.SupersetThemeProvider>,
     );
 
     const spanElement = container.querySelector('span');

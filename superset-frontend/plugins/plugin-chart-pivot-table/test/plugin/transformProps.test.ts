@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { ChartProps, QueryFormData, supersetTheme } from '@superset-ui/core';
+import { ChartProps, QueryFormData } from '@superset-ui/core';
+
 import transformProps from '../../src/plugin/transformProps';
 import { MetricsLayoutEnum } from '../../src/types';
 
@@ -61,7 +62,6 @@ describe('PivotTableChart transformProps', () => {
     hooks: { setDataMask },
     filterState: { selectedFilters: {} },
     datasource: { verboseMap: {}, columnFormats: {} },
-    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {

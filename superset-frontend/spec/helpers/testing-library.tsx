@@ -26,12 +26,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import {
-  ThemeProvider,
-  // eslint-disable-next-line no-restricted-imports
-  supersetTheme,
-  themeObject,
-} from '@superset-ui/core';
+import { Theme } from '@superset-ui/core';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
@@ -56,7 +51,8 @@ type Options = Omit<RenderOptions, 'queries'> & {
   store?: Store;
 };
 
-const themeController = new ThemeController({ themeObject });
+// Create theme controller for advanced testing scenarios
+const themeController = new ThemeController();
 
 export const createStore = (initialState: object = {}, reducers: object = {}) =>
   configureStore({
@@ -85,10 +81,12 @@ export function createWrapper(options?: Options) {
   } = options || {};
 
   return ({ children }: { children?: ReactNode }) => {
+    // Create theme instance for this test session
+    const testTheme = Theme.fromConfig();
     let result = (
-      <ThemeProvider theme={supersetTheme}>
+      <testTheme.SupersetThemeProvider>
         <ExtensionsProvider>{children}</ExtensionsProvider>
-      </ThemeProvider>
+      </testTheme.SupersetThemeProvider>
     );
 
     if (useTheme) {

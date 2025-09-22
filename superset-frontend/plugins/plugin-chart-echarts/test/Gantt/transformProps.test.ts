@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, ChartProps, supersetTheme } from '@superset-ui/core';
+import { AxisType, ChartProps } from '@superset-ui/core';
 import {
   LegendOrientation,
   LegendType,
@@ -81,7 +81,6 @@ const queriesData = [
 const chartPropsConfig = {
   formData,
   queriesData,
-  theme: supersetTheme,
 };
 
 describe('Gantt transformProps', () => {

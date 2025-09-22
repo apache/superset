@@ -17,7 +17,7 @@
  * under the License.
  */
 import { configureStore } from '@reduxjs/toolkit';
-import { getChartComponentRegistry, ThemeProvider } from '@superset-ui/core';
+import { getChartComponentRegistry, Theme } from '@superset-ui/core';
 import { FC, useEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ChartWrapperProps } from '../types';
@@ -31,6 +31,7 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   locale,
 }) => {
   const [Chart, setChart] = useState<any>();
+  const themeInstance = Theme.fromConfig();
 
   const getChartFromRegistry = async (vizType: string) => {
     const registry = getChartComponentRegistry();
@@ -49,7 +50,7 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   });
 
   return (
-    <ThemeProvider theme={theme}>
+    <themeInstance.SupersetThemeProvider>
       <ReduxProvider store={mockStore}>
         {Chart === undefined ? (
           <></>
@@ -57,7 +58,7 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
           <Chart {...chartConfig.properties} height={height} width={width} />
         )}
       </ReduxProvider>
-    </ThemeProvider>
+    </themeInstance.SupersetThemeProvider>
   );
 };
 

@@ -19,7 +19,6 @@
 
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '../../..';
 import MatrixifyGridCell from './MatrixifyGridCell';
 import { MatrixifyGridCell as MatrixifyGridCellType } from '../../types/matrixify';
 
@@ -76,11 +75,8 @@ const defaultProps = {
   rowHeight: 200,
 };
 
-const renderWithTheme = (component: React.ReactElement) =>
-  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
-
 test('should render the cell with title', () => {
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+  render(<MatrixifyGridCell {...defaultProps} />);
 
   expect(screen.getByText('Revenue - Q1 2024')).toBeInTheDocument();
 });
@@ -91,15 +87,13 @@ test('should render the cell without title when not provided', () => {
     title: undefined,
   };
 
-  renderWithTheme(
-    <MatrixifyGridCell {...defaultProps} cell={cellWithoutTitle} />,
-  );
+  render(<MatrixifyGridCell {...defaultProps} cell={cellWithoutTitle} />);
 
   expect(screen.queryByText('Revenue - Q1 2024')).not.toBeInTheDocument();
 });
 
 test('should render SuperChart with correct props', () => {
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+  render(<MatrixifyGridCell {...defaultProps} />);
 
   const superChart = screen.getByText('SuperChart Mock');
   expect(superChart).toBeInTheDocument();
@@ -108,7 +102,7 @@ test('should render SuperChart with correct props', () => {
 });
 
 test('should calculate chart height correctly with title', () => {
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+  render(<MatrixifyGridCell {...defaultProps} />);
 
   const superChart = screen.getByText('SuperChart Mock');
   // StatefulChart uses 100% height within the chart wrapper
@@ -121,9 +115,7 @@ test('should calculate chart height correctly without title', () => {
     title: undefined,
   };
 
-  renderWithTheme(
-    <MatrixifyGridCell {...defaultProps} cell={cellWithoutTitle} />,
-  );
+  render(<MatrixifyGridCell {...defaultProps} cell={cellWithoutTitle} />);
 
   const superChart = screen.getByText('SuperChart Mock');
   // StatefulChart uses 100% height within the chart wrapper
@@ -131,9 +123,7 @@ test('should calculate chart height correctly without title', () => {
 });
 
 test('should apply correct styling to container', () => {
-  const { container } = renderWithTheme(
-    <MatrixifyGridCell {...defaultProps} />,
-  );
+  const { container } = render(<MatrixifyGridCell {...defaultProps} />);
 
   const cellContainer = container.firstChild as HTMLElement;
   expect(cellContainer).toHaveStyle({
@@ -143,7 +133,7 @@ test('should apply correct styling to container', () => {
 });
 
 test('should apply correct styling to title', () => {
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+  render(<MatrixifyGridCell {...defaultProps} />);
 
   const title = screen.getByText('Revenue - Q1 2024');
   expect(title).toHaveStyle({
@@ -160,9 +150,7 @@ test('should handle different viz types', () => {
     },
   };
 
-  renderWithTheme(
-    <MatrixifyGridCell {...defaultProps} cell={cellWithLineChart} />,
-  );
+  render(<MatrixifyGridCell {...defaultProps} cell={cellWithLineChart} />);
 
   const superChart = screen.getByText('SuperChart Mock');
   expect(superChart).toHaveAttribute('data-viz-type', 'line');
@@ -178,16 +166,14 @@ test('should pass through additional formData properties', () => {
     },
   };
 
-  renderWithTheme(
-    <MatrixifyGridCell {...defaultProps} cell={cellWithExtraProps} />,
-  );
+  render(<MatrixifyGridCell {...defaultProps} cell={cellWithExtraProps} />);
 
   // The SuperChart mock would receive these props
   expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
 });
 
 test('should handle small cell dimensions', () => {
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} rowHeight={80} />);
+  render(<MatrixifyGridCell {...defaultProps} rowHeight={80} />);
 
   const superChart = screen.getByText('SuperChart Mock');
   const cellContainer = superChart.parentElement?.parentElement;
@@ -205,7 +191,7 @@ test('should handle empty cell data gracefully', () => {
     title: '',
   };
 
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} cell={emptyCell} />);
+  render(<MatrixifyGridCell {...defaultProps} cell={emptyCell} />);
 
   // Should still render but with empty title
   expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();

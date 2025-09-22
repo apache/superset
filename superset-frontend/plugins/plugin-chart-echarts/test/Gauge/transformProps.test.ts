@@ -20,7 +20,6 @@ import {
   CategoricalColorNamespace,
   ChartProps,
   SqlaFormData,
-  supersetTheme,
   VizType,
 } from '@superset-ui/core';
 import transformProps, {
@@ -71,7 +70,6 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
-      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
@@ -121,7 +119,6 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
-      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
@@ -182,7 +179,6 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
-      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
@@ -246,7 +242,6 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
-      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);

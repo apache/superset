@@ -26,7 +26,6 @@ import { Route, BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
 import createCache from '@emotion/cache';
-import { ThemeProvider, theme } from '@superset-ui/core';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
@@ -44,18 +43,16 @@ const emotionCache = createCache({
 const app = (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
-    <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider
-            ReactRouterRoute={Route}
-            stringifyOptions={{ encode: false }}
-          >
-            <Menu data={menu} />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>
-    </ThemeProvider>
+    <Provider store={store}>
+      <BrowserRouter>
+        <QueryParamProvider
+          ReactRouterRoute={Route}
+          stringifyOptions={{ encode: false }}
+        >
+          <Menu data={menu} />
+        </QueryParamProvider>
+      </BrowserRouter>
+    </Provider>
   </CacheProvider>
 );
 

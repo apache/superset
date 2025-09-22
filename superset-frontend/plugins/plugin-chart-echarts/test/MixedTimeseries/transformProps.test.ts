@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme, VizType } from '@superset-ui/core';
+import { ChartProps, VizType } from '@superset-ui/core';
 import {
   LegendOrientation,
   LegendType,
@@ -114,7 +114,6 @@ const chartPropsConfig = {
   width: 800,
   height: 600,
   queriesData,
-  theme: supersetTheme,
 };
 
 it('should transform chart props for viz with showQueryIdentifiers=false', () => {

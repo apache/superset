@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 import { EchartsGraphChartProps } from '../../src/Graph/types';
@@ -53,7 +53,6 @@ const chartPropsConfig = {
   width: 800,
   height: 600,
   queriesData,
-  theme: supersetTheme,
 };
 
 describe('EchartsGraph transformProps', () => {
@@ -212,7 +211,6 @@ describe('EchartsGraph transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
-      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);

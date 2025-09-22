@@ -29,8 +29,8 @@ import {
   FeatureFlag,
   styled,
   SupersetClient,
-  themeObject,
   t,
+  useTheme,
   withTheme,
   getClientErrorObject,
   getExtensionsRegistry,
@@ -563,8 +563,9 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
+  const theme = useTheme();
   return (
-    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
+    <Card padded style={{ backgroundColor: theme.colorBgLayout }}>
       {children}
     </Card>
   );

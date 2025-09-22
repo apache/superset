@@ -18,9 +18,9 @@
  */
 import {
   DatasourceType,
-  supersetTheme,
   TimeGranularity,
   VizType,
+  DEFAULT_THEME,
 } from '@superset-ui/core';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
@@ -99,7 +99,7 @@ function generateProps(
     ownState: {},
     filterState: {},
     behaviors: [],
-    theme: supersetTheme,
+    theme: DEFAULT_THEME,
   };
 }
 
@@ -219,13 +219,6 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     },
     rawDatasource: {},
     rawFormData: {},
-    theme: {
-      colors: {
-        grayscale: {
-          light5: '#fafafa',
-        },
-      },
-    },
   } as unknown as BigNumberWithTrendlineChartProps;
 
   const propsWithEvenData = {

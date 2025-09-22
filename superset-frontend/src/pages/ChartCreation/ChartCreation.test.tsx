@@ -27,7 +27,7 @@ import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@superset-ui/core';
+import { DEFAULT_THEME } from '@superset-ui/core';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -93,7 +93,7 @@ async function renderComponent(user = mockUser) {
     <ChartCreation
       user={user}
       addSuccessToast={() => null}
-      theme={supersetTheme}
+      theme={DEFAULT_THEME}
       {...routeProps}
     />,
     {

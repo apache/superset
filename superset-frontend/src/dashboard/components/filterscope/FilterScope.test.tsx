@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme } from '@superset-ui/core';
+import { useEffect } from 'react';
+import { useTheme } from '@superset-ui/core';
 import {
   cleanup,
   render,
@@ -163,16 +164,46 @@ function getCheckboxIcon(element: HTMLElement): Element {
 /**
  * Unfortunately when using react-checkbox-tree, the only perceived change of a
  * checkbox state change is the fill color of the SVG icon.
+ *
+ * Helper component to access theme context for state detection.
  */
+function CheckboxStateDetector({
+  name,
+  onStateDetected,
+}: {
+  name: string;
+  onStateDetected: (state: CheckboxState) => void;
+}) {
+  const theme = useTheme();
+
+  useEffect(() => {
+    const element = screen.getByRole('link', { name });
+    const svgPath =
+      getCheckboxIcon(element).children[1].children[0].children[0];
+    const fill = svgPath.getAttribute('fill');
+    const state =
+      fill === theme.colorPrimary
+        ? CHECKED
+        : fill === theme.colorTextSecondary
+          ? INDETERMINATE
+          : UNCHECKED;
+    onStateDetected(state);
+  }, [name, theme, onStateDetected]);
+
+  return null;
+}
+
 function getCheckboxState(name: string): CheckboxState {
-  const element = screen.getByRole('link', { name });
-  const svgPath = getCheckboxIcon(element).children[1].children[0].children[0];
-  const fill = svgPath.getAttribute('fill');
-  return fill === supersetTheme.colorPrimary
-    ? CHECKED
-    : fill === supersetTheme.colorTextSecondary
-      ? INDETERMINATE
-      : UNCHECKED;
+  let detectedState: CheckboxState = UNCHECKED;
+  render(
+    <CheckboxStateDetector
+      name={name}
+      onStateDetected={state => {
+        detectedState = state;
+      }}
+    />,
+  );
+  return detectedState;
 }
 
 // Replace the original clickCheckbox function with the async version
