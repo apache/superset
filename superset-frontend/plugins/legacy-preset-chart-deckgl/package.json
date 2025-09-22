@@ -44,7 +44,7 @@
     "@types/geojson": "^7946.0.16",
     "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",
-    "d3-color": "^1.4.1",
+    "d3-color": "^3.1.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.13",
     "handlebars": "^4.7.8",
