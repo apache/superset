@@ -271,7 +271,8 @@ class TestBaseScreenshotDriverFallback:
         # Reset the global fallback logging flag to ensure we can test the logging
         import superset.utils.screenshots
 
-        superset.utils.screenshots._PLAYWRIGHT_FALLBACK_LOGGED = False
+        with superset.utils.screenshots._fallback_lock:
+            superset.utils.screenshots._PLAYWRIGHT_FALLBACK_LOGGED = False
 
         driver = screenshot_obj.driver()
 

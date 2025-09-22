@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import threading
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
@@ -53,6 +54,7 @@ except ImportError:
 
 # Track if we've already logged the fallback to avoid log spam
 _PLAYWRIGHT_FALLBACK_LOGGED = False
+_fallback_lock = threading.Lock()
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
 DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
@@ -188,14 +190,15 @@ class BaseScreenshot:
 
             # Log fallback only once to avoid log spam on repeated operations
             global _PLAYWRIGHT_FALLBACK_LOGGED
-            if not _PLAYWRIGHT_FALLBACK_LOGGED:
-                logger.info(
-                    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
-                    "installed. Falling back to Selenium (WebGL/Canvas charts may "
-                    "not render correctly). %s",
-                    PLAYWRIGHT_INSTALL_MESSAGE,
-                )
-                _PLAYWRIGHT_FALLBACK_LOGGED = True
+            with _fallback_lock:
+                if not _PLAYWRIGHT_FALLBACK_LOGGED:
+                    logger.info(
+                        "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
+                        "installed. Falling back to Selenium (WebGL/Canvas charts may "
+                        "not render correctly). %s",
+                        PLAYWRIGHT_INSTALL_MESSAGE,
+                    )
+                    _PLAYWRIGHT_FALLBACK_LOGGED = True
 
         # Use Selenium as default/fallback
         return WebDriverSelenium(self.driver_type, window_size)

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 
@@ -287,22 +287,46 @@ class TestPlaywrightAvailabilityCheck:
 
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_tries_browser_launch(
+    def test_check_playwright_availability_uses_lightweight_check(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test check_playwright_availability actually tries to launch a browser."""
-        # Setup mocks for successful browser launch
+        """Test check_playwright_availability uses executable_path first."""
+        # Setup mocks for successful executable path check
+        mock_playwright_instance = MagicMock()
+        mock_sync_playwright.return_value.__enter__.return_value = (
+            mock_playwright_instance
+        )
+        mock_playwright_instance.chromium.executable_path = "/path/to/chromium"
+
+        result = check_playwright_availability()
+
+        assert result is True
+        # Should not launch browser if executable_path works
+        mock_playwright_instance.chromium.launch.assert_not_called()
+
+    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver.logger")
+    def test_check_playwright_availability_falls_back_to_launch(
+        self, mock_logger, mock_sync_playwright
+    ):
+        """Test check_playwright_availability falls back to browser launch."""
+        # Setup mocks where executable_path fails but launch succeeds
         mock_playwright_instance = MagicMock()
         mock_browser = MagicMock()
 
         mock_sync_playwright.return_value.__enter__.return_value = (
             mock_playwright_instance
         )
+        # Make executable_path raise exception
+        type(mock_playwright_instance.chromium).executable_path = PropertyMock(
+            side_effect=Exception("executable_path failed")
+        )
         mock_playwright_instance.chromium.launch.return_value = mock_browser
 
         result = check_playwright_availability()
 
         assert result is True
+        # Should fall back to browser launch
         mock_playwright_instance.chromium.launch.assert_called_once_with(headless=True)
         mock_browser.close.assert_called_once()
 

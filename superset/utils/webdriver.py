@@ -78,20 +78,29 @@ except ImportError:
     sync_playwright = None
 
 
-# Check Playwright availability at module level
 def check_playwright_availability() -> bool:
     """
-    Comprehensive check for Playwright availability.
+    Lightweight check for Playwright availability.
 
-    Verifies not only that the module is imported, but also that
-    browser binaries are installed and can be launched.
+    First checks if browser binary exists, falls back to launch test if needed.
     """
     if sync_playwright is None:
         return False
 
     try:
-        # Try to actually launch a browser to ensure binaries are installed
         with sync_playwright() as p:
+            # First try lightweight check - just verify executable exists
+            try:
+                executable_path = p.chromium.executable_path
+                if executable_path:
+                    return True
+            except Exception:
+                # Fall back to full launch test if executable_path fails
+                logger.debug(
+                    "Executable path check failed, falling back to launch test"
+                )
+
+            # Fallback: actually launch browser to ensure it works
             browser = p.chromium.launch(headless=True)
             browser.close()
             return True
@@ -146,8 +155,8 @@ class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        self._screenshot_locate_wait = app.config.get("SCREENSHOT_LOCATE_WAIT", 10)
-        self._screenshot_load_wait = app.config.get("SCREENSHOT_LOAD_WAIT", 60)
+        self._screenshot_locate_wait = app.config["SCREENSHOT_LOCATE_WAIT"]
+        self._screenshot_load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
 
     @abstractmethod
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
