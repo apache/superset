@@ -17,14 +17,14 @@
 """add llm tables
 
 Revision ID: 58200d37f074
-Revises: cd1fb11291f2
+Revises: c233f5365c9e
 Create Date: 2025-08-11 11:20:44.248026
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "58200d37f074"
-down_revision = "cd1fb11291f2"
+down_revision = "c233f5365c9e"
 
 import sqlalchemy as sa
 from alembic import op
