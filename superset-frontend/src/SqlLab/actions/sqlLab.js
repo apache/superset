@@ -1000,32 +1000,6 @@ export function queryEditorSetCursorPosition(queryEditor, position) {
   return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
 }
 
-export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
-  return function (dispatch, getState) {
-    const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
-    // saved query and set tab state use this action
-    dispatch(queryEditorSetSql(queryEditor, sql, queryId));
-    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
-    if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
-      return SupersetClient.put({
-        endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
-        postPayload: { sql, latest_query_id: queryId },
-      }).catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while storing your query in the backend. To ' +
-                'avoid losing your changes, please save your query using the ' +
-                '"Save Query" button.',
-            ),
-          ),
-        ),
-      );
-    }
-    return Promise.resolve();
-  };
-}
-
 export function formatQuery(queryEditor) {
   return function (dispatch, getState) {
     const { sql } = getUpToDateQuery(getState(), queryEditor);
