@@ -305,6 +305,7 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-prefer-function-component": "^3.3.0",
+    "eslint-plugin-react-you-might-not-need-an-effect": "^0.5.1",
     "eslint-plugin-storybook": "^0.8.0",
     "eslint-plugin-testing-library": "^6.4.0",
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
