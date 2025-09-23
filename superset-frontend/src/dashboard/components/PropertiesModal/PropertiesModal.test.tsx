@@ -365,7 +365,7 @@ describe('PropertiesModal', () => {
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
-    
+
     // Wait for the form to be visible
     expect(
       await screen.findByTestId('dashboard-edit-properties-form'),
@@ -400,7 +400,7 @@ describe('PropertiesModal', () => {
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
-    
+
     // Wait for the form to be visible
     expect(
       await screen.findByTestId('dashboard-edit-properties-form'),
