@@ -76,7 +76,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
 
   const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({
-    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    defaultBreakpointsColor: fd.default_breakpoint_color,
     colorSchemeType,
     colorScale,
     colorBreakpoints,
