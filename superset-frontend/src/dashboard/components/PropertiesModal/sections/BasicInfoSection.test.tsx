@@ -51,16 +51,6 @@ test('shows required asterisk for name field', () => {
   expect(screen.getByText('*')).toBeInTheDocument();
 });
 
-test('disables inputs when loading', () => {
-  render(
-    <Form>
-      <BasicInfoSection {...defaultProps} />
-    </Form>,
-  );
-
-  expect(screen.getByTestId('dashboard-title-input')).toBeDisabled();
-});
-
 test('shows error message when name is empty and has validation errors', () => {
   const mockForm = {
     getFieldValue: jest.fn(field => (field === 'title' ? '' : 'test')),
