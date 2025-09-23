@@ -3,3 +3,4 @@ cypress/screenshots
 cypress/videos
 src/temp
 .temp_cache/
+.tsbuildinfo
