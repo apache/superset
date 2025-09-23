@@ -83,7 +83,6 @@ const createMockBootstrapData = (
   common: {
     application_root: '/',
     static_assets_prefix: '/static/assets/',
-    flash_messages: [],
     conf: {},
     locale: 'en',
     feature_flags: {},
@@ -391,7 +390,6 @@ describe('ThemeController', () => {
       common: {
         application_root: '/',
         static_assets_prefix: '/static/assets/',
-        flash_messages: [],
         conf: {},
         locale: 'en',
         feature_flags: {},
