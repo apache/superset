@@ -59,6 +59,7 @@ import {
   unsetSystemDefaultTheme,
   unsetSystemDarkTheme,
 } from 'src/features/themes/api';
+import { ToastTriggerFunction } from 'src/components/MessageToasts/types';
 
 const PAGE_SIZE = 25;
 
@@ -79,8 +80,8 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 );
 
 interface ThemesListProps {
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addDangerToast: ToastTriggerFunction;
+  addSuccessToast: ToastTriggerFunction;
   user: {
     userId: string | number;
     firstName: string;

@@ -33,4 +33,13 @@ export interface ToastMeta {
   noDuplicate?: boolean;
   /** For security reasons, HTML rendering is disabled by default. Use this property to enable it. */
   allowHtml?: boolean;
+  description?: string;
 }
+export type ToastOptions = Partial<
+  Omit<ToastMeta, 'id' | 'toastType' | 'text'>
+>;
+
+export type ToastTriggerFunction = (
+  message: string,
+  options?: ToastOptions,
+) => void;
