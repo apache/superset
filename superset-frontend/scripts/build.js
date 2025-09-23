@@ -84,14 +84,22 @@ function getPackages(packagePattern, tsOnly = false) {
 
   const allScopes = [];
   if (supersetUiPackages.length > 0) {
-    allScopes.push(`@superset-ui/${
-      supersetUiPackages.length > 1 ? `{${supersetUiPackages.join(',')}}` : supersetUiPackages[0]
-    }`);
+    allScopes.push(
+      `@superset-ui/${
+        supersetUiPackages.length > 1
+          ? `{${supersetUiPackages.join(',')}}`
+          : supersetUiPackages[0]
+      }`,
+    );
   }
   if (apachePackages.length > 0) {
-    allScopes.push(`@apache-superset/${
-      apachePackages.length > 1 ? `{${apachePackages.join(',')}}` : apachePackages[0]
-    }`);
+    allScopes.push(
+      `@apache-superset/${
+        apachePackages.length > 1
+          ? `{${apachePackages.join(',')}}`
+          : apachePackages[0]
+      }`,
+    );
   }
 
   if (allScopes.length === 0) {

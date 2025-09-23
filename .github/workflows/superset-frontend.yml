@@ -156,7 +156,7 @@ jobs:
       - name: Build Plugins Packages
         run: |
           docker run --rm $TAG bash -c \
-          "npm run plugins:build"
+          "npm i && npm run plugins:build"
 
       - name: tsc
         run: |
