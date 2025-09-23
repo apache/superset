@@ -28,6 +28,7 @@ x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset
 x-superset-volumes:
   &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
+  - ./superset-core:/app/superset-core
   - superset_home:/app/superset_home
 
 services:
