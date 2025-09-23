@@ -45,6 +45,13 @@ from superset.utils.screenshot_utils import take_tiled_screenshot
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
+# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
+PLAYWRIGHT_INSTALL_MESSAGE = (
+    "To complete the migration from Cypress "
+    "and enable WebGL/DeckGL screenshot support, install Playwright with: "
+    "pip install playwright && playwright install chromium"
+)
+
 if TYPE_CHECKING:
     from typing import Any
 
@@ -69,6 +76,67 @@ except ImportError:
     Locator = Any
     Page = Any
     sync_playwright = None
+
+
+def check_playwright_availability() -> bool:
+    """
+    Lightweight check for Playwright availability.
+
+    First checks if browser binary exists, falls back to launch test if needed.
+    """
+    if sync_playwright is None:
+        return False
+
+    try:
+        with sync_playwright() as p:
+            # First try lightweight check - just verify executable exists
+            try:
+                executable_path = p.chromium.executable_path
+                if executable_path:
+                    return True
+            except Exception:
+                # Fall back to full launch test if executable_path fails
+                logger.debug(
+                    "Executable path check failed, falling back to launch test"
+                )
+
+            # Fallback: actually launch browser to ensure it works
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            return True
+    except Exception as e:
+        logger.warning(
+            "Playwright module is installed but browser launch failed. "
+            "Run 'playwright install chromium' to install browser binaries. "
+            "Error: %s",
+            str(e),
+        )
+        return False
+
+
+PLAYWRIGHT_AVAILABLE = check_playwright_availability()
+
+
+def validate_webdriver_config() -> dict[str, Any]:
+    """
+    Validate webdriver configuration and dependencies.
+
+    Used to check migration status from Cypress to Playwright.
+    Returns a dictionary with the status of available webdrivers
+    and feature flags.
+    """
+    from superset import feature_flag_manager
+
+    return {
+        "selenium_available": True,  # Always available as required dependency
+        "playwright_available": PLAYWRIGHT_AVAILABLE,
+        "playwright_feature_enabled": feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ),
+        "recommended_action": (
+            PLAYWRIGHT_INSTALL_MESSAGE if not PLAYWRIGHT_AVAILABLE else None
+        ),
+    }
 
 
 class DashboardStandaloneMode(Enum):
@@ -151,6 +219,15 @@ class WebDriverPlaywright(WebDriverProxy):
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info(
+                "Playwright not available - falling back to Selenium. "
+                "Note: WebGL/Canvas charts may not render correctly with Selenium. "
+                "%s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
+            )
+            return None
+
         with sync_playwright() as playwright:
             browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
