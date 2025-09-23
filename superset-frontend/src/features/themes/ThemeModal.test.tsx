@@ -17,10 +17,12 @@
  * under the License.
  */
 
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import ThemeModal from './ThemeModal';
 import { ThemeObject } from './types';
 
-// Mock theme provider
 const mockThemeContext = {
   setTemporaryTheme: jest.fn(),
   clearLocalOverrides: jest.fn(),
@@ -31,36 +33,8 @@ jest.mock('src/theme/ThemeProvider', () => ({
   useThemeContext: () => mockThemeContext,
 }));
 
-// Mock permission utils
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   isUserAdmin: jest.fn(() => true),
-}));
-
-// Mock bootstrap data
-jest.mock('src/utils/getBootstrapData', () => ({
-  __esModule: true,
-  default: () => ({
-    user: {
-      userId: 1,
-      firstName: 'Admin',
-      lastName: 'User',
-      roles: { Admin: [['can_write', 'Dashboard']] },
-      permissions: {},
-      isActive: true,
-      isAnonymous: false,
-      username: 'admin',
-      email: 'admin@example.com',
-      user_id: 1,
-      first_name: 'Admin',
-      last_name: 'User',
-    },
-    common: {
-      feature_flags: {},
-      conf: {
-        SUPERSET_WEBSERVER_DOMAINS: [],
-      },
-    },
-  }),
 }));
 
 const mockTheme: ThemeObject = {
@@ -68,12 +42,8 @@ const mockTheme: ThemeObject = {
   theme_name: 'Test Theme',
   json_data: JSON.stringify(
     {
-      colors: {
-        primary: '#1890ff',
-        secondary: '#52c41a',
-      },
-      typography: {
-        fontSize: 14,
+      token: {
+        colorPrimary: '#1890ff',
       },
     },
     null,
@@ -87,47 +57,42 @@ const mockTheme: ThemeObject = {
   },
 };
 
-// Mock theme API endpoints
-fetchMock.get('glob:*/api/v1/theme/1', {
-  result: mockTheme,
-});
+const mockSystemTheme: ThemeObject = {
+  ...mockTheme,
+  id: 2,
+  theme_name: 'System Theme',
+  is_system: true,
+};
 
-fetchMock.post('glob:*/api/v1/theme/', {
-  result: { ...mockTheme, id: 2 },
-});
+const defaultProps = {
+  addDangerToast: jest.fn(),
+  addSuccessToast: jest.fn(),
+  onThemeAdd: jest.fn(),
+  onHide: jest.fn(),
+  show: true,
+  canDevelop: false,
+};
 
-fetchMock.put('glob:*/api/v1/theme/1', {
-  result: mockTheme,
-});
-
-// These are defined but not used in the simplified tests
-// const mockUser = {
-//   userId: 1,
-//   firstName: 'Admin',
-//   lastName: 'User',
-//   roles: { Admin: [['can_write', 'Dashboard']] },
-//   permissions: {},
-//   isActive: true,
-//   isAnonymous: false,
-//   username: 'admin',
-//   email: 'admin@example.com',
-//   user_id: 1,
-//   first_name: 'Admin',
-//   last_name: 'User',
-// };
-
-// const defaultProps = {
-//   addDangerToast: jest.fn(),
-//   addSuccessToast: jest.fn(),
-//   onThemeAdd: jest.fn(),
-//   onHide: jest.fn(),
-//   show: true,
-// };
+const setup = (props = {}) => {
+  const utils = render(<ThemeModal {...defaultProps} {...props} />, {
+    useRedux: true,
+    useRouter: true,
+  });
+  return {
+    ...utils,
+    mockProps: { ...defaultProps, ...props },
+  };
+};
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ThemeModal', () => {
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.reset();
+    fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
+    fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
+    fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
+    fetchMock.post('glob:*/api/v1/theme/', { result: { ...mockTheme, id: 3 } });
+    fetchMock.put('glob:*/api/v1/theme/*', { result: mockTheme });
     jest.clearAllMocks();
   });
 
@@ -135,153 +100,299 @@ describe('ThemeModal', () => {
     fetchMock.restore();
   });
 
-  test('should export ThemeModal component', () => {
-    const ThemeModalModule = jest.requireActual('./ThemeModal');
-    expect(ThemeModalModule.default).toBeDefined();
-    expect(typeof ThemeModalModule.default).toBe('object'); // HOC wrapped component
-  });
+  describe('Component Rendering', () => {
+    test('should render modal when show is true', () => {
+      setup();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Add theme')).toBeInTheDocument();
+    });
 
-  test('should have correct type definitions', () => {
-    expect(mockTheme).toMatchObject({
-      id: expect.any(Number),
-      theme_name: expect.any(String),
-      json_data: expect.any(String),
-      changed_on_delta_humanized: expect.any(String),
-      changed_by: expect.objectContaining({
-        first_name: expect.any(String),
-        last_name: expect.any(String),
-      }),
+    test('should not render modal when show is false', () => {
+      const { container } = setup({ show: false });
+      expect(container.querySelector('.ant-modal')).not.toBeInTheDocument();
+    });
+
+    test('should render with edit mode title when theme is provided', async () => {
+      setup({ theme: mockTheme });
+      await waitFor(() => {
+        expect(screen.getByText('Edit theme properties')).toBeInTheDocument();
+      });
+    });
+
+    test('should render with view mode title for system themes', async () => {
+      setup({ theme: mockSystemTheme });
+      await waitFor(() => {
+        expect(fetchMock.called('glob:*/api/v1/theme/2')).toBe(true);
+      });
+      await waitFor(() => {
+        expect(screen.getByText('View theme properties')).toBeInTheDocument();
+      });
+      expect(screen.getByText('System Theme - Read Only')).toBeInTheDocument();
     });
   });
 
-  test('should validate JSON data structure', () => {
-    const isValidJson = (str: string) => {
-      try {
-        JSON.parse(str);
-        return true;
-      } catch (e) {
-        return false;
-      }
-    };
+  describe('Form Fields', () => {
+    test('should render theme name input', () => {
+      setup();
+      expect(screen.getByPlaceholderText('Enter theme name')).toBeInTheDocument();
+    });
 
-    expect(isValidJson(mockTheme.json_data || '')).toBe(true);
-    expect(isValidJson('invalid json')).toBe(false);
-    expect(isValidJson('{"valid": "json"}')).toBe(true);
-  });
+    test('should render JSON editor', () => {
+      setup();
+      expect(screen.getByText('JSON Configuration')).toBeInTheDocument();
+      expect(document.querySelector('.ace_editor')).toBeInTheDocument();
+    });
 
-  test('should handle theme data parsing', () => {
-    const parsedTheme = JSON.parse(mockTheme.json_data || '{}');
-    expect(parsedTheme).toMatchObject({
-      colors: {
-        primary: '#1890ff',
-        secondary: '#52c41a',
-      },
-      typography: {
-        fontSize: 14,
-      },
+    test('should disable inputs for read-only system themes', async () => {
+      setup({ theme: mockSystemTheme });
+      await waitFor(() => {
+        expect(fetchMock.called('glob:*/api/v1/theme/2')).toBe(true);
+      });
+      await waitFor(() => {
+        const nameInput = screen.getByPlaceholderText('Enter theme name');
+        expect(nameInput).toHaveAttribute('readOnly');
+      });
+    });
+
+    test('should show Apply button when canDevelop is true', () => {
+      setup({ canDevelop: true });
+      expect(screen.getByText('Apply')).toBeInTheDocument();
+    });
+
+    test('should not show Apply button when canDevelop is false', () => {
+      setup({ canDevelop: false });
+      expect(screen.queryByText('Apply')).not.toBeInTheDocument();
     });
   });
 
-  test('should mock theme context functions', () => {
-    expect(mockThemeContext.setTemporaryTheme).toBeDefined();
-    expect(mockThemeContext.clearLocalOverrides).toBeDefined();
-    expect(mockThemeContext.hasDevOverride).toBeDefined();
-    expect(typeof mockThemeContext.setTemporaryTheme).toBe('function');
-    expect(typeof mockThemeContext.clearLocalOverrides).toBe('function');
-    expect(typeof mockThemeContext.hasDevOverride).toBe('function');
-  });
+  describe('Form Validation', () => {
+    test('should disable save button when theme name is empty', () => {
+      setup();
+      const saveButton = screen.getByRole('button', { name: 'Add' });
+      expect(saveButton).toBeDisabled();
+    });
 
-  test('should handle API response structure', () => {
-    // Test that fetch mock is properly configured
-    expect(fetchMock.called()).toBe(false);
+    test('should enable save button when form is valid', async () => {
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
 
-    // Test API structure expectations
-    const expectedResponse = {
-      result: mockTheme,
-    };
+      await userEvent.type(nameInput, 'My New Theme');
 
-    expect(expectedResponse.result).toMatchObject({
-      id: 1,
-      theme_name: 'Test Theme',
+      await waitFor(() => {
+        const saveButton = screen.getByRole('button', { name: 'Add' });
+        expect(saveButton).not.toBeDisabled();
+      });
+    });
+
+    test('should validate JSON format', async () => {
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
+
+      await userEvent.type(nameInput, 'Test Theme');
+
+      await waitFor(() => {
+        const saveButton = screen.getByRole('button', { name: 'Add' });
+        expect(saveButton).not.toBeDisabled();
+      });
     });
   });
 
-  test('should handle create theme API call', () => {
-    const newTheme = {
-      theme_name: 'New Theme',
-      json_data: '{"colors": {"primary": "#ff0000"}}',
-    };
+  describe('Unsaved Changes Modal', () => {
+    test('should show unsaved changes modal when closing with changes', async () => {
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
 
-    // Test request structure
-    expect(newTheme).toMatchObject({
-      theme_name: expect.any(String),
-      json_data: expect.any(String),
+      await userEvent.type(nameInput, 'Modified Theme');
+
+      await userEvent.click(cancelButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+        expect(screen.getByText("If you don't save, your changes will be lost.")).toBeInTheDocument();
+      });
     });
 
-    // Test that JSON is valid
-    expect(() => JSON.parse(newTheme.json_data)).not.toThrow();
-  });
+    test('should not show unsaved changes modal when no changes made', async () => {
+      const { mockProps } = setup();
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
 
-  test('should handle update theme API call', () => {
-    const updatedTheme = {
-      theme_name: 'Updated Theme',
-      json_data: '{"colors": {"primary": "#00ff00"}}',
-    };
+      await userEvent.click(cancelButton);
 
-    // Test request structure
-    expect(updatedTheme).toMatchObject({
-      theme_name: expect.any(String),
-      json_data: expect.any(String),
+      expect(mockProps.onHide).toHaveBeenCalled();
+      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument();
     });
 
-    // Test that JSON is valid
-    expect(() => JSON.parse(updatedTheme.json_data)).not.toThrow();
+    test('should show unsaved changes modal when canceling with changes', async () => {
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
+
+      await userEvent.type(nameInput, 'Modified Theme');
+
+      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      await userEvent.click(cancelButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+        expect(screen.getByText("If you don't save, your changes will be lost.")).toBeInTheDocument();
+      });
+    });
+
+    test('should call save handler when choosing save option', async () => {
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
+
+      await userEvent.type(nameInput, 'Modified Theme');
+
+      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      await userEvent.click(cancelButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+      });
+
+      const saveButton = await screen.findByRole('button', { name: /^save$/i });
+      await userEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(fetchMock.called()).toBe(true);
+      });
+    });
+
+    test('should discard changes when choosing to discard', async () => {
+      const { mockProps } = setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
+
+      await userEvent.type(nameInput, 'Modified Theme');
+
+      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      await userEvent.click(cancelButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+      });
+
+      const discardButton = await screen.findByRole('button', { name: /discard/i });
+      await userEvent.click(discardButton);
+
+      await waitFor(() => {
+        expect(mockProps.onHide).toHaveBeenCalled();
+      });
+
+      expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(false);
+      expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(false);
+    });
   });
 
-  test('should validate theme name requirements', () => {
-    const validateThemeName = (name: string) => !!(name && name.length > 0);
+  describe('CRUD Operations', () => {
+    test('should create new theme', async () => {
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
 
-    expect(validateThemeName('Valid Theme')).toBe(true);
-    expect(validateThemeName('')).toBe(false);
-    expect(validateThemeName('Test')).toBe(true);
+      await userEvent.type(nameInput, 'New Theme');
+
+      const saveButton = await screen.findByRole('button', { name: 'Add' });
+      expect(saveButton).not.toBeDisabled();
+
+      await userEvent.click(saveButton);
+
+      await waitFor(
+        () => {
+          expect(fetchMock.called()).toBe(true);
+        },
+        { timeout: 3000 },
+      );
+    });
+
+    test('should update existing theme', async () => {
+      const { mockProps } = setup({ theme: mockTheme });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Test Theme')).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByDisplayValue('Test Theme');
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+
+      await userEvent.clear(nameInput);
+      await userEvent.type(nameInput, 'Updated Theme');
+      await userEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(true);
+        expect(mockProps.onThemeAdd).toHaveBeenCalled();
+        expect(mockProps.onHide).toHaveBeenCalled();
+      });
+    });
+
+    test('should handle API errors gracefully', async () => {
+      fetchMock.restore();
+      fetchMock.post('glob:*/api/v1/theme/', 500);
+
+      setup();
+      const nameInput = screen.getByPlaceholderText('Enter theme name');
+
+      await userEvent.type(nameInput, 'New Theme');
+
+      const saveButton = await screen.findByRole('button', { name: 'Add' });
+      expect(saveButton).not.toBeDisabled();
+
+      await userEvent.click(saveButton);
+
+      await waitFor(
+        () => {
+          expect(fetchMock.called()).toBe(true);
+        },
+        { timeout: 3000 },
+      );
+    });
   });
 
-  test('should validate JSON configuration requirements', () => {
-    const validateJsonData = (jsonData: string) => {
-      if (!jsonData || jsonData.length === 0) return false;
-      try {
-        JSON.parse(jsonData);
-        return true;
-      } catch (e) {
-        return false;
-      }
-    };
+  describe('Apply Theme Feature', () => {
+    test('should apply theme locally when clicking Apply', async () => {
+      const onThemeApply = jest.fn();
+      setup({
+        canDevelop: true,
+        theme: mockTheme,
+        onThemeApply,
+      });
 
-    expect(validateJsonData(mockTheme.json_data || '')).toBe(true);
-    expect(validateJsonData('')).toBe(false);
-    expect(validateJsonData('invalid')).toBe(false);
-    expect(validateJsonData('{}')).toBe(true);
+      await waitFor(
+        () => {
+          expect(screen.getByText('Apply')).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
+
+      const applyButton = screen.getByRole('button', { name: /apply/i });
+      expect(applyButton).not.toBeDisabled();
+
+      await userEvent.click(applyButton);
+
+      expect(mockThemeContext.setTemporaryTheme).toHaveBeenCalled();
+    });
+
+    test('should disable Apply button when JSON is invalid', async () => {
+      fetchMock.restore();
+      fetchMock.get('glob:*/api/v1/theme/*', {
+        result: { ...mockTheme, json_data: 'invalid json' },
+      });
+
+      setup({
+        canDevelop: true,
+        theme: mockTheme,
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText('Apply')).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
+
+      const applyButton = screen.getByRole('button', { name: /apply/i });
+      expect(applyButton).toBeDisabled();
+    });
   });
 
-  test('should handle permission-based feature availability', () => {
-    const permissionUtils = jest.requireMock(
-      'src/dashboard/util/permissionUtils',
-    );
-
-    expect(permissionUtils.isUserAdmin).toBeDefined();
-    expect(typeof permissionUtils.isUserAdmin).toBe('function');
-    expect(permissionUtils.isUserAdmin()).toBe(true);
-
-    // Test with non-admin user
-    (permissionUtils.isUserAdmin as jest.Mock).mockReturnValue(false);
-    expect(permissionUtils.isUserAdmin()).toBe(false);
-  });
-
-  test('should handle theme context override state', () => {
-    expect(mockThemeContext.hasDevOverride()).toBe(false);
-
-    // Test with override
-    mockThemeContext.hasDevOverride.mockReturnValue(true);
-    expect(mockThemeContext.hasDevOverride()).toBe(true);
-  });
 });

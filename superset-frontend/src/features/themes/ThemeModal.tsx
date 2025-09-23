@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ChangeEvent,
+} from 'react';
+import { omit } from 'lodash';
 
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -33,6 +41,7 @@ import {
   Form,
   Tooltip,
   Alert,
+  UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -53,7 +62,7 @@ interface ThemeModalProps {
 
 type ThemeStringKeys = keyof Pick<
   ThemeObject,
-  OnlyKeyWithType<ThemeObject, String>
+  OnlyKeyWithType<ThemeObject, string>
 >;
 
 const StyledJsonEditor = styled.div`
@@ -100,6 +109,9 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const { setTemporaryTheme } = useThemeContext();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
+  const [initialTheme, setInitialTheme] = useState<ThemeObject | null>(null);
+  const [showCancelConfirmation, setShowCancelConfirmation] =
+    useState<boolean>(false);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = theme !== null;
   const isSystemTheme = currentTheme?.is_system === true;
@@ -130,29 +142,51 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   } = useSingleViewResource<ThemeObject>('theme', t('theme'), addDangerToast);
 
   // Functions
-  const hide = () => {
+  const hasUnsavedChanges = useCallback(() => {
+    if (!currentTheme || !initialTheme || isReadOnly) return false;
+    return (
+      currentTheme.theme_name !== initialTheme.theme_name ||
+      currentTheme.json_data !== initialTheme.json_data
+    );
+  }, [currentTheme, initialTheme, isReadOnly]);
+
+  const hide = useCallback(() => {
     onHide();
     setCurrentTheme(null);
-  };
+    setInitialTheme(null);
+    setShowCancelConfirmation(false);
+  }, [onHide]);
 
-  const onSave = () => {
+  const handleCancel = useCallback(() => {
+    if (hasUnsavedChanges()) {
+      setShowCancelConfirmation(true);
+    } else {
+      hide();
+    }
+  }, [hasUnsavedChanges, hide]);
+
+  const handleConfirmCancel = useCallback(() => {
+    hide();
+  }, [hide]);
+
+  const handleKeepEditing = useCallback(() => {
+    setShowCancelConfirmation(false);
+  }, []);
+
+  const onSave = useCallback(() => {
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
-        const update_id = currentTheme.id;
-        delete currentTheme.id;
-        delete currentTheme.created_by;
-        delete currentTheme.changed_by;
-        delete currentTheme.changed_on_delta_humanized;
+        const themeData = omit(currentTheme, [
+          'id',
+          'created_by',
+          'changed_by',
+          'changed_on_delta_humanized',
+        ]);
 
-        updateResource(update_id, currentTheme).then(response => {
-          if (!response) {
-            return;
-          }
-
-          if (onThemeAdd) {
-            onThemeAdd();
-          }
+        updateResource(currentTheme.id, themeData).then(response => {
+          if (!response) return;
+          if (onThemeAdd) onThemeAdd();
 
           hide();
         });
@@ -160,59 +194,27 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     } else if (currentTheme) {
       // Create
       createResource(currentTheme).then(response => {
-        if (!response) {
-          return;
-        }
-
-        if (onThemeAdd) {
-          onThemeAdd();
-        }
+        if (!response) return;
+        if (onThemeAdd) onThemeAdd();
 
         hide();
       });
     }
-  };
+  }, [
+    currentTheme,
+    isEditMode,
+    updateResource,
+    createResource,
+    onThemeAdd,
+    hide,
+  ]);
 
-  const onApply = () => {
-    if (currentTheme?.json_data && isValidJson(currentTheme.json_data)) {
-      try {
-        const themeConfig = JSON.parse(currentTheme.json_data);
-        setTemporaryTheme(themeConfig);
-        if (onThemeApply) {
-          onThemeApply();
-        }
-        if (addSuccessToast) {
-          addSuccessToast(t('Local theme set for preview'));
-        }
-      } catch (error) {
-        addDangerToast(t('Failed to apply theme: Invalid JSON'));
-      }
-    }
-  };
+  const handleSaveAndClose = useCallback(() => {
+    onSave();
+    setShowCancelConfirmation(false);
+  }, [onSave]);
 
-  const onThemeNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { target } = event;
-
-    const data = {
-      ...currentTheme,
-      theme_name: currentTheme ? currentTheme.theme_name : '',
-      json_data: currentTheme ? currentTheme.json_data : '',
-    };
-
-    data[target.name as ThemeStringKeys] = target.value;
-    setCurrentTheme(data);
-  };
-
-  const onJsonDataChange = (jsonData: string) => {
-    const data = {
-      ...currentTheme,
-      theme_name: currentTheme ? currentTheme.theme_name : '',
-      json_data: jsonData,
-    };
-    setCurrentTheme(data);
-  };
-
-  const isValidJson = (str?: string) => {
+  const isValidJson = useCallback((str?: string) => {
     if (!str) return false;
     try {
       JSON.parse(str);
@@ -220,9 +222,80 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     } catch (e) {
       return false;
     }
-  };
+  }, []);
 
-  const validate = () => {
+  const onApply = useCallback(() => {
+    if (currentTheme?.json_data && isValidJson(currentTheme.json_data)) {
+      try {
+        const themeConfig = JSON.parse(currentTheme.json_data);
+
+        setTemporaryTheme(themeConfig);
+
+        if (onThemeApply) onThemeApply();
+        if (addSuccessToast) addSuccessToast(t('Local theme set for preview'));
+      } catch (error) {
+        addDangerToast(t('Failed to apply theme: Invalid JSON'));
+      }
+    }
+  }, [
+    currentTheme?.json_data,
+    isValidJson,
+    setTemporaryTheme,
+    onThemeApply,
+    addSuccessToast,
+    addDangerToast,
+  ]);
+
+  const modalTitle = useMemo(() => {
+    if (isEditMode) {
+      return isReadOnly
+        ? t('View theme properties')
+        : t('Edit theme properties');
+    }
+    return t('Add theme');
+  }, [isEditMode, isReadOnly]);
+
+  const modalIcon = useMemo(() => {
+    const Icon = isEditMode ? Icons.EditOutlined : Icons.PlusOutlined;
+    return (
+      <Icon
+        iconSize="l"
+        css={css`
+          margin: auto ${supersetTheme.sizeUnit * 2}px auto 0;
+        `}
+      />
+    );
+  }, [isEditMode, supersetTheme.sizeUnit]);
+
+  const onThemeNameChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const { target } = event;
+
+      const data = {
+        ...currentTheme,
+        theme_name: currentTheme?.theme_name || '',
+        json_data: currentTheme?.json_data || '',
+      };
+
+      data[target.name as ThemeStringKeys] = target.value;
+      setCurrentTheme(data);
+    },
+    [currentTheme],
+  );
+
+  const onJsonDataChange = useCallback(
+    (jsonData: string) => {
+      const data = {
+        ...currentTheme,
+        theme_name: currentTheme?.theme_name || '',
+        json_data: jsonData,
+      };
+      setCurrentTheme(data);
+    },
+    [currentTheme],
+  );
+
+  const validate = useCallback(() => {
     if (isReadOnly) {
       setDisableSave(true);
       return;
@@ -237,7 +310,12 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     } else {
       setDisableSave(true);
     }
-  };
+  }, [
+    currentTheme?.theme_name,
+    currentTheme?.json_data,
+    isReadOnly,
+    isValidJson,
+  ]);
 
   // Initialize
   useEffect(() => {
@@ -247,176 +325,166 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         (theme && theme?.id !== currentTheme.id) ||
         (isHidden && show))
     ) {
-      if (theme?.id && !loading) {
-        fetchResource(theme.id);
-      }
+      if (theme?.id && !loading) fetchResource(theme.id);
     } else if (
       !isEditMode &&
       (!currentTheme || currentTheme.id || (isHidden && show))
     ) {
-      setCurrentTheme({
+      const newTheme = {
         theme_name: '',
         json_data: JSON.stringify({}, null, 2),
-      });
+      };
+      setCurrentTheme(newTheme);
+      setInitialTheme(newTheme);
     }
-  }, [theme, show]);
+  }, [theme, show, isEditMode, currentTheme, isHidden, loading, fetchResource]);
 
   useEffect(() => {
     if (resource) {
       setCurrentTheme(resource);
+      setInitialTheme(resource);
     }
   }, [resource]);
 
   // Validation
   useEffect(() => {
     validate();
-  }, [
-    currentTheme ? currentTheme.theme_name : '',
-    currentTheme ? currentTheme.json_data : '',
-    isReadOnly,
-  ]);
+  }, [validate]);
 
   // Show/hide
-  if (isHidden && show) {
-    setIsHidden(false);
-  }
+  useEffect(() => {
+    if (isHidden && show) setIsHidden(false);
+  }, [isHidden, show]);
 
   return (
-    <Modal
-      disablePrimaryButton={isReadOnly || disableSave}
-      onHandledPrimaryAction={isReadOnly ? undefined : onSave}
-      onHide={hide}
-      primaryButtonName={isEditMode ? t('Save') : t('Add')}
-      show={show}
-      width="55%"
-      footer={[
-        <Button key="cancel" onClick={hide} buttonStyle="secondary">
-          {isReadOnly ? t('Close') : t('Cancel')}
-        </Button>,
-        ...(!isReadOnly
-          ? [
-              <Button
-                key="save"
-                onClick={onSave}
-                disabled={disableSave}
-                buttonStyle="primary"
-              >
-                {isEditMode ? t('Save') : t('Add')}
-              </Button>,
-            ]
-          : []),
-      ]}
-      title={
-        <Typography.Title level={4} data-test="theme-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${supersetTheme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${supersetTheme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode
-            ? isReadOnly
-              ? t('View theme properties')
-              : t('Edit theme properties')
-            : t('Add theme')}
-        </Typography.Title>
-      }
-    >
-      <StyledFormWrapper>
-        <Form layout="vertical">
-          {isSystemTheme && (
-            <Typography.Text type="secondary" className="system-theme-notice">
-              {t('System Theme - Read Only')}
-            </Typography.Text>
-          )}
-
-          <Form.Item label={t('Name')} required={!isReadOnly}>
-            <Input
-              name="theme_name"
-              onChange={onThemeNameChange}
-              value={currentTheme?.theme_name}
-              readOnly={isReadOnly}
-              placeholder={t('Enter theme name')}
-            />
-          </Form.Item>
-
-          <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
-            <Alert
-              type="info"
-              showIcon
-              closable={false}
-              className="alert-info"
-              message={
-                <span>
-                  {t('Design with')}{' '}
-                  <a
-                    href={themeEditorUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('Ant Design Theme Editor')}
-                  </a>
-                  {t(', then paste the JSON below. See our')}{' '}
-                  <a
-                    href={documentationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('documentation')}
-                  </a>
-                  {t(' for details.')}
-                </span>
-              }
-            />
-            <StyledJsonEditor>
-              <JsonEditor
-                showLoadingForImport
-                name="json_data"
-                value={currentTheme?.json_data || ''}
-                onChange={onJsonDataChange}
-                tabSize={2}
-                width="100%"
-                height="300px"
-                wrapEnabled
-                readOnly={isReadOnly}
-                showGutter
-                showPrintMargin={false}
-                annotations={jsonAnnotations}
-              />
-            </StyledJsonEditor>
-            {canDevelopThemes && (
-              <div className="apply-button-container">
-                <Tooltip
-                  title={t('Set local theme for testing (preview only)')}
-                  placement="top"
+    <>
+      <Modal
+        disablePrimaryButton={isReadOnly || disableSave}
+        onHandledPrimaryAction={isReadOnly ? undefined : onSave}
+        onHide={handleCancel}
+        primaryButtonName={isEditMode ? t('Save') : t('Add')}
+        show={show}
+        width="55%"
+        footer={[
+          <Button key="cancel" onClick={handleCancel} buttonStyle="secondary">
+            {isReadOnly ? t('Close') : t('Cancel')}
+          </Button>,
+          ...(!isReadOnly
+            ? [
+                <Button
+                  key="save"
+                  onClick={onSave}
+                  disabled={disableSave}
+                  buttonStyle="primary"
                 >
-                  <Button
-                    icon={<Icons.ThunderboltOutlined />}
-                    onClick={onApply}
-                    disabled={
-                      !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data)
-                    }
-                    buttonStyle="secondary"
-                  >
-                    {t('Apply')}
-                  </Button>
-                </Tooltip>
-              </div>
+                  {isEditMode ? t('Save') : t('Add')}
+                </Button>,
+              ]
+            : []),
+        ]}
+        title={
+          <Typography.Title level={4} data-test="theme-modal-title">
+            {modalIcon}
+            {modalTitle}
+          </Typography.Title>
+        }
+      >
+        <StyledFormWrapper>
+          <Form layout="vertical">
+            {isSystemTheme && (
+              <Typography.Text type="secondary" className="system-theme-notice">
+                {t('System Theme - Read Only')}
+              </Typography.Text>
             )}
-          </Form.Item>
-        </Form>
-      </StyledFormWrapper>
-    </Modal>
+
+            <Form.Item label={t('Name')} required={!isReadOnly}>
+              <Input
+                name="theme_name"
+                onChange={onThemeNameChange}
+                value={currentTheme?.theme_name}
+                readOnly={isReadOnly}
+                placeholder={t('Enter theme name')}
+              />
+            </Form.Item>
+
+            <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
+              <Alert
+                type="info"
+                showIcon
+                closable={false}
+                className="alert-info"
+                message={
+                  <span>
+                    {t('Design with')}{' '}
+                    <a
+                      href={themeEditorUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('Ant Design Theme Editor')}
+                    </a>
+                    {t(', then paste the JSON below. See our')}{' '}
+                    <a
+                      href={documentationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('documentation')}
+                    </a>
+                    {t(' for details.')}
+                  </span>
+                }
+              />
+              <StyledJsonEditor>
+                <JsonEditor
+                  showLoadingForImport
+                  name="json_data"
+                  value={currentTheme?.json_data || ''}
+                  onChange={onJsonDataChange}
+                  tabSize={2}
+                  width="100%"
+                  height="300px"
+                  wrapEnabled
+                  readOnly={isReadOnly}
+                  showGutter
+                  showPrintMargin={false}
+                  annotations={jsonAnnotations}
+                />
+              </StyledJsonEditor>
+              {canDevelopThemes && (
+                <div className="apply-button-container">
+                  <Tooltip
+                    title={t('Set local theme for testing (preview only)')}
+                    placement="top"
+                  >
+                    <Button
+                      icon={<Icons.ThunderboltOutlined />}
+                      onClick={onApply}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data)
+                      }
+                      buttonStyle="secondary"
+                    >
+                      {t('Apply')}
+                    </Button>
+                  </Tooltip>
+                </div>
+              )}
+            </Form.Item>
+          </Form>
+        </StyledFormWrapper>
+      </Modal>
+
+      <UnsavedChangesModal
+        showModal={showCancelConfirmation}
+        onHide={handleKeepEditing}
+        handleSave={handleSaveAndClose}
+        onConfirmNavigation={handleConfirmCancel}
+        title={t('Unsaved Changes')}
+        body={t("If you don't save, your changes will be lost.")}
+      />
+    </>
   );
 };
 
