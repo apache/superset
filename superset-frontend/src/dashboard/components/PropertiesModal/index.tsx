@@ -621,9 +621,7 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={
-        dashboardInfo?.isManagedExternally || hasErrors
-      }
+      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
       saveLoading={isApplying}
       contentLoading={isLoading}
       errorTooltip={
