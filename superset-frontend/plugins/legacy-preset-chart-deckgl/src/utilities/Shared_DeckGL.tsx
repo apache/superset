@@ -615,7 +615,7 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
 };
 
 export const breakpointsDefaultColor: CustomControlItem = {
-  name: 'deafult_breakpoint_color',
+  name: 'default_breakpoint_color',
   config: {
     label: t('Default color'),
     type: 'ColorPickerControl',
