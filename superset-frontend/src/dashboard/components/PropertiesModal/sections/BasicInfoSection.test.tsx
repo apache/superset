@@ -24,7 +24,6 @@ const defaultProps = {
   form: {
     getFieldValue: jest.fn(() => 'Test Dashboard'),
   } as any,
-  isLoading: false,
   validationStatus: {
     basic: { hasErrors: false, errors: [], name: 'Basic' },
   },
@@ -55,7 +54,7 @@ test('shows required asterisk for name field', () => {
 test('disables inputs when loading', () => {
   render(
     <Form>
-      <BasicInfoSection {...defaultProps} isLoading />
+      <BasicInfoSection {...defaultProps} />
     </Form>,
   );
 
