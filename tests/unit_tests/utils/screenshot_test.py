@@ -268,12 +268,6 @@ class TestBaseScreenshotDriverFallback:
         """Test driver() falls back to Selenium when Playwright unavailable."""
         mock_feature_flag.return_value = True
 
-        # Reset the global fallback logging flag to ensure we can test the logging
-        import superset.utils.screenshots
-
-        with superset.utils.screenshots._fallback_lock:
-            superset.utils.screenshots._PLAYWRIGHT_FALLBACK_LOGGED = False
-
         driver = screenshot_obj.driver()
 
         assert driver.__class__.__name__ == "WebDriverSelenium"
@@ -372,8 +366,8 @@ class TestScreenshotSubclassesDriverBehavior:
         assert driver.__class__.__name__ == "WebDriverSelenium"
         assert driver._window == dashboard_screenshot.window_size
 
-        # Note: May not log if fallback message was already logged globally
-        # This is expected behavior due to the single-log optimization
+        # Should log the fallback message
+        mock_logger.info.assert_called_once()
 
     @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
