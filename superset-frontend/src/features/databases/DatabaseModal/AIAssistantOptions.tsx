@@ -34,6 +34,9 @@ import {
   SavedContextStatus,
   useLlmContextStatus,
   useLlmDefaults,
+  useCreateCustomLlmProviderMutation,
+  useTestCustomLlmProviderMutation,
+  CustomLlmProviderForm,
 } from 'src/hooks/apiResources';
 import {
   StyledContextError,
@@ -79,6 +82,22 @@ const AIAssistantOptions = ({
   const [activeKey, setActiveKey] = useState<string | string[] | undefined>(
     undefined,
   );
+  const [customProviderForm, setCustomProviderForm] =
+    useState<CustomLlmProviderForm>({
+      name: '',
+      endpoint_url: '',
+      request_template: '{"model": "{model}", "messages": {messages}}',
+      response_path: 'choices[0].message.content',
+      headers:
+        '{"Content-Type": "application/json", "Authorization": "Bearer {api_key}"}',
+      models:
+        '{"default": {"name": "Default Model", "input_token_limit": 100000}}',
+      system_instructions: '',
+      timeout: 30,
+      enabled: true,
+    });
+  const [createCustomProvider] = useCreateCustomLlmProviderMutation();
+  const [testCustomProvider] = useTestCustomLlmProviderMutation();
 
   const tables = useDatabaseTables(dbIdRef.current || 0);
 
@@ -124,6 +143,11 @@ const AIAssistantOptions = ({
   const handleProviderChange = useCallback(
     (value: string) => {
       setSelectedProvider(value);
+      if (value === 'add_custom') {
+        // Don't update the connection for the custom form
+        return;
+      }
+
       onLlmConnectionChange({
         ...db?.llm_connection,
         provider: value,
@@ -156,16 +180,27 @@ const AIAssistantOptions = ({
     [handleContextOptionsChange],
   );
 
-  const providerOptions = useMemo(
-    () =>
-      llmDefaults
-        ? Object.keys(llmDefaults).map(provider => ({
-            value: provider,
-            label: provider,
-          }))
-        : [],
-    [llmDefaults],
-  );
+  const providerOptions = useMemo(() => {
+    if (!llmDefaults) return [];
+
+    const options = Object.keys(llmDefaults).map(provider => {
+      const providerData = llmDefaults[provider];
+      // For custom providers, use the display name if available
+      const label = providerData.name || provider;
+      return {
+        value: provider,
+        label,
+      };
+    });
+
+    // Add "Add Custom Provider" option
+    options.push({
+      value: 'add_custom',
+      label: '+ Add Custom Provider',
+    });
+
+    return options;
+  }, [llmDefaults]);
 
   const modelOptions = useMemo(
     () =>
@@ -236,40 +271,223 @@ const AIAssistantOptions = ({
                   </div>
                 </StyledInputContainer>
 
-                {selectedProvider && (
+                {selectedProvider === 'add_custom' ? (
                   <>
                     <StyledInputContainer className="mb-8">
-                      <div className="control-label">
-                        {t('Provider API key')}
-                      </div>
+                      <div className="control-label">{t('Provider Name')}</div>
                       <div className="input-container">
                         <Input
                           type="text"
-                          name="api_key"
-                          value={db?.llm_connection?.api_key || ''}
-                          placeholder={t('Enter your API key')}
+                          value={customProviderForm.name}
+                          placeholder={t('Enter provider name')}
                           onChange={e =>
-                            handleLlmConnectionChange('api_key', e.target.value)
+                            setCustomProviderForm({
+                              ...customProviderForm,
+                              name: e.target.value,
+                            })
                           }
-                          disabled={!db}
                         />
                       </div>
                     </StyledInputContainer>
 
                     <StyledInputContainer className="mb-8">
-                      <div className="control-label">{t('Model')}</div>
+                      <div className="control-label">{t('Endpoint URL')}</div>
                       <div className="input-container">
-                        <Select
-                          options={modelOptions}
-                          value={db?.llm_connection?.model}
-                          onChange={value =>
-                            handleLlmConnectionChange('model', value)
+                        <Input
+                          type="text"
+                          value={customProviderForm.endpoint_url}
+                          placeholder={t(
+                            'https://api.example.com/v1/chat/completions',
+                          )}
+                          onChange={e =>
+                            setCustomProviderForm({
+                              ...customProviderForm,
+                              endpoint_url: e.target.value,
+                            })
                           }
-                          disabled={!db}
                         />
                       </div>
                     </StyledInputContainer>
+
+                    <StyledInputContainer className="mb-8">
+                      <div className="control-label">
+                        {t('Request Template (JSON)')}
+                      </div>
+                      <div className="input-container">
+                        <Input.TextArea
+                          value={customProviderForm.request_template}
+                          placeholder={t(
+                            '{"model": "{model}", "messages": {messages}}',
+                          )}
+                          onChange={e =>
+                            setCustomProviderForm({
+                              ...customProviderForm,
+                              request_template: e.target.value,
+                            })
+                          }
+                          rows={3}
+                        />
+                      </div>
+                      <div className="helper">
+                        {t(
+                          'Use {model}, {messages}, {api_key} as placeholders',
+                        )}
+                      </div>
+                    </StyledInputContainer>
+
+                    <StyledInputContainer className="mb-8">
+                      <div className="control-label">{t('Response Path')}</div>
+                      <div className="input-container">
+                        <Input
+                          type="text"
+                          value={customProviderForm.response_path}
+                          placeholder={t('choices[0].message.content')}
+                          onChange={e =>
+                            setCustomProviderForm({
+                              ...customProviderForm,
+                              response_path: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="helper">
+                        {t(
+                          'JSONPath to extract the generated text from the response',
+                        )}
+                      </div>
+                    </StyledInputContainer>
+
+                    <StyledInputContainer className="mb-8">
+                      <div className="control-label">{t('Headers (JSON)')}</div>
+                      <div className="input-container">
+                        <Input.TextArea
+                          value={customProviderForm.headers}
+                          placeholder={t(
+                            '{"Authorization": "Bearer {api_key}"}',
+                          )}
+                          onChange={e =>
+                            setCustomProviderForm({
+                              ...customProviderForm,
+                              headers: e.target.value,
+                            })
+                          }
+                          rows={2}
+                        />
+                      </div>
+                    </StyledInputContainer>
+
+                    <StyledInputContainer className="mb-8">
+                      <div className="control-label">{t('Models (JSON)')}</div>
+                      <div className="input-container">
+                        <Input.TextArea
+                          value={customProviderForm.models}
+                          placeholder={t(
+                            '{"model-1": {"name": "Model 1", "input_token_limit": 100000}}',
+                          )}
+                          onChange={e =>
+                            setCustomProviderForm({
+                              ...customProviderForm,
+                              models: e.target.value,
+                            })
+                          }
+                          rows={3}
+                        />
+                      </div>
+                    </StyledInputContainer>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await testCustomProvider(
+                              customProviderForm,
+                            ).unwrap();
+                            // TODO: Show success message
+                          } catch (error) {
+                            // TODO: Show error message
+                            console.error('Test failed:', error);
+                          }
+                        }}
+                      >
+                        {t('Test connection')}
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await createCustomProvider(
+                              customProviderForm,
+                            ).unwrap();
+                            // Reset form and go back to provider selection
+                            setSelectedProvider(null);
+                            setCustomProviderForm({
+                              name: '',
+                              endpoint_url: '',
+                              request_template:
+                                '{"model": "{model}", "messages": {messages}}',
+                              response_path: 'choices[0].message.content',
+                              headers:
+                                '{"Content-Type": "application/json", "Authorization": "Bearer {api_key}"}',
+                              models:
+                                '{"default": {"name": "Default Model", "input_token_limit": 100000}}',
+                              system_instructions: '',
+                              timeout: 30,
+                              enabled: true,
+                            });
+                          } catch (error) {
+                            console.error('Create failed:', error);
+                          }
+                        }}
+                        cta
+                      >
+                        {t('Save provider')}
+                      </Button>
+                    </div>
                   </>
+                ) : (
+                  selectedProvider && (
+                    <>
+                      <StyledInputContainer className="mb-8">
+                        <div className="control-label">
+                          {t('Provider API key')}
+                        </div>
+                        <div className="input-container">
+                          <Input
+                            type="text"
+                            name="api_key"
+                            value={db?.llm_connection?.api_key || ''}
+                            placeholder={t('Enter your API key')}
+                            onChange={e =>
+                              handleLlmConnectionChange(
+                                'api_key',
+                                e.target.value,
+                              )
+                            }
+                            disabled={!db}
+                          />
+                        </div>
+                      </StyledInputContainer>
+
+                      <StyledInputContainer className="mb-8">
+                        <div className="control-label">{t('Model')}</div>
+                        <div className="input-container">
+                          <Select
+                            options={modelOptions}
+                            value={db?.llm_connection?.model}
+                            onChange={value =>
+                              handleLlmConnectionChange('model', value)
+                            }
+                            disabled={!db}
+                          />
+                        </div>
+                      </StyledInputContainer>
+                    </>
+                  )
                 )}
               </div>
             ),

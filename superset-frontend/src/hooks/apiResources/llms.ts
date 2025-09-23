@@ -46,6 +46,7 @@ export interface LlmDefaults {
       [modelName: string]: { name: string; input_token_limit: number };
     };
     instructions: string;
+    name?: string; // Display name for custom providers
   };
 }
 
@@ -55,6 +56,33 @@ export type LlmDefaultsParams = {
   onError?: (error: Response) => void;
   skip?: boolean;
 };
+
+export interface CustomLlmProvider {
+  id: number;
+  name: string;
+  endpoint_url: string;
+  request_template: string;
+  response_path: string;
+  headers: string | null;
+  models: string;
+  system_instructions: string | null;
+  timeout: number | null;
+  enabled: boolean;
+  created_on: string;
+  changed_on: string;
+}
+
+export interface CustomLlmProviderForm {
+  name: string;
+  endpoint_url: string;
+  request_template: string;
+  response_path: string;
+  headers?: string;
+  models: string;
+  system_instructions?: string;
+  timeout?: number;
+  enabled?: boolean;
+}
 
 const llmContextApi = api.injectEndpoints({
   endpoints: builder => ({
@@ -76,12 +104,66 @@ const llmContextApi = api.injectEndpoints({
         transformResponse: ({ json }: JsonResponse) => json,
       }),
     }),
+    customLlmProviders: builder.query<CustomLlmProvider[], void>({
+      providesTags: ['CustomLlmProvider'],
+      query: () => ({
+        endpoint: 'api/v1/custom_llm_provider/',
+        transformResponse: ({ json }: JsonResponse) => json.result,
+      }),
+    }),
+    createCustomLlmProvider: builder.mutation<
+      CustomLlmProvider,
+      CustomLlmProviderForm
+    >({
+      invalidatesTags: ['CustomLlmProvider', 'LlmDefaults'],
+      query: provider => ({
+        endpoint: 'api/v1/custom_llm_provider/',
+        method: 'POST',
+        body: provider,
+        transformResponse: ({ json }: JsonResponse) => json,
+      }),
+    }),
+    updateCustomLlmProvider: builder.mutation<
+      CustomLlmProvider,
+      { id: number; provider: Partial<CustomLlmProviderForm> }
+    >({
+      invalidatesTags: ['CustomLlmProvider', 'LlmDefaults'],
+      query: ({ id, provider }) => ({
+        endpoint: `api/v1/custom_llm_provider/${id}`,
+        method: 'PUT',
+        body: provider,
+        transformResponse: ({ json }: JsonResponse) => json,
+      }),
+    }),
+    deleteCustomLlmProvider: builder.mutation<void, number>({
+      invalidatesTags: ['CustomLlmProvider', 'LlmDefaults'],
+      query: id => ({
+        endpoint: `api/v1/custom_llm_provider/${id}`,
+        method: 'DELETE',
+      }),
+    }),
+    testCustomLlmProvider: builder.mutation<
+      { status: string; message: string },
+      Partial<CustomLlmProviderForm>
+    >({
+      query: provider => ({
+        endpoint: 'api/v1/custom_llm_provider/test',
+        method: 'POST',
+        body: provider,
+        transformResponse: ({ json }: JsonResponse) => json.result,
+      }),
+    }),
   }),
 });
 
 export const {
   useContextStatusQuery,
   useLlmDefaultsQuery,
+  useCustomLlmProvidersQuery,
+  useCreateCustomLlmProviderMutation,
+  useUpdateCustomLlmProviderMutation,
+  useDeleteCustomLlmProviderMutation,
+  useTestCustomLlmProviderMutation,
   endpoints: llmEndpoints,
 } = llmContextApi;
 

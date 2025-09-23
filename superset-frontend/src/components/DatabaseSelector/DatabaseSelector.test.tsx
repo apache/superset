@@ -261,8 +261,8 @@ export function DatabaseSelector({
       if (onSchemaChange && schema_values !== schemaRef.current) {
         onSchemaChange(schema_values);
       }
-    } else {
-      onSchemaChange && onSchemaChange(schema?.value);
+    } else if (onSchemaChange) {
+      onSchemaChange(schema?.value);
     }
   }
 

@@ -115,10 +115,55 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("task_id"),
     )
+
+    op.create_table(
+        "custom_llm_providers",
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("endpoint_url", sa.String(length=1024), nullable=False),
+        sa.Column(
+            "request_template",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=False,
+        ),
+        sa.Column("response_path", sa.String(length=255), nullable=False),
+        sa.Column(
+            "headers",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=True,
+        ),
+        sa.Column(
+            "models",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=False,
+        ),
+        sa.Column(
+            "system_instructions",
+            sa.Text().with_variant(sa.dialects.mysql.MEDIUMTEXT(), "mysql"),
+            nullable=True,
+        ),
+        sa.Column("timeout", sa.Integer(), default=30, nullable=True),
+        sa.Column("enabled", sa.Boolean(), default=True, nullable=False),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("name"),
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
+    op.drop_table("custom_llm_providers")
     op.drop_table("llm_context_options")
     op.drop_table("llm_connection")
     op.drop_table("context_builder_task")

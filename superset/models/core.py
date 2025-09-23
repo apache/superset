@@ -1421,3 +1421,17 @@ class LlmContextOptions(Model, AuditMixinNullable):
     database = relationship(
         "Database", backref=backref("llm_context_options", uselist=False)
     )
+
+
+class CustomLlmProvider(Model, AuditMixinNullable):
+    __tablename__ = "custom_llm_providers"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False, unique=True)
+    endpoint_url = Column(String(1024), nullable=False)
+    request_template = Column(utils.MediumText(), nullable=False)
+    response_path = Column(String(255), nullable=False)
+    headers = Column(utils.MediumText(), nullable=True)
+    models = Column(utils.MediumText(), nullable=False)
+    system_instructions = Column(utils.MediumText(), nullable=True)
+    timeout = Column(Integer, default=30)
+    enabled = Column(Boolean, default=True)

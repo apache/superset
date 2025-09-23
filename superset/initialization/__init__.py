@@ -191,6 +191,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
+        from superset.llms.api import CustomLlmProviderRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
@@ -269,6 +270,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(CustomLlmProviderRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)

@@ -25,8 +25,8 @@ from superset.daos.context_builder_task import ContextBuilderTaskDAO
 from superset.daos.database import DatabaseDAO
 from superset.exceptions import DatabaseNotFoundException
 from superset.extensions import security_manager
+from superset.llms import custom
 from superset.llms.base_llm import BaseLlm
-from superset.llms import anthropic, openai, gemini
 from superset.llms.exceptions import NoContextError, NoProviderError
 from superset.models.core import ContextBuilderTask
 from superset.tasks.llm_context import initiate_context_generation
@@ -87,12 +87,17 @@ def _get_or_create_llm_provider(pk: int, dialect: str, provider_type: str) -> Ba
         logger.error(f"Failed to parse context JSON: {str(e)}")
         raise NoContextError(f"Failed to parse context JSON for database {pk}.")
 
-    for provider in AVAILABLE_PROVIDERS:
-        if provider.llm_type == provider_type:
-            llm_provider = provider(pk, dialect, context)
-            break
+    # Handle custom providers
+    if provider_type.startswith("custom_"):
+        llm_provider = custom.CustomLlm(pk, dialect, context)
     else:
-        raise NoProviderError(f"No LLM provider found for type {provider_type}.")
+        # Handle built-in providers
+        for provider in AVAILABLE_PROVIDERS:
+            if provider.llm_type == provider_type:
+                llm_provider = provider(pk, dialect, context)
+                break
+        else:
+            raise NoProviderError(f"No LLM provider found for type {provider_type}.")
 
     llm_providers[pk] = llm_provider
     return llm_provider
@@ -222,10 +227,36 @@ def get_default_options(pk: int) -> dict:
         if not db:
             raise DatabaseNotFoundException(f"No such database: {pk}")
 
-    return {
+    # Built-in providers
+    result = {
         provider.llm_type: {
             "models": provider.get_models(),
             "instructions": provider.get_system_instructions(db.backend),
         }
         for provider in AVAILABLE_PROVIDERS
     }
+
+    # Add custom providers
+    from superset.extensions import db as superset_db
+    from superset.models.core import CustomLlmProvider
+
+    custom_providers = (
+        superset_db.session.query(CustomLlmProvider).filter_by(enabled=True).all()
+    )
+
+    for provider in custom_providers:
+        try:
+            models = json.loads(provider.models)
+            provider_key = f"custom_{provider.id}"
+            result[provider_key] = {
+                "models": models,
+                "instructions": provider.system_instructions
+                or custom.CustomLlm.get_system_instructions(db.backend),
+                "name": provider.name,
+            }
+        except (json.JSONDecodeError, AttributeError) as e:
+            logger.error(
+                f"Failed to parse models for custom provider {provider.name}: {e}"
+            )
+
+    return result
