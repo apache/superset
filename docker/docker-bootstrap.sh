@@ -18,18 +18,18 @@
 
 set -eo pipefail
 
-# Install critical dependencies first in dev mode to fix volume mount issues
+# Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
-      echo "Installing critical dependencies for dev mode..."
-      # Install pydantic first as it's needed for imports
-      uv pip install --no-cache-dir "pydantic>=2.8.0"
-      echo "Installing base requirements"
-      uv pip install -r /app/requirements/base.txt
-      echo "Reinstalling superset-core in editable mode"
-      uv pip install -e /app/superset-core
-      echo "Reinstalling the app in editable mode"
-      uv pip install -e .
+      # Always ensure superset-core is available
+      echo "Installing superset-core in editable mode"
+      uv pip install --no-deps -e /app/superset-core
+
+      # Only reinstall the main app for non-worker processes
+      if [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
+        echo "Reinstalling the app in editable mode"
+        uv pip install -e .
+      fi
     fi
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
@@ -41,7 +41,8 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
     export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
     PORT=8081
 fi
-if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ]; then
+# Skip postgres requirements installation for workers to avoid conflicts
+if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ] && [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
     # older images may not have the postgres dev requirements installed
     echo "Installing postgres requirements"
     if command -v uv > /dev/null 2>&1; then

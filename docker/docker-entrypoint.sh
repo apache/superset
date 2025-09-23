@@ -18,15 +18,8 @@
 
 set -eo pipefail
 
-# In dev mode with volume mounts, we need to ensure dependencies are installed
-# BEFORE any Python code runs, as volumes override the image's site-packages
-if [ "$DEV_MODE" == "true" ]; then
-    if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
-        echo "Dev mode detected. Ensuring critical dependencies are installed..."
-        # Quick install of critical packages that are needed for imports
-        uv pip install --no-cache-dir "pydantic>=2.8.0" "marshmallow-union" 2>/dev/null || true
-    fi
-fi
+# Dependencies should be installed during container build, not at runtime
+# to avoid file watcher restart loops in development mode
 
 # Now run the actual bootstrap script
 exec "$@"
