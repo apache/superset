@@ -331,6 +331,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -536,7 +537,7 @@ packaging==25.0
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.0.3
+pandas==2.1.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -847,7 +848,7 @@ sqlalchemy-utils==0.38.3
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==27.3.0
+sqlglot==27.15.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
