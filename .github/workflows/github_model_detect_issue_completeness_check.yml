@@ -1,0 +1,38 @@
+name: Issue Completeness Check
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  models: read
+
+jobs:
+  check-completeness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check issue completeness
+        uses: actions/ai-inference@v1
+        id: ai
+        with:
+          prompt: |
+            Analyze this GitHub issue for completeness. If missing reproduction steps, version info, or expected/actual behavior, respond with a friendly request for the missing info. If complete, say so.
+
+            Title: ${{ github.event.issue.title }}
+            Body: ${{ github.event.issue.body }}
+          system-prompt: You are a helpful assistant that helps analyze GitHub issues for completeness.
+          model: openai/gpt-4o-mini
+          temperature: 0.2
+
+      - name: Comment on issue
+        if: steps.ai.outputs.response != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ github.event.issue.number }},
+              body: `${{ steps.ai.outputs.response }}`
+            })
