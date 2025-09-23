@@ -23,29 +23,42 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from flask import Flask
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+
+if TYPE_CHECKING:
+    pass
 
 logger = logging.getLogger(__name__)
 
 
-class LocalExtensionFileHandler(FileSystemEventHandler):
-    """Custom file system event handler for LOCAL_EXTENSIONS directories."""
+def _get_file_handler_class() -> Any:
+    """Get the file handler class, importing watchdog only when needed."""
+    try:
+        from watchdog.events import FileSystemEventHandler
 
-    def on_any_event(self, event: Any) -> None:
-        """Handle any file system event in the watched directories."""
-        if event.is_directory:
-            return
+        class LocalExtensionFileHandler(FileSystemEventHandler):
+            """Custom file system event handler for LOCAL_EXTENSIONS directories."""
 
-        logger.info("File change detected in LOCAL_EXTENSIONS: %s", event.src_path)
+            def on_any_event(self, event: Any) -> None:
+                """Handle any file system event in the watched directories."""
+                if event.is_directory:
+                    return
 
-        # Touch superset/__init__.py to trigger Flask's file watcher
-        superset_init = Path("superset/__init__.py")
-        logger.info("Triggering restart by touching %s", superset_init)
-        os.utime(superset_init, (time.time(), time.time()))
+                logger.info(
+                    "File change detected in LOCAL_EXTENSIONS: %s", event.src_path
+                )
+
+                # Touch superset/__init__.py to trigger Flask's file watcher
+                superset_init = Path("superset/__init__.py")
+                logger.info("Triggering restart by touching %s", superset_init)
+                os.utime(superset_init, (time.time(), time.time()))
+
+        return LocalExtensionFileHandler
+    except ImportError:
+        logger.warning("watchdog not installed, LOCAL_EXTENSIONS watcher disabled")
+        return None
 
 
 def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
@@ -60,6 +73,11 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
 
     local_extensions = app.config.get("LOCAL_EXTENSIONS", [])
     if not local_extensions:
+        return
+
+    # Try to import watchdog and get handler class
+    handler_class = _get_file_handler_class()
+    if not handler_class:
         return
 
     # Collect dist directories to watch
@@ -81,8 +99,10 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
         return
 
     try:
+        from watchdog.observers import Observer
+
         # Set up and start the file watcher
-        event_handler = LocalExtensionFileHandler()
+        event_handler = handler_class()
         observer = Observer()
 
         for watch_dir in watch_dirs:
