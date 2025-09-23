@@ -18,6 +18,8 @@
 import re
 from typing import Any
 
+from flask_babel import gettext as __
+
 from superset.errors import SupersetErrorType
 
 # CUSTOM_DATABASE_ERRORS: Configure custom error messages for database exceptions.
@@ -55,4 +57,27 @@ from superset.errors import SupersetErrorType
 
 CUSTOM_DATABASE_ERRORS: dict[
     str, dict[re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]]
-] = {}
+] = {
+    "examples": {
+        re.compile("no such table: a"): (
+            __("This is custom error message for a"),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {
+                "custom_doc_links": [
+                    {
+                        "url": "https://example.com/docs/1",
+                        "label": "Custom documentation link",
+                    },
+                ],
+                "show_issue_info": False,
+            },
+        ),
+        re.compile("no such table: b"): (
+            __("This is custom error message for b"),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {
+                "show_issue_info": True,
+            },
+        ),
+    }
+}
