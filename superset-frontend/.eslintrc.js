@@ -83,6 +83,7 @@ module.exports = {
     'plugin:react-hooks/recommended',
     'plugin:react-prefer-function-component/recommended',
     'plugin:storybook/recommended',
+    'plugin:react-you-might-not-need-an-effect/legacy-recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
