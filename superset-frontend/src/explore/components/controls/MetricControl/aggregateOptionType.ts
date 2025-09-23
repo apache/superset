@@ -17,7 +17,7 @@
  * under the License.
  */
 
-export type { AggregateOption } from './types';
-
-// For backward compatibility with PropTypes usage
-export { AggregateOption as default } from './types';
+// Core Playwright Components for Superset
+export { Button } from './Button';
+export { Form } from './Form';
+export { Input } from './Input';

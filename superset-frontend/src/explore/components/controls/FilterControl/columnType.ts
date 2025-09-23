@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column } from '@superset-ui/core';
+export { savedMetricType } from './types';
 
-export type ColumnType = Pick<Column, 'column_name' | 'type'>;
-
-// For backward compatibility with PropTypes usage - create a placeholder object
-const columnType = {} as any;
-export default columnType;
+// For backward compatibility with PropTypes usage
+export { savedMetricType as default } from './types';

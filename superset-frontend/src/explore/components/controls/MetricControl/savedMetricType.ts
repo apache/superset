@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { savedMetricType } from './types';
 
-// For backward compatibility with PropTypes usage
-export { savedMetricType as default } from './types';
+export const URL = {
+  LOGIN: 'login/',
+  WELCOME: 'superset/welcome/',
+} as const;
