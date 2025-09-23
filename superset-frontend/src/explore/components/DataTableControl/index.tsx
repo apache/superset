@@ -19,7 +19,6 @@
 import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
 import {
   css,
-  GenericDataType,
   getTimeFormatter,
   safeHtmlSpan,
   styled,
@@ -27,6 +26,7 @@ import {
   TimeFormats,
   useTheme,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
 import {

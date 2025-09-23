@@ -27,13 +27,13 @@ import {
   CategoricalColorNamespace,
   DataRecord,
   DataRecordValue,
-  GenericDataType,
   getColumnLabel,
   getNumberFormatter,
   t,
   tooltipHtml,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   Cartesian2dCoordSys,

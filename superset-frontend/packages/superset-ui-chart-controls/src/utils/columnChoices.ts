@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType, QueryColumn, QueryResponse } from '@superset-ui/core';
+import { QueryColumn, QueryResponse } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta, Dataset, isDataset, isQueryResponse } from '../types';
 
 export function columnsByType(

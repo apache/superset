@@ -20,13 +20,13 @@ import {
   ChartProps,
   DataRecord,
   extractTimegrain,
-  GenericDataType,
   getTimeFormatter,
   getTimeFormatterForGranularity,
   QueryFormData,
   SMART_DATE_ID,
   TimeFormats,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 import { DateFormatter } from '../types';
 

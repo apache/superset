@@ -22,12 +22,12 @@ import {
   Metric,
 } from '@superset-ui/chart-controls';
 import {
-  GenericDataType,
   getMetricLabel,
   extractTimegrain,
   QueryFormData,
   getValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, getOriginalLabel, parseMetricValue } from '../utils';
 import { Refs } from '../../types';

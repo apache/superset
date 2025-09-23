@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import {
   TableView,
   TableSize,
@@ -25,6 +25,7 @@ import {
   Loading,
   EmptyWrapperType,
 } from '@superset-ui/core/components';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   useFilteredTableData,
   useTableColumns,

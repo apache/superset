@@ -19,12 +19,12 @@
 import {
   CurrencyFormatter,
   DataRecordValue,
-  GenericDataType,
   getNumberFormatter,
   isDefined,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ValueFormatterParams,
   ValueGetterParams,

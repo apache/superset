@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { renderHook } from '@testing-library/react-hooks';
 import { Constants } from '@superset-ui/core/components';
 import { useTableColumns } from '.';
