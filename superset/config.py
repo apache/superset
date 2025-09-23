@@ -728,30 +728,20 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # -----------------------------------------------------------------------------
 # Superset supports custom theming through Ant Design's theme structure.
 #
-# Theme Hierarchy (layers apply in order, each overriding previous):
-# 1. THEME_DEFAULT/THEME_DARK - System base themes (foundation for all users)
-# 3. System CRUD themes (when ENABLE_UI_THEME_ADMINISTRATION=True) - Set via UI
-# 4. Dashboard CRUD themes - Applied locally per dashboard with bolt button
+# Theme Hierarchy:
+# 1. THEME_DEFAULT/THEME_DARK - Base themes defined in config (foundation)
+# 2. System themes - Set by admins via UI (when ENABLE_UI_THEME_ADMINISTRATION=True)
+# 3. Dashboard themes - Applied per dashboard using the theme bolt button
 #
-# Theme Merging:
-# - System themes (THEME_DEFAULT/THEME_DARK) provide the foundation
-# - User/CRUD themes are treated as overlays/overrides on system themes
-# - Empty theme {} or None means "no custom tokens at this layer"
-# - Final theme = System theme + User/CRUD theme overlay (if any)
+# How it works:
+# - Custom themes override base themes for any properties they define
+# - Properties not defined in custom themes use the base theme values
+# - Admins can set system-wide themes that apply to all users
+# - Users can apply specific themes to individual dashboards
 #
-# System Theme Behavior (UI Administration):
-# - Only themes explicitly marked as system (via moon/sun buttons) are used
-# - Removing a system theme falls back to config theme (or base if config is None) # noqa: E501
-# - No automatic fallback to other themes in the database
-#
-# Theme Generation:
+# Theme Creation:
 # - Use the Ant Design theme editor: https://ant.design/theme-editor
-# - Export the generated JSON and assign to the theme variables
-# - To expose a JSON theme editor modal in the UI, set ENABLE_THEME_EDITOR
-#   feature flag to True
-#
-# Example: If THEME_DEFAULT sets colorPrimary: "#2893B3" and a custom theme sets # noqa: E501
-# colorPrimary: "#FF0000", the final theme will have colorPrimary: "#FF0000"
+# - Export the generated JSON and use it in your theme configuration
 # -----------------------------------------------------------------------------
 
 # Default theme configuration - foundation for all themes

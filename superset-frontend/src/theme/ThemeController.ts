@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { theme as antdThemeImport } from 'antd';
 import {
   type AnyThemeConfig,
   type SupersetThemeConfig,
   type ThemeControllerOptions,
   type ThemeStorage,
+  isThemeConfigDark,
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
@@ -116,8 +116,6 @@ export class ThemeController {
 
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
-    // (or from database if UI administration is enabled)
-    // Use fallback defaultTheme if bootstrap theme is empty
     this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
 
@@ -196,7 +194,7 @@ export class ThemeController {
     if (forDashboard && this.dashboardCrudTheme) {
       // Dashboard CRUD themes should be merged with base theme
       const normalizedTheme = this.normalizeTheme(this.dashboardCrudTheme);
-      const isDarkMode = this.isThemeDark(normalizedTheme);
+      const isDarkMode = isThemeConfigDark(normalizedTheme);
       const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
 
       if (baseTheme) {
@@ -241,7 +239,7 @@ export class ThemeController {
         const normalizedConfig = this.normalizeTheme(themeConfig);
 
         // Determine if this is a dark theme and get appropriate base
-        const isDarkMode = this.isThemeDark(normalizedConfig);
+        const isDarkMode = isThemeConfigDark(normalizedConfig);
         const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
 
         const dashboardTheme = Theme.fromConfig(
@@ -379,8 +377,8 @@ export class ThemeController {
       JSON.stringify(theme),
     );
 
-    const normalizedTheme = this.normalizeTheme(theme);
-    this.updateTheme(normalizedTheme);
+    const mergedTheme = this.getThemeForMode(this.currentMode);
+    if (mergedTheme) this.updateTheme(mergedTheme);
   }
 
   /**
@@ -593,24 +591,14 @@ export class ThemeController {
    * Checks if a theme is truly empty (not even an algorithm).
    * A theme with just an algorithm is still valid and should be used.
    */
-  private isEmptyTheme(theme: any): boolean {
+  private isEmptyTheme(theme: AnyThemeConfig | undefined): boolean {
     if (!theme) return true;
 
-    // If it's an empty object {}, it's empty
-    if (typeof theme === 'object' && Object.keys(theme).length === 0)
-      return true;
-
-    // If theme has an algorithm, it's not empty (even without tokens)
-    if (theme.algorithm) return false;
-
-    // Check if theme has any tokens defined
-    if (theme.token && Object.keys(theme.token).length > 0) return false;
-
-    // Check if theme has components defined
-    if (theme.components && Object.keys(theme.components).length > 0)
-      return false;
-
-    return true;
+    return !(
+      theme.algorithm ||
+      (theme.token && Object.keys(theme.token).length > 0) ||
+      (theme.components && Object.keys(theme.components).length > 0)
+    );
   }
 
   /**
@@ -629,33 +617,28 @@ export class ThemeController {
    * @returns The theme configuration for the specified mode or null if not available
    */
   private getThemeForMode(mode: ThemeMode): AnyThemeConfig | null {
-    // Priority 1: Dev theme override (highest priority for development)
-    // Dev overrides are merged with system themes as base
     if (this.devThemeOverride) {
       const normalizedOverride = this.normalizeTheme(this.devThemeOverride);
-      const isDarkMode = this.isThemeDark(normalizedOverride);
+      const isDarkMode = isThemeConfigDark(normalizedOverride);
       const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
 
       if (baseTheme) {
         const mergedTheme = Theme.fromConfig(normalizedOverride, baseTheme);
         return mergedTheme.toSerializedConfig();
       }
+
       return normalizedOverride;
     }
 
-    // Priority 2: System theme based on mode
     let resolvedMode: ThemeMode = mode;
 
     if (mode === ThemeMode.SYSTEM) {
-      // OS preference is allowed when dark theme exists
       if (this.darkTheme === null) return null;
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
-    // Return the appropriate system theme (these ARE the base themes now)
-    if (resolvedMode === ThemeMode.DARK) {
-      return this.darkTheme;
-    }
+    if (resolvedMode === ThemeMode.DARK) return this.darkTheme;
+
     return this.defaultTheme;
   }
 
@@ -757,22 +740,6 @@ export class ThemeController {
       console.error('Failed to apply theme:', error);
       this.fallbackToDefaultMode();
     }
-  }
-
-  /**
-   * Determines if a theme configuration is for dark mode.
-   * @param theme - The theme configuration to check
-   * @returns True if the theme is dark mode, false otherwise
-   */
-  private isThemeDark(theme: AnyThemeConfig): boolean {
-    const darkAlg = antdThemeImport.darkAlgorithm;
-
-    if (theme.algorithm === darkAlg) return true;
-
-    if (Array.isArray(theme.algorithm))
-      return theme.algorithm.some((alg: any) => alg === darkAlg);
-
-    return false;
   }
 
   /**

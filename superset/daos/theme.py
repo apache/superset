@@ -45,14 +45,6 @@ class ThemeDAO(BaseDAO[Theme]):
         if len(system_defaults) == 1:
             return system_defaults[0]
 
-        if len(system_defaults) > 1:
-            logger.warning(
-                "Multiple system default themes found (%s), none will be used",
-                len(system_defaults),
-            )
-            return None
-
-        # If no theme is explicitly set as system default, return None
         return None
 
     @classmethod
@@ -69,12 +61,4 @@ class ThemeDAO(BaseDAO[Theme]):
         if len(system_darks) == 1:
             return system_darks[0]
 
-        if len(system_darks) > 1:
-            logger.warning(
-                "Multiple system dark themes found (%s), none will be used",
-                len(system_darks),
-            )
-            return None
-
-        # If no theme is explicitly set as system dark, return None
         return None

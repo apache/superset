@@ -45,8 +45,7 @@ class TestThemeDAO:
         assert result == mock_theme
 
     @patch("superset.daos.theme.db.session")
-    @patch("superset.daos.theme.logger")
-    def test_find_system_default_multiple(self, mock_logger, mock_session):
+    def test_find_system_default_multiple(self, mock_session):
         """Test finding system default theme when multiple exist"""
         # Create mock themes
         mock_theme1 = MagicMock(spec=Theme)
@@ -64,16 +63,6 @@ class TestThemeDAO:
         # Call the method
         result = ThemeDAO.find_system_default()
 
-        # Verify warning was logged with lazy logging format
-        mock_logger.warning.assert_called_once()
-        call_args = mock_logger.warning.call_args
-        assert (
-            call_args[0][0]
-            == "Multiple system default themes found (%s), none will be used"
-        )
-        assert call_args[0][1] == 2
-
-        # Verify the result is None (no fallback)
         assert result is None
 
     @patch("superset.daos.theme.db.session")
@@ -113,8 +102,7 @@ class TestThemeDAO:
         assert result == mock_theme
 
     @patch("superset.daos.theme.db.session")
-    @patch("superset.daos.theme.logger")
-    def test_find_system_dark_multiple(self, mock_logger, mock_session):
+    def test_find_system_dark_multiple(self, mock_session):
         """Test finding system dark theme when multiple exist"""
         # Create mock themes
         mock_theme1 = MagicMock(spec=Theme)
@@ -132,16 +120,6 @@ class TestThemeDAO:
         # Call the method
         result = ThemeDAO.find_system_dark()
 
-        # Verify warning was logged with lazy logging format
-        mock_logger.warning.assert_called_once()
-        call_args = mock_logger.warning.call_args
-        assert (
-            call_args[0][0]
-            == "Multiple system dark themes found (%s), none will be used"
-        )
-        assert call_args[0][1] == 2
-
-        # Verify the result is None (no fallback)
         assert result is None
 
     @patch("superset.daos.theme.db.session")

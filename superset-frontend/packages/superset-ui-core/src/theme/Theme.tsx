@@ -25,7 +25,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
-import { noop } from 'lodash';
+import { noop, mergeWith } from 'lodash';
 import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
@@ -63,33 +63,9 @@ export class Theme {
     let mergedConfig: AnyThemeConfig | undefined = config;
 
     if (baseTheme && config) {
-      mergedConfig = {
-        ...baseTheme,
-        ...config,
-      } as AnyThemeConfig;
-
-      if (baseTheme.token || config.token) {
-        (mergedConfig as any).token = {
-          ...(baseTheme.token || {}),
-          ...(config.token || {}),
-        };
-      }
-
-      if (baseTheme.components || config.components) {
-        const mergedComponents: any = { ...(baseTheme.components || {}) };
-
-        if (config.components) {
-          const configComponents = config.components as any;
-          Object.keys(configComponents).forEach(componentName => {
-            mergedComponents[componentName] = {
-              ...(mergedComponents[componentName] || {}),
-              ...configComponents[componentName],
-            };
-          });
-        }
-
-        (mergedConfig as any).components = mergedComponents;
-      }
+      mergedConfig = mergeWith({}, baseTheme, config, (objValue, srcValue) =>
+        Array.isArray(srcValue) ? srcValue : undefined,
+      );
     } else if (baseTheme && !config) {
       mergedConfig = baseTheme;
     }

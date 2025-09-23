@@ -427,8 +427,8 @@ describe('Theme', () => {
     });
   });
 
-  describe('BASE_THEME integration tests', () => {
-    it('merges BASE_THEME tokens with empty user theme', () => {
+  describe('base theme integration tests', () => {
+    it('merges base theme tokens with empty user theme', () => {
       const baseTheme: AnyThemeConfig = {
         token: {
           colorPrimary: '#2893B3',
@@ -452,7 +452,7 @@ describe('Theme', () => {
       expect(serialized.algorithm).toBe(ThemeAlgorithm.DEFAULT);
     });
 
-    it('allows user theme to override specific BASE_THEME tokens', () => {
+    it('allows user theme to override specific base theme tokens', () => {
       const baseTheme: AnyThemeConfig = {
         token: {
           colorPrimary: '#2893B3',
@@ -481,7 +481,7 @@ describe('Theme', () => {
       expect(theme.theme.borderRadius).toBe(4);
     });
 
-    it('handles BASE_THEME_DARK with dark algorithm correctly', () => {
+    it('handles base theme with dark algorithm correctly', () => {
       const baseTheme: AnyThemeConfig = {
         token: {
           colorPrimary: '#2893B3',
@@ -508,8 +508,8 @@ describe('Theme', () => {
       expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
     });
 
-    it('works with real-world Superset BASE_THEME configuration', () => {
-      // Simulate actual Superset BASE_THEME
+    it('works with real-world Superset base theme configuration', () => {
+      // Simulate actual Superset base theme (THEME_DEFAULT/THEME_DARK from config)
       const supersetBaseTheme: AnyThemeConfig = {
         token: {
           colorPrimary: '#2893B3',
@@ -548,7 +548,7 @@ describe('Theme', () => {
       expect(darkSerialized.algorithm).toBe(ThemeAlgorithm.DARK);
     });
 
-    it('handles component overrides in BASE_THEME', () => {
+    it('handles component overrides in base theme', () => {
       const baseTheme: AnyThemeConfig = {
         token: {
           colorPrimary: '#2893B3',
@@ -703,6 +703,86 @@ describe('Theme', () => {
       expect(theme.theme.colorPrimary).toBeTruthy();
       // fontFamily reverts to Ant Design default since base theme is not reapplied
       expect(theme.theme.fontFamily).not.toBe('Inter');
+    });
+
+    it('minimal theme preserves ALL base theme tokens except overridden ones', () => {
+      // Simulate a comprehensive base theme with many tokens
+      const baseTheme: AnyThemeConfig = {
+        token: {
+          colorPrimary: '#2893B3',
+          colorError: '#e04355',
+          colorWarning: '#fcc700',
+          colorSuccess: '#5ac189',
+          colorInfo: '#66bcfe',
+          fontFamily: 'Inter, Helvetica',
+          fontSize: 14,
+          borderRadius: 4,
+          lineWidth: 1,
+          controlHeight: 32,
+          // Custom Superset tokens
+          brandLogoAlt: 'CustomLogo',
+          menuHoverBackgroundColor: '#eeeeee',
+        } as Record<string, any>,
+        algorithm: antdThemeImport.defaultAlgorithm,
+      };
+
+      // Minimal theme that only overrides primary color and algorithm
+      const minimalTheme: AnyThemeConfig = {
+        token: {
+          colorPrimary: '#ff05dd', // Only override this
+        },
+        algorithm: antdThemeImport.darkAlgorithm, // Change to dark
+      };
+
+      const theme = Theme.fromConfig(minimalTheme, baseTheme);
+
+      // User's override should apply
+      expect(theme.theme.colorPrimary).toBe('#ff05dd');
+
+      // ALL base theme tokens should be preserved
+      expect(theme.theme.colorError).toBe('#e04355');
+      expect(theme.theme.colorWarning).toBe('#fcc700');
+      expect(theme.theme.colorSuccess).toBe('#5ac189');
+      expect(theme.theme.colorInfo).toBe('#66bcfe');
+      expect(theme.theme.fontFamily).toBe('Inter, Helvetica');
+      expect(theme.theme.fontSize).toBe(14);
+      expect(theme.theme.borderRadius).toBe(4);
+      expect(theme.theme.lineWidth).toBe(1);
+      expect(theme.theme.controlHeight).toBe(32);
+
+      // Custom tokens should also be preserved
+      expect((theme.theme as any).brandLogoAlt).toBe('CustomLogo');
+      expect((theme.theme as any).menuHoverBackgroundColor).toBe('#eeeeee');
+
+      // Algorithm should be updated
+      const serialized = theme.toSerializedConfig();
+      expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
+    });
+
+    it('arrays in themes are replaced entirely, not merged by index', () => {
+      const baseTheme: AnyThemeConfig = {
+        token: {
+          colorPrimary: '#2893B3',
+        },
+        algorithm: [
+          antdThemeImport.compactAlgorithm,
+          antdThemeImport.defaultAlgorithm,
+        ],
+      };
+
+      const userTheme: AnyThemeConfig = {
+        algorithm: [antdThemeImport.darkAlgorithm], // Replace with single item array
+      };
+
+      const theme = Theme.fromConfig(userTheme, baseTheme);
+      const serialized = theme.toSerializedConfig();
+
+      // User's array should completely replace base array
+      expect(Array.isArray(serialized.algorithm)).toBe(true);
+      expect(serialized.algorithm).toHaveLength(1);
+      expect(serialized.algorithm).toContain(ThemeAlgorithm.DARK);
+      expect(serialized.algorithm).not.toContain(ThemeAlgorithm.COMPACT);
+      expect(serialized.algorithm).not.toContain(ThemeAlgorithm.DEFAULT);
     });
   });
 });

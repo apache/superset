@@ -21,7 +21,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from babel import Locale
 from flask import (
@@ -60,8 +60,10 @@ from superset.daos.theme import ThemeDAO
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
+from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
+from superset.themes.types import Theme
 from superset.themes.utils import (
     is_valid_theme,
 )
@@ -311,23 +313,33 @@ def menu_data(user: User) -> dict[str, Any]:
     }
 
 
-# Determine if themes need to fall back to base themes
-# A theme needs fallback if it's None or empty
-def should_use_base(theme: dict[str, Any] | None) -> bool:
-    """Check if a theme should be replaced with base theme entirely"""
-    if theme is None or theme == {}:
-        return True
-
-    return False
+def _merge_theme_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    """
+    Recursively merge overlay theme dict into base theme dict.
+    Arrays and non-dict values are replaced, not merged.
+    """
+    result = base.copy()
+    for key, value in overlay.items():
+        if isinstance(result.get(key), dict) and isinstance(value, dict):
+            result[key] = _merge_theme_dicts(result[key], value)
+        else:
+            result[key] = value
+    return result
 
 
 def _load_theme_from_model(
-    theme_model: Any | None, fallback_theme: dict[str, Any] | None, theme_type: str
-) -> dict[str, Any] | None:
-    """Load and parse theme from database model, with fallback to config theme."""
+    theme_model: ThemeModel | None,
+    fallback_theme: Theme | None,
+    theme_type: str,
+) -> Theme | None:
+    """Load and parse theme from database model, merging with config theme as base."""
     if theme_model:
         try:
-            return json.loads(theme_model.json_data)
+            db_theme = json.loads(theme_model.json_data)
+            if fallback_theme:
+                merged = _merge_theme_dicts(dict(fallback_theme), db_theme)
+                return cast(Theme, merged)
+            return db_theme
         except json.JSONDecodeError:
             logger.error(
                 "Invalid JSON in system %s theme %s", theme_type, theme_model.id
@@ -336,13 +348,13 @@ def _load_theme_from_model(
     return fallback_theme
 
 
-def _process_theme(theme: dict[str, Any] | None, theme_type: str) -> dict[str, Any]:
+def _process_theme(theme: Theme | None, theme_type: str) -> Theme:
     """Process and validate a theme, returning an empty dict if invalid."""
-    if should_use_base(theme):
-        # When config theme is None, don't provide a custom theme
+    if theme is None or theme == {}:
+        # When config theme is None or empty, don't provide a custom theme
         # The frontend will use base theme only
         return {}
-    elif theme is not None and not is_valid_theme(theme):
+    elif not is_valid_theme(cast(dict[str, Any], theme)):
         logger.warning(
             "Invalid %s theme configuration: %s, clearing it",
             theme_type,
