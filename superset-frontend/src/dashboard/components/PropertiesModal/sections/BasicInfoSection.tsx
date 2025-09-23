@@ -23,18 +23,15 @@ import { ValidationObject } from 'src/components/Modal/useModalValidation';
 
 interface BasicInfoSectionProps {
   form: FormInstance;
-  isLoading: boolean;
   validationStatus: ValidationObject;
 }
 
 const BasicInfoSection = ({
   form,
-  isLoading,
   validationStatus,
 }: BasicInfoSectionProps) => {
   const titleValue = form.getFieldValue('title');
   const hasError =
-    !isLoading &&
     validationStatus.basic?.hasErrors &&
     (!titleValue || titleValue.trim().length === 0);
 
@@ -61,7 +58,6 @@ const BasicInfoSection = ({
             placeholder={t('The display name of your dashboard')}
             data-test="dashboard-title-input"
             type="text"
-            disabled={isLoading}
           />
         </FormItem>
       </ModalFormField>
@@ -75,7 +71,6 @@ const BasicInfoSection = ({
             placeholder={t('A readable URL for your dashboard')}
             data-test="dashboard-slug-input"
             type="text"
-            disabled={isLoading}
           />
         </FormItem>
       </ModalFormField>

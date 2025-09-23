@@ -522,11 +522,6 @@ const PropertiesModal = ({
         key: 'basic',
         name: t('General information'),
         validator: () => {
-          // Don't validate while loading
-          if (isLoading) {
-            return [];
-          }
-
           const errors = [];
           const values = form.getFieldsValue();
 
@@ -552,11 +547,6 @@ const PropertiesModal = ({
         key: 'refresh',
         name: t('Refresh settings'),
         validator: () => {
-          // Don't validate while loading
-          if (isLoading) {
-            return [];
-          }
-
           const errors = [];
           const refreshLimit =
             dashboardInfo?.common?.conf
@@ -585,11 +575,6 @@ const PropertiesModal = ({
         key: 'advanced',
         name: t('Advanced settings'),
         validator: () => {
-          // Don't validate while loading
-          if (isLoading) {
-            return [];
-          }
-
           if (jsonAnnotations.length > 0) {
             return [t('Invalid JSON metadata')];
           }
@@ -597,7 +582,7 @@ const PropertiesModal = ({
         },
       },
     ],
-    [form, jsonAnnotations, refreshFrequency, dashboardInfo, isLoading],
+    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
   );
 
   const {
@@ -610,26 +595,20 @@ const PropertiesModal = ({
     sections: modalSections,
   });
 
-  // Validate basic section when title changes (but not while loading)
+  // Validate basic section when title changes
   useEffect(() => {
-    if (!isLoading) {
-      validateSection('basic');
-    }
-  }, [dashboardTitle, isLoading, validateSection]);
+    validateSection('basic');
+  }, [dashboardTitle, validateSection]);
 
-  // Validate advanced section when JSON changes (but not while loading)
+  // Validate advanced section when JSON changes
   useEffect(() => {
-    if (!isLoading) {
-      validateSection('advanced');
-    }
-  }, [jsonMetadata, isLoading, validateSection]);
+    validateSection('advanced');
+  }, [jsonMetadata, validateSection]);
 
-  // Validate refresh section when refresh frequency changes (but not while loading)
+  // Validate refresh section when refresh frequency changes
   useEffect(() => {
-    if (!isLoading) {
-      validateSection('refresh');
-    }
-  }, [refreshFrequency, isLoading, validateSection]);
+    validateSection('refresh');
+  }, [refreshFrequency, validateSection]);
 
   return (
     <StandardModal
@@ -643,9 +622,10 @@ const PropertiesModal = ({
       title={t('Dashboard properties')}
       isEditMode
       saveDisabled={
-        isLoading || dashboardInfo?.isManagedExternally || hasErrors
+        dashboardInfo?.isManagedExternally || hasErrors
       }
       saveLoading={isApplying}
+      contentLoading={isLoading}
       errorTooltip={
         dashboardInfo?.isManagedExternally
           ? t(
@@ -660,10 +640,8 @@ const PropertiesModal = ({
         form={form}
         onFinish={onFinish}
         onFieldsChange={() => {
-          // Re-validate sections when form fields change (but not while loading)
-          if (!isLoading) {
-            setTimeout(() => validateSection('basic'), 100);
-          }
+          // Re-validate sections when form fields change
+          setTimeout(() => validateSection('basic'), 100);
         }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
@@ -688,7 +666,6 @@ const PropertiesModal = ({
               children: (
                 <BasicInfoSection
                   form={form}
-                  isLoading={isLoading}
                   validationStatus={validationStatus}
                 />
               ),
