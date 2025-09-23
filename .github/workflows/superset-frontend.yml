@@ -140,11 +140,6 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm i && npm run eslint -- . --quiet"
 
-      - name: tsc
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run plugins:build && npm run type"
-
   validate-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
@@ -162,6 +157,11 @@ jobs:
         run: |
           docker run --rm $TAG bash -c \
           "npm run plugins:build"
+
+      - name: tsc
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run type"
 
       - name: Build Plugins Storybook
         run: |
