@@ -31,6 +31,115 @@ class TestSubdirectoryDeployments(SupersetTestCase):
     def setUp(self):
         super().setUp()
 
+    # URL generation tests for alert/report screenshots
+    def test_get_url_path_default_deployment(self):
+        """Test URL generation works for default deployment."""
+        from flask import current_app
+
+        from superset.utils.urls import get_url_path
+
+        # Mock the app config
+        with current_app.test_request_context():
+            original_root = current_app.config.get("APPLICATION_ROOT")
+            original_baseurl = current_app.config.get("WEBDRIVER_BASEURL")
+
+            try:
+                current_app.config["APPLICATION_ROOT"] = "/"
+                current_app.config["WEBDRIVER_BASEURL"] = "http://localhost:8088"
+
+                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=123)
+
+                # Should not have subdirectory prefix
+                assert "/superset/" not in url
+                assert url.startswith("http://localhost:8088/")
+            finally:
+                # Restore original values
+                if original_root is not None:
+                    current_app.config["APPLICATION_ROOT"] = original_root
+                if original_baseurl is not None:
+                    current_app.config["WEBDRIVER_BASEURL"] = original_baseurl
+
+    def test_get_url_path_subdirectory_deployment(self):
+        """Test URL generation includes subdirectory prefix."""
+        from flask import current_app
+
+        from superset.utils.urls import get_url_path
+
+        # Mock the app config for subdirectory deployment
+        with current_app.test_request_context():
+            original_root = current_app.config.get("APPLICATION_ROOT")
+            original_baseurl = current_app.config.get("WEBDRIVER_BASEURL")
+
+            try:
+                current_app.config["APPLICATION_ROOT"] = "/superset"
+                current_app.config["WEBDRIVER_BASEURL"] = "http://localhost:8088"
+
+                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=123)
+
+                # Should include subdirectory prefix
+                assert "/superset/" in url
+                assert "http://localhost:8088/superset/" in url
+            finally:
+                # Restore original values
+                if original_root is not None:
+                    current_app.config["APPLICATION_ROOT"] = original_root
+                if original_baseurl is not None:
+                    current_app.config["WEBDRIVER_BASEURL"] = original_baseurl
+
+    def test_get_url_path_no_double_prefix(self):
+        """Test URL generation doesn't double-prefix subdirectory."""
+        from flask import current_app
+
+        from superset.utils.urls import get_url_path
+
+        # Mock the app config for subdirectory deployment
+        with current_app.test_request_context():
+            original_root = current_app.config.get("APPLICATION_ROOT")
+            original_baseurl = current_app.config.get("WEBDRIVER_BASEURL")
+
+            try:
+                current_app.config["APPLICATION_ROOT"] = "/superset"
+                current_app.config["WEBDRIVER_BASEURL"] = "http://localhost:8088"
+
+                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=123)
+
+                # Should not have double prefix
+                assert "/superset/superset/" not in url
+                assert url.count("/superset/") == 1
+            finally:
+                # Restore original values
+                if original_root is not None:
+                    current_app.config["APPLICATION_ROOT"] = original_root
+                if original_baseurl is not None:
+                    current_app.config["WEBDRIVER_BASEURL"] = original_baseurl
+
+    def test_get_url_path_chart_endpoint(self):
+        """Test URL generation for chart endpoints in subdirectory deployment."""
+        from flask import current_app
+
+        from superset.utils.urls import get_url_path
+
+        # Mock the app config for subdirectory deployment
+        with current_app.test_request_context():
+            original_root = current_app.config.get("APPLICATION_ROOT")
+            original_baseurl = current_app.config.get("WEBDRIVER_BASEURL")
+
+            try:
+                current_app.config["APPLICATION_ROOT"] = "/superset"
+                current_app.config["WEBDRIVER_BASEURL"] = "http://localhost:8088"
+
+                url = get_url_path("ExploreView.root", form_data='{"slice_id": 123}')
+
+                # Should include subdirectory prefix
+                assert "/superset/" in url
+                assert "http://localhost:8088/superset/" in url
+            finally:
+                # Restore original values
+                if original_root is not None:
+                    current_app.config["APPLICATION_ROOT"] = original_root
+                if original_baseurl is not None:
+                    current_app.config["WEBDRIVER_BASEURL"] = original_baseurl
+
     # AppRootMiddleware tests (core subdirectory deployment functionality)
 
     def test_app_root_middleware_path_handling(self):
