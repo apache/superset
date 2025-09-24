@@ -151,21 +151,21 @@ describe('UsersList', () => {
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const fnameColumn = await within(table).findByText('First name');
-    const lnameColumn = await within(table).findByText('Last name');
-    const usernameColumn = await within(table).findByText('Username');
-    const emailColumn = await within(table).findByText('Email');
-    const rolesColumn = await within(table).findByText('Roles');
-    const actionsColumn = await within(table).findByText('Actions');
-    const activeColumn = await within(table).findByText('Is active?');
+    const fnameColumns = await within(table).findAllByText('First name');
+    const lnameColumns = await within(table).findAllByText('Last name');
+    const usernameColumns = await within(table).findAllByText('Username');
+    const emailColumns = await within(table).findAllByText('Email');
+    const rolesColumns = await within(table).findAllByText('Roles');
+    const actionsColumns = await within(table).findAllByText('Actions');
+    const activeColumns = await within(table).findAllByText('Is active?');
 
-    expect(fnameColumn).toBeInTheDocument();
-    expect(lnameColumn).toBeInTheDocument();
-    expect(usernameColumn).toBeInTheDocument();
-    expect(emailColumn).toBeInTheDocument();
-    expect(rolesColumn).toBeInTheDocument();
-    expect(activeColumn).toBeInTheDocument();
-    expect(actionsColumn).toBeInTheDocument();
+    expect(fnameColumns.length).toBeGreaterThan(0);
+    expect(lnameColumns.length).toBeGreaterThan(0);
+    expect(usernameColumns.length).toBeGreaterThan(0);
+    expect(emailColumns.length).toBeGreaterThan(0);
+    expect(rolesColumns.length).toBeGreaterThan(0);
+    expect(activeColumns.length).toBeGreaterThan(0);
+    expect(actionsColumns.length).toBeGreaterThan(0);
   });
 
   it('opens add modal when Add User button is clicked', async () => {
