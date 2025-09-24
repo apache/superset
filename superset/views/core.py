@@ -768,17 +768,8 @@ class Superset(BaseSupersetView):
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException:
-            # anonymous users should get the login screen, others should go to dashboard list  # noqa: E501
-            if g.user is None or g.user.is_anonymous:
-                # Construct safe dashboard URL instead of using request.url directly
-                safe_next_url = url_for(
-                    "Superset.dashboard", dashboard_id_or_slug=dashboard_id_or_slug
-                )
-                return redirect(
-                    f"{appbuilder.get_url_for_login}?next={parse.quote(safe_next_url)}"
-                )
-            else:
-                return redirect(url_for("DashboardModelView.list"))
+            # Return 404 to avoid revealing dashboard existence
+            abort(404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
