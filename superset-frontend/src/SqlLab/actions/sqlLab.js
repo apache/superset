@@ -334,7 +334,6 @@ export function runQuery(query, runPreviewOnly) {
     const postPayload = {
       client_id: query.id,
       database_id: query.dbId,
-      json: true,
       runAsync: query.runAsync,
       catalog: query.catalog,
       schema: query.schema,
