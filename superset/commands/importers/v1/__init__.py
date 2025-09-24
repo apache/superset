@@ -77,7 +77,7 @@ class ImportModelsCommand(BaseCommand):
 
     @classmethod
     def _get_uuids(cls) -> set[str]:
-        return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}
+        return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}  # type: ignore[misc]
 
     @transaction()
     def run(self) -> None:
@@ -99,8 +99,8 @@ class ImportModelsCommand(BaseCommand):
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
-        if self.dao.model_cls:
-            validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)
+        if self.dao.model_cls:  # type: ignore[misc]
+            validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)  # type: ignore[misc]
 
         # load the configs and make sure we have confirmation to overwrite existing models  # noqa: E501
         self._configs = load_configs(

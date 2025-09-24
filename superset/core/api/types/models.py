@@ -20,6 +20,7 @@ from typing import Any, Type
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy.orm import scoped_session
 from superset_core.api.types.models import CoreModelsApi
+from superset_core.models.base import Database, Dataset
 
 
 class HostModelsApi(CoreModelsApi):
@@ -30,30 +31,30 @@ class HostModelsApi(CoreModelsApi):
         return db.session
 
     @staticmethod
-    def get_dataset_model() -> Type[Any]:
+    def get_dataset_model() -> Type[Dataset]:
         """
-        Retrieve the Dataset (SqlaTable) SQLAlchemy model.
+        Retrieve the Dataset (SqlaTable) protocol implementation.
         """
         from superset.connectors.sqla.models import SqlaTable
 
         return SqlaTable
 
     @staticmethod
-    def get_database_model() -> Type[Any]:
+    def get_database_model() -> Type[Database]:
         """
-        Retrieve the Database SQLAlchemy model.
+        Retrieve the Database protocol implementation.
         """
         from superset.models.core import Database
 
         return Database
 
     @staticmethod
-    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Dataset]:
         """
-        Retrieve Dataset (SqlaTable) entities.
+        Retrieve Dataset protocol implementations.
 
         :param query: A query with the Dataset model as the primary entity.
-        :returns: SqlaTable entities.
+        :returns: Dataset protocol implementations.
         """
         from superset.daos.dataset import DatasetDAO
 
@@ -63,7 +64,13 @@ class HostModelsApi(CoreModelsApi):
         return DatasetDAO.filter_by(**kwargs)
 
     @staticmethod
-    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Database]:
+        """
+        Retrieve Database protocol implementations.
+
+        :param query: A query with the Database model as the primary entity.
+        :returns: Database protocol implementations.
+        """
         from superset.daos.database import DatabaseDAO
 
         if query:

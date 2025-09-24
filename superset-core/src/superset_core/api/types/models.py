@@ -21,6 +21,8 @@ from typing import Any, Type
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy.orm import scoped_session
 
+from superset_core.models.base import Database, Dataset
+
 
 class CoreModelsApi(ABC):
     """
@@ -43,48 +45,48 @@ class CoreModelsApi(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_dataset_model() -> Type[Any]:
+    def get_dataset_model() -> Type[Dataset]:
         """
-        Retrieve the Dataset (SqlaTable) SQLAlchemy model.
+        Retrieve the Dataset (SqlaTable) implementation.
 
-        :returns: The Dataset SQLAlchemy model class.
+        :returns: The Dataset implementation class.
         """
         ...
 
     @staticmethod
     @abstractmethod
-    def get_database_model() -> Type[Any]:
+    def get_database_model() -> Type[Database]:
         """
-        Retrieve the Database SQLAlchemy model.
+        Retrieve the Database implementation.
 
-        :returns: The Database SQLAlchemy model class.
+        :returns: The Database implementation class.
         """
         ...
 
     @staticmethod
     @abstractmethod
-    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Dataset]:
         """
-        Retrieve Dataset (SqlaTable) entities.
+        Retrieve Dataset implementations.
 
         :param query: A query with the Dataset model as the primary entity for complex
             queries.
         :param kwargs: Optional keyword arguments to filter datasets using SQLAlchemy's
             `filter_by()`.
-        :returns: SqlaTable entities.
+        :returns: Dataset implementations.
         """
         ...
 
     @staticmethod
     @abstractmethod
-    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Database]:
         """
-        Retrieve Database entities.
+        Retrieve Database implementations.
 
         :param query: A query with the Database model as the primary entity for complex
             queries.
         :param kwargs: Optional keyword arguments to filter databases using SQLAlchemy's
             `filter_by()`.
-        :returns: Database entities.
+        :returns: Database implementations.
         """
         ...

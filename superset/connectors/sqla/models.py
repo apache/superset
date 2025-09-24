@@ -67,6 +67,7 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
+from superset_core.models.base import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -1090,7 +1091,7 @@ sqlatable_user = DBTable(
 
 
 class SqlaTable(
-    Model,
+    CoreDataset,
     BaseDatasource,
     ExploreMixin,
 ):  # pylint: disable=too-many-public-methods

@@ -16,28 +16,33 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Generic, get_args, TypeVar
+from typing import Any, get_args, TYPE_CHECKING
 
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy.exc import SQLAlchemyError, StatementError
+from superset_core.dao.types import BaseDAO as CoreBaseDAO, T_Model
+from superset_core.models.base import CoreModel
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
 
-T = TypeVar("T", bound=Model)
+if TYPE_CHECKING:
+    # For static type checking, we can use a more specific type
+    BaseDAOType = CoreBaseDAO[CoreModel]
+else:
+    BaseDAOType = object
 
 
-class BaseDAO(Generic[T]):
+class BaseDAO(CoreBaseDAO[T_Model]):
     """
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: type[Model] | None = None
+    model_cls: type[T_Model] | None = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
@@ -59,7 +64,7 @@ class BaseDAO(Generic[T]):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
-    ) -> T | None:
+    ) -> T_Model | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
@@ -87,7 +92,7 @@ class BaseDAO(Generic[T]):
         cls,
         model_id: str | int,
         skip_base_filter: bool = False,
-    ) -> T | None:
+    ) -> T_Model | None:
         """
         Find a model by id, if defined applies `base_filter`
         """
@@ -109,7 +114,7 @@ class BaseDAO(Generic[T]):
         cls,
         model_ids: list[str] | list[int],
         skip_base_filter: bool = False,
-    ) -> list[T]:
+    ) -> list[T_Model]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
@@ -134,7 +139,7 @@ class BaseDAO(Generic[T]):
         return results
 
     @classmethod
-    def find_all(cls) -> list[T]:
+    def find_all(cls) -> list[T_Model]:
         """
         Get all that fit the `base_filter`
         """
@@ -147,7 +152,7 @@ class BaseDAO(Generic[T]):
         return query.all()
 
     @classmethod
-    def find_one_or_none(cls, **filter_by: Any) -> T | None:
+    def find_one_or_none(cls, **filter_by: Any) -> T_Model | None:
         """
         Get the first that fit the `base_filter`
         """
@@ -162,9 +167,9 @@ class BaseDAO(Generic[T]):
     @classmethod
     def create(
         cls,
-        item: T | None = None,
+        item: T_Model | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> T:
+    ) -> T_Model:
         """
         Create an object from the specified item and/or attributes.
 
@@ -185,9 +190,9 @@ class BaseDAO(Generic[T]):
     @classmethod
     def update(
         cls,
-        item: T | None = None,
+        item: T_Model | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> T:
+    ) -> T_Model:
         """
         Update an object from the specified item and/or attributes.
 
@@ -208,7 +213,7 @@ class BaseDAO(Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: list[T]) -> None:
+    def delete(cls, items: list[T_Model]) -> None:
         """
         Delete the specified items including their associated relationships.
 
@@ -228,7 +233,7 @@ class BaseDAO(Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def query(cls, query: BaseQuery) -> list[T]:
+    def query(cls, query: BaseQuery) -> list[T_Model]:
         """
         Get all that fit the `base_filter` based on a BaseQuery object
         """
@@ -240,7 +245,7 @@ class BaseDAO(Generic[T]):
         return query.all()
 
     @classmethod
-    def filter_by(cls, **filter_by: Any) -> list[T]:
+    def filter_by(cls, **filter_by: Any) -> list[T_Model]:
         """
         Get all entries that fit the `base_filter`
         """
