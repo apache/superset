@@ -47,8 +47,16 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
-        # Numeric
+        # Boolean types - MySQL uses TINYINT(1) for BOOLEAN
+        ("TINYINT(1)", TINYINT, None, GenericDataType.BOOLEAN, False),
+        ("tinyint(1)", TINYINT, None, GenericDataType.BOOLEAN, False),
+        ("BOOLEAN", TINYINT, None, GenericDataType.BOOLEAN, False),
+        ("BOOL", TINYINT, None, GenericDataType.BOOLEAN, False),
+        # Numeric (ensure TINYINT without (1) remains numeric)
         ("TINYINT", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("TINYINT(2)", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("TINYINT(4)", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("TINYINT UNSIGNED", TINYINT, None, GenericDataType.NUMERIC, False),
         ("SMALLINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
         ("MEDIUMINT", MEDIUMINT, None, GenericDataType.NUMERIC, False),
         ("INT", INTEGER, None, GenericDataType.NUMERIC, False),
@@ -77,9 +85,11 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
 
-    assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+    assert_column_spec(
+        MySQLEngineSpec, native_type, sqla_type, attrs, generic_type, is_dttm
+    )
 
 
 @pytest.mark.parametrize(
@@ -98,9 +108,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
 
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
+    assert_convert_dttm(MySQLEngineSpec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(
@@ -255,10 +265,10 @@ def test_column_type_mutator(
     description: list[Any],
     expected_result: list[tuple[Any, ...]],
 ):
-    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     mock_cursor = Mock()
     mock_cursor.fetchall.return_value = data
     mock_cursor.description = description
 
-    assert spec.fetch_data(mock_cursor) == expected_result
+    assert MySQLEngineSpec.fetch_data(mock_cursor) == expected_result

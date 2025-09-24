@@ -77,6 +77,18 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     supports_multivalues_insert = True
 
     column_type_mappings = (
+        # Boolean types - MySQL uses TINYINT(1) for BOOLEAN
+        (
+            re.compile(r"^tinyint\(1\)", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.BOOLEAN,
+        ),
+        (
+            re.compile(r"^bool(ean)?", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.BOOLEAN,
+        ),
+        # Numeric types
         (
             re.compile(r"^int.*", re.IGNORECASE),
             INTEGER(),
@@ -259,6 +271,60 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
+
+    @classmethod
+    def _is_boolean_column(cls, col_desc: tuple[Any, ...]) -> bool:
+        """Check if a cursor column description represents a boolean column."""
+        type_code = col_desc[1] if len(col_desc) > 1 else None
+        display_size = col_desc[2] if len(col_desc) > 2 else None
+
+        # Only process FIELD_TYPE.TINY (type_code 1)
+        if type_code != 1:
+            return False
+
+        # Explicit width 1 indicates TINYINT(1)/BOOLEAN
+        if display_size == 1:
+            return True
+
+        # Check SQLAlchemy type string (some drivers provide it at index 4)
+        if len(col_desc) > 4 and isinstance(col_desc[4], str):
+            sqla_type_str = col_desc[4].lower()
+            return any(marker in sqla_type_str for marker in ["bool", "tinyint(1)"])
+
+        return False
+
+    @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """
+        Fetch data from cursor, converting MySQL TINYINT(1) values to Python booleans.
+
+        MySQL stores BOOLEAN as TINYINT(1), but returns 0/1 integers instead of
+        True/False. This method detects TINYINT(1) columns using multiple reliable
+        markers and converts their values to proper Python booleans.
+        """
+        data = super().fetch_data(cursor, limit)
+        if not cursor.description:
+            return data
+
+        # Find TINYINT(1) columns
+        bool_column_indices = [
+            i
+            for i, col_desc in enumerate(cursor.description)
+            if cls._is_boolean_column(col_desc)
+        ]
+
+        # Convert 0/1 to True/False for boolean columns
+        if bool_column_indices:
+            converted_data = []
+            for row in data:
+                new_row = list(row)
+                for col_idx in bool_column_indices:
+                    if new_row[col_idx] is not None:
+                        new_row[col_idx] = bool(new_row[col_idx])
+                converted_data.append(tuple(new_row))
+            return converted_data
+
+        return data
 
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:
