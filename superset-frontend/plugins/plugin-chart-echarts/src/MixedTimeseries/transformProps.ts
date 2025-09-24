@@ -322,12 +322,6 @@ export default function transformProps(
       primarySeries.add(seriesOption.id as string);
     }
   };
-  rawSeriesA.forEach(seriesOption =>
-    mapSeriesIdToAxis(seriesOption, yAxisIndex),
-  );
-  rawSeriesB.forEach(seriesOption =>
-    mapSeriesIdToAxis(seriesOption, yAxisIndexB),
-  );
   const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
     stack,
     onlyTotal,
@@ -460,7 +454,11 @@ export default function transformProps(
         theme,
       },
     );
-    if (transformedSeries) series.push(transformedSeries);
+
+    if (transformedSeries) {
+      series.push(transformedSeries);
+      mapSeriesIdToAxis(transformedSeries, yAxisIndex);
+    }
   });
 
   rawSeriesB.forEach(entry => {
@@ -528,7 +526,11 @@ export default function transformProps(
         theme,
       },
     );
-    if (transformedSeries) series.push(transformedSeries);
+
+    if (transformedSeries) {
+      series.push(transformedSeries);
+      mapSeriesIdToAxis(transformedSeries, yAxisIndexB);
+    }
   });
 
   // default to 0-100% range when doing row-level contribution chart
