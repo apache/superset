@@ -65,6 +65,9 @@ const devserverHost =
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 
+// TypeScript checker memory limit (in MB)
+const TYPESCRIPT_MEMORY_LIMIT = 4096;
+
 const output = {
   path: BUILD_DIR,
   publicPath: '/static/assets/',
@@ -184,21 +187,64 @@ if (!isDevMode) {
       chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
+}
 
-  // Runs type checking on a separate process to speed up the build
+// Type checking for both dev and production
+// In dev mode, this provides real-time type checking and builds .d.ts files for plugins
+// Can be disabled with DISABLE_TYPE_CHECK=true npm run dev
+if (isDevMode) {
+  if (process.env.DISABLE_TYPE_CHECK) {
+    console.log('⚡ Type checking disabled (DISABLE_TYPE_CHECK=true)');
+  } else {
+    console.log(
+      '✅ Type checking enabled (disable with DISABLE_TYPE_CHECK=true npm run dev)',
+    );
+    // Optimized configuration for development - much faster type checking
+    plugins.push(
+      new ForkTsCheckerWebpackPlugin({
+        typescript: {
+          memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
+          build: true, // Generate .d.ts files
+          mode: 'write-references', // Handle project references properly
+          // Use main tsconfig but with safe performance optimizations
+          configOverwrite: {
+            compilerOptions: {
+              // Only safe optimizations that won't cause errors
+              skipLibCheck: true, // Skip checking .d.ts files - safe and huge perf boost
+              incremental: true, // Enable incremental compilation
+            },
+          },
+        },
+        // Logger configuration
+        logger: 'webpack-infrastructure',
+        async: true, // Non-blocking type checking
+        // Only check files that webpack is actually processing
+        // This dramatically reduces the scope of type checking
+        issue: {
+          scope: 'webpack', // Only check files in webpack's module graph, not entire project
+          include: [
+            { file: 'src/**/*.{ts,tsx}' },
+            { file: 'packages/*/src/**/*.{ts,tsx}' },
+            { file: 'plugins/*/src/**/*.{ts,tsx}' },
+          ],
+          exclude: [{ file: '**/node_modules/**' }],
+        },
+      }),
+    );
+  }
+} else {
+  // Production mode - full type checking
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       typescript: {
-        memoryLimit: 4096,
+        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
         build: true,
-        exclude: [
-          '**/node_modules/**',
-          '**/dist/**',
-          '**/coverage/**',
-          '**/storybook/**',
-          '**/*.stories.{ts,tsx,js,jsx}',
-          '**/*.{test,spec}.{ts,tsx,js,jsx}',
-        ],
+        mode: 'write-references',
+      },
+      // Logger configuration
+      logger: 'webpack-infrastructure',
+      issue: {
+        exclude: [{ file: '**/node_modules/**' }],
       },
     }),
   );
@@ -344,7 +390,12 @@ const config = {
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
-    modules: ['node_modules', APP_DIR],
+    modules: [
+      'node_modules',
+      APP_DIR,
+      path.resolve(APP_DIR, 'packages'),
+      path.resolve(APP_DIR, 'plugins'),
+    ],
     alias: {
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
@@ -538,6 +589,16 @@ const config = {
   },
   plugins,
   devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
+  watchOptions: isDevMode
+    ? {
+        // Watch all plugin and package source directories
+        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
+        // Poll less frequently to reduce file handles
+        poll: 2000,
+        // Aggregate changes for 500ms before rebuilding
+        aggregateTimeout: 500,
+      }
+    : undefined,
 };
 
 // find all the symlinked plugins and use their source code for imports
