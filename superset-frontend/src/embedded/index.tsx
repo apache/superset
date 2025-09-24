@@ -96,7 +96,7 @@ const EmbeddedRoute = () => (
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
       </ErrorBoundary>
-      <ToastContainer position="top" />
+      <ToastContainer />
     </Suspense>
   </EmbeddedContextProviders>
 );

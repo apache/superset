@@ -29,6 +29,7 @@ import createCache from '@emotion/cache';
 import { ThemeProvider, theme } from '@superset-ui/core';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { NotificationProvider } from 'src/components/MessageToasts/NotificationProvider';
 import { setupStore } from './store';
 
 // Disable connecting to redux debugger so that the React app injected
@@ -45,16 +46,18 @@ const app = (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider
-            ReactRouterRoute={Route}
-            stringifyOptions={{ encode: false }}
-          >
-            <Menu data={menu} />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>
+      <NotificationProvider>
+        <Provider store={store}>
+          <BrowserRouter>
+            <QueryParamProvider
+              ReactRouterRoute={Route}
+              stringifyOptions={{ encode: false }}
+            >
+              <Menu data={menu} />
+            </QueryParamProvider>
+          </BrowserRouter>
+        </Provider>
+      </NotificationProvider>
     </ThemeProvider>
   </CacheProvider>
 );

@@ -17,9 +17,7 @@
  * under the License.
  */
 import { nanoid } from 'nanoid';
-import { ToastType, ToastMeta } from './types';
-
-type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
+import { ToastType, ToastMeta, ToastOptions } from './types';
 
 export function getToastUuid(type: ToastType) {
   return `${type}-${nanoid()}`;
