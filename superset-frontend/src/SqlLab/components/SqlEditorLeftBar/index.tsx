@@ -84,6 +84,7 @@ const SqlEditorLeftBar = ({
     'dbId',
     'catalog',
     'schema',
+    'tabViewId',
   ]);
 
   const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
