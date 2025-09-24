@@ -39,7 +39,15 @@ def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
         request_context = app.test_request_context
 
     with request_context():
-        return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
+        url = url_for(view, **kwargs)
+
+        # Fix subdirectory deployment: ensure APPLICATION_ROOT is included in the URL
+        # when not in a request context (e.g., when called from Celery tasks)
+        app_root = app.config.get("APPLICATION_ROOT", "/")
+        if app_root != "/" and not url.startswith(app_root):
+            url = app_root.rstrip("/") + url
+
+        return headless_url(url, user_friendly=user_friendly)
 
 
 def modify_url_query(url: str, **kwargs: Any) -> str:
