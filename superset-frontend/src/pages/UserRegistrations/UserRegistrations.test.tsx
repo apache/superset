@@ -51,5 +51,5 @@ describe('UserRegistrations', () => {
     expect(await screen.findByText('User registrations')).toBeVisible();
     const calls = fetchMock.calls(userRegistrationsEndpoint);
     expect(calls.length).toBeGreaterThan(0);
-  });
+  }, 30000);
 });

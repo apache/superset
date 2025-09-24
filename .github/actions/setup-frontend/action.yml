@@ -1,0 +1,69 @@
+name: 'Setup Frontend Environment'
+description: 'Set up Node.js v20, npm v11, and install frontend dependencies. Uses Node v20 due to Docker memory constraints in GitHub Actions with v22.'
+inputs:
+  node-version:
+    description: 'Node.js version to set up. Defaults to reading from .nvmrc file.'
+    required: false
+    default: ''
+  npm-version:
+    description: 'npm version to install. Defaults to 10.8.1'
+    required: false
+    default: '10.8.1'
+  install-dependencies:
+    description: 'Whether to install frontend dependencies with npm ci'
+    required: false
+    default: 'true'
+  build-assets:
+    description: 'Build static assets after installing dependencies'
+    required: false
+    default: 'false'
+  build-instrumented:
+    description: 'Build instrumented assets for test coverage'
+    required: false
+    default: 'false'
+  install-cypress:
+    description: 'Install Cypress dependencies in cypress-base directory'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js with npm caching
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ${{ inputs.node-version != '' && inputs.node-version || './superset-frontend/.nvmrc' }}
+        cache: 'npm'
+        cache-dependency-path: './superset-frontend/package-lock.json'
+
+    - name: Upgrade npm to v11
+      shell: bash
+      run: npm install -g npm@${{ inputs.npm-version }}
+
+    - name: Install Frontend Dependencies
+      if: inputs.install-dependencies == 'true'
+      shell: bash
+      run: |
+        cd superset-frontend
+        npm ci
+
+    - name: Build Static Assets
+      if: inputs.build-assets == 'true'
+      shell: bash
+      run: |
+        cd superset-frontend
+        npm run build
+
+    - name: Build Instrumented Assets
+      if: inputs.build-instrumented == 'true'
+      shell: bash
+      run: |
+        cd superset-frontend
+        npm run build-instrumented
+
+    - name: Install Cypress Dependencies
+      if: inputs.install-cypress == 'true'
+      shell: bash
+      run: |
+        cd superset-frontend/cypress-base
+        npm ci

@@ -38,15 +38,8 @@ jobs:
           echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
           brew install norwoodj/tap/helm-docs
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Frontend Dependencies
-        run: |
-          cd superset-frontend
-          npm ci
+      - name: Setup Frontend Environment
+        uses: ./.github/actions/setup-frontend/
 
       - name: Install Docs Dependencies
         run: |

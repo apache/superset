@@ -46,6 +46,16 @@ module.exports = {
     resolve: {
       ...config.resolve,
       ...customConfig.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        ...customConfig.resolve?.alias,
+        'react-dom/test-utils': require.resolve('react-dom/test-utils.js'),
+      },
+      extensionAlias: {
+        '.js': ['.js', '.ts', '.tsx'],
+        '.mjs': ['.mjs', '.mts'],
+      },
+      fullySpecified: false,
     },
     plugins: [...config.plugins, ...customConfig.plugins],
   }),

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
+import tinycolor from 'tinycolor2';
 import { getValueFormatter } from '@superset-ui/core';
 
 export default function transformProps(chartProps) {
@@ -66,7 +66,7 @@ export default function transformProps(chartProps) {
     maxBubbleSize: parseInt(maxBubbleSize, 10),
     showBubbles,
     linearColorScheme,
-    color: rgb(r, g, b).hex(),
+    color: tinycolor({ r, g, b }).toHexString(),
     colorBy,
     colorScheme,
     sliceId,

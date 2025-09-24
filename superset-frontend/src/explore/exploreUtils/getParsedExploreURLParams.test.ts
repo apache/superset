@@ -22,9 +22,10 @@ import { getParsedExploreURLParams } from './getParsedExploreURLParams';
 
 const EXPLORE_BASE_URL = 'http://localhost:9000/explore/';
 const setupLocation = (newUrl: string) => {
-  delete (window as any).location;
-  // @ts-ignore
-  window.location = new URL(newUrl);
+  // jsdom 26+ compatibility: Extract just the path and query from URL
+  const url = new URL(newUrl);
+  const pathWithQuery = `${url.pathname}${url.search}`;
+  window.history.pushState({}, '', pathWithQuery);
 };
 
 test('get form_data_key and slice_id from search params - url when moving from dashboard to explore', () => {

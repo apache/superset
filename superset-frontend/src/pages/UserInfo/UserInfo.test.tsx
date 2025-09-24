@@ -89,16 +89,16 @@ describe('UserInfo', () => {
   it('renders the user info page', async () => {
     await renderPage();
 
-    expect(
-      await screen.findByText('Your user information'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('johndoe')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument();
-    expect(screen.getByText('Admin')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
-    expect(await screen.findByText('John')).toBeInTheDocument();
-    expect(screen.getByText('Doe')).toBeInTheDocument();
-    expect(screen.getByText('john@example.com')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Your user information')).toBeInTheDocument();
+      expect(screen.getByText('johndoe')).toBeInTheDocument();
+      expect(screen.getByText('Yes')).toBeInTheDocument();
+      expect(screen.getByText('Admin')).toBeInTheDocument();
+      expect(screen.getByText('12')).toBeInTheDocument();
+      expect(screen.getByText('John')).toBeInTheDocument();
+      expect(screen.getByText('Doe')).toBeInTheDocument();
+      expect(screen.getByText('john@example.com')).toBeInTheDocument();
+    });
   });
 
   it('calls the /me endpoint on mount', async () => {

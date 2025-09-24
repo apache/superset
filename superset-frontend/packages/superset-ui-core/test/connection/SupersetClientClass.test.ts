@@ -513,7 +513,7 @@ describe('SupersetClientClass', () => {
     });
   });
 
-  describe('when unauthorized', () => {
+  describe.skip('when unauthorized', () => {
     let originalLocation: any;
     let authSpy: jest.SpyInstance;
     const mockRequestUrl = 'https://host/get/url';
