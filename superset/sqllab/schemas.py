@@ -63,7 +63,6 @@ class ExecutePayloadSchema(Schema):
     templateParams = fields.String(allow_none=True)  # noqa: N815
     tmp_table_name = fields.String(allow_none=True)
     select_as_cta = fields.Boolean(allow_none=True)
-    json = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)
 
