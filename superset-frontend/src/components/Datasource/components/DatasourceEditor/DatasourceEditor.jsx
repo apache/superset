@@ -69,6 +69,7 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
+import { clearDatasetCache } from 'src/utils/datasetCache';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -837,6 +838,11 @@ class DatasourceEditor extends PureComponent {
           col => !col.expression, // remove calculated columns
         ),
       });
+
+      // Clear the dataset cache to ensure fresh data when fetching columns for filters
+      // This ensures that newly synced columns are immediately available in filter creation
+      clearDatasetCache(datasource.id);
+
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
