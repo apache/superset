@@ -354,9 +354,19 @@ describe('PropertiesModal', () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     props.onlyApply = false;
-    render(<PropertiesModal {...props} />, {
+    // Pass dashboardInfo to avoid loading state
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
+
+    // Wait for the form to be visible
     expect(
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
@@ -379,9 +389,19 @@ describe('PropertiesModal', () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     props.onlyApply = true;
-    render(<PropertiesModal {...props} />, {
+    // Pass dashboardInfo to avoid loading state
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
+
+    // Wait for the form to be visible
     expect(
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();

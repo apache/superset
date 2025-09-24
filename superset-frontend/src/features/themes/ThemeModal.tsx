@@ -21,6 +21,7 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
+import SupersetText from 'src/utils/textUtils';
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -105,6 +106,14 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const isReadOnly = isSystemTheme;
 
   const canDevelopThemes = canDevelop;
+
+  // SupersetText URL configurations
+  const themeEditorUrl =
+    SupersetText?.THEME_MODAL?.THEME_EDITOR_URL ||
+    'https://ant.design/theme-editor';
+  const documentationUrl =
+    SupersetText?.THEME_MODAL?.DOCUMENTATION_URL ||
+    'https://superset.apache.org/docs/configuration/theming/';
 
   // JSON validation annotations using reusable hook
   const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
@@ -350,7 +359,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 <span>
                   {t('Design with')}{' '}
                   <a
-                    href="https://ant.design/theme-editor"
+                    href={themeEditorUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -358,7 +367,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                   </a>
                   {t(', then paste the JSON below. See our')}{' '}
                   <a
-                    href="https://superset.apache.org/docs/configuration/theming/"
+                    href={documentationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

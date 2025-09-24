@@ -23,62 +23,59 @@ import { ValidationObject } from 'src/components/Modal/useModalValidation';
 
 interface BasicInfoSectionProps {
   form: FormInstance;
-  isLoading: boolean;
   validationStatus: ValidationObject;
 }
 
 const BasicInfoSection = ({
   form,
-  isLoading,
   validationStatus,
-}: BasicInfoSectionProps) => (
-  <>
-    <ModalFormField
-      label={t('Name')}
-      required
-      testId="dashboard-name-field"
-      error={
-        validationStatus.basic?.hasErrors &&
-        (!form.getFieldValue('title') ||
-          form.getFieldValue('title').trim().length === 0)
-          ? t('Dashboard name is required')
-          : undefined
-      }
-    >
-      <FormItem
-        name="title"
-        noStyle
-        rules={[
-          {
-            required: true,
-            message: t('Dashboard name is required'),
-            whitespace: true,
-          },
-        ]}
+}: BasicInfoSectionProps) => {
+  const titleValue = form.getFieldValue('title');
+  const hasError =
+    validationStatus.basic?.hasErrors &&
+    (!titleValue || titleValue.trim().length === 0);
+
+  return (
+    <>
+      <ModalFormField
+        label={t('Name')}
+        required
+        testId="dashboard-name-field"
+        error={hasError ? t('Dashboard name is required') : undefined}
       >
-        <Input
-          placeholder={t('The display name of your dashboard')}
-          data-test="dashboard-title-input"
-          type="text"
-          disabled={isLoading}
-        />
-      </FormItem>
-    </ModalFormField>
-    <ModalFormField
-      label={t('URL Slug')}
-      testId="dashboard-slug-field"
-      bottomSpacing={false}
-    >
-      <FormItem name="slug" noStyle>
-        <Input
-          placeholder={t('A readable URL for your dashboard')}
-          data-test="dashboard-slug-input"
-          type="text"
-          disabled={isLoading}
-        />
-      </FormItem>
-    </ModalFormField>
-  </>
-);
+        <FormItem
+          name="title"
+          noStyle
+          rules={[
+            {
+              required: true,
+              message: t('Dashboard name is required'),
+              whitespace: true,
+            },
+          ]}
+        >
+          <Input
+            placeholder={t('The display name of your dashboard')}
+            data-test="dashboard-title-input"
+            type="text"
+          />
+        </FormItem>
+      </ModalFormField>
+      <ModalFormField
+        label={t('URL Slug')}
+        testId="dashboard-slug-field"
+        bottomSpacing={false}
+      >
+        <FormItem name="slug" noStyle>
+          <Input
+            placeholder={t('A readable URL for your dashboard')}
+            data-test="dashboard-slug-input"
+            type="text"
+          />
+        </FormItem>
+      </ModalFormField>
+    </>
+  );
+};
 
 export default BasicInfoSection;

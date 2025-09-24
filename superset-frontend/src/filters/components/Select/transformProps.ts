@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { noOp } from 'src/utils/common';
 import { DEFAULT_FORM_DATA, PluginFilterSelectChartProps } from './types';
 
