@@ -413,13 +413,6 @@ module.exports = {
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
     'i18n-strings/sentence-case-buttons': 'error',
-    camelcase: [
-      'error',
-      {
-        allow: ['^UNSAFE_'],
-        properties: 'never',
-      },
-    ],
     'class-methods-use-this': 0,
     curly: 2,
     'func-names': 0,
