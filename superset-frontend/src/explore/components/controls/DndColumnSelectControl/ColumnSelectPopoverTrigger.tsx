@@ -121,6 +121,8 @@ const ColumnSelectPopoverTriggerInner = ({
     if (!visible) {
       setPopoverLabel(initialPopoverLabel);
       setHasCustomLabel(false);
+    } else {
+      setPopoverLabel(initialPopoverLabel);
     }
   }, [initialPopoverLabel, visible]);
 
