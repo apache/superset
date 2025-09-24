@@ -70,6 +70,10 @@ superset/
 - **New files require ASF license headers** - When creating new code files, include the standard Apache Software Foundation license header
 - **LLM instruction files are excluded** - Files like LLMS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
 
+### Code Comments
+- **Avoid time-specific language** - Don't use words like "now", "currently", "today" in code comments as they become outdated
+- **Write timeless comments** - Comments should remain accurate regardless of when they're read
+
 ## Documentation Requirements
 
 - **docs/**: Update for any user-facing changes
