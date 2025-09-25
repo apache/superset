@@ -49,7 +49,6 @@ export default {
   dash_edit_perm: true,
   dash_save_perm: true,
   common: {
-    flash_messages: [],
     conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 },
   },
   filterBarOrientation: FilterBarOrientation.Vertical,

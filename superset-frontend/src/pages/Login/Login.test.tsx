@@ -33,7 +33,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
 }));
 
 test('should render login form elements', () => {
-  render(<Login />);
+  render(<Login />, { useRedux: true });
   expect(screen.getByTestId('login-form')).toBeInTheDocument();
   expect(screen.getByTestId('username-input')).toBeInTheDocument();
   expect(screen.getByTestId('password-input')).toBeInTheDocument();
@@ -42,13 +42,13 @@ test('should render login form elements', () => {
 });
 
 test('should render username and password labels', () => {
-  render(<Login />);
+  render(<Login />, { useRedux: true });
   expect(screen.getByText('Username:')).toBeInTheDocument();
   expect(screen.getByText('Password:')).toBeInTheDocument();
 });
 
 test('should render form instruction text', () => {
-  render(<Login />);
+  render(<Login />, { useRedux: true });
   expect(
     screen.getByText('Enter your login and password below:'),
   ).toBeInTheDocument();
