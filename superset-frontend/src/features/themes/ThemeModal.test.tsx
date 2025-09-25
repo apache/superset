@@ -134,7 +134,9 @@ describe('ThemeModal', () => {
   describe('Form Fields', () => {
     test('should render theme name input', () => {
       setup();
-      expect(screen.getByPlaceholderText('Enter theme name')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Enter theme name'),
+      ).toBeInTheDocument();
     });
 
     test('should render JSON editor', () => {
@@ -180,7 +182,7 @@ describe('ThemeModal', () => {
 
       await waitFor(() => {
         const saveButton = screen.getByRole('button', { name: 'Add' });
-        expect(saveButton).not.toBeDisabled();
+        expect(saveButton).toBeEnabled();
       });
     });
 
@@ -192,13 +194,13 @@ describe('ThemeModal', () => {
 
       await waitFor(() => {
         const saveButton = screen.getByRole('button', { name: 'Add' });
-        expect(saveButton).not.toBeDisabled();
+        expect(saveButton).toBeEnabled();
       });
     });
   });
 
-  describe('Unsaved Changes Modal', () => {
-    test('should show unsaved changes modal when closing with changes', async () => {
+  describe('Unsaved Changes Alert', () => {
+    test('should show unsaved changes alert when closing with changes', async () => {
       setup();
       const nameInput = screen.getByPlaceholderText('Enter theme name');
       const cancelButton = screen.getByRole('button', { name: 'Cancel' });
@@ -208,50 +210,89 @@ describe('ThemeModal', () => {
       await userEvent.click(cancelButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
-        expect(screen.getByText("If you don't save, your changes will be lost.")).toBeInTheDocument();
+        expect(
+          screen.getByText('You have unsaved changes'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'Your changes will be lost if you leave without saving.',
+          ),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Keep editing' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Discard' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Save' }),
+        ).toBeInTheDocument();
       });
     });
 
-    test('should not show unsaved changes modal when no changes made', async () => {
+    test('should not show unsaved changes alert when no changes made', async () => {
       const { mockProps } = setup();
       const cancelButton = screen.getByRole('button', { name: 'Cancel' });
 
       await userEvent.click(cancelButton);
 
       expect(mockProps.onHide).toHaveBeenCalled();
-      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('You have unsaved changes'),
+      ).not.toBeInTheDocument();
     });
 
-    test('should show unsaved changes modal when canceling with changes', async () => {
+    test('should allow keeping editing when canceling with changes', async () => {
       setup();
       const nameInput = screen.getByPlaceholderText('Enter theme name');
 
       await userEvent.type(nameInput, 'Modified Theme');
 
-      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      const cancelButton = await screen.findByRole('button', {
+        name: /cancel/i,
+      });
       await userEvent.click(cancelButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
-        expect(screen.getByText("If you don't save, your changes will be lost.")).toBeInTheDocument();
+        expect(
+          screen.getByText('You have unsaved changes'),
+        ).toBeInTheDocument();
+      });
+
+      const keepEditingButton = screen.getByRole('button', {
+        name: 'Keep editing',
+      });
+      await userEvent.click(keepEditingButton);
+
+      // Alert should disappear but modal remains with data
+      await waitFor(() => {
+        expect(
+          screen.queryByText('You have unsaved changes'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Enter theme name')).toHaveValue(
+          'Modified Theme',
+        );
       });
     });
 
-    test('should call save handler when choosing save option', async () => {
+    test('should save changes when clicking Save in alert', async () => {
       setup();
       const nameInput = screen.getByPlaceholderText('Enter theme name');
 
       await userEvent.type(nameInput, 'Modified Theme');
 
-      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      const cancelButton = await screen.findByRole('button', {
+        name: /cancel/i,
+      });
       await userEvent.click(cancelButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+        expect(
+          screen.getByText('You have unsaved changes'),
+        ).toBeInTheDocument();
       });
 
-      const saveButton = await screen.findByRole('button', { name: /^save$/i });
+      const saveButton = screen.getByRole('button', { name: 'Save' });
       await userEvent.click(saveButton);
 
       await waitFor(() => {
@@ -259,20 +300,24 @@ describe('ThemeModal', () => {
       });
     });
 
-    test('should discard changes when choosing to discard', async () => {
+    test('should discard changes when choosing to confirm cancel', async () => {
       const { mockProps } = setup();
       const nameInput = screen.getByPlaceholderText('Enter theme name');
 
       await userEvent.type(nameInput, 'Modified Theme');
 
-      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      const cancelButton = await screen.findByRole('button', {
+        name: /cancel/i,
+      });
       await userEvent.click(cancelButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+        expect(
+          screen.getByText('You have unsaved changes'),
+        ).toBeInTheDocument();
       });
 
-      const discardButton = await screen.findByRole('button', { name: /discard/i });
+      const discardButton = screen.getByRole('button', { name: 'Discard' });
       await userEvent.click(discardButton);
 
       await waitFor(() => {
@@ -292,7 +337,7 @@ describe('ThemeModal', () => {
       await userEvent.type(nameInput, 'New Theme');
 
       const saveButton = await screen.findByRole('button', { name: 'Add' });
-      expect(saveButton).not.toBeDisabled();
+      expect(saveButton).toBeEnabled();
 
       await userEvent.click(saveButton);
 
@@ -335,7 +380,7 @@ describe('ThemeModal', () => {
       await userEvent.type(nameInput, 'New Theme');
 
       const saveButton = await screen.findByRole('button', { name: 'Add' });
-      expect(saveButton).not.toBeDisabled();
+      expect(saveButton).toBeEnabled();
 
       await userEvent.click(saveButton);
 
@@ -365,7 +410,7 @@ describe('ThemeModal', () => {
       );
 
       const applyButton = screen.getByRole('button', { name: /apply/i });
-      expect(applyButton).not.toBeDisabled();
+      expect(applyButton).toBeEnabled();
 
       await userEvent.click(applyButton);
 
@@ -394,5 +439,4 @@ describe('ThemeModal', () => {
       expect(applyButton).toBeDisabled();
     });
   });
-
 });

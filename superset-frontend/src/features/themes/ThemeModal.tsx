@@ -29,19 +29,19 @@ import { omit } from 'lodash';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
+import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
 import SupersetText from 'src/utils/textUtils';
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  Input,
-  Modal,
-  JsonEditor,
+  Alert,
   Button,
   Form,
+  Input,
+  JsonEditor,
+  Modal,
   Tooltip,
-  Alert,
-  UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -110,9 +110,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [initialTheme, setInitialTheme] = useState<ThemeObject | null>(null);
-  const [showCancelConfirmation, setShowCancelConfirmation] =
-    useState<boolean>(false);
   const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [showConfirmAlert, setShowConfirmAlert] = useState<boolean>(false);
   const isEditMode = theme !== null;
   const isSystemTheme = currentTheme?.is_system === true;
   const isReadOnly = isSystemTheme;
@@ -154,24 +153,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     onHide();
     setCurrentTheme(null);
     setInitialTheme(null);
-    setShowCancelConfirmation(false);
+    setShowConfirmAlert(false);
   }, [onHide]);
-
-  const handleCancel = useCallback(() => {
-    if (hasUnsavedChanges()) {
-      setShowCancelConfirmation(true);
-    } else {
-      hide();
-    }
-  }, [hasUnsavedChanges, hide]);
-
-  const handleConfirmCancel = useCallback(() => {
-    hide();
-  }, [hide]);
-
-  const handleKeepEditing = useCallback(() => {
-    setShowCancelConfirmation(false);
-  }, []);
 
   const onSave = useCallback(() => {
     if (isEditMode) {
@@ -209,10 +192,17 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     hide,
   ]);
 
-  const handleSaveAndClose = useCallback(() => {
-    onSave();
-    setShowCancelConfirmation(false);
-  }, [onSave]);
+  const handleCancel = useCallback(() => {
+    if (hasUnsavedChanges()) {
+      setShowConfirmAlert(true);
+    } else {
+      hide();
+    }
+  }, [hasUnsavedChanges, hide]);
+
+  const handleConfirmCancel = useCallback(() => {
+    hide();
+  }, [hide]);
 
   const isValidJson = useCallback((str?: string) => {
     if (!str) return false;
@@ -356,135 +346,173 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     if (isHidden && show) setIsHidden(false);
   }, [isHidden, show]);
 
+  // Handle browser navigation/reload with unsaved changes
+  useBeforeUnload(show && hasUnsavedChanges());
+
   return (
-    <>
-      <Modal
-        disablePrimaryButton={isReadOnly || disableSave}
-        onHandledPrimaryAction={isReadOnly ? undefined : onSave}
-        onHide={handleCancel}
-        primaryButtonName={isEditMode ? t('Save') : t('Add')}
-        show={show}
-        width="55%"
-        footer={[
-          <Button key="cancel" onClick={handleCancel} buttonStyle="secondary">
-            {isReadOnly ? t('Close') : t('Cancel')}
-          </Button>,
-          ...(!isReadOnly
-            ? [
+    <Modal
+      disablePrimaryButton={isReadOnly || disableSave}
+      onHandledPrimaryAction={isReadOnly ? undefined : onSave}
+      onHide={handleCancel}
+      primaryButtonName={isEditMode ? t('Save') : t('Add')}
+      show={show}
+      width="55%"
+      centered
+      footer={
+        showConfirmAlert ? (
+          <Alert
+            closable={false}
+            type="warning"
+            message={t('You have unsaved changes')}
+            description={t(
+              'Your changes will be lost if you leave without saving.',
+            )}
+            css={{
+              textAlign: 'left',
+            }}
+            action={
+              <div css={{ display: 'flex', gap: '8px' }}>
+                <Button
+                  key="keep-editing"
+                  buttonStyle="tertiary"
+                  onClick={() => setShowConfirmAlert(false)}
+                >
+                  {t('Keep editing')}
+                </Button>
+                <Button
+                  key="discard"
+                  buttonStyle="secondary"
+                  onClick={handleConfirmCancel}
+                >
+                  {t('Discard')}
+                </Button>
                 <Button
                   key="save"
-                  onClick={onSave}
-                  disabled={disableSave}
                   buttonStyle="primary"
+                  onClick={() => {
+                    setShowConfirmAlert(false);
+                    onSave();
+                  }}
+                  disabled={disableSave}
                 >
-                  {isEditMode ? t('Save') : t('Add')}
-                </Button>,
-              ]
-            : []),
-        ]}
-        title={
-          <Typography.Title level={4} data-test="theme-modal-title">
-            {modalIcon}
-            {modalTitle}
-          </Typography.Title>
-        }
-      >
-        <StyledFormWrapper>
-          <Form layout="vertical">
-            {isSystemTheme && (
-              <Typography.Text type="secondary" className="system-theme-notice">
-                {t('System Theme - Read Only')}
-              </Typography.Text>
-            )}
-
-            <Form.Item label={t('Name')} required={!isReadOnly}>
-              <Input
-                name="theme_name"
-                onChange={onThemeNameChange}
-                value={currentTheme?.theme_name}
-                readOnly={isReadOnly}
-                placeholder={t('Enter theme name')}
-              />
-            </Form.Item>
-
-            <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
-              <Alert
-                type="info"
-                showIcon
-                closable={false}
-                className="alert-info"
-                message={
-                  <span>
-                    {t('Design with')}{' '}
-                    <a
-                      href={themeEditorUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {t('Ant Design Theme Editor')}
-                    </a>
-                    {t(', then paste the JSON below. See our')}{' '}
-                    <a
-                      href={documentationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {t('documentation')}
-                    </a>
-                    {t(' for details.')}
-                  </span>
-                }
-              />
-              <StyledJsonEditor>
-                <JsonEditor
-                  showLoadingForImport
-                  name="json_data"
-                  value={currentTheme?.json_data || ''}
-                  onChange={onJsonDataChange}
-                  tabSize={2}
-                  width="100%"
-                  height="300px"
-                  wrapEnabled
-                  readOnly={isReadOnly}
-                  showGutter
-                  showPrintMargin={false}
-                  annotations={jsonAnnotations}
-                />
-              </StyledJsonEditor>
-              {canDevelopThemes && (
-                <div className="apply-button-container">
-                  <Tooltip
-                    title={t('Set local theme for testing (preview only)')}
-                    placement="top"
+                  {t('Save')}
+                </Button>
+              </div>
+            }
+          />
+        ) : (
+          [
+            <Button key="cancel" onClick={handleCancel} buttonStyle="secondary">
+              {isReadOnly ? t('Close') : t('Cancel')}
+            </Button>,
+            ...(!isReadOnly
+              ? [
+                  <Button
+                    key="save"
+                    onClick={onSave}
+                    disabled={disableSave}
+                    buttonStyle="primary"
                   >
-                    <Button
-                      icon={<Icons.ThunderboltOutlined />}
-                      onClick={onApply}
-                      disabled={
-                        !currentTheme?.json_data ||
-                        !isValidJson(currentTheme.json_data)
-                      }
-                      buttonStyle="secondary"
-                    >
-                      {t('Apply')}
-                    </Button>
-                  </Tooltip>
-                </div>
-              )}
-            </Form.Item>
-          </Form>
-        </StyledFormWrapper>
-      </Modal>
+                    {isEditMode ? t('Save') : t('Add')}
+                  </Button>,
+                ]
+              : []),
+          ]
+        )
+      }
+      title={
+        <Typography.Title level={4} data-test="theme-modal-title">
+          {modalIcon}
+          {modalTitle}
+        </Typography.Title>
+      }
+    >
+      <StyledFormWrapper>
+        <Form layout="vertical">
+          {isSystemTheme && (
+            <Typography.Text type="secondary" className="system-theme-notice">
+              {t('System Theme - Read Only')}
+            </Typography.Text>
+          )}
 
-      <UnsavedChangesModal
-        showModal={showCancelConfirmation}
-        onHide={handleKeepEditing}
-        handleSave={handleSaveAndClose}
-        onConfirmNavigation={handleConfirmCancel}
-        title={t('Unsaved Changes')}
-        body={t("If you don't save, your changes will be lost.")}
-      />
-    </>
+          <Form.Item label={t('Name')} required={!isReadOnly}>
+            <Input
+              name="theme_name"
+              onChange={onThemeNameChange}
+              value={currentTheme?.theme_name}
+              readOnly={isReadOnly}
+              placeholder={t('Enter theme name')}
+            />
+          </Form.Item>
+
+          <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
+            <Alert
+              type="info"
+              showIcon
+              closable={false}
+              className="alert-info"
+              message={
+                <span>
+                  {t('Design with')}{' '}
+                  <a
+                    href={themeEditorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('Ant Design Theme Editor')}
+                  </a>
+                  {t(', then paste the JSON below. See our')}{' '}
+                  <a
+                    href={documentationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('documentation')}
+                  </a>
+                  {t(' for details.')}
+                </span>
+              }
+            />
+            <StyledJsonEditor>
+              <JsonEditor
+                showLoadingForImport
+                name="json_data"
+                value={currentTheme?.json_data || ''}
+                onChange={onJsonDataChange}
+                tabSize={2}
+                width="100%"
+                height="250px"
+                wrapEnabled
+                readOnly={isReadOnly}
+                showGutter
+                showPrintMargin={false}
+                annotations={jsonAnnotations}
+              />
+            </StyledJsonEditor>
+            {canDevelopThemes && (
+              <div className="apply-button-container">
+                <Tooltip
+                  title={t('Set local theme for testing (preview only)')}
+                  placement="top"
+                >
+                  <Button
+                    icon={<Icons.ThunderboltOutlined />}
+                    onClick={onApply}
+                    disabled={
+                      !currentTheme?.json_data ||
+                      !isValidJson(currentTheme.json_data)
+                    }
+                    buttonStyle="secondary"
+                  >
+                    {t('Apply')}
+                  </Button>
+                </Tooltip>
+              </div>
+            )}
+          </Form.Item>
+        </Form>
+      </StyledFormWrapper>
+    </Modal>
   );
 };
 
