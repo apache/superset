@@ -256,3 +256,40 @@ Use the provided test client to verify the transport:
 # For testing mcp service over the /api/v1/mcp-client endpoint
 ./test_mcp_client_proxy.sh
 ```
+
+## Issues
+
+If you get a rat limiting error during flask app creation, apply this to your superset_config.py
+
+```python
+# Disable auth rate limiting to fix Flask-Limiter blueprint issue
+AUTH_RATE_LIMITED = False
+```
+
+## Authentication Setup (Development)
+
+To enable JWT authentication for development:
+
+1. **Configure superset_config.py:**
+```python
+MCP_AUTH_ENABLED = True
+MCP_ADMIN_USERNAME = "admin"
+MCP_JWT_SECRET = "dev_secret_for_mcp_tokens_change_in_production"
+MCP_JWT_ISSUER = "superset-mcp-dev"
+MCP_JWT_AUDIENCE = "superset-mcp-api"
+MCP_JWT_ALGORITHM = "HS256"
+```
+
+2. **Generate development token:**
+```bash
+python superset/mcp_service/generate_dev_token.py --save
+```
+
+3. **Use token in requests:**
+```bash
+# Environment variable
+export SUPERSET_MCP_TOKEN="your_generated_token"
+
+# Or Authorization header
+Authorization: Bearer your_generated_token
+```

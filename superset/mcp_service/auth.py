@@ -24,6 +24,8 @@ from mcp.server.auth.provider import AccessToken
 
 from superset.extensions import event_logger
 
+from .mcp_config import get_mcp_config
+
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -31,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_user_from_request() -> User:
-    """Extract user from JWT token with robust fallback to admin users."""
+    """Extract user from JWT token with xrobust fallback to admin users."""
     from flask import current_app
 
     from superset import security_manager
@@ -51,7 +53,17 @@ def _extract_username_from_jwt(app: Flask) -> str:
         from fastmcp.server.dependencies import get_access_token
 
         access_token = get_access_token()
-        user_resolver = app.config.get("MCP_USER_RESOLVER")
+        logger.debug("MCP auth: access_token = %s", access_token)
+
+        if access_token is None:
+            logger.debug(
+                "MCP auth: No access token available, falling back to configured user"
+            )
+            return _get_fallback_username()
+
+        # Get MCP config instead of accessing app.config directly
+        mcp_config = get_mcp_config(app.config)
+        user_resolver = mcp_config.get("MCP_USER_RESOLVER")
 
         username = (
             user_resolver(access_token)
@@ -62,13 +74,52 @@ def _extract_username_from_jwt(app: Flask) -> str:
         if username:
             logger.info("MCP auth: JWT user '%s'", username)
             return username
+        else:
+            logger.debug("MCP auth: No username extracted from token, falling back")
 
     except Exception as e:
         logger.debug("JWT extraction failed: %s", e)
 
-    fallback = app.config.get("MCP_ADMIN_USERNAME", "admin")
-    logger.debug("MCP auth: Using fallback user '%s'", fallback)
-    return fallback
+    return _get_fallback_username()
+
+
+def _get_fallback_username() -> str:
+    """Get fallback username with environment-aware defaults."""
+    from flask import current_app
+
+    # Get MCP config instead of accessing app.config directly
+    mcp_config = get_mcp_config(current_app.config)
+
+    if fallback := mcp_config.get("MCP_ADMIN_USERNAME"):
+        logger.debug("MCP auth: Using configured fallback user '%s'", fallback)
+        return fallback
+
+    # Environment-aware defaults
+    if current_app.debug or current_app.config.get("ENV") == "development":
+        # Development: look for common dev usernames
+        dev_usernames = ["admin", "dev", "developer", "superset"]
+        for username in dev_usernames:
+            if _user_exists(username):
+                logger.info("MCP auth: Using development fallback user '%s'", username)
+                return username
+        logger.warning("MCP auth: No development users found, using 'admin'")
+        return "admin"
+
+    # Production: require explicit configuration
+    raise ValueError(
+        "MCP_ADMIN_USERNAME must be configured in production. "
+        "Set this to a valid Superset admin username in superset_config.py"
+    )
+
+
+def _user_exists(username: str) -> bool:
+    """Check if username exists in Superset."""
+    try:
+        from superset import security_manager
+
+        return security_manager.find_user(username) is not None
+    except Exception:
+        return False
 
 
 def _find_fallback_admin_user(username: str) -> User:

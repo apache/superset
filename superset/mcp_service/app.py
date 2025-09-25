@@ -521,8 +521,9 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
                 )
             except Exception as e:
                 logger.error(
-                    "Screenshot generation failed for explore view "
-                    "%s: %s" % (form_data_key, e)
+                    "Screenshot generation failed for explore view %s: %s",
+                    form_data_key,
+                    e,
                 )
                 raise HTTPException(
                     status_code=500,
@@ -546,7 +547,7 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
                 )
             else:
                 logger.error(
-                    "Screenshot returned None for explore view %s" % form_data_key
+                    "Screenshot returned None for explore view %s", form_data_key
                 )
                 raise HTTPException(
                     status_code=500,
@@ -609,8 +610,11 @@ def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
                 logger.info("Configuring MCP authentication using factory pattern")
                 # Set the auth provider on the mcp instance
                 mcp.auth = auth_provider
+                # BREAKPOINT: Critical auth setup
+                logger.info("AUTH PROVIDER SET: %s", type(auth_provider).__name__)
+                logger.info("MCP.auth = %s", mcp.auth)
                 logger.info(
-                    "Authentication configured: %s" % type(auth_provider).__name__
+                    "Authentication configured: %s", type(auth_provider).__name__
                 )
             else:
                 logger.info(
