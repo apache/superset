@@ -122,7 +122,6 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   application_root: '/',
   static_assets_prefix: '',
-  flash_messages: [],
   conf: {},
   locale: 'en',
   feature_flags: {},
