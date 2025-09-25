@@ -31,10 +31,6 @@
                 {
                     "name": "TALISMAN_ENABLED",
                     "value": "False"
-                },
-                {
-                    "name": "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
-                    "value": "duckdb:////app/data/examples.duckdb?access_mode=read_only"
                 }
             ],
             "mountPoints": [],
