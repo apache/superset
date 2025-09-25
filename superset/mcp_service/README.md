@@ -290,6 +290,19 @@ python superset/mcp_service/generate_dev_token.py --save
 # Environment variable
 export SUPERSET_MCP_TOKEN="your_generated_token"
 
-# Or Authorization header
-Authorization: Bearer your_generated_token
+```
+4. **Use the authenticated proxy **
+
+It will proxy to localhost:5008/mcp/ and pass the token.
+
+```json
+{
+  "mcpServers": {
+    "Superset MCP Proxy": {
+      "command": "/<superset folder>/superset/mcp_service/run_proxy_auth.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
 ```
