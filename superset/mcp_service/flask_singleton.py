@@ -39,11 +39,9 @@ try:
     # Create the Flask app instance - this is the singleton
     app = create_app()
 
-    # Apply MCP-specific defaults to app.config if not already set
-    mcp_config = get_mcp_config()
-    for key, value in mcp_config.items():
-        if key not in app.config:
-            app.config[key] = value
+    # Apply MCP configuration - reads from app.config first, falls back to defaults
+    mcp_config = get_mcp_config(app.config)
+    app.config.update(mcp_config)
 
     logger.info("Flask app instance created successfully")
 
