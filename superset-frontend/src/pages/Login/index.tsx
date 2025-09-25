@@ -109,12 +109,11 @@ export default function Login() {
     // Mark that we're attempting login (for error detection after redirect)
     sessionStorage.setItem('login_attempted', 'true');
 
-    // Use standard form submission for Flask-AppBuilder compatibility
-    SupersetClient.postForm(ensureAppRoot('/login/'), values, '').finally(
-      () => {
-        setLoading(false);
-      },
-    );
+    // Note: SupersetClient.postForm already adds appRoot internally via getUrl()
+    // so we don't use ensureAppRoot() here to avoid double-prefixing
+    SupersetClient.postForm('/login/', values, '').finally(() => {
+      setLoading(false);
+    });
   };
 
   const getAuthIconElement = (

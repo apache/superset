@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import Login from './index';
 
 const mockGetBootstrapData = jest.fn();
@@ -34,6 +35,15 @@ jest.mock('src/utils/pathUtils', () => ({
     `${mockApplicationRoot()}${path.startsWith('/') ? path : `/${path}`}`,
 }));
 
+// Mock SupersetClient to test form submissions
+const mockPostForm = jest.fn(() => Promise.resolve());
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  SupersetClient: {
+    postForm: mockPostForm,
+  },
+}));
+
 const defaultBootstrapData = {
   common: {
     conf: {
@@ -47,6 +57,7 @@ const defaultBootstrapData = {
 beforeEach(() => {
   mockGetBootstrapData.mockReturnValue(defaultBootstrapData);
   mockApplicationRoot.mockReturnValue('');
+  mockPostForm.mockClear();
 });
 
 test('should render login form elements', () => {
@@ -171,4 +182,36 @@ test('should render registration button with default URL when no app root', () =
 
   const registerButton = screen.getByTestId('register-button');
   expect(registerButton).toHaveAttribute('href', '/register/');
+});
+
+test('should call SupersetClient.postForm with correct endpoint (no double-prefix)', async () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 1, // AuthType.AuthDB
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+
+  render(<Login />);
+
+  // Fill in the form
+  const usernameInput = screen.getByTestId('username-input');
+  const passwordInput = screen.getByTestId('password-input');
+  const loginButton = screen.getByTestId('login-button');
+
+  fireEvent.change(usernameInput, { target: { value: 'testuser' } });
+  fireEvent.change(passwordInput, { target: { value: 'testpass' } });
+  fireEvent.click(loginButton);
+
+  await waitFor(() => {
+    expect(mockPostForm).toHaveBeenCalledWith(
+      '/login/', // Should be bare endpoint, not /superset/login/
+      { username: 'testuser', password: 'testpass' },
+      ''
+    );
+  });
 });
