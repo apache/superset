@@ -320,7 +320,14 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 new_row = list(row)
                 for col_idx in bool_column_indices:
                     if new_row[col_idx] is not None:
-                        new_row[col_idx] = bool(new_row[col_idx])
+                        # Normalize different value types before boolean conversion
+                        # bool("0") returns True, but we need False for MySQL boolean
+                        value = new_row[col_idx]
+                        if isinstance(value, (str, bytes)):
+                            value = int(value)
+                        elif isinstance(value, Decimal):
+                            value = int(value)
+                        new_row[col_idx] = bool(value)
                 converted_data.append(tuple(new_row))
             return converted_data
 
