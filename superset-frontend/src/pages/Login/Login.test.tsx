@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import Login from './index';
 
@@ -38,7 +43,6 @@ jest.mock('src/utils/pathUtils', () => ({
 // Mock SupersetClient to test form submissions
 const mockPostForm = jest.fn(() => Promise.resolve());
 jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     postForm: mockPostForm,
   },
@@ -211,7 +215,7 @@ test('should call SupersetClient.postForm with correct endpoint (no double-prefi
     expect(mockPostForm).toHaveBeenCalledWith(
       '/login/', // Should be bare endpoint, not /superset/login/
       { username: 'testuser', password: 'testpass' },
-      ''
+      '',
     );
   });
 });
