@@ -406,11 +406,12 @@ const Select = forwardRef(
       cancelRef.current = handleOnSearch.cancel;
     }, [handleOnSearch]);
 
-    useEffect(() => {
-      return () => {
+    useEffect(
+      () => () => {
         cancelRef.current?.();
-      };
-    }, []);
+      },
+      [],
+    );
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
