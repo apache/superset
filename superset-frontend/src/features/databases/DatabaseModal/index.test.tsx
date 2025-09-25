@@ -1767,9 +1767,9 @@ describe('dbReducer', () => {
     };
     const currentState = dbReducer(databaseFixture, action);
 
-    // extra should be serialized with empty string preserved for trailing comma
+    // extra should be serialized
     expect(JSON.parse(currentState!.extra!)).toEqual({
-      schemas_allowed_for_file_upload: ['bar', ''],
+      schemas_allowed_for_file_upload: ['bar'],
     });
   });
 
@@ -1778,13 +1778,13 @@ describe('dbReducer', () => {
   with trailing comma preserves empty string`, () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
-      payload: { name: 'schemas_allowed_for_file_upload', value: 'schema1,' },
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar,' },
     };
     const currentState = dbReducer(databaseFixture, action);
 
     expect(currentState).toEqual({
       ...databaseFixture,
-      extra: '{"schemas_allowed_for_file_upload":["schema1",""]}',
+      extra: '{"schemas_allowed_for_file_upload":["bar"]}',
     });
   });
 
@@ -1802,7 +1802,7 @@ describe('dbReducer', () => {
 
     expect(currentState).toEqual({
       ...databaseFixture,
-      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2",""]}',
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
     });
   });
 

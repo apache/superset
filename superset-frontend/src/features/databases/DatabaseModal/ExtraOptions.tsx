@@ -58,7 +58,17 @@ const ExtraOptions = ({
   onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
   onEditorChange: Function;
   onExtraInputChange: (
-    e: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
+    e:
+      | CheckboxChangeEvent
+      | React.ChangeEvent<HTMLInputElement>
+      | {
+          target: {
+            type: string;
+            name: string;
+            value: string;
+            checked?: boolean;
+          };
+        },
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
@@ -115,6 +125,15 @@ const ExtraOptions = ({
     FeatureFlag.ForceSqlLabRunAsync,
   );
   const [activeKey, setActiveKey] = useState<string[] | undefined>();
+
+  const [schemasText, setSchemasText] = useState<string>('');
+  useEffect(() => {
+    if (!db) return;
+    const initialSchemas = (
+      (extraJson?.schemas_allowed_for_file_upload as string[] | undefined) || []
+    ).join(',');
+    setSchemasText(initialSchemas);
+  }, [db?.extra]);
 
   useEffect(() => {
     if (!expandableModalIsOpen && activeKey !== undefined) {
@@ -533,11 +552,20 @@ const ExtraOptions = ({
                     <Input
                       type="text"
                       name="schemas_allowed_for_file_upload"
-                      value={(
-                        extraJson?.schemas_allowed_for_file_upload || []
-                      ).join(',')}
+                      value={schemasText}
                       placeholder="schema1,schema2"
-                      onChange={onExtraInputChange}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setSchemasText(e.target.value)
+                      }
+                      onBlur={() =>
+                        onExtraInputChange({
+                          target: {
+                            type: 'text',
+                            name: 'schemas_allowed_for_file_upload',
+                            value: schemasText,
+                          },
+                        })
+                      }
                     />
                   </div>
                   <div className="helper">
