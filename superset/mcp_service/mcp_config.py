@@ -73,29 +73,49 @@ def generate_secret_key() -> str:
     return secrets.token_urlsafe(42)
 
 
-def get_mcp_config() -> Dict[str, Any]:
-    """Get complete MCP configuration dictionary"""
-    config = {}
+def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    """
+    Get complete MCP configuration dictionary.
 
-    # Add MCP-specific settings
-    config.update(
-        {
-            "MCP_ADMIN_USERNAME": MCP_ADMIN_USERNAME,
-            "MCP_DEV_USERNAME": MCP_DEV_USERNAME,
-            "SUPERSET_WEBSERVER_ADDRESS": SUPERSET_WEBSERVER_ADDRESS,
-            "WEBDRIVER_BASEURL": WEBDRIVER_BASEURL,
-            "WEBDRIVER_BASEURL_USER_FRIENDLY": WEBDRIVER_BASEURL_USER_FRIENDLY,
-            "MCP_SERVICE_HOST": MCP_SERVICE_HOST,
-            "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
-            "MCP_DEBUG": MCP_DEBUG,
-        }
-    )
+    Reads from app_config first, then falls back to defaults if values are not provided.
 
-    # Add session and CSRF config
-    config.update(MCP_SESSION_CONFIG)
-    config.update(MCP_CSRF_CONFIG)
+    Args:
+        app_config: Optional Flask app configuration dict to read values from
+    """
+    app_config = app_config or {}
 
-    return config
+    # Default MCP configuration
+    defaults = {
+        "MCP_ADMIN_USERNAME": MCP_ADMIN_USERNAME,
+        "MCP_DEV_USERNAME": MCP_DEV_USERNAME,
+        "SUPERSET_WEBSERVER_ADDRESS": SUPERSET_WEBSERVER_ADDRESS,
+        "WEBDRIVER_BASEURL": WEBDRIVER_BASEURL,
+        "WEBDRIVER_BASEURL_USER_FRIENDLY": WEBDRIVER_BASEURL_USER_FRIENDLY,
+        "MCP_SERVICE_HOST": MCP_SERVICE_HOST,
+        "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
+        "MCP_DEBUG": MCP_DEBUG,
+        **MCP_SESSION_CONFIG,
+        **MCP_CSRF_CONFIG,
+    }
+
+    # Merge app_config over defaults - app_config takes precedence
+    return {**defaults, **{k: v for k, v in app_config.items() if k in defaults}}
+
+
+def get_mcp_config_with_overrides(
+    app_config: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """
+    Alternative approach: Allow any app_config keys, not just predefined ones.
+
+    This version lets users add custom MCP config keys in superset_config.py
+    that aren't predefined in the defaults.
+    """
+    app_config = app_config or {}
+    defaults = get_mcp_config()
+
+    # Start with defaults, then overlay any app_config values
+    return {**defaults, **app_config}
 
 
 def get_mcp_factory_config() -> Dict[str, Any]:
