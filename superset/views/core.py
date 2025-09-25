@@ -29,7 +29,6 @@ from flask import (
     abort,
     current_app as app,
     g,
-    make_response,
     redirect,
     request,
     Response,
@@ -770,7 +769,7 @@ class Superset(BaseSupersetView):
             dashboard.raise_for_access()
         except SupersetSecurityException:
             # Return 404 to avoid revealing dashboard existence
-            return make_response("Not Found", 404)
+            return Response(status=404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
