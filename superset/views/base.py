@@ -488,6 +488,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
             "EXTRA_CATEGORICAL_COLOR_SCHEMES"
         ],
         "menu_data": menu_data(g.user),
+        "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
