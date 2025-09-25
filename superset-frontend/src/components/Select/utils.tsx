@@ -25,7 +25,8 @@ import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
 
-export const SELECT_ALL_VALUE: RawValue = 'Select All';
+// Traduzido manualmente
+export const SELECT_ALL_VALUE: RawValue = 'Selecione Todos';
 export const selectAllOption = {
   value: SELECT_ALL_VALUE,
   label: String(SELECT_ALL_VALUE),
@@ -108,7 +109,7 @@ export const sortSelectedFirstHelper = (
 ) =>
   selectValue && a.value !== undefined && b.value !== undefined
     ? Number(hasOption(b.value, selectValue)) -
-      Number(hasOption(a.value, selectValue))
+    Number(hasOption(a.value, selectValue))
     : 0;
 
 export const sortComparatorWithSearchHelper = (
@@ -193,8 +194,8 @@ export const handleFilterOptionHelper = (
       return optionFilterProps.some(prop => {
         const optionProp = option?.[prop as keyof LabeledValue]
           ? String(option[prop as keyof LabeledValue])
-              .trim()
-              .toLowerCase()
+            .trim()
+            .toLowerCase()
           : '';
         return optionProp.includes(searchValue);
       });
@@ -228,10 +229,10 @@ export const mapValues = (
 ): (Record<string, any> | any)[] =>
   labelInValue
     ? values.map(opt => ({
-        key: opt.value,
-        value: opt.value,
-        label: opt.label,
-      }))
+      key: opt.value,
+      value: opt.value,
+      label: opt.label,
+    }))
     : values.map(opt => opt.value);
 
 export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
@@ -240,3 +241,17 @@ export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
     key: opt.value,
     ...opt,
   }));
+
+// Função pessoal NÃO FAZ PARTE DO SUPERSET
+export const translatePlaceholder = (placeholder: any) => {
+  if (typeof placeholder === "string") {
+    const mapedPlaceholder: Record<string, string> = { "No filter": "Sem filtro", "options": "opções", "option": "opção" }
+    if (placeholder in mapedPlaceholder)
+      return mapedPlaceholder[placeholder]
+    const sufix: string = placeholder.split(" ").at(-1) ?? ""
+    if (sufix in mapedPlaceholder)
+      return placeholder.replace(sufix, mapedPlaceholder[sufix])
+    return placeholder
+  }
+  return placeholder
+};

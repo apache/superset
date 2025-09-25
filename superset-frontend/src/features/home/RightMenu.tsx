@@ -474,16 +474,17 @@ const RightMenu = ({
           </StyledSubMenu>
         )}
         <StyledSubMenu
-          title={t('Settings')}
+          // title={t('Settings')}
+          title={'Configurações'}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
           {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
+            <Menu.ItemGroup key={`${section.label}`} title={section.label === 'settings' ? 'Configurações' : section.label}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
                   const menuItemDisplay = RightMenuItemIconExtension ? (
                     <StyledMenuItemWithIcon>
-                      {child.label}
+                      {child.label === 'settings' ? 'Configurações' : child.label}
                       <RightMenuItemIconExtension menuChild={child} />
                     </StyledMenuItemWithIcon>
                   ) : (
@@ -509,20 +510,23 @@ const RightMenu = ({
 
           {!navbarRight.user_is_anonymous && [
             <Menu.Divider key="user-divider" />,
-            <Menu.ItemGroup key="user-section" title={t('User')}>
+            // <Menu.ItemGroup key="user-section" title={t('User')}>
+            <Menu.ItemGroup key="user-section" title={'Usuário'}>
               {navbarRight.user_info_url && (
                 <Menu.Item key="info">
                   <a href={navbarRight.user_info_url}>{t('Info')}</a>
                 </Menu.Item>
               )}
               <Menu.Item key="logout" onClick={handleLogout}>
-                <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                {/* <a href={navbarRight.user_logout_url}>{t('Logout')}</a> */}
+                <a href={navbarRight.user_logout_url}>Sair</a>
               </Menu.Item>
             </Menu.ItemGroup>,
           ]}
           {(navbarRight.version_string || navbarRight.version_sha) && [
             <Menu.Divider key="version-info-divider" />,
-            <Menu.ItemGroup key="about-section" title={t('About')}>
+            // <Menu.ItemGroup key="about-section" title={t('About')}>
+            <Menu.ItemGroup key="about-section" title={'Sobre'}>
               <div className="about-section">
                 {navbarRight.show_watermark && (
                   <div css={versionInfoStyles}>
@@ -531,7 +535,8 @@ const RightMenu = ({
                 )}
                 {navbarRight.version_string && (
                   <div css={versionInfoStyles}>
-                    {t('Version')}: {navbarRight.version_string}
+                    {/* {t('Version')}: {navbarRight.version_string} */}
+                    {'Versão'}: {navbarRight.version_string}
                   </div>
                 )}
                 {navbarRight.version_sha && (
@@ -627,7 +632,7 @@ class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
     return { hasError: true };
   }
 
-  noop = () => {};
+  noop = () => { };
 
   render() {
     if (this.state.hasError) {
