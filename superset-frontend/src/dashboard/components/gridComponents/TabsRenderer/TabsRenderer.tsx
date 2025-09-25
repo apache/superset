@@ -16,12 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, ReactElement, RefObject } from 'react';
+import {
+  cloneElement,
+  memo,
+  ReactElement,
+  RefObject,
+  useCallback,
+} from 'react';
 import { styled } from '@superset-ui/core';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,
 } from '@superset-ui/core/components/Tabs';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+} from '@dnd-kit/core';
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
@@ -66,7 +85,36 @@ export interface TabsRendererProps {
   handleClickTab: (index: number) => void;
   handleEdit: AntdTabsProps['onEdit'];
   tabBarPaddingLeft?: number;
+  onTabsReorder?: (oldIndex: number, newIndex: number) => void;
 }
+
+interface DraggableTabNodeProps extends React.HTMLAttributes<HTMLDivElement> {
+  'data-node-key': string;
+}
+
+const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
+  className,
+  ...props
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: props['data-node-key'],
+    });
+
+  const style: React.CSSProperties = {
+    ...props.style,
+    transform: CSS.Translate.toString(transform),
+    transition,
+    cursor: 'move',
+  };
+
+  return cloneElement(props.children as React.ReactElement, {
+    ref: setNodeRef,
+    style,
+    ...attributes,
+    ...listeners,
+  });
+};
 
 /**
  * TabsRenderer component handles the rendering of dashboard tabs
@@ -85,35 +133,80 @@ const TabsRenderer = memo<TabsRendererProps>(
     handleClickTab,
     handleEdit,
     tabBarPaddingLeft = 0,
-  }) => (
-    <StyledTabsContainer
-      className="dashboard-component dashboard-component-tabs"
-      data-test="dashboard-component-tabs"
-    >
-      {editMode && renderHoverMenu && tabsDragSourceRef && (
-        <HoverMenu innerRef={tabsDragSourceRef} position="left">
-          <DragHandle position="left" />
-          <DeleteComponentButton onDelete={handleDeleteComponent} />
-        </HoverMenu>
-      )}
+    onTabsReorder,
+  }) => {
+    const sensor = useSensor(PointerSensor, {
+      activationConstraint: { distance: 10 },
+    });
 
-      <LineEditableTabs
-        id={tabsComponent.id}
-        activeKey={activeKey}
-        onChange={key => {
-          if (typeof key === 'string') {
-            const tabIndex = tabIds.indexOf(key);
-            if (tabIndex !== -1) handleClickTab(tabIndex);
-          }
-        }}
-        onEdit={handleEdit}
-        data-test="nav-list"
-        type={editMode ? 'editable-card' : 'card'}
-        items={tabItems}
-        tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-      />
-    </StyledTabsContainer>
-  ),
+    const onDragEnd = useCallback(
+      ({ active, over }: DragEndEvent) => {
+        if (active.id !== over?.id && onTabsReorder) {
+          const activeIndex = tabIds.findIndex(id => id === active.id);
+          const overIndex = tabIds.findIndex(id => id === over?.id);
+          onTabsReorder(activeIndex, overIndex);
+        }
+      },
+      [onTabsReorder, tabIds],
+    );
+
+    return (
+      <StyledTabsContainer
+        className="dashboard-component dashboard-component-tabs"
+        data-test="dashboard-component-tabs"
+      >
+        {editMode && renderHoverMenu && tabsDragSourceRef && (
+          <HoverMenu innerRef={tabsDragSourceRef} position="left">
+            <DragHandle position="left" />
+            <DeleteComponentButton onDelete={handleDeleteComponent} />
+          </HoverMenu>
+        )}
+
+        <LineEditableTabs
+          id={tabsComponent.id}
+          activeKey={activeKey}
+          onChange={key => {
+            if (typeof key === 'string') {
+              const tabIndex = tabIds.indexOf(key);
+              if (tabIndex !== -1) handleClickTab(tabIndex);
+            }
+          }}
+          onEdit={handleEdit}
+          data-test="nav-list"
+          type={editMode ? 'editable-card' : 'card'}
+          items={tabItems}
+          tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+          {...(editMode && {
+            renderTabBar: (tabBarProps, DefaultTabBar) => (
+              <DndContext
+                sensors={[sensor]}
+                onDragEnd={onDragEnd}
+                collisionDetection={closestCenter}
+              >
+                <SortableContext
+                  items={tabIds}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <DefaultTabBar {...tabBarProps}>
+                    {(node: React.ReactElement) => (
+                      <DraggableTabNode
+                        {...(node as React.ReactElement<DraggableTabNodeProps>)
+                          .props}
+                        key={node.key}
+                        data-node-key={node.key as string}
+                      >
+                        {node}
+                      </DraggableTabNode>
+                    )}
+                  </DefaultTabBar>
+                </SortableContext>
+              </DndContext>
+            ),
+          })}
+        />
+      </StyledTabsContainer>
+    );
+  },
 );
 
 TabsRenderer.displayName = 'TabsRenderer';
