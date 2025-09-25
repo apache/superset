@@ -118,11 +118,9 @@ const ColumnSelectPopoverTriggerInner = ({
   }, []);
 
   useEffect(() => {
+    setPopoverLabel(initialPopoverLabel);
     if (!visible) {
-      setPopoverLabel(initialPopoverLabel);
       setHasCustomLabel(false);
-    } else {
-      setPopoverLabel(initialPopoverLabel);
     }
   }, [initialPopoverLabel, visible]);
 
