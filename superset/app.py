@@ -68,7 +68,7 @@ def create_app(
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
-            # Fix APP_ICON path for subdirectory deployments
+            # Prefix APP_ICON path with subdirectory root for subdirectory deployments
             if (
                 app.config.get("APP_ICON", "").startswith("/static/")
                 and app_root != "/"
