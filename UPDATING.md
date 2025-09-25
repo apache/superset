@@ -233,6 +233,18 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 ---
 
 - [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
+- [31590](https://github.com/apache/superset/pull/31590): The `APP_ICON` configuration variable is now deprecated and ignored by the frontend. Custom logos should now be configured using the theme system with `brandLogoUrl`. To migrate, replace:
+  ```
+  APP_ICON = "/static/assets/images/custom_logo.png"
+  ```
+  with:
+  ```
+  THEME_DEFAULT = {
+    "token": {
+      "brandLogoUrl": "/static/assets/images/custom_logo.png"
+    }
+  }
+  ```
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 
 ### Breaking Changes
