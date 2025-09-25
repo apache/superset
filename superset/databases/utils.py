@@ -24,6 +24,7 @@ from sqlalchemy.engine.url import make_url, URL
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.sql.parse import Table
+from typing import List, Optional
 
 if TYPE_CHECKING:
     from superset.databases.schemas import (
@@ -146,7 +147,7 @@ def get_database_metadata(
     :param database: The database model
     :return: Database metadata ready for API response
     """
-    logger.info(f"Getting metadata for database {database.database_name}")
+    logger.info("Getting metadata for database %s", database.database_name)
 
     # Build the list of selected schemas from the list of tables by extracting the schema name
     schemas = set()
@@ -156,12 +157,12 @@ def get_database_metadata(
             schemas.add(schema)
 
     db_schemas = database.get_all_schema_names(catalog=catalog, cache=False)
-    logger.info(f"Found schemas: {db_schemas}")
+    logger.info("Found schemas: %s", db_schemas)
     schemas_info = []
 
     for schema in db_schemas:
         if tables and (len(tables) > 0) and (schema not in schemas):
-            logger.info(f"Skipping schema {schema} not in schemas")
+            logger.info("Skipping schema %s not in schemas", schema)
             continue
         schema_info = get_schema_metadata(
             database,
@@ -196,7 +197,7 @@ def get_schema_metadata(
 
     for table, schema, catalog in db_tables:
         if tables and len(tables) > 0 and f"{schema}.{table}" not in tables:
-            logger.info(f"Skipping table {table} not in tables")
+            logger.info("Skipping table %s not in tables", table)
             continue
         t = Table(catalog=catalog, schema=schema, table=table)
         table_metadata = get_table_relation_metadata(
@@ -266,26 +267,24 @@ def get_table_relation_metadata(
                 top_k_limit=top_k_limit,
             )
 
-        column_metadata = {
-            "column_name": col["column_name"],
-            "data_type": dtype,
-            "is_nullable": col["nullable"],
-            "column_description": col.get("comment"),
-        }
-        if top_k_values:
-            column_metadata["most_common_values"] = top_k_values
+        column_metadata = Column(
+            column_name=col["column_name"],
+            data_type=dtype,
+            is_nullable=col["nullable"],
+            column_description=col.get("comment"),
+            most_common_values=top_k_values if top_k_values else None,
+        )
 
         payload_columns.append(column_metadata)
 
-    result = {
-        "rel_name": table.table,
-        "rel_kind": "table",
-        "rel_description": table_comment,
-        "foreign_keys": foreign_keys,
-        "columns": payload_columns,
-    }
-    if include_indexes:
-        result["indexes"] = indexes
+    result = Relation(
+        rel_name=table.table,
+        rel_kind="table",
+        rel_description=table_comment,
+        foreign_keys=foreign_keys,
+        columns=payload_columns,
+        indexes=indexes if include_indexes else None,
+    )
 
     return result
 
@@ -294,10 +293,10 @@ def get_column_top_k_values(
     database: Any,
     table: Table,
     column_name: str,
-    schema: str,
+    schema: str | None,
     top_k: int = 10,
     top_k_limit: int = 100000,
-) -> List:
+) -> list[str]:
     # db_type = database.db_engine_spec.engine
     # logging.info(f"Getting top k values for {column_name} in {table.__str__()} {schema} {db_type}")
 
@@ -312,7 +311,7 @@ def get_column_top_k_values(
 
     db_engine_spec = database.db_engine_spec
 
-    with database.get_raw_connection(catalog="", schema=schema) as conn:
+    with database.get_raw_connection(catalog="", schema=schema or "") as conn:
         cursor = conn.cursor()
         mutated_query = database.mutate_sql_based_on_config(query)
         try:
@@ -330,12 +329,18 @@ def get_column_top_k_values(
 
 def get_view_relation_metadata(
     database: Any,
-    schema: str,
-) -> List[Relation]:
-    relation = get_table_relation_metadata(database, schema)
-    relation["rel_kind"] = "view"
-
-    return relation
+    table: Table,
+) -> Relation:
+    relation = get_table_relation_metadata(database, table, include_indexes=False)
+    # Create a new Relation with rel_kind set to "view"
+    return Relation(
+        rel_name=relation.rel_name,
+        rel_kind="view",
+        rel_description=relation.rel_description,
+        foreign_keys=relation.foreign_keys,
+        columns=relation.columns,
+        indexes=None,  # Views don't have indexes
+    )
 
 
 def get_foreign_keys_relation_data(
@@ -345,10 +350,11 @@ def get_foreign_keys_relation_data(
     foreign_keys = database.get_foreign_keys(table)
     ret = []
     for fk in foreign_keys:
-        result = {}
-        result["column_name"] = fk.pop("constrained_columns")[0]
-        result["referenced_column"] = fk.pop("referred_columns")[0]
-        result["constraint_name"] = fk.pop("name")
+        result = FKey(
+            column_name=fk.pop("constrained_columns")[0],
+            referenced_column=fk.pop("referred_columns")[0],
+            constraint_name=fk.pop("name"),
+        )
         ret.append(result)
     return ret
 
@@ -360,16 +366,16 @@ def get_indexes_relation_data(
     indexes = database.get_indexes(table)
     ret = []
     for idx in indexes:
-        result = {}
-        result["column_names"] = idx.pop("column_names")
-        result["is_unique"] = idx.pop("unique")
-        result["index_name"] = idx.pop("name")
-        result["index_definition"] = None
+        result = Index(
+            column_names=idx.pop("column_names"),
+            is_unique=idx.pop("unique"),
+            index_name=idx.pop("name"),
+            index_definition=None,
+        )
         ret.append(result)
     return ret
 
 
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -414,7 +420,7 @@ class Column(BaseModel):
     column_description: Optional[str] = Field(
         default=None, description="SQL comment associated with the column."
     )
-    most_common_values: Optional[List] = Field(
+    most_common_values: Optional[List[str]] = Field(
         default=None, description="Most common values in the last many records."
     )
 

@@ -896,9 +896,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         catalog_name = kwargs["rison"].get("catalog_name")
         schema_name = kwargs["rison"].get("schema_name", "")
 
-        if type(schema_name) == str:
+        if isinstance(schema_name, str):
             command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
-        elif type(schema_name) == list:
+        elif isinstance(schema_name, list):
             command = BulkSchemaTablesDatabaseCommand(
                 pk, catalog_name, schema_name, force
             )
@@ -1082,6 +1082,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         return self.response(200, **payload)
 
     @expose("/<int:pk>/llm_schema/", methods=["GET"])
+    @protect()
+    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.llm_schema",

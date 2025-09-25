@@ -84,7 +84,7 @@ def _get_or_create_llm_provider(pk: int, dialect: str, provider_type: str) -> Ba
     try:
         context = json.loads(context_builder_worker.result["result"])
     except Exception as e:
-        logger.error(f"Failed to parse context JSON: {str(e)}")
+        logger.error("Failed to parse context JSON: %s", str(e))
         raise NoContextError(f"Failed to parse context JSON for database {pk}.")
 
     # Handle custom providers
@@ -131,10 +131,10 @@ def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) 
                 mutated_query = db.mutate_sql_based_on_config(validation_sql)
                 cursor.execute(mutated_query)
                 db.db_engine_spec.execute(cursor, mutated_query, db)
-                logger.info(f"Validation SQL executed successfully: {validation_sql}")
+                logger.info("Validation SQL executed successfully: %s", validation_sql)
                 return generated
         except Exception as error:
-            logger.error(f"Validation SQL execution failed: {error}")
+            logger.error("Validation SQL execution failed: %s", error)
             error_text = str(error)
 
         # Otherwise, we want to append the generated SQL and error message to the prompt and try again
@@ -145,7 +145,7 @@ def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) 
             f"Generated SQL is invalid: {error_text}\nRetrying with updated prompt: {prompt_with_errors}"
         )
 
-    logger.error(f"Failed to generate valid SQL after {VALIDATION_ATTEMPTS} attempts.")
+    logger.error("Failed to generate valid SQL after %s attempts.", VALIDATION_ATTEMPTS)
     return f"-- Failed to generate valid SQL after {VALIDATION_ATTEMPTS} attempts."
 
 

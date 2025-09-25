@@ -61,7 +61,7 @@ class GeminiLlm(BaseLlm):
         logger.info(
             f"Current time is {datetime.datetime.now(tz=datetime.timezone.utc)}"
         )
-        logger.info(f"Cache expiry is {self.cache_expiry}")
+        logger.info("Cache expiry is %s", self.cache_expiry)
 
         # First check if the cache has expired
         if self.cache_expiry and self.cache_expiry < datetime.datetime.now(
@@ -71,19 +71,19 @@ class GeminiLlm(BaseLlm):
             self.cache_expiry = None
 
         # We'll also check if the model has changed
-        logger.info(f"Current model is {model}, cache model is {self.cache_model}")
+        logger.info("Current model is %s, cache model is %s", model, self.cache_model)
         if self.cache_model != model:
             self.cache_name = None
             self.cache_expiry = None
 
         if not self.cache_name:
-            logger.info(f"Creating new cache for model {model}...")
+            logger.info("Creating new cache for model %s...", model)
             start_time = time.perf_counter()
             created_cache = self._create_schema_cache(
                 gemini_client, model, user_instructions
             )
             end_time = time.perf_counter()
-            logger.info(f"Cache created in {end_time - start_time:.2f} seconds")
+            logger.info("Cache created in %.2f seconds", end_time - start_time)
             self.cache_name = created_cache.name
             self.cache_expiry = created_cache.expire_time
             self.cache_model = model
@@ -167,31 +167,33 @@ class GeminiLlm(BaseLlm):
         """
         db = DatabaseDAO.find_by_id(self.pk, True)
         if not db:
-            logger.error(f"Database {self.pk} not found.")
+            logger.error("Database %s not found.", self.pk)
             return
 
         # TODO(AW): We should throw here instead of returning None
         if not db.llm_connection.enabled:
-            logger.error(f"LLM is not enabled for database {self.pk}.")
+            logger.error("LLM is not enabled for database %s.", self.pk)
             return
 
         if not db.llm_connection.provider == self.llm_type:
-            logger.error(f"LLM provider is not {self.llm_type} for database {self.pk}.")
+            logger.error(
+                "LLM provider is not %s for database %s.", self.llm_type, self.pk
+            )
             return
 
         llm_api_key = db.llm_connection.api_key
         if not llm_api_key:
-            logger.error(f"API key not set for database {self.pk}.")
+            logger.error("API key not set for database %s.", self.pk)
             return
 
         llm_model = db.llm_connection.model
         if not llm_model:
-            logger.error(f"Model not set for database {self.pk}.")
+            logger.error("Model not set for database %s.", self.pk)
             return
 
         user_instructions = db.llm_context_options.instructions
 
-        logger.info(f"Using model {llm_model} for database {self.pk}")
+        logger.info("Using model %s for database %s", llm_model, self.pk)
 
         gemini_client = genai.Client(api_key=llm_api_key)
 
@@ -202,7 +204,7 @@ class GeminiLlm(BaseLlm):
                     schema == context_schema["schema_name"]
                     for context_schema in self.context
                 ):
-                    logger.error(f"Schema {schema} not found in context")
+                    logger.error("Schema %s not found in context", schema)
                     return
 
             context = json.dumps(
@@ -227,7 +229,7 @@ class GeminiLlm(BaseLlm):
             cache_name = self._get_cache_name(
                 gemini_client, llm_model, user_instructions
             )
-            logger.info(f"Using cache {self.cache_name}")
+            logger.info("Using cache %s", self.cache_name)
 
             contents = [history, prompt] if history else [prompt]
             try:
@@ -239,13 +241,13 @@ class GeminiLlm(BaseLlm):
                     ),
                 )
             except genai.errors.ServerError as e:
-                logger.error(f"Server error: {e}")
+                logger.error("Server error: %s", e)
                 return f"-- Failed to generate SQL: {e.message}"
 
         # Check if the response is an error by looking at the finish reason of every candidate
         for candidate in response.candidates:
             if candidate.finish_reason != types.FinishReason.STOP:
-                logger.error(f"Failed to generate SQL: {candidate.finish_reason}")
+                logger.error("Failed to generate SQL: %s", candidate.finish_reason)
 
         success = any(
             candidate.finish_reason == types.FinishReason.STOP
@@ -258,7 +260,7 @@ class GeminiLlm(BaseLlm):
         if not sql:
             return "-- Unable to find valid SQL in the LLM response"
 
-        logger.info(f"Generated SQL: {sql}")
+        logger.info("Generated SQL: %s", sql)
         return sql
 
     def get_context_size(self) -> int:
@@ -268,21 +270,23 @@ class GeminiLlm(BaseLlm):
         """
         db = DatabaseDAO.find_by_id(self.pk, True)
         if not db:
-            logger.error(f"Database {self.pk} not found.")
+            logger.error("Database %s not found.", self.pk)
             return
 
         if not db.llm_connection.provider == self.llm_type:
-            logger.error(f"LLM provider is not {self.llm_type} for database {self.pk}.")
+            logger.error(
+                "LLM provider is not %s for database %s.", self.llm_type, self.pk
+            )
             return
 
         llm_api_key = db.llm_connection.api_key
         if not llm_api_key:
-            logger.error(f"API key not set for database {self.pk}.")
+            logger.error("API key not set for database %s.", self.pk)
             return
 
         llm_model = db.llm_connection.model
         if not llm_model:
-            logger.error(f"Model not set for database {self.pk}.")
+            logger.error("Model not set for database %s.", self.pk)
             return
 
         # If we have a cached size and a valid cache_expiry, return the cached size
@@ -290,7 +294,7 @@ class GeminiLlm(BaseLlm):
             self.cached_size is not None
             and self.cache_name == self.cached_size_cache_name
         ):
-            logger.info(f"Using cached context size: {self.cached_size}")
+            logger.info("Using cached context size: %s", self.cached_size)
             return self.cached_size
         else:
             # Invalidate any old cached size
@@ -309,7 +313,7 @@ class GeminiLlm(BaseLlm):
                 else self.get_system_instructions(self.dialect),
             ],
         )
-        logger.info(f"Calculated context size: {response.total_tokens}")
+        logger.info("Calculated context size: %s", response.total_tokens)
 
         # Cache the size until cache_expiry changes or is reached
         self.cached_size = response.total_tokens

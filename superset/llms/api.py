@@ -17,17 +17,16 @@
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import fields, Schema, post_load, ValidationError
+from marshmallow import fields, post_load, Schema, ValidationError
 
-from superset import db
 from superset.models.core import CustomLlmProvider
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
-from flask_appbuilder.api.schemas import get_list_schema
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +135,61 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def test_connection(self) -> Response:
-        """Test connection to a custom LLM provider."""
+        """Test connection to a custom LLM provider.
+        ---
+        post:
+          summary: Test connection to a custom LLM provider
+          requestBody:
+            description: Custom LLM provider connection details
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                  - endpoint_url
+                  - request_template
+                  - response_path
+                  properties:
+                    endpoint_url:
+                      type: string
+                      description: The LLM provider endpoint URL
+                    request_template:
+                      type: string
+                      description: JSON template for requests
+                    response_path:
+                      type: string
+                      description: Path to extract response content
+                    headers:
+                      type: string
+                      description: Additional headers as JSON
+                    timeout:
+                      type: integer
+                      description: Request timeout in seconds
+          responses:
+            200:
+              description: Connection test result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          status_code:
+                            type: integer
+                          message:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             data = request.get_json()
 
@@ -163,7 +216,7 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
             # Create a simple test request
             test_request = {
                 "model": "test",
-                "messages": [{"role": "user", "content": "SELECT 1"}]
+                "messages": [{"role": "user", "content": "SELECT 1"}],
             }
 
             # Substitute template variables if needed
@@ -171,12 +224,11 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
             for key, value in test_data.items():
                 if isinstance(value, str) and "{" in value:
                     test_data[key] = value.format(
-                        model="test",
-                        messages=test_request["messages"],
-                        api_key="test"
+                        model="test", messages=test_request["messages"], api_key="test"
                     )
 
             import requests
+
             timeout = data.get("timeout", 30)
 
             try:
@@ -184,20 +236,26 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
                     data["endpoint_url"],
                     json=test_data,
                     headers=headers,
-                    timeout=timeout
+                    timeout=timeout,
                 )
 
-                return self.response(200, result={
-                    "status": "success",
-                    "status_code": response.status_code,
-                    "message": "Connection test completed"
-                })
+                return self.response(
+                    200,
+                    result={
+                        "status": "success",
+                        "status_code": response.status_code,
+                        "message": "Connection test completed",
+                    },
+                )
 
             except requests.exceptions.RequestException as e:
-                return self.response(200, result={
-                    "status": "error",
-                    "message": f"Connection failed: {str(e)}"
-                })
+                return self.response(
+                    200,
+                    result={
+                        "status": "error",
+                        "message": f"Connection failed: {str(e)}",
+                    },
+                )
 
         except Exception as e:
             logger.exception("Error testing custom LLM provider connection")
@@ -209,7 +267,50 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_list_schema)
     def get_list(self, **kwargs: Any) -> Response:
-        """Get list of custom LLM providers."""
+        """Get list of custom LLM providers.
+        ---
+        get:
+          summary: Get a list of custom LLM providers
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: List of custom LLM providers
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        description: >-
+                          A list of custom LLM provider ids
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        description: >-
+                          The total record count on the backend
+                        type: number
+                      result:
+                        description: >-
+                          The result from the get list query
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get_list'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         return super().get_list(**kwargs)
 
     @expose("/<int:pk>", methods=("GET",))
@@ -217,7 +318,32 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def get(self, pk: int, **kwargs: Any) -> Response:
-        """Get a custom LLM provider by ID."""
+        """Get a custom LLM provider by ID.
+        ---
+        get:
+          summary: Get a custom LLM provider
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The custom LLM provider id
+          responses:
+            200:
+              description: Custom LLM provider details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         return super().get(pk, **kwargs)
 
     @expose("/", methods=("POST",))
@@ -225,7 +351,38 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def post(self) -> Response:
-        """Create a new custom LLM provider."""
+        """Create a new custom LLM provider.
+        ---
+        post:
+          summary: Create a custom LLM provider
+          requestBody:
+            description: Custom LLM provider details
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Custom LLM provider created
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         return super().post()
 
     @expose("/<int:pk>", methods=("PUT",))
@@ -233,7 +390,46 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def put(self, pk: int) -> Response:
-        """Update a custom LLM provider."""
+        """Update a custom LLM provider.
+        ---
+        put:
+          summary: Update a custom LLM provider
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The custom LLM provider id
+          requestBody:
+            description: Custom LLM provider details
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Custom LLM provider updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         return super().put(pk)
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -241,5 +437,35 @@ class CustomLlmProviderRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def delete(self, pk: int) -> Response:
-        """Delete a custom LLM provider."""
+        """Delete a custom LLM provider.
+        ---
+        delete:
+          summary: Delete a custom LLM provider
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The custom LLM provider id
+          responses:
+            200:
+              description: Custom LLM provider deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         return super().delete(pk)

@@ -15,44 +15,44 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
-from typing import List
+from typing import Any, List
 
 
 class BaseLlm:
     llm_type = "Base"
     max_results = 1000
 
-    def __init__(self, pk, dialect, context):
+    def __init__(self, pk: int, dialect: str, context: Any) -> None:
         self.pk = pk
         self.dialect = dialect
         self.context = context
         self.created_at = datetime.datetime.now(datetime.timezone.utc)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.llm_type} ({self.dialect} DB {self.pk})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not hasattr(cls, "llm_type"):
             raise TypeError(
                 f"Can't instantiate abstract class {cls.__name__} without llm_type attribute"
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return self.__str__() == other.__str__()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
     def generate_sql(
-        pk: int, prompt: str, context: str, schemas: List[str] | None
+        self, pk: int, prompt: str, context: str, schemas: List[str] | None
     ) -> str:
         raise NotImplementedError
 
-    def get_system_instructions() -> str:
+    def get_system_instructions(self) -> str:
         raise NotImplementedError
 
     @staticmethod

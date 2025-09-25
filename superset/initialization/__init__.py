@@ -78,15 +78,15 @@ logger = logging.getLogger(__name__)
 
 
 @after_task_publish.connect
-def update_sent_state(sender=None, headers=None, **kwargs):
+def update_sent_state(sender: str | None = None, headers: dict[str, str] | None = None, **kwargs: Any) -> None:
     task = celery_app.tasks.get(sender)
     backend = task.backend if task else celery_app.backend
 
     # For context worker tasks, set a special state so that we can tell the difference between
     # tasks that might run and tasks that don't exist anymore.
-    logger.info(f"headers: {headers}")
+    logger.info("headers: %s", headers)
 
-    if headers["task"] == "generate_llm_context":
+    if headers and headers["task"] == "generate_llm_context":
         backend.store_result(headers["id"], None, "PUBLISHED")
 
 

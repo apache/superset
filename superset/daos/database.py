@@ -64,18 +64,19 @@ class DatabaseDAO(BaseDAO[Database]):
                 attributes["encrypted_extra"],
             )
 
-        if "llm_connection" in attributes:
+        if attributes and "llm_connection" in attributes:
             llm_conn_data = attributes.pop("llm_connection")
-            if llm_conn_data:
+            if llm_conn_data and item:
                 if item.llm_connection:
                     for k, v in llm_conn_data.items():
                         setattr(item.llm_connection, k, v)
                 else:
-                    item.llm_connection = LlmConnection(**llm_conn_data)
+                    # Use object.__setattr__ to bypass read-only restriction
+                    object.__setattr__(item, 'llm_connection', LlmConnection(**llm_conn_data))
 
-        if "llm_context_options" in attributes:
+        if attributes and "llm_context_options" in attributes:
             llm_ctx_data = attributes.pop("llm_context_options")
-            if llm_ctx_data:
+            if llm_ctx_data and item:
                 if item.llm_context_options:
                     for k, v in llm_ctx_data.items():
                         setattr(item.llm_context_options, k, v)

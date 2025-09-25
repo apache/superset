@@ -73,28 +73,30 @@ class AnthropicLlm(BaseLlm):
         """
         db = DatabaseDAO.find_by_id(self.pk, True)
         if not db:
-            logger.error(f"Database {self.pk} not found.")
+            logger.error("Database %s not found.", self.pk)
             return
 
         if not db.llm_connection.enabled:
-            logger.error(f"LLM is not enabled for database {self.pk}.")
+            logger.error("LLM is not enabled for database %s.", self.pk)
             return
 
         if not db.llm_connection.provider == self.llm_type:
-            logger.error(f"LLM provider is not {self.llm_type} for database {self.pk}.")
+            logger.error(
+                "LLM provider is not %s for database %s.", self.llm_type, self.pk
+            )
             return
 
         llm_api_key = db.llm_connection.api_key
         if not llm_api_key:
-            logger.error(f"API key not set for database {self.pk}.")
+            logger.error("API key not set for database %s.", self.pk)
             return
 
         llm_model = db.llm_connection.model
         if not llm_model:
-            logger.error(f"Model not set for database {self.pk}.")
+            logger.error("Model not set for database %s.", self.pk)
             return
 
-        logger.info(f"Using model {llm_model} for database {self.pk}")
+        logger.info("Using model %s for database %s", llm_model, self.pk)
 
         user_instructions = db.llm_context_options.instructions
         client = anthropic.Anthropic(api_key=llm_api_key)
@@ -125,7 +127,7 @@ class AnthropicLlm(BaseLlm):
                 max_tokens=8192,
             )
         except Exception as e:
-            logger.error(f"Anthropic API error: {e}")
+            logger.error("Anthropic API error: %s", e)
             return f"-- Failed to generate SQL: {str(e)}"
 
         if not response or not response.content:
@@ -140,7 +142,7 @@ class AnthropicLlm(BaseLlm):
         if not sql:
             return "-- Unable to find valid SQL in the LLM response"
 
-        logger.info(f"Generated SQL: {sql}")
+        logger.info("Generated SQL: %s", sql)
         return sql
 
     def get_context_size(self) -> int:
@@ -150,26 +152,28 @@ class AnthropicLlm(BaseLlm):
         """
         db = DatabaseDAO.find_by_id(self.pk, True)
         if not db:
-            logger.error(f"Database {self.pk} not found.")
+            logger.error("Database %s not found.", self.pk)
             return
 
         if not db.llm_connection.provider == self.llm_type:
-            logger.error(f"LLM provider is not {self.llm_type} for database {self.pk}.")
+            logger.error(
+                "LLM provider is not %s for database %s.", self.llm_type, self.pk
+            )
             return
 
         llm_api_key = db.llm_connection.api_key
         if not llm_api_key:
-            logger.error(f"API key not set for database {self.pk}.")
+            logger.error("API key not set for database %s.", self.pk)
             return
 
         llm_model = db.llm_connection.model
         if not llm_model:
-            logger.error(f"Model not set for database {self.pk}.")
+            logger.error("Model not set for database %s.", self.pk)
             return
 
         # If we have a cached size and a valid cache_expiry, return the cached size
         if self.cached_context_size is not None:
-            logger.info(f"Using cached context size: {self.cached_context_size}")
+            logger.info("Using cached context size: %s", self.cached_context_size)
             return self.cached_context_size
         else:
             # Invalidate any old cached size
@@ -201,9 +205,9 @@ class AnthropicLlm(BaseLlm):
                 messages=messages,
             )
             total_tokens = response.input_tokens
-            logger.info(f"Calculated context size: {total_tokens}")
+            logger.info("Calculated context size: %s", total_tokens)
         except Exception as e:
-            logger.error(f"Anthropic API error: {e}")
+            logger.error("Anthropic API error: %s", e)
             return
 
         # Cache the size until cache_expiry changes or is reached

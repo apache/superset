@@ -16,11 +16,14 @@
 # under the License.
 
 import json
-from marshmallow import fields, Schema, post_load, ValidationError
+from typing import Any
+
+from marshmallow import fields, post_load, Schema, ValidationError
 
 
 class CustomLlmProviderTestSchema(Schema):
     """Schema for testing custom LLM provider connection."""
+
     endpoint_url = fields.String(required=True)
     request_template = fields.String(required=True)
     response_path = fields.String(required=True)
@@ -28,7 +31,7 @@ class CustomLlmProviderTestSchema(Schema):
     timeout = fields.Integer(missing=30)
 
     @post_load
-    def validate_json_fields(self, data, **kwargs):
+    def validate_json_fields(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate JSON fields."""
         # Validate request_template
         try:
