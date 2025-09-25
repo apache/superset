@@ -62,7 +62,7 @@ describe('ColumnSelectPopoverTriggerWrapper - Multiple Columns', () => {
   const defaultProps = {
     columns: defaultColumns,
     onColumnEdit: jest.fn(),
-    children: <button>Trigger</button>,
+    children: <button type="button">Trigger</button>,
   };
 
   beforeEach(() => {
