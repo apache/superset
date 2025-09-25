@@ -27,6 +27,23 @@ import sys
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
 
+LANGUAGES = {
+    'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    'en': {'flag': 'us', 'name': 'English'}
+}
+
+BABEL_DEFAULT_LOCALE = 'pt_BR'
+
+
+def override_bootstrap_locale(data):
+    if data.get("locale") == "pt":
+        data["locale"] = "pt_BR"
+    return data
+
+
+COMMON_BOOTSTRAP_OVERRIDES_FUNC = override_bootstrap_locale
+
+
 logger = logging.getLogger()
 
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
