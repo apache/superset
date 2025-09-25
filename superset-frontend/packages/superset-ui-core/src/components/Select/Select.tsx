@@ -27,6 +27,7 @@ import {
   ClipboardEvent,
   Ref,
   ReactElement,
+  useRef,
 } from 'react';
 
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
@@ -136,6 +137,7 @@ const Select = forwardRef(
     );
     const [onChangeCount, setOnChangeCount] = useState(0);
     const previousChangeCount = usePrevious(onChangeCount, 0);
+    const cancelRef = useRef<(() => void) | null>(null);
     const fireOnChange = useCallback(
       () => setOnChangeCount(onChangeCount + 1),
       [onChangeCount],
@@ -400,7 +402,15 @@ const Select = forwardRef(
       onSearch?.(searchValue);
     }, Constants.FAST_DEBOUNCE);
 
-    useEffect(() => () => handleOnSearch.cancel(), []);
+    useEffect(() => {
+      cancelRef.current = handleOnSearch.cancel;
+    }, [handleOnSearch]);
+
+    useEffect(() => {
+      return () => {
+        cancelRef.current?.();
+      };
+    }, []);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
