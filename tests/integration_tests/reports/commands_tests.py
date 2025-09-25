@@ -21,9 +21,9 @@ from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
 import pytest
+import sqlalchemy as sa
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
-from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from slack_sdk.errors import (
     BotUserAccessError,
@@ -35,6 +35,7 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
+from sqlalchemy.orm import Query
 from sqlalchemy.sql import func
 
 from superset import db
@@ -127,7 +128,7 @@ def get_bcctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[
     ]
 
 
-def get_error_logs_query(report_schedule: ReportSchedule) -> BaseQuery:
+def get_error_logs_query(report_schedule: ReportSchedule) -> Query:
     return (
         db.session.query(ReportExecutionLog)
         .filter(
@@ -171,15 +172,26 @@ def assert_log(state: str, error_message: Optional[str] = None):
 @contextmanager
 def create_test_table_context(database: Database):
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            "CREATE TABLE IF NOT EXISTS test_table AS SELECT 1 as first, 2 as second"
-        )
-        engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
-        engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
+        with engine.connect() as connection:
+            connection.execute(
+                sa.text(
+                    "CREATE TABLE IF NOT EXISTS test_table "
+                    "AS SELECT 1 as first, 2 as second"
+                )
+            )
+            connection.execute(
+                sa.text("INSERT INTO test_table (first, second) VALUES (1, 2)")
+            )
+            connection.execute(
+                sa.text("INSERT INTO test_table (first, second) VALUES (3, 4)")
+            )
+            connection.commit()
 
     yield db.session
     with database.get_sqla_engine() as engine:
-        engine.execute("DROP TABLE test_table")
+        with engine.connect() as connection:
+            connection.execute(sa.text("DROP TABLE test_table"))
+            connection.commit()
 
 
 @pytest.fixture
