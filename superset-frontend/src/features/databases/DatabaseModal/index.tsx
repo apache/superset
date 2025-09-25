@@ -310,13 +310,17 @@ export function dbReducer(
         };
       }
       if (action.payload.name === 'schemas_allowed_for_file_upload') {
+        const schemas = (action.payload.value || '').split(',');
+        const hasTrailingComma = (action.payload.value || '').endsWith(',');
+        const filteredSchemas = schemas.filter(schema => schema !== '');
+
         return {
           ...trimmedState,
           extra: JSON.stringify({
             ...extraJson,
-            schemas_allowed_for_file_upload: (action.payload.value || '')
-              .split(',')
-              .filter(schema => schema !== ''),
+            schemas_allowed_for_file_upload: hasTrailingComma
+              ? [...filteredSchemas, '']
+              : filteredSchemas,
           }),
         };
       }
