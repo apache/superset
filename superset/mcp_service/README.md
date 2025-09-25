@@ -285,13 +285,7 @@ MCP_JWT_ALGORITHM = "HS256"
 python superset/mcp_service/generate_dev_token.py --save
 ```
 
-3. **Use token in requests:**
-```bash
-# Environment variable
-export SUPERSET_MCP_TOKEN="your_generated_token"
-
-```
-4. **Use the authenticated proxy **
+3. **Use token in requests: Use the authenticated proxy **
 
 It will proxy to localhost:5008/mcp/ and pass the token.
 
