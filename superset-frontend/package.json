@@ -53,7 +53,10 @@
     "lint": "npm run eslint -- . && npm run type",
     "lint-fix": "npm run eslint -- . --fix",
     "lint-stats": "eslint -f ./scripts/eslint-metrics-uploader.js --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . ",
-    "plugins:build": "node ./scripts/build.js",
+    "plugins:build": "USE_BUN_TSC=true node ./scripts/build-with-bun-optimized.js",
+    "plugins:build-npm": "USE_BUN_TSC=true node ./scripts/build.js",
+    "plugins:benchmark": "node ./scripts/benchmark-build.js",
+    "plugins:clean": "node ./scripts/clean-packages.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
     "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
     "plugins:create-conventional-version": "npm run prune && lerna version --conventional-commits --create-release github --no-private --yes --tag-version-prefix=\"plugins-and-packages-v\"",
@@ -211,6 +214,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "bun": "^1.1.38",
     "@applitools/eyes-storybook": "^3.55.6",
     "@babel/cli": "^7.27.2",
     "@babel/compat-data": "^7.28.0",
