@@ -35,7 +35,10 @@ import {
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
 import { t, styled, css } from '@superset-ui/core';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
+import {
+  TableSelectorMultiple,
+  TableValue,
+} from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import {
   getItem,
@@ -95,7 +98,7 @@ const SqlEditorLeftBar = ({
   const tables = useMemo(
     () =>
       allSelectedTables.filter(
-        table => table.dbId === dbId && table.schema === schema,
+        table => table.dbId === dbId, // && table.schema === schema,
       ),
     [allSelectedTables, dbId, schema],
   );
@@ -131,7 +134,7 @@ const SqlEditorLeftBar = ({
   );
 
   const onTablesChange = (
-    tableNames: string[],
+    tableValues: TableValue[],
     catalogName: string | null,
     schemaName: string,
   ) => {
@@ -140,8 +143,8 @@ const SqlEditorLeftBar = ({
     }
 
     const currentTables = [...tables];
-    const tablesToAdd = tableNames.filter(name => {
-      const index = currentTables.findIndex(table => table.name === name);
+    const tablesToAdd = tableValues.filter(tv => {
+      const index = currentTables.findIndex(table => table.name === tv.value);
       if (index >= 0) {
         currentTables.splice(index, 1);
         return false;
@@ -150,8 +153,10 @@ const SqlEditorLeftBar = ({
       return true;
     });
 
-    tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
+    tablesToAdd.forEach(tableValue => {
+      dispatch(
+        addTable(queryEditor, tableValue.value, catalogName, tableValue.schema),
+      );
     });
 
     dispatch(removeTables(currentTables));

@@ -1209,6 +1209,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         return predicate
 
 
+
 class SQLScript:
     """
     A SQL script, with 0+ statements.

@@ -199,6 +199,8 @@ class TestDatabaseApi(SupersetTestCase):
             "extra",
             "force_ctas_schema",
             "id",
+            "llm_connection",
+            "llm_context_options",
             "uuid",
         ]
 
