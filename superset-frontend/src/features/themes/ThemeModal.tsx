@@ -222,6 +222,17 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     }
   };
 
+  const isEmptyTheme = (jsonData?: string) => {
+    if (!jsonData?.trim()) return true;
+    try {
+      const parsed = JSON.parse(jsonData);
+      // Check if it's an empty object or array
+      return Object.keys(parsed).length === 0;
+    } catch (e) {
+      return false; // If it's not valid JSON, let other validation handle it
+    }
+  };
+
   const validate = () => {
     if (isReadOnly) {
       setDisableSave(true);
@@ -231,7 +242,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     if (
       currentTheme?.theme_name.length &&
       currentTheme?.json_data?.length &&
-      isValidJson(currentTheme.json_data)
+      isValidJson(currentTheme.json_data) &&
+      !isEmptyTheme(currentTheme.json_data)
     ) {
       setDisableSave(false);
     } else {
