@@ -125,9 +125,11 @@ export default function getInitialState({
       .filter(tableSchema => tableSchema.description !== null)
       .forEach(tableSchema => {
         const { dataPreviewQueryId, ...persistData } = tableSchema.description;
+        // Use the active tab ID (which corresponds to the queryEditor.id) for consistency
+        const queryEditorId = activeTab.id.toString();
         const table = {
           dbId: tableSchema.database_id ?? 0,
-          queryEditorId: tableSchema.tab_state_id.toString(),
+          queryEditorId,  // Use the activeTab.id which corresponds to queryEditor.id
           catalog: tableSchema.catalog,
           schema: tableSchema.schema,
           name: tableSchema.table,

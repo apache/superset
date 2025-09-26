@@ -518,7 +518,7 @@ export function syncQueryEditor(queryEditor) {
           ...localStorageQueries.map(query =>
             migrateQuery(query.id, newQueryEditor.tabViewId, dispatch),
           ),
-        ]);
+        ]).then(() => newQueryEditor); // Return the newQueryEditor for chaining
       })
       .catch(() =>
         dispatch(
@@ -649,7 +649,7 @@ export function loadQueryEditor(queryEditor) {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
-export function setTables(tableSchemas) {
+export function setTables(tableSchemas, queryEditorId = null) {
   const tables = tableSchemas
     .filter(tableSchema => tableSchema.description !== null)
     .map(tableSchema => {
@@ -661,9 +661,12 @@ export function setTables(tableSchemas) {
         indexes,
         dataPreviewQueryId,
       } = tableSchema.description;
+      // Use the provided queryEditorId if available, otherwise use tab_state_id
+      const tableQueryEditorId = queryEditorId || tableSchema.tab_state_id.toString();
+
       return {
         dbId: tableSchema.database_id,
-        queryEditorId: tableSchema.tab_state_id.toString(),
+        queryEditorId: tableQueryEditorId,
         catalog: tableSchema.catalog,
         schema: tableSchema.schema,
         name: tableSchema.table,
@@ -706,7 +709,8 @@ export function fetchQueryEditor(queryEditor, displayLimit) {
           hideLeftBar: json.hide_left_bar,
         };
         dispatch(loadQueryEditor(loadedQueryEditor));
-        dispatch(setTables(json.table_schemas || []));
+        // Pass the queryEditor.id to setTables to ensure correct queryEditorId
+        dispatch(setTables(json.table_schemas || [], loadedQueryEditor.id));
         if (json.latest_query && json.latest_query.resultsKey) {
           dispatch(fetchQueryResults(json.latest_query, displayLimit));
         }
@@ -953,13 +957,17 @@ export function mergeTable(table, query, prepend) {
 export function addTable(queryEditor, tableName, catalogName, schemaName) {
   return function (dispatch, getState) {
     const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
+
+    // Always use the actual queryEditor.id for consistency
+    // The syncTable function will handle converting to tabViewId when syncing to backend
     const table = {
       dbId,
-      queryEditorId: queryEditor.tabViewId ?? queryEditor.id,
+      queryEditorId: queryEditor.id,
       catalog: catalogName,
       schema: schemaName,
       name: tableName,
     };
+
     dispatch(
       mergeTable({
         ...table,
@@ -1016,13 +1024,54 @@ export function runTablePreviewQuery(newTable, runPreviewOnly) {
     return Promise.resolve();
   };
 }
-
 export function syncTable(table, tableMetadata) {
-  return function (dispatch) {
+  return function (dispatch, getState) {
+    // Get the current queryEditor to use its tabViewId if available
+    const { queryEditors } = getState().sqlLab;
+    const queryEditor = queryEditors.find(qe => qe.id === table.queryEditorId);
+
+    // If queryEditor is still in localStorage (not synced), wait for sync first
+    if (queryEditor?.inLocalStorage) {
+      return dispatch(syncQueryEditor(queryEditor)).then((syncedEditor) => {
+        // After syncing, update the table with the new queryEditorId
+        const updatedTable = {
+          ...table,
+          queryEditorId: syncedEditor?.tabViewId || queryEditor.tabViewId || table.queryEditorId
+        };
+        return dispatch(syncTable(updatedTable, tableMetadata));
+      });
+    }
+
+    // Use tabViewId if available, otherwise use the current queryEditorId
+    const correctQueryEditorId = queryEditor?.tabViewId || table.queryEditorId;
+
+    // Only sync to backend if we have a valid integer tabViewId
+    const canSyncToBackend = Boolean(queryEditor?.tabViewId && Number.isInteger(queryEditor.tabViewId));
+
+    if (!canSyncToBackend) {
+      // If we can't sync to backend, store in localStorage as fallback
+      dispatch(
+        mergeTable({
+          ...table,
+          ...tableMetadata,
+          expanded: true,
+          initialized: true,
+          inLocalStorage: true, // Mark as stored in localStorage
+        }),
+      );
+      return Promise.resolve();
+    }
+
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI('/tableschemaview/'),
-          postPayload: { table: { ...tableMetadata, ...table } },
+          postPayload: {
+            table: {
+              ...tableMetadata,
+              ...table,
+              queryEditorId: correctQueryEditorId
+            }
+          },
         })
       : Promise.resolve({ json: { id: table.id } });
 

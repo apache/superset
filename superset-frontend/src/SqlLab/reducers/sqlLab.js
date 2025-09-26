@@ -480,12 +480,29 @@ export default function sqlLabReducer(state = {}, action) {
         // continue regardless of error
       }
       // replace localStorage query editor with the server backed one
-      return alterInArr(
+      let newState = alterInArr(
         state,
         'queryEditors',
         action.oldQueryEditor,
         action.newQueryEditor,
       );
+
+      // Update queryEditorId for all tables that reference the old queryEditor
+      const updatedTables = newState.tables.map(table => {
+        if (table.queryEditorId === action.oldQueryEditor.id) {
+          const newQueryEditorId = action.newQueryEditor.tabViewId || action.newQueryEditor.id;
+          return {
+            ...table,
+            queryEditorId: newQueryEditorId,
+          };
+        }
+        return table;
+      });
+
+      return {
+        ...newState,
+        tables: updatedTables,
+      };
     },
     [actions.MIGRATE_TABLE]() {
       try {

@@ -74,11 +74,6 @@ const SqlEditorLeftBar = ({
   queryEditorId,
   height = 500,
 }: SqlEditorLeftBarProps) => {
-  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
-    ({ sqlLab }) =>
-      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
-    shallowEqual,
-  );
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'dbId',
@@ -86,6 +81,32 @@ const SqlEditorLeftBar = ({
     'schema',
     'tabViewId',
   ]);
+
+  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
+    ({ sqlLab }) => {
+      // Find the current queryEditor to get its tabViewId
+      const currentQueryEditor = sqlLab.queryEditors.find(
+        qe => qe.id === queryEditorId
+      );
+      const tabViewId = currentQueryEditor?.tabViewId;
+      const filtered = sqlLab.tables.filter(table => {
+        // Match tables that belong to this queryEditor
+        // Handle both cases: when queryEditor has a tabViewId (synced) or not (unsaved)
+        const matchesCurrentId = table.queryEditorId === queryEditorId;
+        const matchesTabViewId = tabViewId && (
+          table.queryEditorId === tabViewId ||
+          table.queryEditorId === String(tabViewId)
+        );
+        // Also check if the table's queryEditorId matches the tabViewId as a string
+        const matchesTabViewIdString = tabViewId && table.queryEditorId === String(tabViewId);
+
+        return matchesCurrentId || matchesTabViewId || matchesTabViewIdString;
+      });
+
+      return filtered;
+    },
+    shallowEqual,
+  );
 
   const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
@@ -151,6 +172,7 @@ const SqlEditorLeftBar = ({
     });
 
     tablesToAdd.forEach(tableName => {
+      // Use the actual queryEditor object with its current id
       dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
     });
 
