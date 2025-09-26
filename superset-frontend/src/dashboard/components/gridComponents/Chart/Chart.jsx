@@ -49,6 +49,7 @@ import {
   setFocusedFilterField,
   toggleExpandSlice,
   unsetFocusedFilterField,
+  updateChartState,
 } from '../../../actions/dashboardState';
 import { changeFilter } from '../../../actions/dashboardFilters';
 import { refreshChart } from '../../../../components/Chart/chartAction';
@@ -198,6 +199,17 @@ const Chart = props => {
       boundActionCreators.changeFilter(chart.id, newSelectedValues);
     },
     [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
+  );
+
+  // Chart state handler for AG Grid tables
+  const handleChartStateChange = useCallback(
+    (chartState) => {
+      // Only handle chart state for AG Grid tables
+      if (slice?.viz_type === 'ag_grid_table') {
+        dispatch(updateChartState(props.id, slice.viz_type, chartState));
+      }
+    },
+    [dispatch, props.id, slice?.viz_type],
   );
 
   useEffect(() => {
@@ -542,6 +554,7 @@ const Chart = props => {
           datasetsStatus={datasetsStatus}
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
     </SliceContainer>

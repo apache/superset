@@ -80,6 +80,8 @@ export interface AgGridTableProps {
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
+  onColumnStateChange?: (state: any) => void;
+  gridRef?: any;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -114,6 +116,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     cleanedTotals,
     showTotals,
     width,
+  onColumnStateChange,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -237,6 +240,51 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
 
+    // AG Grid state change handlers that capture actual state
+    const handleGridStateChange = useCallback(() => {
+      if (onColumnStateChange && gridRef.current?.api) {
+        // Use a timeout to ensure AG Grid has updated its internal state
+        setTimeout(() => {
+          if (gridRef.current?.api) {
+            try {
+              const api = gridRef.current.api;
+
+              // Get column state (includes order, width, visibility, pinning and sorting)
+              const columnState = api.getColumnState ? api.getColumnState() : [];
+
+              // Get filter model
+              const filterModel = api.getFilterModel ? api.getFilterModel() : {};
+
+              // Extract sort information from column state
+              const sortModel = columnState
+                .filter(col => col.sort)
+                .map(col => ({
+                  colId: col.colId,
+                  sort: col.sort,
+                  sortIndex: col.sortIndex || 0,
+                }))
+                .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
+
+              // Call the parent handler with actual AG Grid state
+              onColumnStateChange({
+                columnState,
+                sortModel,
+                filterModel,
+                timestamp: Date.now(),
+              });
+            } catch (error) {
+              console.warn('Error capturing AG Grid state:', error);
+              // Fallback with basic state
+              onColumnStateChange({
+                timestamp: Date.now(),
+                hasChanges: true,
+              });
+            }
+          }
+        }, 0);
+      }
+    }, [onColumnStateChange]);
+
     useEffect(() => {
       if (
         hasServerPageLengthChanged &&
@@ -310,6 +358,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCrossFilter}
+          onColumnMoved={handleGridStateChange}
+          onColumnResized={handleGridStateChange}
+          onSortChanged={handleGridStateChange}
+          onFilterChanged={handleGridStateChange}
+          onColumnVisible={handleGridStateChange}
+          onColumnPinned={handleGridStateChange}
           initialState={gridInitialState}
           suppressAggFuncInHeader
           rowGroupPanelShow="always"

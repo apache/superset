@@ -176,6 +176,7 @@ export interface AgGridTableChartTransformedProps<
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
+  onChartStateChange?: (chartState: JsonObject) => void;
 }
 
 export enum ColorSchemeEnum {

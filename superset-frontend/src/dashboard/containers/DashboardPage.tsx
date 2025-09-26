@@ -174,10 +174,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
       let activeTabs: string[] | undefined;
+      let chartStates: Record<string, any> | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {
-          ({ dataMask, activeTabs } = permalinkValue.state);
+          ({ dataMask, activeTabs, chartStates } = permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -197,6 +198,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             charts,
             activeTabs,
             dataMask,
+            chartStates,
           }),
         );
       }

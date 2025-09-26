@@ -49,21 +49,33 @@ export default function URLShortLinkButton({
   const theme = useTheme();
   const [shortUrl, setShortUrl] = useState('');
   const { addDangerToast } = useToasts();
-  const { dataMask, activeTabs } = useSelector(
+  const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
     (state: RootState) => ({
       dataMask: state.dataMask,
       activeTabs: state.dashboardState.activeTabs,
+      chartStates: state.dashboardState.chartStates,
+      sliceEntities: state.sliceEntities,
     }),
     shallowEqual,
   );
 
   const getCopyUrl = async () => {
     try {
+      // Check if dashboard has AG Grid tables (Table V2)
+      const hasAgGridTables = sliceEntities && Object.values(sliceEntities).some(
+        slice => slice && typeof slice === 'object' && 'viz_type' in slice && slice.viz_type === 'ag_grid_table'
+      );
+
+      // Only include chart state for AG Grid tables
+      const includeChartState = hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
+
       const url = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,
         anchor: anchorLinkId,
+        chartStates: includeChartState ? chartStates : undefined,
+        includeChartState,
       });
       setShortUrl(url);
     } catch (error) {
