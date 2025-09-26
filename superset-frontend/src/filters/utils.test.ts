@@ -31,7 +31,9 @@ import {
 } from 'src/filters/utils';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Filter utils', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getRangeExtraFormData', () => {
     test('getRangeExtraFormData - col: "testCol", lower: 1, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', 1, 2)).toEqual({
@@ -83,6 +85,7 @@ describe('Filter utils', () => {
       });
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSelectExtraFormData', () => {
     test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: false', () => {
       expect(
@@ -136,6 +139,7 @@ describe('Filter utils', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getDataRecordFormatter', () => {
     test('default formatter returns expected values', () => {
       const formatter = getDataRecordFormatter();

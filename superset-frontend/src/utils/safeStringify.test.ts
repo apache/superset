@@ -22,6 +22,7 @@ class Noise {
   public next?: Noise;
 }
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Stringify utility testing', () => {
   test('correctly parses a simple object just like JSON', () => {
     const noncircular = {

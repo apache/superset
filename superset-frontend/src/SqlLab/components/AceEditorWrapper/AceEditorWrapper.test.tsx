@@ -68,6 +68,7 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AceEditorWrapper', () => {
   beforeEach(() => {
     (FullSQLEditor as any as jest.Mock).mockClear();

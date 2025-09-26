@@ -20,6 +20,7 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import buildQuery from './buildQuery';
 import { PluginFilterSelectQueryFormData } from './types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Select buildQuery', () => {
   const formData: PluginFilterSelectQueryFormData = {
     datasource: '5__table',

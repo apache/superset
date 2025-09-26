@@ -52,6 +52,7 @@ const apiDataWithTabState = {
     latest_query: null,
   },
 };
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getInitialState', () => {
   afterEach(() => {
     localStorage.clear();
@@ -67,6 +68,7 @@ describe('getInitialState', () => {
     ).toBeUndefined();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('dedupeTabHistory', () => {
     test('should dedupe the tab history', () => {
       [
@@ -136,6 +138,7 @@ describe('getInitialState', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('dedupe tables schema', () => {
     test('should dedupe the table schema', () => {
       localStorage.setItem(
@@ -249,6 +252,7 @@ describe('getInitialState', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('restore unsaved changes for PERSISTENCE mode', () => {
     const lastUpdatedTime = Date.now();
     const expectedValue = 'updated editor value';

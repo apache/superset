@@ -24,6 +24,7 @@ import {
   DATASOURCE_ENDPOINT,
 } from './DatasourceEditor.test';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor RTL Metrics Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
@@ -82,6 +83,7 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor RTL Columns Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });

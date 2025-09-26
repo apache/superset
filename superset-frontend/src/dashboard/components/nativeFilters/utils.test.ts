@@ -21,6 +21,7 @@ import { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('nativeFilterGate', () => {
   test('should return true for regular chart', () => {
     expect(nativeFilterGate([])).toEqual(true);

@@ -46,6 +46,7 @@ const types = [
   TAB_TYPE,
 ];
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('newEntityFactory', () => {
   types.forEach(type => {
     test(`returns a new ${type}`, () => {

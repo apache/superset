@@ -22,6 +22,7 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('localStorageHelpers', () => {
   beforeEach(() => {
     localStorage.clear();

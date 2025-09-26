@@ -146,6 +146,7 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   test('can render the simple tab form', () => {
     expect(() => setup()).not.toThrow();
@@ -386,6 +387,7 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
   const setupFilter = async (props: Props) => {
     await act(async () => {

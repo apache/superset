@@ -77,6 +77,7 @@ test('should apply', () => {
   expect(mockedProps.onApply).toHaveBeenCalled();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('custom width', () => {
   test('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
     const mockedProps = createProps();

@@ -32,6 +32,7 @@ const defaultProps = {
 };
 const renderedCoordinate = '6° 51\' 8.50" | 31° 13\' 21.56"';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ViewportControl', () => {
   beforeEach(() => {
     render(<ViewportControl {...defaultProps} />);

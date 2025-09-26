@@ -30,6 +30,7 @@ const fastRender = props =>
     initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor Currency Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });

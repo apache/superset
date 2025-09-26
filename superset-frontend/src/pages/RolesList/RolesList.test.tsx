@@ -100,6 +100,7 @@ fetchMock.get(usersEndpoint, {
 fetchMock.delete(roleEndpoint, {});
 fetchMock.put(roleEndpoint, {});
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RolesList', () => {
   async function renderAndWait() {
     const mounted = act(async () => {

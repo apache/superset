@@ -21,6 +21,7 @@ import { getChartDataUri } from '.';
 
 jest.mock('src/utils/pathUtils');
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Get ChartUri', () => {
   (ensureAppRoot as jest.Mock).mockImplementation(
     (path: string) => `/prefix${path}`,

@@ -58,6 +58,7 @@ const setup = (props?: Partial<QueryLimitSelectProps>, store?: Store) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryLimitSelect', () => {
   test('renders current query limit size', () => {
     const queryLimit = 10;

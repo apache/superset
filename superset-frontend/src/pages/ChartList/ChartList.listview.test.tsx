@@ -64,6 +64,7 @@ const mockUser = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - List View Tests', () => {
   beforeEach(() => {
     mockHandleResourceExport.mockClear();

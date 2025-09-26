@@ -30,6 +30,7 @@ import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry, SupersetClient } from '@superset-ui/core';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('exploreUtils', () => {
   const { location } = window;
   const formData = {
@@ -39,6 +40,7 @@ describe('exploreUtils', () => {
     expect(uri1.toString()).toBe(uri2.toString());
   }
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getExploreUrl', () => {
     test('generates proper base url', () => {
       // This assertion is to show clearly the value of location.href
@@ -126,6 +128,7 @@ describe('exploreUtils', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('domain sharding', () => {
     let stub;
     const availableDomains = [
@@ -190,6 +193,7 @@ describe('exploreUtils', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('buildV1ChartDataPayload', () => {
     test('generate valid request payload despite no registered buildQuery', async () => {
       const v1RequestPayload = await buildV1ChartDataPayload({
@@ -199,6 +203,7 @@ describe('exploreUtils', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getQuerySettings', () => {
     beforeAll(() => {
       getChartMetadataRegistry()
@@ -244,6 +249,7 @@ describe('exploreUtils', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSimpleSQLExpression', () => {
     test('returns empty string when subject is undefined', () => {
       expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
@@ -281,6 +287,7 @@ describe('exploreUtils', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('.exploreChart()', () => {
     test('postForm', () => {
       const postFormSpy = jest.spyOn(SupersetClient, 'postForm');

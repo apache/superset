@@ -59,6 +59,7 @@ const renderAndWait = (props = {}) =>
     useRouter: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExecutionLog', () => {
   beforeAll(() => renderAndWait());
 

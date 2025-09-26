@@ -74,6 +74,7 @@ const renderPopover = (props = {}) =>
     useRedux: true, // Add Redux provider for context
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopover', () => {
   test('renders simple tab content by default', () => {
     renderPopover();

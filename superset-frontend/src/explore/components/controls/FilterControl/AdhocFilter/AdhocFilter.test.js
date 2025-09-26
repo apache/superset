@@ -20,6 +20,7 @@ import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilt
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilter', () => {
   test('sets filterOptionName in constructor', () => {
     const adhocFilter = new AdhocFilter({

@@ -84,6 +84,7 @@ fetchMock.get(dashboardEndpoint, {
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardList', () => {
   const renderDashboardList = (props = {}, userProp = mockUser) =>
     render(
@@ -219,6 +220,7 @@ describe('DashboardList', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardList - anonymous view', () => {
   test('does not render favorite stars for anonymous user', async () => {
     render(

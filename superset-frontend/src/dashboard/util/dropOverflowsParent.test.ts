@@ -29,6 +29,7 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dropOverflowsParent', () => {
   test('returns true if a parent does NOT have adequate width for child', () => {
     const dropResult: DropResult = {

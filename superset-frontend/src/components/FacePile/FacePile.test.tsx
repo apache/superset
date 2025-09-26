@@ -57,6 +57,7 @@ afterEach(() => {
   cleanup();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FacePile', () => {
   test('renders empty state with no users', () => {
     const { container } = render(<FacePile users={[]} />, { store });
@@ -143,7 +144,9 @@ describe('FacePile', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('utils', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getRandomColor', () => {
     const colors = ['color1', 'color2', 'color3'];
 

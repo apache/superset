@@ -99,6 +99,7 @@ const renderThemesList = (props = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ThemesList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();

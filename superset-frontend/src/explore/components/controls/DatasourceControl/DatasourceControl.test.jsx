@@ -64,6 +64,7 @@ const defaultProps = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceControl', () => {
   const setup = (overrideProps = {}) => {
     const mockStore = configureStore([]);

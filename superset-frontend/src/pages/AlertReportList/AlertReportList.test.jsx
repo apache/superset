@@ -96,6 +96,7 @@ const renderAlertList = (props = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AlertList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();

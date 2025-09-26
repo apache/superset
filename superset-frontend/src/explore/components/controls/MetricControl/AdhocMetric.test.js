@@ -23,6 +23,7 @@ import AdhocMetric, {
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocMetric', () => {
   test('sets label, hasCustomLabel and optionName in constructor', () => {
     const adhocMetric = new AdhocMetric({

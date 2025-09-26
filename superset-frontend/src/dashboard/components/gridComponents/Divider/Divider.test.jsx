@@ -26,6 +26,7 @@ import {
 import { screen, render, userEvent } from 'spec/helpers/testing-library';
 import Divider from './Divider';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Divider', () => {
   const props = {
     id: 'id',

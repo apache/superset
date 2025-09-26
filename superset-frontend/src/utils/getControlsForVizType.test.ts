@@ -67,6 +67,7 @@ const fakePluginControls: JsonObject = {
   ],
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getControlsForVizType', () => {
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue(

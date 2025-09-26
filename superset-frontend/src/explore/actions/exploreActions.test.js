@@ -77,6 +77,7 @@ const METRICS = [
   },
 ];
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('reducers', () => {
   test('Does not set a control value if control does not exist', () => {
     const newState = exploreReducer(

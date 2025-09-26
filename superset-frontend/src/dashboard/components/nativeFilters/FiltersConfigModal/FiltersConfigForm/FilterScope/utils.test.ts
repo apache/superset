@@ -24,6 +24,7 @@ import { buildTree } from './utils';
 // This test file is using data from a real example dashboard to test real world data sets.  ts-ignore is set for this entire file
 // until we can reconcile adjusting types to match the actual data structures used
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Ensure buildTree does not throw runtime errors when encountering an invalid node', () => {
   const node = {
     children: ['TABS-97PVJa11D_'],

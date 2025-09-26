@@ -23,6 +23,7 @@ import {
   dashboardLayoutWithTabs,
 } from 'spec/fixtures/mockDashboardLayout';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('updateComponentParentsList', () => {
   const emptyLayout = {
     DASHBOARD_VERSION_KEY: 'v2',
@@ -96,6 +97,7 @@ describe('updateComponentParentsList', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('updateComponentParentsList with bad inputs', () => {
   test('should handle invalid parameters and not throw error', () => {
     updateComponentParentsList({

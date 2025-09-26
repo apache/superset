@@ -30,6 +30,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <Router history={history}>{children}</Router>
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useUnsavedChangesPrompt', () => {
   test('should not show modal initially', () => {
     const { result } = renderHook(

@@ -67,6 +67,7 @@ const defaultDb = {
   parameters: {}, // added dummy value for parameters
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExtraOptions Component', () => {
   const onInputChange = jest.fn();
   const onTextChange = jest.fn();

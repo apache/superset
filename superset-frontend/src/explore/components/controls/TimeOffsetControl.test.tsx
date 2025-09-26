@@ -30,6 +30,7 @@ const defaultProps: TimeOffsetControlsProps = {
   onChange: jest.fn(),
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TimeOffsetControls', () => {
   const setup = (initialState = {}) => {
     const store = mockStore({

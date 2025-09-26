@@ -18,6 +18,7 @@
  */
 import getDirectPathToTabIndex from './getDirectPathToTabIndex';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getDirectPathToTabIndex', () => {
   test('builds path using parents, id, and child at index', () => {
     const tabs = {

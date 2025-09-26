@@ -23,7 +23,9 @@ import { table, initialState as mockState } from '../fixtures';
 
 const initialState = mockState.sqlLab;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sqlLabReducer', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
     let newState;
     let defaultQueryEditor;
@@ -285,6 +287,7 @@ describe('sqlLabReducer', () => {
       expect(newState.destroyedQueryEditors).toEqual({});
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Tables', () => {
     let newState;
     let newTable;
@@ -368,6 +371,7 @@ describe('sqlLabReducer', () => {
       expect(newState.tables).toHaveLength(0);
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Run Query', () => {
     const DENORMALIZED_CHANGED_ON = '2023-06-26T07:53:05.439';
     const CHANGED_ON_TIMESTAMP = 1687765985439;
@@ -482,6 +486,7 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CLEAR_INACTIVE_QUERIES', () => {
     let newState;
     let query;

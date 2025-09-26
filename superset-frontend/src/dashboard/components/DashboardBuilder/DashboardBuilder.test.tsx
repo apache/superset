@@ -83,6 +83,7 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => () => (
   <div data-test="mock-dashboard-grid" />
 ));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
   let favStarStub: jest.Mock;
   let activeTabsStub: jest.Mock;

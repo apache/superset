@@ -39,6 +39,7 @@ import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
 
 jest.mock('src/dashboard/util/getRelatedCharts');
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Dashboard', () => {
   const mockAddSlice = jest.fn();
   const mockRemoveSlice = jest.fn();
@@ -96,6 +97,7 @@ describe('Dashboard', () => {
     expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('layout changes', () => {
     const layoutWithExtraChart = {
       ...props.layout,
@@ -134,6 +136,7 @@ describe('Dashboard', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('filter updates', () => {
     test('should not call refresh when in editMode', () => {
       const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });

@@ -31,6 +31,7 @@ const defaultProps = {
   onChange: jest.fn(),
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TextArea', () => {
   test('renders a FormControl', () => {
     render(<TextAreaControl {...defaultProps} />);

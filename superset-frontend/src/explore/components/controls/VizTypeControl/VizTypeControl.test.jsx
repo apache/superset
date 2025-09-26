@@ -55,6 +55,7 @@ afterEach(async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('VizTypeControl', () => {
   const registry = getChartMetadataRegistry();
   registry

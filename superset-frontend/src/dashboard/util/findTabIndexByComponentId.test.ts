@@ -19,6 +19,7 @@
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { LayoutItem, LayoutItemMeta } from '../types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('findTabIndexByComponentId', () => {
   const topLevelTabsComponent: LayoutItem = {
     children: ['TAB-0g-5l347I2', 'TAB-qrwN_9VB5'],

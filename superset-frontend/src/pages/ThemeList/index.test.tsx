@@ -93,6 +93,7 @@ const mockThemes = [
   },
 ];
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ThemesList', () => {
   beforeEach(() => {
     // Mock the useListViewResource hook

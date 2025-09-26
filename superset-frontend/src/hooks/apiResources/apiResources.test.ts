@@ -42,6 +42,7 @@ jest.mock('@superset-ui/core', () => ({
     .mockReturnValue(jest.fn().mockResolvedValue(fakeApiResult)),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('apiResource hooks', () => {
   beforeAll(() => {
     jest.useFakeTimers();
@@ -51,6 +52,7 @@ describe('apiResource hooks', () => {
     jest.useRealTimers();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useApiResourceFullBody', () => {
     test('returns a loading state at the start', async () => {
       const { result } = renderHook(() =>
@@ -97,6 +99,7 @@ describe('apiResource hooks', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useTransformedResource', () => {
     test('applies a transformation to the resource', () => {
       const { result } = renderHook(() =>
@@ -142,6 +145,7 @@ describe('apiResource hooks', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useApiV1Endpoint', () => {
     test('resolves to the value from the api', async () => {
       (makeApi as any).mockReturnValue(

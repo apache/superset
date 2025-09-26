@@ -34,6 +34,7 @@ const TestComponent = ({ chartId }: { chartId: number }) => {
   return <div data-test="test-component" style={styles} />;
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useFilterFocusHighlightStyles', () => {
   const createMockStore = (customState: any = {}) =>
     createStore(

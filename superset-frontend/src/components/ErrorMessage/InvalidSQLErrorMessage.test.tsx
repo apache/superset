@@ -54,6 +54,7 @@ const missingExtraProps = {
 const renderComponent = (overrides = {}) =>
   render(<InvalidSQLErrorMessage {...defaultProps} {...overrides} />);
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('InvalidSQLErrorMessage', () => {
   beforeAll(() => {
     jest.setTimeout(30000);

@@ -26,6 +26,7 @@ import {
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { FilterableTable } from '.';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterableTable', () => {
   beforeAll(() => {
     setupAGGridModules();
@@ -74,6 +75,7 @@ describe('FilterableTable', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterableTable sorting - RTL', () => {
   beforeAll(() => {
     setupAGGridModules();

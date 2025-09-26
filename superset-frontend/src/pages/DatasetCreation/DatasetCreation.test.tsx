@@ -28,6 +28,7 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ datasetId: undefined }),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AddDataset', () => {
   test('renders a blank state AddDataset', async () => {
     render(<AddDataset />, { useRedux: true, useRouter: true });

@@ -28,6 +28,7 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('asyncEvent middleware', () => {
   const asyncPendingEvent = {
     status: 'pending',
@@ -100,6 +101,7 @@ describe('asyncEvent middleware', () => {
 
   afterAll(() => fetchMock.reset());
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('polling transport', () => {
     const config = {
       GLOBAL_ASYNC_QUERIES_TRANSPORT: 'polling',
@@ -172,6 +174,7 @@ describe('asyncEvent middleware', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('ws transport', () => {
     let wsServer: WS;
     const config = {

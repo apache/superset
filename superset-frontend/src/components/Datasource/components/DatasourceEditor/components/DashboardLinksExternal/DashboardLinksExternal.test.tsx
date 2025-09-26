@@ -46,6 +46,7 @@ const setupTest = (dashboards = mockDashboards) =>
     }),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardLinksExternal', () => {
   test('renders empty state when no dashboards provided', () => {
     setupTest([]);

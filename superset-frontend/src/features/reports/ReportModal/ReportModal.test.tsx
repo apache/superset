@@ -57,6 +57,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Email Report Modal', () => {
   beforeEach(() => {
     mockedIsFeatureEnabled.mockImplementation(
@@ -109,6 +110,7 @@ describe('Email Report Modal', () => {
     expect(addButton).toBeDisabled();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Email Report Modal', () => {
     let dispatch: any;
 

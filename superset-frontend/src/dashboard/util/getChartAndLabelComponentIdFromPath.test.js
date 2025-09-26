@@ -18,6 +18,7 @@
  */
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getChartAndLabelComponentIdFromPath', () => {
   test('should return label and component id', () => {
     const directPathToChild = [

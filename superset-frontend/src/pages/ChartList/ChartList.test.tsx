@@ -66,6 +66,7 @@ const findFilterByLabel = (labelText: string) => {
   return null;
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList', () => {
   beforeEach(() => {
     setupMocks();
@@ -284,6 +285,7 @@ describe('ChartList', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Global Filter Interactions', () => {
   beforeEach(() => {
     setupMocks();

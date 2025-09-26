@@ -27,6 +27,7 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { UnwrappedDragDroppable as DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DragDroppable', () => {
   const props = {
     component: newComponentFactory(CHART_TYPE),

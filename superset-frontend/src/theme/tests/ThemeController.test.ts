@@ -101,6 +101,7 @@ const mockThemeObject = {
   theme: DEFAULT_THEME,
 } as unknown as Theme;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('LocalStorageAdapter', () => {
   let adapter: LocalStorageAdapter;
   const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
@@ -174,6 +175,7 @@ describe('LocalStorageAdapter', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ThemeController', () => {
   let controller: ThemeController;
   const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
@@ -418,6 +420,7 @@ describe('ThemeController', () => {
     );
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Theme Management', () => {
     beforeEach(() => {
       controller = new ThemeController({
@@ -506,6 +509,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('System Theme Changes', () => {
     let mockMediaQuery: any;
 
@@ -593,6 +597,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Persistence', () => {
     beforeEach(() => {
       controller = new ThemeController({
@@ -641,6 +646,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Theme Structure', () => {
     beforeEach(() => {
       controller = new ThemeController({
@@ -736,6 +742,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Algorithm Combinations', () => {
     beforeEach(() => {
       mockGetBootstrapData.mockReturnValue(
@@ -802,6 +809,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Change Callbacks', () => {
     let callback: jest.Mock;
     let unsubscribe: () => void;
@@ -857,6 +865,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Error Handling', () => {
     beforeEach(() => {
       controller = new ThemeController({
@@ -894,6 +903,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Cleanup', () => {
     let mockMediaQueryInstance: any;
 
@@ -924,6 +934,7 @@ describe('ThemeController', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setThemeConfig', () => {
     beforeEach(() => {
       mockGetBootstrapData.mockReturnValue(

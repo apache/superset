@@ -41,6 +41,7 @@ const defaultProps = {
   datasourceType: 'table',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SQLEditorWithValidation', () => {
   beforeEach(() => {
     jest.clearAllMocks();

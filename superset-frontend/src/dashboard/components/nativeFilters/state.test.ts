@@ -39,6 +39,7 @@ beforeEach(() => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useIsFilterInScope', () => {
   test('should return true for dividers (always in scope)', () => {
     const divider: Divider = {
@@ -90,6 +91,7 @@ describe('useIsFilterInScope', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useSelectFiltersInScope', () => {
   test('should return all filters in scope when no tabs exist', () => {
     const filters: Filter[] = [

@@ -22,6 +22,7 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Markdown', () => {
   const props = {
     id: 'id',

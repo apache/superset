@@ -22,6 +22,7 @@ import ResizableContainer, {
   ResizableContainerProps,
 } from 'src/dashboard/components/resizable/ResizableContainer';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResizableContainer', () => {
   const props = {
     editMode: false,

@@ -63,6 +63,7 @@ export const asyncRender = props =>
     }),
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor', () => {
   beforeAll(() => {
     jest.clearAllMocks();
@@ -195,6 +196,7 @@ describe('DatasourceEditor', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor Source Tab', () => {
   beforeAll(() => {
     isFeatureEnabled.mockImplementation(() => false);

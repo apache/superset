@@ -86,6 +86,7 @@ const getTestId = testWithId<string>(VIZ_TYPE_CONTROL_TEST_ID, true);
  * on and prevents those warnings.
  */
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('VizTypeControl', () => {
   new MainPreset().register();
   const defaultProps = {

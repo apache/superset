@@ -22,6 +22,7 @@ import {
   DASHBOARD_ROOT_ID,
 } from 'src/dashboard/util/constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('findFirstParentContainer', () => {
   const mockGridLayout = {
     DASHBOARD_VERSION_KEY: 'v2',

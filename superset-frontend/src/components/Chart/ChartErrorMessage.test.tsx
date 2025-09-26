@@ -42,6 +42,7 @@ const ERROR_MESSAGE_COMPONENT = (props: ErrorMessageComponentProps) => (
   </>
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartErrorMessage', () => {
   const defaultProps = {
     chartId: 1,

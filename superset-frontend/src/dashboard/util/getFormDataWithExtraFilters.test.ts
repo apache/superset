@@ -22,6 +22,7 @@ import getFormDataWithExtraFilters, {
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getFormDataWithExtraFilters', () => {
   const filterId = 'native-filter-1';
   const mockChart = {

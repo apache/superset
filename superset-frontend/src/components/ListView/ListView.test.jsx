@@ -130,6 +130,7 @@ const factory = (props = mockedProps) =>
     { store: mockStore() },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
   beforeEach(() => {
     fetchMock.reset();

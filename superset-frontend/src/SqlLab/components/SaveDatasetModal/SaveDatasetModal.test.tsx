@@ -62,6 +62,7 @@ jest.mock('src/explore/exploreUtils/formData', () => ({
   postFormData: jest.fn(),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetModal', () => {
   test('renders a "Save as new" field', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });

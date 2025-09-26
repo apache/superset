@@ -20,6 +20,7 @@ import extractUrlParams from './extractUrlParams';
 
 const originalWindowLocation = window.location;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('extractUrlParams', () => {
   beforeAll(() => {
     // @ts-ignore

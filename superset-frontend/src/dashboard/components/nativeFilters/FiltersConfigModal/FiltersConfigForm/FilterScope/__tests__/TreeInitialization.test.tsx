@@ -26,6 +26,7 @@ import {
 import type { FormInstance } from '@superset-ui/core/components';
 import { createMockModal } from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterScope TreeInitialization', () => {
   let formRef: { current: FormInstance | null };
 

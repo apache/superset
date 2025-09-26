@@ -20,6 +20,7 @@ import reorderItem from 'src/dashboard/util/dnd-reorder';
 import { TABS_TYPE } from './componentTypes';
 import { DROP_LEFT, DROP_RIGHT } from './getDropPosition';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dnd-reorderItem', () => {
   test('should remove the item from its source entity and add it to its destination entity', () => {
     const result = reorderItem({

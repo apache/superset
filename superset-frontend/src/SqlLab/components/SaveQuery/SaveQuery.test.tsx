@@ -64,6 +64,7 @@ const splitSaveBtnProps = {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQuery', () => {
   test('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
     const noRenderProps = {

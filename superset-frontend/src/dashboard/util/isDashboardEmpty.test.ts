@@ -19,6 +19,7 @@
 import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('isDashboardEmpty', () => {
   const emptyLayout = getEmptyLayout();
   const testLayout: object = {

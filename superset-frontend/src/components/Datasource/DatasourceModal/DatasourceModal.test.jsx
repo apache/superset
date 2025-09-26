@@ -73,6 +73,7 @@ beforeEach(() => {
   fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceModal', () => {
   test('renders', async () => {
     expect(container).toBeDefined();

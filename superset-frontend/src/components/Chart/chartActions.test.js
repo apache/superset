@@ -59,6 +59,7 @@ jest.mock('@superset-ui/core', () => ({
   getChartBuildQueryRegistry: jest.fn(),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
   let dispatch;
@@ -121,6 +122,7 @@ describe('chart actions', () => {
     };
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('v1 API', () => {
     beforeEach(() => {
       fakeMetadata = { viz_type: 'my_viz', useLegacyApi: false };
@@ -191,6 +193,7 @@ describe('chart actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('legacy API', () => {
     beforeEach(() => {
       fakeMetadata = { useLegacyApi: true };
@@ -310,6 +313,7 @@ describe('chart actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runAnnotationQuery', () => {
     const mockDispatch = jest.fn();
     beforeEach(() => {
@@ -366,6 +370,7 @@ describe('chart actions', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions timeout', () => {
   beforeEach(() => {
     jest.clearAllMocks();

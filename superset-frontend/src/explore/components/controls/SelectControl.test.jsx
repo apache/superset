@@ -66,6 +66,7 @@ const renderSelectControl = (props = {}) => {
   return container;
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SelectControl', () => {
   test('calls props.onChange when select', async () => {
     renderSelectControl();
@@ -73,6 +74,7 @@ describe('SelectControl', () => {
     expect(defaultProps.onChange).toHaveBeenCalledWith(50);
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('render', () => {
     test('renders with Select by default', () => {
       renderSelectControl();
@@ -174,7 +176,9 @@ describe('SelectControl', () => {
       expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('empty placeholder', () => {
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('withMulti', () => {
         test('does not show a placeholder if there are no choices', () => {
           renderSelectControl({
@@ -185,6 +189,7 @@ describe('SelectControl', () => {
           expect(screen.queryByRole('option')).not.toBeInTheDocument();
         });
       });
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('withSingleChoice', () => {
         test('does not show a placeholder if there are no choices', async () => {
           const container = renderSelectControl({
@@ -197,6 +202,7 @@ describe('SelectControl', () => {
           ).not.toBeInTheDocument();
         });
       });
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('all choices selected', () => {
         test('does not show a placeholder', () => {
           const container = renderSelectControl({
@@ -210,6 +216,7 @@ describe('SelectControl', () => {
         });
       });
     });
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('when select is multi', () => {
       test('does not render the placeholder when a selection has been made', () => {
         renderSelectControl({
@@ -220,6 +227,7 @@ describe('SelectControl', () => {
         expect(screen.queryByText('add something')).not.toBeInTheDocument();
       });
     });
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('when select is single', () => {
       test('does not render the placeholder when a selection has been made', () => {
         renderSelectControl({
@@ -232,12 +240,14 @@ describe('SelectControl', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getOptions', () => {
     test('returns the correct options', () => {
       expect(innerGetOptions(defaultProps)).toEqual(options);
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('areAllValuesNumbers', () => {
     test('returns true when all values are numbers (array format)', () => {
       const items = [
@@ -301,6 +311,7 @@ describe('SelectControl', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSortComparator', () => {
     const mockExplicitComparator = (a, b) => a.label.localeCompare(b.label);
 
@@ -375,6 +386,7 @@ describe('SelectControl', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('numeric sorting integration', () => {
     test('applies numeric sorting to choices automatically', () => {
       const numericChoices = [

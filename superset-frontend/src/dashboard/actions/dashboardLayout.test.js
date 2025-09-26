@@ -58,6 +58,7 @@ import {
   NEW_ROW_ID,
 } from 'src/dashboard/util/constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardLayout actions', () => {
   const mockState = {
     dashboardState: {
@@ -85,6 +86,7 @@ describe('dashboardLayout actions', () => {
     dashboardFilters.updateLayoutComponents.restore();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('updateComponents', () => {
     test('should dispatch an updateLayout action', () => {
       const { getState, dispatch } = setup();
@@ -115,6 +117,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('deleteComponents', () => {
     test('should dispatch an deleteComponent action', () => {
       const { getState, dispatch } = setup();
@@ -142,6 +145,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('updateDashboardTitle', () => {
     test('should dispatch an updateComponent action for the header component', () => {
       const { getState, dispatch } = setup();
@@ -167,6 +171,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('createTopLevelTabs', () => {
     test('should dispatch a createTopLevelTabs action', () => {
       const { getState, dispatch } = setup();
@@ -196,6 +201,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('deleteTopLevelTabs', () => {
     test('should dispatch a deleteTopLevelTabs action', () => {
       const { getState, dispatch } = setup();
@@ -225,6 +231,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('resizeComponent', () => {
     const dashboardLayout = {
       ...mockState.dashboardLayout,
@@ -289,6 +296,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('handleComponentDrop', () => {
     test('should create a component if it is new', () => {
       const { getState, dispatch } = setup();
@@ -488,6 +496,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('undoLayoutAction', () => {
     test('should dispatch a redux-undo .undo() action', () => {
       const { getState, dispatch } = setup({
@@ -512,6 +521,7 @@ describe('dashboardLayout actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('redoLayoutAction', () => {
     test('should dispatch a redux-undo .redo() action', () => {
       const { getState, dispatch } = setup();

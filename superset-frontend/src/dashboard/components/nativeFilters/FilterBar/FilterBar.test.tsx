@@ -89,6 +89,7 @@ const addFilterFlow = async () => {
   // await screen.findByText('All filters (1)');
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterBar', () => {
   new MainPreset().register();
   const toggleFiltersBar = jest.fn();

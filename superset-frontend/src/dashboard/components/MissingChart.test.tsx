@@ -28,6 +28,7 @@ const setup = (overrides?: MissingChartProps) => (
   <MissingChart height={100} {...overrides} />
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('MissingChart', () => {
   test('renders a .missing-chart-container', () => {
     const rendered = render(setup());

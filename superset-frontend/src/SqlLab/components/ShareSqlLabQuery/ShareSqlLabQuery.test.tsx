@@ -76,6 +76,7 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
   const storeQueryMockId = 'ci39c3';
@@ -94,6 +95,7 @@ describe('ShareSqlLabQuery', () => {
 
   afterAll(() => fetchMock.reset());
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('via permalink api', () => {
     beforeAll(() => {
       mockedIsFeatureEnabled.mockImplementation(() => true);

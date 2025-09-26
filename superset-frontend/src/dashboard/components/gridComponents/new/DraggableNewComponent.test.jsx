@@ -25,6 +25,7 @@ import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/D
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 
 // TODO: rewrite to rtl
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DraggableNewComponent', () => {
   const props = {
     id: 'id',

@@ -25,6 +25,7 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('logger middleware', () => {
   const dashboardId = 123;
   const next = sinon.spy();

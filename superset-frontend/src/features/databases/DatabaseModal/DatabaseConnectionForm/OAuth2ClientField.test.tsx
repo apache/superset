@@ -21,6 +21,7 @@ import { render, fireEvent } from 'spec/helpers/testing-library';
 import { DatabaseObject } from 'src/features/databases/types';
 import { OAuth2ClientField } from './OAuth2ClientField';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
     onEncryptedExtraInputChange: jest.fn(),

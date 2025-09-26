@@ -24,6 +24,7 @@ import {
   unsetSystemDarkTheme,
 } from './api';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Theme API', () => {
   beforeEach(() => {
     fetchMock.reset();
@@ -33,6 +34,7 @@ describe('Theme API', () => {
     fetchMock.restore();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setSystemDefaultTheme', () => {
     test('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 1, result: 'success' };
@@ -54,6 +56,7 @@ describe('Theme API', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setSystemDarkTheme', () => {
     test('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 2, result: 'success' };
@@ -75,6 +78,7 @@ describe('Theme API', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('unsetSystemDefaultTheme', () => {
     test('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
@@ -99,6 +103,7 @@ describe('Theme API', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('unsetSystemDarkTheme', () => {
     test('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };

@@ -18,6 +18,7 @@
  */
 import parseCookie from 'src/utils/parseCookie';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('parseCookie', () => {
   let cookieVal = '';
   Object.defineProperty(document, 'cookie', {

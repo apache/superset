@@ -21,6 +21,7 @@ import { render } from 'spec/helpers/testing-library';
 import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle';
 
 /* eslint-disable react/jsx-pascal-case */
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResizableHandle', () => {
   test('should render a right resize handle', () => {
     const rendered = render(<ResizableHandle.right />);

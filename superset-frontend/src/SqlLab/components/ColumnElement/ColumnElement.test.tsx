@@ -21,6 +21,7 @@ import { render } from 'spec/helpers/testing-library';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { mockedActions, table } from 'src/SqlLab/fixtures';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnElement', () => {
   const mockedProps = {
     actions: mockedActions,

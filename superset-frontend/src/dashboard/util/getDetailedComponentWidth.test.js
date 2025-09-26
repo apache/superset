@@ -23,6 +23,7 @@ import {
   GRID_MIN_COLUMN_COUNT,
 } from 'src/dashboard/util/constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getDetailedComponentWidth', () => {
   test('should return an object with width, minimumWidth, and occupiedWidth', () => {
     expect(
@@ -32,6 +33,7 @@ describe('getDetailedComponentWidth', () => {
     );
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('width', () => {
     test('should be undefined if the component is not resizable and has no defined width', () => {
       const empty = {
@@ -132,6 +134,7 @@ describe('getDetailedComponentWidth', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('occupiedWidth', () => {
     test('should reflect the sum of child widths for row components', () => {
       expect(
@@ -158,6 +161,7 @@ describe('getDetailedComponentWidth', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('minimumWidth', () => {
     test('should equal GRID_MIN_COLUMN_COUNT for resizable components', () => {
       expect(

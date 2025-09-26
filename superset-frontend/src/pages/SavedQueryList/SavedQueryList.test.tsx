@@ -93,6 +93,7 @@ const renderList = (props = {}, storeOverrides = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQueryList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();

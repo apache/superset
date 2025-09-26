@@ -19,6 +19,7 @@
 import { render, act } from 'spec/helpers/testing-library';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AnchorLink', () => {
   const props = {
     id: 'CHART-123',

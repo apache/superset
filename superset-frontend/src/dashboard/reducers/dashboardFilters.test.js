@@ -33,6 +33,7 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { filterComponent } from 'spec/fixtures/mockDashboardLayout';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardFilters reducer', () => {
   const { form_data } = sliceEntitiesForDashboard.slices[filterId];
   const component = filterComponent;

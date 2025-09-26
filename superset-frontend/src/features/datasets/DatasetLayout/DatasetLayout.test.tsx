@@ -32,6 +32,7 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetLayout', () => {
   test('renders nothing when no components are passed in', () => {
     render(<DatasetLayout />, { useRouter: true });

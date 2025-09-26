@@ -82,6 +82,7 @@ async function setup({
   return { props, ...utils, verifier, VerifiedControl };
 }
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('VerifiedMetricsControl', () => {
   test('should call verify correctly', async () => {
     expect.assertions(3);

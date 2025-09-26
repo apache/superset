@@ -21,6 +21,7 @@ import { JsonResponse, SupersetClient } from '@superset-ui/core';
 
 import { useListViewResource } from './hooks';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useListViewResource', () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -103,6 +104,7 @@ describe('useListViewResource', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('ChartList-specific filter scenarios', () => {
     afterEach(() => {
       jest.restoreAllMocks();

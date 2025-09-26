@@ -42,6 +42,7 @@ const notResizable = [
 
 const resizable = [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE];
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('componentIsResizable', () => {
   resizable.forEach(type => {
     test(`should return true for ${type}`, () => {

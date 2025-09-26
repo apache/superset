@@ -30,6 +30,7 @@ const setup = (overrides = {}) => (
   <CheckboxControl {...defaultProps} {...overrides} />
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CheckboxControl', () => {
   test('renders a Checkbox', () => {
     render(setup());

@@ -24,6 +24,7 @@ import {
 
 import sliceEntitiesReducer from 'src/dashboard/reducers/sliceEntities';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sliceEntities reducer', () => {
   test('should return initial state', () => {
     expect(sliceEntitiesReducer({}, {})).toEqual({});

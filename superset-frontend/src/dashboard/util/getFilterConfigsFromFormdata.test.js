@@ -18,6 +18,7 @@
  */
 import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getFilterConfigsFromFormdata', () => {
   const testFormdata = {
     filter_configs: [

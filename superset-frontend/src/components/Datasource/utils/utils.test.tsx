@@ -20,6 +20,7 @@
 import { tn } from '@superset-ui/core';
 import { updateColumns } from '.';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('updateColumns', () => {
   let addSuccessToast: jest.Mock;
 

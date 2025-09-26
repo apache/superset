@@ -104,6 +104,7 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('canUserEditDashboard', () => {
   test('allows owners to edit', () => {
     expect(canUserEditDashboard(dashboard, ownerUser)).toEqual(true);
@@ -184,6 +185,7 @@ test('userHasPermission returns true if user has permission', () => {
   ).toEqual(true);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
   beforeAll(() => {
     mockedIsFeatureEnabled.mockImplementation(
@@ -208,6 +210,7 @@ describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
   beforeAll(() => {
     mockedIsFeatureEnabled.mockImplementation(

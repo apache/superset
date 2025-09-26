@@ -19,12 +19,14 @@
 
 import { DEFAULT_BOOTSTRAP_DATA } from '../constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getBootstrapData and helpers', () => {
   afterEach(() => {
     // Clean up the DOM
     document.body.innerHTML = '';
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getBootstrapData()', () => {
     test('should return DEFAULT_BOOTSTRAP_DATA when #app element does not exist', async () => {
       // Ensure no #app element exists.
@@ -55,6 +57,7 @@ describe('getBootstrapData and helpers', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Helper functions applicationRoot and staticAssetsPrefix', () => {
     test('should return values without trailing slashes', async () => {
       // Setup a fake #app element with data-bootstrap attribute.

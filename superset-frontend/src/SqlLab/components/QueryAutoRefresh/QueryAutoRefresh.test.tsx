@@ -43,6 +43,7 @@ const mockState = {
   databases: mockDatabases,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryAutoRefresh', () => {
   const runningQueries: QueryDictionary = { [runningQuery.id]: runningQuery };
   const successfulQueries: QueryDictionary = {

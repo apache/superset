@@ -26,6 +26,7 @@ import useStoredSidebarWidth from './useStoredSidebarWidth';
 
 const INITIAL_WIDTH = 300;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useStoredSidebarWidth', () => {
   beforeEach(() => {
     localStorage.clear();

@@ -53,7 +53,9 @@ const createMockDashboardState = (
   ...overrides,
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardState reducer', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('SET_ACTIVE_TAB', () => {
     test('switches a single tab', () => {
       const store = mockStore({

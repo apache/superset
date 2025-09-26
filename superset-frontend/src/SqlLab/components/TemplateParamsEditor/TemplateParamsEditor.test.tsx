@@ -64,6 +64,7 @@ const setup = (
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TemplateParamsEditor', () => {
   test('should render with a title', () => {
     const { container } = setup();

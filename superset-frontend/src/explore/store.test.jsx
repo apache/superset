@@ -19,6 +19,7 @@
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { applyDefaultFormData } from 'src/explore/store';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('store', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('test-chart', {
@@ -36,6 +37,7 @@ describe('store', () => {
     getChartControlPanelRegistry().remove('test-chart');
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('applyDefaultFormData', () => {
     window.featureFlags = {
       SCOPED_FILTER: false,

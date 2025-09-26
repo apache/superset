@@ -46,6 +46,7 @@ import {
   NEW_ROW_ID,
 } from 'src/dashboard/util/constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardLayout reducer', () => {
   test('should return initial state for unrecognized actions', () => {
     expect(layoutReducer(undefined, {})).toEqual({});

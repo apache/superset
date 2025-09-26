@@ -21,6 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import * as useQueryParamsModule from 'use-query-params';
 import AllEntitiesTable from './AllEntitiesTable';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AllEntitiesTable', () => {
   const mockSetShowTagModal = jest.fn();
 

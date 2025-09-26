@@ -24,6 +24,7 @@ import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
 const url = 'http://localhost/explore/p/100';
 fetchMock.post('glob:*/api/v1/explore/permalink', { url });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EmbedCodeButton', () => {
   test('renders', () => {
     expect(isValidElement(<EmbedCodeContent />)).toBe(true);

@@ -25,7 +25,9 @@ import {
   FALSE_STRING,
 } from 'src/utils/common';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('utils/common', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('optionFromValue', () => {
     test('converts values as expected', () => {
       expect(optionFromValue(false)).toEqual({
@@ -48,6 +50,7 @@ describe('utils/common', () => {
       expect(optionFromValue(5)).toEqual({ value: 5, label: '5' });
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('prepareCopyToClipboardTabularData', () => {
     test('converts empty array', () => {
       const data = [];
@@ -75,6 +78,7 @@ describe('utils/common', () => {
       );
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('applyFormattingToTabularData', () => {
     test('does not mutate empty array', () => {
       const data = [];

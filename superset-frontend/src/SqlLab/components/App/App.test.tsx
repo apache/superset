@@ -47,6 +47,7 @@ const sqlLabReducer = combineReducers({
 });
 const mockAction = {} as AnyAction;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SqlLab App', () => {
   const middlewares = [thunk];
   const mockStore = configureStore(middlewares);

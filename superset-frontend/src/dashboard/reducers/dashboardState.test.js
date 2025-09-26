@@ -33,6 +33,7 @@ import {
 
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState reducer', () => {
   test('should return initial state', () => {
     expect(dashboardStateReducer(undefined, {})).toEqual({});

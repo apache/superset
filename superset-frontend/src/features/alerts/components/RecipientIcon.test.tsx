@@ -20,6 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import RecipientIcon from './RecipientIcon';
 import { NotificationMethodOption } from '../types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RecipientIcon', () => {
   test('should render the email icon when type is Email', () => {
     const { container } = render(

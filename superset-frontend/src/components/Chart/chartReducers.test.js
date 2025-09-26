@@ -19,6 +19,7 @@
 import chartReducer, { chart } from 'src/components/Chart/chartReducer';
 import * as actions from 'src/components/Chart/chartAction';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart reducers', () => {
   const chartKey = 1;
   let testChart;
