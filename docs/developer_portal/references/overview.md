@@ -24,7 +24,7 @@ under the License.
 
 # References Overview
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Comprehensive reference documentation for all Superset plugin APIs, configuration options, and development resources.
 

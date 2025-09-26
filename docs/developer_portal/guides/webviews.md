@@ -24,7 +24,7 @@ under the License.
 
 # WebViews and Embedded Content
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Explore how to embed external web content, iframes, and interactive applications within your Superset plugins.
 

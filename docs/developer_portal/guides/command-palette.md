@@ -24,7 +24,7 @@ under the License.
 
 # Command Palette Integration
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to integrate your plugin with Superset's command palette to provide quick access to plugin functionality.
 

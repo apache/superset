@@ -24,7 +24,7 @@ under the License.
 
 # Remote Development
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to develop Superset plugins in remote and distributed environments, including cloud-based development workflows.
 

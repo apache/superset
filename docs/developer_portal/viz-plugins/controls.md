@@ -24,7 +24,7 @@ under the License.
 
 # Controls and Configuration
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to create intuitive control panels and configuration interfaces for your visualization plugins.
 

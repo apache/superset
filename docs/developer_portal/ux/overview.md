@@ -24,7 +24,7 @@ under the License.
 
 # User Experience Guidelines
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Comprehensive guidelines for creating intuitive and accessible user experiences in Superset plugins.
 

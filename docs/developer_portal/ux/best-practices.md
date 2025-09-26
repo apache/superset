@@ -24,7 +24,7 @@ under the License.
 
 # UX Best Practices
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Practical guidelines and proven patterns for creating exceptional user experiences in Superset plugins.
 

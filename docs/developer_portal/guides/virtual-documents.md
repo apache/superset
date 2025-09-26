@@ -24,7 +24,7 @@ under the License.
 
 # Virtual Documents
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to create and manage virtual documents that represent dynamic content and data sources within Superset.
 

@@ -24,7 +24,7 @@ under the License.
 
 # Integration Testing
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Test how your plugin components work together and integrate with Superset's core functionality.
 

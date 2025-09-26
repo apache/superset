@@ -24,7 +24,7 @@ under the License.
 
 # Extending the Workbench
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Discover how to extend Superset's main interface and workbench with custom components and functionality.
 

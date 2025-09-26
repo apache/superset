@@ -24,7 +24,7 @@ under the License.
 
 # Custom Editors
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Build specialized editing interfaces for data manipulation, query building, and configuration management.
 

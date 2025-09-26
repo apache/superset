@@ -24,7 +24,7 @@ under the License.
 
 # Theming and Styling
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to create custom themes and style your plugins to match Superset's design system.
 

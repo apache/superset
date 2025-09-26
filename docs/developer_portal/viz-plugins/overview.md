@@ -24,7 +24,7 @@ under the License.
 
 # Visualization Plugins Overview
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to create custom visualization plugins to extend Superset's charting capabilities with new chart types and data representations.
 

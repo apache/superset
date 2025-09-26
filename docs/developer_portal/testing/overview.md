@@ -24,7 +24,7 @@ under the License.
 
 # Testing Overview
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Comprehensive testing strategies and tools for ensuring the quality and reliability of your Superset plugins.
 

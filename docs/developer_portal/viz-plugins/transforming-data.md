@@ -24,7 +24,7 @@ under the License.
 
 # Transforming Data
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Master data transformation techniques to prepare and optimize data for your visualization plugins.
 

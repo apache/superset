@@ -24,7 +24,7 @@ under the License.
 
 # Plugin Capabilities Overview
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 This section provides a comprehensive overview of what Superset plugins can do and how they integrate with the core platform.
 
