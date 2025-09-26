@@ -1,0 +1,26 @@
+name: Detect Duplicate Issues
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  models: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  continuous-triage-dedup:
+    if: ${{ github.event.issue.user.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: pelikhan/action-genai-issue-dedup@v0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional tuning:
+          # labels: "auto"          # compare within matching labels, or "bug,api"
+          # count: "20"             # how many recent issues to check
+          # since: "90d"            # look back window, supports d/w/m
