@@ -192,7 +192,7 @@ describe('SqlEditor', () => {
     });
   });
 
-  it('does not render SqlEditor if no db selected', async () => {
+  test('does not render SqlEditor if no db selected', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[2];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
@@ -200,7 +200,7 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders db unavailable message', async () => {
+  test('renders db unavailable message', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
@@ -210,7 +210,7 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('render a SqlEditorLeftBar', async () => {
+  test('render a SqlEditorLeftBar', async () => {
     const { getByTestId, unmount } = setup(mockedProps, store);
 
     await waitFor(
@@ -222,7 +222,7 @@ describe('SqlEditor', () => {
   }, 15000);
 
   // Update other similar tests with timeouts
-  it('render an AceEditorWrapper', async () => {
+  test('render an AceEditorWrapper', async () => {
     const { findByTestId, unmount } = setup(mockedProps, store);
 
     await waitFor(
@@ -233,7 +233,7 @@ describe('SqlEditor', () => {
     unmount();
   }, 15000);
 
-  it('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
+  test('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
     const { findByTestId, queryByTestId } = setup(
       {
         ...mockedProps,
@@ -245,7 +245,7 @@ describe('SqlEditor', () => {
     expect(queryByTestId('react-ace')).not.toBeInTheDocument();
   });
 
-  it('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
+  test('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
@@ -260,7 +260,7 @@ describe('SqlEditor', () => {
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
   });
 
-  it('renders sql from unsaved change', async () => {
+  test('renders sql from unsaved change', async () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     store = createStore({
       ...initialState,
@@ -293,12 +293,12 @@ describe('SqlEditor', () => {
     expect(editor).toHaveValue(expectedSql);
   });
 
-  it('render a SouthPane', async () => {
+  test('render a SouthPane', async () => {
     const { findByTestId } = setup(mockedProps, store);
     expect(await findByTestId('mock-result-set')).toBeInTheDocument();
   });
 
-  it('runs query action with ctas false', async () => {
+  test('runs query action with ctas false', async () => {
     store = createStore({
       ...initialState,
       sqlLab: {
@@ -338,7 +338,7 @@ describe('SqlEditor', () => {
     );
   });
 
-  it('render a Limit Dropdown', async () => {
+  test('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const { findByText } = setup(updatedProps, store);
@@ -346,7 +346,7 @@ describe('SqlEditor', () => {
     expect(await findByText('10 000')).toBeInTheDocument();
   });
 
-  it('renders an Extension if provided', async () => {
+  test('renders an Extension if provided', async () => {
     const extensionsRegistry = getExtensionsRegistry();
 
     extensionsRegistry.set('sqleditor.extension.form', () => (
@@ -370,7 +370,7 @@ describe('SqlEditor', () => {
       mockIsFeatureEnabled.mockClear();
     });
 
-    it('sends the catalog and schema to the endpoint', async () => {
+    test('sends the catalog and schema to the endpoint', async () => {
       const estimateApi = 'http://localhost/api/v1/sqllab/estimate/';
       fetchMock.post(estimateApi, {});
 
@@ -446,7 +446,7 @@ describe('SqlEditor', () => {
       mockIsFeatureEnabled.mockClear();
     });
 
-    it('should render loading state when its Editor is not loaded', async () => {
+    test('should render loading state when its Editor is not loaded', async () => {
       const switchTabApi = `glob:*/tabstateview/${defaultQueryEditor.id}/activate`;
       fetchMock.post(switchTabApi, {});
       const { getByTestId } = setup(

@@ -20,13 +20,13 @@
 import DebouncedMessageQueue from './DebouncedMessageQueue';
 
 describe('DebouncedMessageQueue', () => {
-  it('should create a queue with default options', () => {
+  test('should create a queue with default options', () => {
     const queue = new DebouncedMessageQueue();
     expect(queue).toBeDefined();
     expect(queue.trigger).toBeInstanceOf(Function);
   });
 
-  it('should accept custom configuration options', () => {
+  test('should accept custom configuration options', () => {
     const mockCallback = jest.fn();
     const queue = new DebouncedMessageQueue({
       callback: mockCallback,
@@ -36,7 +36,7 @@ describe('DebouncedMessageQueue', () => {
     expect(queue).toBeDefined();
   });
 
-  it('should append items to the queue', () => {
+  test('should append items to the queue', () => {
     const mockCallback = jest.fn();
     const queue = new DebouncedMessageQueue({ callback: mockCallback });
 
@@ -47,7 +47,7 @@ describe('DebouncedMessageQueue', () => {
     expect(() => queue.append(testEvent)).not.toThrow();
   });
 
-  it('should handle generic types properly', () => {
+  test('should handle generic types properly', () => {
     interface TestEvent {
       id: number;
       data: string;

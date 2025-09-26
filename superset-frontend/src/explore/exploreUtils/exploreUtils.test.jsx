@@ -40,7 +40,7 @@ describe('exploreUtils', () => {
   }
 
   describe('getExploreUrl', () => {
-    it('generates proper base url', () => {
+    test('generates proper base url', () => {
       // This assertion is to show clearly the value of location.href
       // in the context of unit tests.
       expect(location.href).toBe('http://localhost/');
@@ -53,7 +53,7 @@ describe('exploreUtils', () => {
       });
       compareURI(URI(url), URI('/explore/'));
     });
-    it('generates proper json url', () => {
+    test('generates proper json url', () => {
       const url = getExploreUrl({
         formData,
         endpointType: 'json',
@@ -62,7 +62,7 @@ describe('exploreUtils', () => {
       });
       compareURI(URI(url), URI('/superset/explore_json/'));
     });
-    it('generates proper json forced url', () => {
+    test('generates proper json forced url', () => {
       const url = getExploreUrl({
         formData,
         endpointType: 'json',
@@ -74,7 +74,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/').search({ force: 'true' }),
       );
     });
-    it('generates proper csv URL', () => {
+    test('generates proper csv URL', () => {
       const url = getExploreUrl({
         formData,
         endpointType: 'csv',
@@ -86,7 +86,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/').search({ csv: 'true' }),
       );
     });
-    it('generates proper standalone URL', () => {
+    test('generates proper standalone URL', () => {
       const url = getExploreUrl({
         formData,
         endpointType: 'standalone',
@@ -100,7 +100,7 @@ describe('exploreUtils', () => {
         }),
       );
     });
-    it('preserves main URLs params', () => {
+    test('preserves main URLs params', () => {
       const url = getExploreUrl({
         formData,
         endpointType: 'json',
@@ -112,7 +112,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
     });
-    it('generate proper save slice url', () => {
+    test('generate proper save slice url', () => {
       const url = getExploreUrl({
         formData,
         endpointType: 'json',
@@ -143,7 +143,7 @@ describe('exploreUtils', () => {
       stub.restore();
     });
 
-    it('generate url to different domains', () => {
+    test('generate url to different domains', () => {
       let url = getExploreUrl({
         formData,
         endpointType: 'json',
@@ -175,7 +175,7 @@ describe('exploreUtils', () => {
       });
       expect(url).toMatch(availableDomains[1]);
     });
-    it('not generate url to different domains without flag', () => {
+    test('not generate url to different domains without flag', () => {
       let csvURL = getExploreUrl({
         formData,
         endpointType: 'csv',
@@ -191,7 +191,7 @@ describe('exploreUtils', () => {
   });
 
   describe('buildV1ChartDataPayload', () => {
-    it('generate valid request payload despite no registered buildQuery', async () => {
+    test('generate valid request payload despite no registered buildQuery', async () => {
       const v1RequestPayload = await buildV1ChartDataPayload({
         formData: { ...formData, viz_type: 'my_custom_viz' },
       });
@@ -210,7 +210,7 @@ describe('exploreUtils', () => {
       getChartMetadataRegistry().remove('my_legacy_viz').remove('my_v1_viz');
     });
 
-    it('returns true for legacy viz', () => {
+    test('returns true for legacy viz', () => {
       const [useLegacyApi, parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'my_legacy_viz',
@@ -219,7 +219,7 @@ describe('exploreUtils', () => {
       expect(parseMethod).toBe('json-bigint');
     });
 
-    it('returns false for v1 viz', () => {
+    test('returns false for v1 viz', () => {
       const [useLegacyApi, parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'my_v1_viz',
@@ -228,7 +228,7 @@ describe('exploreUtils', () => {
       expect(parseMethod).toBe('json-bigint');
     });
 
-    it('returns false for formData with unregistered viz_type', () => {
+    test('returns false for formData with unregistered viz_type', () => {
       const [useLegacyApi, parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'undefined_viz',
@@ -237,7 +237,7 @@ describe('exploreUtils', () => {
       expect(parseMethod).toBe('json-bigint');
     });
 
-    it('returns false for formData without viz_type', () => {
+    test('returns false for formData without viz_type', () => {
       const [useLegacyApi, parseMethod] = getQuerySettings(formData);
       expect(useLegacyApi).toBe(false);
       expect(parseMethod).toBe('json-bigint');
@@ -245,20 +245,20 @@ describe('exploreUtils', () => {
   });
 
   describe('getSimpleSQLExpression', () => {
-    it('returns empty string when subject is undefined', () => {
+    test('returns empty string when subject is undefined', () => {
       expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
       expect(getSimpleSQLExpression()).toBe('');
     });
-    it("returns subject when it's provided and operator is undefined", () => {
+    test("returns subject when it's provided and operator is undefined", () => {
       expect(getSimpleSQLExpression('col', undefined, 10)).toBe('col');
       expect(getSimpleSQLExpression('col')).toBe('col');
     });
-    it("returns subject and operator when they're provided and comparator is undefined", () => {
+    test("returns subject and operator when they're provided and comparator is undefined", () => {
       expect(getSimpleSQLExpression('col', '=')).toBe('col =');
       expect(getSimpleSQLExpression('col', 'IN')).toBe('col IN');
       expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN');
     });
-    it('returns full expression when subject, operator and comparator are provided', () => {
+    test('returns full expression when subject, operator and comparator are provided', () => {
       expect(getSimpleSQLExpression('col', '=', 'comp')).toBe("col = 'comp'");
       expect(getSimpleSQLExpression('col', '=', "it's an apostrophe")).toBe(
         "col = 'it''s an apostrophe'",
@@ -282,7 +282,7 @@ describe('exploreUtils', () => {
   });
 
   describe('.exploreChart()', () => {
-    it('postForm', () => {
+    test('postForm', () => {
       const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
       postFormSpy.mockImplementation(jest.fn());
 

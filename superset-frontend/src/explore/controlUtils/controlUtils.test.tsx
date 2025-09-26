@@ -94,12 +94,12 @@ describe('controlUtils', () => {
   });
 
   describe('getControlConfig', () => {
-    it('returns a valid spatial controlConfig', () => {
+    test('returns a valid spatial controlConfig', () => {
       const spatialControl = getControlConfig('color_scheme', 'test-chart');
       expect(spatialControl?.type).toEqual('ColorSchemeControl');
     });
 
-    it('overrides according to vizType', () => {
+    test('overrides according to vizType', () => {
       let control = getKnownControlConfig('color_scheme', 'test-chart');
       expect(control.label).toEqual('Color Scheme');
 
@@ -107,7 +107,7 @@ describe('controlUtils', () => {
       expect(control.label).toEqual('My beautiful colors');
     });
 
-    it(
+    test(
       'returns correct control config when control config is defined ' +
         'in the control panel definition',
       () => {
@@ -130,7 +130,7 @@ describe('controlUtils', () => {
   });
 
   describe('applyMapStateToPropsToControl,', () => {
-    it('applies state to props as expected', () => {
+    test('applies state to props as expected', () => {
       let control = getKnownControlConfig('all_columns', 'table');
       control = applyMapStateToPropsToControl(control, state);
       expect(control.options).toEqual([{ column_name: 'a' }]);
@@ -138,18 +138,18 @@ describe('controlUtils', () => {
   });
 
   describe('getControlState', () => {
-    it('to still have the functions', () => {
+    test('to still have the functions', () => {
       const control = getKnownControlState('metrics', 'table', state, 'a');
       expect(typeof control.mapStateToProps).toBe('function');
       expect(typeof control.validators?.[0]).toBe('function');
     });
 
-    it('to make sure value is array', () => {
+    test('to make sure value is array', () => {
       const control = getKnownControlState('all_columns', 'table', state, 'a');
       expect(control.value).toEqual(['a']);
     });
 
-    it('removes missing/invalid choice', () => {
+    test('removes missing/invalid choice', () => {
       let control = getControlState(
         'stacked_style',
         'test-chart',
@@ -162,22 +162,22 @@ describe('controlUtils', () => {
       expect(control?.value).toBeNull();
     });
 
-    it('returns null for nonexistent field', () => {
+    test('returns null for nonexistent field', () => {
       const control = getControlState('NON_EXISTENT', 'table', state);
       expect(control).toBeNull();
     });
 
-    it('metrics control should be empty by default', () => {
+    test('metrics control should be empty by default', () => {
       const control = getControlState('metrics', 'table', state);
       expect(control?.default).toBeUndefined();
     });
 
-    it('metric control should be empty by default', () => {
+    test('metric control should be empty by default', () => {
       const control = getControlState('metric', 'table', state);
       expect(control?.default).toBeUndefined();
     });
 
-    it('should not apply mapStateToProps when initializing', () => {
+    test('should not apply mapStateToProps when initializing', () => {
       const control = getControlState('metrics', 'table', {
         ...state,
         controls: undefined,
@@ -187,11 +187,11 @@ describe('controlUtils', () => {
   });
 
   describe('validateControl', () => {
-    it('validates the control, returns an error if empty', () => {
+    test('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control?.validationErrors).toEqual(['cannot be empty']);
     });
-    it('should not validate if control panel is initializing', () => {
+    test('should not validate if control panel is initializing', () => {
       const control = getControlState(
         'metric',
         'table',
@@ -203,7 +203,7 @@ describe('controlUtils', () => {
   });
 
   describe('findControlItem', () => {
-    it('find control as a string', () => {
+    test('find control as a string', () => {
       const controlItem = findControlItem(
         controlPanelSectionsChartOptions,
         'color_scheme',
@@ -211,7 +211,7 @@ describe('controlUtils', () => {
       expect(controlItem).toEqual('color_scheme');
     });
 
-    it('find control as a control object', () => {
+    test('find control as a control object', () => {
       let controlItem = findControlItem(
         controlPanelSectionsChartOptions,
         'rose_area_proportion',
@@ -227,7 +227,7 @@ describe('controlUtils', () => {
       expect(controlItem).toHaveProperty('config');
     });
 
-    it('returns null when key is not found', () => {
+    test('returns null when key is not found', () => {
       const controlItem = findControlItem(
         controlPanelSectionsChartOptions,
         'non_existing_key',

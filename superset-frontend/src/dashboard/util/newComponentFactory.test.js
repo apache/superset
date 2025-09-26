@@ -48,7 +48,7 @@ const types = [
 
 describe('newEntityFactory', () => {
   types.forEach(type => {
-    it(`returns a new ${type}`, () => {
+    test(`returns a new ${type}`, () => {
       const result = newComponentFactory(type);
 
       expect(result.type).toBe(type);
@@ -58,7 +58,7 @@ describe('newEntityFactory', () => {
     });
   });
 
-  it('adds passed meta data to the entity', () => {
+  test('adds passed meta data to the entity', () => {
     const banana = 'banana';
     const result = newComponentFactory(CHART_TYPE, { banana });
     expect(result.meta.banana).toBe(banana);

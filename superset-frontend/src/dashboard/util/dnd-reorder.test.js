@@ -21,7 +21,7 @@ import { TABS_TYPE } from './componentTypes';
 import { DROP_LEFT, DROP_RIGHT } from './getDropPosition';
 
 describe('dnd-reorderItem', () => {
-  it('should remove the item from its source entity and add it to its destination entity', () => {
+  test('should remove the item from its source entity and add it to its destination entity', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -41,7 +41,7 @@ describe('dnd-reorderItem', () => {
     expect(result.b.children).toEqual(['banana', 'z']);
   });
 
-  it('should correctly move elements within the same list', () => {
+  test('should correctly move elements within the same list', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -56,7 +56,7 @@ describe('dnd-reorderItem', () => {
     expect(result.a.children).toEqual(['z', 'x', 'y']);
   });
 
-  it('should copy items that do not move into the result', () => {
+  test('should copy items that do not move into the result', () => {
     const extraEntity = {};
     const result = reorderItem({
       entitiesMap: {
@@ -77,7 +77,7 @@ describe('dnd-reorderItem', () => {
     expect(result.iAmExtra).toBe(extraEntity);
   });
 
-  it('should handle out of bounds destination index gracefully', () => {
+  test('should handle out of bounds destination index gracefully', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -97,7 +97,7 @@ describe('dnd-reorderItem', () => {
     expect(result.b.children).toEqual(['banana', 'y']);
   });
 
-  it('should do nothing if source and destination are the same and indices are the same', () => {
+  test('should do nothing if source and destination are the same and indices are the same', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -112,7 +112,7 @@ describe('dnd-reorderItem', () => {
     expect(result.a.children).toEqual(['x', 'y', 'z']);
   });
 
-  it('should handle DROP_LEFT in the same TABS_TYPE list correctly', () => {
+  test('should handle DROP_LEFT in the same TABS_TYPE list correctly', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -129,7 +129,7 @@ describe('dnd-reorderItem', () => {
     expect(result.a.children).toEqual(['x', 'z', 'y']);
   });
 
-  it('should handle DROP_RIGHT in the same TABS_TYPE list correctly', () => {
+  test('should handle DROP_RIGHT in the same TABS_TYPE list correctly', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -146,7 +146,7 @@ describe('dnd-reorderItem', () => {
     expect(result.a.children).toEqual(['y', 'x', 'z']);
   });
 
-  it('should handle DROP_LEFT when moving between different TABS_TYPE lists', () => {
+  test('should handle DROP_LEFT when moving between different TABS_TYPE lists', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -169,7 +169,7 @@ describe('dnd-reorderItem', () => {
     expect(result.b.children).toEqual(['y', 'banana']);
   });
 
-  it('should handle DROP_RIGHT when moving between different TABS_TYPE lists', () => {
+  test('should handle DROP_RIGHT when moving between different TABS_TYPE lists', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {

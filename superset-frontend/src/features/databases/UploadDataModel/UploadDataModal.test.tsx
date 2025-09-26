@@ -601,7 +601,7 @@ describe('File Extension Validation', () => {
 });
 
 describe('UploadDataModal Collapse Tabs', () => {
-  it('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
+  test('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...csvProps} />, {
       useRedux: true,
     });
@@ -621,7 +621,7 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
+  test('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...excelProps} />, {
       useRedux: true,
     });
@@ -641,7 +641,7 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
+  test('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...columnarProps} />, {
       useRedux: true,
     });

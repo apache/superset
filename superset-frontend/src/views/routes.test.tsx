@@ -21,13 +21,13 @@ import { isFrontendRoute, routes } from './routes';
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
 
 describe('isFrontendRoute', () => {
-  it('returns true if a route matches', () => {
+  test('returns true if a route matches', () => {
     routes.forEach(r => {
       expect(isFrontendRoute(r.path)).toBe(true);
     });
   });
 
-  it('returns false if a route does not match', () => {
+  test('returns false if a route does not match', () => {
     expect(isFrontendRoute('/nonexistent/path/')).toBe(false);
   });
 });

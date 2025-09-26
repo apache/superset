@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
 
 describe('RightPanel', () => {
-  it('renders a blank state RightPanel', () => {
+  test('renders a blank state RightPanel', () => {
     render(<RightPanel />);
 
     expect(screen.getByText(/right panel/i)).toBeVisible();

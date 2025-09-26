@@ -34,7 +34,7 @@ describe('Theme API', () => {
   });
 
   describe('setSystemDefaultTheme', () => {
-    it('should call the correct endpoint with theme id', async () => {
+    test('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 1, result: 'success' };
       fetchMock.put('glob:*/api/v1/theme/1/set_system_default', mockResponse);
 
@@ -45,7 +45,7 @@ describe('Theme API', () => {
       );
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.put('glob:*/api/v1/theme/1/set_system_default', {
         throws: new Error('API Error'),
       });
@@ -55,7 +55,7 @@ describe('Theme API', () => {
   });
 
   describe('setSystemDarkTheme', () => {
-    it('should call the correct endpoint with theme id', async () => {
+    test('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 2, result: 'success' };
       fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', mockResponse);
 
@@ -66,7 +66,7 @@ describe('Theme API', () => {
       );
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', {
         throws: new Error('API Error'),
       });
@@ -76,7 +76,7 @@ describe('Theme API', () => {
   });
 
   describe('unsetSystemDefaultTheme', () => {
-    it('should call the correct endpoint', async () => {
+    test('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
       fetchMock.delete(
         'glob:*/api/v1/theme/unset_system_default',
@@ -90,7 +90,7 @@ describe('Theme API', () => {
       );
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.delete('glob:*/api/v1/theme/unset_system_default', {
         throws: new Error('API Error'),
       });
@@ -100,7 +100,7 @@ describe('Theme API', () => {
   });
 
   describe('unsetSystemDarkTheme', () => {
-    it('should call the correct endpoint', async () => {
+    test('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
       fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', mockResponse);
 
@@ -111,7 +111,7 @@ describe('Theme API', () => {
       );
     });
 
-    it('should handle errors properly', async () => {
+    test('should handle errors properly', async () => {
       fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', {
         throws: new Error('API Error'),
       });

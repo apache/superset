@@ -30,7 +30,7 @@ describe('AnchorLink', () => {
     window.location = globalLocation;
   });
 
-  it('should scroll the AnchorLink into view upon mount if id matches hash', async () => {
+  test('should scroll the AnchorLink into view upon mount if id matches hash', async () => {
     const callback = jest.fn();
     jest.spyOn(document, 'getElementById').mockReturnValue({
       scrollIntoView: callback,
@@ -49,7 +49,7 @@ describe('AnchorLink', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it('should render anchor link without short link button', () => {
+  test('should render anchor link without short link button', () => {
     const { container, queryByRole } = render(
       <AnchorLink showShortLinkButton={false} {...props} />,
       { useRedux: true },
@@ -58,7 +58,7 @@ describe('AnchorLink', () => {
     expect(queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('should render short link button', () => {
+  test('should render short link button', () => {
     const { getByRole } = render(
       <AnchorLink {...props} showShortLinkButton />,
       { useRedux: true },

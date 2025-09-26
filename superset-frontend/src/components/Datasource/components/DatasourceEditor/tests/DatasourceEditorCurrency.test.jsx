@@ -40,7 +40,7 @@ describe('DatasourceEditor Currency Tests', () => {
   });
 
   // The problematic test, now optimized
-  it('renders currency controls', async () => {
+  test('renders currency controls', async () => {
     // Setup a metric with currency data
     const propsWithCurrency = {
       ...props,

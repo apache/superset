@@ -37,7 +37,7 @@ describe('getCrossFilterIndicator', () => {
     },
   ];
 
-  it('returns correct indicator with label from filterState.label', () => {
+  test('returns correct indicator with label from filterState.label', () => {
     const dataMask = {
       filterState: { label: 'foo', value: 'bar' },
       extraFormData: {},
@@ -51,7 +51,7 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns correct indicator with label from filterState.value', () => {
+  test('returns correct indicator with label from filterState.value', () => {
     const dataMask = {
       filterState: { value: ['bar', 'baz'] },
       extraFormData: {},
@@ -65,7 +65,7 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns correct indicator with column and customColumnLabel', () => {
+  test('returns correct indicator with column and customColumnLabel', () => {
     const dataMask = {
       filterState: {
         value: 'valA',
@@ -84,7 +84,7 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns correct indicator with column from extraFormData.filters', () => {
+  test('returns correct indicator with column from extraFormData.filters', () => {
     const filterClause = { col: 'colB', op: 'IS NOT NULL' as const };
     const dataMask = {
       filterState: { value: 'valB' },
@@ -99,7 +99,7 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns correct indicator with column from filterState.filters', () => {
+  test('returns correct indicator with column from filterState.filters', () => {
     const dataMask = {
       filterState: { value: 'valC', filters: { colC: 'something' } },
       extraFormData: {},
@@ -113,7 +113,7 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns empty name and path if chartLayoutItem is not found', () => {
+  test('returns empty name and path if chartLayoutItem is not found', () => {
     const dataMask = {
       filterState: { value: 'valD' },
       extraFormData: {},
@@ -127,7 +127,7 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns null value if no label or value in filterState', () => {
+  test('returns null value if no label or value in filterState', () => {
     const dataMask = {
       filterState: {},
       extraFormData: {},

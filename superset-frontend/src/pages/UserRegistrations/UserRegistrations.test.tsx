@@ -47,7 +47,7 @@ describe('UserRegistrations', () => {
       useQueryParams: true,
     });
   });
-  it('fetches and renders user registrations', async () => {
+  test('fetches and renders user registrations', async () => {
     expect(await screen.findByText('User registrations')).toBeVisible();
     const calls = fetchMock.calls(userRegistrationsEndpoint);
     expect(calls.length).toBeGreaterThan(0);

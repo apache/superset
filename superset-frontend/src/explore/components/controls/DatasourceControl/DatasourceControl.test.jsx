@@ -83,17 +83,17 @@ describe('DatasourceControl', () => {
     };
   };
 
-  it('should not render Modal', () => {
+  test('should not render Modal', () => {
     setup();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('should not render ChangeDatasourceModal', () => {
+  test('should not render ChangeDatasourceModal', () => {
     setup();
     expect(screen.queryByTestId('Swap dataset-modal')).not.toBeInTheDocument();
   });
 
-  it('show or hide Edit Datasource option', async () => {
+  test('show or hide Edit Datasource option', async () => {
     const {
       rendered: { container, rerender },
       store,
@@ -127,7 +127,7 @@ describe('DatasourceControl', () => {
     });
   });
 
-  it('should render health check message', async () => {
+  test('should render health check message', async () => {
     setup();
     const modalTrigger = screen.getByLabelText('warning');
     expect(modalTrigger).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe('DatasourceControl', () => {
     });
   });
 
-  it('Gets Datasource Title', () => {
+  test('Gets Datasource Title', () => {
     const sql = 'This is the sql';
     const name = 'this is a name';
     const emptyResult = '';

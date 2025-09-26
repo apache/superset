@@ -44,7 +44,7 @@ describe('updateComponentParentsList', () => {
     ...dashboardLayoutWithTabs.present,
   };
 
-  it('should handle empty layout', () => {
+  test('should handle empty layout', () => {
     const nextState = {
       ...emptyLayout,
     };
@@ -57,7 +57,7 @@ describe('updateComponentParentsList', () => {
     expect(nextState.GRID_ID.parents).toEqual(['ROOT_ID']);
   });
 
-  it('should handle grid layout', () => {
+  test('should handle grid layout', () => {
     const nextState = {
       ...gridLayout,
     };
@@ -76,7 +76,7 @@ describe('updateComponentParentsList', () => {
     ]);
   });
 
-  it('should handle root level tabs', () => {
+  test('should handle root level tabs', () => {
     const nextState = {
       ...tabsLayout,
     };
@@ -97,7 +97,7 @@ describe('updateComponentParentsList', () => {
 });
 
 describe('updateComponentParentsList with bad inputs', () => {
-  it('should handle invalid parameters and not throw error', () => {
+  test('should handle invalid parameters and not throw error', () => {
     updateComponentParentsList({
       currentComponent: undefined,
       layout: undefined,

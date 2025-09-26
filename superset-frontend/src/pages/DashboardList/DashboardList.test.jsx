@@ -106,19 +106,19 @@ describe('DashboardList', () => {
     isFeatureEnabled.mockRestore();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     renderDashboardList();
     expect(await screen.findByText('Dashboards')).toBeInTheDocument();
   });
 
-  it('renders a ListView', async () => {
+  test('renders a ListView', async () => {
     renderDashboardList();
     expect(
       await screen.findByTestId('dashboard-list-view'),
     ).toBeInTheDocument();
   });
 
-  it('fetches info', async () => {
+  test('fetches info', async () => {
     renderDashboardList();
     await waitFor(() => {
       const calls = fetchMock.calls(/dashboard\/_info/);
@@ -126,7 +126,7 @@ describe('DashboardList', () => {
     });
   });
 
-  it('fetches data', async () => {
+  test('fetches data', async () => {
     renderDashboardList();
     await waitFor(() => {
       const calls = fetchMock.calls(/dashboard\/\?q/);
@@ -139,7 +139,7 @@ describe('DashboardList', () => {
     );
   });
 
-  it('switches between card and table view', async () => {
+  test('switches between card and table view', async () => {
     renderDashboardList();
 
     // Wait for the list to load
@@ -159,7 +159,7 @@ describe('DashboardList', () => {
     fireEvent.click(cardViewButton);
   });
 
-  it('shows edit modal', async () => {
+  test('shows edit modal', async () => {
     renderDashboardList();
 
     // Wait for data to load
@@ -181,7 +181,7 @@ describe('DashboardList', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  it('shows delete confirmation', async () => {
+  test('shows delete confirmation', async () => {
     renderDashboardList();
 
     // Wait for data to load
@@ -205,7 +205,7 @@ describe('DashboardList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders an "Import Dashboard" tooltip', async () => {
+  test('renders an "Import Dashboard" tooltip', async () => {
     renderDashboardList();
 
     const importButton = await screen.findByTestId('import-button');
@@ -220,7 +220,7 @@ describe('DashboardList', () => {
 });
 
 describe('DashboardList - anonymous view', () => {
-  it('does not render favorite stars for anonymous user', async () => {
+  test('does not render favorite stars for anonymous user', async () => {
     render(
       <MemoryRouter>
         <QueryParamProvider>

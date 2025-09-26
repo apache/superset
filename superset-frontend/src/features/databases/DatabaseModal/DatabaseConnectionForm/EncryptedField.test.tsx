@@ -102,7 +102,7 @@ describe('EncryptedField', () => {
   });
 
   describe('Engine-to-Field Mapping', () => {
-    it.each(supportedEngines)(
+    test.each(supportedEngines)(
       'resolves field name for %s engine → %s field',
       (engine, expectedField) => {
         const mockDb = createMockDb(engine);
@@ -115,7 +115,7 @@ describe('EncryptedField', () => {
       },
     );
 
-    it('handles unmapped engines gracefully', () => {
+    test('handles unmapped engines gracefully', () => {
       const unmappedEngine = 'unknown-engine-xyz';
       const mockDb = createMockDb(unmappedEngine);
       const props = { ...defaultProps, db: mockDb };
@@ -126,7 +126,7 @@ describe('EncryptedField', () => {
       expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
     });
 
-    it.each([
+    test.each([
       ['null engine', null, null],
       ['undefined engine', undefined, undefined],
       ['empty string engine', '', ''],
@@ -170,7 +170,7 @@ describe('EncryptedField', () => {
       },
     ];
 
-    it.each(testCases)(
+    test.each(testCases)(
       'processes $description correctly',
       ({ input, expected }) => {
         const mockDb = createMockDb('gsheets', {
@@ -185,7 +185,7 @@ describe('EncryptedField', () => {
       },
     );
 
-    it('handles null/undefined parameters', () => {
+    test('handles null/undefined parameters', () => {
       const mockDb = createMockDb('gsheets', {});
       const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
@@ -197,7 +197,7 @@ describe('EncryptedField', () => {
   });
 
   describe('Conditional Rendering Logic', () => {
-    it('shows upload selector in create mode', () => {
+    test('shows upload selector in create mode', () => {
       const props = { ...defaultProps, isEditMode: false, editNewDb: false };
 
       render(<EncryptedField {...props} />);
@@ -211,7 +211,7 @@ describe('EncryptedField', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('shows textarea in edit mode', () => {
+    test('shows textarea in edit mode', () => {
       const props = { ...defaultProps, isEditMode: true, editNewDb: false };
 
       render(<EncryptedField {...props} />);
@@ -225,7 +225,7 @@ describe('EncryptedField', () => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
-    it('shows textarea when editNewDb is true', () => {
+    test('shows textarea when editNewDb is true', () => {
       const props = { ...defaultProps, isEditMode: false, editNewDb: true };
 
       render(<EncryptedField {...props} />);
@@ -242,7 +242,7 @@ describe('EncryptedField', () => {
   });
 
   describe('Upload Option State Management', () => {
-    it('defaults to upload option', () => {
+    test('defaults to upload option', () => {
       const props = { ...defaultProps, isEditMode: false };
 
       render(<EncryptedField {...props} />);
@@ -251,7 +251,7 @@ describe('EncryptedField', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('switches to copy-paste option', () => {
+    test('switches to copy-paste option', () => {
       const props = { ...defaultProps, isEditMode: false };
 
       render(<EncryptedField {...props} />);
@@ -270,7 +270,7 @@ describe('EncryptedField', () => {
   });
 
   describe('Form Integration Contract', () => {
-    it.each(supportedEngines)(
+    test.each(supportedEngines)(
       'calls onParametersChange with correct field name for %s engine',
       (engine, fieldName) => {
         const mockDb = createMockDb(engine);
@@ -287,7 +287,7 @@ describe('EncryptedField', () => {
       },
     );
 
-    it('initializes with empty value on mount', () => {
+    test('initializes with empty value on mount', () => {
       const props = { ...defaultProps };
 
       render(<EncryptedField {...props} />);
@@ -299,7 +299,7 @@ describe('EncryptedField', () => {
       );
     });
 
-    it('renders correctly with default props', () => {
+    test('renders correctly with default props', () => {
       const props = { ...defaultProps };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
@@ -316,7 +316,7 @@ describe('EncryptedField', () => {
   });
 
   describe('Error Boundaries', () => {
-    it('renders gracefully when database prop is missing', () => {
+    test('renders gracefully when database prop is missing', () => {
       const props = { ...defaultProps, db: undefined };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
@@ -325,7 +325,7 @@ describe('EncryptedField', () => {
       expectParametersChange(props.changeMethods, undefined, '');
     });
 
-    it('renders gracefully with malformed database parameters', () => {
+    test('renders gracefully with malformed database parameters', () => {
       const mockDb = createMockDb('gsheets', {
         service_account_info: Symbol('test-symbol'),
       });
@@ -341,7 +341,7 @@ describe('EncryptedField', () => {
   });
 
   describe('Accessibility', () => {
-    it('provides proper form labels and attributes', () => {
+    test('provides proper form labels and attributes', () => {
       const props = { ...defaultProps, isEditMode: true };
 
       render(<EncryptedField {...props} />);
@@ -356,7 +356,7 @@ describe('EncryptedField', () => {
       );
     });
 
-    it('provides proper labels for upload method selection', () => {
+    test('provides proper labels for upload method selection', () => {
       const props = { ...defaultProps, isEditMode: false };
 
       render(<EncryptedField {...props} />);

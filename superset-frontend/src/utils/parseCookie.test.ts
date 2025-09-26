@@ -23,17 +23,17 @@ describe('parseCookie', () => {
   Object.defineProperty(document, 'cookie', {
     get: jest.fn().mockImplementation(() => cookieVal),
   });
-  it('parses cookie strings', () => {
+  test('parses cookie strings', () => {
     cookieVal = 'val1=foo; val2=bar';
     expect(parseCookie()).toEqual({ val1: 'foo', val2: 'bar' });
   });
 
-  it('parses empty cookie strings', () => {
+  test('parses empty cookie strings', () => {
     cookieVal = '';
     expect(parseCookie()).toEqual({});
   });
 
-  it('accepts an arg', () => {
+  test('accepts an arg', () => {
     expect(parseCookie('val=foo')).toEqual({ val: 'foo' });
   });
 });

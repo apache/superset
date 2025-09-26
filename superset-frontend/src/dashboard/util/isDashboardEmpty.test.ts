@@ -32,11 +32,11 @@ describe('isDashboardEmpty', () => {
     },
   };
 
-  it('should return true for empty dashboard', () => {
+  test('should return true for empty dashboard', () => {
     expect(isDashboardEmpty(emptyLayout)).toBe(true);
   });
 
-  it('should return false for non-empty dashboard', () => {
+  test('should return false for non-empty dashboard', () => {
     expect(isDashboardEmpty(testLayout)).toBe(false);
   });
 });

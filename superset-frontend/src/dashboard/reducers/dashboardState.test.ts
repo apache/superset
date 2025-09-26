@@ -55,7 +55,7 @@ const createMockDashboardState = (
 
 describe('DashboardState reducer', () => {
   describe('SET_ACTIVE_TAB', () => {
-    it('switches a single tab', () => {
+    test('switches a single tab', () => {
       const store = mockStore({
         dashboardState: { activeTabs: [] },
         dashboardLayout: { present: { tab1: { parents: [] } } },
@@ -87,7 +87,7 @@ describe('DashboardState reducer', () => {
       );
     });
 
-    it('switches a multi-depth tab', () => {
+    test('switches a multi-depth tab', () => {
       const initState = { activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] };
       const store = mockStore({
         dashboardState: initState,
@@ -176,7 +176,7 @@ describe('DashboardState reducer', () => {
       );
     });
   });
-  it('SET_ACTIVE_TABS', () => {
+  test('SET_ACTIVE_TABS', () => {
     expect(
       typedDashboardStateReducer(
         createMockDashboardState({ activeTabs: [] }),

@@ -119,7 +119,7 @@ describe('asyncEvent middleware', () => {
       asyncEvent.init(config);
     });
 
-    it('resolves with chart data on event done status', async () => {
+    test('resolves with chart data on event done status', async () => {
       const actualResolved =
         await asyncEvent.waitForAsyncData(asyncPendingEvent);
       expect(actualResolved).toEqual([chartData]);
@@ -128,7 +128,7 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
 
-    it('rejects on event error status', async () => {
+    test('rejects on event error status', async () => {
       fetchMock.reset();
       fetchMock.get(EVENTS_ENDPOINT, {
         status: 200,
@@ -148,7 +148,7 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
     });
 
-    it('rejects on cached data fetch error', async () => {
+    test('rejects on cached data fetch error', async () => {
       fetchMock.reset();
       fetchMock.get(EVENTS_ENDPOINT, {
         status: 200,
@@ -198,7 +198,7 @@ describe('asyncEvent middleware', () => {
       WS.clean();
     });
 
-    it('resolves with chart data on event done status', async () => {
+    test('resolves with chart data on event done status', async () => {
       await wsServer.connected;
 
       const promise = asyncEvent.waitForAsyncData(asyncPendingEvent);
@@ -211,7 +211,7 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
-    it('rejects on event error status', async () => {
+    test('rejects on event error status', async () => {
       await wsServer.connected;
 
       const promise = asyncEvent.waitForAsyncData(asyncPendingEvent);
@@ -226,7 +226,7 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
-    it('rejects on cached data fetch error', async () => {
+    test('rejects on cached data fetch error', async () => {
       fetchMock.reset();
       fetchMock.get(CACHED_DATA_ENDPOINT, {
         status: 400,
@@ -251,7 +251,7 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
-    it('resolves when events are received before listener', async () => {
+    test('resolves when events are received before listener', async () => {
       await wsServer.connected;
 
       wsServer.send(JSON.stringify(asyncDoneEvent));

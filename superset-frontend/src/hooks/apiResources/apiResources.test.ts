@@ -52,7 +52,7 @@ describe('apiResource hooks', () => {
   });
 
   describe('useApiResourceFullBody', () => {
-    it('returns a loading state at the start', async () => {
+    test('returns a loading state at the start', async () => {
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
@@ -66,7 +66,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    it('resolves to the value from the api', async () => {
+    test('resolves to the value from the api', async () => {
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
@@ -80,7 +80,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    it('handles api errors', async () => {
+    test('handles api errors', async () => {
       const fakeError = new Error('fake api error');
       (makeApi as any).mockReturnValue(jest.fn().mockRejectedValue(fakeError));
       const { result } = renderHook(() =>
@@ -98,7 +98,7 @@ describe('apiResource hooks', () => {
   });
 
   describe('useTransformedResource', () => {
-    it('applies a transformation to the resource', () => {
+    test('applies a transformation to the resource', () => {
       const { result } = renderHook(() =>
         useTransformedResource(
           {
@@ -119,7 +119,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    it('works while loading', () => {
+    test('works while loading', () => {
       const nameToAllCaps = (thing: any) => ({
         ...thing,
         name: thing.name.toUpperCase(),
@@ -143,7 +143,7 @@ describe('apiResource hooks', () => {
   });
 
   describe('useApiV1Endpoint', () => {
-    it('resolves to the value from the api', async () => {
+    test('resolves to the value from the api', async () => {
       (makeApi as any).mockReturnValue(
         jest.fn().mockResolvedValue({
           meta: 'data',

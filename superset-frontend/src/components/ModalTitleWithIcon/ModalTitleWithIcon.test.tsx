@@ -21,26 +21,26 @@ import { Icons } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from '.';
 
 describe('ModalTitleWithIcon', () => {
-  it('renders the title without icon if none is passed and isEditMode is undefined', () => {
+  test('renders the title without icon if none is passed and isEditMode is undefined', () => {
     render(<ModalTitleWithIcon title="My Title" />);
     expect(screen.getByText('My Title')).toBeInTheDocument();
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
-  it('renders Edit icon if isEditMode is true', () => {
+  test('renders Edit icon if isEditMode is true', () => {
     render(<ModalTitleWithIcon title="Edit Mode" isEditMode />);
     expect(screen.getByText('Edit Mode')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /edit/i })).toBeInTheDocument();
   });
 
-  it('renders Plus icon if isEditMode is false', () => {
+  test('renders Plus icon if isEditMode is false', () => {
     render(<ModalTitleWithIcon title="Add Mode" isEditMode={false} />);
     expect(screen.getByText('Add Mode')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /plus/i })).toBeInTheDocument();
   });
 
-  it('renders custom icon when passed explicitly', () => {
+  test('renders custom icon when passed explicitly', () => {
     render(
       <ModalTitleWithIcon
         title="Custom Icon"
@@ -51,7 +51,7 @@ describe('ModalTitleWithIcon', () => {
     expect(screen.getByTestId('custom-icon')).toBeInTheDocument();
   });
 
-  it('respects the level prop (e.g., renders h3 for level=3)', () => {
+  test('respects the level prop (e.g., renders h3 for level=3)', () => {
     const { container } = render(
       <ModalTitleWithIcon title="Header Level 3" level={3} />,
     );

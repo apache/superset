@@ -29,7 +29,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 describe('AddDataset', () => {
-  it('renders a blank state AddDataset', async () => {
+  test('renders a blank state AddDataset', async () => {
     render(<AddDataset />, { useRedux: true, useRouter: true });
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });

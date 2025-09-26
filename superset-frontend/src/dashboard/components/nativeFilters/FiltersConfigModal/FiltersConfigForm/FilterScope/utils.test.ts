@@ -18047,7 +18047,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
   ];
 
   const initiallyExcludedCharts: number[] = [];
-  it('Succeeds with valid', () => {
+  test('Succeeds with valid', () => {
     expect(() => {
       buildTree(
         // @ts-ignore
@@ -18062,7 +18062,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     }).not.toThrow();
   });
 
-  it('Avoids runtime error with invalid inputs', () => {
+  test('Avoids runtime error with invalid inputs', () => {
     expect(() => {
       buildTree(
         // @ts-expect-error

@@ -33,14 +33,14 @@ describe('getChartIdsFromLayout', () => {
     window.location = globalLocation;
   });
 
-  it('should encode filters', () => {
+  test('should encode filters', () => {
     const url = getDashboardUrl({ pathname: 'path', filters });
     expect(url).toBe(
       'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D',
     );
   });
 
-  it('should encode filters with hash', () => {
+  test('should encode filters with hash', () => {
     const urlWithHash = getDashboardUrl({
       pathname: 'path',
       filters,
@@ -51,7 +51,7 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
-  it('should encode filters with standalone', () => {
+  test('should encode filters with standalone', () => {
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters,
@@ -62,7 +62,7 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
-  it('should encode filters with missing standalone', () => {
+  test('should encode filters with missing standalone', () => {
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters,
@@ -73,7 +73,7 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
-  it('should encode filters with missing filters', () => {
+  test('should encode filters with missing filters', () => {
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters: undefined,
@@ -84,7 +84,7 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
-  it('should preserve unknown filters', () => {
+  test('should preserve unknown filters', () => {
     const windowSpy = jest.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(() => ({
       location: {
@@ -102,7 +102,7 @@ describe('getChartIdsFromLayout', () => {
     windowSpy.mockRestore();
   });
 
-  it('should process native filters key', () => {
+  test('should process native filters key', () => {
     const windowSpy = jest.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(() => ({
       location: {

@@ -110,7 +110,7 @@ describe('ChartHolder', () => {
       store,
     });
 
-  it('should render empty state', async () => {
+  test('should render empty state', async () => {
     renderWrapper();
 
     expect(
@@ -124,7 +124,7 @@ describe('ChartHolder', () => {
     expect(screen.getByRole('img', { name: 'empty' })).toBeVisible();
   });
 
-  it('should render anchor link when not editing', async () => {
+  test('should render anchor link when not editing', async () => {
     const store = createMockStore();
     const { rerender } = renderWrapper(store, { editMode: false });
 
@@ -155,7 +155,7 @@ describe('ChartHolder', () => {
     ).toEqual(0);
   });
 
-  it('should highlight when path matches', async () => {
+  test('should highlight when path matches', async () => {
     const store = createMockStore({
       dashboardState: {
         ...mockState.dashboardState,
@@ -202,7 +202,7 @@ describe('ChartHolder', () => {
     );
   });
 
-  it('should calculate the default widthMultiple', async () => {
+  test('should calculate the default widthMultiple', async () => {
     const widthMultiple = 5;
     renderWrapper(createMockStore(), {
       editMode: true,
@@ -231,7 +231,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(`${expectedWidth}px`);
   });
 
-  it('should set the resizable width to auto when parent component type is column', async () => {
+  test('should set the resizable width to auto when parent component type is column', async () => {
     renderWrapper(createMockStore(), {
       editMode: true,
       parentComponent: {
@@ -255,7 +255,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual('auto');
   });
 
-  it("should override the widthMultiple if there's a column in the parent chain whose width is less than the chart", async () => {
+  test("should override the widthMultiple if there's a column in the parent chain whose width is less than the chart", async () => {
     const widthMultiple = 10;
     const parentColumnWidth = 6;
     renderWrapper(createMockStore(), {
@@ -288,7 +288,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(`${expectedWidth}px`);
   });
 
-  it('should calculate the chartWidth', async () => {
+  test('should calculate the chartWidth', async () => {
     const widthMultiple = 7;
     const columnWidth = 250;
     renderWrapper(createMockStore(), {
@@ -319,7 +319,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(expectedWidth);
   });
 
-  it('should calculate the chartWidth on full screen mode', async () => {
+  test('should calculate the chartWidth on full screen mode', async () => {
     const widthMultiple = 7;
     const columnWidth = 250;
     renderWrapper(createMockStore(), {
@@ -345,7 +345,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(expectedWidth);
   });
 
-  it('should calculate the chartHeight', async () => {
+  test('should calculate the chartHeight', async () => {
     const heightMultiple = 12;
     renderWrapper(createMockStore(), {
       fullSizeChartId: null,
@@ -372,7 +372,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(expectedWidth);
   });
 
-  it('should calculate the chartHeight on full screen mode', async () => {
+  test('should calculate the chartHeight on full screen mode', async () => {
     const heightMultiple = 12;
     renderWrapper(createMockStore(), {
       component: {
@@ -397,7 +397,7 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(expectedWidth);
   });
 
-  it('should call deleteComponent when deleted', async () => {
+  test('should call deleteComponent when deleted', async () => {
     const deleteComponent = sinon.spy();
     const store = createMockStore();
     const { rerender } = renderWrapper(store, {

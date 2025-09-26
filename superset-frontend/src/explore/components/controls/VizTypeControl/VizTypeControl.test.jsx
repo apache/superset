@@ -85,7 +85,7 @@ describe('VizTypeControl', () => {
     await waitForEffects();
   }, 30000); // Increase beforeEach timeout
 
-  it('calls onChange when submitted', async () => {
+  test('calls onChange when submitted', async () => {
     const thumbnail = await screen.findByTestId('viztype-selector-container', {
       timeout: 15000,
     });
@@ -106,7 +106,7 @@ describe('VizTypeControl', () => {
     expect(defaultProps.onChange.called).toBe(true);
   }, 30000);
 
-  it('filters images based on text input', async () => {
+  test('filters images based on text input', async () => {
     const thumbnails = await screen.findByTestId('viztype-selector-container', {
       timeout: 15000,
     });

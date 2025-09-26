@@ -104,17 +104,17 @@ describe('ThemesList', () => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     renderThemesList();
     expect(await screen.findByText('Themes')).toBeInTheDocument();
   });
 
-  it('renders a ListView', async () => {
+  test('renders a ListView', async () => {
     renderThemesList();
     expect(await screen.findByTestId('themes-list-view')).toBeInTheDocument();
   });
 
-  it('renders theme information', async () => {
+  test('renders theme information', async () => {
     renderThemesList();
 
     // Wait for list to load
@@ -128,7 +128,7 @@ describe('ThemesList', () => {
     });
   });
 
-  it('shows system theme tags correctly', async () => {
+  test('shows system theme tags correctly', async () => {
     renderThemesList();
 
     // Wait for list to load
@@ -140,7 +140,7 @@ describe('ThemesList', () => {
     });
   });
 
-  it('handles theme deletion for non-system themes', async () => {
+  test('handles theme deletion for non-system themes', async () => {
     renderThemesList();
 
     // Wait for list to load
@@ -158,7 +158,7 @@ describe('ThemesList', () => {
     });
   });
 
-  it('shows apply action for themes', async () => {
+  test('shows apply action for themes', async () => {
     renderThemesList();
 
     // Wait for list to load
@@ -169,7 +169,7 @@ describe('ThemesList', () => {
     expect(applyButtons.length).toBe(mockThemes.length);
   });
 
-  it('fetches themes data on load', async () => {
+  test('fetches themes data on load', async () => {
     renderThemesList();
 
     await waitFor(() => {
@@ -178,7 +178,7 @@ describe('ThemesList', () => {
     });
   });
 
-  it('shows bulk select when user has permissions', async () => {
+  test('shows bulk select when user has permissions', async () => {
     renderThemesList();
 
     // Wait for list to load
@@ -188,7 +188,7 @@ describe('ThemesList', () => {
     expect(screen.getByText('Bulk select')).toBeInTheDocument();
   });
 
-  it('shows create theme button when user has permissions', async () => {
+  test('shows create theme button when user has permissions', async () => {
     renderThemesList();
 
     // Wait for list to load

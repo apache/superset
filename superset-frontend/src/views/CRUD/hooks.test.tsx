@@ -26,7 +26,7 @@ describe('useListViewResource', () => {
     jest.restoreAllMocks();
   });
 
-  it('should fetch data with correct query parameters', async () => {
+  test('should fetch data with correct query parameters', async () => {
     const pageIndex = 0; // Declare and initialize the pageIndex variable
     const pageSize = 10; // Declare and initialize the pageSize variable
     const baseFilters = [{ id: 'status', operator: 'equals', value: 'active' }];
@@ -59,7 +59,7 @@ describe('useListViewResource', () => {
     });
   });
 
-  it('should pass the selectColumns to the fetch call', async () => {
+  test('should pass the selectColumns to the fetch call', async () => {
     const pageIndex = 0; // Declare and initialize the pageIndex variable
     const pageSize = 10; // Declare and initialize the pageSize variable
     const baseFilters = [{ id: 'status', operator: 'equals', value: 'active' }];
@@ -108,7 +108,7 @@ describe('useListViewResource', () => {
       jest.restoreAllMocks();
     });
 
-    it('converts Type filter to correct API call for charts', async () => {
+    test('converts Type filter to correct API call for charts', async () => {
       const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [], count: 0 },
       } as unknown as JsonResponse);
@@ -140,7 +140,7 @@ describe('useListViewResource', () => {
       expect(endpoint).toMatch(/order_direction:desc/);
     });
 
-    it('converts chart search filter with ChartAllText operator', async () => {
+    test('converts chart search filter with ChartAllText operator', async () => {
       const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [], count: 0 },
       } as unknown as JsonResponse);
@@ -172,7 +172,7 @@ describe('useListViewResource', () => {
       expect(endpoint).toContain("value%3A'test+chart'");
     });
 
-    it('converts chart-specific favorite filter', async () => {
+    test('converts chart-specific favorite filter', async () => {
       const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [], count: 0 },
       } as unknown as JsonResponse);
@@ -200,7 +200,7 @@ describe('useListViewResource', () => {
       expect(endpoint).toContain('value:!t');
     });
 
-    it('handles multiple chart filters correctly', async () => {
+    test('handles multiple chart filters correctly', async () => {
       const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [], count: 0 },
       } as unknown as JsonResponse);
@@ -231,7 +231,7 @@ describe('useListViewResource', () => {
       expect(endpoint).toMatch(/value:test/);
     });
 
-    it('handles chart sorting scenarios', async () => {
+    test('handles chart sorting scenarios', async () => {
       const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [], count: 0 },
       } as unknown as JsonResponse);

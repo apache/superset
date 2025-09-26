@@ -73,7 +73,7 @@ describe('AceEditorWrapper', () => {
     (FullSQLEditor as any as jest.Mock).mockClear();
   });
 
-  it('renders ace editor including sql value', async () => {
+  test('renders ace editor including sql value', async () => {
     const store = createStore(initialState, reducerIndex);
     const { getByTestId } = setup(defaultQueryEditor, store);
     await waitFor(() => expect(getByTestId('react-ace')).toBeInTheDocument());
@@ -83,7 +83,7 @@ describe('AceEditorWrapper', () => {
     );
   });
 
-  it('renders current sql for unrelated unsaved changes', () => {
+  test('renders current sql for unrelated unsaved changes', () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     const store = createStore(
       {
@@ -108,7 +108,7 @@ describe('AceEditorWrapper', () => {
     );
   });
 
-  it('skips rerendering for updating cursor position', () => {
+  test('skips rerendering for updating cursor position', () => {
     const store = createStore(initialState, reducerIndex);
     setup(defaultQueryEditor, store);
 

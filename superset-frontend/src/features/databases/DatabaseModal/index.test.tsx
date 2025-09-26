@@ -907,7 +907,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+    test('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
       setup();
 
       // ---------- Components ----------
@@ -1410,13 +1410,13 @@ describe('DatabaseModal', () => {
   });
 
   describe('DatabaseModal w/ GSheet Engine', () => {
-    it('enters step 2 of 2 when proper database is selected', async () => {
+    test('enters step 2 of 2 when proper database is selected', async () => {
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+    test('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
@@ -1454,7 +1454,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+    test('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');

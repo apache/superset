@@ -104,7 +104,7 @@ describe('RangeFilterPlugin', () => {
     jest.clearAllMocks();
   });
 
-  it('should render two numerical inputs and a slider by default', () => {
+  test('should render two numerical inputs and a slider by default', () => {
     getWrapper();
 
     const inputs = screen.getAllByRole('spinbutton');
@@ -118,7 +118,7 @@ describe('RangeFilterPlugin', () => {
     expect(sliders.length).toBeGreaterThan(0);
   });
 
-  it('should set the data mask to error when the range is incorrect', async () => {
+  test('should set the data mask to error when the range is incorrect', async () => {
     getWrapper({ filterState: { value: [null, null] } });
 
     const inputs = screen.getAllByRole('spinbutton');
@@ -144,7 +144,7 @@ describe('RangeFilterPlugin', () => {
     });
   });
 
-  it('should call setDataMask with correct filter', () => {
+  test('should call setDataMask with correct filter', () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
@@ -170,7 +170,7 @@ describe('RangeFilterPlugin', () => {
     });
   });
 
-  it('should call setDataMask with correct greater than filter', () => {
+  test('should call setDataMask with correct greater than filter', () => {
     getWrapper({
       filterState: { value: [20, null] },
       formData: {
@@ -201,7 +201,7 @@ describe('RangeFilterPlugin', () => {
     expect(inputs[0]).toHaveValue('20');
   });
 
-  it('should call setDataMask with correct less than filter', () => {
+  test('should call setDataMask with correct less than filter', () => {
     getWrapper({
       filterState: { value: [null, 60] },
       formData: {
@@ -231,7 +231,7 @@ describe('RangeFilterPlugin', () => {
     expect(inputs[0]).toHaveValue('60');
   });
 
-  it('should call setDataMask with correct exact filter', () => {
+  test('should call setDataMask with correct exact filter', () => {
     getWrapper({
       formData: {
         enableSingleValue: SingleValueType.Exact,
@@ -262,7 +262,7 @@ describe('RangeFilterPlugin', () => {
   });
 
   describe('Range Display Modes', () => {
-    it('should render only the slider in slider mode', () => {
+    test('should render only the slider in slider mode', () => {
       getWrapper({
         formData: {
           rangeDisplayMode: RangeDisplayMode.Slider,
@@ -275,7 +275,7 @@ describe('RangeFilterPlugin', () => {
       expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
     });
 
-    it('should render only inputs in input mode', () => {
+    test('should render only inputs in input mode', () => {
       getWrapper({
         formData: {
           rangeDisplayMode: RangeDisplayMode.Input,
@@ -288,7 +288,7 @@ describe('RangeFilterPlugin', () => {
       expect(screen.queryAllByRole('slider')).toHaveLength(0);
     });
 
-    it('should render both slider and inputs in slider-and-input mode', () => {
+    test('should render both slider and inputs in slider-and-input mode', () => {
       getWrapper({
         formData: {
           rangeDisplayMode: RangeDisplayMode.SliderAndInput,
@@ -304,7 +304,7 @@ describe('RangeFilterPlugin', () => {
       expect(sliders.length).toBeGreaterThan(0);
     });
 
-    it('should default to slider-and-input mode when not specified', () => {
+    test('should default to slider-and-input mode when not specified', () => {
       getWrapper({
         formData: {
           // No rangeDisplayMode specified

@@ -31,7 +31,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('useUnsavedChangesPrompt', () => {
-  it('should not show modal initially', () => {
+  test('should not show modal initially', () => {
     const { result } = renderHook(
       () =>
         useUnsavedChangesPrompt({
@@ -44,7 +44,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(false);
   });
 
-  it('should block navigation and show modal if there are unsaved changes', () => {
+  test('should block navigation and show modal if there are unsaved changes', () => {
     const { result } = renderHook(
       () =>
         useUnsavedChangesPrompt({
@@ -64,7 +64,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(true);
   });
 
-  it('should trigger onSave and hide modal on handleSaveAndCloseModal', async () => {
+  test('should trigger onSave and hide modal on handleSaveAndCloseModal', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
 
     const { result } = renderHook(
@@ -84,7 +84,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(false);
   });
 
-  it('should trigger manual save and not show modal again', async () => {
+  test('should trigger manual save and not show modal again', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
 
     const { result } = renderHook(

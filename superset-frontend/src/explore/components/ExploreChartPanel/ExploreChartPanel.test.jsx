@@ -162,7 +162,7 @@ describe('ChartContainer', () => {
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
   });
 
-  it('hides gutter when collapsing data panel', async () => {
+  test('hides gutter when collapsing data panel', async () => {
     const props = createProps();
     setItem(LocalStorageKeys.IsDatapanelOpen, true);
     const { container } = render(<ChartContainer {...props} />, {

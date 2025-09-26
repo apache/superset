@@ -109,7 +109,7 @@ describe('async actions', () => {
       return request(dispatch, () => initialState);
     };
 
-    it('posts to the correct url', () => {
+    test('posts to the correct url', () => {
       expect.assertions(1);
 
       const store = mockStore(initialState);
@@ -118,7 +118,7 @@ describe('async actions', () => {
       });
     });
 
-    it('posts the correct query object', () => {
+    test('posts the correct query object', () => {
       const store = mockStore(initialState);
       return store.dispatch(actions.saveQuery(query, queryId)).then(() => {
         const call = fetchMock.calls(saveQueryEndpoint)[0];
@@ -131,7 +131,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls 3 dispatch actions', () => {
+    test('calls 3 dispatch actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -139,7 +139,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls QUERY_EDITOR_SAVED after making a request', () => {
+    test('calls QUERY_EDITOR_SAVED after making a request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -147,7 +147,7 @@ describe('async actions', () => {
       });
     });
 
-    it('onSave calls QUERY_EDITOR_SAVED and QUERY_EDITOR_SET_TITLE', () => {
+    test('onSave calls QUERY_EDITOR_SAVED and QUERY_EDITOR_SET_TITLE', () => {
       expect.assertions(1);
 
       const store = mockStore(initialState);
@@ -186,7 +186,7 @@ describe('async actions', () => {
       return request(dispatch, store.getState);
     };
 
-    it('makes the fetch request', () => {
+    test('makes the fetch request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -194,7 +194,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls requestQueryResults', () => {
+    test('calls requestQueryResults', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -202,7 +202,7 @@ describe('async actions', () => {
       });
     });
 
-    it.skip('parses large number result without losing precision', () =>
+    test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(fetchQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
@@ -211,7 +211,7 @@ describe('async actions', () => {
         );
       }));
 
-    it('calls querySuccess on fetch success', () => {
+    test('calls querySuccess on fetch success', () => {
       expect.assertions(1);
 
       const store = mockStore({});
@@ -226,7 +226,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error', () => {
+    test('calls queryFailed on fetch error', () => {
       expect.assertions(1);
 
       fetchMock.get(
@@ -254,7 +254,7 @@ describe('async actions', () => {
       return request(dispatch, () => initialState);
     };
 
-    it('makes the fetch request', () => {
+    test('makes the fetch request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -262,7 +262,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls startQuery', () => {
+    test('calls startQuery', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -270,7 +270,7 @@ describe('async actions', () => {
       });
     });
 
-    it.skip('parses large number result without losing precision', () =>
+    test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
@@ -279,7 +279,7 @@ describe('async actions', () => {
         );
       }));
 
-    it('calls querySuccess on fetch success', () => {
+    test('calls querySuccess on fetch success', () => {
       expect.assertions(1);
 
       const store = mockStore({});
@@ -293,7 +293,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error and logs the error details', () => {
+    test('calls queryFailed on fetch error and logs the error details', () => {
       expect.assertions(2);
 
       fetchMock.post(
@@ -342,7 +342,7 @@ describe('async actions', () => {
       return request(dispatch, () => initialState);
     };
 
-    it('makes the fetch request', async () => {
+    test('makes the fetch request', async () => {
       const runQueryEndpointWithParams =
         'glob:*/api/v1/sqllab/execute/?foo=bar';
       fetchMock.post(
@@ -356,7 +356,7 @@ describe('async actions', () => {
   });
 
   describe('reRunQuery', () => {
-    it('creates new query with a new id', () => {
+    test('creates new query with a new id', () => {
       const id = 'id';
       const state = {
         sqlLab: {
@@ -385,7 +385,7 @@ describe('async actions', () => {
       return request(dispatch);
     };
 
-    it('makes the fetch request', () => {
+    test('makes the fetch request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -393,7 +393,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls stopQuery', () => {
+    test('calls stopQuery', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -401,7 +401,7 @@ describe('async actions', () => {
       });
     });
 
-    it('sends the correct data', () => {
+    test('sends the correct data', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -413,7 +413,7 @@ describe('async actions', () => {
   });
 
   describe('cloneQueryToNewTab', () => {
-    it('creates new query editor', () => {
+    test('creates new query editor', () => {
       expect.assertions(1);
 
       const id = 'id';
@@ -508,7 +508,7 @@ describe('async actions', () => {
       supersetClientGetSpy.mockRestore();
     });
 
-    it('calls API endpint with correct params', async () => {
+    test('calls API endpint with correct params', async () => {
       supersetClientGetSpy.mockResolvedValue({
         json: { result: mockSavedQueryApiResponse },
       });
@@ -520,7 +520,7 @@ describe('async actions', () => {
       });
     });
 
-    it('dispatches addQueryEditor with correct params on successful API call', async () => {
+    test('dispatches addQueryEditor with correct params on successful API call', async () => {
       supersetClientGetSpy.mockResolvedValue({
         json: { result: mockSavedQueryApiResponse },
       });
@@ -547,7 +547,7 @@ describe('async actions', () => {
       );
     });
 
-    it('should dispatch addDangerToast on API error', async () => {
+    test('should dispatch addDangerToast on API error', async () => {
       supersetClientGetSpy.mockResolvedValue(new Error());
 
       await makeRequest(1);
@@ -562,7 +562,7 @@ describe('async actions', () => {
   });
 
   describe('addQueryEditor', () => {
-    it('creates new query editor', () => {
+    test('creates new query editor', () => {
       expect.assertions(1);
 
       const store = mockStore(initialState);
@@ -583,7 +583,7 @@ describe('async actions', () => {
     });
 
     describe('addNewQueryEditor', () => {
-      it('creates new query editor with new tab name', () => {
+      test('creates new query editor with new tab name', () => {
         const store = mockStore({
           ...initialState,
           sqlLab: {
@@ -621,7 +621,7 @@ describe('async actions', () => {
     });
   });
 
-  it('set current query editor', () => {
+  test('set current query editor', () => {
     expect.assertions(1);
 
     const store = mockStore(initialState);
@@ -637,7 +637,7 @@ describe('async actions', () => {
   });
 
   describe('swithQueryEditor', () => {
-    it('switch to the next tab editor', () => {
+    test('switch to the next tab editor', () => {
       const store = mockStore(initialState);
       const expectedActions = [
         {
@@ -650,7 +650,7 @@ describe('async actions', () => {
       expect(store.getActions()).toEqual(expectedActions);
     });
 
-    it('switch to the first tab editor once it reaches the rightmost tab', () => {
+    test('switch to the first tab editor once it reaches the rightmost tab', () => {
       const store = mockStore({
         ...initialState,
         sqlLab: {
@@ -673,7 +673,7 @@ describe('async actions', () => {
       expect(store.getActions()).toEqual(expectedActions);
     });
 
-    it('switch to the previous tab editor', () => {
+    test('switch to the previous tab editor', () => {
       const store = mockStore({
         ...initialState,
         sqlLab: {
@@ -692,7 +692,7 @@ describe('async actions', () => {
       expect(store.getActions()).toEqual(expectedActions);
     });
 
-    it('switch to the last tab editor once it reaches the leftmost tab', () => {
+    test('switch to the last tab editor once it reaches the leftmost tab', () => {
       const store = mockStore({
         ...initialState,
         sqlLab: {
@@ -746,7 +746,7 @@ describe('async actions', () => {
     afterEach(() => fetchMock.resetHistory());
 
     describe('addQueryEditor', () => {
-      it('creates the tab state in the local storage', () => {
+      test('creates the tab state in the local storage', () => {
         expect.assertions(2);
 
         const store = mockStore({});
@@ -770,7 +770,7 @@ describe('async actions', () => {
     });
 
     describe('removeQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const store = mockStore({});
@@ -786,7 +786,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetDb', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const dbId = 42;
@@ -804,7 +804,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetCatalog', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const catalog = 'public';
@@ -822,7 +822,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetSchema', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const schema = 'schema';
@@ -840,7 +840,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetAutorun', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const autorun = true;
@@ -858,7 +858,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetTitle', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const name = 'name';
@@ -887,7 +887,7 @@ describe('async actions', () => {
         },
       ];
       describe('with backend persistence flag on', () => {
-        it('updates the tab state in the backend', () => {
+        test('updates the tab state in the backend', () => {
           expect.assertions(2);
 
           const store = mockStore({
@@ -905,7 +905,7 @@ describe('async actions', () => {
         });
       });
       describe('with backend persistence flag off', () => {
-        it('does not update the tab state in the backend', () => {
+        test('does not update the tab state in the backend', () => {
           isFeatureEnabled.mockImplementation(
             feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
           );
@@ -928,7 +928,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetQueryLimit', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const queryLimit = 10;
@@ -948,7 +948,7 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetTemplateParams', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const templateParams = '{"foo": "bar"}';
@@ -969,7 +969,7 @@ describe('async actions', () => {
     });
 
     describe('addTable', () => {
-      it('dispatches table state from unsaved change', () => {
+      test('dispatches table state from unsaved change', () => {
         const tableName = 'table';
         const catalogName = null;
         const schemaName = 'schema';
@@ -1003,7 +1003,7 @@ describe('async actions', () => {
         );
       });
 
-      it('uses tabViewId when available', () => {
+      test('uses tabViewId when available', () => {
         const tableName = 'table';
         const catalogName = null;
         const schemaName = 'schema';
@@ -1043,7 +1043,7 @@ describe('async actions', () => {
         );
       });
 
-      it('falls back to id when tabViewId is not available', () => {
+      test('falls back to id when tabViewId is not available', () => {
         const tableName = 'table';
         const catalogName = null;
         const schemaName = 'schema';
@@ -1084,7 +1084,7 @@ describe('async actions', () => {
     });
 
     describe('syncTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(4);
 
         const tableName = 'table';
@@ -1137,7 +1137,7 @@ describe('async actions', () => {
         fetchMock.resetHistory();
       });
 
-      it('updates and runs data preview query when configured', () => {
+      test('updates and runs data preview query when configured', () => {
         expect.assertions(3);
 
         const expectedActionTypes = [
@@ -1161,7 +1161,7 @@ describe('async actions', () => {
         });
       });
 
-      it('runs data preview query only', () => {
+      test('runs data preview query only', () => {
         const expectedActionTypes = [
           actions.START_QUERY, // runQuery (data preview)
           actions.QUERY_SUCCESS, // querySuccess
@@ -1187,7 +1187,7 @@ describe('async actions', () => {
     });
 
     describe('expandTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const table = { id: 1 };
@@ -1206,7 +1206,7 @@ describe('async actions', () => {
     });
 
     describe('collapseTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const table = { id: 1 };
@@ -1225,7 +1225,7 @@ describe('async actions', () => {
     });
 
     describe('removeTables', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const table = { id: 1, initialized: true };
@@ -1242,7 +1242,7 @@ describe('async actions', () => {
         });
       });
 
-      it('deletes multiple tables and updates the table schema state in the backend', () => {
+      test('deletes multiple tables and updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const tables = [
@@ -1262,7 +1262,7 @@ describe('async actions', () => {
         });
       });
 
-      it('only updates the initialized table schema state in the backend', () => {
+      test('only updates the initialized table schema state in the backend', () => {
         expect.assertions(2);
 
         const tables = [{ id: 1 }, { id: 2, initialized: true }];
@@ -1281,7 +1281,7 @@ describe('async actions', () => {
     });
 
     describe('syncQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(3);
 
         const results = {

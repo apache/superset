@@ -64,7 +64,7 @@ describe('InvalidSQLErrorMessage', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
 
-  it('renders the error message with correct properties', async () => {
+  test('renders the error message with correct properties', async () => {
     const { getByText, unmount } = renderComponent();
 
     // Validate main properties
@@ -75,13 +75,13 @@ describe('InvalidSQLErrorMessage', () => {
     unmount();
   });
 
-  it('renders the error message with the empty extra properties', () => {
+  test('renders the error message with the empty extra properties', () => {
     const { getByText } = renderComponent(missingExtraProps);
     expect(getByText('Unable to parse SQL')).toBeInTheDocument();
     expect(getByText(missingExtraProps.error.message)).toBeInTheDocument();
   });
 
-  it('displays the SQL error line and column indicator', async () => {
+  test('displays the SQL error line and column indicator', async () => {
     const { getByText, container, unmount } = renderComponent();
 
     // Validate SQL and caret indicator
@@ -95,7 +95,7 @@ describe('InvalidSQLErrorMessage', () => {
     unmount();
   });
 
-  it('handles missing line number gracefully', async () => {
+  test('handles missing line number gracefully', async () => {
     const overrides = {
       error: {
         ...defaultProps.error,
@@ -114,7 +114,7 @@ describe('InvalidSQLErrorMessage', () => {
     unmount();
   });
 
-  it('handles missing column number gracefully', async () => {
+  test('handles missing column number gracefully', async () => {
     const overrides = {
       error: {
         ...defaultProps.error,

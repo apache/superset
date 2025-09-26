@@ -37,7 +37,7 @@ describe('Chart Registry Utils', () => {
       registry.clear();
     });
 
-    it('generates correct options from chart metadata registry', () => {
+    test('generates correct options from chart metadata registry', () => {
       // Register test chart types
       registry
         .registerValue(
@@ -88,7 +88,7 @@ describe('Chart Registry Utils', () => {
       ).toBeUndefined();
     });
 
-    it('handles empty registry gracefully', () => {
+    test('handles empty registry gracefully', () => {
       const options = registry
         .keys()
         .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
@@ -97,7 +97,7 @@ describe('Chart Registry Utils', () => {
       expect(options).toEqual([]);
     });
 
-    it('falls back to chart key when name is missing', () => {
+    test('falls back to chart key when name is missing', () => {
       registry.registerValue(
         'custom_chart',
         new ChartMetadata({
@@ -117,7 +117,7 @@ describe('Chart Registry Utils', () => {
       ]);
     });
 
-    it('sorts options alphabetically by label', () => {
+    test('sorts options alphabetically by label', () => {
       registry
         .registerValue(
           'zebra',
@@ -162,7 +162,7 @@ describe('Chart Registry Utils', () => {
       ]);
     });
 
-    it('handles mixed chart behaviors correctly', () => {
+    test('handles mixed chart behaviors correctly', () => {
       registry
         .registerValue(
           'regular',

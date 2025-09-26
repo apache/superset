@@ -86,7 +86,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('updateComponents', () => {
-    it('should dispatch an updateLayout action', () => {
+    test('should dispatch an updateLayout action', () => {
       const { getState, dispatch } = setup();
       const nextComponents = { 1: {} };
       const thunk = updateComponents(nextComponents);
@@ -101,7 +101,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(0);
     });
 
-    it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -116,7 +116,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('deleteComponents', () => {
-    it('should dispatch an deleteComponent action', () => {
+    test('should dispatch an deleteComponent action', () => {
       const { getState, dispatch } = setup();
       const thunk = deleteComponent('id', 'parentId');
       thunk(dispatch, getState);
@@ -129,7 +129,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(1);
     });
 
-    it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -143,7 +143,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('updateDashboardTitle', () => {
-    it('should dispatch an updateComponent action for the header component', () => {
+    test('should dispatch an updateComponent action for the header component', () => {
       const { getState, dispatch } = setup();
       const thunk1 = updateDashboardTitle('new text');
       thunk1(dispatch, getState);
@@ -168,7 +168,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('createTopLevelTabs', () => {
-    it('should dispatch a createTopLevelTabs action', () => {
+    test('should dispatch a createTopLevelTabs action', () => {
       const { getState, dispatch } = setup();
       const dropResult = {};
       const thunk = createTopLevelTabs(dropResult);
@@ -182,7 +182,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(1);
     });
 
-    it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -197,7 +197,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('deleteTopLevelTabs', () => {
-    it('should dispatch a deleteTopLevelTabs action', () => {
+    test('should dispatch a deleteTopLevelTabs action', () => {
       const { getState, dispatch } = setup();
       const dropResult = {};
       const thunk = deleteTopLevelTabs(dropResult);
@@ -211,7 +211,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(1);
     });
 
-    it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -240,7 +240,7 @@ describe('dashboardLayout actions', () => {
       },
     };
 
-    it('should update the size of the component', () => {
+    test('should update the size of the component', () => {
       const { getState, dispatch } = setup({
         dashboardLayout,
       });
@@ -271,7 +271,7 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.callCount).toBe(2);
     });
 
-    it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
         dashboardLayout,
@@ -290,7 +290,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('handleComponentDrop', () => {
-    it('should create a component if it is new', () => {
+    test('should create a component if it is new', () => {
       const { getState, dispatch } = setup();
       const dropResult = {
         source: { id: NEW_COMPONENTS_SOURCE_ID },
@@ -315,7 +315,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(1);
     });
 
-    it('should move a component if the component is not new', () => {
+    test('should move a component if the component is not new', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: {
           // if 'dragging' is not only child will dispatch deleteComponent thunk
@@ -345,7 +345,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(1);
     });
 
-    it('should dispatch a toast if the drop overflows the destination', () => {
+    test('should dispatch a toast if the drop overflows the destination', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: {
           present: {
@@ -374,7 +374,7 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.callCount).toBe(1);
     });
 
-    it('should delete a parent Row or Tabs if the moved child was the only child', () => {
+    test('should delete a parent Row or Tabs if the moved child was the only child', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: {
           present: {
@@ -411,7 +411,7 @@ describe('dashboardLayout actions', () => {
       });
     });
 
-    it('should create top-level tabs if dropped on root', () => {
+    test('should create top-level tabs if dropped on root', () => {
       const { getState, dispatch } = setup();
       const dropResult = {
         source: { id: NEW_COMPONENTS_SOURCE_ID },
@@ -433,7 +433,7 @@ describe('dashboardLayout actions', () => {
       });
     });
 
-    it('should dispatch a toast if drop top-level tab into nested tab', () => {
+    test('should dispatch a toast if drop top-level tab into nested tab', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: {
           present: {
@@ -489,7 +489,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('undoLayoutAction', () => {
-    it('should dispatch a redux-undo .undo() action', () => {
+    test('should dispatch a redux-undo .undo() action', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: { past: ['non-empty'] },
       });
@@ -500,7 +500,7 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.getCall(0).args[0]).toEqual(UndoActionCreators.undo());
     });
 
-    it('should dispatch a setUnsavedChanges(false) action history length is zero', () => {
+    test('should dispatch a setUnsavedChanges(false) action history length is zero', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: { past: [] },
       });
@@ -513,7 +513,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('redoLayoutAction', () => {
-    it('should dispatch a redux-undo .redo() action', () => {
+    test('should dispatch a redux-undo .redo() action', () => {
       const { getState, dispatch } = setup();
       const thunk = redoLayoutAction();
       thunk(dispatch, getState);
@@ -524,7 +524,7 @@ describe('dashboardLayout actions', () => {
       expect(dashboardFilters.updateLayoutComponents.callCount).toEqual(1);
     });
 
-    it('should dispatch a setUnsavedChanges(true) action if hasUnsavedChanges=false', () => {
+    test('should dispatch a setUnsavedChanges(true) action if hasUnsavedChanges=false', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });

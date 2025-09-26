@@ -19,7 +19,7 @@
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 
 describe('getChartAndLabelComponentIdFromPath', () => {
-  it('should return label and component id', () => {
+  test('should return label and component id', () => {
     const directPathToChild = [
       'ROOT_ID',
       'TABS-aX1uNK-ryo',

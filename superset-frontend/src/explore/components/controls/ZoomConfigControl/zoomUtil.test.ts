@@ -37,7 +37,7 @@ const zoomConfigValues = {
 
 describe('zoomUtil', () => {
   describe('computeConfigValues', () => {
-    it('computes fixed values', () => {
+    test('computes fixed values', () => {
       const height = 100;
       const width = 100;
 
@@ -60,7 +60,7 @@ describe('zoomUtil', () => {
       });
     });
 
-    it('computes linear values', () => {
+    test('computes linear values', () => {
       const height = 100;
       const width = 100;
 
@@ -85,7 +85,7 @@ describe('zoomUtil', () => {
       });
     });
 
-    it('computes exponential values', () => {
+    test('computes exponential values', () => {
       const height = 100;
       const width = 100;
 
@@ -113,7 +113,7 @@ describe('zoomUtil', () => {
   });
 
   describe('zoomConfigsToData', () => {
-    it('returns correct output', () => {
+    test('returns correct output', () => {
       const result = zoomConfigsToData(zoomConfigValues);
 
       expect(result.length).toEqual(Object.keys(zoomConfigValues).length);
@@ -129,11 +129,11 @@ describe('zoomUtil', () => {
     };
     const result = toFixedConfig(configs);
 
-    it('has correct type', () => {
+    test('has correct type', () => {
       expect(result.type).toEqual('FIXED');
     });
 
-    it('returns correct result', () => {
+    test('returns correct result', () => {
       expect(result.values[4]).toEqual({
         width: 100,
         height: 100,
@@ -155,11 +155,11 @@ describe('zoomUtil', () => {
     };
     const result = toLinearConfig(configs);
 
-    it('has correct type', () => {
+    test('has correct type', () => {
       expect(result.type).toEqual('LINEAR');
     });
 
-    it('returns correct result', () => {
+    test('returns correct result', () => {
       expect(result.values[4]).toEqual({
         width: 98,
         height: 98,
@@ -181,10 +181,10 @@ describe('zoomUtil', () => {
     };
     // @ts-ignore
     const result = toExpConfig(configs);
-    it('has correct type', () => {
+    test('has correct type', () => {
       expect(result.type).toEqual('EXP');
     });
-    it('returns correct result', () => {
+    test('returns correct result', () => {
       expect(result.values[4]).toEqual({
         width: 93,
         height: 93,

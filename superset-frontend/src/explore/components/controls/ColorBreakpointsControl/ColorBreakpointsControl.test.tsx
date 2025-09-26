@@ -51,7 +51,7 @@ describe('ColorBreakpointsControl', () => {
     jest.clearAllMocks();
   });
 
-  it('should render with default props', () => {
+  test('should render with default props', () => {
     renderComponent();
     expect(screen.getByText('Click to add new breakpoint')).toBeInTheDocument();
   });

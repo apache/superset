@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
 
 describe('AggregateOption', () => {
-  it('renders the aggregate', () => {
+  test('renders the aggregate', () => {
     render(<AggregateOption aggregate={{ aggregate_name: 'SUM' }} />);
 
     const aggregateOption = screen.getByText(/sum/i);

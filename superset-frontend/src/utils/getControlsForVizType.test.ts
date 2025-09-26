@@ -75,7 +75,7 @@ describe('getControlsForVizType', () => {
     );
   });
 
-  it('returns a map of the controls', () => {
+  test('returns a map of the controls', () => {
     expect(
       JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
     ).toEqual(

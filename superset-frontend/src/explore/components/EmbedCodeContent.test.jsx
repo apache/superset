@@ -25,11 +25,11 @@ const url = 'http://localhost/explore/p/100';
 fetchMock.post('glob:*/api/v1/explore/permalink', { url });
 
 describe('EmbedCodeButton', () => {
-  it('renders', () => {
+  test('renders', () => {
     expect(isValidElement(<EmbedCodeContent />)).toBe(true);
   });
 
-  it('returns correct embed code', async () => {
+  test('returns correct embed code', async () => {
     render(<EmbedCodeContent />, { useRedux: true });
     expect(await screen.findByText('iframe', { exact: false })).toBeVisible();
     expect(await screen.findByText('/iframe', { exact: false })).toBeVisible();

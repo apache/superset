@@ -53,14 +53,14 @@ function getCodeControlMapStateToProps() {
 }
 
 describe('Separator control panel config', () => {
-  it('defaults language to markdown when markup_type is missing', () => {
+  test('defaults language to markdown when markup_type is missing', () => {
     const mapStateToProps = getCodeControlMapStateToProps();
     const state: Partial<ControlPanelState> = {};
     const result = mapStateToProps(state);
     expect(result.language).toBe('markdown');
   });
 
-  it('uses markup_type value when provided', () => {
+  test('uses markup_type value when provided', () => {
     const mapStateToProps = getCodeControlMapStateToProps();
     const state: Partial<ControlPanelState> = {
       controls: {

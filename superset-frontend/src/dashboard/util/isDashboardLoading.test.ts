@@ -19,7 +19,7 @@
 import isDashboardLoading, { ChartLoadTimestamps } from './isDashboardLoading';
 
 describe('isDashboardLoading', () => {
-  it('returns false when no charts are loading', () => {
+  test('returns false when no charts are loading', () => {
     const charts: Record<string, ChartLoadTimestamps> = {
       a: { chartUpdateStartTime: 1, chartUpdateEndTime: 2 },
       b: { chartUpdateStartTime: 5, chartUpdateEndTime: 5 },
@@ -27,7 +27,7 @@ describe('isDashboardLoading', () => {
     expect(isDashboardLoading(charts)).toBe(false);
   });
 
-  it('returns true when any chart has start > end', () => {
+  test('returns true when any chart has start > end', () => {
     const charts: Record<string, ChartLoadTimestamps> = {
       a: { chartUpdateStartTime: 10, chartUpdateEndTime: 5 },
       b: { chartUpdateStartTime: 1, chartUpdateEndTime: 2 },
@@ -35,14 +35,14 @@ describe('isDashboardLoading', () => {
     expect(isDashboardLoading(charts)).toBe(true);
   });
 
-  it('treats missing end as 0', () => {
+  test('treats missing end as 0', () => {
     const charts: Record<string, ChartLoadTimestamps> = {
       a: { chartUpdateStartTime: 1 },
     };
     expect(isDashboardLoading(charts)).toBe(true);
   });
 
-  it('handles empty charts object', () => {
+  test('handles empty charts object', () => {
     expect(isDashboardLoading({})).toBe(false);
   });
 });

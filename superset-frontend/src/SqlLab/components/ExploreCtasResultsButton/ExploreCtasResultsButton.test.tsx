@@ -51,13 +51,13 @@ describe('ExploreCtasResultsButton', () => {
   const postFormSpy = jest.spyOn(SupersetClientClass.prototype, 'postForm');
   postFormSpy.mockImplementation(jest.fn());
 
-  it('renders', async () => {
+  test('renders', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
     expect(queryByText('Explore')).toBeInTheDocument();
   });
 
-  it('visualize results', async () => {
+  test('visualize results', async () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
@@ -75,7 +75,7 @@ describe('ExploreCtasResultsButton', () => {
     });
   });
 
-  it('visualize results fails', async () => {
+  test('visualize results fails', async () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();

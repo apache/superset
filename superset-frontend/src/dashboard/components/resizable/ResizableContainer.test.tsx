@@ -34,7 +34,7 @@ describe('ResizableContainer', () => {
     <ResizableContainer {...props} {...overrides} />
   );
 
-  it('should render a Resizable container', () => {
+  test('should render a Resizable container', () => {
     const rendered = render(setup());
     const resizableContainer = rendered.container.querySelector(
       '.resizable-container',

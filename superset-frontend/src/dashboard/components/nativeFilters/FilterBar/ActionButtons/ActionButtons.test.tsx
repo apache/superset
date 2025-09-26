@@ -78,7 +78,7 @@ test('should apply', () => {
 });
 
 describe('custom width', () => {
-  it('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
+  test('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
     const mockedProps = createProps();
     render(<ActionButtons {...mockedProps} />, { useRedux: true });
     const container = screen.getByTestId('filterbar-action-buttons');
@@ -87,7 +87,7 @@ describe('custom width', () => {
     });
   });
 
-  it('sets custom width', () => {
+  test('sets custom width', () => {
     const mockedProps = createProps();
     const expectedWidth = 423;
     const { getByTestId } = render(

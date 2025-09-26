@@ -64,7 +64,7 @@ describe('EmptyState', () => {
   ];
 
   variants.forEach(variant => {
-    it(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
+    test(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
       const { container } = render(<EmptyState {...variant} />);
 
       // Select the first description node
@@ -76,7 +76,7 @@ describe('EmptyState', () => {
   });
 
   recents.forEach(recent => {
-    it(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
+    test(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
       const { container } = render(<EmptyState {...recent} />);
 
       // Select the first description node

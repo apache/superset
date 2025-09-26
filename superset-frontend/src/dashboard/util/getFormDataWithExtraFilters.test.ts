@@ -72,7 +72,7 @@ describe('getFormDataWithExtraFilters', () => {
     allSliceIds: [chartId],
   };
 
-  it('should include filters from the passed filters', () => {
+  test('should include filters from the passed filters', () => {
     const result = getFormDataWithExtraFilters(mockArgs);
     expect(result.extra_filters).toHaveLength(2);
     expect(result.extra_filters[0]).toEqual({
@@ -87,7 +87,7 @@ describe('getFormDataWithExtraFilters', () => {
     });
   });
 
-  it('should compose extra control', () => {
+  test('should compose extra control', () => {
     const result: CachedFormDataWithExtraControls =
       getFormDataWithExtraFilters(mockArgs);
     expect(result.stack).toEqual('Stacked');

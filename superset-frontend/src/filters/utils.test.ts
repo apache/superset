@@ -33,7 +33,7 @@ import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 describe('Filter utils', () => {
   describe('getRangeExtraFormData', () => {
-    it('getRangeExtraFormData - col: "testCol", lower: 1, upper: 2', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: 1, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', 1, 2)).toEqual({
         filters: [
           {
@@ -49,7 +49,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getRangeExtraFormData - col: "testCol", lower: 0, upper: 0', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: 0, upper: 0', () => {
       expect(getRangeExtraFormData('testCol', 0, 0)).toEqual({
         filters: [
           {
@@ -60,7 +60,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getRangeExtraFormData - col: "testCol", lower: null, upper: 2', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: null, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', null, 2)).toEqual({
         filters: [
           {
@@ -71,7 +71,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getRangeExtraFormData - col: "testCol", lower: 1, upper: undefined', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: 1, upper: undefined', () => {
       expect(getRangeExtraFormData('testCol', 1, undefined)).toEqual({
         filters: [
           {
@@ -84,7 +84,7 @@ describe('Filter utils', () => {
     });
   });
   describe('getSelectExtraFormData', () => {
-    it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: false', () => {
       expect(
         getSelectExtraFormData('testCol', ['value'], false, false),
       ).toEqual({
@@ -97,7 +97,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: true, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: true, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', ['value'], true, false)).toEqual(
         {
           adhoc_filters: [
@@ -110,7 +110,7 @@ describe('Filter utils', () => {
         },
       );
     });
-    it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: true', () => {
+    test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: true', () => {
       expect(getSelectExtraFormData('testCol', ['value'], false, true)).toEqual(
         {
           filters: [
@@ -123,21 +123,21 @@ describe('Filter utils', () => {
         },
       );
     });
-    it('getSelectExtraFormData - col: "testCol", value: [], emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: [], emptyFilter: false, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', [], false, false)).toEqual({});
     });
-    it('getSelectExtraFormData - col: "testCol", value: undefined, emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: undefined, emptyFilter: false, inverseSelection: false', () => {
       expect(
         getSelectExtraFormData('testCol', undefined, false, false),
       ).toEqual({});
     });
-    it('getSelectExtraFormData - col: "testCol", value: null, emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: null, emptyFilter: false, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', null, false, false)).toEqual({});
     });
   });
 
   describe('getDataRecordFormatter', () => {
-    it('default formatter returns expected values', () => {
+    test('default formatter returns expected values', () => {
       const formatter = getDataRecordFormatter();
       expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
       expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
@@ -173,7 +173,7 @@ describe('Filter utils', () => {
       );
     });
 
-    it('formatter with defined formatters returns expected values', () => {
+    test('formatter with defined formatters returns expected values', () => {
       const formatter = getDataRecordFormatter({
         timeFormatter: getTimeFormatter(TimeFormats.DATABASE_DATETIME),
         numberFormatter: getNumberFormatter(NumberFormats.SMART_NUMBER),
