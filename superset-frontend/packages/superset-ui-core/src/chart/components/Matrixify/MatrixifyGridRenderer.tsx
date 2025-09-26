@@ -18,7 +18,7 @@
  */
 
 import { useMemo } from 'react';
-import { styled } from '@apache-superset/core/src/ui/themeet/core/src/ui/theme';
+import { styled } from '@apache-superset/core/ui';
 import { MatrixifyFormData } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
 import MatrixifyGridCell from './MatrixifyGridCell';

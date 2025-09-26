@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Form } from 'antd';
-import { styled } from '@apache-superset/core/src/ui/themeerset/core/src/ui/theme';
+import { styled } from '@apache-superset/core/ui';
 
 export const FormItem = styled(Form.Item)`
   ${({ theme }) => `
