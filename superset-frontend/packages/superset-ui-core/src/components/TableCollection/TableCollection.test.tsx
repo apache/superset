@@ -36,19 +36,28 @@ beforeEach(() => {
       accessor: 'col2',
       id: 'col2',
     },
+    {
+      Header: 'Nested Field',
+      accessor: 'parent.child',
+      id: 'parent.child',
+      dataIndex: ['parent', 'child'],
+    },
   ];
   const data = [
     {
       col1: 'Line 01 - Col 01',
       col2: 'Line 01 - Col 02',
+      parent: { child: 'Nested Value 1' },
     },
     {
       col1: 'Line 02 - Col 01',
       col2: 'Line 02 - Col 02',
+      parent: { child: 'Nested Value 2' },
     },
     {
       col1: 'Line 03 - Col 01',
       col2: 'Line 03 - Col 02',
+      parent: { child: 'Nested Value 3' },
     },
   ];
   // @ts-ignore
@@ -216,14 +225,12 @@ test('should call setSortBy when clicking sortable column header', () => {
 
   render(<TableCollection {...sortingProps} />);
 
-  const columnHeaders = screen.getAllByRole('columnheader');
-  expect(columnHeaders.length).toBeGreaterThan(0);
+  // Target the nested field column (the column that needs the array-to-dot conversion)
+  const nestedFieldHeader = screen.getByText('Nested Field');
+  expect(nestedFieldHeader).toBeInTheDocument();
 
-  const firstColumnHeader = columnHeaders[0];
-  expect(firstColumnHeader).toBeInTheDocument();
-
-  // Click on the column header to trigger sorting
-  fireEvent.click(firstColumnHeader);
+  // Click on the nested field column header to trigger sorting
+  fireEvent.click(nestedFieldHeader);
 
   // Verify setSortBy was called immediately
   expect(setSortBy).toHaveBeenCalled();
@@ -233,8 +240,7 @@ test('should call setSortBy when clicking sortable column header', () => {
   expect(sortCallArgs[0]).toHaveProperty('id');
   expect(sortCallArgs[0]).toHaveProperty('desc');
 
-  // Verify it was called with a valid column ID (any string) and boolean desc
-  expect(typeof sortCallArgs[0].id).toBe('string');
-  expect(sortCallArgs[0].id.length).toBeGreaterThan(0);
+  // Verify the nested field array was converted to dot notation
+  expect(sortCallArgs[0].id).toBe('parent.child');
   expect(typeof sortCallArgs[0].desc).toBe('boolean');
 });
