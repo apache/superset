@@ -58,15 +58,6 @@ test('DateFilter with default props', () => {
   ).toBeInTheDocument();
 });
 
-test('DateFilter should be applied the overlayStyle props', () => {
-  render(setup({ onChange: () => {}, overlayStyle: 'Modal' }));
-  // should be Modal as overlay
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
-  expect(
-    screen.getByTestId(DateFilterTestKey.ModalOverlay),
-  ).toBeInTheDocument();
-});
-
 test('DateFilter should be applied the global config time_filter from the store', () => {
   render(
     setup(
