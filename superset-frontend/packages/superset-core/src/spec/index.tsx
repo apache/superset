@@ -16,9 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { PropsWithChildren } from 'react';
-import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
+import userEvent from '@testing-library/user-event';
+import { ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { themeObject } from '../ui/theme';
 
-export type AlertProps = PropsWithChildren<
-  Omit<AntdAlertProps, 'children'> & { roomBelow?: boolean }
->;
+// Define the wrapper component outside
+const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
+  <themeObject.SupersetThemeProvider>
+    {children}
+  </themeObject.SupersetThemeProvider>
+);
+
+// Follow the exact pattern from RTL docs
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>,
+) => render(ui, { wrapper: AllTheProviders, ...options });
+
+export {
+  createEvent,
+  fireEvent,
+  screen,
+  waitFor,
+  cleanup,
+  within,
+  act,
+} from '@testing-library/react';
+export { customRender as render, userEvent };

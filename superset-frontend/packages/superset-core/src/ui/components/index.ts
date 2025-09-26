@@ -16,6 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './api';
-export * from './ui';
-export * from './spec';
+export * from './Alert';

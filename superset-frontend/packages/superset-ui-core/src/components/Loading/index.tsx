@@ -18,7 +18,7 @@
  */
 
 import cls from 'classnames';
-import { styled, useTheme } from '../../theme';
+import { styled, useTheme } from '@apache-superset/core/src/ui/themeerset/core/src/ui/theme';
 import { Loading as LoaderSvg } from '../assets';
 import type { LoadingProps, SizeOption } from './types';
 

@@ -26,10 +26,7 @@ import {
   ThemeMode,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import {
-  getAntdConfig,
-  normalizeThemeConfig,
-} from '@superset-ui/core/theme/utils';
+import { getAntdConfig, normalizeThemeConfig } from '@apache-superset/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,

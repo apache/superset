@@ -34,7 +34,7 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { supersetTheme, SupersetTheme } from '../../theme';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/src/ui/themeerset/core/src/ui/theme';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
