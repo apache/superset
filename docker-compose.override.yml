@@ -24,12 +24,8 @@ services:
       - "127.0.0.1:6379:6379"
   db:
     ports:
-      - "0.0.0.0:5432:5432"
+      - "0.0.0.0:5433:5432"
   superset:
-    build:
-      context: .
-      dockerfile: Dockerfile.ssh
-      target: dev
     ports:
       - 8089:8088
       # When in cypress-mode ->
