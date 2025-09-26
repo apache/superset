@@ -462,7 +462,7 @@ class ExtensionAPI {
 
 ## Resources
 
-- [SQL Lab API Reference](/developer_portal/api/sql-lab)
+- [Frontend API Reference](/developer_portal/api/frontend)
 - [Extension Architecture](/developer_portal/architecture/overview)
-- [Testing SQL Lab Extensions](/developer_portal/testing/sql-lab)
+- [Your First Extension](/developer_portal/get-started/your-first-extension)
 - [SQL Lab Extension Repository](https://github.com/apache-superset/sql-lab-extensions)
