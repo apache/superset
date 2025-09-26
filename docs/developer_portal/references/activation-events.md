@@ -546,4 +546,4 @@ When adding features:
 - [Extension Manifest](/developer_portal/references/manifest)
 - [Extension Lifecycle](/developer_portal/advanced/extension-host)
 - [Contribution Points](/developer_portal/references/contribution-points)
-- [Performance Best Practices](/developer_portal/guides/performance)
+- [Architecture Overview](/developer_portal/architecture/overview)

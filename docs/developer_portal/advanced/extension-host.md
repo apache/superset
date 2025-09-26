@@ -453,4 +453,3 @@ class ExtensionEventBus {
 
 - [Extension Architecture Overview](/developer_portal/architecture/overview)
 - [API Reference](/developer_portal/api/frontend)
-- [Security Model](/developer_portal/advanced/security)

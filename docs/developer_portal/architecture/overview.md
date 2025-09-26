@@ -191,4 +191,4 @@ Ready to build your first extension? Check out:
 - [Extension Development Guide](/developer_portal/get-started/your-first-extension)
 - [API Reference](/developer_portal/api/frontend)
 - [CLI Documentation](/developer_portal/cli/overview)
-- [Example Extensions](/developer_portal/examples)
+- [SQL Lab Extensions](/developer_portal/examples/sql-lab-extensions)

@@ -398,7 +398,7 @@ Contribute menu items to SQL Lab:
 ## Next Steps
 
 - Explore [API Reference](/developer_portal/api/frontend) for available APIs
-- Review [Example Extensions](/developer_portal/examples) for inspiration
+- Review [SQL Lab Extension Examples](/developer_portal/examples/sql-lab-extensions) for inspiration
 - Learn about [Advanced Topics](/developer_portal/advanced/overview)
 - Share your extension with the community!
 
@@ -406,5 +406,5 @@ Contribute menu items to SQL Lab:
 
 - [Extension Architecture](/developer_portal/architecture/overview)
 - [CLI Documentation](/developer_portal/cli/overview)
-- [Contribution Guidelines](/developer_portal/guides/contributing)
+- [Contributing Guidelines](/developer_portal/contributing/overview)
 - [Community Forum](https://github.com/apache/superset/discussions)
