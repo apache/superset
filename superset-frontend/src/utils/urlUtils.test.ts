@@ -53,46 +53,45 @@ test('parseUrl', () => {
   expect(parseUrl('#anchor')).toEqual('#anchor');
 });
 
-describe('toQueryString', () => {
-  test('should return an empty string if the input is an empty object', () => {
-    expect(toQueryString({})).toBe('');
-  });
+// toQueryString
+test('toQueryString should return an empty string if the input is an empty object', () => {
+  expect(toQueryString({})).toBe('');
+});
 
-  test('should correctly convert a single key-value pair to a query string', () => {
-    expect(toQueryString({ key: 'value' })).toBe('?key=value');
-  });
+test('toQueryString should correctly convert a single key-value pair to a query string', () => {
+  expect(toQueryString({ key: 'value' })).toBe('?key=value');
+});
 
-  test('should correctly convert multiple key-value pairs to a query string', () => {
-    expect(toQueryString({ key1: 'value1', key2: 'value2' })).toBe(
-      '?key1=value1&key2=value2',
-    );
-  });
+test('toQueryString should correctly convert multiple key-value pairs to a query string', () => {
+  expect(toQueryString({ key1: 'value1', key2: 'value2' })).toBe(
+    '?key1=value1&key2=value2',
+  );
+});
 
-  test('should encode URI components', () => {
-    expect(
-      toQueryString({ 'a key': 'a value', email: 'test@example.com' }),
-    ).toBe('?a%20key=a%20value&email=test%40example.com');
-  });
+test('toQueryString should encode URI components', () => {
+  expect(toQueryString({ 'a key': 'a value', email: 'test@example.com' })).toBe(
+    '?a%20key=a%20value&email=test%40example.com',
+  );
+});
 
-  test('should omit keys with undefined values', () => {
-    expect(toQueryString({ key1: 'value1', key2: undefined })).toBe(
-      '?key1=value1',
-    );
-  });
+test('toQueryString should omit keys with undefined values', () => {
+  expect(toQueryString({ key1: 'value1', key2: undefined })).toBe(
+    '?key1=value1',
+  );
+});
 
-  test('should omit keys with null values', () => {
-    expect(toQueryString({ key1: 'value1', key2: null })).toBe('?key1=value1');
-  });
+test('toQueryString should omit keys with null values', () => {
+  expect(toQueryString({ key1: 'value1', key2: null })).toBe('?key1=value1');
+});
 
-  test('should handle numbers and boolean values as parameter values', () => {
-    expect(toQueryString({ number: 123, truth: true, lie: false })).toBe(
-      '?number=123&truth=true&lie=false',
-    );
-  });
+test('toQueryString should handle numbers and boolean values as parameter values', () => {
+  expect(toQueryString({ number: 123, truth: true, lie: false })).toBe(
+    '?number=123&truth=true&lie=false',
+  );
+});
 
-  test('should handle special characters in keys and values', () => {
-    expect(toQueryString({ 'user@domain': 'me&you' })).toBe(
-      '?user%40domain=me%26you',
-    );
-  });
+test('toQueryString should handle special characters in keys and values', () => {
+  expect(toQueryString({ 'user@domain': 'me&you' })).toBe(
+    '?user%40domain=me%26you',
+  );
 });
