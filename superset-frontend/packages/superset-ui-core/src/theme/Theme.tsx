@@ -20,31 +20,13 @@
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { theme as antdThemeImport, ConfigProvider } from 'antd';
-
-// @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
-/* eslint-disable import/extensions */
-import '@fontsource/inter/200.css';
-/* eslint-disable import/extensions */
-import '@fontsource/inter/400.css';
-/* eslint-disable import/extensions */
-import '@fontsource/inter/500.css';
-/* eslint-disable import/extensions */
-import '@fontsource/inter/600.css';
-/* eslint-disable import/extensions */
-import '@fontsource/fira-code/400.css';
-/* eslint-disable import/extensions */
-import '@fontsource/fira-code/500.css';
-/* eslint-disable import/extensions */
-import '@fontsource/fira-code/600.css';
-
 import {
   ThemeProvider,
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
-import { noop } from 'lodash';
+import { noop, mergeWith } from 'lodash';
 import { GlobalStyles } from './GlobalStyles';
-
 import {
   AntdThemeConfig,
   AnyThemeConfig,
@@ -53,63 +35,16 @@ import {
   allowedAntdTokens,
   SharedAntdTokens,
 } from './types';
-
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
-
-/* eslint-disable theme-colors/no-literal-colors */
 
 export class Theme {
   theme: SupersetTheme;
-
-  private static readonly defaultTokens = {
-    // Brand
-    brandLogoAlt: 'Apache Superset',
-    brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
-    brandLogoMargin: '18px',
-    brandLogoHref: '/',
-    brandLogoHeight: '24px',
-
-    // Spinner
-    brandSpinnerUrl: undefined,
-    brandSpinnerSvg: undefined,
-
-    // Default colors
-    colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
-    colorLink: '#2893B3',
-    colorError: '#e04355',
-    colorWarning: '#fcc700',
-    colorSuccess: '#5ac189',
-    colorInfo: '#66bcfe',
-
-    // Forcing some default tokens
-    fontFamily: `'Inter', Helvetica, Arial`,
-    fontFamilyCode: `'Fira Code', 'Courier New', monospace`,
-
-    // Extra tokens
-    transitionTiming: 0.3,
-    brandIconMaxWidth: 37,
-    fontSizeXS: '8',
-    fontSizeXXL: '28',
-    fontWeightNormal: '400',
-    fontWeightLight: '300',
-    fontWeightStrong: 500,
-  };
 
   private antdConfig: AntdThemeConfig;
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
-
-    // Create a new config object with default tokens
-    const newConfig: AnyThemeConfig = config ? { ...config } : {};
-
-    // Ensure token property exists with defaults
-    newConfig.token = {
-      ...Theme.defaultTokens,
-      ...(config?.token || {}),
-    };
-
-    this.setConfig(newConfig);
+    this.setConfig(config || {});
   }
 
   /**
@@ -118,9 +53,24 @@ export class Theme {
    * If simple tokens are provided as { token: {...} }, they will be applied with defaults
    * If no config is provided, uses default tokens
    * Dark mode can be set via the algorithm property in the config
+   * @param config - The theme configuration
+   * @param baseTheme - Optional base theme to apply under the config
    */
-  static fromConfig(config?: AnyThemeConfig): Theme {
-    return new Theme({ config });
+  static fromConfig(
+    config?: AnyThemeConfig,
+    baseTheme?: AnyThemeConfig,
+  ): Theme {
+    let mergedConfig: AnyThemeConfig | undefined = config;
+
+    if (baseTheme && config) {
+      mergedConfig = mergeWith({}, baseTheme, config, (objValue, srcValue) =>
+        Array.isArray(srcValue) ? srcValue : undefined,
+      );
+    } else if (baseTheme && !config) {
+      mergedConfig = baseTheme;
+    }
+
+    return new Theme({ config: mergedConfig });
   }
 
   private static getFilteredAntdTheme(
@@ -148,22 +98,15 @@ export class Theme {
   setConfig(config: AnyThemeConfig): void {
     const antdConfig = normalizeThemeConfig(config);
 
-    // Apply default tokens to token property
-    antdConfig.token = {
-      ...Theme.defaultTokens,
-      ...(antdConfig.token || {}),
-    };
-
     // First phase: Let Ant Design compute the tokens
     const tokens = Theme.getFilteredAntdTheme(antdConfig);
 
     // Set the base theme properties
     this.antdConfig = antdConfig;
     this.theme = {
-      ...Theme.defaultTokens,
-      ...antdConfig.token, // Passing through the extra, superset-specific tokens
-      ...tokens,
-    };
+      ...tokens, // First apply Ant Design computed tokens
+      ...(antdConfig.token || {}), // Then override with our custom tokens
+    } as SupersetTheme;
 
     // Update the providers with the fully formed theme
     this.updateProviders(
@@ -250,5 +193,3 @@ export class Theme {
     );
   }
 }
-
-/* eslint-enable theme-colors/no-literal-colors */
