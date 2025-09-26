@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "packageManager": "bun",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "build:lib", "build:esm"],
+        "cacheDirectory": ".nx/cache"
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"],
+      "outputs": [
+        "{projectRoot}/lib",
+        "{projectRoot}/esm",
+        "{projectRoot}/types",
+        "{projectRoot}/tsconfig.tsbuildinfo"
+      ]
+    },
+    "build:lib": {
+      "inputs": ["production"],
+      "outputs": ["{projectRoot}/lib"],
+      "cache": true
+    },
+    "build:esm": {
+      "inputs": ["production"],
+      "outputs": ["{projectRoot}/esm"],
+      "cache": true
+    }
+  },
+  "namedInputs": {
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/jest.config.[jt]s",
+      "!{projectRoot}/.eslintrc.json",
+      "!{projectRoot}/eslint.config.js"
+    ]
+  },
+  "workspaceLayout": {
+    "libsDir": "packages",
+    "appsDir": "plugins"
+  },
+  "nxCloudAccessToken": null
+}

@@ -25,7 +25,8 @@
     "generators"
   ],
   "scripts": {
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   },
   "dependencies": {
     "chalk": "^5.4.1",

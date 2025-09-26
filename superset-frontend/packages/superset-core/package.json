@@ -27,7 +27,8 @@
   },
   "scripts": {
     "build": "babel src --out-dir lib --extensions \".ts,.tsx\" && tsc --emitDeclarationOnly",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   },
   "publishConfig": {
     "access": "public"

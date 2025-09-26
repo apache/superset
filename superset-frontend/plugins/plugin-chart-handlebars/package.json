@@ -45,5 +45,8 @@
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "jest": "^30.0.5"
+  },
+  "scripts": {
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   }
 }

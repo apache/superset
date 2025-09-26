@@ -40,5 +40,8 @@
     "@babel/types": "^7.28.0",
     "@types/jest": "^29.5.12",
     "jest": "^30.0.5"
+  },
+  "scripts": {
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   }
 }

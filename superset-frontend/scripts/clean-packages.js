@@ -1,42 +1,44 @@
 #!/usr/bin/env node
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /* eslint-disable no-console */
 
-const fs = require('fs');
-const path = require('path');
+/**
+ * Clean build outputs and Nx cache
+ */
 
-console.log('🧹 Cleaning build directories...');
+const { execSync } = require('child_process');
 
-// Directories to clean
-const packagesDir = path.join(__dirname, '../packages');
-const pluginsDir = path.join(__dirname, '../plugins');
+console.log('🧹 Cleaning build outputs and cache...');
 
-function cleanDirectory(dir) {
-  if (!fs.existsSync(dir)) return;
-
-  fs.readdirSync(dir).forEach(name => {
-    const packagePath = path.join(dir, name);
-
-    if (!fs.statSync(packagePath).isDirectory()) return;
-
-    // Clean lib, esm, and types directories
-    ['lib', 'esm', 'types'].forEach(buildDir => {
-      const buildPath = path.join(packagePath, buildDir);
-      if (fs.existsSync(buildPath)) {
-        fs.rmSync(buildPath, { recursive: true, force: true });
-        console.log(`  Removed ${name}/${buildDir}`);
-      }
-    });
-
-    // Clean tsconfig.tsbuildinfo files
-    const tsBuildInfo = path.join(packagePath, 'tsconfig.tsbuildinfo');
-    if (fs.existsSync(tsBuildInfo)) {
-      fs.unlinkSync(tsBuildInfo);
-      console.log(`  Removed ${name}/tsconfig.tsbuildinfo`);
-    }
-  });
+// Clear Nx cache
+try {
+  execSync('npx nx reset', { stdio: 'inherit' });
+} catch (e) {
+  // Nx might not be initialized yet
 }
 
-cleanDirectory(packagesDir);
-cleanDirectory(pluginsDir);
+// Clean build directories
+execSync('lerna run clean --parallel 2>/dev/null || true', {
+  stdio: 'inherit',
+  shell: true,
+});
 
 console.log('✨ Clean complete!');

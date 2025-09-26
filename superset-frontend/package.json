@@ -53,8 +53,7 @@
     "lint": "npm run eslint -- . && npm run type",
     "lint-fix": "npm run eslint -- . --fix",
     "lint-stats": "eslint -f ./scripts/eslint-metrics-uploader.js --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . ",
-    "plugins:build": "USE_BUN_TSC=true node ./scripts/build-with-bun-optimized.js",
-    "plugins:build-npm": "USE_BUN_TSC=true node ./scripts/build.js",
+    "plugins:build": "USE_BUN_TSC=true npx nx run-many --target=build --all --parallel=8",
     "plugins:benchmark": "node ./scripts/benchmark-build.js",
     "plugins:clean": "node ./scripts/clean-packages.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
@@ -214,7 +213,6 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "bun": "^1.1.38",
     "@applitools/eyes-storybook": "^3.55.6",
     "@babel/cli": "^7.27.2",
     "@babel/compat-data": "^7.28.0",
@@ -286,6 +284,7 @@
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "babel-plugin-lodash": "^3.3.4",
     "babel-plugin-typescript-to-proptypes": "^2.0.0",
+    "bun": "^1.1.38",
     "cheerio": "1.1.0",
     "copy-webpack-plugin": "^13.0.0",
     "cross-env": "^10.0.0",
@@ -325,6 +324,7 @@
     "jsdom": "^26.0.0",
     "lerna": "^8.2.3",
     "mini-css-extract-plugin": "^2.9.0",
+    "nx": "^21.5.3",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
     "prettier": "3.6.2",

@@ -1,0 +1,20 @@
+{
+  "name": "plugin-chart-echarts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "build:nx"
+      },
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production"],
+      "outputs": [
+        "{projectRoot}/lib",
+        "{projectRoot}/esm",
+        "{projectRoot}/types"
+      ]
+    }
+  }
+}

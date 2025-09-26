@@ -60,6 +60,13 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
+      - id: license-check
+        name: Apache license header check
+        entry: ./scripts/check_license_pre_commit.sh
+        language: system
+        pass_filenames: true
+        files: \.(js|jsx|ts|tsx|py|sh|java|groovy|scala)$
+        exclude: ^(node_modules/|build/|dist/|\.next/|target/)
       - id: eslint-frontend
         name: eslint (frontend)
         entry: ./scripts/eslint.sh
