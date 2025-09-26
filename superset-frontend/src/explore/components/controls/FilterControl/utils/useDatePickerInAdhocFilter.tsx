@@ -52,6 +52,7 @@ export const useDatePickerInAdhocFilter = ({
         value={timeRange}
         name="time_range"
         onChange={onTimeRangeChange}
+        overlayStyle="Modal"
       />
     </>
   ) : undefined;

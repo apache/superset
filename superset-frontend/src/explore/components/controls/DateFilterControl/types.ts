@@ -112,5 +112,6 @@ export interface DateFilterControlProps {
   value?: string;
   onOpenPopover?: () => void;
   onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
 }
