@@ -12,6 +12,11 @@
   },
   "targetDefaults": {
     "build": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "build:nx"
+      },
+      "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"],
       "outputs": [

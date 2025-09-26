@@ -2,19 +2,6 @@
   "name": "superset-ui-core",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "targets": {
-    "build": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "build:nx"
-      },
-      "cache": true,
-      "dependsOn": [],
-      "inputs": ["production"],
-      "outputs": [
-        "{projectRoot}/lib",
-        "{projectRoot}/esm",
-        "{projectRoot}/types"
-      ]
-    }
+    "build": {}
   }
 }

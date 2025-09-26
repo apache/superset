@@ -7,6 +7,8 @@ This PR revolutionizes Superset's frontend build system by combining Bun's fast 
 - **10-20x faster typical builds** (only rebuild what changed)
 - **25% faster full builds** with Bun optimizations
 - **Local caching** - no cloud dependencies
+- **Fixed TypeScript error reporting** that was silently failing
+- **DRY configuration** - reduced 325+ lines of repetitive config
 
 ## Key Changes
 
@@ -33,6 +35,12 @@ This PR revolutionizes Superset's frontend build system by combining Bun's fast 
 - Checks only changed files for performance
 - All new scripts include proper ASF headers
 - Prevents commits with missing license headers
+
+### 5. DRY Configuration with Nx
+- Moved all repetitive build configuration to `nx.json` `targetDefaults`
+- Reduced each `project.json` from 20 lines to just 7 lines
+- Eliminated ~325 lines of duplicate configuration
+- Single source of truth for build settings
 
 ## Performance Results
 
@@ -86,28 +94,35 @@ npx nx affected:build --dry-run
 
 #### Core Build System
 - `package.json` - Added Nx dependency, updated `plugins:build` to use Nx
-- `nx.json` - Nx configuration (caching rules, build pipeline)
-- `scripts/build-package-nx.sh` - Build script for individual packages
+- `nx.json` - Nx configuration with centralized `targetDefaults` for DRY principles
+- `scripts/build-package-nx.sh` - Build script for individual packages with parallel Babel compilation
 - `scripts/clean-packages.js` - Simplified clean script with Nx cache reset
-- `scripts/tsc.sh` - Fixed critical bug in TypeScript error handling
+- `scripts/tsc.sh` - Fixed critical bug in TypeScript error handling (exit codes now properly captured)
+- `scripts/simplify-nx-configs.js` - Script to reduce repetition in project.json files
 
 #### License Compliance
-- `scripts/check_license_pre_commit.sh` - Fast license header checker for changed files
+- `scripts/check_license_pre_commit.sh` - Fast license header checker for changed files only
 - `.pre-commit-config.yaml` - Added license-check hook
 
 #### Package Configurations (all 25 packages)
-- `project.json` - Nx project configuration for each package
+- `project.json` - Minimal Nx configuration (7 lines each, inheriting from nx.json)
 - `package.json` - Added `build:nx` script for Nx builds
+
+#### Repository Cleanup
+- `.gitignore` - Added `.nx/` cache directory exclusion
+- Removed all unnecessary cache/workspace files from git tracking
 
 ## Testing
 
 ✅ All 25 packages build successfully  
 ✅ Cache properly invalidates on file changes  
-✅ TypeScript errors are now properly reported  
+✅ TypeScript errors are now properly reported (fixed tsc.sh bug)  
 ✅ Build outputs identical to previous system  
 ✅ CI/CD compatible (no external dependencies)  
 ✅ License headers verified on all new files  
 ✅ Pre-commit hooks installed and working  
+✅ DRY configuration tested - builds work with minimal project.json files  
+✅ Repository clean - no cache files in git  
 
 ## Migration Notes
 
