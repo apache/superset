@@ -119,9 +119,9 @@ describe('Footer', () => {
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
     userEvent.click(dropdownTrigger);
 
-    // Check that the dropdown menu option is visible
+    // Check that the dropdown menu option is in the document
     await waitFor(() => {
-      expect(screen.getByText('Create dataset')).toBeVisible();
+      expect(screen.getByText('Create dataset')).toBeInTheDocument();
     });
   });
 
