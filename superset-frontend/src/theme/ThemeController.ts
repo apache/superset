@@ -329,7 +329,6 @@ export class ThemeController {
 
     const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
     if (!theme) {
-      console.warn(`Theme for mode ${mode} not found, falling back to default`);
       this.fallbackToDefaultMode();
       return;
     }
@@ -535,7 +534,7 @@ export class ThemeController {
    * Updates the theme.
    * @param theme - The new theme to apply
    */
-  private updateTheme(theme?: AnyThemeConfig): void {
+  private async updateTheme(theme?: AnyThemeConfig): Promise<void> {
     try {
       // If no config provided, use current mode to get theme
       if (!theme) {
@@ -551,18 +550,32 @@ export class ThemeController {
       this.persistMode();
       this.notifyListeners();
     } catch (error) {
-      console.error('Failed to update theme:', error);
-      this.fallbackToDefaultMode();
+      await this.fallbackToDefaultMode();
     }
   }
 
   /**
-   * Fallback to default mode with error recovery.
+   * Fallback to default mode with runtime error recovery.
+   * Tries to fetch a fresh system default theme from the API.
    */
-  private fallbackToDefaultMode(): void {
+  private async fallbackToDefaultMode(): Promise<void> {
     this.currentMode = ThemeMode.DEFAULT;
 
-    // Get the default theme which will have the correct algorithm
+    // Try to fetch fresh system default theme from server
+    const freshSystemTheme = await this.fetchSystemDefaultTheme();
+
+    if (freshSystemTheme) {
+      try {
+        await this.applyThemeWithRecovery(freshSystemTheme);
+        this.persistMode();
+        this.notifyListeners();
+        return;
+      } catch (error) {
+        // Fresh theme also failed, continue to final fallback
+      }
+    }
+
+    // Final fallback: use cached default theme or built-in theme
     const defaultTheme: AnyThemeConfig =
       this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
@@ -795,8 +808,20 @@ export class ThemeController {
         ?.fontUrls as string[] | undefined;
       this.loadFonts(fontUrls);
     } catch (error) {
-      console.error('Failed to apply theme:', error);
-      this.fallbackToDefaultMode();
+      // For synchronous calls, use fallback without async recovery
+      const fallbackTheme =
+        this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
+      const normalizedFallback = this.normalizeTheme(fallbackTheme);
+      this.globalTheme.setConfig(normalizedFallback);
+    }
+  }
+
+  private async applyThemeWithRecovery(theme: AnyThemeConfig): Promise<void> {
+    try {
+      const normalizedConfig = normalizeThemeConfig(theme);
+      this.globalTheme.setConfig(normalizedConfig);
+    } catch (error) {
+      await this.fallbackToDefaultMode();
     }
   }
 
@@ -916,5 +941,46 @@ export class ThemeController {
       console.error('Failed to fetch CRUD theme:', error);
       return null;
     }
+  }
+
+  /**
+   * Fetches a fresh system default theme from the API for runtime recovery.
+   * Tries multiple fallback strategies to find a valid theme.
+   * @returns The system default theme configuration or null if not found
+   */
+  private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
+    try {
+      // Try to fetch theme marked as system default (is_system_default=true)
+      const defaultResponse = await fetch(
+        '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+      );
+      if (defaultResponse.ok) {
+        const data = await defaultResponse.json();
+        if (data.result?.length > 0) {
+          const themeConfig = JSON.parse(data.result[0].json_data);
+          if (themeConfig && typeof themeConfig === 'object') {
+            return themeConfig;
+          }
+        }
+      }
+
+      // Fallback: Try to fetch system theme named 'THEME_DEFAULT'
+      const fallbackResponse = await fetch(
+        '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+      );
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData.result?.length > 0) {
+          const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+          if (themeConfig && typeof themeConfig === 'object') {
+            return themeConfig;
+          }
+        }
+      }
+    } catch (error) {
+      // Silently handle fetch errors
+    }
+
+    return null;
   }
 }
