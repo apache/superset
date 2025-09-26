@@ -173,6 +173,9 @@ const StyledSidebar = styled.div<{ width: number; hide: boolean | undefined }>`
   padding: ${({ theme, hide }) => (hide ? 0 : theme.sizeUnit * 2.5)}px;
   border-right: 1px solid
     ${({ theme, hide }) => (hide ? 'transparent' : theme.colorBorder)};
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledSqlEditor = styled.div`
