@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
@@ -207,7 +207,7 @@ test('Bulk selection should work with pagination', () => {
   expect(checkboxes.length).toBeGreaterThan(0);
 });
 
-test('handleTableChange should convert array field to dot notation for nested fields', () => {
+test('should call setSortBy when clicking sortable column header', () => {
   const setSortBy = jest.fn();
   const sortingProps = {
     ...defaultProps,
@@ -216,55 +216,25 @@ test('handleTableChange should convert array field to dot notation for nested fi
 
   render(<TableCollection {...sortingProps} />);
 
-  expect(screen.getByRole('table')).toBeInTheDocument();
+  const columnHeaders = screen.getAllByRole('columnheader');
+  expect(columnHeaders.length).toBeGreaterThan(0);
 
-  const mockSorter = {
-    field: ['database', 'database_name'], // Array format from AntD
-    order: 'descend' as const,
-  };
+  const firstColumnHeader = columnHeaders[0];
+  expect(firstColumnHeader).toBeInTheDocument();
 
-  const handleTableChange = (
-    _pagination: any,
-    _filters: any,
-    sorter: { field: string | string[]; order: 'ascend' | 'descend' },
-  ) => {
-    if (sorter && sorter.field) {
-      const fieldId = Array.isArray(sorter.field)
-        ? sorter.field.join('.')
-        : sorter.field;
+  // Click on the column header to trigger sorting
+  fireEvent.click(firstColumnHeader);
 
-      setSortBy([
-        {
-          id: fieldId,
-          desc: sorter.order === 'descend',
-        },
-      ]);
-    }
-  };
+  // Verify setSortBy was called immediately
+  expect(setSortBy).toHaveBeenCalled();
 
-  // Test the callback logic with array field
-  handleTableChange(null, null, mockSorter);
+  const sortCallArgs = setSortBy.mock.calls[0][0];
+  expect(Array.isArray(sortCallArgs)).toBe(true);
+  expect(sortCallArgs[0]).toHaveProperty('id');
+  expect(sortCallArgs[0]).toHaveProperty('desc');
 
-  expect(setSortBy).toHaveBeenCalledWith([
-    {
-      id: 'database.database_name', // Should be converted to dot notation
-      desc: true,
-    },
-  ]);
-
-  // Test with string field (should pass through unchanged)
-  setSortBy.mockClear();
-  const mockStringSorter = {
-    field: 'table_name',
-    order: 'ascend' as const,
-  };
-
-  handleTableChange(null, null, mockStringSorter);
-
-  expect(setSortBy).toHaveBeenCalledWith([
-    {
-      id: 'table_name',
-      desc: false,
-    },
-  ]);
+  // Verify it was called with a valid column ID (any string) and boolean desc
+  expect(typeof sortCallArgs[0].id).toBe('string');
+  expect(sortCallArgs[0].id.length).toBeGreaterThan(0);
+  expect(typeof sortCallArgs[0].desc).toBe('boolean');
 });
