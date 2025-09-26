@@ -138,6 +138,7 @@ const Select = forwardRef(
     const [onChangeCount, setOnChangeCount] = useState(0);
     const previousChangeCount = usePrevious(onChangeCount, 0);
     const cancelRef = useRef<(() => void) | null>(null);
+    const isMounted = useRef(true);
     const fireOnChange = useCallback(
       () => setOnChangeCount(onChangeCount + 1),
       [onChangeCount],
@@ -402,13 +403,22 @@ const Select = forwardRef(
       onSearch?.(searchValue);
     }, Constants.FAST_DEBOUNCE);
 
+    useEffect(
+      () => () => {
+        isMounted.current = false;
+      },
+      [],
+    );
+
     useEffect(() => {
       cancelRef.current = handleOnSearch.cancel;
     }, [handleOnSearch]);
 
     useEffect(
       () => () => {
-        cancelRef.current?.();
+        if (!isMounted.current) {
+          cancelRef.current?.();
+        }
       },
       [],
     );
