@@ -9,7 +9,14 @@ This revised proposal presents a refined architecture based on learnings from th
 3. **Enables better code reusability**: A library-first approach allows the MCP service to leverage Superset's core functionality without web framework dependencies
 4. **Supports enterprise deployment patterns**: FastMCP middleware enables multi-tenancy and security integrations required for production environments
 
-The Model Context Protocol (MCP) is an emerging standard that provides AI agents with a unified interface to interact with various tools and services. By implementing an MCP service for Superset, we enable LLMs to naturally create charts, manage dashboards, query data, and perform analytics workflows through standardized JSON-RPC 2.0 protocols.
+The Model Context Protocol (MCP) is an open-source standard developed by Anthropic that provides AI agents with a unified interface to interact with various tools and services. MCP enables secure, controlled access to external resources through a standardized JSON-RPC 2.0 protocol.
+
+**References:**
+- [MCP Specification](https://spec.modelcontextprotocol.io/) - Official protocol specification
+- [MCP Documentation](https://modelcontextprotocol.io/) - Implementation guides and examples
+- [FastMCP Library](https://github.com/pydantic/fastmcp) - Python implementation framework
+
+By implementing an MCP service for Superset, we enable LLMs to naturally create charts, manage dashboards, query data, and perform analytics workflows through standardized JSON-RPC 2.0 protocols.
 
 ## Proposed Change
 
@@ -466,6 +473,15 @@ class CustomAnalyticsTool(BaseMCPTool):
 
 These principles ensure the MCP service provides a secure, extensible, and maintainable foundation for AI-driven analytics workflows while leveraging Superset's existing strengths.
 
+## Security Model
+
+The MCP service reuses Superset's existing security infrastructure:
+
+- **Authentication**: JWT tokens, session-based auth (development)
+- **Authorization**: Flask-AppBuilder RBAC automatically applied through DAOs
+- **Input Validation**: 5-layer pipeline with Pydantic schemas and security sanitization
+- **Data Access**: Row-level and column-level security inherited from Superset core
+
 ## Continued implementation
 
 The above SIP unlocks the ability to add additional tools (with or without additional SIPs, since they’re effectively non-breaking changes following the agreed-upon pattern). The initial pull request(s) for this SIP *may* include initial POC implementations of a subset of the following tools:
@@ -657,7 +673,7 @@ def get_filterable_columns_and_operators() -> Dict[str, Any]  # Filter discovery
 
 ### Python Dependencies
 
-- **fastmcp** (v2.12.3+): Core MCP protocol implementation
+- **fastmcp** (v2.10.0+): Core MCP protocol implementation
     - License: MIT
     - Maintenance: Active (Anthropic-backed)
     - Purpose: MCP server implementation and tooling
@@ -675,7 +691,7 @@ def get_filterable_columns_and_operators() -> Dict[str, Any]  # Filter discovery
 
 ### Breaking Changes
 
-There is an issue with werkzeug 3.1.3 not working with fastmcp 2.12.3. To fix in dev we are using fastmcp 2.10 (for now)
+**Note**: Earlier versions had compatibility issues between werkzeug 3.1.3 and fastmcp 2.12.3. The current implementation uses fastmcp 2.10.0 which resolves these compatibility concerns and provides stable operation with the existing Flask/Werkzeug stack.
 
 ## Migration Plan and Compatibility
 
