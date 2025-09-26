@@ -24,6 +24,7 @@ import {
   removeHTMLTags,
   isJsonString,
   getParagraphContents,
+  extractTextFromHTML,
 } from './html';
 
 describe('sanitizeHtml', () => {
@@ -202,5 +203,103 @@ describe('getParagraphContents', () => {
     expect(result).toEqual({
       p1: 'First paragraph with nested content.',
     });
+  });
+});
+
+describe('extractTextFromHTML', () => {
+  it('should extract text from HTML div tags', () => {
+    const htmlString = '<div>Hello World</div>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('Hello World');
+  });
+
+  it('should extract text from nested HTML tags', () => {
+    const htmlString = '<div><p>Hello <strong>World</strong></p></div>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('Hello World');
+  });
+
+  it('should extract text from multiple HTML elements', () => {
+    const htmlString = '<h1>Title</h1><p>Content</p><span>Footer</span>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('TitleContentFooter');
+  });
+
+  it('should return original string when input is not HTML', () => {
+    const plainText = 'Just plain text';
+    const result = extractTextFromHTML(plainText);
+    expect(result).toBe('Just plain text');
+  });
+
+  it('should return original value when input is not a string', () => {
+    const numberValue = 12345;
+    const result = extractTextFromHTML(numberValue);
+    expect(result).toBe(12345);
+
+    const nullValue = null;
+    const nullResult = extractTextFromHTML(nullValue);
+    expect(nullResult).toBe(null);
+
+    const booleanValue = true;
+    const booleanResult = extractTextFromHTML(booleanValue);
+    expect(booleanResult).toBe(true);
+  });
+
+  it('should handle empty HTML tags', () => {
+    const htmlString = '<div></div>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('');
+  });
+
+  it('should handle HTML with only whitespace', () => {
+    const htmlString = '<div>   </div>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('   ');
+  });
+
+  it('should extract text from HTML with attributes', () => {
+    const htmlString = '<div class="container" id="main">Hello World</div>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('Hello World');
+  });
+
+  it('should handle self-closing tags', () => {
+    const htmlString = '<img src="image.jpg" alt="Image"><br><p>Text after</p>';
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toBe('Text after');
+  });
+
+  it('should handle complex HTML structure', () => {
+    const htmlString = `
+      <html>
+        <head><title>Page Title</title></head>
+        <body>
+          <header><h1>Main Title</h1></header>
+          <main>
+            <p>First paragraph with <em>emphasis</em>.</p>
+            <ul>
+              <li>Item 1</li>
+              <li>Item 2</li>
+            </ul>
+          </main>
+        </body>
+      </html>
+    `;
+    const result = extractTextFromHTML(htmlString);
+    expect(result).toContain('Page Title');
+    expect(result).toContain('Main Title');
+    expect(result).toContain('First paragraph with emphasis.');
+    expect(result).toContain('Item 1');
+    expect(result).toContain('Item 2');
+  });
+
+  it('should not extract text from strings that look like HTML but are not', () => {
+    const fakeHtmlString = '<abcdef:12345>';
+    const result = extractTextFromHTML(fakeHtmlString);
+    expect(result).toBe('<abcdef:12345>');
+
+    const mathExpression = 'x < 5 and y > 10';
+    const mathResult = extractTextFromHTML(mathExpression);
+    expect(mathResult).toBe('x < 5 and y > 10');
   });
 });
