@@ -24,7 +24,7 @@ under the License.
 
 # Design Principles
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Core design principles that guide the development of effective and user-friendly Superset plugins.
 

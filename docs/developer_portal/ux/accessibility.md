@@ -24,7 +24,7 @@ under the License.
 
 # Accessibility Guidelines
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Ensure your Superset plugins are accessible to users with disabilities and comply with modern accessibility standards.
 

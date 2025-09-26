@@ -24,7 +24,7 @@ under the License.
 
 # Advanced Topics Overview
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Explore advanced plugin development techniques, architecture patterns, and complex integration scenarios.
 

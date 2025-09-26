@@ -24,7 +24,7 @@ under the License.
 
 # Publishing and Distribution
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to package, test, and distribute your Superset plugins to the community and enterprise users.
 

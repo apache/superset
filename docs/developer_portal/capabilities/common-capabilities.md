@@ -24,7 +24,7 @@ under the License.
 
 # Common Plugin Capabilities
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Explore the shared functionality and common patterns available to all Superset plugins.
 

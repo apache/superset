@@ -24,7 +24,7 @@ under the License.
 
 # Development Guides Overview
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 This section contains practical guides and tutorials for common plugin development scenarios and advanced techniques.
 

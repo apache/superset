@@ -24,7 +24,7 @@ under the License.
 
 # Proposed APIs and Future Features
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Explore upcoming APIs, experimental features, and proposed enhancements to the Superset plugin ecosystem.
 

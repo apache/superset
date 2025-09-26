@@ -24,7 +24,7 @@ under the License.
 
 # Creating a Visualization Plugin
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Step-by-step guide to building your first custom visualization plugin for Apache Superset.
 

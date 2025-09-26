@@ -24,7 +24,7 @@ under the License.
 
 # Unit Testing
 
-=� **Coming Soon** =�
+🚧 **Coming Soon** 🚧
 
 Learn how to write effective unit tests for your Superset plugin components, functions, and services.
 
