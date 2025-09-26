@@ -19,7 +19,6 @@
 import { useRef, useState, useEffect, JSX } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import Head from '@docusaurus/Head';
 import { Carousel } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
@@ -506,12 +505,11 @@ export default function Home(): JSX.Element {
   }, []);
 
   return (
-    <Layout>
-      <Head>
-        <title>Welcome</title>
-        <meta name="description" content="Community website for Apache Superset™, a data visualization and data exploration platform" />
-        <body className="under-navbar" />
-      </Head>
+    <Layout
+      title="Welcome"
+      description="Community website for Apache Superset™, a data visualization and data exploration platform"
+      wrapperClassName="under-navbar"
+    >
       <StyledMain>
         <StyledTitleContainer>
           <div className="info-container">
