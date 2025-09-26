@@ -216,28 +216,55 @@ test('handleTableChange should convert array field to dot notation for nested fi
 
   render(<TableCollection {...sortingProps} />);
 
-  // Test the array-to-dot-notation conversion logic directly
-  const mockArraySorter = {
-    field: ['database', 'database_name'],
+  expect(screen.getByRole('table')).toBeInTheDocument();
+
+  const mockSorter = {
+    field: ['database', 'database_name'], // Array format from AntD
     order: 'descend' as const,
   };
 
+  const handleTableChange = (
+    _pagination: any,
+    _filters: any,
+    sorter: { field: string | string[]; order: 'ascend' | 'descend' },
+  ) => {
+    if (sorter && sorter.field) {
+      const fieldId = Array.isArray(sorter.field)
+        ? sorter.field.join('.')
+        : sorter.field;
+
+      setSortBy([
+        {
+          id: fieldId,
+          desc: sorter.order === 'descend',
+        },
+      ]);
+    }
+  };
+
+  // Test the callback logic with array field
+  handleTableChange(null, null, mockSorter);
+
+  expect(setSortBy).toHaveBeenCalledWith([
+    {
+      id: 'database.database_name', // Should be converted to dot notation
+      desc: true,
+    },
+  ]);
+
+  // Test with string field (should pass through unchanged)
+  setSortBy.mockClear();
   const mockStringSorter = {
     field: 'table_name',
     order: 'ascend' as const,
   };
 
-  // Test array field conversion
-  const fieldIdArray = Array.isArray(mockArraySorter.field)
-    ? mockArraySorter.field.join('.')
-    : mockArraySorter.field;
+  handleTableChange(null, null, mockStringSorter);
 
-  expect(fieldIdArray).toBe('database.database_name');
-
-  // Test string field passthrough
-  const fieldIdString = Array.isArray(mockStringSorter.field)
-    ? mockStringSorter.field.join('.')
-    : mockStringSorter.field;
-
-  expect(fieldIdString).toBe('table_name');
+  expect(setSortBy).toHaveBeenCalledWith([
+    {
+      id: 'table_name',
+      desc: false,
+    },
+  ]);
 });
