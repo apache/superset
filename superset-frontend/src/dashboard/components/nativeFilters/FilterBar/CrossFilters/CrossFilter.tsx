@@ -86,7 +86,7 @@ const CrossFilter = (props: {
         />
       )}
       {last && (
-        <span
+        <div
           data-test="cross-filters-divider"
           css={css`
             ${orientation === FilterBarOrientation.Horizontal
@@ -95,6 +95,7 @@ const CrossFilter = (props: {
                 height: 22px;
                 margin-left: ${theme.sizeUnit * 4}px;
                 margin-right: ${theme.sizeUnit}px;
+                flex-shrink: 0;
               `
               : `
                 width: 100%;
