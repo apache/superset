@@ -92,10 +92,6 @@ const ColumnSelectPopoverTriggerInner = ({
     initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
   }
 
-  useEffect(() => {
-    setPopoverLabel(initialPopoverLabel);
-  }, [initialPopoverLabel, popoverVisible]);
-
   const togglePopover = useCallback((visible: boolean) => {
     setPopoverVisible(visible);
   }, []);
@@ -120,6 +116,13 @@ const ColumnSelectPopoverTriggerInner = ({
   const getCurrentTab = useCallback((tab: string) => {
     setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
+
+  useEffect(() => {
+    setPopoverLabel(initialPopoverLabel);
+    if (!visible) {
+      setHasCustomLabel(false);
+    }
+  }, [initialPopoverLabel, visible]);
 
   const overlayContent = useMemo(
     () => (
