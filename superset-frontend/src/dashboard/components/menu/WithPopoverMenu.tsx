@@ -129,12 +129,12 @@ export default class WithPopoverMenu extends PureComponent<
     this.handleClick = this.handleClick.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: WithPopoverMenuProps) {
-    if (nextProps.editMode && nextProps.isFocused && !this.state.isFocused) {
+  componentDidUpdate(prevProps: WithPopoverMenuProps) {
+    if (this.props.editMode && this.props.isFocused && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
       this.setState({ isFocused: true });
-    } else if (this.state.isFocused && !nextProps.editMode) {
+    } else if (this.state.isFocused && !this.props.editMode) {
       document.removeEventListener('click', this.handleClick);
       document.removeEventListener('drag', this.handleClick);
       this.setState({ isFocused: false });

@@ -21,18 +21,17 @@ import {
   DataMaskStateWithId,
   DatasourceType,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   NativeFilterScope,
   NativeFiltersState,
   NativeFilterTarget,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
-
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';

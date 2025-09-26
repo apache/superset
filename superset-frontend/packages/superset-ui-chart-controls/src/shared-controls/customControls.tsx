@@ -20,13 +20,13 @@
 import {
   ContributionType,
   ensureIsArray,
-  GenericDataType,
   getColumnLabel,
   getMetricLabel,
   QueryFormColumn,
   QueryFormMetric,
   t,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelState,
   ControlState,

@@ -41,6 +41,17 @@ from superset.utils.webdriver import (
 
 logger = logging.getLogger(__name__)
 
+# Import Playwright availability and install message
+try:
+    from superset.utils.webdriver import (
+        PLAYWRIGHT_AVAILABLE,
+        PLAYWRIGHT_INSTALL_MESSAGE,
+    )
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
+
+
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
 DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
 DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
@@ -169,7 +180,19 @@ class BaseScreenshot:
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            return WebDriverPlaywright(self.driver_type, window_size)
+            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
+            if PLAYWRIGHT_AVAILABLE:
+                return WebDriverPlaywright(self.driver_type, window_size)
+
+            # Playwright not available, falling back to Selenium
+            logger.info(
+                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
+                "installed. Falling back to Selenium (WebGL/Canvas charts may "
+                "not render correctly). %s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
+            )
+
+        # Use Selenium as default/fallback
         return WebDriverSelenium(self.driver_type, window_size)
 
     def get_screenshot(

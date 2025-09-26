@@ -22,12 +22,11 @@ from typing import Any, Callable, DefaultDict, Optional, Union
 
 import msgpack
 import pyarrow as pa
-from flask import current_app as app, flash, g, has_request_context, redirect, request
+from flask import current_app as app, g, has_request_context, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.exc import NoResultFound
-from werkzeug.wrappers.response import Response
 
 from superset import dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
@@ -551,8 +550,3 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
-
-
-def redirect_with_flash(url: str, message: str, category: str) -> Response:
-    flash(message=message, category=category)
-    return redirect(url)

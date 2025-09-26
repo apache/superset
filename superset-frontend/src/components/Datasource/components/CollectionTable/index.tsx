@@ -104,10 +104,10 @@ export default class CRUDCollection extends PureComponent<
     this.toggleExpand = this.toggleExpand.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
-    if (nextProps.collection !== this.props.collection) {
+  componentDidUpdate(prevProps: CRUDCollectionProps) {
+    if (this.props.collection !== prevProps.collection) {
       const { collection, collectionArray } = createKeyedCollection(
-        nextProps.collection,
+        this.props.collection,
       );
       this.setState(prevState => ({
         collection,

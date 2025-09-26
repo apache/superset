@@ -25,11 +25,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import {
-  SamplesPane,
-  TableControlsWrapper,
-  useResultsPane,
-} from './components';
+import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
 const StyledDiv = styled.div`
@@ -162,7 +158,7 @@ export const DataTablesPane = ({
       <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
     return (
-      <TableControlsWrapper>
+      <div>
         {panelOpen ? (
           <span
             role="button"
@@ -180,7 +176,7 @@ export const DataTablesPane = ({
             {caretIcon}
           </span>
         )}
-      </TableControlsWrapper>
+      </div>
     );
   }, [handleCollapseChange, panelOpen]);
 

@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import { GenericDataType } from './QueryResponse';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { QueryFormColumn } from './QueryFormData';
 
 export interface AdhocColumn {

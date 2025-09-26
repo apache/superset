@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   SHARED_COLUMN_CONFIG_PROPS,

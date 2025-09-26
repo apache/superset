@@ -50,6 +50,7 @@ import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import { withTheme, Theme } from '@emotion/react';
 import { navigateTo } from 'src/utils/navigationUtils';
+import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
@@ -154,6 +155,23 @@ export function sortByComparator(attr: keyof Slice) {
   };
 }
 
+function getFilteredSortedSlices(
+  slices: SliceAdderProps['slices'],
+  searchTerm: string,
+  sortBy: keyof Slice,
+  showOnlyMyCharts: boolean,
+  userId: number,
+) {
+  return Object.values(slices)
+    .filter(slice =>
+      showOnlyMyCharts
+        ? slice?.owners?.find(owner => owner.id === userId) ||
+          slice?.created_by?.id === userId
+        : true,
+    )
+    .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
+    .sort(sortByComparator(sortBy));
+}
 class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   private slicesRequest?: AbortController | Promise<void>;
 
@@ -194,19 +212,20 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: SliceAdderProps) {
+  componentDidUpdate(prevProps: SliceAdderProps) {
     const nextState: SliceAdderState = {} as SliceAdderState;
-    if (nextProps.lastUpdated !== this.props.lastUpdated) {
-      nextState.filteredSlices = this.getFilteredSortedSlices(
-        nextProps.slices,
+    if (this.props.lastUpdated !== prevProps.lastUpdated) {
+      nextState.filteredSlices = getFilteredSortedSlices(
+        this.props.slices,
         this.state.searchTerm,
         this.state.sortBy,
         this.state.showOnlyMyCharts,
+        this.props.userId,
       );
     }
 
-    if (nextProps.selectedSliceIds !== this.props.selectedSliceIds) {
-      nextState.selectedSliceIdsSet = new Set(nextProps.selectedSliceIds);
+    if (prevProps.selectedSliceIds !== this.props.selectedSliceIds) {
+      nextState.selectedSliceIdsSet = new Set(this.props.selectedSliceIds);
     }
 
     if (Object.keys(nextState).length) {
@@ -226,23 +245,6 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     }
   }
 
-  getFilteredSortedSlices(
-    slices: SliceAdderProps['slices'],
-    searchTerm: string,
-    sortBy: keyof Slice,
-    showOnlyMyCharts: boolean,
-  ) {
-    return Object.values(slices)
-      .filter(slice =>
-        showOnlyMyCharts
-          ? slice?.owners?.find(owner => owner.id === this.props.userId) ||
-            slice?.created_by?.id === this.props.userId
-          : true,
-      )
-      .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(sortByComparator(sortBy));
-  }
-
   handleChange = debounce(value => {
     this.searchUpdated(value);
     this.slicesRequest = this.props.fetchSlices(
@@ -255,11 +257,12 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   searchUpdated(searchTerm: string) {
     this.setState(prevState => ({
       searchTerm,
-      filteredSlices: this.getFilteredSortedSlices(
+      filteredSlices: getFilteredSortedSlices(
         this.props.slices,
         searchTerm,
         prevState.sortBy,
         prevState.showOnlyMyCharts,
+        this.props.userId,
       ),
     }));
   }
@@ -267,11 +270,12 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   handleSelect(sortBy: keyof Slice) {
     this.setState(prevState => ({
       sortBy,
-      filteredSlices: this.getFilteredSortedSlices(
+      filteredSlices: getFilteredSortedSlices(
         this.props.slices,
         prevState.searchTerm,
         sortBy,
         prevState.showOnlyMyCharts,
+        this.props.userId,
       ),
     }));
     this.slicesRequest = this.props.fetchSlices(
@@ -312,7 +316,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
         // actual style should be applied to nested AddSliceCard component
         style={{}}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
           <AddSliceCard
             innerRef={dragSourceRef}
             style={style}
@@ -339,11 +343,12 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     }
     this.setState(prevState => ({
       showOnlyMyCharts,
-      filteredSlices: this.getFilteredSortedSlices(
+      filteredSlices: getFilteredSortedSlices(
         this.props.slices,
         prevState.searchTerm,
         prevState.sortBy,
         showOnlyMyCharts,
+        this.props.userId,
       ),
     }));
     setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);

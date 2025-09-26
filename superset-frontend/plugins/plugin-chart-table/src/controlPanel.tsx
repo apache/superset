@@ -42,7 +42,6 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
-  GenericDataType,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
@@ -53,7 +52,7 @@ import {
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';
-
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';

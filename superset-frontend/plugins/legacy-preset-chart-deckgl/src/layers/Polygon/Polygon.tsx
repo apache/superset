@@ -118,7 +118,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     fd.fill_color_picker;
   const sc: { r: number; g: number; b: number; a: number } =
     fd.stroke_color_picker;
-  const defaultBreakpointColor = fd.deafult_breakpoint_color;
+  const defaultBreakpointColor = fd.default_breakpoint_color;
   let data = [...payload.data.features];
 
   if (fd.js_data_mutator) {

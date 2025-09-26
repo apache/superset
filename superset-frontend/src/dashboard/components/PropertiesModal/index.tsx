@@ -112,7 +112,7 @@ const PropertiesModal = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
@@ -207,7 +207,6 @@ const PropertiesModal = ({
   );
 
   const fetchDashboardDetails = useCallback(() => {
-    setIsLoading(true);
     // We fetch the dashboard details because not all code
     // that renders this component have all the values we need.
     // At some point when we have a more consistent frontend
@@ -382,10 +381,6 @@ const PropertiesModal = ({
     if (onlyApply) {
       setIsApplying(true);
       try {
-        console.log('Apply CSS debug:', {
-          css_being_sent: customCss,
-          onSubmitProps_css: onSubmitProps.css,
-        });
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('Dashboard properties updated'));
@@ -422,10 +417,15 @@ const PropertiesModal = ({
 
   useEffect(() => {
     if (show) {
+      // Reset loading state when modal opens
+      setIsLoading(true);
+
       if (!currentDashboardInfo) {
         fetchDashboardDetails();
       } else {
         handleDashboardData(currentDashboardInfo);
+        // Data is immediately available, so we can stop loading
+        setIsLoading(false);
       }
 
       // Fetch themes (excluding system themes)
@@ -621,10 +621,9 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={
-        isLoading || dashboardInfo?.isManagedExternally || hasErrors
-      }
+      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
       saveLoading={isApplying}
+      contentLoading={isLoading}
       errorTooltip={
         dashboardInfo?.isManagedExternally
           ? t(
@@ -665,7 +664,6 @@ const PropertiesModal = ({
               children: (
                 <BasicInfoSection
                   form={form}
-                  isLoading={isLoading}
                   validationStatus={validationStatus}
                 />
               ),

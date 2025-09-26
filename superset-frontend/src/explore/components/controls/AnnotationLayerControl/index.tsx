@@ -107,17 +107,23 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
     AnnotationLayer.preload();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    const { name, annotationError, validationErrors, value } = nextProps;
-    if (Object.keys(annotationError).length && !validationErrors.length) {
-      this.props.actions.setControlValue(
-        name,
-        value,
-        Object.keys(annotationError),
-      );
-    }
-    if (!Object.keys(annotationError).length && validationErrors.length) {
-      this.props.actions.setControlValue(name, value, []);
+  componentDidUpdate(prevProps: Props) {
+    const { name, annotationError, validationErrors, value } = this.props;
+    if (
+      (Object.keys(annotationError).length && !validationErrors.length) ||
+      (!Object.keys(annotationError).length && validationErrors.length)
+    ) {
+      if (
+        annotationError !== prevProps.annotationError ||
+        validationErrors !== prevProps.validationErrors ||
+        value !== prevProps.value
+      ) {
+        this.props.actions.setControlValue(
+          name,
+          value,
+          Object.keys(annotationError),
+        );
+      }
     }
   }
 
