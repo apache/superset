@@ -193,6 +193,8 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   openpyxl
+    # via fastmcp
+fastmcp==2.10.0
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -688,6 +690,7 @@ pytest==7.4.4
     # via
     #   apache-superset
     #   apache-superset-extensions-cli
+    #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
 pytest-cov==6.0.0

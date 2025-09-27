@@ -149,7 +149,34 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 - `pyproject.toml` - Python tooling (ruff, mypy configs)
 - `requirements/` folder - Python dependencies (base.txt, development.txt)
 
-## SQLAlchemy Query Best Practices  
+## Programming Language Conventions
+
+### Python Configuration Access
+**CRITICAL**: Parameters in `config.py` (accessible via Flask `app.config` dictionary) are assumed to always be defined and must be accessed directly via:
+
+```python
+blueprints = app.config["BLUEPRINTS"]  # ✅ CORRECT
+```
+
+**Never use** `app.config.get()` as it causes typing issues:
+
+```python
+blueprints = app.config.get("BLUEPRINTS")  # ❌ WRONG
+```
+
+The former is type `List[Callable]`, the latter is `Optional[List[Callable]]`.
+
+**For optional configs that may not exist**, use try/except:
+```python
+try:
+    optional_value = app.config["OPTIONAL_KEY"]
+except KeyError:
+    optional_value = None
+```
+
+**Reference**: [Contributing Guidelines](docs/docs/contributing/guidelines.mdx) lines 206-220
+
+## SQLAlchemy Query Best Practices
 - **Use negation operator**: `~Model.field` instead of `== False` to avoid ruff E712 errors
 - **Example**: `~Model.is_active` instead of `Model.is_active == False`
 
