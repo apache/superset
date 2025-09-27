@@ -47,8 +47,16 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
-        # Numeric
+        # Boolean types - MySQL uses TINYINT(1) for BOOLEAN
+        ("TINYINT(1)", TINYINT, None, GenericDataType.BOOLEAN, False),
+        ("tinyint(1)", TINYINT, None, GenericDataType.BOOLEAN, False),
+        ("BOOLEAN", TINYINT, None, GenericDataType.BOOLEAN, False),
+        ("BOOL", TINYINT, None, GenericDataType.BOOLEAN, False),
+        # Numeric (ensure TINYINT without (1) remains numeric)
         ("TINYINT", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("TINYINT(2)", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("TINYINT(4)", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("TINYINT UNSIGNED", TINYINT, None, GenericDataType.NUMERIC, False),
         ("SMALLINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
         ("MEDIUMINT", MEDIUMINT, None, GenericDataType.NUMERIC, False),
         ("INT", INTEGER, None, GenericDataType.NUMERIC, False),
@@ -77,9 +85,11 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
 
-    assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+    assert_column_spec(
+        MySQLEngineSpec, native_type, sqla_type, attrs, generic_type, is_dttm
+    )
 
 
 @pytest.mark.parametrize(
@@ -98,9 +108,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
 
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
+    assert_convert_dttm(MySQLEngineSpec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(
@@ -255,10 +265,153 @@ def test_column_type_mutator(
     description: list[Any],
     expected_result: list[tuple[Any, ...]],
 ):
-    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     mock_cursor = Mock()
     mock_cursor.fetchall.return_value = data
     mock_cursor.description = description
 
-    assert spec.fetch_data(mock_cursor) == expected_result
+    assert MySQLEngineSpec.fetch_data(mock_cursor) == expected_result
+
+
+def test_fetch_data_boolean_integers() -> None:
+    """Test fetch_data converts integer 0/1 to boolean False/True."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [(1, "admin"), (0, "user")]
+    # TINYINT(1) column: type_code=1 (FIELD_TYPE.TINY), display_size=1
+    mock_cursor.description = [
+        ("is_active", 1, 1, 4, 3, 0, False),  # TINYINT(1) - should convert
+        ("role", 254, 255, 0, 0, 0, False),  # VARCHAR - should not convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(True, "admin"), (False, "user")]
+    assert result == expected
+
+
+def test_fetch_data_boolean_strings() -> None:
+    """Test fetch_data converts string "0"/"1" to boolean False/True."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [("1", "admin"), ("0", "user")]
+    mock_cursor.description = [
+        ("is_active", 1, 1, 4, 3, 0, False),  # TINYINT(1) - should convert
+        ("role", 254, 255, 0, 0, 0, False),  # VARCHAR - should not convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(True, "admin"), (False, "user")]
+    assert result == expected
+
+
+def test_fetch_data_boolean_bytes() -> None:
+    """Test fetch_data converts bytes b"0"/b"1" to boolean False/True."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [(b"1", "admin"), (b"0", "user")]
+    mock_cursor.description = [
+        ("is_active", 1, 1, 4, 3, 0, False),  # TINYINT(1) - should convert
+        ("role", 254, 255, 0, 0, 0, False),  # VARCHAR - should not convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(True, "admin"), (False, "user")]
+    assert result == expected
+
+
+def test_fetch_data_boolean_decimals() -> None:
+    """Test fetch_data converts Decimal 0/1 to boolean False/True."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [
+        (Decimal("1"), "admin"),
+        (Decimal("0"), "user"),
+    ]
+    mock_cursor.description = [
+        ("is_active", 1, 1, 4, 3, 0, False),  # TINYINT(1) - should convert
+        ("role", 254, 255, 0, 0, 0, False),  # VARCHAR - should not convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(True, "admin"), (False, "user")]
+    assert result == expected
+
+
+def test_fetch_data_boolean_with_nulls() -> None:
+    """Test fetch_data handles NULL values correctly in boolean columns."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [(1, "admin"), (None, "user"), (0, "guest")]
+    mock_cursor.description = [
+        ("is_active", 1, 1, 4, 3, 0, True),  # TINYINT(1) with nulls - should convert
+        ("role", 254, 255, 0, 0, 0, False),  # VARCHAR - should not convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(True, "admin"), (None, "user"), (False, "guest")]
+    assert result == expected
+
+
+def test_fetch_data_boolean_mixed_columns() -> None:
+    """Test fetch_data with boolean and non-boolean columns together."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [(1, 50, 0), (0, 100, 1)]
+    mock_cursor.description = [
+        ("is_admin", 1, 1, 4, 3, 0, False),  # TINYINT(1) - should convert
+        ("count", 3, 11, 4, 10, 0, False),  # INT - should not convert
+        ("is_active", 1, 1, 4, 3, 0, False),  # TINYINT(1) - should convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(True, 50, False), (False, 100, True)]
+    assert result == expected
+
+
+def test_fetch_data_no_boolean_columns() -> None:
+    """Test fetch_data passes through data when no boolean columns present."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [(100, "test"), (200, "data")]
+    mock_cursor.description = [
+        ("count", 3, 11, 4, 10, 0, False),  # INT - should not convert
+        ("name", 254, 255, 0, 0, 0, False),  # VARCHAR - should not convert
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [(100, "test"), (200, "data")]
+    assert result == expected
+
+
+def test_fetch_data_boolean_mixed_driver_types() -> None:
+    """Test fetch_data with different driver return types in same dataset."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    mock_cursor = Mock()
+    # Mix of integers, strings, bytes, decimals for boolean values
+    mock_cursor.fetchall.return_value = [
+        (1, "0", b"1"),  # True, False, True
+        (0, "1", b"0"),  # False, True, False
+        (Decimal(1), None, 0),  # True, None, False
+    ]
+    mock_cursor.description = [
+        ("bool_int", 1, 1, 4, 3, 0, False),  # TINYINT(1) - integers
+        ("bool_str", 1, 1, 4, 3, 0, False),  # TINYINT(1) - strings
+        ("bool_bytes", 1, 1, 4, 3, 0, False),  # TINYINT(1) - bytes
+    ]
+
+    result = MySQLEngineSpec.fetch_data(mock_cursor)
+    expected = [
+        (True, False, True),
+        (False, True, False),
+        (True, None, False),
+    ]
+    assert result == expected
