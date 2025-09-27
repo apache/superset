@@ -1754,9 +1754,59 @@ describe('dbReducer', () => {
     const currentState = dbReducer(databaseFixture, action);
 
     // extra should be serialized
+    expect(JSON.parse(currentState!.extra!)).toEqual({
+      schemas_allowed_for_file_upload: ['bar'],
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with trailing comma preserves empty string`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar,' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
     expect(currentState).toEqual({
       ...databaseFixture,
       extra: '{"schemas_allowed_for_file_upload":["bar"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with multiple schemas and trailing comma`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: {
+        name: 'schemas_allowed_for_file_upload',
+        value: 'schema1,schema2,',
+      },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with double commas filters empty strings`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: {
+        name: 'schemas_allowed_for_file_upload',
+        value: 'schema1,,schema2',
+      },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
     });
   });
 
