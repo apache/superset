@@ -82,6 +82,7 @@ intro_header.txt
 
 # for LLMs
 llm-context.md
+AGENTS.md
 LLMS.md
 CLAUDE.md
 CURSOR.md
