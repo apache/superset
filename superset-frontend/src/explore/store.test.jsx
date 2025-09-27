@@ -19,6 +19,7 @@
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { applyDefaultFormData } from 'src/explore/store';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('store', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('test-chart', {
@@ -36,12 +37,13 @@ describe('store', () => {
     getChartControlPanelRegistry().remove('test-chart');
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('applyDefaultFormData', () => {
     window.featureFlags = {
       SCOPED_FILTER: false,
     };
 
-    it('applies default to formData if the key is missing', () => {
+    test('applies default to formData if the key is missing', () => {
       const inputFormData = {
         datasource: '11_table',
         viz_type: 'test-chart',
@@ -57,7 +59,7 @@ describe('store', () => {
       expect(outputFormData.row_limit).toEqual(888);
     });
 
-    it('keeps null if key is defined with null', () => {
+    test('keeps null if key is defined with null', () => {
       const inputFormData = {
         datasource: '11_table',
         viz_type: 'test-chart',

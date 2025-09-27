@@ -64,13 +64,14 @@ const setup = (
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TemplateParamsEditor', () => {
-  it('should render with a title', () => {
+  test('should render with a title', () => {
     const { container } = setup();
     expect(container.querySelector('div[role="button"]')).toBeInTheDocument();
   });
 
-  it('should open a modal with the ace editor', async () => {
+  test('should open a modal with the ace editor', async () => {
     const { container, getByTestId } = setup();
     fireEvent.click(getByText(container, 'Parameters'));
     await waitFor(() => {
@@ -78,7 +79,7 @@ describe('TemplateParamsEditor', () => {
     });
   });
 
-  it('renders templateParams', async () => {
+  test('renders templateParams', async () => {
     const { container, getByTestId } = setup();
     fireEvent.click(getByText(container, 'Parameters'));
     await waitFor(() => {
@@ -89,7 +90,7 @@ describe('TemplateParamsEditor', () => {
     );
   });
 
-  it('renders code from unsaved changes', async () => {
+  test('renders code from unsaved changes', async () => {
     const expectedCode = 'custom code value';
     const { container, getByTestId } = setup(
       {},

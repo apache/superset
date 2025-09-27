@@ -18,6 +18,7 @@
  */
 import findParentId from 'src/dashboard/util/findParentId';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('findParentId', () => {
   const layout = {
     a: {
@@ -33,16 +34,16 @@ describe('findParentId', () => {
       children: [],
     },
   };
-  it('should return the correct parentId', () => {
+  test('should return the correct parentId', () => {
     expect(findParentId({ childId: 'b', layout })).toBe('a');
     expect(findParentId({ childId: 'z', layout })).toBe('b');
   });
 
-  it('should return null if the parent cannot be found', () => {
+  test('should return null if the parent cannot be found', () => {
     expect(findParentId({ childId: 'a', layout })).toBeNull();
   });
 
-  it('should not throw error and return null with bad / missing inputs', () => {
+  test('should not throw error and return null with bad / missing inputs', () => {
     // @ts-ignore
     expect(findParentId(null)).toBeNull();
     // @ts-ignore

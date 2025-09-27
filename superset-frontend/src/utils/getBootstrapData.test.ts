@@ -19,14 +19,16 @@
 
 import { DEFAULT_BOOTSTRAP_DATA } from '../constants';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getBootstrapData and helpers', () => {
   afterEach(() => {
     // Clean up the DOM
     document.body.innerHTML = '';
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getBootstrapData()', () => {
-    it('should return DEFAULT_BOOTSTRAP_DATA when #app element does not exist', async () => {
+    test('should return DEFAULT_BOOTSTRAP_DATA when #app element does not exist', async () => {
       // Ensure no #app element exists.
       document.body.innerHTML = '';
 
@@ -37,7 +39,7 @@ describe('getBootstrapData and helpers', () => {
       expect(bootstrapData).toEqual(DEFAULT_BOOTSTRAP_DATA);
     });
 
-    it('should return parsed bootstrap data when #app element has valid data attribute', async () => {
+    test('should return parsed bootstrap data when #app element has valid data attribute', async () => {
       // Set up the fake #app element
       const customData = {
         common: {
@@ -55,8 +57,9 @@ describe('getBootstrapData and helpers', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Helper functions applicationRoot and staticAssetsPrefix', () => {
-    it('should return values without trailing slashes', async () => {
+    test('should return values without trailing slashes', async () => {
       // Setup a fake #app element with data-bootstrap attribute.
       const customData = {
         common: {
@@ -82,7 +85,7 @@ describe('getBootstrapData and helpers', () => {
       expect(staticAssetsPrefix()).toEqual('/custom-static');
     });
 
-    it('should return defaults without trailing slashes when #app element is missing', async () => {
+    test('should return defaults without trailing slashes when #app element is missing', async () => {
       // Ensure no #app element exists.
       document.body.innerHTML = '';
 
@@ -107,7 +110,7 @@ describe('getBootstrapData and helpers', () => {
       expect(staticAssetsPrefix()).toEqual(expectedStaticPrefix);
     });
 
-    it('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
+    test('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
       // Set up the fake #app element
       const customData = {
         common: {

@@ -21,6 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import EmptyState, { EmptyStateProps } from './EmptyState';
 import { WelcomeTable } from './types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EmptyState', () => {
   const variants: EmptyStateProps[] = [
     {
@@ -64,7 +65,7 @@ describe('EmptyState', () => {
   ];
 
   variants.forEach(variant => {
-    it(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
+    test(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
       const { container } = render(<EmptyState {...variant} />);
 
       // Select the first description node
@@ -76,7 +77,7 @@ describe('EmptyState', () => {
   });
 
   recents.forEach(recent => {
-    it(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
+    test(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
       const { container } = render(<EmptyState {...recent} />);
 
       // Select the first description node

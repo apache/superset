@@ -28,6 +28,7 @@ import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultsPaneOnDashboard', () => {
   // render and render errorMessage
   fetchMock.post(

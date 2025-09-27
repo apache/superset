@@ -39,6 +39,7 @@ fetchMock.get(userRegistrationsEndpoint, {
   result: mockUserRegistrations,
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UserRegistrations', () => {
   beforeEach(() => {
     render(<UserRegistrations />, {
@@ -47,7 +48,7 @@ describe('UserRegistrations', () => {
       useQueryParams: true,
     });
   });
-  it('fetches and renders user registrations', async () => {
+  test('fetches and renders user registrations', async () => {
     expect(await screen.findByText('User registrations')).toBeVisible();
     const calls = fetchMock.calls(userRegistrationsEndpoint);
     expect(calls.length).toBeGreaterThan(0);

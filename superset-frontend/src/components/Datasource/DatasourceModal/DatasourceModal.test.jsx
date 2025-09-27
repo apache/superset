@@ -73,24 +73,25 @@ beforeEach(() => {
   fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceModal', () => {
-  it('renders', async () => {
+  test('renders', async () => {
     expect(container).toBeDefined();
   });
 
-  it('renders the component', () => {
+  test('renders the component', () => {
     expect(screen.getByText('Edit Dataset')).toBeInTheDocument();
   });
 
-  it('renders a Modal', async () => {
+  test('renders a Modal', async () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('renders a DatasourceEditor', async () => {
+  test('renders a DatasourceEditor', async () => {
     expect(screen.getByTestId('datasource-editor')).toBeInTheDocument();
   });
 
-  it('disables the save button when the datasource is managed externally', () => {
+  test('disables the save button when the datasource is managed externally', () => {
     // the render is currently in a before operation, so it needs to be cleaned up
     // we could alternatively move all the renders back into the tests or find a better
     // way to automatically render but still allow to pass in props with the tests
@@ -104,7 +105,7 @@ describe('DatasourceModal', () => {
     expect(saveButton).toBeDisabled();
   });
 
-  it('calls the onDatasourceSave function when the save button is clicked', async () => {
+  test('calls the onDatasourceSave function when the save button is clicked', async () => {
     cleanup();
     const onDatasourceSave = jest.fn();
 
@@ -120,7 +121,7 @@ describe('DatasourceModal', () => {
     });
   });
 
-  it('should render error dialog', async () => {
+  test('should render error dialog', async () => {
     jest
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));

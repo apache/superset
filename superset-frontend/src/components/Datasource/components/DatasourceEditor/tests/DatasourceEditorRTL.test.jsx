@@ -24,6 +24,7 @@ import {
   DATASOURCE_ENDPOINT,
 } from './DatasourceEditor.test';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor RTL Metrics Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
@@ -34,7 +35,7 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     fetchMock.restore();
   });
 
-  it('properly renders the metric information', async () => {
+  test('properly renders the metric information', async () => {
     await asyncRender(props);
 
     const metricButton = screen.getByTestId('collection-tab-Metrics');
@@ -52,7 +53,7 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     expect(warningMarkdown.value).toEqual('someone');
   });
 
-  it('properly updates the metric information', async () => {
+  test('properly updates the metric information', async () => {
     await asyncRender(props);
 
     const metricButton = screen.getByTestId('collection-tab-Metrics');
@@ -82,6 +83,7 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor RTL Columns Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
@@ -92,7 +94,7 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     fetchMock.restore();
   });
 
-  it('shows the default datetime column', async () => {
+  test('shows the default datetime column', async () => {
     await asyncRender(props);
 
     const columnsButton = screen.getByTestId('collection-tab-Columns');
@@ -107,7 +109,7 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     expect(genderDefaultDatetimeRadio).not.toBeChecked();
   });
 
-  it('allows choosing only temporal columns as the default datetime', async () => {
+  test('allows choosing only temporal columns as the default datetime', async () => {
     await asyncRender(props);
 
     const columnsButton = screen.getByTestId('collection-tab-Columns');

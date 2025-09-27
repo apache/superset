@@ -157,6 +157,7 @@ test('displays current color scheme value', () => {
 });
 
 // CSS Template Tests
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CSS Template functionality', () => {
   test('does not show CSS template select when feature flag is disabled', () => {
     mockIsFeatureEnabled.mockReturnValue(false);

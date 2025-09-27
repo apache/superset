@@ -22,6 +22,7 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Markdown', () => {
   const props = {
     id: 'id',
@@ -81,12 +82,12 @@ describe('Markdown', () => {
     jest.clearAllMocks();
   });
 
-  it('should render the markdown component', async () => {
+  test('should render the markdown component', async () => {
     await setup();
     expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
   });
 
-  it('should render the markdown content in preview mode by default', async () => {
+  test('should render the markdown content in preview mode by default', async () => {
     await setup();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
@@ -94,7 +95,7 @@ describe('Markdown', () => {
     ).toBeInTheDocument();
   });
 
-  it('should render editor when in edit mode and clicked', async () => {
+  test('should render editor when in edit mode and clicked', async () => {
     await setup({ editMode: true });
     const container = screen.getByTestId('dashboard-component-chart-holder');
     await act(async () => {
@@ -104,7 +105,7 @@ describe('Markdown', () => {
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
   });
 
-  it('should switch between edit and preview modes', async () => {
+  test('should switch between edit and preview modes', async () => {
     await setup({ editMode: true });
     const container = screen.getByTestId('dashboard-component-chart-holder');
 
@@ -129,7 +130,7 @@ describe('Markdown', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('should call updateComponents when switching from edit to preview with changes', async () => {
+  test('should call updateComponents when switching from edit to preview with changes', async () => {
     const updateComponents = jest.fn();
     const mockCode = 'new markdown!';
 
@@ -201,7 +202,7 @@ describe('Markdown', () => {
     });
   });
 
-  it('should show placeholder text when markdown is empty', async () => {
+  test('should show placeholder text when markdown is empty', async () => {
     await setup({
       component: {
         ...mockLayout.present.MARKDOWN_ID,
@@ -214,7 +215,7 @@ describe('Markdown', () => {
     ).toBeInTheDocument();
   });
 
-  it('should handle markdown errors gracefully', async () => {
+  test('should handle markdown errors gracefully', async () => {
     const addDangerToast = jest.fn();
     const { container } = await setup({
       addDangerToast,
@@ -250,7 +251,7 @@ describe('Markdown', () => {
     });
   });
 
-  it('should resize editor when width changes', async () => {
+  test('should resize editor when width changes', async () => {
     const { rerender } = await setup({ editMode: true });
 
     await act(async () => {
@@ -278,7 +279,7 @@ describe('Markdown', () => {
     });
   });
 
-  it('should update content when undo/redo changes occur', async () => {
+  test('should update content when undo/redo changes occur', async () => {
     const { rerender } = await setup({
       editMode: true,
       component: {
@@ -305,7 +306,7 @@ describe('Markdown', () => {
     expect(screen.getByText('updated')).toBeInTheDocument();
   });
 
-  it('should adjust width based on parent type', async () => {
+  test('should adjust width based on parent type', async () => {
     const { rerender } = await setup();
 
     // Check ROW_TYPE width

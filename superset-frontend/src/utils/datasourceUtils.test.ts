@@ -84,6 +84,7 @@ const mockQueryEditor: QueryEditor = {
   templateParams: '{"param1": "value1"}',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getDatasourceAsSaveableDataset', () => {
   test('should convert Datasource object correctly', () => {
     const result = getDatasourceAsSaveableDataset(mockDatasource);

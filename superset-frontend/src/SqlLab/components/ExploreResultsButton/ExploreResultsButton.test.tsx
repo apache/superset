@@ -31,8 +31,9 @@ const setup = (
     useRedux: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreResultsButton', () => {
-  it('renders', async () => {
+  test('renders', async () => {
     const { queryByText } = setup(jest.fn(), {
       database: { allows_subquery: true },
     });
@@ -41,7 +42,7 @@ describe('ExploreResultsButton', () => {
     expect(screen.getByRole('button', { name: /Create chart/i })).toBeEnabled();
   });
 
-  it('renders disabled if subquery not allowed', async () => {
+  test('renders disabled if subquery not allowed', async () => {
     const { queryByText } = setup(jest.fn());
     expect(queryByText('Create chart')).toBeInTheDocument();
     // Updated line to match the actual button name that includes the icon

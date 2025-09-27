@@ -20,6 +20,7 @@ import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { tagToSelectOption, loadTags } from 'src/components/Tag/utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('tagToSelectOption', () => {
   test('converts a Tag object with table_name to a SelectTagsValue', () => {
     const tag = {
@@ -38,6 +39,7 @@ describe('tagToSelectOption', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('loadTags', () => {
   beforeEach(() => {
     fetchMock.reset();
