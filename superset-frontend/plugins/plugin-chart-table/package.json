@@ -36,8 +36,8 @@
     "xss": "^1.0.15"
   },
   "peerDependencies": {
-    "@apache-superset/core": "*",
     "@ant-design/icons": "^5.2.6",
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^8.20.1",
@@ -53,5 +53,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build:nx": "../../scripts/build-package-nx.sh ."
   }
 }

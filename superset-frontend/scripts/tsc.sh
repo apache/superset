@@ -16,10 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 startTime=$(node -e 'console.log(Date.now())')
-tscExitCode=$(tsc "$@")
+npx tsc "$@"
+tscExitCode=$?
 duration=$(node -e "console.log('%ss', (Date.now() - $startTime) / 1000)")
 
-if [ ! "$tscExitCode" ]; then
+if [ "$tscExitCode" -eq 0 ]; then
   echo "compiled in ${duration}"
 else
   exit "$tscExitCode"

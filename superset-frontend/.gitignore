@@ -4,3 +4,7 @@ cypress/videos
 src/temp
 .temp_cache/
 .tsbuildinfo
+
+# Nx workspace data and cache
+.nx/
+nx-cloud.env

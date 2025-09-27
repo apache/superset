@@ -43,5 +43,8 @@
   },
   "devDependencies": {
     "@types/d3-cloud": "^1.2.9"
+  },
+  "scripts": {
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   }
 }
