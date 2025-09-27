@@ -349,6 +349,14 @@ module.exports = {
           },
         ],
         'no-only-tests/no-only-tests': 'error',
+        'no-restricted-globals': [
+          'error',
+          {
+            name: 'describe',
+            message:
+              'Use test() instead of describe() for better test organization',
+          },
+        ],
         'max-classes-per-file': 0,
         // temporary rules to help with migration - please re-enable!
         'testing-library/await-async-queries': 0,
