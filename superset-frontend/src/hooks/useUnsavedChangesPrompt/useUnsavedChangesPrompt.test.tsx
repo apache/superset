@@ -103,4 +103,33 @@ describe('useUnsavedChangesPrompt', () => {
     expect(onSave).toHaveBeenCalled();
     expect(result.current.showModal).toBe(false);
   });
+
+  it('should close modal when handleConfirmNavigation is called', () => {
+    const onSave = jest.fn();
+
+    const { result } = renderHook(
+      () =>
+        useUnsavedChangesPrompt({
+          hasUnsavedChanges: true,
+          onSave,
+        }),
+      { wrapper },
+    );
+
+    // First, trigger navigation to show the modal
+    act(() => {
+      const unblock = history.block((tx: any) => tx);
+      unblock();
+      history.push('/another-page');
+    });
+
+    expect(result.current.showModal).toBe(true);
+
+    // Then call handleConfirmNavigation to discard changes
+    act(() => {
+      result.current.handleConfirmNavigation();
+    });
+
+    expect(result.current.showModal).toBe(false);
+  });
 });
