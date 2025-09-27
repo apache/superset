@@ -215,9 +215,14 @@ function TableCollection<T extends object>({
   const handleTableChange = useCallback(
     (_pagination: any, _filters: any, sorter: SorterResult) => {
       if (sorter && sorter.field) {
+        // Convert array field back to dot notation for nested fields
+        const fieldId = Array.isArray(sorter.field)
+          ? sorter.field.join('.')
+          : sorter.field;
+
         setSortBy?.([
           {
-            id: sorter.field,
+            id: fieldId,
             desc: sorter.order === 'descend',
           },
         ] as SortingRule<T>[]);

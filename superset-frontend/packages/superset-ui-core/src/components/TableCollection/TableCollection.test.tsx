@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
@@ -36,19 +36,28 @@ beforeEach(() => {
       accessor: 'col2',
       id: 'col2',
     },
+    {
+      Header: 'Nested Field',
+      accessor: 'parent.child',
+      id: 'parent.child',
+      dataIndex: ['parent', 'child'],
+    },
   ];
   const data = [
     {
       col1: 'Line 01 - Col 01',
       col2: 'Line 01 - Col 02',
+      parent: { child: 'Nested Value 1' },
     },
     {
       col1: 'Line 02 - Col 01',
       col2: 'Line 02 - Col 02',
+      parent: { child: 'Nested Value 2' },
     },
     {
       col1: 'Line 03 - Col 01',
       col2: 'Line 03 - Col 02',
+      parent: { child: 'Nested Value 3' },
     },
   ];
   // @ts-ignore
@@ -205,4 +214,33 @@ test('Bulk selection should work with pagination', () => {
   // Check that selection checkboxes are rendered
   const checkboxes = screen.getAllByRole('checkbox');
   expect(checkboxes.length).toBeGreaterThan(0);
+});
+
+test('should call setSortBy when clicking sortable column header', () => {
+  const setSortBy = jest.fn();
+  const sortingProps = {
+    ...defaultProps,
+    setSortBy,
+  };
+
+  render(<TableCollection {...sortingProps} />);
+
+  // Target the nested field column (the column that needs the array-to-dot conversion)
+  const nestedFieldHeader = screen.getByText('Nested Field');
+  expect(nestedFieldHeader).toBeInTheDocument();
+
+  // Click on the nested field column header to trigger sorting
+  fireEvent.click(nestedFieldHeader);
+
+  // Verify setSortBy was called immediately
+  expect(setSortBy).toHaveBeenCalled();
+
+  const sortCallArgs = setSortBy.mock.calls[0][0];
+  expect(Array.isArray(sortCallArgs)).toBe(true);
+  expect(sortCallArgs[0]).toHaveProperty('id');
+  expect(sortCallArgs[0]).toHaveProperty('desc');
+
+  // Verify the nested field array was converted to dot notation
+  expect(sortCallArgs[0].id).toBe('parent.child');
+  expect(typeof sortCallArgs[0].desc).toBe('boolean');
 });
