@@ -256,6 +256,8 @@ export const getColorFormatters = memoizeOne(
         ) {
           acc.push({
             column: config?.column,
+            toAllRow: config?.toAllRow,
+            toTextColor: config?.toTextColor,
             getColorFromValue: getColorFunction(
               config,
               data.map(row => row[config.column!] as number),
