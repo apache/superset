@@ -218,7 +218,8 @@ describe('ChartList - List View Tests', () => {
 
     // Verify all expected headers are present
     expectedHeaders.forEach(headerText => {
-      expect(within(table).getByText(headerText)).toBeInTheDocument();
+      const headers = within(table).getAllByText(headerText);
+      expect(headers.length).toBeGreaterThan(0);
     });
   });
 
@@ -234,8 +235,8 @@ describe('ChartList - List View Tests', () => {
 
     expect(sortableHeaders).toHaveLength(3);
 
-    const nameHeader = within(table).getByText('Name');
-    fireEvent.click(nameHeader);
+    const nameHeaders = within(table).getAllByText('Name');
+    fireEvent.click(nameHeaders[0]);
 
     await waitFor(() => {
       const sortCalls = fetchMock

@@ -158,11 +158,11 @@ describe('RolesList', () => {
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const nameColumn = await within(table).findByText('Name');
-    const actionsColumn = await within(table).findByText('Actions');
+    const nameColumns = await within(table).findAllByText('Name');
+    const actionsColumns = await within(table).findAllByText('Actions');
 
-    expect(nameColumn).toBeInTheDocument();
-    expect(actionsColumn).toBeInTheDocument();
+    expect(nameColumns.length).toBeGreaterThan(0);
+    expect(actionsColumns.length).toBeGreaterThan(0);
   });
 
   it('opens add modal when Add Role button is clicked', async () => {

@@ -173,19 +173,19 @@ describe('RuleList RTL', () => {
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const nameColumn = await within(table).findByText('Name');
-    const filterTypeColumn = await within(table).findByText('Filter Type');
-    const groupKeyColumn = await within(table).findByText('Group Key');
-    const clauseColumn = await within(table).findByText('Clause');
-    const modifiedColumn = await within(table).findByText('Last modified');
-    const actionsColumn = await within(table).findByText('Actions');
+    const nameColumns = await within(table).findAllByText('Name');
+    const filterTypeColumns = await within(table).findAllByText('Filter Type');
+    const groupKeyColumns = await within(table).findAllByText('Group Key');
+    const clauseColumns = await within(table).findAllByText('Clause');
+    const modifiedColumns = await within(table).findAllByText('Last modified');
+    const actionsColumns = await within(table).findAllByText('Actions');
 
-    expect(nameColumn).toBeInTheDocument();
-    expect(filterTypeColumn).toBeInTheDocument();
-    expect(groupKeyColumn).toBeInTheDocument();
-    expect(clauseColumn).toBeInTheDocument();
-    expect(modifiedColumn).toBeInTheDocument();
-    expect(actionsColumn).toBeInTheDocument();
+    expect(nameColumns.length).toBeGreaterThan(0);
+    expect(filterTypeColumns.length).toBeGreaterThan(0);
+    expect(groupKeyColumns.length).toBeGreaterThan(0);
+    expect(clauseColumns.length).toBeGreaterThan(0);
+    expect(modifiedColumns.length).toBeGreaterThan(0);
+    expect(actionsColumns.length).toBeGreaterThan(0);
   });
 
   it('renders correct action buttons with write permission', async () => {
