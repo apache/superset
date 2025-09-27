@@ -26,6 +26,9 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 # Include translations in the final build
 ARG BUILD_TRANSLATIONS="false"
 
+# Build arg to pre-populate examples DuckDB file
+ARG LOAD_EXAMPLES_DUCKDB="false"
+
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
@@ -143,8 +146,8 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
-# Build arg to pre-populate examples DuckDB file
-ARG LOAD_EXAMPLES_DUCKDB="false"
+# Re-declare build arg to receive it in this stage
+ARG LOAD_EXAMPLES_DUCKDB
 
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
