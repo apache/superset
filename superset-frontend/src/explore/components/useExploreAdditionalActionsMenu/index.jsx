@@ -497,7 +497,10 @@ export const useExploreAdditionalActionsMenu = (
           }
           modalTitle={t('View query')}
           modalBody={
-            <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+            <ViewQueryModal
+              latestQueryFormData={latestQueryFormData}
+              ownState={ownState}
+            />
           }
           draggable
           resizable
