@@ -32,7 +32,7 @@ import crossFiltersSelector from './CrossFilters/selectors';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
+    padding: 0 ${theme.sizeUnit * 2}px ${
       theme.sizeUnit * 3
     }px ${theme.sizeUnit * 4}px;
     background: ${theme.colorBgBase};
