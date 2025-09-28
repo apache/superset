@@ -33,6 +33,7 @@ jest.mock('src/utils/sortNumericValues', () => ({
   }),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sortNumberWithMixedTypes', () => {
   const createMockRow = (value: any) => ({
     values: {

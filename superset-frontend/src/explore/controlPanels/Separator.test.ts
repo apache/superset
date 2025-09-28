@@ -52,25 +52,24 @@ function getCodeControlMapStateToProps() {
   return codeControl.config.mapStateToProps;
 }
 
-describe('Separator control panel config', () => {
-  it('defaults language to markdown when markup_type is missing', () => {
-    const mapStateToProps = getCodeControlMapStateToProps();
-    const state: Partial<ControlPanelState> = {};
-    const result = mapStateToProps(state);
-    expect(result.language).toBe('markdown');
-  });
+// Separator control panel config
+test('Separator control panel config defaults language to markdown when markup_type is missing', () => {
+  const mapStateToProps = getCodeControlMapStateToProps();
+  const state: Partial<ControlPanelState> = {};
+  const result = mapStateToProps(state);
+  expect(result.language).toBe('markdown');
+});
 
-  it('uses markup_type value when provided', () => {
-    const mapStateToProps = getCodeControlMapStateToProps();
-    const state: Partial<ControlPanelState> = {
-      controls: {
-        // minimal mock for the control used in mapStateToProps
-        markup_type: { value: 'html' } as Partial<
-          ControlState<'SelectControl'>
-        > as ControlState<'SelectControl'>,
-      },
-    };
-    const result = mapStateToProps(state);
-    expect(result.language).toBe('html');
-  });
+test('Separator control panel config uses markup_type value when provided', () => {
+  const mapStateToProps = getCodeControlMapStateToProps();
+  const state: Partial<ControlPanelState> = {
+    controls: {
+      // minimal mock for the control used in mapStateToProps
+      markup_type: { value: 'html' } as Partial<
+        ControlState<'SelectControl'>
+      > as ControlState<'SelectControl'>,
+    },
+  };
+  const result = mapStateToProps(state);
+  expect(result.language).toBe('html');
 });

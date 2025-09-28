@@ -31,20 +31,21 @@ const defaultProps = {
   onChange: jest.fn(),
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TextArea', () => {
-  it('renders a FormControl', () => {
+  test('renders a FormControl', () => {
     render(<TextAreaControl {...defaultProps} />);
     expect(screen.getByRole('textbox')).toBeVisible();
   });
 
-  it('calls onChange when toggled', () => {
+  test('calls onChange when toggled', () => {
     render(<TextAreaControl {...defaultProps} />);
     const textArea = screen.getByRole('textbox');
     fireEvent.change(textArea, { target: { value: 'x' } });
     expect(defaultProps.onChange).toHaveBeenCalledWith('x');
   });
 
-  it('renders a AceEditor when language is specified', async () => {
+  test('renders a AceEditor when language is specified', async () => {
     const props = { ...defaultProps, language: 'markdown' };
     const { container } = render(<TextAreaControl {...props} />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -53,7 +54,7 @@ describe('TextArea', () => {
     });
   });
 
-  it('calls onAreaEditorChange when entering in the AceEditor', () => {
+  test('calls onAreaEditorChange when entering in the AceEditor', () => {
     const props = { ...defaultProps, language: 'markdown' };
     render(<TextAreaControl {...props} />);
     const textArea = screen.getByRole('textbox');

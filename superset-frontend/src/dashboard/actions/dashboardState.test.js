@@ -43,6 +43,7 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
   const mockState = {
     dashboardState: {
@@ -101,8 +102,9 @@ describe('dashboardState actions', () => {
     return { getState, dispatch, state };
   }
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
-    it('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
+    test('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -115,7 +117,7 @@ describe('dashboardState actions', () => {
       expect(dispatch.getCall(1).args[0].type).toBe(SAVE_DASHBOARD_STARTED);
     });
 
-    it('should post dashboard data with updated redux state', () => {
+    test('should post dashboard data with updated redux state', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -144,6 +146,7 @@ describe('dashboardState actions', () => {
       ).toStrictEqual(mockParentsList);
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
       beforeEach(() => {
         isFeatureEnabled.mockImplementation(
@@ -155,7 +158,7 @@ describe('dashboardState actions', () => {
         isFeatureEnabled.mockRestore();
       });
 
-      it('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
+      test('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
         const id = 192;
         const { getState, dispatch } = setup();
         const thunk = saveDashboardRequest(
@@ -174,7 +177,7 @@ describe('dashboardState actions', () => {
         ).toBe(id);
       });
 
-      it('should post dashboard data with after confirm the overwrite values', async () => {
+      test('should post dashboard data with after confirm the overwrite values', async () => {
         const id = 192;
         const { getState, dispatch } = setup();
         const confirmedDashboardData = {

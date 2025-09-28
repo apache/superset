@@ -20,38 +20,40 @@
 import { alterForComparison, formatValueHandler, getRowsFromDiffs } from '.';
 import { RowType } from '../types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('alterForComparison', () => {
-  it('returns null for undefined value', () => {
+  test('returns null for undefined value', () => {
     expect(alterForComparison(undefined)).toBeNull();
   });
 
-  it('returns null for null value', () => {
+  test('returns null for null value', () => {
     expect(alterForComparison(null)).toBeNull();
   });
 
-  it('returns null for empty string value', () => {
+  test('returns null for empty string value', () => {
     expect(alterForComparison('')).toBeNull();
   });
 
-  it('returns null for empty array value', () => {
+  test('returns null for empty array value', () => {
     expect(alterForComparison([])).toBeNull();
   });
 
-  it('returns null for empty object value', () => {
+  test('returns null for empty object value', () => {
     expect(alterForComparison({})).toBeNull();
   });
 
-  it('returns value for non-empty array', () => {
+  test('returns value for non-empty array', () => {
     const value = [1, 2, 3];
     expect(alterForComparison(value)).toEqual(value);
   });
 
-  it('returns value for non-empty object', () => {
+  test('returns value for non-empty object', () => {
     const value = { key: 'value' };
     expect(alterForComparison(value)).toEqual(value);
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('formatValueHandler', () => {
   const controlsMap = {
     b: { type: 'BoundsControl', label: 'Bounds' },
@@ -61,7 +63,7 @@ describe('formatValueHandler', () => {
     other_control: { type: 'OtherControl', label: 'Other' },
   };
 
-  it('handles undefined value', () => {
+  test('handles undefined value', () => {
     const value = undefined;
     const key = 'b';
 
@@ -74,7 +76,7 @@ describe('formatValueHandler', () => {
     expect(formattedValue).toBe('N/A');
   });
 
-  it('handles null value', () => {
+  test('handles null value', () => {
     const value = null;
     const key = 'b';
 
@@ -87,7 +89,7 @@ describe('formatValueHandler', () => {
     expect(formattedValue).toBe('null');
   });
 
-  it('returns "[]" for empty filters', () => {
+  test('returns "[]" for empty filters', () => {
     const value: unknown[] = [];
     const key = 'adhoc_filters';
 
@@ -100,7 +102,7 @@ describe('formatValueHandler', () => {
     expect(formattedValue).toBe('[]');
   });
 
-  it('formats filters with array values', () => {
+  test('formats filters with array values', () => {
     const filters = [
       {
         clause: 'WHERE',
@@ -129,7 +131,7 @@ describe('formatValueHandler', () => {
     expect(formattedValue).toBe(expected);
   });
 
-  it('formats filters with string values', () => {
+  test('formats filters with string values', () => {
     const filters = [
       {
         clause: 'WHERE',
@@ -158,7 +160,7 @@ describe('formatValueHandler', () => {
     expect(formattedValue).toBe(expected);
   });
 
-  it('formats "Min" and "Max" for BoundsControl', () => {
+  test('formats "Min" and "Max" for BoundsControl', () => {
     const value: number[] = [1, 2];
     const key = 'b';
 
@@ -167,7 +169,7 @@ describe('formatValueHandler', () => {
     expect(result).toEqual('Min: 1, Max: 2');
   });
 
-  it('formats stringified objects for CollectionControl', () => {
+  test('formats stringified objects for CollectionControl', () => {
     const value = [{ a: 1 }, { b: 2 }];
     const key = 'column_collection';
 
@@ -178,7 +180,7 @@ describe('formatValueHandler', () => {
     );
   });
 
-  it('formats MetricsControl values correctly', () => {
+  test('formats MetricsControl values correctly', () => {
     const value = [{ label: 'SUM(Sales)' }, { label: 'Metric2' }];
     const key = 'metrics';
 
@@ -187,7 +189,7 @@ describe('formatValueHandler', () => {
     expect(result).toEqual('SUM(Sales), Metric2');
   });
 
-  it('formats boolean values as string', () => {
+  test('formats boolean values as string', () => {
     const value1 = true;
     const value2 = false;
     const key = 'b';
@@ -207,7 +209,7 @@ describe('formatValueHandler', () => {
     expect(formattedValue2).toBe('false');
   });
 
-  it('formats array values correctly', () => {
+  test('formats array values correctly', () => {
     const value = [
       { label: 'Label1' },
       { label: 'Label2' },
@@ -229,7 +231,7 @@ describe('formatValueHandler', () => {
     expect(result).toEqual(expected);
   });
 
-  it('formats string values correctly', () => {
+  test('formats string values correctly', () => {
     const value = 'test';
     const key = 'other_control';
 
@@ -238,7 +240,7 @@ describe('formatValueHandler', () => {
     expect(result).toEqual('test');
   });
 
-  it('formats number values correctly', () => {
+  test('formats number values correctly', () => {
     const value = 123;
     const key = 'other_control';
 
@@ -247,7 +249,7 @@ describe('formatValueHandler', () => {
     expect(result).toEqual(123);
   });
 
-  it('formats object values correctly', () => {
+  test('formats object values correctly', () => {
     const value = { 1: 2, alpha: 'bravo' };
     const key = 'other_control';
     const expected = '{"1":2,"alpha":"bravo"}';
@@ -258,8 +260,9 @@ describe('formatValueHandler', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getRowsFromDiffs', () => {
-  it('returns formatted rows for diffs', () => {
+  test('returns formatted rows for diffs', () => {
     const diffs = {
       metric: { before: [{ label: 'old' }], after: [{ label: 'new' }] },
       limit: { before: 10, after: 20 },
@@ -278,7 +281,7 @@ describe('getRowsFromDiffs', () => {
     ]);
   });
 
-  it('falls back to key if label is missing', () => {
+  test('falls back to key if label is missing', () => {
     const diffs = {
       unknown: { before: 'a', after: 'b' },
     };

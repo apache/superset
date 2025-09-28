@@ -23,8 +23,9 @@ import AdhocMetric, {
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocMetric', () => {
-  it('sets label, hasCustomLabel and optionName in constructor', () => {
+  test('sets label, hasCustomLabel and optionName in constructor', () => {
     const adhocMetric = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -42,7 +43,7 @@ describe('AdhocMetric', () => {
     });
   });
 
-  it('can create altered duplicates', () => {
+  test('can create altered duplicates', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -58,7 +59,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
   });
 
-  it('can verify equality', () => {
+  test('can verify equality', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -69,7 +70,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric1.equals(adhocMetric2)).toBe(true);
   });
 
-  it('can verify inequality', () => {
+  test('can verify inequality', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -95,7 +96,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric3.equals(adhocMetric4)).toBe(false);
   });
 
-  it('updates label if hasCustomLabel is false', () => {
+  test('updates label if hasCustomLabel is false', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -107,7 +108,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.label).toBe('AVG(value)');
   });
 
-  it('keeps label if hasCustomLabel is true', () => {
+  test('keeps label if hasCustomLabel is true', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -121,7 +122,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.label).toBe('label1');
   });
 
-  it('can determine if it is valid', () => {
+  test('can determine if it is valid', () => {
     const adhocMetric1 = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
@@ -170,7 +171,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric5.isValid()).toBe(false);
   });
 
-  it('can translate back from sql expressions to simple expressions when possible', () => {
+  test('can translate back from sql expressions to simple expressions when possible', () => {
     const adhocMetric = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SQL,
       sqlExpression: 'AVG(my_column)',
@@ -190,7 +191,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.inferSqlExpressionAggregate()).toBeNull();
   });
 
-  it('will infer columns and aggregates when converting to a simple expression', () => {
+  test('will infer columns and aggregates when converting to a simple expression', () => {
     const adhocMetric = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SQL,
       sqlExpression: 'AVG(my_column)',
@@ -212,7 +213,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric3.column.column_name).toBe('value');
   });
 
-  it('should transform count_distinct SQL and do not change label if does not set metric label', () => {
+  test('should transform count_distinct SQL and do not change label if does not set metric label', () => {
     const withBrackets = new AdhocMetric({
       column: { type: 'TEXT', column_name: '(column-with-barckets)' },
       aggregate: AGGREGATES.COUNT_DISTINCT,

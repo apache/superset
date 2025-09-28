@@ -29,6 +29,7 @@ const mockedProps = {
   latestQueryId: 'ryhMUZCGb',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryTable', () => {
   test('is valid', () => {
     expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);

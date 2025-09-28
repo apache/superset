@@ -19,6 +19,7 @@
 
 import { availableDomains, allowCrossDomain } from './hostNamesConfig';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('hostNamesConfig', () => {
   beforeEach(() => {
     // Reset DOM

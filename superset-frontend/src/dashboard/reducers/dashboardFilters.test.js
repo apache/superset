@@ -33,13 +33,14 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { filterComponent } from 'spec/fixtures/mockDashboardLayout';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardFilters reducer', () => {
   const { form_data } = sliceEntitiesForDashboard.slices[filterId];
   const component = filterComponent;
   const directPathToFilter = (component.parents || []).slice();
   directPathToFilter.push(component.id);
 
-  it('should overwrite a filter if merge is false', () => {
+  test('should overwrite a filter if merge is false', () => {
     expect(
       dashboardFiltersReducer(dashboardFilters, {
         type: CHANGE_FILTER,
@@ -72,7 +73,7 @@ describe('dashboardFilters reducer', () => {
     });
   });
 
-  it('should merge a filter if merge is true', () => {
+  test('should merge a filter if merge is true', () => {
     expect(
       dashboardFiltersReducer(dashboardFilters, {
         type: CHANGE_FILTER,
@@ -105,7 +106,7 @@ describe('dashboardFilters reducer', () => {
     });
   });
 
-  it('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {
+  test('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {
     const regionScope = {
       scope: ['TAB-1'],
       immune: [],

@@ -33,6 +33,7 @@ const mockFindNonTabChildChartIds =
     typeof mockFindNonTabChildChartIdsImport
   >;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('childChartsDidLoad', () => {
   beforeEach(() => {
     jest.clearAllMocks();

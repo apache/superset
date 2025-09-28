@@ -52,6 +52,7 @@ const expectedResult3 = fakeApiResult3.result.map((value: string) => ({
   title: value,
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useSchemas hook', () => {
   beforeEach(() => {
     fetchMock.reset();

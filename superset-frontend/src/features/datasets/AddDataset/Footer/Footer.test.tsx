@@ -63,6 +63,7 @@ const mockPropsWithDataset = {
   hasColumns: true,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Footer', () => {
   beforeEach(() => {
     jest.clearAllMocks();

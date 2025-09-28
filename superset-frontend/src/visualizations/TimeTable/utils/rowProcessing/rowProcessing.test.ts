@@ -24,6 +24,7 @@ const mockData = {
   '2023-01-03': { sales: 300 },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('processTimeTableData', () => {
   test('should convert data to sorted entries', () => {
     const result = processTimeTableData(mockData);

@@ -94,6 +94,7 @@ const defaultProps = {
   otherTabTitle: 'Examples',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardTable', () => {
   const history = createMemoryHistory();
   const store = configureStore({
@@ -142,7 +143,7 @@ describe('DashboardTable', () => {
     }));
   });
 
-  it('renders loading state initially', () => {
+  test('renders loading state initially', () => {
     render(
       <Router history={history}>
         <DashboardTable {...defaultProps} />
@@ -152,7 +153,7 @@ describe('DashboardTable', () => {
     expect(screen.getByRole('img', { name: 'empty' })).toBeInTheDocument();
   });
 
-  it('renders empty state when no dashboards', async () => {
+  test('renders empty state when no dashboards', async () => {
     render(
       <Router history={history}>
         <DashboardTable {...defaultProps} />
@@ -165,7 +166,7 @@ describe('DashboardTable', () => {
     });
   });
 
-  it('renders dashboard cards when data is loaded', async () => {
+  test('renders dashboard cards when data is loaded', async () => {
     jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
       state: {
         loading: false,
@@ -195,7 +196,7 @@ describe('DashboardTable', () => {
     });
   });
 
-  it('switches to Mine tab correctly', async () => {
+  test('switches to Mine tab correctly', async () => {
     const props = {
       ...defaultProps,
       mine: mockDashboards,
@@ -215,7 +216,7 @@ describe('DashboardTable', () => {
     });
   });
 
-  it('handles create dashboard button click', async () => {
+  test('handles create dashboard button click', async () => {
     const assignMock = jest.fn();
     Object.defineProperty(window, 'location', {
       value: { assign: assignMock },
@@ -234,7 +235,7 @@ describe('DashboardTable', () => {
     expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
   });
 
-  it('switches to Other tab when available', async () => {
+  test('switches to Other tab when available', async () => {
     const props = {
       ...defaultProps,
       otherTabData: mockDashboards,
@@ -253,7 +254,7 @@ describe('DashboardTable', () => {
     expect(otherTab).toHaveClass('active');
   });
 
-  it('handles bulk dashboard export', async () => {
+  test('handles bulk dashboard export', async () => {
     const props = {
       ...defaultProps,
       mine: mockDashboards,
@@ -282,7 +283,7 @@ describe('DashboardTable', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it('handles dashboard deletion confirmation', async () => {
+  test('handles dashboard deletion confirmation', async () => {
     const props = {
       ...defaultProps,
       mine: mockDashboards,

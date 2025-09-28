@@ -27,6 +27,7 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { UnwrappedDragDroppable as DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DragDroppable', () => {
   const props = {
     component: newComponentFactory(CHART_TYPE),
@@ -60,7 +61,7 @@ describe('DragDroppable', () => {
     };
   }
 
-  it('should call its child function', () => {
+  test('should call its child function', () => {
     const renderChild = jest.fn(provided => (
       <div data-test="child-content" {...provided}>
         Test Content
@@ -76,7 +77,7 @@ describe('DragDroppable', () => {
     );
   });
 
-  it('should call its child function with "dragSourceRef" if editMode=true', () => {
+  test('should call its child function with "dragSourceRef" if editMode=true', () => {
     const renderChild = jest.fn().mockImplementation(provided => (
       <div data-test="child-content" {...provided}>
         Test Content
@@ -100,7 +101,7 @@ describe('DragDroppable', () => {
     );
   });
 
-  it('should call its child function with "dropIndicatorProps" dependent on editMode and isDraggingOver', () => {
+  test('should call its child function with "dropIndicatorProps" dependent on editMode and isDraggingOver', () => {
     const renderChild = jest.fn(provided => (
       <div data-test="child-content" {...provided}>
         Test Content
@@ -135,7 +136,7 @@ describe('DragDroppable', () => {
     });
   });
 
-  it('should call props.dragPreviewRef and props.droppableRef on mount', () => {
+  test('should call props.dragPreviewRef and props.droppableRef on mount', () => {
     const dragPreviewRef = jest.fn();
     const droppableRef = jest.fn();
 
@@ -144,7 +145,7 @@ describe('DragDroppable', () => {
     expect(droppableRef).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle forbidden drops correctly', () => {
+  test('should handle forbidden drops correctly', () => {
     const renderChild = jest.fn(provided => (
       <div data-test="child-content" {...provided}>
         Test Content
@@ -178,7 +179,7 @@ describe('DragDroppable', () => {
     });
   });
 
-  it('should handle orientation prop correctly', () => {
+  test('should handle orientation prop correctly', () => {
     const { container } = setup({ orientation: 'column' });
     expect(container.firstChild).toHaveClass('dragdroppable-column');
 
@@ -186,7 +187,7 @@ describe('DragDroppable', () => {
     expect(container2.firstChild).toHaveClass('dragdroppable-row');
   });
 
-  it('should handle disabled drag and drop', () => {
+  test('should handle disabled drag and drop', () => {
     const renderChild = jest.fn(provided => (
       <div data-test="child-content" {...provided}>
         Test Content
@@ -221,7 +222,7 @@ describe('DragDroppable', () => {
   });
 
   // Later in the file, remove the require and use the imported getEmptyImage
-  it('should handle empty drag preview correctly', () => {
+  test('should handle empty drag preview correctly', () => {
     const dragPreviewRef = jest.fn();
 
     setup({
@@ -237,7 +238,7 @@ describe('DragDroppable', () => {
     );
   });
 
-  it('should call onDropIndicatorChange when appropriate', () => {
+  test('should call onDropIndicatorChange when appropriate', () => {
     const onDropIndicatorChange = jest.fn();
     const { rerender } = setup({
       component: newComponentFactory(TAB_TYPE),

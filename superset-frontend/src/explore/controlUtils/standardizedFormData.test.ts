@@ -168,6 +168,7 @@ const tableVizStore = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('should collect control values and create SFD', () => {
   const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
   const sharedControlsFormData = {
@@ -379,6 +380,7 @@ describe('should collect control values and create SFD', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('should transform form_data between table and bigNumberTotal', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(
@@ -447,6 +449,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('initial SFD between different datasource', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(

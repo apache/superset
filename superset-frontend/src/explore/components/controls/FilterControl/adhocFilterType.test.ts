@@ -23,6 +23,7 @@ import {
 } from './adhocFilterType';
 import { Clauses, ExpressionTypes } from './types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('adhocFilterType', () => {
   test('should accept simple adhoc filter type', () => {
     const simpleFilter: AdhocFilterSimple = {

@@ -93,6 +93,7 @@ const mockThemes = [
   },
 ];
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ThemesList', () => {
   beforeEach(() => {
     // Mock the useListViewResource hook
@@ -122,7 +123,7 @@ describe('ThemesList', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the themes list with proper structure', async () => {
+  test('renders the themes list with proper structure', async () => {
     render(
       <ThemesList addDangerToast={jest.fn()} addSuccessToast={jest.fn()} />,
       {
@@ -139,7 +140,7 @@ describe('ThemesList', () => {
     });
   });
 
-  it('shows system theme badges for default and dark themes', async () => {
+  test('shows system theme badges for default and dark themes', async () => {
     render(
       <ThemesList addDangerToast={jest.fn()} addSuccessToast={jest.fn()} />,
       {
@@ -162,7 +163,7 @@ describe('ThemesList', () => {
     expect(mockThemes[2].is_system_dark).toBe(false);
   });
 
-  it('uses flat theme structure for enableUiThemeAdministration', () => {
+  test('uses flat theme structure for enableUiThemeAdministration', () => {
     // Verify the component accesses the correct bootstrap data structure
     const { common } = getBootstrapData.default();
 
@@ -173,7 +174,7 @@ describe('ThemesList', () => {
     expect((common.theme as any).settings).toBeUndefined();
   });
 
-  it('shows admin controls when user has proper permissions', async () => {
+  test('shows admin controls when user has proper permissions', async () => {
     render(
       <ThemesList addDangerToast={jest.fn()} addSuccessToast={jest.fn()} />,
       {
@@ -192,7 +193,7 @@ describe('ThemesList', () => {
     expect(adminElements.length).toBeGreaterThan(0);
   });
 
-  it('calls setSystemDefaultTheme API when setting a theme as default', async () => {
+  test('calls setSystemDefaultTheme API when setting a theme as default', async () => {
     const { setSystemDefaultTheme } = themeApi;
     const addSuccessToast = jest.fn();
     const refreshData = jest.fn();
@@ -236,7 +237,7 @@ describe('ThemesList', () => {
     expect(setSystemDefaultTheme).toHaveBeenCalledWith(3);
   });
 
-  it('configures theme deletion endpoint', async () => {
+  test('configures theme deletion endpoint', async () => {
     const addDangerToast = jest.fn();
     const addSuccessToast = jest.fn();
     const refreshData = jest.fn();

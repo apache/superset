@@ -20,6 +20,7 @@ import extractUrlParams from './extractUrlParams';
 
 const originalWindowLocation = window.location;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('extractUrlParams', () => {
   beforeAll(() => {
     // @ts-ignore
@@ -32,20 +33,20 @@ describe('extractUrlParams', () => {
     window.location = originalWindowLocation;
   });
 
-  it('returns all urlParams', () => {
+  test('returns all urlParams', () => {
     expect(extractUrlParams('all')).toEqual({
       edit: 'true',
       abc: '123',
     });
   });
 
-  it('returns reserved urlParams', () => {
+  test('returns reserved urlParams', () => {
     expect(extractUrlParams('reserved')).toEqual({
       edit: 'true',
     });
   });
 
-  it('returns regular urlParams', () => {
+  test('returns regular urlParams', () => {
     expect(extractUrlParams('regular')).toEqual({
       abc: '123',
     });

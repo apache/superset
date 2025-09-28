@@ -48,6 +48,7 @@ const renderComponent = (props: Partial<ColorBreakpointOptionProps> = {}) =>
     useDnd: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointOption', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -29,6 +29,7 @@ import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DataTablesPane', () => {
   // Collapsed/expanded state depends on local storage
   // We need to clear it manually - otherwise initial state would depend on the order of tests

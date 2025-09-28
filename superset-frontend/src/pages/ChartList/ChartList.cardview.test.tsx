@@ -54,6 +54,7 @@ const mockUser = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList Card View Tests', () => {
   beforeEach(() => {
     setupMocks();
@@ -71,7 +72,7 @@ describe('ChartList Card View Tests', () => {
     fetchMock.restore();
   });
 
-  it('renders ChartList in card view', async () => {
+  test('renders ChartList in card view', async () => {
     renderChartList(mockUser);
 
     // Wait for chart list to load
@@ -94,7 +95,7 @@ describe('ChartList Card View Tests', () => {
     expect(listViewButton).not.toHaveClass('active');
   });
 
-  it('switches from card view to list view', async () => {
+  test('switches from card view to list view', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -113,7 +114,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('renders ChartList in card view with thumbnails enabled', async () => {
+  test('renders ChartList in card view with thumbnails enabled', async () => {
     // Enable thumbnails feature flag
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -137,7 +138,7 @@ describe('ChartList Card View Tests', () => {
     expect(allImages).toHaveLength(mockCharts.length);
   });
 
-  it('displays chart data correctly', async () => {
+  test('displays chart data correctly', async () => {
     renderChartList(mockUser);
 
     // Wait for chart list to load
@@ -174,7 +175,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('export chart api called when export button is clicked', async () => {
+  test('export chart api called when export button is clicked', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -199,7 +200,7 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  it('opens edit properties modal when edit button is clicked', async () => {
+  test('opens edit properties modal when edit button is clicked', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -222,7 +223,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('opens delete confirmation when delete button is clicked', async () => {
+  test('opens delete confirmation when delete button is clicked', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -247,7 +248,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('displays certified badge only for certified charts', async () => {
+  test('displays certified badge only for certified charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -270,7 +271,7 @@ describe('ChartList Card View Tests', () => {
     expect(screen.getByText(mockCharts[3].slice_name)).toBeInTheDocument();
   });
 
-  it('can bulk deselect all charts', async () => {
+  test('can bulk deselect all charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -323,7 +324,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('can bulk export selected charts', async () => {
+  test('can bulk export selected charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -366,7 +367,7 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  it('can bulk delete selected charts', async () => {
+  test('can bulk delete selected charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -407,7 +408,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('can bulk add tags to selected charts', async () => {
+  test('can bulk add tags to selected charts', async () => {
     // Enable tagging system for this test
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -459,7 +460,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('exit bulk select by hitting x on bulk select bar', async () => {
+  test('exit bulk select by hitting x on bulk select bar', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -491,7 +492,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('exit bulk select by clicking bulk select button again', async () => {
+  test('exit bulk select by clicking bulk select button again', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -520,7 +521,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('card click behavior changes in bulk select mode', async () => {
+  test('card click behavior changes in bulk select mode', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -566,7 +567,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  it('renders sort dropdown in card view', async () => {
+  test('renders sort dropdown in card view', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 

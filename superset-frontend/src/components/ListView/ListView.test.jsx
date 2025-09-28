@@ -130,6 +130,7 @@ const factory = (props = mockedProps) =>
     { store: mockStore() },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
   beforeEach(() => {
     fetchMock.reset();
@@ -146,7 +147,7 @@ describe('ListView', () => {
   });
 
   // Example of converted test:
-  it('calls fetchData on mount', () => {
+  test('calls fetchData on mount', () => {
     expect(mockedProps.fetchData).toHaveBeenCalledWith({
       filters: [],
       pageIndex: 0,
@@ -155,7 +156,7 @@ describe('ListView', () => {
     });
   });
 
-  it('calls fetchData on sort', async () => {
+  test('calls fetchData on sort', async () => {
     const sortHeader = screen.getAllByTestId('sort-header')[1];
     await userEvent.click(sortHeader);
 
@@ -173,7 +174,7 @@ describe('ListView', () => {
   });
 
   // Update pagination control tests for Ant Design pagination
-  it('renders pagination controls', () => {
+  test('renders pagination controls', () => {
     const paginationList = screen.getByRole('list');
     expect(paginationList).toBeInTheDocument();
 
@@ -181,7 +182,7 @@ describe('ListView', () => {
     expect(pageOneItem).toBeInTheDocument();
   });
 
-  it('calls fetchData on page change', async () => {
+  test('calls fetchData on page change', async () => {
     const pageTwoItem = screen.getByRole('listitem', { name: '2' });
     await userEvent.click(pageTwoItem);
 
@@ -197,7 +198,7 @@ describe('ListView', () => {
     });
   });
 
-  it('handles bulk actions on 1 row', async () => {
+  test('handles bulk actions on 1 row', async () => {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
@@ -217,12 +218,12 @@ describe('ListView', () => {
   });
 
   // Update UI filters test to use more specific selector
-  it('renders UI filters', () => {
+  test('renders UI filters', () => {
     const filterControls = screen.getAllByRole('combobox');
     expect(filterControls).toHaveLength(2);
   });
 
-  it('calls fetchData on filter', async () => {
+  test('calls fetchData on filter', async () => {
     // Handle select filter
     const selectFilter = screen.getAllByRole('combobox')[0];
     await userEvent.click(selectFilter);
@@ -252,7 +253,7 @@ describe('ListView', () => {
     );
   });
 
-  it('calls fetchData on card view sort', async () => {
+  test('calls fetchData on card view sort', async () => {
     factory({
       ...mockedProps,
       renderCard: jest.fn(),

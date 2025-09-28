@@ -21,6 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import * as useQueryParamsModule from 'use-query-params';
 import AllEntitiesTable from './AllEntitiesTable';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AllEntitiesTable', () => {
   const mockSetShowTagModal = jest.fn();
 
@@ -91,7 +92,7 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders when empty with button to tag if user has perm', () => {
+  test('renders when empty with button to tag if user has perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -109,7 +110,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
-  it('renders when empty without button to tag if user does not have perm', () => {
+  test('renders when empty without button to tag if user does not have perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -127,7 +128,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
   });
 
-  it('renders the correct tags for each object type', () => {
+  test('renders the correct tags for each object type', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -151,7 +152,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Engagement')).toBeInTheDocument();
   });
 
-  it('Only list asset types that have entities', () => {
+  test('Only list asset types that have entities', () => {
     const mockObjects = {
       dashboard: [],
       chart: [mockObjectsWithTags.chart[0]],

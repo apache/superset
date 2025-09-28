@@ -202,6 +202,7 @@ test('should increment the depth of its children', () => {
   );
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('visibility handling for intersection observers', () => {
   const mockIntersectionObserver = jest.fn();
   const mockObserve = jest.fn();
