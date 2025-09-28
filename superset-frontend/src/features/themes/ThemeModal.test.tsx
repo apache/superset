@@ -124,6 +124,7 @@ fetchMock.put('glob:*/api/v1/theme/1', {
 //   show: true,
 // };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ThemeModal', () => {
   beforeEach(() => {
     fetchMock.resetHistory();

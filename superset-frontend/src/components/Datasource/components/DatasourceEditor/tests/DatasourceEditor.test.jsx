@@ -63,6 +63,7 @@ export const asyncRender = props =>
     }),
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor', () => {
   beforeAll(() => {
     jest.clearAllMocks();
@@ -80,11 +81,11 @@ describe('DatasourceEditor', () => {
     // jest.clearAllMocks();
   });
 
-  it('renders Tabs', () => {
+  test('renders Tabs', () => {
     expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
   });
 
-  it('can sync columns from source', async () => {
+  test('can sync columns from source', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
     userEvent.click(columnsTab);
 
@@ -111,7 +112,7 @@ describe('DatasourceEditor', () => {
   });
 
   // to add, remove and modify columns accordingly
-  it('can modify columns', async () => {
+  test('can modify columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
     userEvent.click(columnsTab);
 
@@ -138,7 +139,7 @@ describe('DatasourceEditor', () => {
     userEvent.type(inputCertDetails, 'test');
   }, 40000);
 
-  it('can delete columns', async () => {
+  test('can delete columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
     userEvent.click(columnsTab);
 
@@ -162,7 +163,7 @@ describe('DatasourceEditor', () => {
     });
   }, 60000); // 60 seconds timeout to avoid timeouts
 
-  it('can add new columns', async () => {
+  test('can add new columns', async () => {
     const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
     userEvent.click(calcColsTab);
 
@@ -180,7 +181,7 @@ describe('DatasourceEditor', () => {
     });
   }, 60000);
 
-  it('renders isSqla fields', async () => {
+  test('renders isSqla fields', async () => {
     const columnsTab = screen.getByRole('tab', {
       name: /settings/i,
     });
@@ -195,6 +196,7 @@ describe('DatasourceEditor', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor Source Tab', () => {
   beforeAll(() => {
     isFeatureEnabled.mockImplementation(() => false);
@@ -216,7 +218,7 @@ describe('DatasourceEditor Source Tab', () => {
     isFeatureEnabled.mockRestore();
   });
 
-  it('Source Tab: edit mode', async () => {
+  test('Source Tab: edit mode', async () => {
     const getLockBtn = screen.getByRole('img', { name: /lock/i });
     userEvent.click(getLockBtn);
 
@@ -231,7 +233,7 @@ describe('DatasourceEditor Source Tab', () => {
     expect(virtualRadioBtn).toBeEnabled();
   });
 
-  it('Source Tab: readOnly mode', () => {
+  test('Source Tab: readOnly mode', () => {
     const getLockBtn = screen.getByRole('img', { name: /lock/i });
     expect(getLockBtn).toBeInTheDocument();
 
@@ -246,7 +248,7 @@ describe('DatasourceEditor Source Tab', () => {
     expect(virtualRadioBtn).toBeDisabled();
   });
 
-  it('calls onChange with empty SQL when switching to physical dataset', async () => {
+  test('calls onChange with empty SQL when switching to physical dataset', async () => {
     // Clean previous render
     cleanup();
 
