@@ -58,7 +58,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash';
-import { clearDatasetCache } from 'src/utils/datasetCache';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 
 interface QueryDatabase {
   id?: number;

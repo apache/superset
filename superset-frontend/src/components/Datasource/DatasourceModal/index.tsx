@@ -44,7 +44,6 @@ import {
 } from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
-import { clearDatasetCache } from 'src/utils/datasetCache';
 import type { DatasetObject } from 'src/features/datasets/types';
 import type { DatasourceModalProps } from '../types';
 
@@ -204,10 +203,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
-
-      // Clear the dataset cache to ensure fresh data when fetching columns for filters
-      // This ensures that changes to the dataset are immediately reflected
-      clearDatasetCache(currentDatasource.id);
 
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign

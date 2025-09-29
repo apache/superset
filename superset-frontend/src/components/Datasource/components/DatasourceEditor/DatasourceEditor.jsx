@@ -69,7 +69,7 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
-import { clearDatasetCache } from 'src/utils/datasetCache';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';

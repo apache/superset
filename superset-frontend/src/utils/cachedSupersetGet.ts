@@ -27,3 +27,41 @@ export const cachedSupersetGet = cacheWrapper(
   supersetGetCache,
   ({ endpoint }) => endpoint || '',
 );
+
+/**
+ * Clear cached responses for dataset-related endpoints
+ * @param datasetId - The ID of the dataset to clear from cache
+ */
+export function clearDatasetCache(datasetId: number | string): void {
+  if (datasetId === null || datasetId === undefined || datasetId === '') return;
+
+  const keysToDelete: string[] = [];
+  const datasetIdStr = String(datasetId);
+
+  supersetGetCache.forEach((_value, key) => {
+    if (
+      key.includes(`/api/v1/dataset/${datasetIdStr}`) ||
+      key.includes(`/api/v1/dataset/${datasetIdStr}/`) ||
+      key.includes(`/api/v1/dataset/${datasetIdStr}?`)
+    ) {
+      keysToDelete.push(key);
+    }
+  });
+
+  keysToDelete.forEach(key => supersetGetCache.delete(key));
+}
+
+/**
+ * Clear all cached dataset responses
+ */
+export function clearAllDatasetCache(): void {
+  const keysToDelete: string[] = [];
+
+  supersetGetCache.forEach((_value, key) => {
+    if (key.includes('/api/v1/dataset/')) {
+      keysToDelete.push(key);
+    }
+  });
+
+  keysToDelete.forEach(key => supersetGetCache.delete(key));
+}
