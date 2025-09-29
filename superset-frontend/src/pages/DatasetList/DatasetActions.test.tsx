@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatasetList from './index';
 import {
@@ -48,19 +53,24 @@ jest.mock('src/components/Datasource', () => ({
     show ? (
       <div data-test="datasource-modal">
         <span>Editing: {datasource?.table_name}</span>
-        <button type="button" onClick={onHide}>Close Modal</button>
+        <button type="button" onClick={onHide}>
+          Close Modal
+        </button>
       </div>
     ) : null,
 }));
 
 jest.mock('@superset-ui/core/components', () => ({
-  ...jest.requireActual('@superset-ui/core/components'),
   DeleteModal: ({ show, onConfirm, onHide, title }: any) =>
     show ? (
       <div data-test="delete-modal">
         <span>{title}</span>
-        <button type="button" onClick={onConfirm}>Delete</button>
-        <button type="button" onClick={onHide}>Cancel</button>
+        <button type="button" onClick={onConfirm}>
+          Delete
+        </button>
+        <button type="button" onClick={onHide}>
+          Cancel
+        </button>
       </div>
     ) : null,
 }));
@@ -71,7 +81,9 @@ jest.mock('src/features/datasets/DuplicateDatasetModal', () => ({
     show ? (
       <div data-test="duplicate-modal">
         <span>Duplicating: {dataset?.table_name}</span>
-        <button type="button" onClick={onHide}>Close</button>
+        <button type="button" onClick={onHide}>
+          Close
+        </button>
       </div>
     ) : null,
 }));
@@ -81,8 +93,12 @@ jest.mock('src/components/ImportModal', () => ({
   ImportModal: ({ show, onHide, onImport }: any) =>
     show ? (
       <div data-test="import-modal">
-        <button type="button" onClick={() => onImport()}>Import</button>
-        <button type="button" onClick={onHide}>Cancel</button>
+        <button type="button" onClick={() => onImport()}>
+          Import
+        </button>
+        <button type="button" onClick={onHide}>
+          Cancel
+        </button>
       </div>
     ) : null,
 }));
@@ -445,8 +461,41 @@ test('handles bulk export operation', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  // This test would need access to bulk selection controls
-  // The implementation would depend on how ListView exposes bulk operations
+  // Activate bulk select mode
+  const bulkSelectButton = screen.getByTestId('bulk-select');
+  fireEvent.click(bulkSelectButton);
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox')).toHaveLength(
+      mockDatasets.length + 1,
+    );
+  });
+
+  // Select all datasets
+  const selectAllCheckbox = screen.getByLabelText('Select all');
+  fireEvent.click(selectAllCheckbox);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      `${mockDatasets.length} Selected`,
+    );
+  });
+
+  // Click bulk export button
+  const bulkActions = screen.getAllByTestId('bulk-select-action');
+  const exportButton = bulkActions.find(btn => btn.textContent === 'Export');
+  expect(exportButton).toBeInTheDocument();
+
+  fireEvent.click(exportButton!);
+
+  // Verify export function was called with all dataset IDs
+  await waitFor(() => {
+    expect(handleResourceExport).toHaveBeenCalledWith(
+      'dataset',
+      mockDatasets.map(dataset => dataset.id),
+      expect.any(Function),
+    );
+  });
 });
 
 test('opens import modal and handles successful import', async () => {

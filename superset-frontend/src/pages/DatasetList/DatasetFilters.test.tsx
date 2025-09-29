@@ -43,7 +43,9 @@ jest.mock('src/components/Datasource', () => ({
   DatasourceModal: ({ show, onHide }: { show: boolean; onHide: () => void }) =>
     show ? (
       <div data-test="datasource-modal">
-        <button type="button" onClick={onHide}>Close</button>
+        <button type="button" onClick={onHide}>
+          Close
+        </button>
       </div>
     ) : null,
 }));
@@ -571,7 +573,7 @@ test('preserves sort order when filters change', async () => {
 test('updates URL params when filters change', async () => {
   fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
 
-  const { container } = render(<DatasetList {...defaultProps} />, {
+  render(<DatasetList {...defaultProps} />, {
     useRouter: true,
     useRedux: true,
   });

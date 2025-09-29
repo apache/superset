@@ -18,7 +18,6 @@
  */
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import DatasetList from './index';
 import {
   mockDatasets,
@@ -45,19 +44,24 @@ jest.mock('src/components/Datasource', () => ({
   DatasourceModal: ({ show, onHide }: { show: boolean; onHide: () => void }) =>
     show ? (
       <div data-test="datasource-modal">
-        <button type="button" onClick={onHide}>Close</button>
+        <button type="button" onClick={onHide}>
+          Close
+        </button>
       </div>
     ) : null,
 }));
 
 // Mock DeleteModal
 jest.mock('@superset-ui/core/components', () => ({
-  ...jest.requireActual('@superset-ui/core/components'),
   DeleteModal: ({ show, onConfirm, onHide }: any) =>
     show ? (
       <div data-test="delete-modal">
-        <button type="button" onClick={onConfirm}>Delete</button>
-        <button type="button" onClick={onHide}>Cancel</button>
+        <button type="button" onClick={onConfirm}>
+          Delete
+        </button>
+        <button type="button" onClick={onHide}>
+          Cancel
+        </button>
       </div>
     ) : null,
 }));
@@ -68,7 +72,9 @@ jest.mock('src/features/datasets/DuplicateDatasetModal', () => ({
   default: ({ show, onHide }: { show: boolean; onHide: () => void }) =>
     show ? (
       <div data-test="duplicate-modal">
-        <button type="button" onClick={onHide}>Close</button>
+        <button type="button" onClick={onHide}>
+          Close
+        </button>
       </div>
     ) : null,
 }));
