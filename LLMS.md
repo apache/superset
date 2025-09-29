@@ -102,6 +102,17 @@ superset/
 - **`selectOption()`** - Select component helper
 - **React Testing Library** - NO Enzyme (removed)
 
+### Test Structure Guidelines
+- **Use `test()` instead of `describe()` and `it()`** - Follow the [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principle
+  - **Why**: Reduces unnecessary nesting, improves test isolation, and makes tests more readable
+  - **Pattern**: Write flat test files with descriptive test names that fully describe what's being tested
+  - **Example**: Instead of nested `describe('Component', () => { it('should render', ...) })`, use `test('Component renders correctly', ...)`
+  - **Benefits**:
+    - Each test stands alone with a clear, searchable name
+    - Easier to run individual tests
+    - Forces you to write more descriptive test names
+    - Reduces cognitive overhead from nested context switching
+
 ### Test Database Patterns
 - **Mock patterns**: Use `MagicMock()` for config objects, avoid `AsyncMock` for synchronous code
 - **API tests**: Update expected columns when adding new model fields
