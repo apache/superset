@@ -15,8 +15,27 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .dremio import Dremio
-from .firebolt import Firebolt, FireboltOld
-from .pinot import Pinot
+"""
+MySQL ANSI dialect for Apache Pinot.
 
-__all__ = ["Dremio", "Firebolt", "FireboltOld", "Pinot"]
+This dialect is based on MySQL but follows ANSI SQL quoting conventions where
+double quotes are used for identifiers instead of string literals.
+"""
+
+from __future__ import annotations
+
+from sqlglot.dialects.mysql import MySQL
+
+
+class Pinot(MySQL):
+    """
+    MySQL ANSI dialect used by Apache Pinot.
+
+    The main difference from standard MySQL is that double quotes (") are used for
+    identifiers instead of string literals, following ANSI SQL conventions.
+    """
+
+    class Tokenizer(MySQL.Tokenizer):
+        QUOTES = ["'"]  # Only single quotes for strings
+        IDENTIFIERS = ['"', "`"]  # Backticks and double quotes for identifiers
+        STRING_ESCAPES = ["'", "\\"]  # Remove double quote from string escapes
