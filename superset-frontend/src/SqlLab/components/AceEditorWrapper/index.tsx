@@ -193,6 +193,11 @@ const AceEditorWrapper = ({
             width: ${theme.sizeUnit * 130}px !important;
           }
 
+          .ace_completion-highlight {
+            color: ${theme.colorPrimaryText} !important;
+            background-color: ${theme.colorPrimaryBgHover};
+          }
+
           .ace_tooltip {
             max-width: ${SQL_EDITOR_LEFTBAR_WIDTH}px;
           }
