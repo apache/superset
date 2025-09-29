@@ -21,6 +21,14 @@ import sqlglot
 from superset.sql.dialects.pinot import Pinot
 
 
+def test_pinot_dialect_registered() -> None:
+    """Test that Pinot dialect is properly registered."""
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    assert "pinot" in SQLGLOT_DIALECTS
+    assert SQLGLOT_DIALECTS["pinot"] == Pinot
+
+
 def test_double_quotes_as_identifiers() -> None:
     """
     Test that double quotes are treated as identifiers, not string literals.
