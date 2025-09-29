@@ -1090,47 +1090,62 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def llm_schema(self, pk: int) -> FlaskResponse:
-        # Construct a JSON representation of the schema for the entire database and put it in this format:
-        # {[
-        #     {
-        #         schema_name  =
-        #         schema_description =
-        #         relations = [
-        #             {
-        #                 rel_name =
-        #                 rel_kind =
-        #                 rel_description =
-        #                 indexes = [
-        #                     {
-        #                         index_name =
-        #                         is_unique =
-        #                         column_names =
-        #                         index_definition =
-        #                     },
-
-        #                 ]
-        #                 foregin_keys = [
-        #                     {
-        #                         constraint_name =
-        #                         column_name =
-        #                         referenced_column =
-        #                     },
-
-        #                 ]
-        #                 columns = [
-        #                     {
-        #                         column_name =
-        #                         data_type =
-        #                         is_nullable =
-        #                         column_description =
-        #                         most_common_values =
-        #                     },
-
-        #                 ]
-        #             },
-        #         ]
-        #     },
-        # ]}
+        """Get database schema information for LLM consumption.
+        ---
+        get:
+          summary: Get database schema information for LLM consumption
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: catalog
+            schema:
+              type: string
+            description: Optional catalog name
+          - in: query
+            name: minify
+            schema:
+              type: boolean
+              default: false
+            description: Whether to minify the response JSON
+          responses:
+            200:
+              description: Database schema information formatted for LLM consumption
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        oneOf:
+                          - type: array
+                            items:
+                              type: object
+                              properties:
+                                schema_name:
+                                  type: string
+                                schema_description:
+                                  type: string
+                                relations:
+                                  type: array
+                                  items:
+                                    type: object
+                          - type: string
+                            description: Minified JSON string when minify=true
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         self.incr_stats("init", self.llm_schema.__name__)
 
         try:
@@ -2278,6 +2293,34 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def llm_defaults(self, pk: int) -> Response:
+        """Get LLM default options for a database.
+        ---
+        get:
+          summary: Get LLM default options for a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          responses:
+            200:
+              description: LLM default options
+              content:
+                application/json:
+                  schema:
+                    type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         return self.response(
             200,
             **dispatcher.get_default_options(pk),  # type: ignore[operator]  # noqa: E501,
