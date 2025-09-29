@@ -37,6 +37,9 @@ import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 
+// Delay before refreshing charts to ensure they are fully mounted
+const CHART_MOUNT_DELAY = 100;
+
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   id: PropTypes.string.isRequired,
@@ -142,7 +145,7 @@ const Tab = props => {
           setTimeout(() => {
             // Refresh charts in this tab
             dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
-          }, 100);
+          }, CHART_MOUNT_DELAY);
         }
       }
     }
