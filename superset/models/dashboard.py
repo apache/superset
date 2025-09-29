@@ -38,7 +38,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import Mapped, relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
@@ -131,25 +131,27 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
-    id = Column(Integer, primary_key=True)
-    dashboard_title = Column(String(500))
-    position_json = Column(utils.MediumText())
-    description = Column(Text)
-    css = Column(utils.MediumText())
-    theme_id = Column(Integer, ForeignKey("themes.id"), nullable=True)
-    certified_by = Column(Text)
-    certification_details = Column(Text)
-    json_metadata = Column(utils.MediumText())
-    slug = Column(String(255), unique=True)
-    slices: list[Slice] = relationship(
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    dashboard_title: Mapped[str | None] = Column(String(500))
+    position_json: Mapped[str | None] = Column(utils.MediumText())
+    description: Mapped[str | None] = Column(Text)
+    css: Mapped[str | None] = Column(utils.MediumText())
+    theme_id: Mapped[int | None] = Column(
+        Integer, ForeignKey("themes.id"), nullable=True
+    )
+    certified_by: Mapped[str | None] = Column(Text)
+    certification_details: Mapped[str | None] = Column(Text)
+    json_metadata: Mapped[str | None] = Column(utils.MediumText())
+    slug: Mapped[str | None] = Column(String(255), unique=True)
+    slices: Mapped[list[Slice]] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
-    owners = relationship(
+    owners: Mapped[list[Any]] = relationship(
         security_manager.user_model,
         secondary=dashboard_user,
         passive_deletes=True,
     )
-    tags = relationship(
+    tags: Mapped[list[Any]] = relationship(
         "Tag",
         overlaps="objects,tag,tags",
         secondary="tagged_object",
@@ -158,12 +160,14 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         secondaryjoin="TaggedObject.tag_id == Tag.id",
         viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
-    theme = relationship("Theme", foreign_keys=[theme_id])
-    published = Column(Boolean, default=False)
-    is_managed_externally = Column(Boolean, nullable=False, default=False)
-    external_url = Column(Text, nullable=True)
-    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
-    embedded = relationship(
+    theme: Mapped[Any] = relationship("Theme", foreign_keys=[theme_id])
+    published: Mapped[bool] = Column(Boolean, default=False)
+    is_managed_externally: Mapped[bool] = Column(Boolean, nullable=False, default=False)
+    external_url: Mapped[str | None] = Column(Text, nullable=True)
+    roles: Mapped[list[Any]] = relationship(
+        security_manager.role_model, secondary=DashboardRoles
+    )
+    embedded: Mapped[list[Any]] = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",
         cascade="all, delete-orphan",

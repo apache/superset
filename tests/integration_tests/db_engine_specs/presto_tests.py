@@ -40,10 +40,14 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
     def test_get_view_names_with_schema(self):
         database = mock.MagicMock()
         mock_execute = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        mock_cursor = mock.MagicMock()
+        mock_cursor.execute = mock_execute
+        mock_cursor.fetchall = mock.MagicMock(
             return_value=[["a", "b,", "c"], ["d", "e"]]
         )
+        mock_connection = mock.MagicMock()
+        mock_connection.__enter__.return_value.cursor.return_value = mock_cursor
+        database.get_raw_connection.return_value = mock_connection
 
         schema = "schema"
         result = PrestoEngineSpec.get_view_names(database, mock.Mock(), schema)
@@ -62,10 +66,14 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
     def test_get_view_names_without_schema(self):
         database = mock.MagicMock()
         mock_execute = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        mock_cursor = mock.MagicMock()
+        mock_cursor.execute = mock_execute
+        mock_cursor.fetchall = mock.MagicMock(
             return_value=[["a", "b,", "c"], ["d", "e"]]
         )
+        mock_connection = mock.MagicMock()
+        mock_connection.__enter__.return_value.cursor.return_value = mock_cursor
+        database.get_raw_connection.return_value = mock_connection
         result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
         mock_execute.assert_called_once_with(
             dedent(
@@ -86,7 +94,9 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         )
         row = mock.Mock()
         row.Column, row.Type, row.Null = column
-        inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
+        mock_result = mock.Mock()
+        mock_result.fetchall.return_value = [row]
+        inspector.bind.execute.return_value = mock_result
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
         assert len(expected_results) == len(results)
         for expected_result, result in zip(expected_results, results, strict=False):
@@ -607,7 +617,8 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
             columns,
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-        assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+        # SQLAlchemy 2.x: Different SQL formatting (single space after SELECT)
+        assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
     def test_query_cost_formatter(self):
         raw_cost = [
@@ -830,9 +841,9 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
-        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
-            return_value=["a", "b"]
-        )
+        mock_result = mock.MagicMock()
+        mock_result.fetchall.return_value = ["a", "b"]
+        inspector.bind.execute.return_value = mock_result
         table_name = "table_name"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name))
         assert result == ["a", "b"]
@@ -846,9 +857,9 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
-        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
-            return_value=["a", "b"]
-        )
+        mock_result = mock.MagicMock()
+        mock_result.fetchall.return_value = ["a", "b"]
+        inspector.bind.execute.return_value = mock_result
         table_name = "table_name"
         schema = "schema"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name, schema))
@@ -955,10 +966,13 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
     def test_get_create_view(self):
         mock_execute = mock.MagicMock()
         mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
+        mock_cursor = mock.MagicMock()
+        mock_cursor.execute = mock_execute
+        mock_cursor.fetchall = mock_fetchall
+        mock_connection = mock.MagicMock()
+        mock_connection.__enter__.return_value.cursor.return_value = mock_cursor
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock_fetchall
-        database.get_raw_connection().__enter__().cursor().return_value = False
+        database.get_raw_connection.return_value = mock_connection
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
@@ -967,8 +981,12 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
 
     def test_get_create_view_exception(self):
         mock_execute = mock.MagicMock(side_effect=Exception())
+        mock_cursor = mock.MagicMock()
+        mock_cursor.execute = mock_execute
+        mock_connection = mock.MagicMock()
+        mock_connection.__enter__.return_value.cursor.return_value = mock_cursor
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
+        database.get_raw_connection.return_value = mock_connection
         schema = "schema"
         table = "table"
         with self.assertRaises(Exception):  # noqa: B017, PT027
@@ -979,9 +997,13 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
 
         mock_execute = mock.MagicMock()
         mock_fetch_data = mock.MagicMock(side_effect=DatabaseError())
+        mock_cursor = mock.MagicMock()
+        mock_cursor.execute = mock_execute
+        mock_cursor.fetchall = mock_fetch_data
+        mock_connection = mock.MagicMock()
+        mock_connection.__enter__.return_value.cursor.return_value = mock_cursor
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock_fetch_data
+        database.get_raw_connection.return_value = mock_connection
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
