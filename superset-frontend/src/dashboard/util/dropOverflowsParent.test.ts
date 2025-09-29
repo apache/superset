@@ -29,8 +29,9 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dropOverflowsParent', () => {
-  it('returns true if a parent does NOT have adequate width for child', () => {
+  test('returns true if a parent does NOT have adequate width for child', () => {
     const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -62,7 +63,7 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
   });
 
-  it('returns false if a parent DOES have adequate width for child', () => {
+  test('returns false if a parent DOES have adequate width for child', () => {
     const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -94,7 +95,7 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 
-  it('returns false if a child CAN shrink to available parent space', () => {
+  test('returns false if a child CAN shrink to available parent space', () => {
     const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -126,7 +127,7 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 
-  it('returns true if a child CANNOT shrink to available parent space', () => {
+  test('returns true if a child CANNOT shrink to available parent space', () => {
     const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -159,7 +160,7 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
   });
 
-  it('returns true if a column has children that CANNOT shrink to available parent space', () => {
+  test('returns true if a column has children that CANNOT shrink to available parent space', () => {
     const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'destination' },
@@ -204,7 +205,7 @@ describe('dropOverflowsParent', () => {
     ).toBe(false);
   });
 
-  it('should work with new components that are not in the layout', () => {
+  test('should work with new components that are not in the layout', () => {
     const dropResult: DropResult = {
       source: { id: NEW_COMPONENTS_SOURCE_ID },
       destination: { id: 'a' },
@@ -222,7 +223,7 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
   });
 
-  it('source/destination without widths should not overflow parent', () => {
+  test('source/destination without widths should not overflow parent', () => {
     const dropResult: DropResult = {
       source: { id: '_' },
       destination: { id: 'tab' },
