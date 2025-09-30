@@ -762,26 +762,28 @@ class Superset(BaseSupersetView):
             default value to appease pylint
         """
 
+        def redirect_to_login() -> FlaskResponse:
+            login_url = appbuilder.get_url_for_login
+            parsed = parse.urlparse(login_url)
+            query = parse.parse_qs(parsed.query, keep_blank_values=True)
+            query["next"] = [request.url]
+            encoded_query = parse.urlencode(query, doseq=True)
+            redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
+            return redirect(redirect_url)
+
         dashboard = Dashboard.get(dashboard_id_or_slug)
 
         if not dashboard:
+            if g.user is None or g.user.is_anonymous:
+                return redirect_to_login()
             abort(404)
 
         try:
             dashboard.raise_for_access()
-        except SupersetSecurityException as ex:
+        except SupersetSecurityException:
             if g.user is None or g.user.is_anonymous:
-                login_url = appbuilder.get_url_for_login
-                parsed = parse.urlparse(login_url)
-                query = parse.parse_qs(parsed.query, keep_blank_values=True)
-                query["next"] = [request.url]
-                encoded_query = parse.urlencode(query, doseq=True)
-                redirect_url = parse.urlunparse(
-                    parsed._replace(query=encoded_query)
-                )
-                return redirect(redirect_url)
-
-            return Response(status=404)
+                return redirect_to_login()
+            abort(404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
