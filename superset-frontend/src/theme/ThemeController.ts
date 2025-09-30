@@ -27,12 +27,17 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/ui';
-import { makeApi } from '@superset-ui/core';
+import { makeApi, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  validateThemeTokens,
+  getPartialThemeConfig,
+  formatValidationErrors,
+} from './utils/themeTokenValidation';
 
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
@@ -229,14 +234,8 @@ export class ThemeController {
         return this.dashboardThemes.get(themeId)!;
       }
 
-      // Fetch theme config from API using SupersetClient for proper auth
-      const getTheme = makeApi<void, { result: { json_data: string } }>({
-        method: 'GET',
-        endpoint: `/api/v1/theme/${themeId}`,
-      });
-
-      const { result } = await getTheme();
-      const themeConfig = JSON.parse(result.json_data);
+      // Use the enhanced fetchCrudTheme method which includes validation if feature flag is enabled
+      const themeConfig = await this.fetchCrudTheme(themeId);
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
@@ -471,6 +470,14 @@ export class ThemeController {
    */
   public canDetectOSPreference(): boolean {
     return this.darkTheme !== null;
+  }
+
+  /**
+   * Checks if enhanced theme validation is enabled via feature flag.
+   * @returns True if enhanced validation is enabled, false otherwise
+   */
+  public isEnhancedValidationEnabled(): boolean {
+    return isFeatureEnabled(FeatureFlag.EnhancedThemeValidation);
   }
 
   /**
@@ -919,24 +926,63 @@ export class ThemeController {
   }
 
   /**
-   * Fetches a theme configuration from the CRUD API.
+   * Fetches a theme configuration from the CRUD API with optional enhanced validation and partial loading.
    * @param themeId - The ID of the theme to fetch
-   * @returns The theme configuration or null if not found
+   * @returns The theme configuration, optionally with only valid tokens if enhanced validation is enabled
    */
   private async fetchCrudTheme(
     themeId: string,
   ): Promise<AnyThemeConfig | null> {
     try {
       // Use SupersetClient for proper authentication handling
-      const getTheme = makeApi<void, { result: { json_data: string } }>({
+      const getTheme = makeApi<
+        void,
+        { result: { json_data: string; theme_name?: string } }
+      >({
         method: 'GET',
         endpoint: `/api/v1/theme/${themeId}`,
       });
 
       const { result } = await getTheme();
-      const themeConfig = JSON.parse(result.json_data);
+      const rawThemeConfig = JSON.parse(result.json_data);
+      const themeName = result.theme_name || `Theme ${themeId}`;
 
-      return themeConfig;
+      if (!rawThemeConfig || typeof rawThemeConfig !== 'object') {
+        console.error(`Invalid theme configuration for theme: ${themeName}`);
+        return null;
+      }
+
+      // Enhanced validation is behind a feature flag
+      if (isFeatureEnabled(FeatureFlag.EnhancedThemeValidation)) {
+        const validationResult = validateThemeTokens(rawThemeConfig);
+
+        if (validationResult.errors.length > 0) {
+          const errorMessages = formatValidationErrors(
+            validationResult.errors,
+            themeName,
+          );
+          errorMessages.forEach(message => {
+            console.warn(message);
+          });
+        }
+
+        const partialThemeConfig = getPartialThemeConfig(rawThemeConfig);
+
+        if (
+          Object.keys(partialThemeConfig.token || {}).length === 0 &&
+          validationResult.errors.length > 0
+        ) {
+          console.warn(
+            `Theme "${themeName}" has no valid tokens, falling back to system default`,
+          );
+          return null;
+        }
+
+        return partialThemeConfig;
+      }
+
+      // Fallback to original behavior when feature flag is disabled
+      return rawThemeConfig;
     } catch (error) {
       console.error('Failed to fetch CRUD theme:', error);
       return null;
