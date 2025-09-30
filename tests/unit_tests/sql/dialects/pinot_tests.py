@@ -406,3 +406,18 @@ def test_type_mappings(cast_type: str, expected_type: str) -> None:
     generated = Pinot().generate(expression=ast)
 
     assert expected_type in generated
+
+
+def test_unsigned_type() -> None:
+    """
+    Test that unsigned integer types are handled correctly.
+    Tests the UNSIGNED_TYPE_MAPPING path in datatype_sql method.
+    """
+    from sqlglot import exp
+
+    # Create a UBIGINT DataType which is in UNSIGNED_TYPE_MAPPING
+    dt = exp.DataType(this=exp.DataType.Type.UBIGINT)
+    result = Pinot.Generator().datatype_sql(dt)
+
+    assert "UNSIGNED" in result
+    assert "BIGINT" in result
