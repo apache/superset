@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast
+from typing import Any, cast, Union
 from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
@@ -896,6 +896,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         catalog_name = kwargs["rison"].get("catalog_name")
         schema_name = kwargs["rison"].get("schema_name", "")
 
+        command: Union[TablesDatabaseCommand, BulkSchemaTablesDatabaseCommand]
         if isinstance(schema_name, str):
             command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
         elif isinstance(schema_name, list):
@@ -933,7 +934,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 schemas,
             )
 
-            def get_tables(pk, catalog, schema, force):
+            def get_tables(
+                pk: int, catalog: str | None, schema: str, force: bool
+            ) -> list[str]:
                 tables_result = TablesDatabaseCommand(pk, catalog, schema, force).run()[
                     "result"
                 ]
@@ -1175,7 +1178,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         if parameters["minify"]:
 
-            def reduce_json_token_count(data):
+            def reduce_json_token_count(data: str) -> str:
                 """
                 Reduces the token count of a JSON string.
                 """
@@ -2323,5 +2326,5 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         return self.response(
             200,
-            **dispatcher.get_default_options(pk),  # type: ignore[operator]  # noqa: E501,
+            **dispatcher.get_default_options(pk),  # noqa: E501
         )

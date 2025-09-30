@@ -44,8 +44,9 @@ export interface DatabaseSelectorProps {
   onEmptyResults?: (searchText?: string) => void;
   onCatalogChange?: (catalog?: string) => void;
   catalog?: string | null;
-  onSchemaChange?: (schema?: string) => void;
-  schema?: string;
+  onSchemaChange?: (schema?: string | string[]) => void;
+  schema?: string | string[];
+  schemaSelectMode?: 'single' | 'multiple';
   readOnly?: boolean;
   sqlLabMode?: boolean;
 }

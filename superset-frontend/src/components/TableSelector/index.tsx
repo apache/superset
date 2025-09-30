@@ -265,18 +265,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       const nameParts = option.value.split('.');
       return { value: nameParts[1], schema: nameParts[0] };
     };
-    if (currentSchema) {
+    // Check if we have any schema selected (single string or non-empty array)
+    const hasValidSchema =
+      currentSchema &&
+      (typeof currentSchema === 'string' ||
+        (Array.isArray(currentSchema) && currentSchema.length > 0));
+
+    if (hasValidSchema && selectedOptions) {
       onTableSelectChange?.(
         Array.isArray(selectedOptions)
           ? selectedOptions.map(option => parseOption(option))
-          : selectedOptions !== undefined
-            ? parseOption(selectedOptions)
-            : undefined,
+          : parseOption(selectedOptions),
         currentCatalog,
       );
-    } else {
-      setTableSelectValue(selectedOptions);
     }
+    // Always update the local state regardless
+    setTableSelectValue(selectedOptions);
   };
 
   const internalDbChange = (db: DatabaseObject) => {

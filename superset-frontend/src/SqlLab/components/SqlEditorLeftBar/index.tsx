@@ -96,9 +96,21 @@ const SqlEditorLeftBar = ({
   const { dbId, catalog, schema } = queryEditor;
   const tables = useMemo(
     () =>
-      allSelectedTables.filter(
-        table => table.dbId === dbId, // && table.schema === schema,
-      ),
+      allSelectedTables.filter(table => {
+        if (table.dbId !== dbId) {
+          return false;
+        }
+        // If schema is selected, only show tables from that schema(s)
+        // If no schema is selected, show all tables from the database
+        if (schema) {
+          // Handle both single schema (string) and multiple schemas (array)
+          const schemasToCheck = Array.isArray(schema) ? schema : [schema];
+          if (!schemasToCheck.includes(table.schema)) {
+            return false;
+          }
+        }
+        return true;
+      }),
     [allSelectedTables, dbId, schema],
   );
 
@@ -128,21 +140,25 @@ const SqlEditorLeftBar = ({
   };
 
   const selectedTableNames = useMemo(
-    () => tables?.map(table => table.name) || [],
+    () => tables?.map(table => `${table.schema}.${table.name}`) || [],
     [tables],
   );
 
   const onTablesChange = (
-    tableValues: TableValue[],
-    catalogName: string | null,
-    schemaName: string,
+    tableValues?: TableValue | TableValue[],
+    catalogName?: string | null,
   ) => {
-    if (!schemaName) {
+    if (!tableValues) {
       return;
     }
 
+    // Ensure we have an array of table values
+    const tableValuesArray = Array.isArray(tableValues)
+      ? tableValues
+      : [tableValues];
+
     const currentTables = [...tables];
-    const tablesToAdd = tableValues.filter(tv => {
+    const tablesToAdd = tableValuesArray.filter(tv => {
       const index = currentTables.findIndex(table => table.name === tv.value);
       if (index >= 0) {
         currentTables.splice(index, 1);
@@ -187,9 +203,11 @@ const SqlEditorLeftBar = ({
   );
 
   const handleSchemaChange = useCallback(
-    (schema: string) => {
+    (schema: string | string[]) => {
       if (queryEditor) {
-        dispatch(queryEditorSetSchema(queryEditor, schema));
+        // For SQL Lab, we use the first schema if multiple are selected
+        const schemaValue = Array.isArray(schema) ? schema[0] : schema;
+        dispatch(queryEditorSetSchema(queryEditor, schemaValue));
       }
     },
     [dispatch, queryEditor],
@@ -241,9 +259,7 @@ const SqlEditorLeftBar = ({
             <TableElement
               table={table}
               key={table.id}
-              activeKey={tables
-                .filter(({ expanded }) => expanded)
-                .map(({ id }) => id)}
+              activeKey={table.expanded ? [table.id] : []}
               onChange={onToggleTable}
             />
           ))}

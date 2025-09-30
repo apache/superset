@@ -17,7 +17,7 @@
 import datetime
 import json
 import logging
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from celery.result import AsyncResult
 
@@ -34,7 +34,7 @@ from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
-llm_providers = {}
+llm_providers: Dict[int, BaseLlm] = {}
 VALIDATION_ATTEMPTS = 3
 AVAILABLE_PROVIDERS = [
     cls for cls in BaseLlm.__subclasses__() if hasattr(cls, "llm_type")
@@ -106,7 +106,7 @@ def _get_or_create_llm_provider(pk: int, dialect: str, provider_type: str) -> Ba
 def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) -> str:
     admin_user = security_manager.find_user(username="admin")
     if not admin_user:
-        return {"status_code": 500, "message": "Unable to find admin user"}
+        raise Exception("Unable to find admin user")
     with override_user(admin_user):
         db = DatabaseDAO.find_by_id(pk)
         if not db:
@@ -114,12 +114,17 @@ def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) 
 
     provider = _get_or_create_llm_provider(pk, db.backend, db.llm_connection.provider)
     if not provider:
-        return None
+        raise Exception("Failed to create LLM provider")
 
     prompt_with_errors = prompt
 
     for _ in range(VALIDATION_ATTEMPTS):
-        generated = provider.generate_sql(prompt_with_errors, context, schemas)
+        # Handle different method signatures for different provider types
+        if isinstance(provider, custom.CustomLlm):
+            generated = provider.generate_sql(pk, prompt_with_errors, context, schemas)
+        else:
+            # Built-in providers use (prompt, history, schemas) signature
+            generated = provider.generate_sql(prompt_with_errors, context, schemas)
 
         # Prepend 'EXPLAIN' command to the generated SQL to validate it
         validation_sql = f"EXPLAIN {generated}"
@@ -149,7 +154,7 @@ def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) 
     return f"-- Failed to generate valid SQL after {VALIDATION_ATTEMPTS} attempts."
 
 
-def get_state(pk: int) -> dict:
+def get_state(pk: int) -> Dict[str, Any]:
     """
     Get the state of the LLM context.
     """
@@ -164,7 +169,7 @@ def get_state(pk: int) -> dict:
 
     admin_user = security_manager.find_user(username="admin")
     if not admin_user:
-        return {"status_code": 500, "message": "Unable to find admin user"}
+        raise Exception("Unable to find admin user")
     with override_user(admin_user):
         db = DatabaseDAO.find_by_id(pk)
         if not db:
@@ -195,7 +200,7 @@ def get_state(pk: int) -> dict:
     return result
 
 
-def generate_context_for_db(pk: int):
+def generate_context_for_db(pk: int) -> Dict[str, Any]:
     """
     Generate the LLM context for a database.
     """
@@ -215,13 +220,13 @@ def generate_context_for_db(pk: int):
     }
 
 
-def get_default_options(pk: int) -> dict:
+def get_default_options(pk: int) -> Dict[str, Any]:
     """
     Get the default options for the LLM context.
     """
     admin_user = security_manager.find_user(username="admin")
     if not admin_user:
-        return {"status_code": 500, "message": "Unable to find admin user"}
+        raise Exception("Unable to find admin user")
     with override_user(admin_user):
         db = DatabaseDAO.find_by_id(pk)
         if not db:

@@ -170,7 +170,6 @@ class GeminiLlm(BaseLlm):
             logger.error("Database %s not found.", self.pk)
             return
 
-        # TODO(AW): We should throw here instead of returning None
         if not db.llm_connection.enabled:
             logger.error("LLM is not enabled for database %s.", self.pk)
             return

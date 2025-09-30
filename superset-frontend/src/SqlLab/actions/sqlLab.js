@@ -413,19 +413,14 @@ export function generateSql(databaseId, queryEditor, prompt) {
           json.sql,
         ].join('');
 
-        // TODO(AW): Is it better to dispatch two events here, or have the DONE event dispatch its own event?
         dispatch(queryEditorSetAndSaveSql(queryEditor, newSql));
         dispatch({
           type: GENERATE_SQL_DONE,
           queryEditorId: queryEditor.id,
           prompt: '',
         });
-        // TODO(AW): Formatting the query makes the response from the LLM easier to read
-        // but messes up the formatting of the question and previous query.
-        // dispatch(formatQuery(queryEditor));
       })
       .catch(() => {
-        // TODO(AW): Same question as above - should we try to combine these two events?
         dispatch(
           addDangerToast(t('An error occurred while generating the SQL')),
         );
