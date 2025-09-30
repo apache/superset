@@ -532,7 +532,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                       {' '}
                       <Typography.Text type="secondary">
                         {t(
-                          'Enhanced validation is enabled - invalid tokens will be highlighted and ignored when applied.',
+                          'Invalid tokens will be highlighted and ignored when applied.',
                         )}
                       </Typography.Text>
                     </>
