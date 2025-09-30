@@ -20,15 +20,18 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import Register from './index';
 
+const mockGetBootstrapData = jest.fn();
+const mockApplicationRoot = jest.fn();
+
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
-  default: () => ({
-    common: {
-      conf: {
-        RECAPTCHA_PUBLIC_KEY: '',
-      },
-    },
-  }),
+  default: () => mockGetBootstrapData(),
+}));
+
+jest.mock('src/utils/pathUtils', () => ({
+  __esModule: true,
+  ensureAppRoot: (path: string) =>
+    `${mockApplicationRoot()}${path.startsWith('/') ? path : `/${path}`}`,
 }));
 
 jest.mock('react-google-recaptcha', () => ({
@@ -42,6 +45,17 @@ const renderRegister = () =>
       <Register />
     </MemoryRouter>,
   );
+
+beforeEach(() => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        RECAPTCHA_PUBLIC_KEY: '',
+      },
+    },
+  });
+  mockApplicationRoot.mockReturnValue('');
+});
 
 test('should render register form elements', () => {
   renderRegister();
@@ -79,4 +93,36 @@ test('should render input placeholders', () => {
   expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Confirm password')).toBeInTheDocument();
+});
+
+test('should render login button with correct app root URL', () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  renderRegister();
+
+  const loginButton = screen.getByTestId('login-button');
+  expect(loginButton).toHaveAttribute('href', '/superset/login/');
+});
+
+test('should render login button with default URL when no app root', () => {
+  mockApplicationRoot.mockReturnValue('');
+  renderRegister();
+
+  const loginButton = screen.getByTestId('login-button');
+  expect(loginButton).toHaveAttribute('href', '/login/');
+});
+
+test('should handle empty app root correctly', () => {
+  mockApplicationRoot.mockReturnValue(null);
+  renderRegister();
+
+  const loginButton = screen.getByTestId('login-button');
+  expect(loginButton).toHaveAttribute('href', '/login/');
+});
+
+test('should handle app root with trailing slash', () => {
+  mockApplicationRoot.mockReturnValue('/superset/');
+  renderRegister();
+
+  const loginButton = screen.getByTestId('login-button');
+  expect(loginButton).toHaveAttribute('href', '/superset/login/');
 });
