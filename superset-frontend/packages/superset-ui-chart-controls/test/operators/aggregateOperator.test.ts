@@ -40,7 +40,7 @@ describe('aggregationOperator', () => {
     granularity: 'month',
   };
 
-  test('should return undefined for LAST_VALUE aggregation', () => {
+  it('should return undefined for LAST_VALUE aggregation', () => {
     const formDataWithLastValue = {
       ...formData,
       aggregation: 'LAST_VALUE',
@@ -51,7 +51,7 @@ describe('aggregationOperator', () => {
     ).toBeUndefined();
   });
 
-  test('should return undefined when metrics is empty', () => {
+  it('should return undefined when metrics is empty', () => {
     const queryObjectWithoutMetrics = {
       ...queryObject,
       metrics: [],
@@ -67,7 +67,7 @@ describe('aggregationOperator', () => {
     ).toBeUndefined();
   });
 
-  test('should apply sum aggregation to all metrics', () => {
+  it('should apply sum aggregation to all metrics', () => {
     const formDataWithSum = {
       ...formData,
       aggregation: 'sum',
@@ -91,7 +91,7 @@ describe('aggregationOperator', () => {
     });
   });
 
-  test('should apply mean aggregation to all metrics', () => {
+  it('should apply mean aggregation to all metrics', () => {
     const formDataWithMean = {
       ...formData,
       aggregation: 'mean',
@@ -115,7 +115,7 @@ describe('aggregationOperator', () => {
     });
   });
 
-  test('should use default aggregation when not specified', () => {
+  it('should use default aggregation when not specified', () => {
     expect(aggregationOperator(formData, queryObject)).toBeUndefined();
   });
 });

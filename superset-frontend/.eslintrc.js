@@ -83,7 +83,6 @@ module.exports = {
     'plugin:react-hooks/recommended',
     'plugin:react-prefer-function-component/recommended',
     'plugin:storybook/recommended',
-    'plugin:react-you-might-not-need-an-effect/legacy-recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -273,6 +272,10 @@ module.exports = {
     {
       files: ['packages/**'],
       rules: {
+        'import/no-extraneous-dependencies': [
+          'error',
+          { devDependencies: true },
+        ],
         'no-restricted-imports': [
           'error',
           {
@@ -324,7 +327,12 @@ module.exports = {
         '*.stories.tsx',
         '*.stories.jsx',
         'fixtures.*',
-        'playwright/**/*',
+        '**/test/**/*',
+        '**/tests/**/*',
+        'spec/**/*',
+        '**/fixtures/**/*',
+        '**/__mocks__/**/*',
+        '**/spec/**/*',
       ],
       excludedFiles: 'cypress-base/cypress/**/*',
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
@@ -348,7 +356,9 @@ module.exports = {
             devDependencies: true,
           },
         ],
+        'jest/consistent-test-it': 'error',
         'no-only-tests/no-only-tests': 'error',
+        'prefer-promise-reject-errors': 0,
         'max-classes-per-file': 0,
         // temporary rules to help with migration - please re-enable!
         'testing-library/await-async-queries': 0,
@@ -387,6 +397,12 @@ module.exports = {
         '*.stories.tsx',
         '*.stories.jsx',
         'fixtures.*',
+        '**/test/**/*',
+        '**/tests/**/*',
+        'spec/**/*',
+        '**/fixtures/**/*',
+        '**/__mocks__/**/*',
+        '**/spec/**/*',
         'cypress-base/cypress/**/*',
         'Stories.tsx',
         'packages/superset-ui-core/src/theme/index.tsx',
@@ -400,10 +416,27 @@ module.exports = {
       },
     },
     {
-      files: ['playwright/**/*'],
+      // Override specifically for packages stories and overview files
+      // This must come LAST to override other rules
+      files: [
+        'packages/**/*.stories.*',
+        'packages/**/*.overview.*',
+        'packages/**/fixtures.*',
+      ],
       rules: {
-        'import/no-unresolved': 0, // Playwright is not installed in main build
-        'import/no-extraneous-dependencies': 0, // Playwright is not installed in main build
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
+    {
+      // Allow @playwright/test imports in Playwright test files
+      files: ['playwright/**/*.ts', 'playwright/**/*.js'],
+      rules: {
+        'import/no-extraneous-dependencies': [
+          'error',
+          {
+            devDependencies: true,
+          },
+        ],
       },
     },
   ],
@@ -412,7 +445,13 @@ module.exports = {
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
-    'i18n-strings/sentence-case-buttons': 'error',
+    camelcase: [
+      'error',
+      {
+        allow: ['^UNSAFE_'],
+        properties: 'never',
+      },
+    ],
     'class-methods-use-this': 0,
     curly: 2,
     'func-names': 0,

@@ -117,7 +117,7 @@ const chartPropsConfig = {
   theme: supersetTheme,
 };
 
-it('should transform chart props for viz with showQueryIdentifiers=false', () => {
+test('should transform chart props for viz with showQueryIdentifiers=false', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -158,7 +158,7 @@ it('should transform chart props for viz with showQueryIdentifiers=false', () =>
   ]);
 });
 
-it('should transform chart props for viz with showQueryIdentifiers=true', () => {
+test('should transform chart props for viz with showQueryIdentifiers=true', () => {
   const chartPropsConfigWithIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -259,7 +259,7 @@ describe('legend sorting', () => {
   });
 });
 
-it('legend margin: top orientation sets grid.top correctly', () => {
+test('legend margin: top orientation sets grid.top correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -274,7 +274,7 @@ it('legend margin: top orientation sets grid.top correctly', () => {
   expect((transformed.echartOptions.grid as any).top).toEqual(270);
 });
 
-it('legend margin: bottom orientation sets grid.bottom correctly', () => {
+test('legend margin: bottom orientation sets grid.bottom correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -290,7 +290,7 @@ it('legend margin: bottom orientation sets grid.bottom correctly', () => {
   expect((transformed.echartOptions.grid as any).bottom).toEqual(270);
 });
 
-it('legend margin: left orientation sets grid.left correctly', () => {
+test('legend margin: left orientation sets grid.left correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -306,7 +306,7 @@ it('legend margin: left orientation sets grid.left correctly', () => {
   expect((transformed.echartOptions.grid as any).left).toEqual(270);
 });
 
-it('legend margin: right orientation sets grid.right correctly', () => {
+test('legend margin: right orientation sets grid.right correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
