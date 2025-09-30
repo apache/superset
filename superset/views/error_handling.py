@@ -25,7 +25,6 @@ from typing import Any, Callable, cast
 
 from flask import (
     Flask,
-    redirect,
     request,
     Response,
     send_file,
@@ -34,7 +33,6 @@ from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
-from superset import appbuilder
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -46,6 +44,7 @@ from superset.exceptions import (
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
 from superset.utils.log import get_logger_from_status
+from superset.views.utils import redirect_to_login
 
 if typing.TYPE_CHECKING:
     from superset.views.base import BaseSupersetView
@@ -153,7 +152,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         if request.is_json:
             return show_http_exception(ex)
 
-        return redirect(appbuilder.get_url_for_login)
+        return redirect_to_login()
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:

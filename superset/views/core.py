@@ -46,7 +46,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
 from superset import (
-    appbuilder,
     db,
     event_logger,
     is_feature_enabled,
@@ -108,6 +107,7 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     loads_request_json,
+    redirect_to_login,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -762,18 +762,6 @@ class Superset(BaseSupersetView):
             default value to appease pylint
         """
 
-        def redirect_to_login() -> FlaskResponse:
-            login_url = appbuilder.get_url_for_login
-            parsed = parse.urlparse(login_url)
-            query = parse.parse_qs(parsed.query, keep_blank_values=True)
-            next_target = (
-                request.full_path.rstrip("?") if request.query_string else request.path
-            )
-            query["next"] = [next_target]
-            encoded_query = parse.urlencode(query, doseq=True)
-            redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
-            return redirect(redirect_url)
-
         dashboard = Dashboard.get(dashboard_id_or_slug)
 
         if not dashboard:
@@ -897,7 +885,7 @@ class Superset(BaseSupersetView):
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            return redirect(appbuilder.get_url_for_login)
+            return redirect_to_login()
 
         if welcome_dashboard_id := (
             db.session.query(UserAttribute.welcome_dashboard_id)
