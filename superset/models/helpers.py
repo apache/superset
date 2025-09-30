@@ -890,9 +890,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if processed := self._process_sql_expression(
             expression=expression,
-            database_id=self.database_id,
-            engine=self.database.backend,
-            schema=self.schema,
+            database_id=database_id,
+            engine=engine,
+            schema=schema,
             template_processor=template_processor,
         ):
             prefix, expression = re.split(
