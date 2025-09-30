@@ -1173,6 +1173,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         metric: AdhocMetric,
         columns_by_name: dict[str, "TableColumn"],  # pylint: disable=unused-argument
         template_processor: Optional[BaseTemplateProcessor] = None,
+        processed: bool = False,
     ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
@@ -1180,6 +1181,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param dict metric: Adhoc metric definition
         :param dict columns_by_name: Columns for the current table
         :param template_processor: template_processor instance
+        :param bool processed: Whether the sqlExpression has already been processed
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
@@ -1192,13 +1194,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = self._process_sql_expression(
-                expression=metric["sqlExpression"],
-                database_id=self.database_id,
-                engine=self.database.backend,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
+            expression = metric.get("sqlExpression")
+
+            if not processed:
+                expression = self._process_sql_expression(
+                    expression=metric["sqlExpression"],
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1820,8 +1826,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         schema=self.schema,
                         template_processor=template_processor,
                     )
-                    # convert to SQLA
-                    col = literal_column(col["sqlExpression"])
+                if utils.is_adhoc_metric(col):
+                    # add adhoc sort by column to columns_by_name if not exists
+                    col = self.adhoc_metric_to_sqla(
+                        col,
+                        columns_by_name,
+                        processed=True,
+                    )
                     # use the existing instance, if possible
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
