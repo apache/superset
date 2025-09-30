@@ -794,7 +794,7 @@ init:
   priorityClassName: ~
 
 # -- Configuration values for the postgresql dependency.
-# ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+# ref: https://github.com/CloudPirates-io/helm-charts/tree/main/charts/postgres
 # @default -- see `values.yaml`
 postgresql:
   ##
@@ -814,14 +814,12 @@ postgresql:
     database: superset
 
   image:
-    tag: "14.17.0-debian-12-r3"
+    tag: "16.10-bookworm"
 
-  ## PostgreSQL Primary parameters
-  primary:
     ##
     ## Persistent Volume Storage configuration.
     ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
-    persistence:
+  persistence:
       ##
       ## Enable PostgreSQL persistence using Persistent Volume Claims.
       enabled: true
@@ -833,13 +831,13 @@ postgresql:
       accessModes:
         - ReadWriteOnce
     ## PostgreSQL port
-    service:
+  service:
       ports:
         postgresql: "5432"
 
 # -- Configuration values for the Redis dependency.
-# ref: https://github.com/bitnami/charts/blob/master/bitnami/redis
-# More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis
+# ref: https://github.com/CloudPirates-io/helm-charts/tree/main/charts/redis
+# More documentation can be found here: https://artifacthub.io/packages/helm/cloudpirates-redis/redis
 # @default -- see `values.yaml`
 redis:
   ##
@@ -855,38 +853,36 @@ redis:
   ##
   ## Auth configuration:
   ##
+
   auth:
     ## Enable password authentication
     enabled: false
     ## The name of an existing secret that contains the redis password.
     existingSecret: ""
     ## Name of the key containing the secret.
-    existingSecretKey: ""
+    existingSecretPasswordKey: ""
     ## Redis password
     password: superset
+
   ##
-  ## Master configuration
+  ## Image configuration
+  # image:
   ##
-  master:
+  ## docker registry secret names (list)
+  # pullSecrets: nil
+  ##
+  ## Configure persistence
+  persistence:
     ##
-    ## Image configuration
-    # image:
+    ## Use a PVC to persist data.
+    enabled: false
     ##
-    ## docker registry secret names (list)
-    # pullSecrets: nil
+    ## Persistent class
+    # storageClass: classname
     ##
-    ## Configure persistence
-    persistence:
-      ##
-      ## Use a PVC to persist data.
-      enabled: false
-      ##
-      ## Persistent class
-      # storageClass: classname
-      ##
-      ## Access mode:
-      accessModes:
-        - ReadWriteOnce
+    ## Access mode:
+    accessModes:
+      - ReadWriteOnce
 
 nodeSelector: {}
 
