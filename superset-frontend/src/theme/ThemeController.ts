@@ -818,8 +818,10 @@ export class ThemeController {
       // For synchronous calls, use fallback without async recovery
       const fallbackTheme =
         this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
-      const normalizedFallback = this.normalizeTheme(fallbackTheme);
-      this.globalTheme.setConfig(normalizedFallback);
+      if (fallbackTheme) {
+        const normalizedFallback = this.normalizeTheme(fallbackTheme);
+        this.globalTheme.setConfig(normalizedFallback);
+      }
     }
   }
 
