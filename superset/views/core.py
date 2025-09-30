@@ -786,8 +786,7 @@ class Superset(BaseSupersetView):
                 )
                 return redirect(redirect_url)
 
-            flash(utils.error_msg_from_exception(ex), "danger")
-            return redirect(url_for("DashboardModelView.list"))
+            return Response(status=404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
