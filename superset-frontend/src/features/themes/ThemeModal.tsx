@@ -36,6 +36,10 @@ import {
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
+import {
+  useThemeValidation,
+  useIsEnhancedValidationEnabled,
+} from 'src/theme/hooks/useThemeValidation';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ThemeObject } from './types';
@@ -106,6 +110,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const isReadOnly = isSystemTheme;
 
   const canDevelopThemes = canDevelop;
+  const isEnhancedValidationEnabled = useIsEnhancedValidationEnabled();
 
   // SupersetText URL configurations
   const themeEditorUrl =
@@ -115,11 +120,22 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     SupersetText?.THEME_MODAL?.DOCUMENTATION_URL ||
     'https://superset.apache.org/docs/configuration/theming/';
 
-  // JSON validation annotations using reusable hook
+  // Enhanced theme validation with feature flag support
+  const themeValidation = useThemeValidation(currentTheme?.json_data || '', {
+    enabled: !isReadOnly && Boolean(currentTheme?.json_data),
+    themeName: currentTheme?.theme_name || 'Unknown Theme',
+  });
+
+  // Backward compatibility: use basic JSON validation if enhanced validation is disabled
   const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
-    enabled: !isReadOnly,
+    enabled: !isReadOnly && !isEnhancedValidationEnabled,
     errorPrefix: 'Invalid JSON syntax',
   });
+
+  // Use enhanced annotations if available, otherwise fall back to basic JSON validation
+  const editorAnnotations = isEnhancedValidationEnabled
+    ? themeValidation.annotations
+    : jsonAnnotations;
 
   // theme fetch logic
   const {
@@ -234,20 +250,27 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   };
 
   const validate = () => {
-    if (isReadOnly) {
+    if (isReadOnly || !currentTheme) {
       setDisableSave(true);
       return;
     }
 
-    if (
-      currentTheme?.theme_name.length &&
-      currentTheme?.json_data?.length &&
-      isValidJson(currentTheme.json_data) &&
-      !isEmptyTheme(currentTheme.json_data)
-    ) {
-      setDisableSave(false);
+    const hasValidName = Boolean(currentTheme?.theme_name?.length);
+    const hasValidJsonData = Boolean(currentTheme?.json_data?.length);
+    const isValidJsonSyntax = isValidJson(currentTheme?.json_data);
+    const isNotEmpty = !isEmptyTheme(currentTheme?.json_data);
+
+    // Basic validation requirements
+    const basicValidation =
+      hasValidName && hasValidJsonData && isValidJsonSyntax && isNotEmpty;
+
+    if (isEnhancedValidationEnabled && currentTheme) {
+      // Enhanced validation: allow saving even with token warnings, but block on JSON syntax errors
+      const enhancedValidation = basicValidation && !themeValidation.hasErrors;
+      setDisableSave(!enhancedValidation);
     } else {
-      setDisableSave(true);
+      // Original validation logic
+      setDisableSave(!basicValidation);
     }
   };
 
@@ -286,6 +309,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     currentTheme ? currentTheme.theme_name : '',
     currentTheme ? currentTheme.json_data : '',
     isReadOnly,
+    isEnhancedValidationEnabled,
+    themeValidation.hasErrors,
   ]);
 
   // Show/hide
@@ -386,6 +411,16 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                     {t('documentation')}
                   </a>
                   {t(' for details.')}
+                  {isEnhancedValidationEnabled && (
+                    <>
+                      {' '}
+                      <Typography.Text type="secondary">
+                        {t(
+                          'Enhanced validation is enabled - invalid tokens will be highlighted and ignored when applied.',
+                        )}
+                      </Typography.Text>
+                    </>
+                  )}
                 </span>
               }
             />
@@ -402,9 +437,10 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 readOnly={isReadOnly}
                 showGutter
                 showPrintMargin={false}
-                annotations={jsonAnnotations}
+                annotations={editorAnnotations}
               />
             </StyledJsonEditor>
+
             {canDevelopThemes && (
               <div className="apply-button-container">
                 <Tooltip
@@ -416,7 +452,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                     onClick={onApply}
                     disabled={
                       !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data)
+                      !isValidJson(currentTheme.json_data) ||
+                      (isEnhancedValidationEnabled && themeValidation.hasErrors)
                     }
                     buttonStyle="secondary"
                   >
