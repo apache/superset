@@ -313,6 +313,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const value = tableSelectMode === 'single' ? undefined : [];
     setTableSelectValue(value);
+    onTableSelectChange?.(value, currentCatalog);
   };
 
   const handleFilterOption = useMemo(
@@ -325,8 +326,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 
   function renderTableSelect() {
-    const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
-
+    const disabled =
+      (currentSchema.length > 0 && !formMode && readOnly) ||
+      currentSchema.length === 0;
     const header = sqlLabMode ? (
       <FormLabel>{t('See table schema')}</FormLabel>
     ) : (

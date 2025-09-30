@@ -65,24 +65,22 @@ class UpdateDatabaseCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
 
-        # Log the operation without sensitive data
-        safe_properties = {
-            k: v
-            for k, v in self._properties.items()
-            if k
-            not in {
-                "password",
-                "api_key",
-                "encrypted_extra",
-                "masked_encrypted_extra",
-                "sqlalchemy_uri",
-                "ssh_tunnel",
-            }
+        # Log the operation without sensitive data (keys only)
+        sensitive_keys = {
+            "password",
+            "api_key",
+            "encrypted_extra",
+            "masked_encrypted_extra",
+            "sqlalchemy_uri",
+            "ssh_tunnel",
         }
+        safe_field_names = [
+            k for k in self._properties.keys() if k not in sensitive_keys
+        ]
         logger.info(
             "Updating database %s with fields: %s",
             self._model_id,
-            list(safe_properties.keys()),
+            safe_field_names,
         )
         self.validate()
 

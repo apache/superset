@@ -1961,6 +1961,16 @@ PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 # ]
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 
+# Define a list of allowed URL patterns for custom LLM provider endpoints.
+# This prevents SSRF attacks by restricting which external URLs can be used.
+# By default, all URLs are allowed. For production, restrict to trusted domains:
+# LLM_ENDPOINT_ALLOWED_URL_PATTERNS = [
+#     r"^https://api\.openai\.com/.*",
+#     r"^https://api\.anthropic\.com/.*",
+#     r"^https://.*\.company\.com/.*"
+# ]
+LLM_ENDPOINT_ALLOWED_URL_PATTERNS = [r".*"]
+
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
