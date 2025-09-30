@@ -18,19 +18,16 @@
  */
 import {
   type AnyThemeConfig,
-  type SupersetTheme,
   type SupersetThemeConfig,
   type ThemeControllerOptions,
   type ThemeStorage,
+  isThemeConfigDark,
   makeApi,
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import {
-  getAntdConfig,
-  normalizeThemeConfig,
-} from '@superset-ui/core/theme/utils';
+import { normalizeThemeConfig } from '@superset-ui/core/theme/utils';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -80,15 +77,13 @@ export class ThemeController {
 
   private modeStorageKey: string;
 
-  private defaultTheme: AnyThemeConfig;
+  private defaultTheme: AnyThemeConfig | null;
 
   private darkTheme: AnyThemeConfig | null;
 
   private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
-
-  private hasCustomThemes: boolean;
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
@@ -117,22 +112,13 @@ export class ThemeController {
     this.globalTheme = themeObject;
 
     // Initialize bootstrap data and themes
-    const {
-      bootstrapDefaultTheme,
-      bootstrapDarkTheme,
-      hasCustomThemes,
-    }: BootstrapThemeData = this.loadBootstrapData();
+    const { bootstrapDefaultTheme, bootstrapDarkTheme }: BootstrapThemeData =
+      this.loadBootstrapData();
 
-    this.hasCustomThemes = hasCustomThemes;
-
-    // Set themes based on bootstrap data availability
-    if (this.hasCustomThemes) {
-      this.darkTheme = bootstrapDarkTheme;
-      this.defaultTheme = bootstrapDefaultTheme || defaultTheme;
-    } else {
-      this.darkTheme = null;
-      this.defaultTheme = defaultTheme;
-    }
+    // Set themes from bootstrap data
+    // These will be the THEME_DEFAULT and THEME_DARK from config
+    this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
+    this.darkTheme = bootstrapDarkTheme;
 
     // Initialize system theme detection
     this.systemMode = ThemeController.getSystemPreferredMode();
@@ -148,7 +134,7 @@ export class ThemeController {
     // Initialize theme and mode
     this.currentMode = this.determineInitialMode();
     const initialTheme =
-      this.getThemeForMode(this.currentMode) || this.defaultTheme;
+      this.getThemeForMode(this.currentMode) || this.defaultTheme || {};
 
     // Setup change callback
     if (onChange) this.onChangeCallbacks.add(onChange);
@@ -198,6 +184,7 @@ export class ThemeController {
 
   /**
    * Gets the theme configuration for a specific context (global vs dashboard).
+   * Dashboard themes are always merged with base theme.
    * @param forDashboard - Whether to get the dashboard theme or global theme
    * @returns The theme configuration for the specified context
    */
@@ -206,7 +193,16 @@ export class ThemeController {
   ): AnyThemeConfig | null {
     // For dashboard context, prioritize dashboard CRUD theme
     if (forDashboard && this.dashboardCrudTheme) {
-      return this.dashboardCrudTheme;
+      // Dashboard CRUD themes should be merged with base theme
+      const normalizedTheme = this.normalizeTheme(this.dashboardCrudTheme);
+      const isDarkMode = isThemeConfigDark(normalizedTheme);
+      const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
+
+      if (baseTheme) {
+        const mergedTheme = Theme.fromConfig(normalizedTheme, baseTheme);
+        return mergedTheme.toSerializedConfig();
+      }
+      return normalizedTheme;
     }
 
     // For global context or when no dashboard theme, use mode-based theme
@@ -242,7 +238,15 @@ export class ThemeController {
         // Controller creates and owns the dashboard theme
         const { Theme } = await import('@superset-ui/core');
         const normalizedConfig = this.normalizeTheme(themeConfig);
-        const dashboardTheme = Theme.fromConfig(normalizedConfig);
+
+        // Determine if this is a dark theme and get appropriate base
+        const isDarkMode = isThemeConfigDark(normalizedConfig);
+        const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
+
+        const dashboardTheme = Theme.fromConfig(
+          normalizedConfig,
+          baseTheme || undefined,
+        );
 
         // Cache the theme for reuse
         this.dashboardThemes.set(themeId, dashboardTheme);
@@ -326,7 +330,7 @@ export class ThemeController {
   public resetTheme(): void {
     this.currentMode = ThemeMode.DEFAULT;
     const defaultTheme: AnyThemeConfig =
-      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
+      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
     this.updateTheme(defaultTheme);
   }
@@ -374,8 +378,8 @@ export class ThemeController {
       JSON.stringify(theme),
     );
 
-    const normalizedTheme = this.normalizeTheme(theme);
-    this.updateTheme(normalizedTheme);
+    const mergedTheme = this.getThemeForMode(this.currentMode);
+    if (mergedTheme) this.updateTheme(mergedTheme);
   }
 
   /**
@@ -385,9 +389,13 @@ export class ThemeController {
   public clearLocalOverrides(): void {
     this.devThemeOverride = null;
     this.crudThemeId = null;
+    this.dashboardCrudTheme = null;
 
     this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
     this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+
+    // Clear dashboard themes cache
+    this.dashboardThemes.clear();
 
     this.resetTheme();
   }
@@ -408,7 +416,7 @@ export class ThemeController {
 
   /**
    * Checks if OS preference detection is allowed.
-   * Allowed when both themes are available
+   * Allowed when dark theme is available (including base dark theme)
    */
   public canDetectOSPreference(): boolean {
     return this.darkTheme !== null;
@@ -423,7 +431,6 @@ export class ThemeController {
   public setThemeConfig(config: SupersetThemeConfig): void {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
-    this.hasCustomThemes = true;
 
     let newMode: ThemeMode;
     try {
@@ -479,13 +486,16 @@ export class ThemeController {
   private updateTheme(theme?: AnyThemeConfig): void {
     try {
       // If no config provided, use current mode to get theme
-      const config: AnyThemeConfig =
-        theme || this.getThemeForMode(this.currentMode) || this.defaultTheme;
+      if (!theme) {
+        // No theme provided, use the current mode's theme
+        const modeTheme =
+          this.getThemeForMode(this.currentMode) || this.defaultTheme || {};
+        this.applyTheme(modeTheme);
+      } else {
+        // Theme provided, apply it directly
+        this.applyTheme(theme);
+      }
 
-      // Normalize the theme
-      const normalizedTheme = this.normalizeTheme(config);
-
-      this.applyTheme(normalizedTheme);
       this.persistMode();
       this.notifyListeners();
     } catch (error) {
@@ -502,7 +512,7 @@ export class ThemeController {
 
     // Get the default theme which will have the correct algorithm
     const defaultTheme: AnyThemeConfig =
-      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
+      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
     this.applyTheme(defaultTheme);
     this.persistMode();
@@ -555,10 +565,15 @@ export class ThemeController {
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
 
+    // Check if themes have actual custom tokens (not just empty or algorithm-only)
+    const hasCustomDefault =
+      hasValidDefault && !this.isEmptyTheme(defaultTheme);
+    const hasCustomDark = hasValidDark && !this.isEmptyTheme(darkTheme);
+
     return {
-      bootstrapDefaultTheme: hasValidDefault ? defaultTheme : null,
-      bootstrapDarkTheme: hasValidDark ? darkTheme : null,
-      hasCustomThemes: hasValidDefault || hasValidDark,
+      bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
+      bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
+      hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
   }
 
@@ -570,6 +585,20 @@ export class ThemeController {
   ): boolean {
     return Boolean(
       obj && typeof obj === 'object' && Object.keys(obj).length > 0,
+    );
+  }
+
+  /**
+   * Checks if a theme is truly empty (not even an algorithm).
+   * A theme with just an algorithm is still valid and should be used.
+   */
+  private isEmptyTheme(theme: AnyThemeConfig | undefined): boolean {
+    if (!theme) return true;
+
+    return !(
+      theme.algorithm ||
+      (theme.token && Object.keys(theme.token).length > 0) ||
+      (theme.components && Object.keys(theme.components).length > 0)
     );
   }
 
@@ -589,48 +618,44 @@ export class ThemeController {
    * @returns The theme configuration for the specified mode or null if not available
    */
   private getThemeForMode(mode: ThemeMode): AnyThemeConfig | null {
-    // Priority 1: Dev theme override (highest priority for development)
-    // Dev overrides affect all contexts
     if (this.devThemeOverride) {
-      return this.devThemeOverride;
+      const normalizedOverride = this.normalizeTheme(this.devThemeOverride);
+      const isDarkMode = isThemeConfigDark(normalizedOverride);
+      const baseTheme = isDarkMode ? this.darkTheme : this.defaultTheme;
+
+      if (baseTheme) {
+        const mergedTheme = Theme.fromConfig(normalizedOverride, baseTheme);
+        return mergedTheme.toSerializedConfig();
+      }
+
+      return normalizedOverride;
     }
 
-    // Priority 2: System theme based on mode (applies to all contexts)
     let resolvedMode: ThemeMode = mode;
 
     if (mode === ThemeMode.SYSTEM) {
-      // OS preference is allowed when dark theme exists
       if (this.darkTheme === null) return null;
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
-    if (!this.hasCustomThemes) {
-      const baseTheme = this.defaultTheme.token as Partial<SupersetTheme>;
-      return getAntdConfig(baseTheme, resolvedMode === ThemeMode.DARK);
-    }
+    if (resolvedMode === ThemeMode.DARK) return this.darkTheme;
 
-    // Handle bootstrap themes using existing normalization
-    const selectedTheme: AnyThemeConfig =
-      resolvedMode === ThemeMode.DARK
-        ? this.darkTheme || this.defaultTheme
-        : this.defaultTheme;
-
-    return selectedTheme;
+    return this.defaultTheme;
   }
 
   /**
    * Determines the initial theme mode with error recovery.
    */
   private determineInitialMode(): ThemeMode {
+    // Try to restore saved mode first
+    const savedMode: ThemeMode | null = this.loadSavedMode();
+    if (savedMode && this.isValidThemeMode(savedMode)) return savedMode;
+
     // If no dark theme is available, force default mode
     if (this.darkTheme === null) {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
     }
-
-    // Try to restore saved mode
-    const savedMode: ThemeMode | null = this.loadSavedMode();
-    if (savedMode && this.isValidThemeMode(savedMode)) return savedMode;
 
     // Default to system preference when both themes are available
     return ThemeMode.SYSTEM;
@@ -664,11 +689,14 @@ export class ThemeController {
     // Validate that we have the required theme data for the mode
     switch (mode) {
       case ThemeMode.DARK:
-        return !!(this.darkTheme || this.defaultTheme);
+        // Dark mode is valid if we have a dark theme
+        return !!this.darkTheme;
       case ThemeMode.DEFAULT:
+        // Default mode is valid if we have a default theme
         return !!this.defaultTheme;
       case ThemeMode.SYSTEM:
-        return this.darkTheme !== null;
+        // System mode is valid if dark mode is available
+        return !!this.darkTheme;
       default:
         return true;
     }
@@ -699,11 +727,15 @@ export class ThemeController {
    * Applies the current theme configuration to the global theme.
    * This method sets the theme on the globalTheme and applies it to the Theme.
    * It also handles any errors that may occur during the application of the theme.
-   * @param theme - The theme configuration to apply
+   * @param theme - The theme configuration to apply (may already include base theme tokens)
    */
   private applyTheme(theme: AnyThemeConfig): void {
     try {
       const normalizedConfig = normalizeThemeConfig(theme);
+
+      // Simply apply the theme - it should already be properly merged if needed
+      // The merging with base theme happens in getThemeForMode() and other methods
+      // that prepare themes before passing them to applyTheme()
       this.globalTheme.setConfig(normalizedConfig);
     } catch (error) {
       console.error('Failed to apply theme:', error);

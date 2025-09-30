@@ -16,6 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
+/* eslint-disable import/extensions */
+import '@fontsource/inter/200.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/fira-code/400.css';
+import '@fontsource/fira-code/500.css';
+import '@fontsource/fira-code/600.css';
+/* eslint-enable import/extensions */
+
 import { css, useTheme, Global } from '@emotion/react';
 
 export const GlobalStyles = () => {

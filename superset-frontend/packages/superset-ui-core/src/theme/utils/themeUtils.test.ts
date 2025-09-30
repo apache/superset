@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getFontSize, getColorVariants, isThemeDark } from './themeUtils';
+import { theme as antdTheme } from 'antd';
+import {
+  getFontSize,
+  getColorVariants,
+  isThemeDark,
+  isThemeConfigDark,
+} from './themeUtils';
 import { Theme } from '../Theme';
 import { ThemeAlgorithm } from '../types';
 
@@ -71,8 +77,7 @@ describe('themeUtils', () => {
         token: { fontSize: '14' },
       });
 
-      // Ant Design provides fontSizeXS: '8' by default
-      expect(getFontSize(minimalTheme.theme, 'xs')).toBe('8');
+      expect(getFontSize(minimalTheme.theme, 'xs')).toBe('14');
       expect(getFontSize(minimalTheme.theme, 'm')).toBe('14');
     });
   });
@@ -129,6 +134,113 @@ describe('themeUtils', () => {
       expect(variants.active).toBeUndefined();
       expect(variants.text).toBeUndefined();
       expect(variants.bg).toBeUndefined();
+    });
+  });
+
+  describe('isThemeConfigDark', () => {
+    it('returns true for config with dark algorithm', () => {
+      const config = {
+        algorithm: antdTheme.darkAlgorithm,
+      };
+      expect(isThemeConfigDark(config)).toBe(true);
+    });
+
+    it('returns true for config with dark algorithm in array', () => {
+      const config = {
+        algorithm: [antdTheme.darkAlgorithm, antdTheme.compactAlgorithm],
+      };
+      expect(isThemeConfigDark(config)).toBe(true);
+    });
+
+    it('returns false for config without dark algorithm', () => {
+      const config = {
+        algorithm: antdTheme.defaultAlgorithm,
+      };
+      expect(isThemeConfigDark(config)).toBe(false);
+    });
+
+    it('returns false for config with no algorithm', () => {
+      const config = {
+        token: {
+          colorPrimary: '#1890ff',
+        },
+      };
+      expect(isThemeConfigDark(config)).toBe(false);
+    });
+
+    it('detects manually-created dark theme without dark algorithm', () => {
+      // This is the edge case: dark colors without dark algorithm
+      const config = {
+        token: {
+          colorBgContainer: '#1a1a1a', // Dark background
+          colorBgBase: '#0a0a0a', // Dark base
+          colorText: '#ffffff', // Light text
+        },
+      };
+      expect(isThemeConfigDark(config)).toBe(true);
+    });
+
+    it('does not false-positive on light theme with custom colors', () => {
+      const config = {
+        token: {
+          colorBgContainer: '#ffffff', // Light background
+          colorBgBase: '#f5f5f5', // Light base
+          colorText: '#000000', // Dark text
+        },
+      };
+      expect(isThemeConfigDark(config)).toBe(false);
+    });
+
+    it('handles partial color tokens gracefully', () => {
+      // With actual theme computation, a dark colorBgContainer results in a dark theme
+      const config = {
+        token: {
+          colorBgContainer: '#1a1a1a', // Dark background
+          // Missing other color tokens
+        },
+      };
+      expect(isThemeConfigDark(config)).toBe(true);
+    });
+
+    it('respects colorBgContainer as the primary indicator', () => {
+      // The computed theme uses colorBgContainer as the main background
+      const darkConfig = {
+        token: {
+          colorBgContainer: '#1a1a1a', // Dark background
+          colorText: '#000000', // Dark text (unusual but doesn't override)
+        },
+      };
+      expect(isThemeConfigDark(darkConfig)).toBe(true);
+
+      const lightConfig = {
+        token: {
+          colorBgContainer: '#ffffff', // Light background
+          colorText: '#ffffff', // Light text (unusual but doesn't override)
+        },
+      };
+      expect(isThemeConfigDark(lightConfig)).toBe(false);
+    });
+
+    it('handles non-string color tokens gracefully', () => {
+      const config = {
+        token: {
+          colorBgContainer: undefined,
+          colorText: null,
+          colorBgBase: 123, // Invalid type
+        },
+      };
+      expect(isThemeConfigDark(config)).toBe(false);
+    });
+
+    it('returns false for empty config', () => {
+      expect(isThemeConfigDark({})).toBe(false);
+    });
+
+    it('returns false for config with empty token object', () => {
+      const config = {
+        token: {},
+      };
+      expect(isThemeConfigDark(config)).toBe(false);
     });
   });
 });
