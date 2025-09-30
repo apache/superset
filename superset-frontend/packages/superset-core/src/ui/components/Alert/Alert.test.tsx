@@ -16,31 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert as AntdAlert } from 'antd';
-import type { AlertProps } from './types';
 
-export const Alert = (props: AlertProps) => {
-  const {
-    type = 'info',
-    description,
-    showIcon = true,
-    closable = true,
-    children,
-    ...rest
-  } = props;
+import React from 'react';
+import { Alert, render } from '@apache-superset/core';
 
-  return (
-    <AntdAlert
-      role="alert"
-      aria-live={type === 'error' ? 'assertive' : 'polite'}
-      type={type}
-      showIcon={showIcon}
-      closable={closable}
-      message={children || 'Default message'}
-      description={description}
-      {...rest}
-    />
-  );
-};
-
-export type { AlertProps };
+test('renders Alert with default props', async () => {
+  const { container } = render(<Alert />);
+  expect(container).toHaveTextContent('Default message');
+});

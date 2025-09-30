@@ -10,6 +10,11 @@
   ],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "@emotion/cache": "^11.4.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1"
+  },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
     "@babel/core": "^7.28.3",
@@ -19,7 +24,13 @@
     "@types/react": "^17.0.83",
     "install": "^0.13.0",
     "npm": "^11.1.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@emotion/styled": "^11.14.1",
+    "@testing-library/dom": "^8.20.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^12.1.5",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/user-event": "^12.8.3"
   },
   "peerDependencies": {
     "antd": "^5.24.6",
