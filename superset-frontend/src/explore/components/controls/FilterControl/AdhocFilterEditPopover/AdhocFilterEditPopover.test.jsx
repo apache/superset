@@ -74,8 +74,9 @@ const renderPopover = (props = {}) =>
     useRedux: true, // Add Redux provider for context
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopover', () => {
-  it('renders simple tab content by default', () => {
+  test('renders simple tab content by default', () => {
     renderPopover();
 
     expect(screen.getByRole('tablist')).toBeInTheDocument();
@@ -85,7 +86,7 @@ describe('AdhocFilterEditPopover', () => {
     expect(screen.getByText('Simple')).toBeInTheDocument();
   });
 
-  it('renders sql tab content when the adhoc filter expressionType is sql', () => {
+  test('renders sql tab content when the adhoc filter expressionType is sql', () => {
     renderPopover({ adhocFilter: sqlAdhocFilter });
 
     expect(screen.getByRole('tablist')).toBeInTheDocument();
@@ -96,7 +97,7 @@ describe('AdhocFilterEditPopover', () => {
     );
   });
 
-  it('renders error message when filter is faulty', () => {
+  test('renders error message when filter is faulty', () => {
     renderPopover({ adhocFilter: faultyAdhocFilter });
 
     expect(screen.getByRole('tablist')).toBeInTheDocument();
@@ -107,7 +108,7 @@ describe('AdhocFilterEditPopover', () => {
     ).toBeDisabled();
   });
 
-  it.skip('updates the filter when changes are made', async () => {
+  test.skip('updates the filter when changes are made', async () => {
     const onChange = jest.fn();
     renderPopover({
       onChange,
@@ -137,7 +138,7 @@ describe('AdhocFilterEditPopover', () => {
     );
   });
 
-  it('enables save button when valid changes are made', async () => {
+  test('enables save button when valid changes are made', async () => {
     renderPopover({ adhocFilter: simpleAdhocFilter });
 
     // Find the subject select by its test id
@@ -157,7 +158,7 @@ describe('AdhocFilterEditPopover', () => {
     expect(saveButton).toBeEnabled();
   });
 
-  it('disables save button when filter is invalid', () => {
+  test('disables save button when filter is invalid', () => {
     renderPopover({ adhocFilter: faultyAdhocFilter });
 
     const saveButton = screen.getByTestId(
@@ -166,7 +167,7 @@ describe('AdhocFilterEditPopover', () => {
     expect(saveButton).toBeDisabled();
   });
 
-  it('initiates resize when resize handle is dragged', async () => {
+  test('initiates resize when resize handle is dragged', async () => {
     const onResize = jest.fn();
     renderPopover({ onResize });
 
@@ -178,7 +179,7 @@ describe('AdhocFilterEditPopover', () => {
     expect(onResize).toHaveBeenCalled();
   });
 
-  it('closes popover when close button is clicked', async () => {
+  test('closes popover when close button is clicked', async () => {
     const onClose = jest.fn();
     renderPopover({ onClose });
 

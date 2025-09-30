@@ -41,12 +41,13 @@ const defaultProps = {
   datasourceType: 'table',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SQLEditorWithValidation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders SQLEditor with validation bar when showValidation is true', () => {
+  test('renders SQLEditor with validation bar when showValidation is true', () => {
     render(<SQLEditorWithValidation {...defaultProps} />);
 
     expect(screen.getByText('Unverified')).toBeInTheDocument();
@@ -55,7 +56,7 @@ describe('SQLEditorWithValidation', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not render validation bar when showValidation is false', () => {
+  test('does not render validation bar when showValidation is false', () => {
     render(
       <SQLEditorWithValidation {...defaultProps} showValidation={false} />,
     );
@@ -66,7 +67,7 @@ describe('SQLEditorWithValidation', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows primary button style when unverified', () => {
+  test('shows primary button style when unverified', () => {
     render(<SQLEditorWithValidation {...defaultProps} />);
 
     const validateButton = screen.getByRole('button', {
@@ -76,7 +77,7 @@ describe('SQLEditorWithValidation', () => {
     // Button should have primary styling (this would need to check actual class or style)
   });
 
-  it('disables validate button when no value or datasourceId', () => {
+  test('disables validate button when no value or datasourceId', () => {
     render(
       <SQLEditorWithValidation
         {...defaultProps}
@@ -91,7 +92,7 @@ describe('SQLEditorWithValidation', () => {
     expect(validateButton).toBeDisabled();
   });
 
-  it('shows validating state when validation is in progress', async () => {
+  test('shows validating state when validation is in progress', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -117,7 +118,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('shows success state when validation passes', async () => {
+  test('shows success state when validation passes', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -138,7 +139,7 @@ describe('SQLEditorWithValidation', () => {
     expect(validateButton).toBeInTheDocument();
   });
 
-  it('shows error state when validation fails', async () => {
+  test('shows error state when validation fails', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -169,7 +170,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('handles API errors gracefully', async () => {
+  test('handles API errors gracefully', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -189,7 +190,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('sends correct payload for column expression', async () => {
+  test('sends correct payload for column expression', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -221,7 +222,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('sends correct payload for WHERE expression', async () => {
+  test('sends correct payload for WHERE expression', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -252,7 +253,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('sends correct payload for HAVING expression', async () => {
+  test('sends correct payload for HAVING expression', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;
@@ -283,7 +284,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('resets validation state when value changes', () => {
+  test('resets validation state when value changes', () => {
     const { rerender } = render(<SQLEditorWithValidation {...defaultProps} />);
 
     // Simulate having a validation result
@@ -304,7 +305,7 @@ describe('SQLEditorWithValidation', () => {
     expect(screen.getByText('Unverified')).toBeInTheDocument();
   });
 
-  it('calls onChange when editor value changes', () => {
+  test('calls onChange when editor value changes', () => {
     const onChange = jest.fn();
     render(<SQLEditorWithValidation {...defaultProps} onChange={onChange} />);
 
@@ -313,7 +314,7 @@ describe('SQLEditorWithValidation', () => {
     expect(onChange).toBeDefined();
   });
 
-  it('calls onValidationComplete callback when provided', async () => {
+  test('calls onValidationComplete callback when provided', async () => {
     const onValidationComplete = jest.fn();
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
@@ -337,7 +338,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('calls onValidationComplete with errors when validation fails', async () => {
+  test('calls onValidationComplete with errors when validation fails', async () => {
     const onValidationComplete = jest.fn();
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
@@ -371,7 +372,7 @@ describe('SQLEditorWithValidation', () => {
     });
   });
 
-  it('shows tooltip with full error message when error is truncated', async () => {
+  test('shows tooltip with full error message when error is truncated', async () => {
     const longErrorMessage =
       'This is a very long error message that should be truncated in the display but shown in full in the tooltip when user hovers over it';
 
@@ -410,7 +411,7 @@ describe('SQLEditorWithValidation', () => {
     expect(errorElement.parentElement).toBeTruthy();
   });
 
-  it('handles empty response gracefully', async () => {
+  test('handles empty response gracefully', async () => {
     const mockPost = SupersetClient.post as jest.MockedFunction<
       typeof SupersetClient.post
     >;

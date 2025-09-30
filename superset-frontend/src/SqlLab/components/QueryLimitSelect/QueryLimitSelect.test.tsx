@@ -58,8 +58,9 @@ const setup = (props?: Partial<QueryLimitSelectProps>, store?: Store) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryLimitSelect', () => {
-  it('renders current query limit size', () => {
+  test('renders current query limit size', () => {
     const queryLimit = 10;
     const { getByText } = setup(
       {
@@ -81,12 +82,12 @@ describe('QueryLimitSelect', () => {
     expect(getByText(queryLimit)).toBeInTheDocument();
   });
 
-  it('renders default query limit for initial queryEditor', () => {
+  test('renders default query limit for initial queryEditor', () => {
     const { getByText } = setup({}, mockStore(initialState));
     expect(getByText(defaultQueryLimit)).toBeInTheDocument();
   });
 
-  it('renders queryLimit from unsavedQueryEditor', () => {
+  test('renders queryLimit from unsavedQueryEditor', () => {
     const queryLimit = 10000;
     const { getByText } = setup(
       {},
@@ -104,7 +105,7 @@ describe('QueryLimitSelect', () => {
     expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
   });
 
-  it('renders dropdown select', async () => {
+  test('renders dropdown select', async () => {
     const { baseElement, getAllByRole, getByRole } = setup(
       { maxRow: 50000 },
       mockStore(initialState),
@@ -126,7 +127,7 @@ describe('QueryLimitSelect', () => {
     expect(actualLabels).toEqual(expectedLabels);
   });
 
-  it('renders dropdown select correctly when maxRow is less than 10', async () => {
+  test('renders dropdown select correctly when maxRow is less than 10', async () => {
     const { baseElement, getAllByRole, getByRole } = setup(
       { maxRow: 5 },
       mockStore(initialState),
@@ -146,7 +147,7 @@ describe('QueryLimitSelect', () => {
     expect(actualLabels).toEqual(expectedLabels);
   });
 
-  it('renders dropdown select correctly when maxRow is a multiple of 10', async () => {
+  test('renders dropdown select correctly when maxRow is a multiple of 10', async () => {
     const { baseElement, getAllByRole, getByRole } = setup(
       { maxRow: 10000 },
       mockStore(initialState),
@@ -168,7 +169,7 @@ describe('QueryLimitSelect', () => {
     expect(actualLabels).toEqual(expectedLabels);
   });
 
-  it('dispatches QUERY_EDITOR_SET_QUERY_LIMIT action on dropdown menu click', async () => {
+  test('dispatches QUERY_EDITOR_SET_QUERY_LIMIT action on dropdown menu click', async () => {
     const store = mockStore(initialState);
     const expectedIndex = 1;
     const { baseElement, getAllByRole, getByRole } = setup({}, store);
