@@ -1,0 +1,7 @@
+{
+  "name": "superset-ui-demo",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

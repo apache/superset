@@ -1,0 +1,7 @@
+{
+  "name": "legacy-preset-chart-deckgl",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

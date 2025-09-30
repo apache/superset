@@ -69,5 +69,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   }
 }

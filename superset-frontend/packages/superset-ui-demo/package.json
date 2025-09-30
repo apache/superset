@@ -28,7 +28,8 @@
     "demo:clean": "rm -rf _gh-pages",
     "demo:publish": "gh-pages -d _gh-pages",
     "deploy-demo": "npm run demo:build && npm run demo:publish && npm run demo:clean",
-    "storybook": "storybook dev -p 9001"
+    "storybook": "storybook dev -p 9001",
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

@@ -1,0 +1,7 @@
+{
+  "name": "plugin-chart-handlebars",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

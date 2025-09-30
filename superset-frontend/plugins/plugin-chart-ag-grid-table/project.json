@@ -1,0 +1,7 @@
+{
+  "name": "plugin-chart-ag-grid-table",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

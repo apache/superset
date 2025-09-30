@@ -34,5 +34,8 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^17.0.2"
+  },
+  "scripts": {
+    "build:nx": "USE_BUN_TSC=true ../../scripts/build-package-nx.sh ."
   }
 }

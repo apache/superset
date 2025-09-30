@@ -1,0 +1,7 @@
+{
+  "name": "legacy-plugin-chart-chord",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "plugin-chart-echarts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

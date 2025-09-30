@@ -1,0 +1,7 @@
+{
+  "name": "plugin-chart-word-cloud",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {}
+  }
+}

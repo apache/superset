@@ -39,5 +39,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build:nx": "../../scripts/build-package-nx.sh ."
   }
 }
