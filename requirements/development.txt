@@ -181,8 +181,10 @@ dnspython==2.7.0
     #   email-validator
 docker==7.0.0
     # via apache-superset
-duckdb==1.3.2
-    # via duckdb-engine
+duckdb==0.10.3
+    # via
+    #   apache-superset
+    #   duckdb-engine
 duckdb-engine==0.17.0
     # via apache-superset
 email-validator==2.2.0
