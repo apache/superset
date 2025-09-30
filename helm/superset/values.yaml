@@ -816,24 +816,23 @@ postgresql:
   image:
     tag: "16.10-bookworm"
 
-    ##
-    ## Persistent Volume Storage configuration.
-    ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
+  ##
+  ## Persistent Volume Storage configuration.
+  ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
   persistence:
-      ##
-      ## Enable PostgreSQL persistence using Persistent Volume Claims.
-      enabled: true
-      ##
-      ## Persistent class
-      # storageClass: classname
-      ##
-      ## Access modes:
-      accessModes:
-        - ReadWriteOnce
+    ##
+    ## Enable PostgreSQL persistence using Persistent Volume Claims.
+    enabled: true
+    ##
+    ## Persistent class
+    # storageClass: classname
+    ##
+    ## Access modes:
+    accessModes:
+      - ReadWriteOnce
     ## PostgreSQL port
   service:
-      ports:
-        postgresql: "5432"
+    port: 5432
 
 # -- Configuration values for the Redis dependency.
 # ref: https://github.com/CloudPirates-io/helm-charts/tree/main/charts/redis
