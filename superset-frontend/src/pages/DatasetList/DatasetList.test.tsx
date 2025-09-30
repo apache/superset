@@ -52,7 +52,8 @@ jest.mock('src/components/Datasource', () => ({
 }));
 
 // Mock DeleteModal
-jest.mock('@superset-ui/core/components', () => ({
+jest.mock('@superset-ui/core/components/DeleteModal', () => ({
+  __esModule: true,
   DeleteModal: ({ show, onConfirm, onHide }: any) =>
     show ? (
       <div data-test="delete-modal">
