@@ -17,7 +17,13 @@
  * under the License.
  */
 import { Provider } from 'react-redux';
-import { act, render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
@@ -344,7 +350,7 @@ describe('Markdown', () => {
     );
 
     await act(async () => {
-      fireEvent.click(markdownContainer);
+      await userEvent.click(markdownContainer);
     });
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
@@ -358,13 +364,13 @@ describe('Markdown', () => {
     );
 
     await act(async () => {
-      fireEvent.click(markdownContainer);
+      await userEvent.click(markdownContainer);
     });
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(document.body);
+      await userEvent.click(document.body);
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
@@ -379,7 +385,7 @@ describe('Markdown', () => {
     );
 
     await act(async () => {
-      fireEvent.click(markdownContainer);
+      await userEvent.click(markdownContainer);
     });
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
@@ -387,7 +393,7 @@ describe('Markdown', () => {
     const editButton = screen.getByText('Edit');
 
     await act(async () => {
-      fireEvent.click(editButton);
+      await userEvent.click(editButton);
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
@@ -402,7 +408,7 @@ describe('Markdown', () => {
     );
 
     await act(async () => {
-      fireEvent.click(markdownContainer);
+      await userEvent.click(markdownContainer);
     });
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
@@ -412,7 +418,7 @@ describe('Markdown', () => {
     document.body.appendChild(outsideElement);
 
     await act(async () => {
-      fireEvent.click(outsideElement);
+      await userEvent.click(outsideElement);
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
