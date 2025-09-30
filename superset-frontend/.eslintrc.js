@@ -427,6 +427,18 @@ module.exports = {
         'import/no-extraneous-dependencies': 'off',
       },
     },
+    {
+      // Allow @playwright/test imports in Playwright test files
+      files: ['playwright/**/*.ts', 'playwright/**/*.js'],
+      rules: {
+        'import/no-extraneous-dependencies': [
+          'error',
+          {
+            devDependencies: true,
+          },
+        ],
+      },
+    },
   ],
   // eslint-disable-next-line no-dupe-keys
   rules: {
