@@ -167,30 +167,30 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
     .ant-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
-      
+
       /* Chrome/Safari/Edge webkit scrollbar styling */
       &::-webkit-scrollbar {
         width: ${theme.sizeUnit * 2}px;
         height: ${theme.sizeUnit * 2}px;
       }
-      
+
       &::-webkit-scrollbar-track {
         background: ${theme.colorFillQuaternary};
       }
-      
+
       &::-webkit-scrollbar-thumb {
         background: ${theme.colorFillSecondary};
         border-radius: ${theme.sizeUnit}px;
-        
+
         &:hover {
           background: ${theme.colorFillTertiary};
         }
       }
-      
+
       &::-webkit-scrollbar-corner {
         background: ${theme.colorFillQuaternary};
       }
-      
+
       /* Firefox scrollbar styling */
       scrollbar-width: thin;
       scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
