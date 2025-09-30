@@ -51,6 +51,7 @@ describe('Markdown', () => {
   };
 
   beforeAll(() => {
+    const originalError = console.error;
     jest.spyOn(console, 'error').mockImplementation(msg => {
       if (
         typeof msg === 'string' &&
@@ -59,7 +60,7 @@ describe('Markdown', () => {
         !msg.includes('Warning: React does not recognize') &&
         !msg.includes("Warning: Can't perform a React state update")
       ) {
-        console.error(msg);
+        originalError.call(console, msg);
       }
     });
   });
@@ -349,9 +350,7 @@ describe('Markdown', () => {
       'dashboard-component-chart-holder',
     );
 
-    await act(async () => {
-      await userEvent.click(markdownContainer);
-    });
+    userEvent.click(markdownContainer);
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
   });
@@ -363,16 +362,12 @@ describe('Markdown', () => {
       'dashboard-component-chart-holder',
     );
 
-    await act(async () => {
-      await userEvent.click(markdownContainer);
-    });
+    userEvent.click(markdownContainer);
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
-    await act(async () => {
-      await userEvent.click(document.body);
-      await new Promise(resolve => setTimeout(resolve, 50));
-    });
+    userEvent.click(document.body);
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
@@ -384,18 +379,14 @@ describe('Markdown', () => {
       'dashboard-component-chart-holder',
     );
 
-    await act(async () => {
-      await userEvent.click(markdownContainer);
-    });
+    userEvent.click(markdownContainer);
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
     const editButton = screen.getByText('Edit');
 
-    await act(async () => {
-      await userEvent.click(editButton);
-      await new Promise(resolve => setTimeout(resolve, 50));
-    });
+    userEvent.click(editButton);
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(screen.queryByRole('textbox')).toBeInTheDocument();
   });
@@ -407,9 +398,7 @@ describe('Markdown', () => {
       'dashboard-component-chart-holder',
     );
 
-    await act(async () => {
-      await userEvent.click(markdownContainer);
-    });
+    userEvent.click(markdownContainer);
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
@@ -417,10 +406,8 @@ describe('Markdown', () => {
     outsideElement.className = 'grid-row';
     document.body.appendChild(outsideElement);
 
-    await act(async () => {
-      await userEvent.click(outsideElement);
-      await new Promise(resolve => setTimeout(resolve, 50));
-    });
+    userEvent.click(outsideElement);
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 

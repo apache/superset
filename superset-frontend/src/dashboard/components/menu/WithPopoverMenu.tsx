@@ -173,27 +173,22 @@ export default class WithPopoverMenu extends PureComponent<
 
     const shouldFocus = shouldFocusFunc(event, this.container);
 
-    // Only stop propagation if we're actually handling a focus state change
-    if (this.shouldHandleFocusChange(shouldFocus)) {
-      event.stopPropagation();
-    }
-
     if (!disableClick && shouldFocus && !this.state.isFocused) {
-      // if not focused, set focus and add a window event listener to capture outside clicks
-      // this enables us to not set a click listener for ever item on a dashboard
+      event.stopPropagation();
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
+
       this.setState(() => ({ isFocused: true }));
-      if (onChangeFocus) {
-        onChangeFocus(true);
-      }
+
+      if (onChangeFocus) onChangeFocus(true);
     } else if (!shouldFocus && this.state.isFocused) {
       document.removeEventListener('click', this.handleClick);
       document.removeEventListener('drag', this.handleClick);
+
+      event.stopPropagation();
       this.setState(() => ({ isFocused: false }));
-      if (onChangeFocus) {
-        onChangeFocus(false);
-      }
+
+      if (onChangeFocus) onChangeFocus(false);
     }
   }
 
