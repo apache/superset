@@ -30,107 +30,104 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-describe('useThemeValidation', () => {
-  beforeEach(() => {
-    mockIsFeatureEnabled.mockClear();
-  });
-
-  test('returns basic JSON validation when feature flag is disabled', () => {
-    mockIsFeatureEnabled.mockReturnValue(false);
-
-    // Test with valid JSON to ensure feature flag controls enhanced validation
-    const validJson = '{"token": {"colorPrimary": "#1890ff"}}';
-    const { result } = renderHook(() => useThemeValidation(validJson));
-
-    expect(result.current.hasErrors).toBe(false);
-    expect(result.current.hasWarnings).toBe(false);
-    expect(result.current.validTokenCount).toBe(0); // No enhanced validation
-    expect(result.current.invalidTokenCount).toBe(0); // No enhanced validation
-  });
-
-  test('returns enhanced validation when feature flag is enabled with valid JSON', () => {
-    mockIsFeatureEnabled.mockReturnValue(true);
-
-    const validTheme = JSON.stringify({
-      token: {
-        colorPrimary: '#1890ff',
-        fontSize: 14,
-      },
-    });
-
-    const { result } = renderHook(() =>
-      useThemeValidation(validTheme, { themeName: 'Test Theme' }),
-    );
-
-    expect(result.current.hasErrors).toBe(false);
-    expect(result.current.validTokenCount).toBe(2);
-    expect(result.current.invalidTokenCount).toBe(0);
-  });
-
-  test('returns enhanced validation warnings for invalid tokens when feature flag is enabled', () => {
-    mockIsFeatureEnabled.mockReturnValue(true);
-
-    const invalidTheme = JSON.stringify({
-      token: {
-        colorPrimary: '#1890ff', // valid
-        fontSize: 'invalid-size', // invalid
-        unknownToken: 'value', // unknown
-      },
-    });
-
-    const { result } = renderHook(() =>
-      useThemeValidation(invalidTheme, { themeName: 'Test Theme' }),
-    );
-
-    expect(result.current.hasWarnings).toBe(true);
-    expect(result.current.validTokenCount).toBe(1);
-    expect(result.current.invalidTokenCount).toBe(2);
-    expect(result.current.annotations.length).toBeGreaterThan(0);
-  });
-
-  test('skips enhanced validation for empty JSON', () => {
-    mockIsFeatureEnabled.mockReturnValue(true);
-
-    const { result } = renderHook(() => useThemeValidation(''));
-
-    expect(result.current.hasErrors).toBe(false);
-    expect(result.current.hasWarnings).toBe(false);
-    expect(result.current.validTokenCount).toBe(0);
-    expect(result.current.invalidTokenCount).toBe(0);
-  });
-
-  test('can be disabled via options', () => {
-    mockIsFeatureEnabled.mockReturnValue(true);
-
-    const { result } = renderHook(() =>
-      useThemeValidation('{"token": {"colorPrimary": "#fff"}}', {
-        enabled: false,
-      }),
-    );
-
-    expect(result.current.hasErrors).toBe(false);
-    expect(result.current.hasWarnings).toBe(false);
-    expect(result.current.validTokenCount).toBe(0);
-  });
+beforeEach(() => {
+  mockIsFeatureEnabled.mockClear();
 });
 
-describe('useIsEnhancedValidationEnabled', () => {
-  test('returns feature flag status', () => {
-    mockIsFeatureEnabled.mockReturnValue(true);
+test('returns basic JSON validation when feature flag is disabled', () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
 
-    const { result } = renderHook(() => useIsEnhancedValidationEnabled());
+  // Test with valid JSON to ensure feature flag controls enhanced validation
+  const validJson = '{"token": {"colorPrimary": "#1890ff"}}';
+  const { result } = renderHook(() => useThemeValidation(validJson));
 
-    expect(result.current).toBe(true);
-    expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
-      FeatureFlag.EnhancedThemeValidation,
-    );
+  expect(result.current.hasErrors).toBe(false);
+  expect(result.current.hasWarnings).toBe(false);
+  expect(result.current.validTokenCount).toBe(0); // No enhanced validation
+  expect(result.current.invalidTokenCount).toBe(0); // No enhanced validation
+});
+
+test('returns enhanced validation when feature flag is enabled with valid JSON', () => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  const validTheme = JSON.stringify({
+    token: {
+      colorPrimary: '#1890ff',
+      fontSize: 14,
+    },
   });
 
-  test('returns false when feature flag is disabled', () => {
-    mockIsFeatureEnabled.mockReturnValue(false);
+  const { result } = renderHook(() =>
+    useThemeValidation(validTheme, { themeName: 'Test Theme' }),
+  );
 
-    const { result } = renderHook(() => useIsEnhancedValidationEnabled());
+  expect(result.current.hasErrors).toBe(false);
+  expect(result.current.validTokenCount).toBe(2);
+  expect(result.current.invalidTokenCount).toBe(0);
+});
 
-    expect(result.current).toBe(false);
+test('returns enhanced validation warnings for invalid tokens when feature flag is enabled', () => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  const invalidTheme = JSON.stringify({
+    token: {
+      colorPrimary: '#1890ff', // valid
+      fontSize: 'invalid-size', // invalid
+      unknownToken: 'value', // unknown
+    },
   });
+
+  const { result } = renderHook(() =>
+    useThemeValidation(invalidTheme, { themeName: 'Test Theme' }),
+  );
+
+  expect(result.current.hasWarnings).toBe(true);
+  expect(result.current.validTokenCount).toBe(1);
+  expect(result.current.invalidTokenCount).toBe(2);
+  expect(result.current.annotations.length).toBeGreaterThan(0);
+});
+
+test('skips enhanced validation for empty JSON', () => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  const { result } = renderHook(() => useThemeValidation(''));
+
+  expect(result.current.hasErrors).toBe(false);
+  expect(result.current.hasWarnings).toBe(false);
+  expect(result.current.validTokenCount).toBe(0);
+  expect(result.current.invalidTokenCount).toBe(0);
+});
+
+test('can be disabled via options', () => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  const { result } = renderHook(() =>
+    useThemeValidation('{"token": {"colorPrimary": "#fff"}}', {
+      enabled: false,
+    }),
+  );
+
+  expect(result.current.hasErrors).toBe(false);
+  expect(result.current.hasWarnings).toBe(false);
+  expect(result.current.validTokenCount).toBe(0);
+});
+
+// useIsEnhancedValidationEnabled tests
+test('returns feature flag status', () => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  const { result } = renderHook(() => useIsEnhancedValidationEnabled());
+
+  expect(result.current).toBe(true);
+  expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
+    FeatureFlag.EnhancedThemeValidation,
+  );
+});
+
+test('returns false when feature flag is disabled', () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
+
+  const { result } = renderHook(() => useIsEnhancedValidationEnabled());
+
+  expect(result.current).toBe(false);
 });
