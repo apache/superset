@@ -36,7 +36,7 @@ class ThemeDAO(BaseDAO[Theme]):
         Find the current system default theme.
         Returns the theme with is_system_default=True if exactly one exists.
         Returns None if no theme or multiple themes have
-        is_system_default=True.
+        is_system_default=True, which triggers fallback to config.py theme.
         """
         system_defaults = (
             db.session.query(Theme).filter(Theme.is_system_default.is_(True)).all()
@@ -52,7 +52,8 @@ class ThemeDAO(BaseDAO[Theme]):
         """Find the current system dark theme.
 
         Returns the theme with is_system_dark=True if exactly one exists.
-        Returns None if no theme or multiple themes have is_system_dark=True.
+        Returns None if no theme or multiple themes have is_system_dark=True,
+        which triggers fallback to config.py theme.
         """
         system_darks = (
             db.session.query(Theme).filter(Theme.is_system_dark.is_(True)).all()

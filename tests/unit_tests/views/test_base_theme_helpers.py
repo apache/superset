@@ -17,6 +17,7 @@
 
 from unittest.mock import MagicMock, patch
 
+from superset.themes.types import ThemeMode
 from superset.views.base import (
     _load_theme_from_model,
     _merge_theme_dicts,
@@ -249,20 +250,20 @@ class TestThemeHelpers:
         mock_model.id = 1
         fallback = {"token": {"colorPrimary": "#111"}}
 
-        result = _load_theme_from_model(mock_model, fallback, "test")
+        result = _load_theme_from_model(mock_model, fallback, ThemeMode.DEFAULT)
         assert result == fallback
         mock_logger.error.assert_called_once_with(
-            "Invalid JSON in system %s theme %s", "test", 1
+            "Invalid JSON in system %s theme %s", "default", 1
         )
 
     def test_process_theme_none(self):
         """Test _process_theme with None theme"""
-        result = _process_theme(None, "test")
+        result = _process_theme(None, ThemeMode.DEFAULT)
         assert result == {}
 
     def test_process_theme_empty(self):
         """Test _process_theme with empty theme"""
-        result = _process_theme({}, "test")
+        result = _process_theme({}, ThemeMode.DEFAULT)
         assert result == {}
 
     @patch("superset.views.base.is_valid_theme")
@@ -272,11 +273,11 @@ class TestThemeHelpers:
         theme = {"invalid": "theme"}
 
         with patch("superset.views.base.logger") as mock_logger:
-            result = _process_theme(theme, "test")
+            result = _process_theme(theme, ThemeMode.DEFAULT)
             assert result == {}
             mock_logger.warning.assert_called_once_with(
                 "Invalid %s theme configuration: %s, clearing it",
-                "test",
+                "default",
                 theme,
             )
 
@@ -286,12 +287,12 @@ class TestThemeHelpers:
         mock_is_valid.return_value = True
         theme = {"token": {"colorPrimary": "#444"}}
 
-        result = _process_theme(theme, "test")
+        result = _process_theme(theme, ThemeMode.DEFAULT)
         assert result == theme
 
     def test_process_theme_none_returns_empty(self):
         """Test _process_theme with None returns empty dict"""
-        result = _process_theme(None, "test")
+        result = _process_theme(None, ThemeMode.DEFAULT)
         assert result == {}
 
 

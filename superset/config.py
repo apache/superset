@@ -765,7 +765,7 @@ THEME_DEFAULT: Theme = {
         "colorSuccess": "#5ac189",
         "colorInfo": "#66bcfe",
         # Fonts
-        "fontFamily": "'Inter', Helvetica, Arial",
+        "fontFamily": "Inter, Helvetica, Arial",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,
@@ -774,7 +774,7 @@ THEME_DEFAULT: Theme = {
         "fontSizeXXL": "28",
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
-        "fontWeightStrong": 500,
+        "fontWeightStrong": "500",
     },
     "algorithm": "default",
 }

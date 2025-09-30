@@ -63,7 +63,7 @@ from superset.extensions import cache_manager
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
-from superset.themes.types import Theme
+from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
     is_valid_theme,
 )
@@ -330,7 +330,7 @@ def _merge_theme_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[st
 def _load_theme_from_model(
     theme_model: ThemeModel | None,
     fallback_theme: Theme | None,
-    theme_type: str,
+    theme_type: ThemeMode,
 ) -> Theme | None:
     """Load and parse theme from database model, merging with config theme as base."""
     if theme_model:
@@ -342,13 +342,13 @@ def _load_theme_from_model(
             return db_theme
         except json.JSONDecodeError:
             logger.error(
-                "Invalid JSON in system %s theme %s", theme_type, theme_model.id
+                "Invalid JSON in system %s theme %s", theme_type.value, theme_model.id
             )
             return fallback_theme
     return fallback_theme
 
 
-def _process_theme(theme: Theme | None, theme_type: str) -> Theme:
+def _process_theme(theme: Theme | None, theme_type: ThemeMode) -> Theme:
     """Process and validate a theme, returning an empty dict if invalid."""
     if theme is None or theme == {}:
         # When config theme is None or empty, don't provide a custom theme
@@ -357,7 +357,7 @@ def _process_theme(theme: Theme | None, theme_type: str) -> Theme:
     elif not is_valid_theme(cast(dict[str, Any], theme)):
         logger.warning(
             "Invalid %s theme configuration: %s, clearing it",
-            theme_type,
+            theme_type.value,
             theme,
         )
         return {}
@@ -382,17 +382,19 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
 
         # Parse theme JSON from database models
         default_theme = _load_theme_from_model(
-            default_theme_model, config_theme_default, "default"
+            default_theme_model, config_theme_default, ThemeMode.DEFAULT
         )
-        dark_theme = _load_theme_from_model(dark_theme_model, config_theme_dark, "dark")
+        dark_theme = _load_theme_from_model(
+            dark_theme_model, config_theme_dark, ThemeMode.DARK
+        )
     else:
         # UI theme administration disabled - use config-based themes
         default_theme = config_theme_default
         dark_theme = config_theme_dark
 
     # Process and validate themes
-    default_theme = _process_theme(default_theme, "default")
-    dark_theme = _process_theme(dark_theme, "dark")
+    default_theme = _process_theme(default_theme, ThemeMode.DEFAULT)
+    dark_theme = _process_theme(dark_theme, ThemeMode.DARK)
 
     return {
         "theme": {

@@ -83,6 +83,15 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
+interface ConfirmModalConfig {
+  visible: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => Promise<any>;
+  successMessage: string;
+  errorMessage: string;
+}
+
 interface ThemesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -118,14 +127,8 @@ function ThemesList({
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
   // State for confirmation modal
-  const [confirmModalConfig, setConfirmModalConfig] = useState<{
-    visible: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => Promise<any>;
-    successMessage: string;
-    errorMessage: string;
-  } | null>(null);
+  const [confirmModalConfig, setConfirmModalConfig] =
+    useState<ConfirmModalConfig | null>(null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
