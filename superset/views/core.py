@@ -28,6 +28,7 @@ from urllib import parse
 from flask import (
     abort,
     current_app as app,
+    flash,
     g,
     redirect,
     request,
@@ -769,9 +770,24 @@ class Superset(BaseSupersetView):
 
         try:
             dashboard.raise_for_access()
-        except SupersetSecurityException:
-            # Return 404 to avoid revealing dashboard existence
-            return Response(status=404)
+        except SupersetSecurityException as ex:
+            if g.user is None or g.user.is_anonymous:
+                login_url = appbuilder.get_url_for_login
+                parsed = parse.urlparse(login_url)
+                query = parse.parse_qs(parsed.query, keep_blank_values=True)
+                query["next"] = [request.url]
+                encoded_query = parse.urlencode(query, doseq=True)
+                redirect_url = parse.urlunparse(
+                    parsed._replace(query=encoded_query)
+                )
+                flash(
+                    _("Users must be logged in to view this dashboard."),
+                    "danger",
+                )
+                return redirect(redirect_url)
+
+            flash(utils.error_msg_from_exception(ex), "danger")
+            return redirect(url_for("DashboardModelView.list"))
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
