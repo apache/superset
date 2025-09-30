@@ -335,4 +335,89 @@ describe('Markdown', () => {
     // Check that width is no longer 248px
     expect(updatedParent).not.toHaveStyle('width: 248px');
   });
+
+  test('shouldFocusMarkdown returns true when clicking inside markdown container', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    await act(async () => {
+      fireEvent.click(markdownContainer);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+  });
+
+  test('shouldFocusMarkdown returns false when clicking outside markdown container', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    await act(async () => {
+      fireEvent.click(markdownContainer);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(document.body);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    await act(async () => {
+      fireEvent.click(markdownContainer);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    const editButton = screen.getByText('Edit');
+
+    await act(async () => {
+      fireEvent.click(editButton);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    expect(screen.queryByRole('textbox')).toBeInTheDocument();
+  });
+
+  test('should exit edit mode when clicking outside in same row', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    await act(async () => {
+      fireEvent.click(markdownContainer);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    const outsideElement = document.createElement('div');
+    outsideElement.className = 'grid-row';
+    document.body.appendChild(outsideElement);
+
+    await act(async () => {
+      fireEvent.click(outsideElement);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+    document.body.removeChild(outsideElement);
+  });
 });

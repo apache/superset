@@ -150,12 +150,20 @@ export default class WithPopoverMenu extends PureComponent<
     this.container = ref;
   }
 
+  shouldHandleFocusChange(shouldFocus: Boolean): boolean {
+    const { disableClick } = this.props;
+    const { isFocused } = this.state;
+
+    return (
+      (!disableClick && shouldFocus && !isFocused) ||
+      (!shouldFocus && isFocused)
+    );
+  }
+
   handleClick(event: any) {
     if (!this.props.editMode) {
       return;
     }
-
-    event.stopPropagation();
 
     const {
       onChangeFocus,
@@ -164,6 +172,11 @@ export default class WithPopoverMenu extends PureComponent<
     } = this.props;
 
     const shouldFocus = shouldFocusFunc(event, this.container);
+
+    // Only stop propagation if we're actually handling a focus state change
+    if (this.shouldHandleFocusChange(shouldFocus)) {
+      event.stopPropagation();
+    }
 
     if (!disableClick && shouldFocus && !this.state.isFocused) {
       // if not focused, set focus and add a window event listener to capture outside clicks
