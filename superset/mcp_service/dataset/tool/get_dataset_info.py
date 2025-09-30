@@ -44,32 +44,20 @@ logger = logging.getLogger(__name__)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
-    """
-    Get detailed information about a specific dataset with metadata cache control.
+    """Get dataset metadata by ID or UUID.
 
-    Supports lookup by:
-    - Numeric ID (e.g., 123)
-    - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-
-    Metadata Cache Control:
-    - use_cache: Whether to use metadata cache for faster responses
-    - refresh_metadata: Force refresh of metadata cache for fresh data
-
-    When refresh_metadata=True, the tool will fetch fresh column and metric
-    metadata from the database, which is useful when table schema has changed.
-
-    Returns a DatasetInfo model or DatasetError on error.
+    Returns columns, metrics, and schema details.
     """
     await ctx.info(
-        "Retrieving dataset information", extra={"identifier": request.identifier}
+        "Retrieving dataset information: identifier=%s" % (request.identifier,)
     )
     await ctx.debug(
-        "Metadata cache settings",
-        extra={
-            "use_cache": request.use_cache,
-            "refresh_metadata": request.refresh_metadata,
-            "force_refresh": request.force_refresh,
-        },
+        "Metadata cache settings: use_cache=%s refresh_metadata=%s force_refresh=%s"
+        % (
+            request.use_cache,
+            request.refresh_metadata,
+            request.force_refresh,
+        )
     )
 
     try:
@@ -88,30 +76,32 @@ async def get_dataset_info(
 
         if isinstance(result, DatasetInfo):
             await ctx.info(
-                "Dataset information retrieved successfully",
-                extra={
-                    "dataset_id": result.id,
-                    "table_name": result.table_name,
-                    "columns_count": len(result.columns) if result.columns else 0,
-                    "metrics_count": len(result.metrics) if result.metrics else 0,
-                },
+                "Dataset information retrieved successfully: "
+                "dataset_id=%s, table_name=%s, columns_count=%s, metrics_count=%s"
+                % (
+                    result.id,
+                    result.table_name,
+                    len(result.columns) if result.columns else 0,
+                    len(result.metrics) if result.metrics else 0,
+                )
             )
         else:
             await ctx.warning(
-                "Dataset retrieval failed",
-                extra={"error_type": result.error_type, "error": result.error},
+                "Dataset retrieval failed: error_type=%s, error=%s"
+                % (result.error_type, result.error)
             )
 
         return result
 
     except Exception as e:
         await ctx.error(
-            "Dataset information retrieval failed",
-            extra={
-                "identifier": request.identifier,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            "Dataset information retrieval failed: identifier=%s, error=%s, "
+            "error_type=%s"
+            % (
+                request.identifier,
+                str(e),
+                type(e).__name__,
+            )
         )
         return DatasetError(
             error=f"Failed to get dataset info: {str(e)}", error_type="InternalError"

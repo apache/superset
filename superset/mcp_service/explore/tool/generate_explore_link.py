@@ -42,56 +42,17 @@ from superset.mcp_service.chart.schemas import (
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:
-    """
-    Generate a Superset explore URL for interactive data visualization and exploration.
+    """Generate explore URL for interactive visualization.
 
-    🎯 PREFERRED TOOL for most visualization requests.
-
-    This is the primary tool for data visualization workflows. It creates an explore
-    URL where users can interactively view, modify, and optionally save charts.
-    The explore interface allows users to adjust parameters, add filters, and
-    experiment before deciding to save.
-
-    Use this tool for:
-    - "Show me a chart of [data]"
-    - "Visualize [data] as a [chart type]"
-    - "I want to see [data] trends"
-    - "Create a visualization of [data]"
-    - "Chart [data] by [dimensions]"
-    - "Plot [data]"
-    - General data exploration and analysis
-    - When user wants to see/explore data visually
-
-    This tool provides a much better user experience because:
-    - Users can interact with the chart before saving
-    - Easy to modify parameters and see results instantly
-    - Users control when/if to save the chart permanently
-    - No database clutter from unsaved exploration charts
-
-    Only use generate_chart when user explicitly requests to save/create a
-    permanent chart.
-
-    Args:
-        request: Explore link generation request with dataset_id and config
-
-    Returns:
-        Dictionary containing explore URL for immediate use and error message if any
+    Returns URL for immediate use. PREFERRED for most viz requests.
     """
     await ctx.info(
-        "Generating explore link",
-        extra={
-            "dataset_id": request.dataset_id,
-            "chart_type": request.config.chart_type,
-        },
+        "Generating explore link for dataset_id=%s, chart_type=%s"
+        % (request.dataset_id, request.config.chart_type)
     )
     await ctx.debug(
-        "Configuration details",
-        extra={
-            "config": request.config.model_dump(),
-            "use_cache": request.use_cache,
-            "force_refresh": request.force_refresh,
-            "cache_form_data": request.cache_form_data,
-        },
+        "Configuration details: use_cache=%s, force_refresh=%s, cache_form_data=%s"
+        % (request.use_cache, request.force_refresh, request.cache_form_data)
     )
 
     try:
@@ -100,12 +61,12 @@ async def generate_explore_link(
         form_data = map_config_to_form_data(request.config)
 
         await ctx.debug(
-            "Form data generated",
-            extra={
-                "form_data_keys": list(form_data.keys()),
-                "has_viz_type": bool(form_data.get("viz_type")),
-                "has_datasource": bool(form_data.get("datasource")),
-            },
+            "Form data generated with keys: %s, has_viz_type=%s, has_datasource=%s"
+            % (
+                list(form_data.keys()),
+                bool(form_data.get("viz_type")),
+                bool(form_data.get("datasource")),
+            )
         )
 
         await ctx.report_progress(2, 3, "Generating explore URL")
@@ -114,8 +75,8 @@ async def generate_explore_link(
 
         await ctx.report_progress(3, 3, "URL generation complete")
         await ctx.info(
-            "Explore link generated successfully",
-            extra={"url_length": len(explore_url), "dataset_id": request.dataset_id},
+            "Explore link generated successfully: url_length=%s, dataset_id=%s"
+            % (len(explore_url), request.dataset_id)
         )
 
         return {
@@ -125,13 +86,8 @@ async def generate_explore_link(
 
     except Exception as e:
         await ctx.error(
-            "Explore link generation failed",
-            extra={
-                "dataset_id": request.dataset_id,
-                "chart_type": request.config.chart_type,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
+            % (request.dataset_id, request.config.chart_type, type(e).__name__, str(e))
         )
         return {
             "url": "",

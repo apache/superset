@@ -102,21 +102,11 @@ SORTABLE_DASHBOARD_COLUMNS = [
 @mcp.tool
 @mcp_auth_hook
 def list_dashboards(request: ListDashboardsRequest, ctx: Context) -> DashboardList:
-    """
-    List dashboards with advanced filtering, search, and metadata cache control.
-
-    Uses a clear request object schema to avoid validation ambiguity with
-    arrays/strings. All parameters are properly typed and have sensible defaults.
+    """List dashboards with filtering and search. Returns dashboard metadata
+    including title, slug, and charts.
 
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
-
-    Metadata Cache Control:
-    - use_cache: Whether to use metadata cache for faster responses
-    - refresh_metadata: Force refresh of metadata cache for fresh data
-
-    When refresh_metadata=True, the tool will fetch fresh metadata from the database
-    which is useful when database schema has changed.
     """
 
     from superset.daos.dashboard import DashboardDAO

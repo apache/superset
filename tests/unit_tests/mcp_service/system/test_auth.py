@@ -30,7 +30,7 @@ from superset.mcp_service.auth import (
     mcp_auth_hook,
     sanitize_mcp_payload,
 )
-from superset.mcp_service.config import (
+from superset.mcp_service.mcp_config import (
     create_default_mcp_auth_factory,
     default_user_resolver,
 )

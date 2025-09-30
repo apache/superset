@@ -41,27 +41,14 @@ logger = logging.getLogger(__name__)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
-    """
-    Get detailed information about a specific chart with metadata cache control.
+    """Get chart metadata by ID or UUID.
 
-    IMPORTANT FOR LLM CLIENTS:
-    - ALWAYS display the chart URL when returned (e.g., "View chart at: {url}")
-    - The URL field contains the chart's screenshot URL for preview
-
-    Supports lookup by:
-    - Numeric ID (e.g., 123)
-    - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-
-    Metadata Cache Control:
-    - use_cache: Whether to use metadata cache for faster responses
-    - refresh_metadata: Force refresh of metadata cache for fresh data
-
-    Returns a ChartInfo model or ChartError on error.
+    Returns chart details including name, type, and URL.
     """
     from superset.daos.chart import ChartDAO
 
     await ctx.info(
-        "Retrieving chart information", extra={"identifier": request.identifier}
+        "Retrieving chart information: identifier=%s" % (request.identifier,)
     )
 
     tool = ModelGetInfoCore(
@@ -77,10 +64,10 @@ async def get_chart_info(
 
     if isinstance(result, ChartInfo):
         await ctx.info(
-            "Chart information retrieved successfully",
-            extra={"chart_name": result.slice_name},
+            "Chart information retrieved successfully: chart_name=%s"
+            % (result.slice_name,)
         )
     else:
-        await ctx.warning("Chart retrieval failed", extra={"error": str(result)})
+        await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 
     return result

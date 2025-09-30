@@ -39,9 +39,7 @@ logger = logging.getLogger(__name__)
 def get_chart_available_filters(
     request: GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:
-    """
-    Return available chart filter fields, types, and supported operators (MCP tool).
-    """
+    """Get available chart filter fields and operators."""
     from superset.daos.chart import ChartDAO
 
     tool = ModelGetAvailableFiltersCore(

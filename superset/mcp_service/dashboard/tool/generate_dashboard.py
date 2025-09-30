@@ -123,17 +123,8 @@ def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
     """
-    Generate a new dashboard with the specified charts.
-
-    This tool creates a dashboard with the provided charts arranged in a
-    simple 2-column grid layout. All charts must exist and be accessible
-    to the current user.
-
-    Args:
-        request: GenerateDashboardRequest with chart_ids, title, and options
-
-    Returns:
-        GenerateDashboardResponse with the created dashboard info and URL
+    Create dashboard from chart IDs. Arranges charts in 2-column grid.
+    Returns dashboard ID and URL.
     """
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)

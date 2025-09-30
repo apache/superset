@@ -1832,12 +1832,12 @@ async def _get_chart_preview_internal(  # noqa: C901
                 else request.identifier
             )
             await ctx.debug(
-                "Performing ID-based chart lookup", extra={"chart_id": chart_id}
+                "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
             )
             chart = ChartDAO.find_by_id(chart_id)
         else:
             await ctx.debug(
-                "Performing UUID-based chart lookup", extra={"uuid": request.identifier}
+                "Performing UUID-based chart lookup: uuid=%s" % (request.identifier,)
             )
             # Try UUID lookup using DAO flexible method
             chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
@@ -1883,19 +1883,19 @@ async def _get_chart_preview_internal(  # noqa: C901
                     )
 
         if not chart:
-            await ctx.error("Chart not found", extra={"identifier": request.identifier})
+            await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
             )
 
         await ctx.info(
-            "Chart found successfully",
-            extra={
-                "chart_id": getattr(chart, "id", None),
-                "chart_name": getattr(chart, "slice_name", None),
-                "viz_type": getattr(chart, "viz_type", None),
-            },
+            "Chart found successfully: chart_id=%s, chart_name=%s, viz_type=%s"
+            % (
+                getattr(chart, "id", None),
+                getattr(chart, "slice_name", None),
+                getattr(chart, "viz_type", None),
+            )
         )
 
         # Log all chart attributes for debugging
@@ -1914,14 +1914,15 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         await ctx.report_progress(2, 3, f"Generating {request.format} preview")
         await ctx.debug(
-            "Preview generation parameters",
-            extra={
-                "chart_id": chart.id,
-                "viz_type": chart.viz_type,
-                "datasource_id": chart.datasource_id,
-                "width": request.width,
-                "height": request.height,
-            },
+            "Preview generation parameters: chart_id=%s, viz_type=%s, "
+            "datasource_id=%s, width=%s, height=%s"
+            % (
+                chart.id,
+                chart.viz_type,
+                chart.datasource_id,
+                request.width,
+                request.height,
+            )
         )
 
         # Handle different preview formats using strategy pattern
@@ -1930,13 +1931,14 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         if isinstance(content, ChartError):
             await ctx.error(
-                "Preview generation failed",
-                extra={
-                    "chart_id": chart.id,
-                    "format": request.format,
-                    "error": content.error,
-                    "error_type": content.error_type,
-                },
+                "Preview generation failed: chart_id=%s, format=%s, error=%s, "
+                "error_type=%s"
+                % (
+                    chart.id,
+                    request.format,
+                    content.error,
+                    content.error_type,
+                )
             )
             return content
 
@@ -1957,11 +1959,11 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
         await ctx.debug(
-            "Preview generation completed",
-            extra={
-                "execution_time_ms": execution_time,
-                "content_type": type(content).__name__,
-            },
+            "Preview generation completed: execution_time_ms=%s, content_type=%s"
+            % (
+                execution_time,
+                type(content).__name__,
+            )
         )
 
         # Create backward-compatible response with enhanced metadata
@@ -1999,13 +2001,14 @@ async def _get_chart_preview_internal(  # noqa: C901
 
     except Exception as e:
         await ctx.error(
-            "Chart preview generation failed",
-            extra={
-                "identifier": request.identifier,
-                "format": request.format,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
+            "error_type=%s"
+            % (
+                request.identifier,
+                request.format,
+                str(e),
+                type(e).__name__,
+            )
         )
         logger.error("Error in get_chart_preview: %s", e)
         return ChartError(
@@ -2018,47 +2021,27 @@ async def _get_chart_preview_internal(  # noqa: C901
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:
-    """
-    Get a visual preview of a chart with URLs for LLM embedding.
+    """Get chart preview by ID or UUID.
 
-    This tool generates or retrieves URLs for chart images that can be
-    displayed directly in LLM clients. The URLs point to Superset's
-    screenshot endpoints for proper image serving.
-
-    IMPORTANT FOR LLM CLIENTS:
-    - ALWAYS display the preview_url when format="url"
-    - Embed URL previews as images: ![Chart Preview](preview_url)
-    - For ASCII/table formats, display the content in a code block
-    - Show the explore_url so users can edit the chart
-
-    Supports lookup by:
-    - Numeric ID (e.g., 123)
-    - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-
-    Supported formats:
-    - "url": Returns preview_url for image embedding
-    - "ascii": Returns ASCII art representation
-    - "table": Returns tabular data preview
-
-    Returns a ChartPreview with Superset URLs for the chart image or
-    ChartError on error.
+    Returns preview URL or formatted content (ascii, table, vega_lite).
     """
     await ctx.info(
-        "Starting chart preview generation",
-        extra={
-            "identifier": request.identifier,
-            "format": request.format,
-            "width": request.width,
-            "height": request.height,
-        },
+        "Starting chart preview generation: identifier=%s, format=%s, width=%s, "
+        "height=%s"
+        % (
+            request.identifier,
+            request.format,
+            request.width,
+            request.height,
+        )
     )
     await ctx.debug(
-        "Cache control settings",
-        extra={
-            "use_cache": request.use_cache,
-            "force_refresh": request.force_refresh,
-            "cache_timeout": request.cache_timeout,
-        },
+        "Cache control settings: use_cache=%s, force_refresh=%s, cache_timeout=%s"
+        % (
+            request.use_cache,
+            request.force_refresh,
+            request.cache_timeout,
+        )
     )
 
     try:
@@ -2066,28 +2049,29 @@ async def get_chart_preview(
 
         if isinstance(result, ChartPreview):
             await ctx.info(
-                "Chart preview generated successfully",
-                extra={
-                    "chart_id": getattr(result, "chart_id", None),
-                    "format": result.format,
-                    "has_preview_url": bool(getattr(result, "preview_url", None)),
-                },
+                "Chart preview generated successfully: chart_id=%s, format=%s, "
+                "has_preview_url=%s"
+                % (
+                    getattr(result, "chart_id", None),
+                    result.format,
+                    bool(getattr(result, "preview_url", None)),
+                )
             )
         else:
             await ctx.warning(
-                "Chart preview generation failed",
-                extra={"error_type": result.error_type, "error": result.error},
+                "Chart preview generation failed: error_type=%s, error=%s"
+                % (result.error_type, result.error)
             )
 
         return result
     except Exception as e:
         await ctx.error(
-            "Chart preview generation failed",
-            extra={
-                "identifier": request.identifier,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
+            % (
+                request.identifier,
+                str(e),
+                type(e).__name__,
+            )
         )
         return ChartError(
             error=f"Failed to generate chart preview: {str(e)}",

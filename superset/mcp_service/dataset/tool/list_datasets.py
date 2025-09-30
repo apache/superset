@@ -65,48 +65,38 @@ SORTABLE_DATASET_COLUMNS = [
 @mcp.tool
 @mcp_auth_hook
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
-    """
-    List datasets with advanced filtering, search, and metadata cache control.
+    """List datasets with filtering and search.
 
-    Datasets are sorted by favorites first (if user has favorites), then by
-    most recently updated.
+    Returns dataset metadata including columns and metrics.
 
-    Uses a clear request object schema to avoid validation ambiguity with
-    arrays/strings. All parameters are properly typed and have sensible defaults.
-
-    Sortable columns for order_column: id, table_name, schema, changed_on, created_on
-
-    Metadata Cache Control:
-    - use_cache: Whether to use metadata cache for faster responses
-    - refresh_metadata: Force refresh of metadata cache for fresh data
-
-    When refresh_metadata=True, the tool will fetch fresh column and metric
-    metadata from the database, which is useful when table schema has changed.
+    Sortable columns for order_column: id, table_name, schema, changed_on,
+    created_on
     """
     await ctx.info(
-        "Listing datasets",
-        extra={
-            "page": request.page,
-            "page_size": request.page_size,
-            "search": request.search,
-        },
+        "Listing datasets: page=%s, page_size=%s, search=%s"
+        % (
+            request.page,
+            request.page_size,
+            request.search,
+        )
     )
     await ctx.debug(
-        "Dataset listing parameters",
-        extra={
-            "filters": request.filters,
-            "order_column": request.order_column,
-            "order_direction": request.order_direction,
-            "select_columns": request.select_columns,
-        },
+        "Dataset listing parameters: filters=%s, order_column=%s, "
+        "order_direction=%s, select_columns=%s"
+        % (
+            request.filters,
+            request.order_column,
+            request.order_direction,
+            request.select_columns,
+        )
     )
     await ctx.debug(
-        "Metadata cache settings",
-        extra={
-            "use_cache": request.use_cache,
-            "refresh_metadata": request.refresh_metadata,
-            "force_refresh": request.force_refresh,
-        },
+        "Metadata cache settings: use_cache=%s, refresh_metadata=%s, force_refresh=%s"
+        % (
+            request.use_cache,
+            request.refresh_metadata,
+            request.force_refresh,
+        )
     )
 
     try:
@@ -140,24 +130,24 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
         )
 
         await ctx.info(
-            "Datasets listed successfully",
-            extra={
-                "count": len(result.datasets) if hasattr(result, "datasets") else 0,
-                "total_count": getattr(result, "total_count", None),
-                "total_pages": getattr(result, "total_pages", None),
-            },
+            "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
+            % (
+                len(result.datasets) if hasattr(result, "datasets") else 0,
+                getattr(result, "total_count", None),
+                getattr(result, "total_pages", None),
+            )
         )
 
         return result
 
     except Exception as e:
         await ctx.error(
-            "Dataset listing failed",
-            extra={
-                "page": request.page,
-                "page_size": request.page_size,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            "Dataset listing failed: page=%s, page_size=%s, error=%s, error_type=%s"
+            % (
+                request.page,
+                request.page_size,
+                str(e),
+                type(e).__name__,
+            )
         )
         raise

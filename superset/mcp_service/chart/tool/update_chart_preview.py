@@ -51,30 +51,9 @@ def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
     """
-    Update a cached chart preview with new configuration without saving.
+    Update chart preview without saving.
 
-    This tool modifies the cached form_data for a chart preview (created via
-    generate_chart with save_chart=False) and returns a new preview with updated
-    configuration. The original form_data_key is invalidated and a new one is
-    created.
-
-    IMPORTANT FOR LLM CLIENTS:
-    - ALWAYS display the explore_url for users to view/edit the preview
-    - When preview_url is returned, embed it as an image: ![Chart Preview](preview_url)
-    - Mention that this is a preview, not a saved chart
-
-    Use this tool when:
-    - User wants to modify a chart preview before deciding to save
-    - Iterating on chart design without creating permanent charts
-    - Testing different visualization configurations
-    - Updating filters, chart type, or data columns for previews
-
-    Args:
-        request: Chart preview update request with form_data_key, dataset_id,
-            new config, and optional preview generation
-
-    Returns:
-        Response with new form_data_key, preview images, and explore URL
+    Returns new form_data_key and explore URL.
     """
     start_time = time.time()
 

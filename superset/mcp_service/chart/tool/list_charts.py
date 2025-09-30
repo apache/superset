@@ -63,43 +63,28 @@ SORTABLE_CHART_COLUMNS = [
 @mcp.tool
 @mcp_auth_hook
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
-    """
-    List charts with advanced filtering, search, and metadata cache control.
+    """List charts with filtering and search.
 
-    Uses a clear request object schema to avoid validation ambiguity with
-    arrays/strings. All parameters are properly typed and have sensible defaults.
+    Returns chart metadata including id, name, and viz_type.
 
-    IMPORTANT FOR LLM CLIENTS:
-    - When charts have URL fields, ALWAYS display them (e.g., "View chart at: {url}")
-    - Note: 'url' is NOT in default columns - explicitly request it with select_columns
-    - Example: select_columns=["id", "slice_name", "url"]
-
-    Search columns: slice_name, description
-    Sortable columns for order_column: id, slice_name, viz_type, datasource_name,
-    description, changed_on, created_on
-
-    Metadata Cache Control:
-    - use_cache: Whether to use metadata cache for faster responses
-    - refresh_metadata: Force refresh of metadata cache for fresh data
-
-    When refresh_metadata=True, the tool will fetch fresh metadata from the database
-    which is useful when database schema has changed.
+    Sortable columns for order_column: id, slice_name, viz_type,
+    datasource_name, description, changed_on, created_on
     """
     await ctx.info(
-        "Listing charts",
-        extra={
-            "page": request.page,
-            "page_size": request.page_size,
-            "search": request.search,
-        },
+        "Listing charts: page=%s, page_size=%s, search=%s"
+        % (
+            request.page,
+            request.page_size,
+            request.search,
+        )
     )
     await ctx.debug(
-        "Chart listing filters",
-        extra={
-            "filters": request.filters,
-            "order_column": request.order_column,
-            "order_direction": request.order_direction,
-        },
+        "Chart listing filters: filters=%s, order_column=%s, order_direction=%s"
+        % (
+            len(request.filters),
+            request.order_column,
+            request.order_direction,
+        )
     )
 
     from superset.daos.chart import ChartDAO
@@ -129,14 +114,13 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             page=max(request.page - 1, 0),
             page_size=request.page_size,
         )
+        count = len(result.charts) if hasattr(result, "charts") else 0
+        total_pages = getattr(result, "total_pages", None)
         await ctx.info(
-            "Charts listed successfully",
-            extra={
-                "count": len(result.charts) if hasattr(result, "charts") else 0,
-                "total_pages": getattr(result, "total_pages", None),
-            },
+            "Charts listed successfully: count=%s, total_pages=%s"
+            % (count, total_pages)
         )
         return result
     except Exception as e:
-        await ctx.error("Failed to list charts", extra={"error": str(e)})
+        await ctx.error("Failed to list charts: %s" % (str(e),))
         raise

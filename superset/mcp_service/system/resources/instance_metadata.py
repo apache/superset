@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.resource("superset://instance/metadata")
 @mcp_auth_hook
-async def get_instance_metadata_resource() -> str:
+def get_instance_metadata_resource() -> str:
     """
     Provide comprehensive metadata about the Superset instance.
 

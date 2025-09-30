@@ -123,7 +123,7 @@ class ModelListCore(BaseCore):
         order_column: Optional[str] = None,
         order_direction: Optional[Literal["asc", "desc"]] = "asc",
         page: int = 0,
-        page_size: int = 100,
+        page_size: int = 10,
     ) -> Any:
         # If filters is a string (e.g., from a test), parse it as JSON
         if isinstance(filters, str):

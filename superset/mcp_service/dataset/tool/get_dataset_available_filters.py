@@ -38,11 +38,7 @@ logger = logging.getLogger(__name__)
 def get_dataset_available_filters(
     request: GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:
-    """
-    Dynamically get information about available dataset filters and their operators.
-    Custom fields supported: tags, owner.
-    Returns a DatasetAvailableFilters object with column_operators.
-    """
+    """Get available dataset filter fields and operators."""
     from superset.daos.dataset import DatasetDAO
 
     tool = ModelGetAvailableFiltersCore(

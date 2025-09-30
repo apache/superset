@@ -102,29 +102,14 @@ async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:
     """
-    Get detailed information about a specific dashboard with metadata cache control.
+    Get dashboard metadata by ID, UUID, or slug.
 
-    Supports lookup by:
-    - Numeric ID (e.g., 123)
-    - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-    - Slug string (e.g., "my-dashboard")
-
-    Metadata Cache Control:
-    - use_cache: Whether to use metadata cache for faster responses
-    - refresh_metadata: Force refresh of metadata cache for fresh data
-
-    Returns a DashboardInfo model or DashboardError on error.
+    Returns title, charts, and layout details.
     """
-    await ctx.info(
-        "Retrieving dashboard information", extra={"identifier": request.identifier}
-    )
+    await ctx.info("Retrieving dashboard information: %s" % (request.identifier,))
     await ctx.debug(
-        "Metadata cache settings",
-        extra={
-            "use_cache": request.use_cache,
-            "refresh_metadata": request.refresh_metadata,
-            "force_refresh": request.force_refresh,
-        },
+        "Metadata cache settings: use_cache=%s, refresh_metadata=%s, force_refresh=%s"
+        % (request.use_cache, request.refresh_metadata, request.force_refresh)
     )
 
     try:
@@ -143,30 +128,27 @@ async def get_dashboard_info(
 
         if isinstance(result, DashboardInfo):
             await ctx.info(
-                "Dashboard information retrieved successfully",
-                extra={
-                    "dashboard_id": result.id,
-                    "dashboard_title": result.dashboard_title,
-                    "chart_count": result.chart_count,
-                    "published": result.published,
-                },
+                "Dashboard information retrieved successfully: id=%s, title=%s, "
+                "chart_count=%s, published=%s"
+                % (
+                    result.id,
+                    result.dashboard_title,
+                    result.chart_count,
+                    result.published,
+                )
             )
         else:
             await ctx.warning(
-                "Dashboard retrieval failed",
-                extra={"error_type": result.error_type, "error": result.error},
+                "Dashboard retrieval failed: error_type=%s, error=%s"
+                % (result.error_type, result.error)
             )
 
         return result
 
     except Exception as e:
         await ctx.error(
-            "Dashboard information retrieval failed",
-            extra={
-                "identifier": request.identifier,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            "Dashboard information retrieval failed: identifier=%s, error=%s, "
+            "error_type=%s" % (request.identifier, str(e), type(e).__name__)
         )
         return DashboardError(
             error=f"Failed to get dashboard info: {str(e)}", error_type="InternalError"

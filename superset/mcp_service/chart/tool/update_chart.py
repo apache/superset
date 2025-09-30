@@ -51,28 +51,9 @@ logger = logging.getLogger(__name__)
 @mcp_auth_hook
 def update_chart(request: UpdateChartRequest, ctx: Context) -> Dict[str, Any]:
     """
-    Update an existing saved chart with new configuration.
+    Update existing chart with new configuration.
 
-    This tool modifies a permanently saved chart in Superset with new settings,
-    filters, or visualization parameters. The chart must already exist (created
-    via generate_chart with save_chart=True).
-
-    IMPORTANT FOR LLM CLIENTS:
-    - ALWAYS display the updated chart URL (e.g., "Chart updated! View at: {url}")
-    - When preview_url is returned, embed it as an image: ![Updated Chart](preview_url)
-    - Display the explore_url for users to further edit the chart
-
-    Use this tool when:
-    - User wants to modify an existing saved chart
-    - Updating chart title, filters, or visualization settings
-    - Changing chart type or data columns for a saved chart
-
-    Args:
-        request: Chart update request with chart identifier, new config,
-            and optional preview generation
-
-    Returns:
-        Response with updated chart info, preview images, and explore URL
+    Returns updated chart info and preview URL.
     """
     start_time = time.time()
 

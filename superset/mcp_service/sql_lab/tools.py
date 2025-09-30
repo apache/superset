@@ -42,47 +42,24 @@ logger = logging.getLogger(__name__)
 @mcp.tool
 @mcp_auth_hook
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
-    """
-    Execute SQL queries against Superset databases.
+    """Execute SQL query against database.
 
-    This tool provides direct SQL execution capabilities with full security
-    validation, query limits, and timeout protection. It supports both
-    SELECT queries (returning results) and DML operations (INSERT, UPDATE, DELETE)
-    when allowed by the database configuration.
-
-    Security features:
-    - Database access permission validation
-    - Disallowed SQL function checking
-    - DML operation restrictions
-    - Query timeout enforcement
-    - Result size limits
-
-    Args:
-        request: ExecuteSqlRequest with database_id, sql, schema, limit,
-                timeout, and optional parameters
-
-    Returns:
-        ExecuteSqlResponse with query results or error information
+    Returns query results with security validation and timeout protection.
     """
     await ctx.info(
-        "Starting SQL execution",
-        extra={
-            "database_id": request.database_id,
-            "timeout": request.timeout,
-            "limit": request.limit,
-            "schema": request.schema_name,
-        },
+        "Starting SQL execution: database_id=%s, timeout=%s, limit=%s, schema=%s"
+        % (request.database_id, request.timeout, request.limit, request.schema_name)
     )
 
     # Log SQL query details (truncated for security)
     sql_preview = request.sql[:100] + "..." if len(request.sql) > 100 else request.sql
     await ctx.debug(
-        "SQL query details",
-        extra={
-            "sql_preview": sql_preview,
-            "sql_length": len(request.sql),
-            "has_parameters": bool(request.parameters),
-        },
+        "SQL query details: sql_preview=%r, sql_length=%s, has_parameters=%s"
+        % (
+            sql_preview,
+            len(request.sql),
+            bool(request.parameters),
+        )
     )
 
     logger.info("Executing SQL query on database ID: %s", request.database_id)
@@ -96,23 +73,25 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         if hasattr(result, "data") and result.data:
             row_count = len(result.data) if isinstance(result.data, list) else 1
             await ctx.info(
-                "SQL execution completed successfully",
-                extra={
-                    "rows_returned": row_count,
-                    "query_duration_ms": getattr(result, "query_duration_ms", None),
-                },
+                "SQL execution completed successfully: rows_returned=%s, "
+                "query_duration_ms=%s"
+                % (
+                    row_count,
+                    getattr(result, "query_duration_ms", None),
+                )
             )
         else:
-            await ctx.info(
-                "SQL execution completed", extra={"status": "no_data_returned"}
-            )
+            await ctx.info("SQL execution completed: status=no_data_returned")
 
         return result
 
     except Exception as e:
         await ctx.error(
-            "SQL execution failed",
-            extra={"error": str(e), "database_id": request.database_id},
+            "SQL execution failed: error=%s, database_id=%s"
+            % (
+                str(e),
+                request.database_id,
+            )
         )
         raise
 
@@ -122,19 +101,9 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:
-    """
-    Generate a URL to open SQL Lab with pre-populated context.
+    """Generate SQL Lab URL with pre-populated query and context.
 
-    This tool creates a SQL Lab URL with the specified database connection,
-    schema, dataset context, and SQL query. The URL can be used to directly
-    navigate users to a pre-configured SQL Lab session.
-
-    Args:
-        request: OpenSqlLabRequest with database_connection_id, schema,
-                dataset_in_context, and sql parameters
-
-    Returns:
-        SqlLabResponse with the generated URL and context information
+    Returns URL for direct navigation.
     """
     try:
         from superset.daos.database import DatabaseDAO

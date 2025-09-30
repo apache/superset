@@ -236,22 +236,9 @@ _instance_info_core = InstanceInfoCore(
 def get_superset_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:
-    """
-    Get comprehensive high-level information about the Superset instance.
+    """Get Superset instance statistics.
 
-    Uses a configurable InstanceInfoCore to gather statistics including:
-    - Basic entity counts (dashboards, charts, datasets, etc.)
-    - Recent activity metrics across multiple time windows
-    - Dashboard status breakdown (published, certified, etc.)
-    - Database type distribution
-    - Popular content analysis
-
-    This tool uses system-level metadata caching for performance. The data
-    is typically cached and refreshed automatically by Superset's background
-    processes.
-
-    Returns:
-        InstanceInfo: Comprehensive instance statistics and metadata
+    Returns counts, activity metrics, and database types.
     """
     try:
         # Import DAOs at runtime to avoid circular imports

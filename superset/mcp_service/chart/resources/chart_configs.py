@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.resource("superset://chart/configs")
 @mcp_auth_hook
-async def get_chart_configs_resource() -> str:
+def get_chart_configs_resource() -> str:
     """
     Provide valid ChartConfig examples that match the exact schema.
 

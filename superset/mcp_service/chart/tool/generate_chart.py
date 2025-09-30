@@ -70,99 +70,30 @@ def _has_dataset_access(dataset: Any) -> bool:
 @mcp.tool
 @mcp_auth_hook
 async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[str, Any]:  # noqa: C901
-    """
-    l    Create and SAVE a new chart in Superset with enhanced validation and
-    security features.
+    """Create and save a chart in Superset.
 
-        This tool creates a permanent chart in Superset with comprehensive 5-layer
-        validation
-        pipeline to prevent common errors and security issues identified in testing:
-
-        SECURITY FEATURES (CRITICAL):
-        - Input sanitization prevents XSS attacks (HTML/script tag filtering)
-        - SQL injection protection for column names and filter values
-        - Malicious content detection and rejection
-
-        VALIDATION LAYERS:
-        1. Pydantic Schema Validation - Type checking and required field validation
-        2. Business Logic Validation - Cache parameters, preview formats, structure
-        3. Dataset Schema Validation - Column existence, fuzzy matching suggestions
-        4. Superset Compatibility - Label conflicts, naming restrictions
-        5. Runtime Preview Validation - Form data generation and empty chart detection
-
-        ENHANCED ERROR HANDLING:
-        - Context-aware error messages instead of generic Pydantic errors
-        - Specific suggestions for missing fields (e.g., "Missing 'y' field for XY
-        charts")
-        - Aggregate function validation with type compatibility checking
-        - Dataset column suggestions using fuzzy matching
-        - Clear distinction between table and XY chart requirements
-
-        IMPORTANT FOR LLM CLIENTS:
-        - ALWAYS display the returned chart URL (e.g., "Chart created! View at: {url}")
-        - When preview_url is returned, embed it as an image: ![Chart Preview](
-        preview_url)
-        - Display the explore_url for users to edit the chart interactively
-        - Check the 'error' field for validation failures with detailed suggestions
-
-        Enhanced features:
-        - Generates chart preview images for embedding in LLM conversations
-        - Returns explore URL for interactive editing after creation
-        - Supports multiple preview formats (url, ascii, table)
-        - Rich semantic analysis and capabilities metadata
-        - Enhanced form_data caching for better explore experience
-        - Comprehensive error handling with contextual suggestions
-
-        Default behavior (save_chart=True):
-        - Permanently saves chart in Superset after validation
-        - Generates preview images
-        - Returns chart ID and metadata
-        - Provides explore URL for further editing
-
-        Optional behavior (save_chart=False):
-        - Creates temporary visualization only after validation
-        - Caches configuration server-side
-        - Returns preview + explore link
-        - No permanent chart saved
-
-        COMMON ERRORS PREVENTED:
-        - Security: Script injection in labels ("<script>alert('xss')</script>" now
-        rejected)
-        - Validation: Invalid aggregation functions ("INVALID_AGG" caught at schema
-        level)
-        - Runtime: Empty Y-axis arrays that create meaningless charts (detected early)
-        - Runtime: Empty column arrays that display no data (pre-validated)
-        - Business Logic: Negative cache timeouts (validated before processing)
-        - Dataset: Column/aggregate type mismatches (compatibility checked)
-        - User Experience: Generic "'table' was expected" errors (now context-specific)
-
-        Args:
-            request: Chart creation request with dataset_id, config, save_chart flag,
-                and preview options
-
-        Returns:
-            Response with saved chart info, preview images, explore URL, or detailed
-            error info
+    Validates config, executes query, returns chart ID and preview URL.
     """
     start_time = time.time()
     await ctx.info(
-        "Starting chart generation",
-        extra={
-            "dataset_id": request.dataset_id,
-            "chart_type": request.config.chart_type,
-            "save_chart": request.save_chart,
-            "preview_formats": request.preview_formats,
-        },
+        "Starting chart generation: dataset_id=%s, chart_type=%s, "
+        "save_chart=%s, preview_formats=%s"
+        % (
+            request.dataset_id,
+            request.config.chart_type,
+            request.save_chart,
+            request.preview_formats,
+        )
     )
     await ctx.debug(
-        "Chart configuration details", extra={"config": request.config.model_dump()}
+        "Chart configuration details: config=%s" % (request.config.model_dump(),)
     )
 
     try:
         # Run comprehensive validation pipeline
         await ctx.report_progress(1, 5, "Running validation pipeline")
         await ctx.debug(
-            "Validating chart request", extra={"dataset_id": request.dataset_id}
+            "Validating chart request: dataset_id=%s" % (request.dataset_id,)
         )
         from superset.mcp_service.chart.validation import ValidationPipeline
 
@@ -176,8 +107,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
             execution_time = int((time.time() - start_time) * 1000)
             assert validation_error is not None  # Type narrowing for mypy
             await ctx.error(
-                "Chart validation failed",
-                extra={"error": validation_error.model_dump()},
+                "Chart validation failed: error=%s" % (validation_error.model_dump(),)
             )
             return {
                 "chart": None,
@@ -207,14 +137,12 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
 
             # Generate a chart name
             chart_name = generate_chart_name(request.config)
-            await ctx.debug("Generated chart name", extra={"chart_name": chart_name})
+            await ctx.debug("Generated chart name: chart_name=%s" % (chart_name,))
 
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
 
-            await ctx.debug(
-                "Looking up dataset", extra={"dataset_id": request.dataset_id}
-            )
+            await ctx.debug("Looking up dataset: dataset_id=%s" % (request.dataset_id,))
             dataset = None
             if isinstance(request.dataset_id, int) or (
                 isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
@@ -247,7 +175,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
 
             if not dataset:
                 await ctx.error(
-                    "Dataset not found", extra={"dataset_id": request.dataset_id}
+                    "Dataset not found: dataset_id=%s" % (request.dataset_id,)
                 )
                 from superset.mcp_service.common.error_schemas import (
                     ChartGenerationError,
@@ -306,15 +234,18 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
                         raise Exception("Chart creation failed - no chart ID returned")
 
                     await ctx.info(
-                        "Chart created successfully",
-                        extra={"chart_id": chart.id, "chart_name": chart.slice_name},
+                        "Chart created successfully: chart_id=%s, chart_name=%s"
+                        % (
+                            chart.id,
+                            chart.slice_name,
+                        )
                     )
                     # Transaction will be committed automatically on success
 
             except Exception as e:
                 # Transaction will be rolled back automatically on exception
                 logger.error("Chart creation failed, transaction rolled back: %s", e)
-                await ctx.error("Chart creation failed", extra={"error": str(e)})
+                await ctx.error("Chart creation failed: error=%s" % (str(e),))
                 raise
             # Update explore URL to use saved chart
             explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
@@ -324,9 +255,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
             explore_url = generate_explore_link(request.dataset_id, form_data)
-            await ctx.debug(
-                "Generated explore link", extra={"explore_url": explore_url}
-            )
+            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
             # Extract form_data_key from the explore URL
             if "form_data_key=" in explore_url:
@@ -361,12 +290,12 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
         previews = {}
         if request.generate_preview:
             await ctx.debug(
-                "Generating previews", extra={"formats": request.preview_formats}
+                "Generating previews: formats=%s" % (str(request.preview_formats),)
             )
             try:
                 for format_type in request.preview_formats:
                     await ctx.debug(
-                        "Processing preview format", extra={"format": format_type}
+                        "Processing preview format: format=%s" % (format_type,)
                     )
                     # Skip base64 format - we never return base64
                     if format_type == "base64":
@@ -436,7 +365,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
 
             except Exception as e:
                 # Log warning but don't fail the entire request
-                await ctx.warning("Preview generation failed", extra={"error": str(e)})
+                await ctx.warning("Preview generation failed: error=%s" % (str(e),))
                 logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data while maintaining backward compatibility
@@ -487,21 +416,21 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
         }
         await ctx.report_progress(5, 5, "Chart generation completed")
         await ctx.info(
-            "Chart generation completed successfully",
-            extra={
-                "chart_id": chart.id if chart else None,
-                "execution_time_ms": int((time.time() - start_time) * 1000),
-            },
+            "Chart generation completed successfully: chart_id=%s, execution_time_ms=%s"
+            % (
+                chart.id if chart else None,
+                int((time.time() - start_time) * 1000),
+            )
         )
         return result
 
     except Exception as e:
         await ctx.error(
-            "Chart generation failed",
-            extra={
-                "error": str(e),
-                "execution_time_ms": int((time.time() - start_time) * 1000),
-            },
+            "Chart generation failed: error=%s, execution_time_ms=%s"
+            % (
+                str(e),
+                int((time.time() - start_time) * 1000),
+            )
         )
         from superset.mcp_service.utils.error_builder import ChartErrorBuilder
 

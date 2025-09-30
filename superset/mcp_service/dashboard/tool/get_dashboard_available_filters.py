@@ -24,11 +24,7 @@ logger = logging.getLogger(__name__)
 def get_dashboard_available_filters(
     request: GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:
-    """
-    Get information about available dashboard filters and their operators
-    Returns:
-        DashboardAvailableFilters
-    """
+    """Get available dashboard filter fields and operators."""
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelGetAvailableFiltersCore(

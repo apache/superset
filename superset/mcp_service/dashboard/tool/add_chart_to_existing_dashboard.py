@@ -140,18 +140,8 @@ def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
     """
-    Add a chart to an existing dashboard.
-
-    This tool adds the specified chart to an existing dashboard, automatically
-    positioning it in the layout. The chart will be placed in the next
-    available position using a 2-column grid layout.
-
-    Args:
-        request: AddChartToDashboardRequest with dashboard_id, chart_id, and
-                optional target_tab
-
-    Returns:
-        AddChartToDashboardResponse with updated dashboard info and position
+    Add chart to existing dashboard. Auto-positions in 2-column grid.
+    Returns updated dashboard info.
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand

@@ -16,7 +16,7 @@
 # under the License.
 
 """
-Tests for the new list_datasets request schema
+Tests for the list_charts request schema
 """
 
 from unittest.mock import Mock, patch
@@ -26,10 +26,10 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.dataset.schemas import (
-    DatasetFilter,
-    DatasetList,
-    ListDatasetsRequest,
+from superset.mcp_service.chart.schemas import (
+    ChartFilter,
+    ChartList,
+    ListChartsRequest,
 )
 
 
@@ -39,68 +39,73 @@ def mcp_server():
 
 
 @pytest.fixture
-def mock_dataset():
-    """Create a mock dataset object."""
-    dataset = Mock()
-    dataset.id = 1
-    dataset.table_name = "test_table"
-    dataset.schema = "public"
-    dataset.database = Mock()
-    dataset.database.database_name = "test_db"
-    dataset.description = "Test dataset"
-    dataset.changed_by_name = "admin"
-    dataset.changed_on = None
-    dataset.created_by_name = "admin"
-    dataset.created_on = None
-    dataset.tags = []
-    dataset.owners = []
-    dataset.columns = []
-    dataset.metrics = []
-    return dataset
+def mock_chart():
+    """Create a mock chart object."""
+    chart = Mock()
+    chart.id = 1
+    chart.slice_name = "test_chart"
+    chart.viz_type = "bar"
+    chart.datasource_name = "test_dataset"
+    chart.datasource_type = "table"
+    chart.description = "Test chart"
+    chart.url = "/chart/1"
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.tags = []
+    chart.owners = []
+    chart.uuid = "test-uuid-123"
+    chart.cache_timeout = None
+    chart.form_data = {}
+    chart.query_context = {}
+    return chart
 
 
-class TestListDatasetsRequestSchema:
-    """Test the ListDatasetsRequest schema validation."""
+class TestListChartsRequestSchema:
+    """Test the ListChartsRequest schema validation."""
 
     def test_default_request(self):
         """Test creating request with all defaults."""
-        request = ListDatasetsRequest()
+        request = ListChartsRequest()
 
         assert request.filters == []
         assert len(request.select_columns) > 0  # Has default columns
         assert "id" in request.select_columns
-        assert "table_name" in request.select_columns
+        assert "slice_name" in request.select_columns
         assert request.search is None
         assert request.order_column is None
-        assert request.order_direction == "desc"
+        assert request.order_direction == "asc"
         assert request.page == 1
         assert request.page_size == 10
 
     def test_request_with_filters(self):
         """Test creating request with filters."""
         filters = [
-            DatasetFilter(col="table_name", opr="sw", value="test"),
-            DatasetFilter(col="schema", opr="eq", value="public"),
+            ChartFilter(col="slice_name", opr="sw", value="test"),
+            ChartFilter(col="viz_type", opr="eq", value="bar"),
         ]
 
-        request = ListDatasetsRequest(filters=filters)
+        request = ListChartsRequest(filters=filters)
 
         assert len(request.filters) == 2
-        assert request.filters[0].col == "table_name"
+        assert request.filters[0].col == "slice_name"
         assert request.filters[0].opr.value == "sw"
         assert request.filters[0].value == "test"
 
     def test_request_with_custom_columns(self):
         """Test creating request with custom select columns."""
-        columns = ["id", "table_name", "description"]
+        columns = ["id", "slice_name", "description"]
 
-        request = ListDatasetsRequest(select_columns=columns)
+        request = ListChartsRequest(select_columns=columns)
 
         assert request.select_columns == columns
 
     def test_request_with_search_and_pagination(self):
         """Test creating request with search and pagination."""
-        request = ListDatasetsRequest(
+        request = ListChartsRequest(
             search="sample",
             order_column="created_on",
             order_direction="desc",
@@ -117,26 +122,26 @@ class TestListDatasetsRequestSchema:
     def test_invalid_order_direction(self):
         """Test that invalid order direction raises validation error."""
         with pytest.raises(ValueError, match="Input should be 'asc' or 'desc'"):
-            ListDatasetsRequest(order_direction="invalid")
+            ListChartsRequest(order_direction="invalid")
 
     def test_invalid_page_number(self):
         """Test that invalid page numbers raise validation errors."""
         with pytest.raises(ValueError, match="Input should be greater than 0"):
-            ListDatasetsRequest(page=0)
+            ListChartsRequest(page=0)
 
         with pytest.raises(ValueError, match="Input should be greater than 0"):
-            ListDatasetsRequest(page_size=0)
+            ListChartsRequest(page_size=0)
 
     def test_filter_validation(self):
         """Test that filter validation works correctly."""
         # Valid filter
-        valid_filter = DatasetFilter(col="table_name", opr="sw", value="test")
-        request = ListDatasetsRequest(filters=[valid_filter])
+        valid_filter = ChartFilter(col="slice_name", opr="sw", value="test")
+        request = ListChartsRequest(filters=[valid_filter])
         assert len(request.filters) == 1
 
         # Invalid filter - missing required fields
         with pytest.raises(ValueError, match="Field required"):
-            DatasetFilter(col="table_name")  # Missing opr and value
+            ChartFilter(col="slice_name")  # Missing opr and value
 
     def test_search_and_filters_conflict_validation(self):
         """Test that using both search and filters raises validation error."""
@@ -144,16 +149,16 @@ class TestListDatasetsRequestSchema:
             ValueError,
             match="Cannot use both 'search' and 'filters' parameters simultaneously",
         ):
-            ListDatasetsRequest(
+            ListChartsRequest(
                 search="sample",
-                filters=[DatasetFilter(col="table_name", opr="sw", value="test")],
+                filters=[ChartFilter(col="slice_name", opr="sw", value="test")],
             )
 
     def test_model_dump_serialization(self):
         """Test that the request serializes correctly for JSON."""
-        request = ListDatasetsRequest(
-            filters=[DatasetFilter(col="table_name", opr="sw", value="test")],
-            select_columns=["id", "table_name"],
+        request = ListChartsRequest(
+            filters=[ChartFilter(col="slice_name", opr="sw", value="test")],
+            select_columns=["id", "slice_name"],
             page=1,
             page_size=25,
         )
@@ -166,22 +171,20 @@ class TestListDatasetsRequestSchema:
         assert "search" in data
         assert "page" in data
         assert "page_size" in data
-        assert data["filters"][0]["col"] == "table_name"
-        assert data["select_columns"] == ["id", "table_name"]
+        assert data["filters"][0]["col"] == "slice_name"
+        assert data["select_columns"] == ["id", "slice_name"]
 
 
-class TestListDatasetsToolIntegration:
-    """Test the list_datasets tool with the new schema."""
+class TestListChartsToolIntegration:
+    """Test the list_charts tool with the new schema."""
 
     @patch("superset.mcp_service.mcp_core.ModelListCore.run_tool")
     @pytest.mark.asyncio
-    async def test_list_datasets_basic_request(
-        self, mock_run, mock_dataset, mcp_server
-    ):
-        """Test list_datasets tool with basic request."""
+    async def test_list_charts_basic_request(self, mock_run, mock_chart, mcp_server):
+        """Test list_charts tool with basic request."""
         # Mock the tool response
-        mock_run.return_value = DatasetList(
-            datasets=[],
+        mock_run.return_value = ChartList(
+            charts=[],
             count=0,
             total_count=0,
             page=0,
@@ -191,24 +194,24 @@ class TestListDatasetsToolIntegration:
             has_next=False,
         )
 
-        request = ListDatasetsRequest()
+        request = ListChartsRequest()
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "list_datasets", {"request": request.model_dump()}
+                "list_charts", {"request": request.model_dump()}
             )
 
-            assert result.data.datasets == []
+            assert result.data.charts == []
             assert result.data.count == 0
             mock_run.assert_called_once()
 
     @patch("superset.mcp_service.mcp_core.ModelListCore.run_tool")
     @pytest.mark.asyncio
-    async def test_list_datasets_with_filters(self, mock_run, mock_dataset, mcp_server):
-        """Test list_datasets tool with filters."""
+    async def test_list_charts_with_filters(self, mock_run, mock_chart, mcp_server):
+        """Test list_charts tool with filters."""
         # Mock the tool response
-        mock_run.return_value = DatasetList(
-            datasets=[],
+        mock_run.return_value = ChartList(
+            charts=[],
             count=0,
             total_count=0,
             page=0,
@@ -218,16 +221,16 @@ class TestListDatasetsToolIntegration:
             has_next=False,
         )
 
-        request = ListDatasetsRequest(
-            filters=[DatasetFilter(col="table_name", opr="sw", value="test")],
-            select_columns=["id", "table_name", "schema"],
+        request = ListChartsRequest(
+            filters=[ChartFilter(col="slice_name", opr="sw", value="test")],
+            select_columns=["id", "slice_name", "viz_type"],
             page=1,
             page_size=50,
         )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "list_datasets", {"request": request.model_dump()}
+                "list_charts", {"request": request.model_dump()}
             )
 
             assert result.data.page_size == 50
@@ -243,10 +246,10 @@ class TestListDatasetsToolIntegration:
 
     @patch("superset.mcp_service.mcp_core.ModelListCore.run_tool")
     @pytest.mark.asyncio
-    async def test_list_datasets_complex_filters(self, mock_run, mcp_server):
-        """Test list_datasets with complex filter combinations."""
-        mock_run.return_value = DatasetList(
-            datasets=[],
+    async def test_list_charts_complex_filters(self, mock_run, mcp_server):
+        """Test list_charts with complex filter combinations."""
+        mock_run.return_value = ChartList(
+            charts=[],
             count=0,
             total_count=0,
             page=0,
@@ -256,11 +259,11 @@ class TestListDatasetsToolIntegration:
             has_next=False,
         )
 
-        request = ListDatasetsRequest(
+        request = ListChartsRequest(
             filters=[
-                DatasetFilter(col="table_name", opr="sw", value="sample"),
-                DatasetFilter(col="schema", opr="eq", value="public"),
-                DatasetFilter(col="owner", opr="in", value=[1, 2, 3]),
+                ChartFilter(col="slice_name", opr="sw", value="sample"),
+                ChartFilter(col="viz_type", opr="eq", value="bar"),
+                ChartFilter(col="datasource_name", opr="in", value=["ds1", "ds2"]),
             ],
             order_column="created_on",
             order_direction="desc",
@@ -268,7 +271,7 @@ class TestListDatasetsToolIntegration:
 
         async with Client(mcp_server) as client:
             await client.call_tool(  # noqa: F841
-                "list_datasets", {"request": request.model_dump()}
+                "list_charts", {"request": request.model_dump()}
             )
 
             mock_run.assert_called_once()
@@ -278,11 +281,11 @@ class TestListDatasetsToolIntegration:
             assert call_args.kwargs["order_direction"] == "desc"
 
     @pytest.mark.asyncio
-    async def test_list_datasets_invalid_request(self, mcp_server):
+    async def test_list_charts_invalid_request(self, mcp_server):
         """Test that invalid requests are properly rejected."""
         # Test with invalid filter structure
         invalid_request = {
-            "filters": [{"col": "table_name"}],  # Missing required opr and value
+            "filters": [{"col": "slice_name"}],  # Missing required opr and value
             "select_columns": ["id"],
         }
 
@@ -290,14 +293,14 @@ class TestListDatasetsToolIntegration:
             with pytest.raises(
                 fastmcp.exceptions.ToolError, match="Input validation error"
             ):
-                await client.call_tool("list_datasets", {"request": invalid_request})
+                await client.call_tool("list_charts", {"request": invalid_request})
 
     @patch("superset.mcp_service.mcp_core.ModelListCore.run_tool")
     @pytest.mark.asyncio
-    async def test_list_datasets_edge_cases(self, mock_run, mcp_server):
+    async def test_list_charts_edge_cases(self, mock_run, mcp_server):
         """Test edge cases for pagination and limits."""
-        mock_run.return_value = DatasetList(
-            datasets=[],
+        mock_run.return_value = ChartList(
+            charts=[],
             count=0,
             total_count=0,
             page=0,
@@ -308,11 +311,11 @@ class TestListDatasetsToolIntegration:
         )
 
         # Test minimum values
-        request = ListDatasetsRequest(page=1, page_size=1)
+        request = ListChartsRequest(page=1, page_size=1)
 
         async with Client(mcp_server) as client:
             await client.call_tool(  # noqa: F841
-                "list_datasets", {"request": request.model_dump()}
+                "list_charts", {"request": request.model_dump()}
             )
 
             mock_run.assert_called_once()
@@ -323,14 +326,14 @@ class TestListDatasetsToolIntegration:
     def test_backwards_compatibility_concerns(self):
         """Test that the new schema maintains expected behavior."""
         # Verify default columns include the most commonly used ones
-        request = ListDatasetsRequest()
+        request = ListChartsRequest()
         default_columns = request.select_columns
 
         expected_columns = [
             "id",
-            "table_name",
-            "schema",
-            "database_name",
+            "slice_name",
+            "viz_type",
+            "datasource_name",
             "changed_by_name",
             "changed_on",
             "created_by_name",
@@ -342,7 +345,7 @@ class TestListDatasetsToolIntegration:
 
     def test_schema_documentation(self):
         """Test that schema has proper documentation."""
-        schema = ListDatasetsRequest.model_json_schema()
+        schema = ListChartsRequest.model_json_schema()
 
         assert "properties" in schema
         assert "filters" in schema["properties"]

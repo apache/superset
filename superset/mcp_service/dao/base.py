@@ -34,7 +34,7 @@ class DAO(Protocol):
         order_column: str = "changed_on",
         order_direction: str = "desc",
         page: int = 0,
-        page_size: int = 100,
+        page_size: int = 10,
         search: Optional[str] = None,
         search_columns: Optional[List[str]] = None,
         custom_filters: Optional[Dict[str, Any]] = None,

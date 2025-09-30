@@ -246,7 +246,7 @@ class ListDashboardsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=100, description="Number of items per page")
+        PositiveInt, Field(default=10, description="Number of items per page")
     ]
 
     @model_validator(mode="after")
