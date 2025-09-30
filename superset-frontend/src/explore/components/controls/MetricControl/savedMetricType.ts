@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { savedMetricType } from './types';
+import PropTypes from 'prop-types';
 
-// For backward compatibility with PropTypes usage
-export { savedMetricType as default } from './types';
+export type { savedMetricType } from './types';
+
+// PropTypes definition for JavaScript files
+const savedMetricTypePropTypes = PropTypes.shape({
+  metric_name: PropTypes.string.isRequired,
+  verbose_name: PropTypes.string,
+  expression: PropTypes.string,
+});
+
+// Export as default for backward compatibility with JavaScript files
+export default savedMetricTypePropTypes;

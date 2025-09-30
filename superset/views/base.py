@@ -27,9 +27,7 @@ from babel import Locale
 from flask import (
     abort,
     current_app as app,
-    flash,
     g,
-    get_flashed_messages,
     redirect,
     Response,
     session,
@@ -120,6 +118,7 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_QUERY_RESULT_TIMEOUT",
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
+    "MAPBOX_API_KEY",
 )
 
 logger = logging.getLogger(__name__)
@@ -489,6 +488,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
             "EXTRA_CATEGORICAL_COLOR_SCHEMES"
         ],
         "menu_data": menu_data(g.user),
+        "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
@@ -498,10 +498,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
-    return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
-        "flash_messages": get_flashed_messages(with_categories=True),
-    }
+    return cached_common_bootstrap_data(utils.get_user_id(), get_locale())
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -596,7 +593,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         try:
             self.pre_delete(item)
         except Exception as ex:  # pylint: disable=broad-except
-            flash(str(ex), "danger")
+            logger.error("Pre-delete error: %s", str(ex))
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
@@ -616,7 +613,6 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
 
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
-            flash(*self.datamodel.message)
             self.update_redirect()
 
     @action(
@@ -629,7 +625,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
             try:
                 self.pre_delete(item)
             except Exception as ex:  # pylint: disable=broad-except
-                flash(str(ex), "danger")
+                logger.error("Pre-delete error: %s", str(ex))
             else:
                 self._delete(item.id)
         self.update_redirect()

@@ -26,7 +26,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   Filter,
-  GenericDataType,
   getChartMetadataRegistry,
   JsonResponse,
   NativeFilterType,
@@ -39,6 +38,7 @@ import {
   css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isEqual } from 'lodash';
 import {
   forwardRef,

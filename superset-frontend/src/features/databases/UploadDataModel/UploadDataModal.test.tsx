@@ -124,6 +124,7 @@ const expectElementsNotVisible = (elements: any[]) => {
   });
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - General Information Elements', () => {
   test('CSV renders correctly', () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
@@ -212,6 +213,7 @@ describe('UploadDataModal - General Information Elements', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - File Settings Elements', () => {
   const openFileSettings = async () => {
     const panelHeader = screen.getByText(/file settings/i);
@@ -290,6 +292,7 @@ describe('UploadDataModal - File Settings Elements', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Columns Elements', () => {
   const openColumns = async () => {
     const panelHeader = screen.getByText(/columns/i, { selector: 'strong' });
@@ -359,6 +362,7 @@ describe('UploadDataModal - Columns Elements', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Rows Elements', () => {
   test('CSV/Excel rows render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
@@ -383,6 +387,7 @@ describe('UploadDataModal - Rows Elements', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Database and Schema Population', () => {
   test('database and schema are correctly populated', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
@@ -412,6 +417,7 @@ describe('UploadDataModal - Database and Schema Population', () => {
   }, 60000);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Form Validation', () => {
   test('form validation without required fields', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
@@ -431,6 +437,7 @@ describe('UploadDataModal - Form Validation', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Form Submission', () => {
   // Helper function to fill out form
   const fillForm = async (
@@ -508,6 +515,7 @@ describe('UploadDataModal - Form Submission', () => {
   }, 60000);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('File Extension Validation', () => {
   const createTestFile = (fileName: string) => ({
     name: fileName,
@@ -516,6 +524,7 @@ describe('File Extension Validation', () => {
     type: 'text/csv',
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CSV validation', () => {
     test('returns false for invalid extensions', () => {
       const invalidFiles = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
@@ -536,6 +545,7 @@ describe('File Extension Validation', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Excel validation', () => {
     test('returns false for invalid extensions', () => {
       const invalidFiles = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
@@ -562,6 +572,7 @@ describe('File Extension Validation', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Columnar validation', () => {
     test('returns false for invalid extensions', () => {
       const invalidFiles = [
@@ -600,8 +611,9 @@ describe('File Extension Validation', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal Collapse Tabs', () => {
-  it('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
+  test('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...csvProps} />, {
       useRedux: true,
     });
@@ -621,7 +633,7 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
+  test('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...excelProps} />, {
       useRedux: true,
     });
@@ -641,7 +653,7 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
+  test('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...columnarProps} />, {
       useRedux: true,
     });

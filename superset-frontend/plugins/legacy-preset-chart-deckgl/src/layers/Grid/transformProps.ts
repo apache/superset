@@ -16,5 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';
-export type FlashMessage = [FlashMessageType, string];
+import { ChartProps } from '@superset-ui/core';
+import { transformSpatialProps } from '../spatialUtils';
+
+export default function transformProps(chartProps: ChartProps) {
+  return transformSpatialProps(chartProps);
+}

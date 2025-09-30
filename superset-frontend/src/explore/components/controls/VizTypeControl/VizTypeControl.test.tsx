@@ -86,6 +86,7 @@ const getTestId = testWithId<string>(VIZ_TYPE_CONTROL_TEST_ID, true);
  * on and prevents those warnings.
  */
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('VizTypeControl', () => {
   new MainPreset().register();
   const defaultProps = {
@@ -116,7 +117,7 @@ describe('VizTypeControl', () => {
     jest.clearAllMocks();
   });
 
-  it('Fast viz switcher tiles render', async () => {
+  test('Fast viz switcher tiles render', async () => {
     const props = {
       ...defaultProps,
       value: VizType.Line,
@@ -151,7 +152,7 @@ describe('VizTypeControl', () => {
     ).toBeInTheDocument();
   });
 
-  it('Render viz tiles when non-featured chart is selected', async () => {
+  test('Render viz tiles when non-featured chart is selected', async () => {
     const props = {
       ...defaultProps,
       value: 'line',
@@ -165,7 +166,7 @@ describe('VizTypeControl', () => {
     ).toBeVisible();
   });
 
-  it('Render viz tiles when non-featured is rendered', async () => {
+  test('Render viz tiles when non-featured is rendered', async () => {
     const props = {
       ...defaultProps,
       value: VizType.Sankey,
@@ -192,7 +193,7 @@ describe('VizTypeControl', () => {
     ).toBeVisible();
   });
 
-  it('Change viz type on click', async () => {
+  test('Change viz type on click', async () => {
     const props = {
       ...defaultProps,
       value: VizType.Line,
@@ -209,7 +210,7 @@ describe('VizTypeControl', () => {
     expect(props.onChange).toHaveBeenCalledWith('table');
   });
 
-  it('Open viz gallery modal on "View all charts" click', async () => {
+  test('Open viz gallery modal on "View all charts" click', async () => {
     await waitForRenderWrapper({ ...defaultProps, isModalOpenInit: false });
     expect(
       screen.queryByText('Select a visualization type'),
@@ -220,7 +221,7 @@ describe('VizTypeControl', () => {
     ).toBeInTheDocument();
   });
 
-  it('Search visualization type', async () => {
+  test('Search visualization type', async () => {
     await waitForRenderWrapper();
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
@@ -248,7 +249,7 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('Submit on viz type double-click', async () => {
+  test('Submit on viz type double-click', async () => {
     await waitForRenderWrapper();
     userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
@@ -260,7 +261,7 @@ describe('VizTypeControl', () => {
     expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.Line);
   });
 
-  it('Search input is focused when modal opens', async () => {
+  test('Search input is focused when modal opens', async () => {
     // Mock the focus method to track if it was called
     const focusSpy = jest.fn();
     const originalFocus = HTMLInputElement.prototype.focus;
@@ -278,7 +279,7 @@ describe('VizTypeControl', () => {
     HTMLInputElement.prototype.focus = originalFocus;
   });
 
-  it('Navigate categories and select visualization type', async () => {
+  test('Navigate categories and select visualization type', async () => {
     await waitForRenderWrapper();
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
@@ -308,7 +309,7 @@ describe('VizTypeControl', () => {
     expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.BigNumberTotal);
   });
 
-  it('Handle category switching between different chart types', async () => {
+  test('Handle category switching between different chart types', async () => {
     await waitForRenderWrapper();
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));

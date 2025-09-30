@@ -16,25 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
-  "env": {
-    "jest/globals": true
-  },
-  "settings": {
-    "jest": {
-      "version": "detect"
-    }
-  },
-  "extends": [
-    "plugin:jest/recommended",
-    "plugin:jest-dom/recommended",
-    "plugin:testing-library/react"
-  ],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "jest/consistent-test-it": "error",
-    "no-only-tests/no-only-tests": "error",
-    "prefer-promise-reject-errors": 0
-  }
+import { SpatialFormData, buildSpatialQuery } from '../spatialUtils';
+
+export interface DeckContourFormData extends SpatialFormData {
+  cellSize?: string;
+  aggregation?: string;
+  contours?: Array<{
+    color: { r: number; g: number; b: number };
+    lowerThreshold: number;
+    upperThreshold?: number;
+    strokeWidth?: number;
+  }>;
+}
+
+export default function buildQuery(formData: DeckContourFormData) {
+  return buildSpatialQuery(formData);
 }

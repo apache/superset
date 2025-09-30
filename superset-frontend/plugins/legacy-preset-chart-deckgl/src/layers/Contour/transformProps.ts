@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { transformSpatialProps } from '../spatialUtils';
 
-export { default as DrillDetailMenuItems } from './DrillDetailMenuItems';
-export { useDrillDetailMenuItems } from './useDrillDetailMenuItems';
+export default transformSpatialProps;

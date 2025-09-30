@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "settings": {
-    "import/resolver": {
-      "typescript": {}
-    }
-  }
+import { ChartProps } from '@superset-ui/core';
+import { transformSpatialProps } from '../spatialUtils';
+
+export default function transformProps(chartProps: ChartProps) {
+  return transformSpatialProps(chartProps);
 }
