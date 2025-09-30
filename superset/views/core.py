@@ -28,7 +28,6 @@ from urllib import parse
 from flask import (
     abort,
     current_app as app,
-    flash,
     g,
     redirect,
     request,
@@ -779,10 +778,6 @@ class Superset(BaseSupersetView):
                 encoded_query = parse.urlencode(query, doseq=True)
                 redirect_url = parse.urlunparse(
                     parsed._replace(query=encoded_query)
-                )
-                flash(
-                    _("Users must be logged in to view this dashboard."),
-                    "danger",
                 )
                 return redirect(redirect_url)
 
