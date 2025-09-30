@@ -170,8 +170,8 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
       
       /* Chrome/Safari/Edge webkit scrollbar styling */
       &::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: ${theme.sizeUnit * 2}px;
+        height: ${theme.sizeUnit * 2}px;
       }
       
       &::-webkit-scrollbar-track {
@@ -180,7 +180,7 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
       
       &::-webkit-scrollbar-thumb {
         background: ${theme.colorFillSecondary};
-        border-radius: 4px;
+        border-radius: ${theme.sizeUnit}px;
         
         &:hover {
           background: ${theme.colorFillTertiary};
