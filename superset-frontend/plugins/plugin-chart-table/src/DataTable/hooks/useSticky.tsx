@@ -30,6 +30,7 @@ import {
   UIEventHandler,
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
+import { useTheme, css } from '@superset-ui/core';
 import getScrollBarSize from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
@@ -125,6 +126,8 @@ function StickyWrap({
   children: Table;
   sticky?: StickyState; // current sticky element sizes
 }) {
+  const theme = useTheme();
+  
   if (!table || table.type !== 'table') {
     throw new Error('<StickyWrap> must have only one <table> element as child');
   }
@@ -233,6 +236,25 @@ function StickyWrap({
           visibility: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        css={css`
+          &::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          &::-webkit-scrollbar-track {
+            background: ${theme.colorFillQuaternary};
+          }
+          &::-webkit-scrollbar-thumb {
+            background: ${theme.colorFillSecondary};
+            border-radius: 4px;
+            &:hover {
+              background: ${theme.colorFillTertiary};
+            }
+          }
+          &::-webkit-scrollbar-corner {
+            background: ${theme.colorFillQuaternary};
+          }
+        `}
         role="presentation"
       >
         {cloneElement(
@@ -316,6 +338,25 @@ function StickyWrap({
           overflow: 'auto',
           scrollbarGutter: 'stable',
         }}
+        css={css`
+          &::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          &::-webkit-scrollbar-track {
+            background: ${theme.colorFillQuaternary};
+          }
+          &::-webkit-scrollbar-thumb {
+            background: ${theme.colorFillSecondary};
+            border-radius: 4px;
+            &:hover {
+              background: ${theme.colorFillTertiary};
+            }
+          }
+          &::-webkit-scrollbar-corner {
+            background: ${theme.colorFillQuaternary};
+          }
+        `}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
         role="presentation"
       >
