@@ -766,7 +766,10 @@ class Superset(BaseSupersetView):
             login_url = appbuilder.get_url_for_login
             parsed = parse.urlparse(login_url)
             query = parse.parse_qs(parsed.query, keep_blank_values=True)
-            query["next"] = [request.url]
+            next_target = (
+                request.full_path.rstrip("?") if request.query_string else request.path
+            )
+            query["next"] = [next_target]
             encoded_query = parse.urlencode(query, doseq=True)
             redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
             return redirect(redirect_url)
