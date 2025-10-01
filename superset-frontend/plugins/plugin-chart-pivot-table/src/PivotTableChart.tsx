@@ -62,8 +62,8 @@ const PivotTableWrapper = styled.div`
 
     /* Chrome/Safari/Edge webkit scrollbar styling */
     &::-webkit-scrollbar {
-      width: ${theme.sizeUnit * 2}px;
-      height: ${theme.sizeUnit * 2}px;
+      width: 8px;
+      height: 8px;
     }
 
     &::-webkit-scrollbar-track {
@@ -72,7 +72,7 @@ const PivotTableWrapper = styled.div`
 
     &::-webkit-scrollbar-thumb {
       background: ${theme.colorFillSecondary};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadiusSM}px;
 
       &:hover {
         background: ${theme.colorFillTertiary};

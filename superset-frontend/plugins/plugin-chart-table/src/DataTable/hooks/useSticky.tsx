@@ -234,7 +234,7 @@ function StickyWrap({
     }
     &::-webkit-scrollbar-thumb {
       background: ${theme.colorFillSecondary};
-      border-radius: 4px;
+      border-radius: ${theme.borderRadiusSM}px;
       &:hover {
         background: ${theme.colorFillTertiary};
       }
