@@ -643,6 +643,9 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_datasource.uid = "test_datasource"
     mock_datasource.cache_timeout = None
     mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.changed_on = None
 
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
@@ -691,11 +694,7 @@ def test_get_df_payload_validates_before_cache_key_generation():
                 mock_cache_manager.get.return_value = mock_cache
 
                 # Call get_df_payload
-                try:
-                    processor.get_df_payload(query_obj, force_cached=False)
-                except Exception:
-                    # We expect some errors due to mocking, but we only care about call order
-                    pass
+                processor.get_df_payload(query_obj, force_cached=False)
 
     # Verify validate was called before cache_key
     assert call_order == ["validate", "cache_key"], (

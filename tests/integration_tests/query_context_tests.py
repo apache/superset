@@ -273,22 +273,31 @@ class TestQueryContext(SupersetTestCase):
     def test_query_cache_key_consistent_with_different_sql_formatting(self):
         """
         Test that cache keys are consistent regardless of SQL clause formatting.
+
+        This test verifies the fix for the cache key mismatch issue where different
+        whitespace formatting in WHERE/HAVING clauses caused different cache keys
+        to be generated between server and worker processes.
         """
         # Create payload with compact WHERE clause
-        payload = get_query_context("birth_names")
-        payload["queries"][0]["extras"] = {"where": "(name = 'Amy')"}
+        payload1 = get_query_context("birth_names")
+        payload1["queries"][0]["extras"] = {"where": "(name = 'Amy')"}
 
-        query_context1 = ChartDataQueryContextSchema().load(payload)
-        query_object1 = query_context1.queries[0]
-        cache_key1 = query_context1.query_cache_key(query_object1)
+        query_context1 = ChartDataQueryContextSchema().load(payload1)
+        # Use get_df_payload which is the actual code path, not query_cache_key directly
+        result1 = query_context1.get_df_payload(
+            query_context1.queries[0], force_cached=False
+        )
+        cache_key1 = result1.get("cache_key")
 
         # Create same payload but with pretty-formatted WHERE clause (with newlines)
         payload2 = get_query_context("birth_names")
         payload2["queries"][0]["extras"] = {"where": "(\n  name = 'Amy'\n)"}
 
         query_context2 = ChartDataQueryContextSchema().load(payload2)
-        query_object2 = query_context2.queries[0]
-        cache_key2 = query_context2.query_cache_key(query_object2)
+        result2 = query_context2.get_df_payload(
+            query_context2.queries[0], force_cached=False
+        )
+        cache_key2 = result2.get("cache_key")
 
         # Cache keys should be identical after sanitization
         assert cache_key1 == cache_key2
@@ -298,15 +307,19 @@ class TestQueryContext(SupersetTestCase):
         payload3["queries"][0]["extras"] = {"having": "(sum__num > 100)"}
 
         query_context3 = ChartDataQueryContextSchema().load(payload3)
-        query_object3 = query_context3.queries[0]
-        cache_key3 = query_context3.query_cache_key(query_object3)
+        result3 = query_context3.get_df_payload(
+            query_context3.queries[0], force_cached=False
+        )
+        cache_key3 = result3.get("cache_key")
 
         payload4 = get_query_context("birth_names")
         payload4["queries"][0]["extras"] = {"having": "(\n  sum__num > 100\n)"}
 
         query_context4 = ChartDataQueryContextSchema().load(payload4)
-        query_object4 = query_context4.queries[0]
-        cache_key4 = query_context4.query_cache_key(query_object4)
+        result4 = query_context4.get_df_payload(
+            query_context4.queries[0], force_cached=False
+        )
+        cache_key4 = result4.get("cache_key")
 
         # Cache keys should be identical after sanitization
         assert cache_key3 == cache_key4
