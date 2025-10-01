@@ -260,7 +260,7 @@
     "@types/node": "^22.12.0",
     "@types/react": "^17.0.83",
     "@types/react-dom": "^17.0.26",
-    "@types/react-json-tree": "^0.6.11",
+    "@types/react-json-tree": "^0.13.0",
     "@types/react-loadable": "^5.5.11",
     "@types/react-redux": "^7.1.10",
     "@types/react-resizable": "^3.0.8",
