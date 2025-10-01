@@ -210,7 +210,7 @@ describe('dashboardState actions', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: true },
       });
-      
+
       postStub.restore();
       postStub = sinon.stub(SupersetClient, 'post').resolves({
         json: {
