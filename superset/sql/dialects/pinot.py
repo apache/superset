@@ -78,6 +78,12 @@ class Pinot(MySQL):
             exp.DataType.Type.UBIGINT: "UNSIGNED",
         }
 
+        TRANSFORMS = {
+            **MySQL.Generator.TRANSFORMS,
+        }
+        # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
+        TRANSFORMS.pop(exp.DateTrunc, None)
+
         def datatype_sql(self, expression: exp.DataType) -> str:
             # Don't use MySQL's VARCHAR size requirement logic
             # Just use TYPE_MAPPING for all types
@@ -95,3 +101,8 @@ class Pinot(MySQL):
                 return f"{type_sql} UNSIGNED{nested}"
 
             return f"{type_sql}{nested}"
+
+        def cast_sql(self, expression: exp.Cast, safe_prefix: str | None = None) -> str:
+            # Pinot doesn't support MySQL's TIMESTAMP() function
+            # Use standard CAST syntax instead
+            return super(MySQL.Generator, self).cast_sql(expression, safe_prefix)
