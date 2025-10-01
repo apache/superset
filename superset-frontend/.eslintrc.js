@@ -432,9 +432,9 @@ module.exports = {
       },
     ],
     'func-style': ['off', 'expression'],
-    'function-paren-newline': ['error', 'multiline-arguments'],
+    'function-paren-newline': 'off',
 
-    'implicit-arrow-linebreak': ['error', 'beside'],
+    'implicit-arrow-linebreak': 'off',
     'jsx-quotes': ['error', 'prefer-double'],
     'key-spacing': [
       'error',
@@ -609,15 +609,7 @@ module.exports = {
     'one-var': ['error', 'never'],
     'one-var-declaration-per-line': ['error', 'always'],
     'operator-assignment': ['error', 'always'],
-    'operator-linebreak': [
-      'error',
-      'before',
-      {
-        overrides: {
-          '=': 'none',
-        },
-      },
-    ],
+    'operator-linebreak': 'off',
 
     'quote-props': [
       'error',
@@ -789,7 +781,7 @@ module.exports = {
         requireReturnForObjectLiteral: false,
       },
     ],
-    'arrow-parens': ['error', 'always'],
+    'arrow-parens': 'off',
     'arrow-spacing': [
       'error',
       {
@@ -1881,9 +1873,9 @@ module.exports = {
           },
         ],
         'func-style': ['off', 'expression'],
-        'function-paren-newline': ['error', 'multiline-arguments'],
+        'function-paren-newline': 'off',
 
-        'implicit-arrow-linebreak': ['error', 'beside'],
+        'implicit-arrow-linebreak': 'off',
         'jsx-quotes': ['error', 'prefer-double'],
         'key-spacing': [
           'error',
@@ -2058,15 +2050,7 @@ module.exports = {
         'one-var': ['error', 'never'],
         'one-var-declaration-per-line': ['error', 'always'],
         'operator-assignment': ['error', 'always'],
-        'operator-linebreak': [
-          'error',
-          'before',
-          {
-            overrides: {
-              '=': 'none',
-            },
-          },
-        ],
+        'operator-linebreak': 'off',
 
         'quote-props': [
           'error',
@@ -2238,7 +2222,7 @@ module.exports = {
             requireReturnForObjectLiteral: false,
           },
         ],
-        'arrow-parens': ['error', 'always'],
+        'arrow-parens': 'off',
         'arrow-spacing': [
           'error',
           {
