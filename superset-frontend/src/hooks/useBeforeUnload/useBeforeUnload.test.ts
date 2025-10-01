@@ -19,6 +19,7 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { useBeforeUnload } from './index';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useBeforeUnload', () => {
   let addEventListenerSpy: jest.SpyInstance;
   let removeEventListenerSpy: jest.SpyInstance;

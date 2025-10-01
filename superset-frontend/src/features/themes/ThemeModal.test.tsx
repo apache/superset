@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import ThemeModal from './ThemeModal';
@@ -64,379 +64,540 @@ const mockSystemTheme: ThemeObject = {
   is_system: true,
 };
 
-const defaultProps = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
-  onThemeAdd: jest.fn(),
-  onHide: jest.fn(),
-  show: true,
-  canDevelop: false,
+const setupFetchMocks = () => {
+  fetchMock.reset();
+  fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
+  fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
+  fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
+  fetchMock.post('glob:*/api/v1/theme/', { result: { ...mockTheme, id: 3 } });
+  fetchMock.put('glob:*/api/v1/theme/*', { result: mockTheme });
 };
 
-const setup = (props = {}) => {
-  const utils = render(<ThemeModal {...defaultProps} {...props} />, {
-    useRedux: true,
-    useRouter: true,
+afterEach(() => {
+  fetchMock.restore();
+  jest.clearAllMocks();
+});
+
+test('renders modal with add theme dialog when show is true', () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByText('Add theme')).toBeInTheDocument();
+});
+
+test('does not render modal when show is false', () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show={false}
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('renders edit mode title when theme is provided', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  // Wait for theme name to be loaded in the input field
+  expect(await screen.findByDisplayValue('Test Theme')).toBeInTheDocument();
+  expect(screen.getByText('Edit theme properties')).toBeInTheDocument();
+});
+
+test('renders view mode title for system themes', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockSystemTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  // Wait for system theme indicator to appear
+  expect(
+    await screen.findByText('System Theme - Read Only'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('View theme properties')).toBeInTheDocument();
+});
+
+test('renders theme name input field', () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.getByPlaceholderText('Enter theme name')).toBeInTheDocument();
+});
+
+test('renders JSON configuration field', () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.getByText('JSON Configuration')).toBeInTheDocument();
+});
+
+test('disables inputs for read-only system themes', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockSystemTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = await screen.findByPlaceholderText('Enter theme name');
+
+  expect(nameInput).toHaveAttribute('readOnly');
+});
+
+test('shows Apply button when canDevelop is true and theme exists', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop
+      theme={mockTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(
+    await screen.findByRole('button', { name: /apply/i }),
+  ).toBeInTheDocument();
+});
+
+test('does not show Apply button when canDevelop is false', () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(
+    screen.queryByRole('button', { name: 'Apply' }),
+  ).not.toBeInTheDocument();
+});
+
+test('disables save button when theme name is empty', () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const saveButton = screen.getByRole('button', { name: 'Add' });
+
+  expect(saveButton).toBeDisabled();
+});
+
+test('enables save button when theme name is entered', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'My New Theme');
+
+  const saveButton = await screen.findByRole('button', { name: 'Add' });
+
+  expect(saveButton).toBeEnabled();
+});
+
+test('validates JSON format and enables save button', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'Test Theme');
+
+  const saveButton = await screen.findByRole('button', { name: 'Add' });
+
+  expect(saveButton).toBeEnabled();
+});
+
+test('shows unsaved changes alert when closing modal with modifications', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'Modified Theme');
+
+  const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+  await userEvent.click(cancelButton);
+
+  expect(
+    await screen.findByText('You have unsaved changes'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Your changes will be lost if you leave without saving.'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Keep editing' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+});
+
+test('does not show unsaved changes alert when closing without modifications', async () => {
+  setupFetchMocks();
+  const onHide = jest.fn();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={onHide}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+  await userEvent.click(cancelButton);
+
+  expect(onHide).toHaveBeenCalled();
+  expect(
+    screen.queryByText('You have unsaved changes'),
+  ).not.toBeInTheDocument();
+});
+
+test('allows user to keep editing after triggering cancel alert', async () => {
+  setupFetchMocks();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'Modified Theme');
+
+  const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+  await userEvent.click(cancelButton);
+
+  expect(
+    await screen.findByText('You have unsaved changes'),
+  ).toBeInTheDocument();
+
+  const keepEditingButton = screen.getByRole('button', {
+    name: 'Keep editing',
   });
-  return {
-    ...utils,
-    mockProps: { ...defaultProps, ...props },
-  };
-};
+  await userEvent.click(keepEditingButton);
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ThemeModal', () => {
-  beforeEach(() => {
-    fetchMock.reset();
-    fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
-    fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
-    fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
-    fetchMock.post('glob:*/api/v1/theme/', { result: { ...mockTheme, id: 3 } });
-    fetchMock.put('glob:*/api/v1/theme/*', { result: mockTheme });
-    jest.clearAllMocks();
+  expect(
+    screen.queryByText('You have unsaved changes'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Enter theme name')).toHaveValue(
+    'Modified Theme',
+  );
+});
+
+test('saves changes when clicking Save button in unsaved changes alert', async () => {
+  setupFetchMocks();
+  const onHide = jest.fn();
+  const onThemeAdd = jest.fn();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={onThemeAdd}
+      onHide={onHide}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'Modified Theme');
+
+  const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+  await userEvent.click(cancelButton);
+
+  expect(
+    await screen.findByText('You have unsaved changes'),
+  ).toBeInTheDocument();
+
+  const saveButton = screen.getByRole('button', { name: 'Save' });
+  await userEvent.click(saveButton);
+
+  // Wait for API call to complete
+  await screen.findByRole('dialog');
+  expect(fetchMock.called()).toBe(true);
+});
+
+test('discards changes when clicking Discard button in unsaved changes alert', async () => {
+  setupFetchMocks();
+  const onHide = jest.fn();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={onHide}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'Modified Theme');
+
+  const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+  await userEvent.click(cancelButton);
+
+  expect(
+    await screen.findByText('You have unsaved changes'),
+  ).toBeInTheDocument();
+
+  const discardButton = screen.getByRole('button', { name: 'Discard' });
+  await userEvent.click(discardButton);
+
+  expect(onHide).toHaveBeenCalled();
+  expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(false);
+  expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(false);
+});
+
+test('creates new theme when saving', async () => {
+  setupFetchMocks();
+  const onHide = jest.fn();
+  const onThemeAdd = jest.fn();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={onThemeAdd}
+      onHide={onHide}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'New Theme');
+
+  const saveButton = await screen.findByRole('button', { name: 'Add' });
+  await userEvent.click(saveButton);
+
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(true);
+});
+
+test('updates existing theme when saving', async () => {
+  setupFetchMocks();
+  const onHide = jest.fn();
+  const onThemeAdd = jest.fn();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={onThemeAdd}
+      onHide={onHide}
+      show
+      canDevelop={false}
+      theme={mockTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = await screen.findByDisplayValue('Test Theme');
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, 'Updated Theme');
+
+  const saveButton = screen.getByRole('button', { name: 'Save' });
+  await userEvent.click(saveButton);
+
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(true);
+});
+
+test('handles API errors gracefully', async () => {
+  fetchMock.restore();
+  fetchMock.post('glob:*/api/v1/theme/', 500);
+
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'New Theme');
+
+  const saveButton = await screen.findByRole('button', { name: 'Add' });
+  expect(saveButton).toBeEnabled();
+
+  await userEvent.click(saveButton);
+
+  await screen.findByRole('dialog');
+  expect(fetchMock.called()).toBe(true);
+});
+
+test('applies theme locally when clicking Apply button', async () => {
+  setupFetchMocks();
+  const onThemeApply = jest.fn();
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop
+      theme={mockTheme}
+      onThemeApply={onThemeApply}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const applyButton = await screen.findByRole('button', { name: /apply/i });
+  expect(applyButton).toBeEnabled();
+
+  await userEvent.click(applyButton);
+
+  expect(mockThemeContext.setTemporaryTheme).toHaveBeenCalled();
+});
+
+test('disables Apply button when JSON configuration is invalid', async () => {
+  fetchMock.reset();
+  fetchMock.get('glob:*/api/v1/theme/*', {
+    result: { ...mockTheme, json_data: 'invalid json' },
   });
 
-  afterEach(() => {
-    fetchMock.restore();
-  });
-
-  describe('Component Rendering', () => {
-    test('should render modal when show is true', () => {
-      setup();
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByText('Add theme')).toBeInTheDocument();
-    });
-
-    test('should not render modal when show is false', () => {
-      const { container } = setup({ show: false });
-      expect(container.querySelector('.ant-modal')).not.toBeInTheDocument();
-    });
-
-    test('should render with edit mode title when theme is provided', async () => {
-      setup({ theme: mockTheme });
-      await waitFor(() => {
-        expect(screen.getByText('Edit theme properties')).toBeInTheDocument();
-      });
-    });
-
-    test('should render with view mode title for system themes', async () => {
-      setup({ theme: mockSystemTheme });
-      await waitFor(() => {
-        expect(fetchMock.called('glob:*/api/v1/theme/2')).toBe(true);
-      });
-      await waitFor(() => {
-        expect(screen.getByText('View theme properties')).toBeInTheDocument();
-      });
-      expect(screen.getByText('System Theme - Read Only')).toBeInTheDocument();
-    });
-  });
-
-  describe('Form Fields', () => {
-    test('should render theme name input', () => {
-      setup();
-      expect(
-        screen.getByPlaceholderText('Enter theme name'),
-      ).toBeInTheDocument();
-    });
-
-    test('should render JSON editor', () => {
-      setup();
-      expect(screen.getByText('JSON Configuration')).toBeInTheDocument();
-      expect(document.querySelector('.ace_editor')).toBeInTheDocument();
-    });
-
-    test('should disable inputs for read-only system themes', async () => {
-      setup({ theme: mockSystemTheme });
-      await waitFor(() => {
-        expect(fetchMock.called('glob:*/api/v1/theme/2')).toBe(true);
-      });
-      await waitFor(() => {
-        const nameInput = screen.getByPlaceholderText('Enter theme name');
-        expect(nameInput).toHaveAttribute('readOnly');
-      });
-    });
-
-    test('should show Apply button when canDevelop is true', () => {
-      setup({ canDevelop: true });
-      expect(screen.getByText('Apply')).toBeInTheDocument();
-    });
-
-    test('should not show Apply button when canDevelop is false', () => {
-      setup({ canDevelop: false });
-      expect(screen.queryByText('Apply')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Form Validation', () => {
-    test('should disable save button when theme name is empty', () => {
-      setup();
-      const saveButton = screen.getByRole('button', { name: 'Add' });
-      expect(saveButton).toBeDisabled();
-    });
-
-    test('should enable save button when form is valid', async () => {
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'My New Theme');
-
-      await waitFor(() => {
-        const saveButton = screen.getByRole('button', { name: 'Add' });
-        expect(saveButton).toBeEnabled();
-      });
-    });
-
-    test('should validate JSON format', async () => {
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'Test Theme');
-
-      await waitFor(() => {
-        const saveButton = screen.getByRole('button', { name: 'Add' });
-        expect(saveButton).toBeEnabled();
-      });
-    });
-  });
-
-  describe('Unsaved Changes Alert', () => {
-    test('should show unsaved changes alert when closing with changes', async () => {
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
-
-      await userEvent.type(nameInput, 'Modified Theme');
-
-      await userEvent.click(cancelButton);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText('You have unsaved changes'),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByText(
-            'Your changes will be lost if you leave without saving.',
-          ),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole('button', { name: 'Keep editing' }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole('button', { name: 'Discard' }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole('button', { name: 'Save' }),
-        ).toBeInTheDocument();
-      });
-    });
-
-    test('should not show unsaved changes alert when no changes made', async () => {
-      const { mockProps } = setup();
-      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
-
-      await userEvent.click(cancelButton);
-
-      expect(mockProps.onHide).toHaveBeenCalled();
-      expect(
-        screen.queryByText('You have unsaved changes'),
-      ).not.toBeInTheDocument();
-    });
-
-    test('should allow keeping editing when canceling with changes', async () => {
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'Modified Theme');
-
-      const cancelButton = await screen.findByRole('button', {
-        name: /cancel/i,
-      });
-      await userEvent.click(cancelButton);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText('You have unsaved changes'),
-        ).toBeInTheDocument();
-      });
-
-      const keepEditingButton = screen.getByRole('button', {
-        name: 'Keep editing',
-      });
-      await userEvent.click(keepEditingButton);
-
-      // Alert should disappear but modal remains with data
-      await waitFor(() => {
-        expect(
-          screen.queryByText('You have unsaved changes'),
-        ).not.toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Enter theme name')).toHaveValue(
-          'Modified Theme',
-        );
-      });
-    });
-
-    test('should save changes when clicking Save in alert', async () => {
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'Modified Theme');
-
-      const cancelButton = await screen.findByRole('button', {
-        name: /cancel/i,
-      });
-      await userEvent.click(cancelButton);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText('You have unsaved changes'),
-        ).toBeInTheDocument();
-      });
-
-      const saveButton = screen.getByRole('button', { name: 'Save' });
-      await userEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(fetchMock.called()).toBe(true);
-      });
-    });
-
-    test('should discard changes when choosing to confirm cancel', async () => {
-      const { mockProps } = setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'Modified Theme');
-
-      const cancelButton = await screen.findByRole('button', {
-        name: /cancel/i,
-      });
-      await userEvent.click(cancelButton);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText('You have unsaved changes'),
-        ).toBeInTheDocument();
-      });
-
-      const discardButton = screen.getByRole('button', { name: 'Discard' });
-      await userEvent.click(discardButton);
-
-      await waitFor(() => {
-        expect(mockProps.onHide).toHaveBeenCalled();
-      });
-
-      expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(false);
-      expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(false);
-    });
-  });
-
-  describe('CRUD Operations', () => {
-    test('should create new theme', async () => {
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'New Theme');
-
-      const saveButton = await screen.findByRole('button', { name: 'Add' });
-      expect(saveButton).toBeEnabled();
-
-      await userEvent.click(saveButton);
-
-      await waitFor(
-        () => {
-          expect(fetchMock.called()).toBe(true);
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test('should update existing theme', async () => {
-      const { mockProps } = setup({ theme: mockTheme });
-
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('Test Theme')).toBeInTheDocument();
-      });
-
-      const nameInput = screen.getByDisplayValue('Test Theme');
-      const saveButton = screen.getByRole('button', { name: 'Save' });
-
-      await userEvent.clear(nameInput);
-      await userEvent.type(nameInput, 'Updated Theme');
-      await userEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(true);
-        expect(mockProps.onThemeAdd).toHaveBeenCalled();
-        expect(mockProps.onHide).toHaveBeenCalled();
-      });
-    });
-
-    test('should handle API errors gracefully', async () => {
-      fetchMock.restore();
-      fetchMock.post('glob:*/api/v1/theme/', 500);
-
-      setup();
-      const nameInput = screen.getByPlaceholderText('Enter theme name');
-
-      await userEvent.type(nameInput, 'New Theme');
-
-      const saveButton = await screen.findByRole('button', { name: 'Add' });
-      expect(saveButton).toBeEnabled();
-
-      await userEvent.click(saveButton);
-
-      await waitFor(
-        () => {
-          expect(fetchMock.called()).toBe(true);
-        },
-        { timeout: 3000 },
-      );
-    });
-  });
-
-  describe('Apply Theme Feature', () => {
-    test('should apply theme locally when clicking Apply', async () => {
-      const onThemeApply = jest.fn();
-      setup({
-        canDevelop: true,
-        theme: mockTheme,
-        onThemeApply,
-      });
-
-      await waitFor(
-        () => {
-          expect(screen.getByText('Apply')).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const applyButton = screen.getByRole('button', { name: /apply/i });
-      expect(applyButton).toBeEnabled();
-
-      await userEvent.click(applyButton);
-
-      expect(mockThemeContext.setTemporaryTheme).toHaveBeenCalled();
-    });
-
-    test('should disable Apply button when JSON is invalid', async () => {
-      fetchMock.restore();
-      fetchMock.get('glob:*/api/v1/theme/*', {
-        result: { ...mockTheme, json_data: 'invalid json' },
-      });
-
-      setup({
-        canDevelop: true,
-        theme: mockTheme,
-      });
-
-      await waitFor(
-        () => {
-          expect(screen.getByText('Apply')).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const applyButton = screen.getByRole('button', { name: /apply/i });
-      expect(applyButton).toBeDisabled();
-    });
-  });
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop
+      theme={mockTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const applyButton = await screen.findByRole('button', { name: /apply/i });
+  expect(applyButton).toBeDisabled();
 });

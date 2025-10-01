@@ -57,7 +57,6 @@ test('should block navigation and show modal if there are unsaved changes', () =
     { wrapper },
   );
 
-  // Simulate blocked navigation
   act(() => {
     const unblock = history.block((tx: any) => tx);
     unblock();
@@ -119,7 +118,6 @@ test('should close modal when handleConfirmNavigation is called', () => {
     { wrapper },
   );
 
-  // First, trigger navigation to show the modal
   act(() => {
     const unblock = history.block((tx: any) => tx);
     unblock();
@@ -128,7 +126,6 @@ test('should close modal when handleConfirmNavigation is called', () => {
 
   expect(result.current.showModal).toBe(true);
 
-  // Then call handleConfirmNavigation to discard changes
   act(() => {
     result.current.handleConfirmNavigation();
   });

@@ -41,6 +41,7 @@ import {
   Input,
   JsonEditor,
   Modal,
+  Space,
   Tooltip,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
@@ -371,7 +372,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               textAlign: 'left',
             }}
             action={
-              <div css={{ display: 'flex', gap: '8px' }}>
+              <Space>
                 <Button
                   key="keep-editing"
                   buttonStyle="tertiary"
@@ -397,7 +398,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 >
                   {t('Save')}
                 </Button>
-              </div>
+              </Space>
             }
           />
         ) : (
