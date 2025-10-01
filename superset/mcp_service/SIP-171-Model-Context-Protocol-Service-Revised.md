@@ -385,6 +385,38 @@ The MCP service reuses Superset's existing security infrastructure:
 - **Input Validation**: 5-layer pipeline with Pydantic schemas and security sanitization
 - **Data Access**: Row-level and column-level security inherited from Superset core
 
+### Permission Enforcement
+
+When a user attempts an operation without proper permissions, the MCP service follows Superset's standard error handling:
+
+1. **Command Layer Validation**: Commands (e.g., `CreateChartCommand`) call `security_manager.is_owner()` and `security_manager.can_access_datasource()`
+2. **Exception Raised**: Permission failures raise specific exceptions:
+   - `ChartAccessDeniedError`: "You don't have access to this chart"
+   - `ChartForbiddenError`: "Changing this chart is forbidden"
+   - `DashboardsForbiddenError`: "Changing one or more of these dashboards is forbidden"
+3. **MCP Tool Response**: The tool catches these exceptions and returns structured error responses to the LLM
+
+**Example Permission Flow:**
+
+```python
+# User tries to create chart without dataset access
+try:
+    CreateChartCommand(data).run()
+except ChartAccessDeniedError as ex:
+    return {
+        "success": False,
+        "error": {
+            "type": "permission_denied",
+            "message": "You don't have access to this dataset"
+        }
+    }
+```
+
+This ensures:
+- **Consistent security**: Same permission checks as the web UI
+- **Clear error messages**: LLMs receive actionable feedback
+- **No privilege escalation**: Users cannot bypass permissions through MCP tools
+
 ## Deployment Architecture
 
 ### Updated Deployment Topology
