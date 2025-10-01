@@ -108,7 +108,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
-        assert response.status_code == 404
+        assert response.status_code == 302  # redirect to login
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
