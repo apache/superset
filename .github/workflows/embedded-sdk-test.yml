@@ -19,7 +19,7 @@ jobs:
         working-directory: superset-embedded-sdk
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: './superset-embedded-sdk/.nvmrc'
           registry-url: 'https://registry.npmjs.org'
