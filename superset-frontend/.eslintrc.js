@@ -628,14 +628,7 @@ module.exports = {
 
     'no-undef-init': 'error',
 
-    'no-unused-vars': [
-      'error',
-      {
-        vars: 'all',
-        args: 'after-used',
-        ignoreRestSiblings: true,
-      },
-    ],
+    'no-unused-vars': 'off', // TypeScript files use @typescript-eslint/no-unused-vars instead
     'arrow-body-style': [
       'error',
       'as-needed',
@@ -1882,14 +1875,7 @@ module.exports = {
 
         'no-undef-init': 'error',
 
-        'no-unused-vars': [
-          'error',
-          {
-            vars: 'all',
-            args: 'after-used',
-            ignoreRestSiblings: true,
-          },
-        ],
+        'no-unused-vars': 'off', // TypeScript files use @typescript-eslint/no-unused-vars instead
         'arrow-body-style': [
           'error',
           'as-needed',
