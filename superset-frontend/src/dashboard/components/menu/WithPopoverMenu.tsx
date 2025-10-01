@@ -33,7 +33,11 @@ interface WithPopoverMenuProps {
   // Event argument is left as "any" because of the clash. In defaultProps it seems
   // like it should be React.FocusEvent<>, however from handleClick() we can also
   // derive that type is EventListenerOrEventListenerObject.
-  shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
+  shouldFocus: (
+    event: any,
+    container: ShouldFocusContainer,
+    menuRef: HTMLDivElement | null,
+  ) => Boolean;
   editMode: Boolean;
   style: CSSProperties;
 }
@@ -105,16 +109,21 @@ export default class WithPopoverMenu extends PureComponent<
 > {
   container: ShouldFocusContainer;
 
+  menuRef: HTMLDivElement | null;
+
   static defaultProps = {
     children: null,
     disableClick: false,
     onChangeFocus: null,
     menuItems: [],
     isFocused: false,
-    shouldFocus: (event: any, container: ShouldFocusContainer) => {
+    shouldFocus: (
+      event: any,
+      container: ShouldFocusContainer,
+      menuRef: HTMLDivElement | null,
+    ) => {
       if (container?.contains(event.target)) return true;
-      if (event.target.id === 'menu-item') return true;
-      if (event.target.parentNode?.id === 'menu-item') return true;
+      if (menuRef?.contains(event.target)) return true;
       return false;
     },
     style: null,
@@ -125,7 +134,9 @@ export default class WithPopoverMenu extends PureComponent<
     this.state = {
       isFocused: props.isFocused!,
     };
+    this.menuRef = null;
     this.setRef = this.setRef.bind(this);
+    this.setMenuRef = this.setMenuRef.bind(this);
     this.handleClick = this.handleClick.bind(this);
   }
 
@@ -150,6 +161,10 @@ export default class WithPopoverMenu extends PureComponent<
     this.container = ref;
   }
 
+  setMenuRef(ref: HTMLDivElement | null) {
+    this.menuRef = ref;
+  }
+
   shouldHandleFocusChange(shouldFocus: Boolean): boolean {
     const { disableClick } = this.props;
     const { isFocused } = this.state;
@@ -171,10 +186,11 @@ export default class WithPopoverMenu extends PureComponent<
       disableClick,
     } = this.props;
 
-    const shouldFocus = shouldFocusFunc(event, this.container);
+    const shouldFocus = shouldFocusFunc(event, this.container, this.menuRef);
+
+    if (shouldFocus === this.state.isFocused) return;
 
     if (!disableClick && shouldFocus && !this.state.isFocused) {
-      event.stopPropagation();
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
 
@@ -185,7 +201,6 @@ export default class WithPopoverMenu extends PureComponent<
       document.removeEventListener('click', this.handleClick);
       document.removeEventListener('drag', this.handleClick);
 
-      event.stopPropagation();
       this.setState(() => ({ isFocused: false }));
 
       if (onChangeFocus) onChangeFocus(false);
@@ -209,7 +224,7 @@ export default class WithPopoverMenu extends PureComponent<
       >
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
-          <PopoverMenuStyles>
+          <PopoverMenuStyles ref={this.setMenuRef}>
             {menuItems.map((node: ReactNode, i: Number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}

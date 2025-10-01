@@ -269,9 +269,9 @@ class Markdown extends PureComponent {
     }
   }
 
-  shouldFocusMarkdown(event, container) {
+  shouldFocusMarkdown(event, container, menuRef) {
     if (container?.contains(event.target)) return true;
-    if (event.target.closest?.('.menu-item')) return true;
+    if (menuRef?.contains(event.target)) return true;
 
     return false;
   }

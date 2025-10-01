@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { render, userEvent } from 'spec/helpers/testing-library';
 
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
@@ -44,67 +44,46 @@ test('should render the passed children', () => {
   expect(container.querySelector('#child')).toBeInTheDocument();
 });
 
-test('should focus on click in editMode', () => {
+test('should focus on click in editMode', async () => {
   const { container } = setup({ editMode: true });
-  fireEvent.click(container.querySelector('.with-popover-menu'));
+  await userEvent.click(container.querySelector('.with-popover-menu'));
   expect(
     container.querySelector('.with-popover-menu--focused'),
   ).toBeInTheDocument();
 });
 
-test('should render menuItems when focused', () => {
+test('should render menuItems when focused', async () => {
   const { container } = setup({ editMode: true });
   expect(container.querySelector('#menu1')).not.toBeInTheDocument();
   expect(container.querySelector('#menu2')).not.toBeInTheDocument();
 
-  fireEvent.click(container.querySelector('.with-popover-menu'));
+  await userEvent.click(container.querySelector('.with-popover-menu'));
   expect(container.querySelector('#menu1')).toBeInTheDocument();
   expect(container.querySelector('#menu2')).toBeInTheDocument();
 });
 
-test('should not focus when disableClick=true', () => {
+test('should not focus when disableClick=true', async () => {
   const { container } = setup({ disableClick: true, editMode: true });
 
-  fireEvent.click(container.querySelector('.with-popover-menu'));
+  await userEvent.click(container.querySelector('.with-popover-menu'));
   expect(
     container.querySelector('.with-popover-menu--focused'),
   ).not.toBeInTheDocument();
 });
 
-test('should use the passed shouldFocus func to determine if it should focus', () => {
+test('should use the passed shouldFocus func to determine if it should focus', async () => {
   const { container } = setup({ editMode: true, shouldFocus: () => false });
   expect(
     container.querySelector('.with-popover-menu--focused'),
   ).not.toBeInTheDocument();
-  fireEvent.click(container.querySelector('.with-popover-menu'));
+  await userEvent.click(container.querySelector('.with-popover-menu'));
   expect(
     container.querySelector('.with-popover-menu--focused'),
   ).not.toBeInTheDocument();
 });
 
-test('should NOT stop event propagation when disableClick=true and not handling focus', () => {
+test('should allow event propagation to enable multiple components to work independently', async () => {
   const onChangeFocus = jest.fn();
-  const mockEvent = {
-    target: document.createElement('div'),
-    stopPropagation: jest.fn(),
-  };
-
-  const { container } = setup({
-    editMode: true,
-    disableClick: true,
-    shouldFocus: () => false,
-    onChangeFocus,
-  });
-
-  const menuComponent = container.querySelector('.with-popover-menu');
-  fireEvent.click(menuComponent, mockEvent);
-
-  expect(mockEvent.stopPropagation).not.toHaveBeenCalled();
-});
-
-test('should stop event propagation when handling focus', () => {
-  const onChangeFocus = jest.fn();
-  let stopPropagationCalled = false;
 
   const { container } = setup({
     editMode: true,
@@ -114,61 +93,53 @@ test('should stop event propagation when handling focus', () => {
   });
 
   const menuComponent = container.querySelector('.with-popover-menu');
+  await userEvent.click(menuComponent);
 
-  const clickEvent = new MouseEvent('click', { bubbles: true });
-  const originalStopPropagation = clickEvent.stopPropagation;
-  clickEvent.stopPropagation = function () {
-    stopPropagationCalled = true;
-    return originalStopPropagation.call(this);
-  };
-
-  menuComponent.dispatchEvent(clickEvent);
-
-  expect(stopPropagationCalled).toBe(true);
   expect(onChangeFocus).toHaveBeenCalledWith(true);
 });
 
-test('should stop event propagation when handling unfocus', () => {
-  const onChangeFocus = jest.fn();
-  let stopPropagationCount = 0;
+test('should unfocus when another component is clicked', async () => {
+  const onChangeFocusA = jest.fn();
+  const onChangeFocusB = jest.fn();
 
-  const { container } = setup({
-    editMode: true,
-    disableClick: false,
-    shouldFocus: () => true,
-    onChangeFocus,
-    isFocused: false,
-  });
-
-  const menuComponent = container.querySelector('.with-popover-menu');
-
-  const focusEvent = new MouseEvent('click', { bubbles: true });
-  focusEvent.stopPropagation = function () {
-    stopPropagationCount += 1;
-  };
-
-  menuComponent.dispatchEvent(focusEvent);
-
-  const unfocusEvent = new MouseEvent('click', { bubbles: true });
-  unfocusEvent.stopPropagation = function () {
-    stopPropagationCount += 1;
-  };
-
-  setup({
-    editMode: true,
-    disableClick: false,
-    shouldFocus: () => false,
-    onChangeFocus,
-    isFocused: true,
-  });
-
-  const refocusedComponent = container.querySelector(
-    '.with-popover-menu--focused',
+  const componentA = render(
+    <WithPopoverMenu
+      {...props}
+      editMode
+      shouldFocus={(event, container) => container?.contains(event.target)}
+      onChangeFocus={onChangeFocusA}
+    >
+      <div id="child-a" />
+    </WithPopoverMenu>,
   );
 
-  if (refocusedComponent) {
-    refocusedComponent.dispatchEvent(unfocusEvent);
-  }
+  const componentB = render(
+    <WithPopoverMenu
+      {...props}
+      editMode
+      shouldFocus={(event, container) => container?.contains(event.target)}
+      onChangeFocus={onChangeFocusB}
+    >
+      <div id="child-b" />
+    </WithPopoverMenu>,
+  );
 
-  expect(stopPropagationCount).toBeGreaterThan(0);
+  const menuA = componentA.container.querySelector('.with-popover-menu');
+  const menuB = componentB.container.querySelector('.with-popover-menu');
+
+  await userEvent.click(menuA);
+  expect(onChangeFocusA).toHaveBeenCalledWith(true);
+  expect(
+    componentA.container.querySelector('.with-popover-menu--focused'),
+  ).toBeInTheDocument();
+
+  await userEvent.click(menuB);
+  expect(onChangeFocusB).toHaveBeenCalledWith(true);
+  expect(onChangeFocusA).toHaveBeenCalledWith(false);
+  expect(
+    componentA.container.querySelector('.with-popover-menu--focused'),
+  ).not.toBeInTheDocument();
+  expect(
+    componentB.container.querySelector('.with-popover-menu--focused'),
+  ).toBeInTheDocument();
 });
