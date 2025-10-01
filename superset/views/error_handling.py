@@ -164,7 +164,11 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             and ex.code in {404, 500}
         ):
             path = files("superset") / f"static/assets/{ex.code}.html"
-            return send_file(path, max_age=0), ex.code
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.code
+            except FileNotFoundError:
+                pass
 
         return json_error_response(
             [
@@ -188,7 +192,11 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), 500
+            except FileNotFoundError:
+                pass
 
         extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
         return json_error_response(
