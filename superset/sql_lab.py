@@ -111,7 +111,9 @@ def handle_query_error(
     elif isinstance(ex, SupersetErrorsException):
         errors = ex.errors
     else:
-        errors = query.database.db_engine_spec.extract_errors(str(ex))
+        errors = query.database.db_engine_spec.extract_errors(
+            str(ex), database_name=query.database.unique_name
+        )
 
     errors_payload = [dataclasses.asdict(error) for error in errors]
     if errors:
