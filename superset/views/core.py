@@ -769,6 +769,11 @@ class Superset(BaseSupersetView):
                 return redirect_to_login()
             abort(404)
 
+        # Redirect anonymous users to login for unpublished dashboards,
+        # in the edge case where a dataset has been shared with public
+        if (g.user is None or g.user.is_anonymous) and not dashboard.published:
+            return redirect_to_login()
+
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException:
