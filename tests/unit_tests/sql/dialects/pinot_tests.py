@@ -421,3 +421,80 @@ def test_unsigned_type() -> None:
 
     assert "UNSIGNED" in result
     assert "BIGINT" in result
+
+
+def test_date_trunc_preserved() -> None:
+    """
+    Test that DATE_TRUNC is preserved and not converted to MySQL's DATE() function.
+    """
+    sql = "SELECT DATE_TRUNC('day', dt_column) FROM table"
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    assert "DATE_TRUNC" in result
+    assert "DATE_TRUNC('day'" in result or "DATE_TRUNC('DAY'" in result
+    # Should not be converted to MySQL's DATE() function
+    assert result != "SELECT DATE(dt_column) FROM table"
+
+
+def test_cast_timestamp_preserved() -> None:
+    """
+    Test that CAST AS TIMESTAMP is preserved and not converted to TIMESTAMP() function.
+    """
+    sql = "SELECT CAST(dt_column AS TIMESTAMP) FROM table"
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    assert "CAST" in result
+    assert "AS TIMESTAMP" in result
+    # Should not be converted to MySQL's TIMESTAMP() function
+    assert "TIMESTAMP(dt_column)" not in result
+
+
+def test_date_trunc_with_cast_timestamp() -> None:
+    """
+    Test the original complex query with DATE_TRUNC and CAST AS TIMESTAMP.
+    Verifies that both are preserved in parse/generate round-trip.
+    """
+    sql = """
+SELECT
+  CAST(
+    DATE_TRUNC(
+      'day',
+      CAST(
+        DATETIMECONVERT(
+          dt_epoch_ms, '1:MILLISECONDS:EPOCH',
+          '1:MILLISECONDS:EPOCH', '1:MILLISECONDS'
+        ) AS TIMESTAMP
+      )
+    ) AS TIMESTAMP
+  ),
+  SUM(a) + SUM(b)
+FROM
+  "default".c
+WHERE
+  dt_epoch_ms >= 1735690800000
+  AND dt_epoch_ms < 1759328588000
+  AND locality != 'US'
+GROUP BY
+  CAST(
+    DATE_TRUNC(
+      'day',
+      CAST(
+        DATETIMECONVERT(
+          dt_epoch_ms, '1:MILLISECONDS:EPOCH',
+          '1:MILLISECONDS:EPOCH', '1:MILLISECONDS'
+        ) AS TIMESTAMP
+      )
+    ) AS TIMESTAMP
+  )
+LIMIT
+  10000
+    """
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    # Verify DATE_TRUNC and CAST are preserved
+    assert "DATE_TRUNC" in result
+    assert "CAST" in result
+
+    # Verify these are NOT converted to MySQL functions
+    assert "TIMESTAMP(DATETIMECONVERT" not in result
+    assert result.count("DATE_TRUNC") == 2  # Should appear twice (SELECT and GROUP BY)
