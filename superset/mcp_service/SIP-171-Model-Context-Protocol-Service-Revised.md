@@ -62,10 +62,10 @@ flowchart TD
 
     MCP --> Auth
     Auth --> Tools
-    Tools -->|Reuses Security Logic| DAO
+    Tools -->|Reads| DAO
     Tools -->|Business Logic| CMD
+    CMD -->|Mutates Data| DAO
     DAO --> Models
-    CMD --> Models
     Models --> DB
     Models --> Sources
 
@@ -138,213 +138,89 @@ class ChartCreationRequest(BaseModel):
     # Simplified schema - complex configurations added iteratively
 ```
 
-### 4. Preview-First Chart Creation
+### 4. Chart Workflow Design
 
-Unlike traditional API approaches that immediately persist charts, the MCP service emphasizes exploration:
+The MCP service implements a **preview-first workflow** optimized for LLM conversations rather than traditional API patterns. This design principle is detailed in the [Preview-First User Experience](#5-preview-first-user-experience) architecture principle.
 
-1. **Generate Preview**: Create chart configuration and return explore URL
-2. **Iterate**: Modify parameters through additional tool calls
-3. **Persist**: Explicitly save chart when user is satisfied
-4. **Update**: Modify existing charts with granular control
+**Key Design Difference:**
+- **Traditional APIs**: Immediate persistence with precise requirements
+- **MCP Service**: Exploration mode by default, explicit persistence when satisfied
+
+This workflow prevents database clutter from exploratory LLM conversations while maintaining flexibility for users to iterate on chart designs before committing them.
 
 ### 5. MCP Service Internal Architecture
 
 ```mermaid
 flowchart TD
-    subgraph "FastMCP Framework"
-        Server[FastMCP Server<br/>JSON-RPC 2.0]
-        Router[Tool Router<br/>Request Dispatch]
-    end
+    MCP[FastMCP Service<br/>JSON-RPC 2.0 Protocol + Middleware]
+    Tools[MCP Tools<br/>Charts, Dashboards, Datasets, SQL]
+    Core[Superset Core<br/>Commands, DAOs, Models]
 
-    subgraph "Middleware Stack"
-        Auth[Authentication<br/>JWT + Bearer Token]
-        RateLimit[Rate Limiting<br/>User & Tool Based]
-        ErrorHandler[Error Handling<br/>Sanitization & Logging]
-        Audit[Audit Logging<br/>Security Events]
-        Cache[Response Caching<br/>Screenshot & Form Data]
-    end
+    MCP --> Tools
+    Tools --> Core
 
-    subgraph "MCP Tool Domains"
-        ChartTools[Chart Tools<br/>generate_chart<br/>update_chart<br/>get_chart_preview]
-        DashTools[Dashboard Tools<br/>generate_dashboard<br/>add_chart_to_dashboard]
-        DataTools[Dataset Tools<br/>list_datasets<br/>get_dataset_info]
-        SQLTools[SQL Lab Tools<br/>execute_sql<br/>open_sql_lab]
-        SysTools[System Tools<br/>get_instance_info]
-    end
+    classDef service fill:#e1f5fe
+    classDef tools fill:#f3e5f5
+    classDef core fill:#e8f5e8
 
-    subgraph "Core Integration Layer"
-        DAOLayer[Enhanced DAO Layer<br/>list(), count(), filter()]
-        CmdLayer[Command Layer<br/>Business Logic]
-        ValidationLayer[5-Layer Validation<br/>Schema → Business → Dataset → Superset → Runtime]
-    end
-
-    subgraph "Superset Core"
-        Models[SQLAlchemy Models]
-        Security[Flask-AppBuilder RBAC]
-        Database[Metadata Database]
-    end
-
-    Server --> Router
-    Router --> Auth
-    Auth --> RateLimit
-    RateLimit --> ErrorHandler
-    ErrorHandler --> Audit
-    Audit --> Cache
-    Cache --> ChartTools
-    Cache --> DashTools
-    Cache --> DataTools
-    Cache --> SQLTools
-    Cache --> SysTools
-
-    ChartTools --> ValidationLayer
-    DashTools --> ValidationLayer
-    DataTools --> DAOLayer
-    SQLTools --> DAOLayer
-    SysTools --> DAOLayer
-
-    ValidationLayer --> DAOLayer
-    DAOLayer --> CmdLayer
-    CmdLayer --> Models
-    Models --> Security
-    Models --> Database
-
-    classDef framework fill:#fff3e0
-    classDef middleware fill:#e8f5e8
-    classDef tools fill:#e1f5fe
-    classDef integration fill:#f3e5f5
-    classDef core fill:#fce4ec
-
-    class Server,Router framework
-    class Auth,RateLimit,ErrorHandler,Audit,Cache middleware
-    class ChartTools,DashTools,DataTools,SQLTools,SysTools tools
-    class DAOLayer,CmdLayer,ValidationLayer integration
-    class Models,Security,Database core
+    class MCP service
+    class Tools tools
+    class Core core
 ```
 
 **Architecture Layers:**
 
-1. **FastMCP Framework**: Handles MCP protocol, request routing, and JSON-RPC 2.0 communication
-2. **Middleware Stack**: Provides cross-cutting concerns (auth, rate limiting, caching, audit)
-3. **Tool Domains**: Organized by functional area with type-safe Pydantic schemas
-4. **Integration Layer**: Enhanced DAOs, Commands, and comprehensive validation pipeline
-5. **Superset Core**: Reuses existing models, security, and database infrastructure
+1. **FastMCP Service**: Handles MCP protocol with extensible middleware (auth, rate limiting, logging)
+2. **MCP Tools**: Domain-specific tools for charts, dashboards, datasets, SQL, and system operations
+3. **Superset Core**: Reuses existing Commands (business logic) and DAOs (data access) with built-in RBAC
 
 ### 6. MCP Core Abstraction Pattern
 
-The MCP service implements a generic core abstraction layer that eliminates code duplication and provides consistent patterns for common operations:
+The MCP service implements reusable core classes to eliminate code duplication:
 
 ```mermaid
 flowchart TD
-    subgraph "MCP Core Classes (Generic Abstractions)"
-        BaseCore[BaseCore<br/>Abstract base with logging]
-        ModelListCore[ModelListCore<br/>Generic list operations]
-        ModelGetInfoCore[ModelGetInfoCore<br/>Generic get by ID/UUID/slug]
-        InstanceInfoCore[InstanceInfoCore<br/>Configurable metrics]
-        FiltersCore[ModelGetAvailableFiltersCore<br/>Generic filter discovery]
+    subgraph "Generic Core Classes"
+        ListCore[ModelListCore<br/>Pagination, filtering, search]
+        InfoCore[ModelGetInfoCore<br/>Retrieve by ID/UUID]
+        ChartCore[ChartToolCore<br/>Chart creation & updates<br/>To be implemented]
+        DashboardCore[DashboardToolCore<br/>Dashboard management<br/>To be implemented]
     end
 
-    subgraph "Concrete Tool Implementations"
-        subgraph "List Tools (Using ModelListCore)"
-            ListDatasets[list_datasets<br/>✓ Uses ModelListCore]
-            ListCharts[list_charts<br/>✓ Uses ModelListCore]
-            ListDashboards[list_dashboards<br/>✓ Uses ModelListCore]
-        end
-
-        subgraph "Info Tools (Using ModelGetInfoCore)"
-            GetDatasetInfo[get_dataset_info<br/>✓ Uses ModelGetInfoCore]
-            GetChartInfo[get_chart_info<br/>✓ Uses ModelGetInfoCore]
-            GetDashboardInfo[get_dashboard_info<br/>✓ Uses ModelGetInfoCore]
-        end
-
-        subgraph "System Tools (Using InstanceInfoCore)"
-            GetInstanceInfo[get_superset_instance_info<br/>✓ Uses InstanceInfoCore]
-        end
-
-        subgraph "Complex Tools (Custom Logic)"
-            GenerateChart[generate_chart<br/>Custom validation pipeline]
-            UpdateChart[update_chart<br/>Custom business logic]
-            GenerateDashboard[generate_dashboard<br/>Custom layout logic]
-        end
+    subgraph "Tool Implementations"
+        ListTools[List Tools<br/>list_datasets, list_charts, etc.]
+        InfoTools[Info Tools<br/>get_dataset_info, get_chart_info, etc.]
+        CustomTools[Custom Tools<br/>generate_chart, update_chart, etc.<br/>Currently using custom implementation]
     end
 
-    subgraph "Shared Components"
-        DAOs[DAO Classes<br/>DatasetDAO, ChartDAO, etc.]
-        Schemas[Pydantic Schemas<br/>Type-safe requests/responses]
-        Serializers[Object Serializers<br/>Model → Schema conversion]
+    subgraph "Superset Components"
+        Components[DAOs, Commands, Schemas]
     end
 
-    BaseCore --> ModelListCore
-    BaseCore --> ModelGetInfoCore
-    BaseCore --> InstanceInfoCore
-    BaseCore --> FiltersCore
+    ListCore -.->|Instantiate with config| ListTools
+    InfoCore -.->|Instantiate with config| InfoTools
+    ChartCore -.-x|Future pattern| CustomTools
+    DashboardCore -.-x|Future pattern| CustomTools
 
-    ModelListCore -.->|Instantiated with| ListDatasets
-    ModelListCore -.->|Instantiated with| ListCharts
-    ModelListCore -.->|Instantiated with| ListDashboards
-
-    ModelGetInfoCore -.->|Instantiated with| GetDatasetInfo
-    ModelGetInfoCore -.->|Instantiated with| GetChartInfo
-    ModelGetInfoCore -.->|Instantiated with| GetDashboardInfo
-
-    InstanceInfoCore -.->|Instantiated with| GetInstanceInfo
-
-    ListDatasets --> DAOs
-    ListCharts --> DAOs
-    ListDashboards --> DAOs
-    GetDatasetInfo --> DAOs
-    GetChartInfo --> DAOs
-    GetDashboardInfo --> DAOs
-
-    GenerateChart --> DAOs
-    UpdateChart --> DAOs
-    GenerateDashboard --> DAOs
-
-    ListDatasets --> Schemas
-    GenerateChart --> Schemas
+    ListTools --> Components
+    InfoTools --> Components
+    CustomTools --> Components
 
     classDef coreClass fill:#e8f5e8
-    classDef listTool fill:#e1f5fe
-    classDef infoTool fill:#f3e5f5
-    classDef systemTool fill:#fff3e0
-    classDef complexTool fill:#fce4ec
-    classDef shared fill:#f5f5f5
+    classDef toolClass fill:#e1f5fe
+    classDef componentClass fill:#f3e5f5
+    classDef plannedClass fill:#e8f5e8,stroke-dasharray: 5 5
 
-    class BaseCore,ModelListCore,ModelGetInfoCore,InstanceInfoCore,FiltersCore coreClass
-    class ListDatasets,ListCharts,ListDashboards listTool
-    class GetDatasetInfo,GetChartInfo,GetDashboardInfo infoTool
-    class GetInstanceInfo systemTool
-    class GenerateChart,UpdateChart,GenerateDashboard complexTool
-    class DAOs,Schemas,Serializers shared
+    class ListCore,InfoCore coreClass
+    class ChartCore,DashboardCore plannedClass
+    class ListTools,InfoTools,CustomTools toolClass
+    class Components componentClass
 ```
 
-**Core Abstraction Benefits:**
-
-- **Code Reuse**: `ModelListCore` handles pagination, filtering, search for all list operations
-- **Consistency**: Identical behavior patterns across dataset, chart, and dashboard listing
-- **Type Safety**: Generic type parameters ensure compile-time correctness
-- **Extensibility**: New models can leverage existing cores with minimal configuration
-- **Maintainability**: Bug fixes and improvements benefit all tools using the core
-
-**Example Core Usage Pattern:**
-```python
-# list_datasets.py - Minimal tool implementation
-tool = ModelListCore(
-    dao_class=DatasetDAO,
-    output_schema=DatasetInfo,
-    item_serializer=serialize_dataset_object,
-    filter_type=DatasetFilter,
-    default_columns=DEFAULT_DATASET_COLUMNS,
-    search_columns=["schema", "sql", "table_name"],
-    list_field_name="datasets",
-    output_list_schema=DatasetList,
-)
-return tool.run_tool(**params)
-```
-
-**Future Refactoring Opportunities:**
-- Complex tools (chart/dashboard generation) could benefit from similar abstraction patterns
-- Validation pipeline could be extracted into reusable core classes
-- Preview generation logic could become a shared core component
+**Pattern Benefits:**
+- **Code Reuse**: Generic cores handle common operations (list, get, filter) for all models
+- **Consistency**: Identical behavior across dataset, chart, and dashboard tools
+- **Extensibility**: New tools can leverage existing cores with minimal configuration
 
 ### Implementation Phases | Pull Requests
 
@@ -437,19 +313,51 @@ class CustomAnalyticsTool(BaseMCPTool):
 
 ### 5. Preview-First User Experience
 
-**Principle**: Enable exploration before persistence to improve user workflows.
+**Principle**: Enable exploration before persistence to improve user workflows. LLM-driven interactions are inherently conversational and exploratory, requiring different patterns than traditional transactional APIs.
 
-**Implementation**:
-- `generate_chart()` creates explore URLs before saving
+**LLM Workflows vs Traditional API Workflows:**
+
+| Aspect | Traditional API Calls | LLM Conversations |
+|--------|----------------------|-------------------|
+| Intent | Transactional - specific outcome known upfront | Exploratory - prototyping and refinement |
+| Persistence | Immediate save on creation | Preview first, save when satisfied |
+| Iterations | Minimal - precise requirements | Multiple - trying variations and alternatives |
+| Cleanup | Developer manages resources | Automatic - previews don't clutter database |
+
+**Chart Exploration & Persistence Tools:**
+
+The MCP service provides separate tools for exploration vs persistence:
+
+1. **Chart Exploration** (no database persistence):
+   - `generate_chart(dataset_id, config, save_chart=False)` → Returns `form_data_key` + explore URL
+   - `update_chart_preview(form_data_key, new_config)` → Iterate on configuration
+   - User can try multiple variations without creating database records
+
+2. **Chart Persistence** (save to database):
+   - `generate_chart(dataset_id, config, save_chart=True)` → Creates permanent chart
+   - `update_chart(chart_id, new_config)` → Modifies saved charts
+
+3. **Dashboard Composition** (assumes finalized charts):
+   - `generate_dashboard(chart_ids, title)` → Creates dashboard from saved charts
+   - `add_chart_to_existing_dashboard(dashboard_id, chart_id)` → Adds chart to dashboard
+
+**Implementation Details**:
 - Cached form data allows iteration without database persistence
 - Preview images enable visual validation in LLM conversations
-- Explicit save operations give users control over persistence
+- Explicit save operations give users control over when to persist
+- Dashboard tools assume charts are already finalized (no "preview dashboard" concept)
 
-**Workflow**:
-1. Generate preview with explore URL
-2. Iterate on configuration through MCP tools
-3. User validates via interactive explore interface
-4. Explicit save when satisfied with result
+**Example Exploratory Workflow**:
+1. User: "Show me sales by region as a bar chart"
+2. MCP: `generate_chart(..., save_chart=False)` → preview URL
+3. User: "Try it as a pie chart instead"
+4. MCP: `update_chart_preview(form_data_key, ...)` → new preview
+5. User: "Perfect, save this one"
+6. MCP: `generate_chart(..., save_chart=True)` → permanent chart
+7. User: "Add it to my Q1 dashboard"
+8. MCP: `add_chart_to_existing_dashboard(...)` → chart added
+
+**Rationale**: LLM conversations naturally involve exploration and refinement. Without preview-first design, users would end up with dozens of half-finished charts cluttering their workspace. This pattern respects the conversational nature of AI interactions while maintaining database integrity.
 
 ### 6. Performance and Caching
 
