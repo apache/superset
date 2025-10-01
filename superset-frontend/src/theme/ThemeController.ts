@@ -759,13 +759,9 @@ export class ThemeController {
       // that prepare themes before passing them to applyTheme()
       this.globalTheme.setConfig(normalizedConfig);
     } catch (error) {
-      // For synchronous calls, use fallback without async recovery
-      const fallbackTheme =
-        this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
-      if (fallbackTheme) {
-        const normalizedFallback = this.normalizeTheme(fallbackTheme);
-        this.globalTheme.setConfig(normalizedFallback);
-      }
+      console.error('Failed to apply theme:', error);
+      // Re-throw the error so updateTheme can handle fallback logic
+      throw error;
     }
   }
 
