@@ -41,6 +41,7 @@ export const useUnsavedChangesPrompt = ({
   const manualSaveRef = useRef(false); // Track if save was user-initiated (not via navigation)
 
   const handleConfirmNavigation = useCallback(() => {
+    setShowModal(false);
     confirmNavigationRef.current?.();
   }, []);
 
