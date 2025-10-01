@@ -96,140 +96,6 @@ superset/mcp_service/
 └── system/            # Instance metadata and health tools
 ```
 
-### 2. Data Access Layer
-
-The MCP service uses superset’s DAO and Command implementations *out of the box*. To achive this we previously added (https://github.com/apache/superset/pull/35018) a couple of missing functions to remove the dependency on Flask-AppBuilder that does these for the CRID APIs:
-
-```python
-# superset/daos/base.py - Enhanced with new functions
-class BaseDAO(Generic[T]):
-    @classmethod
-    def list(
-        cls,
-        column_operators: Optional[List[ColumnOperator]] = None,
-        order_column: str = "changed_on",
-        order_direction: str = "desc",
-        page: int = 0,
-        page_size: int = 100,
-        search: Optional[str] = None,
-        search_columns: Optional[List[str]] = None,
-        custom_filters: Optional[Dict[str, Any]] = None,
-        columns: Optional[List[str]] = None,
-    ) -> Tuple[List[Any], int]:
-        """Generic list method for filtered, sorted, and paginated results"""
-
-    @classmethod
-    def count(cls) -> int:
-        """Count total records - required for instance statistics"""
-```
-
-### 3. Pydantic Schema Framework
-
-All MCP tool schemas use Pydantic for FastMCP compatibility and future FastAPI integration:
-
-```python
-# Chart creation with iterative, discriminated union approach
-class ChartCreationRequest(BaseModel):
-    dataset_id: int
-    chart_type: ChartTypeEnum
-    metrics: List[str]
-    groupby: Optional[List[str]] = None
-    filters: Optional[List[FilterConfig]] = None
-    # Simplified schema - complex configurations added iteratively
-```
-
-**Why Pydantic over Marshmallow:**
-
-- **FastMCP requirement**: FastMCP is Pydantic-first with Rust-based performance optimizations
-- **Type-hint based**: Declarative style using native Python type hints
-- **Automatic schema generation**: Pydantic models generate JSON schemas for MCP tool discovery
-
-**Note**: This Pydantic adoption is isolated to the MCP service and does not require Superset-wide migration from Marshmallow.
-
-### 4. Chart Workflow Design
-
-The MCP service implements a **preview-first workflow** optimized for LLM conversations rather than traditional API patterns. This design principle is detailed in the [Preview-First User Experience](#5-preview-first-user-experience) architecture principle.
-
-**Key Design Difference:**
-- **Traditional APIs**: Immediate persistence with precise requirements
-- **MCP Service**: Exploration mode by default, explicit persistence when satisfied
-
-This workflow prevents database clutter from exploratory LLM conversations while maintaining flexibility for users to iterate on chart designs before committing them.
-
-### 5. MCP Service Internal Architecture
-
-```mermaid
-flowchart TD
-    MCP[FastMCP Service<br/>JSON-RPC 2.0 Protocol + Middleware]
-    Tools[MCP Tools<br/>Charts, Dashboards, Datasets, SQL]
-    Core[Superset Core<br/>Commands, DAOs, Models]
-
-    MCP --> Tools
-    Tools --> Core
-
-    classDef service fill:#e1f5fe
-    classDef tools fill:#f3e5f5
-    classDef core fill:#e8f5e8
-
-    class MCP service
-    class Tools tools
-    class Core core
-```
-
-**Architecture Layers:**
-
-1. **FastMCP Service**: Handles MCP protocol with extensible middleware (auth, rate limiting, logging)
-2. **MCP Tools**: Domain-specific tools for charts, dashboards, datasets, SQL, and system operations
-3. **Superset Core**: Reuses existing Commands (business logic) and DAOs (data access) with built-in RBAC
-
-### 6. MCP Core Abstraction Pattern
-
-The MCP service implements reusable core classes to eliminate code duplication:
-
-```mermaid
-flowchart TD
-    subgraph "Generic Core Classes"
-        ListCore[ModelListCore<br/>Pagination, filtering, search]
-        InfoCore[ModelGetInfoCore<br/>Retrieve by ID/UUID]
-        ChartCore[ChartToolCore<br/>Chart creation & updates<br/>To be implemented]
-        DashboardCore[DashboardToolCore<br/>Dashboard management<br/>To be implemented]
-    end
-
-    subgraph "Tool Implementations"
-        ListTools[List Tools<br/>list_datasets, list_charts, etc.]
-        InfoTools[Info Tools<br/>get_dataset_info, get_chart_info, etc.]
-        CustomTools[Custom Tools<br/>generate_chart, update_chart, etc.<br/>Currently using custom implementation]
-    end
-
-    subgraph "Superset Components"
-        Components[DAOs, Commands, Schemas]
-    end
-
-    ListCore -.->|Instantiate with config| ListTools
-    InfoCore -.->|Instantiate with config| InfoTools
-    ChartCore -.-x|Future pattern| CustomTools
-    DashboardCore -.-x|Future pattern| CustomTools
-
-    ListTools --> Components
-    InfoTools --> Components
-    CustomTools --> Components
-
-    classDef coreClass fill:#e8f5e8
-    classDef toolClass fill:#e1f5fe
-    classDef componentClass fill:#f3e5f5
-    classDef plannedClass fill:#e8f5e8,stroke-dasharray: 5 5
-
-    class ListCore,InfoCore coreClass
-    class ChartCore,DashboardCore plannedClass
-    class ListTools,InfoTools,CustomTools toolClass
-    class Components componentClass
-```
-
-**Pattern Benefits:**
-- **Code Reuse**: Generic cores handle common operations (list, get, filter) for all models
-- **Consistency**: Identical behavior across dataset, chart, and dashboard tools
-- **Extensibility**: New tools can leverage existing cores with minimal configuration
-
 ## Architecture Principles
 
 The MCP service implementation follows key architectural principles that ensure maintainability, security, and extensibility:
@@ -373,6 +239,142 @@ The MCP service provides separate tools for exploration vs persistence:
 - Error sanitization for security and user experience
 
 These principles ensure the MCP service provides a secure, extensible, and maintainable foundation for AI-driven analytics workflows while leveraging Superset's existing strengths.
+
+## Implementation Details
+
+### Data Access Layer
+
+The MCP service uses superset’s DAO and Command implementations *out of the box*. To achive this we previously added (https://github.com/apache/superset/pull/35018) a couple of missing functions to remove the dependency on Flask-AppBuilder that does these for the CRID APIs:
+
+```python
+# superset/daos/base.py - Enhanced with new functions
+class BaseDAO(Generic[T]):
+    @classmethod
+    def list(
+        cls,
+        column_operators: Optional[List[ColumnOperator]] = None,
+        order_column: str = "changed_on",
+        order_direction: str = "desc",
+        page: int = 0,
+        page_size: int = 100,
+        search: Optional[str] = None,
+        search_columns: Optional[List[str]] = None,
+        custom_filters: Optional[Dict[str, Any]] = None,
+        columns: Optional[List[str]] = None,
+    ) -> Tuple[List[Any], int]:
+        """Generic list method for filtered, sorted, and paginated results"""
+
+    @classmethod
+    def count(cls) -> int:
+        """Count total records - required for instance statistics"""
+```
+
+### Pydantic Schema Framework
+
+All MCP tool schemas use Pydantic for FastMCP compatibility and future FastAPI integration:
+
+```python
+# Chart creation with iterative, discriminated union approach
+class ChartCreationRequest(BaseModel):
+    dataset_id: int
+    chart_type: ChartTypeEnum
+    metrics: List[str]
+    groupby: Optional[List[str]] = None
+    filters: Optional[List[FilterConfig]] = None
+    # Simplified schema - complex configurations added iteratively
+```
+
+**Why Pydantic over Marshmallow:**
+
+- **FastMCP requirement**: FastMCP is Pydantic-first with Rust-based performance optimizations
+- **Type-hint based**: Declarative style using native Python type hints
+- **Automatic schema generation**: Pydantic models generate JSON schemas for MCP tool discovery
+
+**Note**: This Pydantic adoption is isolated to the MCP service and does not require Superset-wide migration from Marshmallow.
+
+### Chart Workflow Design
+
+The MCP service implements a **preview-first workflow** optimized for LLM conversations rather than traditional API patterns. This design principle is detailed in the [Preview-First User Experience](#5-preview-first-user-experience) architecture principle.
+
+**Key Design Difference:**
+- **Traditional APIs**: Immediate persistence with precise requirements
+- **MCP Service**: Exploration mode by default, explicit persistence when satisfied
+
+This workflow prevents database clutter from exploratory LLM conversations while maintaining flexibility for users to iterate on chart designs before committing them.
+
+### MCP Service Internal Architecture
+
+```mermaid
+flowchart TD
+    MCP[FastMCP Service<br/>JSON-RPC 2.0 Protocol + Middleware]
+    Tools[MCP Tools<br/>Charts, Dashboards, Datasets, SQL]
+    Core[Superset Core<br/>Commands, DAOs, Models]
+
+    MCP --> Tools
+    Tools --> Core
+
+    classDef service fill:#e1f5fe
+    classDef tools fill:#f3e5f5
+    classDef core fill:#e8f5e8
+
+    class MCP service
+    class Tools tools
+    class Core core
+```
+
+**Architecture Layers:**
+
+1. **FastMCP Service**: Handles MCP protocol with extensible middleware (auth, rate limiting, logging)
+2. **MCP Tools**: Domain-specific tools for charts, dashboards, datasets, SQL, and system operations
+3. **Superset Core**: Reuses existing Commands (business logic) and DAOs (data access) with built-in RBAC
+
+### MCP Core Abstraction Pattern
+
+The MCP service implements reusable core classes to eliminate code duplication:
+
+```mermaid
+flowchart TD
+    subgraph "Generic Core Classes"
+        ListCore[ModelListCore<br/>Pagination, filtering, search]
+        InfoCore[ModelGetInfoCore<br/>Retrieve by ID/UUID]
+        ChartCore[ChartToolCore<br/>Chart creation & updates<br/>To be implemented]
+        DashboardCore[DashboardToolCore<br/>Dashboard management<br/>To be implemented]
+    end
+
+    subgraph "Tool Implementations"
+        ListTools[List Tools<br/>list_datasets, list_charts, etc.]
+        InfoTools[Info Tools<br/>get_dataset_info, get_chart_info, etc.]
+        CustomTools[Custom Tools<br/>generate_chart, update_chart, etc.<br/>Currently using custom implementation]
+    end
+
+    subgraph "Superset Components"
+        Components[DAOs, Commands, Schemas]
+    end
+
+    ListCore -.->|Instantiate with config| ListTools
+    InfoCore -.->|Instantiate with config| InfoTools
+    ChartCore -.-x|Future pattern| CustomTools
+    DashboardCore -.-x|Future pattern| CustomTools
+
+    ListTools --> Components
+    InfoTools --> Components
+    CustomTools --> Components
+
+    classDef coreClass fill:#e8f5e8
+    classDef toolClass fill:#e1f5fe
+    classDef componentClass fill:#f3e5f5
+    classDef plannedClass fill:#e8f5e8,stroke-dasharray: 5 5
+
+    class ListCore,InfoCore coreClass
+    class ChartCore,DashboardCore plannedClass
+    class ListTools,InfoTools,CustomTools toolClass
+    class Components componentClass
+```
+
+**Pattern Benefits:**
+- **Code Reuse**: Generic cores handle common operations (list, get, filter) for all models
+- **Consistency**: Identical behavior across dataset, chart, and dashboard tools
+- **Extensibility**: New tools can leverage existing cores with minimal configuration
 
 ## Security Model
 
