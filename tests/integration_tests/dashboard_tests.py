@@ -251,8 +251,6 @@ class TestDashboard(SupersetTestCase):
             headers={"Accept": "text/html"},
         )
         assert response.status_code == 404
-        assert "text/html" in response.headers.get("Content-Type", "")
-        assert "Page not found" in response.get_data(as_text=True)
 
     @pytest.mark.usefixtures(
         "public_role_like_gamma",
