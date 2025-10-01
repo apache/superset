@@ -431,7 +431,7 @@ def test_date_trunc_preserved() -> None:
     result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
 
     assert "DATE_TRUNC" in result
-    assert "DATE_TRUNC('day'" in result or "DATE_TRUNC('DAY'" in result
+    assert "date_trunc('day'" in result.lower()
     # Should not be converted to MySQL's DATE() function
     assert result != "SELECT DATE(dt_column) FROM table"
 
