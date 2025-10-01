@@ -232,15 +232,11 @@ test('should call setSortBy when clicking sortable column header', () => {
   // Click on the nested field column header to trigger sorting
   fireEvent.click(nestedFieldHeader);
 
-  // Verify setSortBy was called immediately
-  expect(setSortBy).toHaveBeenCalled();
-
-  const sortCallArgs = setSortBy.mock.calls[0][0];
-  expect(Array.isArray(sortCallArgs)).toBe(true);
-  expect(sortCallArgs[0]).toHaveProperty('id');
-  expect(sortCallArgs[0]).toHaveProperty('desc');
-
-  // Verify the nested field array was converted to dot notation
-  expect(sortCallArgs[0].id).toBe('parent.child');
-  expect(typeof sortCallArgs[0].desc).toBe('boolean');
+  // Verify setSortBy was called with the correct arguments and dot notation conversion
+  expect(setSortBy).toHaveBeenCalledWith([
+    {
+      id: 'parent.child',
+      desc: expect.any(Boolean),
+    },
+  ]);
 });
