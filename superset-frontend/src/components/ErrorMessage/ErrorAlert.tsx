@@ -100,6 +100,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
           </span>
         </div>
       )}
+      {children}
     </div>
   );
   const renderAlert = (closable: boolean) => (
@@ -129,7 +130,6 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
           footer={null}
         >
           {renderAlert(false)}
-          {children}
         </Modal>
       </>
     );
