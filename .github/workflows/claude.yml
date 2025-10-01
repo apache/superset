@@ -44,7 +44,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Comment access denied
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const message = `👋 Hi @${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}!

@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Security Check - Authorize Maintainers Only
         id: auth
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

@@ -63,7 +63,7 @@ jobs:
       - name: Get event SHA
         id: get-sha
         if: steps.eval-label.outputs.result == 'up'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -94,7 +94,7 @@ jobs:
             core.setOutput("sha", prSha);
 
       - name: Looking for feature flags in PR description
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         id: eval-feature-flags
         if: steps.eval-label.outputs.result == 'up'
         with:
@@ -116,7 +116,7 @@ jobs:
             return results;
 
       - name: Reply with confirmation comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: steps.eval-label.outputs.result == 'up'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -248,7 +248,7 @@ jobs:
 
       - name: Fail on missing container image
         if: steps.check-image.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ github.token }}
           script: |
@@ -318,7 +318,7 @@ jobs:
           echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
       - name: Comment (success)
         if: ${{ success() }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{github.token}}
           script: |
@@ -331,7 +331,7 @@ jobs:
             });
       - name: Comment (failure)
         if: ${{ failure() }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{github.token}}
           script: |
