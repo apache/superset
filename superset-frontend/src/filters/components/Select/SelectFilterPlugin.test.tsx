@@ -69,6 +69,7 @@ const selectMultipleProps = {
   appSection: AppSection.Dashboard,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props = {}) =>

@@ -16,5 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';
-export type FlashMessage = [FlashMessageType, string];
+
+import { render, screen } from 'spec/helpers/testing-library';
+import { CustomDocLink } from './CustomDocLink';
+
+const mockedProps = {
+  url: 'https://superset.apache.org/docs/',
+  label: 'Superset Docs',
+};
+
+test('should render the label', () => {
+  render(<CustomDocLink {...mockedProps} />);
+  expect(screen.getByText('Superset Docs')).toBeInTheDocument();
+});
+
+test('should render the link with correct attributes', () => {
+  render(<CustomDocLink {...mockedProps} />);
+  const link = screen.getByRole('link');
+  expect(link).toHaveAttribute('href', mockedProps.url);
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+});

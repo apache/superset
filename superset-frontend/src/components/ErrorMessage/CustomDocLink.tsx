@@ -16,25 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
-  "env": {
-    "jest/globals": true
-  },
-  "settings": {
-    "jest": {
-      "version": "detect"
-    }
-  },
-  "extends": [
-    "plugin:jest/recommended",
-    "plugin:jest-dom/recommended",
-    "plugin:testing-library/react"
-  ],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "jest/consistent-test-it": "error",
-    "no-only-tests/no-only-tests": "error",
-    "prefer-promise-reject-errors": 0
-  }
-}
+
+import { Flex, Icons } from '@superset-ui/core/components';
+
+export type CustomDocLinkProps = {
+  url: string;
+  label: string;
+};
+
+export const CustomDocLink = ({ url, label }: CustomDocLinkProps) => (
+  <a href={url} target="_blank" rel="noopener noreferrer">
+    <Flex align="center" gap={4}>
+      {label} <Icons.Full iconSize="m" />
+    </Flex>
+  </a>
+);

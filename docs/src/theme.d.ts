@@ -17,5 +17,16 @@
  * under the License.
  */
 
-export { default as DrillDetailMenuItems } from './DrillDetailMenuItems';
-export { useDrillDetailMenuItems } from './useDrillDetailMenuItems';
+declare module '@theme/Layout' {
+  import type { ReactNode } from 'react';
+
+  export interface Props {
+    readonly children?: ReactNode;
+    readonly noFooter?: boolean;
+    readonly wrapperClassName?: string;
+    readonly title?: string;
+    readonly description?: string;
+  }
+
+  export default function Layout(props: Props): ReactNode;
+}
