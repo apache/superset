@@ -364,6 +364,7 @@ def mcp_auth_hook(tool_func: F) -> F:
     import functools
 
     from flask import g
+    from flask_login import login_user
 
     # Apply event logger decorator if available, otherwise proceed without it
     def apply_audit_logging(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -383,11 +384,17 @@ def mcp_auth_hook(tool_func: F) -> F:
         user = get_user_from_request()
         g.user = user
 
+        # CRITICAL: Set Flask-Login's current_user to match g.user
+        # This ensures RBAC filters use the correct authenticated user
+        login_user(user, remember=False)
+
         # Add MCP audit context to Flask g for event logger
         g.mcp_audit_context = get_mcp_audit_context(tool_func, kwargs)
 
         if run_as := kwargs.get("run_as"):
             user = impersonate_user(user, run_as)
+            # Update Flask-Login's current_user after impersonation
+            login_user(user, remember=False)
 
         if not has_permission(user, tool_func):
             raise PermissionError(
