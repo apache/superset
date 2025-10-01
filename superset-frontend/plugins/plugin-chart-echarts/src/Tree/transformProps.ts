@@ -204,7 +204,7 @@ export default function transformProps(
       },
       select: DEFAULT_TREE_SERIES_OPTION.select,
       leaves: { label: { position: childLabelPosition } },
-      initialTreeDepth: initialTreeDepth,
+      initialTreeDepth,
     },
   ];
 
