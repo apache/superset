@@ -270,6 +270,47 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         assert cache_key_original != cache_key
 
+    def test_query_cache_key_consistent_with_different_sql_formatting(self):
+        """
+        Test that cache keys are consistent regardless of SQL clause formatting.
+        """
+        # Create payload with compact WHERE clause
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["extras"] = {"where": "(name = 'Amy')"}
+
+        query_context1 = ChartDataQueryContextSchema().load(payload)
+        query_object1 = query_context1.queries[0]
+        cache_key1 = query_context1.query_cache_key(query_object1)
+
+        # Create same payload but with pretty-formatted WHERE clause (with newlines)
+        payload2 = get_query_context("birth_names")
+        payload2["queries"][0]["extras"] = {"where": "(\n  name = 'Amy'\n)"}
+
+        query_context2 = ChartDataQueryContextSchema().load(payload2)
+        query_object2 = query_context2.queries[0]
+        cache_key2 = query_context2.query_cache_key(query_object2)
+
+        # Cache keys should be identical after sanitization
+        assert cache_key1 == cache_key2
+
+        # Also verify with HAVING clause
+        payload3 = get_query_context("birth_names")
+        payload3["queries"][0]["extras"] = {"having": "(sum__num > 100)"}
+
+        query_context3 = ChartDataQueryContextSchema().load(payload3)
+        query_object3 = query_context3.queries[0]
+        cache_key3 = query_context3.query_cache_key(query_object3)
+
+        payload4 = get_query_context("birth_names")
+        payload4["queries"][0]["extras"] = {"having": "(\n  sum__num > 100\n)"}
+
+        query_context4 = ChartDataQueryContextSchema().load(payload4)
+        query_object4 = query_context4.queries[0]
+        cache_key4 = query_context4.query_cache_key(query_object4)
+
+        # Cache keys should be identical after sanitization
+        assert cache_key3 == cache_key4
+
     def test_handle_metrics_field(self):
         """
         Should support both predefined and adhoc metrics.

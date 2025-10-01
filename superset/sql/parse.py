@@ -1480,6 +1480,15 @@ def sanitize_clause(clause: str, engine: str) -> str:
     Make sure the SQL clause is valid.
     """
     try:
-        return SQLStatement(clause, engine).format()
+        statement = SQLStatement(clause, engine)
+        dialect = SQLGLOT_DIALECTS.get(engine)
+        from sqlglot.dialects.dialect import Dialect
+
+        return Dialect.get_or_raise(dialect).generate(
+            statement._parsed,  # pylint: disable=protected-access
+            copy=True,
+            comments=False,
+            pretty=False,
+        )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
