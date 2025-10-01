@@ -2020,7 +2020,6 @@ module.exports = {
           },
         ],
         'import/newline-after-import': 'error',
-        'import/prefer-default-export': 'error',
 
         'import/max-dependencies': [
           'off',
@@ -2053,12 +2052,6 @@ module.exports = {
         ],
 
         'import/no-self-import': 'error',
-        'import/no-cycle': [
-          'error',
-          {
-            maxDepth: '∞',
-          },
-        ],
         'import/no-useless-path-segments': [
           'error',
           {
@@ -2087,21 +2080,12 @@ module.exports = {
             exceptions: [],
           },
         ],
-        'import/no-relative-packages': 'error',
 
         // React plugin rules (94 rules)
         'react/display-name': [
           'off',
           {
             ignoreTranspilerName: false,
-          },
-        ],
-        'react/forbid-prop-types': [
-          'error',
-          {
-            forbid: ['any', 'array', 'object'],
-            checkContextTypes: true,
-            checkChildContextTypes: true,
           },
         ],
         'react/forbid-dom-props': [
@@ -2130,16 +2114,6 @@ module.exports = {
         'react/jsx-indent-props': 'off',
         'react/jsx-key': 'off',
         'react/jsx-max-props-per-line': 'off',
-        'react/jsx-no-bind': [
-          'error',
-          {
-            ignoreRefs: true,
-            allowArrowFunctions: true,
-            allowFunctions: false,
-            allowBind: false,
-            ignoreDOMComponents: true,
-          },
-        ],
         'react/jsx-no-duplicate-props': [
           'error',
           {
@@ -2196,8 +2170,6 @@ module.exports = {
         'react/no-direct-mutation-state': 'off',
         'react/no-is-mounted': 'error',
 
-        'react/no-string-refs': 'error',
-        'react/no-unknown-property': 'error',
         'react/prefer-es6-class': ['error', 'always'],
         'react/prefer-stateless-function': [
           'error',
@@ -2205,65 +2177,8 @@ module.exports = {
             ignorePureComponents: true,
           },
         ],
-        'react/prop-types': [
-          'error',
-          {
-            ignore: [],
-            customValidators: [],
-            skipUndeclared: false,
-          },
-        ],
         'react/require-render-return': 'error',
         'react/self-closing-comp': 'error',
-        'react/sort-comp': [
-          'error',
-          {
-            order: [
-              'static-variables',
-              'static-methods',
-              'instance-variables',
-              'lifecycle',
-              '/^handle.+$/',
-              '/^on.+$/',
-              'getters',
-              'setters',
-              '/^(get|set)(?!(InitialState$|DefaultProps$|ChildContext$)).+$/',
-              'instance-methods',
-              'everything-else',
-              'rendering',
-            ],
-            groups: {
-              lifecycle: [
-                'displayName',
-                'propTypes',
-                'contextTypes',
-                'childContextTypes',
-                'mixins',
-                'statics',
-                'defaultProps',
-                'constructor',
-                'getDefaultProps',
-                'getInitialState',
-                'state',
-                'getChildContext',
-                'getDerivedStateFromProps',
-                'componentWillMount',
-                'UNSAFE_componentWillMount',
-                'componentDidMount',
-                'componentWillReceiveProps',
-                'UNSAFE_componentWillReceiveProps',
-                'shouldComponentUpdate',
-                'componentWillUpdate',
-                'UNSAFE_componentWillUpdate',
-                'getSnapshotBeforeUpdate',
-                'componentDidUpdate',
-                'componentDidCatch',
-                'componentWillUnmount',
-              ],
-              rendering: ['/^render.+$/', 'render'],
-            },
-          },
-        ],
         'react/jsx-wrap-multilines': 'off',
         'react/jsx-first-prop-new-line': 'off',
         'react/jsx-equals-spacing': 'off',
@@ -2272,12 +2187,6 @@ module.exports = {
           'error',
           {
             enforceDynamicLinks: 'always',
-          },
-        ],
-        'react/jsx-filename-extension': [
-          'error',
-          {
-            extensions: ['.jsx'],
           },
         ],
         'react/jsx-no-comment-textnodes': 'error',
@@ -2302,25 +2211,10 @@ module.exports = {
           },
         ],
         'react/no-danger-with-children': 'error',
-        'react/no-unused-prop-types': [
-          'error',
-          {
-            customValidators: [],
-            skipShapeProps: true,
-          },
-        ],
         'react/style-prop-object': 'error',
-        'react/no-unescaped-entities': 'error',
         'react/no-children-prop': 'error',
         'react/jsx-tag-spacing': 'off',
         'react/jsx-space-before-closing': ['off', 'always'],
-        'react/no-array-index-key': 'error',
-        'react/require-default-props': [
-          'error',
-          {
-            forbidDefaultForRequired: true,
-          },
-        ],
         'react/forbid-foreign-prop-types': [
           'warn',
           {
@@ -2353,7 +2247,6 @@ module.exports = {
           },
         ],
         'react/jsx-one-expression-per-line': 'off',
-        'react/destructuring-assignment': ['error', 'always'],
         'react/no-access-state-in-setstate': 'error',
         'react/button-has-type': [
           'error',
@@ -2368,19 +2261,8 @@ module.exports = {
 
         'react/jsx-props-no-multi-spaces': 'off',
         'react/no-unsafe': 'off',
-        'react/jsx-fragments': ['error', 'syntax'],
         'react/jsx-curly-newline': 'off',
         'react/state-in-constructor': ['error', 'always'],
-        'react/static-property-placement': ['error', 'property assignment'],
-        'react/jsx-props-no-spreading': [
-          'error',
-          {
-            html: 'enforce',
-            custom: 'enforce',
-            explicitSpread: 'ignore',
-            exceptions: [],
-          },
-        ],
 
         'react/jsx-no-script-url': [
           'error',
@@ -2391,23 +2273,12 @@ module.exports = {
             },
           ],
         ],
-        'react/jsx-no-useless-fragment': 'error',
-
-        'react/function-component-definition': [
-          'error',
-          {
-            namedComponents: ['function-declaration', 'function-expression'],
-            unnamedComponents: 'function-expression',
-          },
-        ],
 
         'react/jsx-no-constructed-context-values': 'error',
-        'react/no-unstable-nested-components': 'error',
         'react/no-namespace': 'error',
         'react/prefer-exact-props': 'error',
         'react/no-arrow-function-lifecycle': 'error',
         'react/no-invalid-html-attribute': 'error',
-        'react/no-unused-class-component-methods': 'error',
 
         // JSX-a11y plugin rules (36 rules)
 
@@ -2451,7 +2322,6 @@ module.exports = {
             inputComponents: [],
           },
         ],
-        'jsx-a11y/click-events-have-key-events': 'error',
         'jsx-a11y/control-has-associated-label': [
           'error',
           {
@@ -2510,7 +2380,6 @@ module.exports = {
             track: [],
           },
         ],
-        'jsx-a11y/mouse-events-have-key-events': 'error',
         'jsx-a11y/no-access-key': 'error',
         'jsx-a11y/no-autofocus': [
           'error',
@@ -2635,7 +2504,6 @@ module.exports = {
         '@typescript-eslint/no-unused-vars': 'warn', // downgrade to Warning severity for Jest v30 upgrade
         camelcase: 0,
 
-        'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
         'import/extensions': [
           'error',
           {
@@ -2645,54 +2513,18 @@ module.exports = {
           },
         ],
         'import/no-named-as-default-member': 0,
-        'import/prefer-default-export': 0,
         indent: 'off',
         'jsx-a11y/anchor-is-valid': 2,
-        'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
-        'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
 
-        'no-prototype-builtins': 0,
-
-        'prefer-destructuring': ['error', { object: true, array: false }],
-        'react/destructuring-assignment': 0, // re-enable up for discussion
-        'react/forbid-prop-types': 0,
-        'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
-        'react/jsx-fragments': 1,
-        'react/jsx-no-bind': 0,
-        'react/jsx-props-no-spreading': 0, // re-enable up for discussion
-        'react/no-array-index-key': 0,
-        'react/no-string-refs': 0,
-        'react/no-unescaped-entities': 0,
-        'react/no-unused-prop-types': 0,
-        'react/prop-types': 0,
-        'react/require-default-props': 0,
-        'react/sort-comp': 0, // TODO: re-enable in separate PR
-        'react/static-property-placement': 0, // re-enable up for discussion
-        'prettier/prettier': 'error',
         'file-progress/activate': 1,
         // delete me later: temporary rules to help with migration
         'jsx-no-useless-fragment': 0,
-        'react/function-component-definition': [
-          0,
-          {
-            namedComponents: 'arrow-function',
-          },
-        ],
-
-        'react/no-unstable-nested-components': 0,
-        'react/jsx-no-useless-fragment': 0,
-        'react/no-unknown-property': 0,
 
         'react/default-props-match-prop-types': 0,
         'no-unsafe-optional-chaining': 0,
         'react/state-in-constructor': 0,
         'import/no-import-module-exports': 0,
-        'no-promise-executor-return': 0,
 
-        'react/no-unused-class-component-methods': 0,
-        'import/no-relative-packages': 0,
-
-        'react/react-in-jsx-scope': 0,
         'no-restricted-syntax': [
           'error',
           {
@@ -2706,13 +2538,6 @@ module.exports = {
             selector:
               'ImportNamespaceSpecifier[parent.source.value!=/^(\\.|src)/]',
             message: 'Wildcard imports are not allowed',
-          },
-        ],
-        'no-restricted-imports': [
-          'error',
-          {
-            paths: Object.values(restrictedImportsRules).filter(Boolean),
-            patterns: ['antd/*'],
           },
         ],
       },
