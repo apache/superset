@@ -22,8 +22,12 @@ import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { act } from 'spec/helpers/testing-library';
 
-const history = createMemoryHistory({
+let history = createMemoryHistory({
   initialEntries: ['/dashboard'],
+});
+
+beforeEach(() => {
+  history = createMemoryHistory({ initialEntries: ['/dashboard'] });
 });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
