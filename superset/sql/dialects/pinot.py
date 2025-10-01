@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from sqlglot import exp
 from sqlglot.dialects.mysql import MySQL
+from sqlglot.helper import seq_get
 from sqlglot.tokens import TokenType
 
 
@@ -48,6 +49,16 @@ class Pinot(MySQL):
             "STRING": TokenType.TEXT,
             "LONG": TokenType.BIGINT,
             "BYTES": TokenType.VARBINARY,
+        }
+
+    class Parser(MySQL.Parser):
+        FUNCTIONS = {
+            **MySQL.Parser.FUNCTIONS,
+            "DATE_ADD": lambda args: exp.DateAdd(
+                this=seq_get(args, 2),
+                expression=seq_get(args, 1),
+                unit=seq_get(args, 0),
+            ),
         }
 
     class Generator(MySQL.Generator):
@@ -80,6 +91,12 @@ class Pinot(MySQL):
 
         TRANSFORMS = {
             **MySQL.Generator.TRANSFORMS,
+            exp.DateAdd: lambda self, e: self.func(
+                "DATE_ADD",
+                e.args.get("unit"),
+                e.args.get("expression"),
+                e.this,
+            ),
         }
         # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
         TRANSFORMS.pop(exp.DateTrunc, None)

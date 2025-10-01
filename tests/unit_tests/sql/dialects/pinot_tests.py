@@ -22,7 +22,9 @@ from superset.sql.dialects.pinot import Pinot
 
 
 def test_pinot_dialect_registered() -> None:
-    """Test that Pinot dialect is properly registered."""
+    """
+    Test that Pinot dialect is properly registered.
+    """
     from superset.sql.parse import SQLGLOT_DIALECTS
 
     assert "pinot" in SQLGLOT_DIALECTS
@@ -498,3 +500,35 @@ LIMIT
     # Verify these are NOT converted to MySQL functions
     assert "TIMESTAMP(DATETIMECONVERT" not in result
     assert result.count("DATE_TRUNC") == 2  # Should appear twice (SELECT and GROUP BY)
+
+
+def test_pinot_date_add_parsing() -> None:
+    """
+    Test that Pinot's DATE_ADD function with Presto-like syntax can be parsed.
+    """
+    from superset.sql.parse import SQLScript
+
+    sql = """
+SELECT dt_epoch_ms FROM my_table WHERE dt_epoch_ms >= date_add('day', -180, now())
+    """
+    script = SQLScript(sql, "pinot")
+    assert len(script.statements) == 1
+    assert not script.has_mutation()
+
+
+def test_pinot_date_add_simple() -> None:
+    """
+    Test parsing of simple DATE_ADD expressions.
+    """
+    test_cases = [
+        "date_add('day', -180, now())",
+        "DATE_ADD('month', 5, current_timestamp())",
+        "date_add('year', 1, my_date_column)",
+    ]
+
+    for sql in test_cases:
+        parsed = sqlglot.parse_one(sql, Pinot)
+        assert parsed is not None
+        # Verify that it generates valid SQL
+        generated = parsed.sql(dialect=Pinot)
+        assert "DATE_ADD" in generated.upper()
