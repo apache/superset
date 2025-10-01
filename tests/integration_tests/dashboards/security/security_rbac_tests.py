@@ -234,7 +234,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        assert response.status_code == 404
+        assert response.status_code == 302  # redirect to login
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, "Public")  # noqa: F405
