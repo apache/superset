@@ -63,7 +63,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.1.1",
     "storybook": "^8.6.11",
-    "swagger-ui-react": "^5.27.1",
+    "swagger-ui-react": "^5.29.1",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4"
   },
