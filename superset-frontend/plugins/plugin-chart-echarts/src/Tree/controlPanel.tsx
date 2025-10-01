@@ -291,7 +291,7 @@ const controlPanel: ControlPanelConfig = {
               default: DEFAULT_FORM_DATA.initialTreeDepth,
               renderTrigger: true,
               description: t(
-                'The initial level (depth) of the tree. If set as -1 or null all nodes are expanded.',
+                'The initial level (depth) of the tree. If set as -1 all nodes are expanded.',
               ),
             },
           },
