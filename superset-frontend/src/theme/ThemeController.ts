@@ -815,13 +815,9 @@ export class ThemeController {
         ?.fontUrls as string[] | undefined;
       this.loadFonts(fontUrls);
     } catch (error) {
-      // For synchronous calls, use fallback without async recovery
-      const fallbackTheme =
-        this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
-      if (fallbackTheme) {
-        const normalizedFallback = this.normalizeTheme(fallbackTheme);
-        this.globalTheme.setConfig(normalizedFallback);
-      }
+      console.error('Failed to apply theme:', error);
+      // Re-throw the error so updateTheme can handle fallback logic
+      throw error;
     }
   }
 
