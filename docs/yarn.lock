@@ -2433,10 +2433,15 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.34.0", "@eslint/js@^9.32.0":
+"@eslint/js@9.34.0":
   version "9.34.0"
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.34.0.tgz#fc423168b9d10e08dea9088d083788ec6442996b"
   integrity sha512-EoyvqQnBNsV1CWaEJ559rxXL4c8V92gxirbawSmVUOWXlsRxxQXl6LmCpdUblgxgSkDIqKnhzba2SjRTI/A5Rw==
+
+"@eslint/js@^9.36.0":
+  version "9.36.0"
+  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.36.0.tgz#b1a3893dd6ce2defed5fd49de805ba40368e8fef"
+  integrity sha512-uhCbYtYynH30iZErszX78U+nR3pJU3RHGQ57NXy5QupD4SBVwDeU8TNBy+MjMngc1UyIW9noKqsRqfjQTBU2dw==
 
 "@eslint/object-schema@^2.1.6":
   version "2.1.6"
