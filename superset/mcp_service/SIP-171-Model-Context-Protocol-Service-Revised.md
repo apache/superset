@@ -224,9 +224,20 @@ The MCP service provides separate tools for exploration vs persistence:
 
 **Implementation**:
 - Screenshot caching for chart previews
-- Form data caching for iterative exploration
+- Form data caching for iterative exploration (each iteration creates new cached entry)
 - Query result caching inherited from Superset
 - Metadata caching with refresh control
+
+**Cache Housekeeping Consideration:**
+
+Form data cache entries for chart previews inherit Superset's default 7-day TTL (`EXPLORE_FORM_DATA_CACHE_CONFIG`). For exploratory LLM workflows that may generate many preview iterations without saving, consider configuring a shorter TTL for MCP-created entries to avoid cache bloat:
+
+```python
+# Example MCP-specific configuration (optional)
+MCP_EXPLORE_FORM_DATA_TTL = int(timedelta(hours=1).total_seconds())
+```
+
+This is not currently implemented but may be beneficial for deployments with high exploratory workload volumes.
 
 ### 7. Observability and Audit
 
