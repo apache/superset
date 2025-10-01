@@ -138,6 +138,14 @@ class ChartCreationRequest(BaseModel):
     # Simplified schema - complex configurations added iteratively
 ```
 
+**Why Pydantic over Marshmallow:**
+
+- **FastMCP requirement**: FastMCP is Pydantic-first with Rust-based performance optimizations
+- **Type-hint based**: Declarative style using native Python type hints
+- **Automatic schema generation**: Pydantic models generate JSON schemas for MCP tool discovery
+
+**Note**: This Pydantic adoption is isolated to the MCP service and does not require Superset-wide migration from Marshmallow.
+
 ### 4. Chart Workflow Design
 
 The MCP service implements a **preview-first workflow** optimized for LLM conversations rather than traditional API patterns. This design principle is detailed in the [Preview-First User Experience](#5-preview-first-user-experience) architecture principle.
@@ -221,21 +229,6 @@ flowchart TD
 - **Code Reuse**: Generic cores handle common operations (list, get, filter) for all models
 - **Consistency**: Identical behavior across dataset, chart, and dashboard tools
 - **Extensibility**: New tools can leverage existing cores with minimal configuration
-
-### Implementation Phases | Pull Requests
-
-Since the POC is mostly implemented already, this is essentially the plan to merge its current big PR in 5 chunks.
-
-### Phase 0: Update Base DAO [DONE]
-
-- Enhanced `BaseDAO` with `list()` and `count()` methods
-
-### Phase 1: Base Scaffold for MCP Service
-
-- Ability to run the service with `superset mcp run`
-- Simple health tool
-- Dev support locally and in docker
-- Support `fastmcp` `http` and `stdio`
 
 ## Architecture Principles
 
@@ -389,37 +382,6 @@ The MCP service reuses Superset's existing security infrastructure:
 - **Authorization**: Flask-AppBuilder RBAC automatically applied through DAOs
 - **Input Validation**: 5-layer pipeline with Pydantic schemas and security sanitization
 - **Data Access**: Row-level and column-level security inherited from Superset core
-
-## Continued implementation
-
-The above SIP unlocks the ability to add additional tools (with or without additional SIPs, since they’re effectively non-breaking changes following the agreed-upon pattern). The initial pull request(s) for this SIP *may* include initial POC implementations of a subset of the following tools:
-
-### Phase 2: Core Listing and Discovery Tools
-
-- `list_dashboards`, `list_charts`, `list_datasets`
-- `get_dashboard_info`, `get_chart_info`, `get_dataset_info`
-- `get_superset_instance_info`
-
-### Phase 3: Chart Creation and Preview
-
-- `generate_chart` - Preview-first creation with explore links
-- `update_chart` - Granular chart modifications
-- `get_chart_preview` - Visual chart previews
-- `execute_sql` - SQL Lab integration
-- `generate_explore_link` - Pre-configured exploration URLs
-- Simplified, LLM-friendly schemas with discriminated unions
-
-### Phase 4: Dashboard Management
-
-- `generate_dashboard` - Row/column grid layout approach
-- `add_chart_to_existing_dashboard` - Chart placement tools
-- Dashboard layouts following Superset's design guidelines
-
-## Future SIP/improvement opportunities:
-
-### Phase 5: Advanced Features
-
-- Prompt testing framework to make sure mcp tools get used properly by llm as intended.
 
 ## Deployment Architecture
 
@@ -602,6 +564,38 @@ def get_filterable_columns_and_operators() -> Dict[str, Any]  # Filter discovery
 **Note**: Earlier versions had compatibility issues between werkzeug 3.1.3 and fastmcp 2.12.3. The current implementation uses fastmcp 2.10.0 which resolves these compatibility concerns and provides stable operation with the existing Flask/Werkzeug stack.
 
 ## Migration Plan and Compatibility
+
+### Implementation Phases
+
+The POC implementation is largely complete. The plan is to merge it in phases through multiple pull requests:
+
+**Phase 0: Update Base DAO** [DONE]
+- Enhanced `BaseDAO` with `list()` and `count()` methods
+
+**Phase 1: Base Scaffold for MCP Service**
+- Ability to run the service with `superset mcp run`
+- Simple health tool
+- Dev support locally and in docker
+- Support `fastmcp` `http` and `stdio`
+
+**Phase 2: Core Listing and Discovery Tools**
+- `list_dashboards`, `list_charts`, `list_datasets`
+- `get_dashboard_info`, `get_chart_info`, `get_dataset_info`
+- `get_superset_instance_info`
+
+**Phase 3: Chart Creation and Preview**
+- `generate_chart` - Preview-first creation with explore links
+- `update_chart` - Granular chart modifications
+- `get_chart_preview` - Visual chart previews
+- `execute_sql` - SQL Lab integration
+- `generate_explore_link` - Pre-configured exploration URLs
+
+**Phase 4: Dashboard Management**
+- `generate_dashboard` - Row/column grid layout approach
+- `add_chart_to_existing_dashboard` - Chart placement tools
+
+**Phase 5: Advanced Features** (Future)
+- Prompt testing framework to ensure tools are used correctly by LLMs
 
 ### Database Schema
 
