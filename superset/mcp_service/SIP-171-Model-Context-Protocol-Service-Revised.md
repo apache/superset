@@ -385,6 +385,23 @@ The MCP service reuses Superset's existing security infrastructure:
 - **Input Validation**: 5-layer pipeline with Pydantic schemas and security sanitization
 - **Data Access**: Row-level and column-level security inherited from Superset core
 
+### Permission Model
+
+**No Additional Permission Grants Required**: The MCP service does not request additional permissions from users. All permissions are directly derived from the user's existing Superset RBAC roles and permissions.
+
+**How it Works:**
+1. User authenticates to MCP service (JWT token or session)
+2. User's identity is established in Flask's `g.user` context
+3. All MCP tool operations enforce the user's existing Superset permissions
+4. If a user lacks permission in the web UI, they lack it in MCP tools
+
+**Example:**
+- User has "Viewer" role in Superset → Can list/view charts via MCP, cannot create/modify
+- User has "Editor" role → Can create/modify charts via MCP
+- User has row-level security filters → Same filters apply to MCP query results
+
+This design ensures users cannot bypass Superset's permission model by using MCP tools instead of the web UI.
+
 ### Permission Enforcement
 
 When a user attempts an operation without proper permissions, the MCP service follows Superset's standard error handling:
