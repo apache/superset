@@ -33,7 +33,7 @@
     "d3-tip": "^0.9.1",
     "fast-safe-stringify": "^2.1.1",
     "lodash": "^4.17.21",
-    "dayjs": "^1.11.13",
+    "dayjs": "^1.11.18",
     "nvd3-fork": "^2.0.5",
     "dompurify": "^3.2.6",
     "prop-types": "^15.8.1",
