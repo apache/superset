@@ -872,12 +872,11 @@ module.exports = {
       },
     ],
     'import/named': 'error',
-    'import/default': 'off',
-    'import/namespace': 'off',
+
     'import/export': 'error',
     'import/no-named-as-default': 'error',
     'import/no-named-as-default-member': 'error',
-    'import/no-deprecated': 'off',
+
     'import/no-extraneous-dependencies': [
       'error',
       {
@@ -909,13 +908,13 @@ module.exports = {
       },
     ],
     'import/no-mutable-exports': 'error',
-    'import/no-commonjs': 'off',
+
     'import/no-amd': 'error',
-    'import/no-nodejs-modules': 'off',
+
     'import/first': 'error',
-    'import/imports-first': 'off',
+
     'import/no-duplicates': 'error',
-    'import/no-namespace': 'off',
+
     'import/extensions': [
       'error',
       'ignorePackages',
@@ -933,7 +932,7 @@ module.exports = {
     ],
     'import/newline-after-import': 'error',
     'import/prefer-default-export': 'error',
-    'import/no-restricted-paths': 'off',
+
     'import/max-dependencies': [
       'off',
       {
@@ -948,9 +947,9 @@ module.exports = {
         allow: [],
       },
     ],
-    'import/unambiguous': 'off',
+
     'import/no-webpack-loader-syntax': 'error',
-    'import/no-unassigned-import': 'off',
+
     'import/no-named-default': 'error',
     'import/no-anonymous-default-export': [
       'off',
@@ -963,10 +962,7 @@ module.exports = {
         allowObject: false,
       },
     ],
-    'import/exports-last': 'off',
-    'import/group-exports': 'off',
-    'import/no-default-export': 'off',
-    'import/no-named-export': 'off',
+
     'import/no-self-import': 'error',
     'import/no-cycle': [
       'error',
@@ -987,7 +983,7 @@ module.exports = {
         webpackChunknameFormat: '[0-9a-zA-Z-_/.]+',
       },
     ],
-    'import/no-relative-parent-imports': 'off',
+
     'import/no-unused-modules': [
       'off',
       {
@@ -1096,7 +1092,7 @@ module.exports = {
         sortShapeProp: true,
       },
     ],
-    'react/jsx-sort-prop-types': 'off',
+
     'react/jsx-sort-props': [
       'off',
       {
@@ -1117,13 +1113,12 @@ module.exports = {
     'react/jsx-uses-vars': 'error',
     'react/no-danger': 'warn',
     'react/no-deprecated': ['error'],
-    'react/no-did-mount-set-state': 'off',
+
     'react/no-did-update-set-state': 'error',
     'react/no-will-update-set-state': 'error',
     'react/no-direct-mutation-state': 'off',
     'react/no-is-mounted': 'error',
-    'react/no-multi-comp': 'off',
-    'react/no-set-state': 'off',
+
     'react/no-string-refs': 'error',
     'react/no-unknown-property': 'error',
     'react/prefer-es6-class': ['error', 'always'],
@@ -1315,9 +1310,9 @@ module.exports = {
         reset: false,
       },
     ],
-    'react/jsx-child-element-spacing': 'off',
+
     'react/no-this-in-sfc': 'error',
-    'react/jsx-max-depth': 'off',
+
     'react/jsx-props-no-multi-spaces': 'error',
     'react/no-unsafe': 'off',
     'react/jsx-fragments': ['error', 'syntax'],
@@ -1339,7 +1334,7 @@ module.exports = {
         exceptions: [],
       },
     ],
-    'react/prefer-read-only-props': 'off',
+
     'react/jsx-no-script-url': [
       'error',
       [
@@ -1350,7 +1345,7 @@ module.exports = {
       ],
     ],
     'react/jsx-no-useless-fragment': 'error',
-    'react/no-adjacent-inline-elements': 'off',
+
     'react/function-component-definition': [
       'error',
       {
@@ -1358,7 +1353,7 @@ module.exports = {
         unnamedComponents: 'function-expression',
       },
     ],
-    'react/jsx-newline': 'off',
+
     'react/jsx-no-constructed-context-values': 'error',
     'react/no-unstable-nested-components': 'error',
     'react/no-namespace': 'error',
@@ -1368,7 +1363,7 @@ module.exports = {
     'react/no-unused-class-component-methods': 'error',
 
     // JSX-a11y plugin rules (36 rules)
-    'jsx-a11y/accessible-emoji': 'off',
+
     'jsx-a11y/alt-text': [
       'error',
       {
@@ -1534,7 +1529,7 @@ module.exports = {
         roles: ['tabpanel'],
       },
     ],
-    'jsx-a11y/no-onchange': 'off',
+
     'jsx-a11y/no-redundant-roles': 'error',
     'jsx-a11y/no-static-element-interactions': [
       'error',
@@ -2326,12 +2321,11 @@ module.exports = {
           },
         ],
         'import/named': 'error',
-        'import/default': 'off',
-        'import/namespace': 'off',
+
         'import/export': 'error',
         'import/no-named-as-default': 'error',
         'import/no-named-as-default-member': 'error',
-        'import/no-deprecated': 'off',
+
         'import/no-extraneous-dependencies': [
           'error',
           {
@@ -2363,13 +2357,13 @@ module.exports = {
           },
         ],
         'import/no-mutable-exports': 'error',
-        'import/no-commonjs': 'off',
+
         'import/no-amd': 'error',
-        'import/no-nodejs-modules': 'off',
+
         'import/first': 'error',
-        'import/imports-first': 'off',
+
         'import/no-duplicates': 'error',
-        'import/no-namespace': 'off',
+
         'import/extensions': [
           'error',
           'ignorePackages',
@@ -2387,7 +2381,7 @@ module.exports = {
         ],
         'import/newline-after-import': 'error',
         'import/prefer-default-export': 'error',
-        'import/no-restricted-paths': 'off',
+
         'import/max-dependencies': [
           'off',
           {
@@ -2402,9 +2396,9 @@ module.exports = {
             allow: [],
           },
         ],
-        'import/unambiguous': 'off',
+
         'import/no-webpack-loader-syntax': 'error',
-        'import/no-unassigned-import': 'off',
+
         'import/no-named-default': 'error',
         'import/no-anonymous-default-export': [
           'off',
@@ -2417,10 +2411,7 @@ module.exports = {
             allowObject: false,
           },
         ],
-        'import/exports-last': 'off',
-        'import/group-exports': 'off',
-        'import/no-default-export': 'off',
-        'import/no-named-export': 'off',
+
         'import/no-self-import': 'error',
         'import/no-cycle': [
           'error',
@@ -2441,7 +2432,7 @@ module.exports = {
             webpackChunknameFormat: '[0-9a-zA-Z-_/.]+',
           },
         ],
-        'import/no-relative-parent-imports': 'off',
+
         'import/no-unused-modules': [
           'off',
           {
@@ -2550,7 +2541,7 @@ module.exports = {
             sortShapeProp: true,
           },
         ],
-        'react/jsx-sort-prop-types': 'off',
+
         'react/jsx-sort-props': [
           'off',
           {
@@ -2571,13 +2562,12 @@ module.exports = {
         'react/jsx-uses-vars': 'error',
         'react/no-danger': 'warn',
         'react/no-deprecated': ['error'],
-        'react/no-did-mount-set-state': 'off',
+
         'react/no-did-update-set-state': 'error',
         'react/no-will-update-set-state': 'error',
         'react/no-direct-mutation-state': 'off',
         'react/no-is-mounted': 'error',
-        'react/no-multi-comp': 'off',
-        'react/no-set-state': 'off',
+
         'react/no-string-refs': 'error',
         'react/no-unknown-property': 'error',
         'react/prefer-es6-class': ['error', 'always'],
@@ -2769,9 +2759,9 @@ module.exports = {
             reset: false,
           },
         ],
-        'react/jsx-child-element-spacing': 'off',
+
         'react/no-this-in-sfc': 'error',
-        'react/jsx-max-depth': 'off',
+
         'react/jsx-props-no-multi-spaces': 'error',
         'react/no-unsafe': 'off',
         'react/jsx-fragments': ['error', 'syntax'],
@@ -2793,7 +2783,7 @@ module.exports = {
             exceptions: [],
           },
         ],
-        'react/prefer-read-only-props': 'off',
+
         'react/jsx-no-script-url': [
           'error',
           [
@@ -2804,7 +2794,7 @@ module.exports = {
           ],
         ],
         'react/jsx-no-useless-fragment': 'error',
-        'react/no-adjacent-inline-elements': 'off',
+
         'react/function-component-definition': [
           'error',
           {
@@ -2812,7 +2802,7 @@ module.exports = {
             unnamedComponents: 'function-expression',
           },
         ],
-        'react/jsx-newline': 'off',
+
         'react/jsx-no-constructed-context-values': 'error',
         'react/no-unstable-nested-components': 'error',
         'react/no-namespace': 'error',
@@ -2822,7 +2812,7 @@ module.exports = {
         'react/no-unused-class-component-methods': 'error',
 
         // JSX-a11y plugin rules (36 rules)
-        'jsx-a11y/accessible-emoji': 'off',
+
         'jsx-a11y/alt-text': [
           'error',
           {
@@ -2988,7 +2978,7 @@ module.exports = {
             roles: ['tabpanel'],
           },
         ],
-        'jsx-a11y/no-onchange': 'off',
+
         'jsx-a11y/no-redundant-roles': 'error',
         'jsx-a11y/no-static-element-interactions': [
           'error',
