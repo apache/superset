@@ -22,6 +22,7 @@ import ResizableContainer, {
   ResizableContainerProps,
 } from 'src/dashboard/components/resizable/ResizableContainer';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResizableContainer', () => {
   const props = {
     editMode: false,
@@ -34,7 +35,7 @@ describe('ResizableContainer', () => {
     <ResizableContainer {...props} {...overrides} />
   );
 
-  it('should render a Resizable container', () => {
+  test('should render a Resizable container', () => {
     const rendered = render(setup());
     const resizableContainer = rendered.container.querySelector(
       '.resizable-container',

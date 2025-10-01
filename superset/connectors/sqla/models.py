@@ -1430,6 +1430,7 @@ class SqlaTable(
         metric: AdhocMetric,
         columns_by_name: dict[str, TableColumn],
         template_processor: BaseTemplateProcessor | None = None,
+        processed: bool = False,
     ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
@@ -1437,6 +1438,7 @@ class SqlaTable(
         :param dict metric: Adhoc metric definition
         :param dict columns_by_name: Columns for the current table
         :param template_processor: template_processor instance
+        :param bool processed: Whether the sqlExpression has already been processed
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
@@ -1455,16 +1457,20 @@ class SqlaTable(
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            try:
-                expression = self._process_sql_expression(
-                    expression=metric["sqlExpression"],
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-            except SupersetSecurityException as ex:
-                raise QueryObjectValidationError(ex.message) from ex
+            expression = metric.get("sqlExpression")
+
+            if not processed:
+                try:
+                    expression = self._process_sql_expression(
+                        expression=expression,
+                        database_id=self.database_id,
+                        engine=self.database.backend,
+                        schema=self.schema,
+                        template_processor=template_processor,
+                    )
+                except SupersetSecurityException as ex:
+                    raise QueryObjectValidationError(ex.message) from ex
+
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1642,7 +1648,10 @@ class SqlaTable(
             )
             db_engine_spec = self.db_engine_spec
             errors = [
-                dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
+                dataclasses.asdict(error)
+                for error in db_engine_spec.extract_errors(
+                    ex, database_name=self.database.unique_name
+                )
             ]
             error_message = utils.error_msg_from_exception(ex)
 

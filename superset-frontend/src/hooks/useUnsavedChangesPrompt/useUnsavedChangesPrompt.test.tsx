@@ -30,8 +30,9 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <Router history={history}>{children}</Router>
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useUnsavedChangesPrompt', () => {
-  it('should not show modal initially', () => {
+  test('should not show modal initially', () => {
     const { result } = renderHook(
       () =>
         useUnsavedChangesPrompt({
@@ -44,7 +45,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(false);
   });
 
-  it('should block navigation and show modal if there are unsaved changes', () => {
+  test('should block navigation and show modal if there are unsaved changes', () => {
     const { result } = renderHook(
       () =>
         useUnsavedChangesPrompt({
@@ -64,7 +65,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(true);
   });
 
-  it('should trigger onSave and hide modal on handleSaveAndCloseModal', async () => {
+  test('should trigger onSave and hide modal on handleSaveAndCloseModal', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
 
     const { result } = renderHook(
@@ -84,7 +85,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(false);
   });
 
-  it('should trigger manual save and not show modal again', async () => {
+  test('should trigger manual save and not show modal again', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
 
     const { result } = renderHook(
@@ -101,6 +102,35 @@ describe('useUnsavedChangesPrompt', () => {
     });
 
     expect(onSave).toHaveBeenCalled();
+    expect(result.current.showModal).toBe(false);
+  });
+
+  it('should close modal when handleConfirmNavigation is called', () => {
+    const onSave = jest.fn();
+
+    const { result } = renderHook(
+      () =>
+        useUnsavedChangesPrompt({
+          hasUnsavedChanges: true,
+          onSave,
+        }),
+      { wrapper },
+    );
+
+    // First, trigger navigation to show the modal
+    act(() => {
+      const unblock = history.block((tx: any) => tx);
+      unblock();
+      history.push('/another-page');
+    });
+
+    expect(result.current.showModal).toBe(true);
+
+    // Then call handleConfirmNavigation to discard changes
+    act(() => {
+      result.current.handleConfirmNavigation();
+    });
+
     expect(result.current.showModal).toBe(false);
   });
 });

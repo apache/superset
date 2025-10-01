@@ -82,8 +82,9 @@ async function setup({
   return { props, ...utils, verifier, VerifiedControl };
 }
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('VerifiedMetricsControl', () => {
-  it('should call verify correctly', async () => {
+  test('should call verify correctly', async () => {
     expect.assertions(3);
     const { verifier, props, rerender, VerifiedControl } = await setup();
 
@@ -100,7 +101,7 @@ describe('VerifiedMetricsControl', () => {
     );
   });
 
-  it('should trigger onChange event', async () => {
+  test('should trigger onChange event', async () => {
     expect.assertions(2);
     const mockOnChange = jest.fn();
     const { verifier, props } = await setup({
