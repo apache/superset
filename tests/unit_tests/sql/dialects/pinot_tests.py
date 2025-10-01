@@ -546,3 +546,33 @@ def test_pinot_date_add_unit_quoted() -> None:
     # The unit should be quoted: 'DAY' not DAY
     assert "DATE_ADD('DAY', -180, NOW())" in result
     assert "DATE_ADD(DAY," not in result
+
+
+def test_pinot_date_sub_parsing() -> None:
+    """
+    Test that Pinot's DATE_SUB function with Presto-like syntax can be parsed.
+    """
+    from superset.sql.parse import SQLScript
+
+    sql = "SELECT * FROM my_table WHERE dt >= date_sub('day', 7, now())"
+    script = SQLScript(sql, "pinot")
+    assert len(script.statements) == 1
+    assert not script.has_mutation()
+
+
+def test_pinot_date_sub_simple() -> None:
+    """
+    Test parsing of simple DATE_SUB expressions.
+    """
+    test_cases = [
+        "date_sub('day', 7, now())",
+        "DATE_SUB('month', 3, current_timestamp())",
+        "date_sub('hour', 24, my_date_column)",
+    ]
+
+    for sql in test_cases:
+        parsed = sqlglot.parse_one(sql, Pinot)
+        assert parsed is not None
+        # Verify that it generates valid SQL
+        generated = parsed.sql(dialect=Pinot)
+        assert "DATE_SUB" in generated.upper()
