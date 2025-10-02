@@ -16,10 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "settings": {
-    "import/resolver": {
-      "typescript": {}
-    }
-  }
-}
+
+import { Flex, Icons } from '@superset-ui/core/components';
+
+export type CustomDocLinkProps = {
+  url: string;
+  label: string;
+};
+
+export const CustomDocLink = ({ url, label }: CustomDocLinkProps) => (
+  <a href={url} target="_blank" rel="noopener noreferrer">
+    <Flex align="center" gap={4}>
+      {label} <Icons.Full iconSize="m" />
+    </Flex>
+  </a>
+);

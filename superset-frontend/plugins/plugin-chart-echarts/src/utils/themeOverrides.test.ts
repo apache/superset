@@ -19,7 +19,7 @@
 import { mergeReplaceArrays } from '@superset-ui/core';
 
 describe('Theme Override Deep Merge Behavior', () => {
-  test('should merge nested objects correctly', () => {
+  it('should merge nested objects correctly', () => {
     const baseOptions = {
       grid: {
         left: '5%',
@@ -67,7 +67,7 @@ describe('Theme Override Deep Merge Behavior', () => {
     });
   });
 
-  test('should replace arrays instead of merging them', () => {
+  it('should replace arrays instead of merging them', () => {
     const baseOptions = {
       series: [
         { name: 'Series 1', type: 'line' },
@@ -86,7 +86,7 @@ describe('Theme Override Deep Merge Behavior', () => {
     expect(result.series).toHaveLength(1);
   });
 
-  test('should handle null overrides correctly', () => {
+  it('should handle null overrides correctly', () => {
     const baseOptions = {
       grid: {
         left: '5%',
@@ -127,7 +127,7 @@ describe('Theme Override Deep Merge Behavior', () => {
     });
   });
 
-  test('should handle override precedence correctly', () => {
+  it('should handle override precedence correctly', () => {
     const baseTheme = {
       textStyle: { color: '#000', fontSize: 12 },
     };
@@ -167,7 +167,7 @@ describe('Theme Override Deep Merge Behavior', () => {
     });
   });
 
-  test('should preserve deep nested structures', () => {
+  it('should preserve deep nested structures', () => {
     const baseOptions = {
       xAxis: {
         axisLabel: {
@@ -215,7 +215,7 @@ describe('Theme Override Deep Merge Behavior', () => {
     });
   });
 
-  test('should handle function values correctly', () => {
+  it('should handle function values correctly', () => {
     const formatFunction = (value: any) => `${value}%`;
     const overrideFunction = (value: any) => `$${value}`;
 
@@ -241,7 +241,7 @@ describe('Theme Override Deep Merge Behavior', () => {
     expect(result.yAxis.axisLabel.formatter('100')).toBe('$100');
   });
 
-  test('should handle empty objects and arrays', () => {
+  it('should handle empty objects and arrays', () => {
     const baseOptions = {
       series: [{ name: 'Test', data: [1, 2, 3] }],
       grid: { left: '5%' },
