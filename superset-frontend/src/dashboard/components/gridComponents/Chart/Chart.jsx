@@ -203,7 +203,7 @@ const Chart = props => {
 
   // Chart state handler for AG Grid tables
   const handleChartStateChange = useCallback(
-    (chartState) => {
+    chartState => {
       // Only handle chart state for AG Grid tables
       if (slice?.viz_type === 'ag_grid_table') {
         dispatch(updateChartState(props.id, slice.viz_type, chartState));

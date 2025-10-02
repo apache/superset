@@ -105,7 +105,7 @@ describe('useUnsavedChangesPrompt', () => {
     expect(result.current.showModal).toBe(false);
   });
 
-  it('should close modal when handleConfirmNavigation is called', () => {
+  test('should close modal when handleConfirmNavigation is called', () => {
     const onSave = jest.fn();
 
     const { result } = renderHook(

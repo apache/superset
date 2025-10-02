@@ -116,7 +116,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     cleanedTotals,
     showTotals,
     width,
-  onColumnStateChange,
+    onColumnStateChange,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -247,13 +247,17 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         setTimeout(() => {
           if (gridRef.current?.api) {
             try {
-              const api = gridRef.current.api;
+              const { api } = gridRef.current;
 
               // Get column state (includes order, width, visibility, pinning and sorting)
-              const columnState = api.getColumnState ? api.getColumnState() : [];
+              const columnState = api.getColumnState
+                ? api.getColumnState()
+                : [];
 
               // Get filter model
-              const filterModel = api.getFilterModel ? api.getFilterModel() : {};
+              const filterModel = api.getFilterModel
+                ? api.getFilterModel()
+                : {};
 
               // Extract sort information from column state
               const sortModel = columnState

@@ -56,7 +56,10 @@ class DashboardPermalinkStateSchema(Schema):
         required=False,
         allow_none=True,
         metadata={
-            "description": "Chart-level state for AG Grid tables (column order, sorting, filtering)"
+            "description": (
+                "Chart-level state for AG Grid tables "
+                "(column order, sorting, filtering)"
+            )
         },
     )
 

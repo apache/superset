@@ -112,12 +112,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   ]);
 
   // AG Grid state change handler
-  const handleColumnStateChange = useCallback((agGridState) => {
-    if (onChartStateChange) {
-      // Pass through the actual AG Grid state received from the grid component
-      onChartStateChange(agGridState);
-    }
-  }, [onChartStateChange]);
+  const handleColumnStateChange = useCallback(
+    agGridState => {
+      if (onChartStateChange) {
+        // Pass through the actual AG Grid state received from the grid component
+        onChartStateChange(agGridState);
+      }
+    },
+    [onChartStateChange],
+  );
 
   const filteredColumns = useMemo(() => {
     if (!isUsingTimeComparison) {

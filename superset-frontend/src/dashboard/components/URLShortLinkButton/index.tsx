@@ -62,12 +62,19 @@ export default function URLShortLinkButton({
   const getCopyUrl = async () => {
     try {
       // Check if dashboard has AG Grid tables (Table V2)
-      const hasAgGridTables = sliceEntities && Object.values(sliceEntities).some(
-        slice => slice && typeof slice === 'object' && 'viz_type' in slice && slice.viz_type === 'ag_grid_table'
-      );
+      const hasAgGridTables =
+        sliceEntities &&
+        Object.values(sliceEntities).some(
+          slice =>
+            slice &&
+            typeof slice === 'object' &&
+            'viz_type' in slice &&
+            slice.viz_type === 'ag_grid_table',
+        );
 
       // Only include chart state for AG Grid tables
-      const includeChartState = hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
+      const includeChartState =
+        hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
 
       const url = await getDashboardPermalink({
         dashboardId,
