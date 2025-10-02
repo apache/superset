@@ -78,6 +78,7 @@ class TestSlice:
             ("numeric_id", "123"),
             ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
             ("invalid_string", "not-a-number"),
+            ("integer_id", 123),
         ]
     )
     def test_id_or_uuid_filter(self, test_name, input_value):
