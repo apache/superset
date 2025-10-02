@@ -624,3 +624,80 @@ def test_processing_time_offsets_date_range_enabled(processor):
                                 assert isinstance(result["df"], pd.DataFrame)
                                 assert isinstance(result["queries"], list)
                                 assert isinstance(result["cache_keys"], list)
+
+
+def test_get_df_payload_validates_before_cache_key_generation():
+    """
+    Test that get_df_payload calls validate() before generating cache key.
+    """
+    from superset.common.query_object import QueryObject
+
+    # Create a mock query context
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.result_type = "full"
+
+    # Create a mock datasource
+    mock_datasource = MagicMock()
+    mock_datasource.id = 123
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.cache_timeout = None
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.changed_on = None
+
+    # Create processor
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    # Create a query object with unsanitized where clause
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        metrics=[],
+        extras={"where": "(\n  col1 > 0\n)"},  # Unsanitized with newlines
+    )
+
+    # Track the order of calls
+    call_order = []
+
+    original_validate = query_obj.validate
+
+    def mock_validate(*args, **kwargs):
+        call_order.append("validate")
+        # Update extras to simulate sanitization
+        query_obj.extras["where"] = "(col1 > 0)"  # Sanitized, compact format
+        return original_validate(*args, **kwargs)
+
+    original_cache_key = query_obj.cache_key
+
+    def mock_cache_key(*args, **kwargs):
+        call_order.append("cache_key")
+        # Verify that extras have been sanitized at this point
+        assert query_obj.extras["where"] == "(col1 > 0)", (
+            f"Expected sanitized clause in cache_key, got: {query_obj.extras['where']}"
+        )
+        return original_cache_key(*args, **kwargs)
+
+    with patch.object(query_obj, "validate", side_effect=mock_validate):
+        with patch.object(query_obj, "cache_key", side_effect=mock_cache_key):
+            with patch(
+                "superset.common.query_context_processor.QueryCacheManager"
+            ) as mock_cache_manager:
+                mock_cache = MagicMock()
+                mock_cache.is_loaded = True
+                mock_cache.df = pd.DataFrame({"col1": [1, 2, 3]})
+                mock_cache.query = "SELECT * FROM table"
+                mock_cache.error_message = None
+                mock_cache.status = "success"
+                mock_cache_manager.get.return_value = mock_cache
+
+                # Call get_df_payload
+                processor.get_df_payload(query_obj, force_cached=False)
+
+    # Verify validate was called before cache_key
+    assert call_order == ["validate", "cache_key"], (
+        f"Expected validate to be called before cache_key, "
+        f"but got call order: {call_order}"
+    )

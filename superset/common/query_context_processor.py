@@ -129,6 +129,11 @@ class QueryContextProcessor:
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
+        if query_obj:
+            # Always validate the query object before generating cache key
+            # This ensures sanitize_clause() is called and extras are normalized
+            query_obj.validate()
+
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
@@ -138,10 +143,6 @@ class QueryContextProcessor:
             force_query=force_query,
             force_cached=force_cached,
         )
-
-        if query_obj:
-            # Always validate the query object before processing
-            query_obj.validate()
 
         if query_obj and cache_key and not cache.is_loaded:
             try:
