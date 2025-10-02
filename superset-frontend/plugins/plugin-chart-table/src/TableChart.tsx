@@ -225,13 +225,9 @@ function SelectPageSize({
   const { Option } = Select;
 
   return (
-    <>
-      <label htmlFor="pageSizeSelect" className="sr-only">
-        {t('Select page size')}
-      </label>
+    <span className="dt-select-page-size">
       {t('Show')}{' '}
       <Select<number>
-        id="pageSizeSelect"
         value={current}
         onChange={value => onChange(value)}
         size="small"
@@ -252,7 +248,7 @@ function SelectPageSize({
         })}
       </Select>{' '}
       {t('entries per page')}
-    </>
+    </span>
   );
 }
 
