@@ -108,6 +108,12 @@ class Pinot(MySQL):
                 e.args.get("expression"),
                 e.this,
             ),
+            exp.Substring: lambda self, e: self.func(
+                "SUBSTR",
+                e.this,
+                e.args.get("start"),
+                e.args.get("length"),
+            ),
         }
         # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
         TRANSFORMS.pop(exp.DateTrunc, None)
