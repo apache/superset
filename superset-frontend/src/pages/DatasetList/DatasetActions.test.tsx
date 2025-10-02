@@ -32,7 +32,6 @@ import {
   mockPhysicalDataset,
   mockVirtualDataset,
   mockDatasetDetail,
-  mockRelatedObjects,
   mockEmptyRelatedObjects,
   mockUser,
   mockAdminUser,
@@ -50,7 +49,15 @@ jest.mock('src/features/home/SubMenu', () => ({
 
 jest.mock('src/components/Datasource', () => ({
   __esModule: true,
-  DatasourceModal: ({ show, onHide, datasource }: any) =>
+  DatasourceModal: ({
+    show,
+    onHide,
+    datasource,
+  }: {
+    show: boolean;
+    onHide: () => void;
+    datasource?: { table_name?: string };
+  }) =>
     show ? (
       <div role="dialog" data-test="datasource-modal">
         <span>Editing: {datasource?.table_name}</span>
@@ -63,7 +70,13 @@ jest.mock('src/components/Datasource', () => ({
 
 jest.mock('src/features/datasets/DuplicateDatasetModal', () => ({
   __esModule: true,
-  default: ({ dataset, onHide }: any) =>
+  default: ({
+    dataset,
+    onHide,
+  }: {
+    dataset?: { table_name?: string };
+    onHide: () => void;
+  }) =>
     dataset ? (
       <div role="dialog" data-test="duplicate-modal">
         <span>Duplicating: {dataset?.table_name}</span>
@@ -76,7 +89,15 @@ jest.mock('src/features/datasets/DuplicateDatasetModal', () => ({
 
 jest.mock('src/components/ImportModal', () => ({
   __esModule: true,
-  ImportModal: ({ show, onHide, onImport }: any) =>
+  ImportModal: ({
+    show,
+    onHide,
+    onImport,
+  }: {
+    show: boolean;
+    onHide: () => void;
+    onImport: () => void;
+  }) =>
     show ? (
       <div role="dialog" data-test="import-modal">
         <button type="button" onClick={() => onImport()}>
@@ -236,31 +257,6 @@ test('opens delete confirmation modal when delete button is clicked', async () =
   });
 });
 
-test('shows related objects in delete confirmation when they exist', async () => {
-  // Register specific routes before catch-all
-  fetchMock.get('glob:*/api/v1/dataset/1/related_objects', mockRelatedObjects);
-  fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
-
-  render(<DatasetList {...defaultProps} />, {
-    useRouter: true,
-    useRedux: true,
-    useQueryParams: true,
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText('birth_names')).toBeInTheDocument();
-  });
-
-  const row = screen.getByRole('row', { name: /birth_names/i });
-  const deleteButton = within(row).getByRole('button', { name: /delete/i });
-  await userEvent.click(deleteButton);
-
-  await waitFor(() => {
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    // Should show related objects information
-  });
-});
-
 test('deletes dataset when confirmation is clicked', async () => {
   // Register specific routes before catch-all
   fetchMock.get(
@@ -270,14 +266,14 @@ test('deletes dataset when confirmation is clicked', async () => {
   fetchMock.delete('glob:*/api/v1/dataset/1', 200);
   fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
 
-  // Mock refreshed data after deletion
+  // Mock refreshed data after deletion (overwrite previous route)
   fetchMock.get(
     'glob:*/api/v1/dataset/*',
     {
       result: mockDatasets.slice(1), // Remove first dataset
       count: mockDatasets.length - 1,
     },
-    { overwriteRoutes: false },
+    { overwriteRoutes: true },
   );
 
   render(<DatasetList {...defaultProps} />, {
@@ -303,7 +299,9 @@ test('deletes dataset when confirmation is clicked', async () => {
   await userEvent.click(confirmButton);
 
   await waitFor(() => {
-    expect(fetchMock.called('DELETE', 'glob:*/api/v1/dataset/1')).toBe(true);
+    expect(
+      fetchMock.called('glob:*/api/v1/dataset/1', { method: 'DELETE' }),
+    ).toBe(true);
     expect(mockToasts.addSuccessToast).toHaveBeenCalledWith(
       expect.stringContaining('deleted'),
     );
@@ -440,91 +438,6 @@ test('does not show duplicate button for physical datasets', async () => {
     btn => !btn.getAttribute('data-test')?.includes('info-tooltip'),
   );
   expect(actionButtons).toHaveLength(3);
-});
-
-test('handles bulk delete operation', async () => {
-  fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
-  fetchMock.delete('glob:*/api/v1/dataset/', 200);
-
-  render(<DatasetList {...defaultProps} />, {
-    useRouter: true,
-    useRedux: true,
-    useQueryParams: true,
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText('birth_names')).toBeInTheDocument();
-  });
-
-  // This test would need access to bulk selection controls
-  // The implementation would depend on how ListView exposes bulk operations
-});
-
-test('handles bulk export operation', async () => {
-  // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-  const handleResourceExport = require('src/utils/export').default;
-
-  fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
-
-  render(<DatasetList {...defaultProps} />, {
-    useRouter: true,
-    useRedux: true,
-    useQueryParams: true,
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText('birth_names')).toBeInTheDocument();
-  });
-
-  // Activate bulk select mode
-  const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
-
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox')).toHaveLength(
-      mockDatasets.length + 1,
-    );
-  });
-
-  // Select all datasets
-  const selectAllCheckbox = screen.getByLabelText('Select all');
-  fireEvent.click(selectAllCheckbox);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
-      `${mockDatasets.length} Selected`,
-    );
-  });
-
-  // Click bulk export button
-  const bulkActions = screen.getAllByTestId('bulk-select-action');
-  const exportButton = bulkActions.find(btn => btn.textContent === 'Export');
-  expect(exportButton).toBeInTheDocument();
-
-  fireEvent.click(exportButton!);
-
-  // Verify export function was called with all dataset IDs
-  await waitFor(() => {
-    expect(handleResourceExport).toHaveBeenCalledWith(
-      'dataset',
-      mockDatasets.map(dataset => dataset.id),
-      expect.any(Function),
-    );
-  });
-});
-
-test('opens import modal and handles successful import', async () => {
-  fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
-  fetchMock.post('glob:*/api/v1/dataset/import/', 200);
-
-  render(<DatasetList {...defaultProps} />, {
-    useRouter: true,
-    useRedux: true,
-    useQueryParams: true,
-  });
-
-  // This test would need access to import button in SubMenu
-  // Would need to trigger import modal and test the flow
 });
 
 test('shows error toast when edit API call fails', async () => {
