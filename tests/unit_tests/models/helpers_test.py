@@ -556,3 +556,245 @@ def test_apply_series_others_grouping_no_label_in_groupby(database: Database) ->
         assert "category" in result_groupby_columns
         # The GROUP BY expression should be different from the SELECT expression
         # because only SELECT gets make_sqla_column_compatible applied
+
+
+def test_process_orderby_expression_basic(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test basic ORDER BY expression processing.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock _process_sql_expression to return a processed SELECT statement
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 ORDER BY column_name DESC",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name DESC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name DESC"
+
+
+def test_process_orderby_expression_with_case_insensitive_order_by(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression processing with case-insensitive matching.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock with lowercase "order by"
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 order by column_name ASC",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name ASC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name ASC"
+
+
+def test_process_orderby_expression_complex(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression with complex expressions.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    complex_orderby = "CASE WHEN status = 'active' THEN 1 ELSE 2 END, name DESC"
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=f"SELECT 1 ORDER BY {complex_orderby}",
+    )
+
+    result = table._process_orderby_expression(
+        expression=complex_orderby,
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == complex_orderby
+
+
+def test_process_orderby_expression_none(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression processing with None expression.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock should return None when input is None
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=None,
+    )
+
+    result = table._process_orderby_expression(
+        expression=None,
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result is None
+
+
+def test_process_orderby_expression_empty_string(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression processing with empty string.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock should return None for empty string
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=None,
+    )
+
+    result = table._process_orderby_expression(
+        expression="",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result is None
+
+
+def test_process_orderby_expression_strips_whitespace(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test that ORDER BY expression processing strips leading/trailing whitespace.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock with extra whitespace after ORDER BY
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 ORDER BY   column_name DESC   ",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name DESC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name DESC"
+
+
+def test_process_orderby_expression_with_template_processor(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression with template processor.
+    """
+    from unittest.mock import Mock
+
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Create a mock template processor
+    template_processor = Mock()
+
+    # Mock the _process_sql_expression to verify it receives the prefixed expression
+    mock_process = mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 ORDER BY processed_column DESC",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name DESC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=template_processor,
+    )
+
+    # Verify _process_sql_expression was called with SELECT prefix
+    mock_process.assert_called_once()
+    call_args = mock_process.call_args[1]
+    assert call_args["expression"] == "SELECT 1 ORDER BY column_name DESC"
+    assert call_args["template_processor"] is template_processor
+
+    assert result == "processed_column DESC"

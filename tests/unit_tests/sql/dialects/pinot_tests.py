@@ -346,3 +346,155 @@ SELECT DISTINCT
 FROM "products"
         """.strip()
     )
+
+
+def test_cast_to_string() -> None:
+    """
+    Test that CAST to STRING is preserved (not converted to CHAR).
+    """
+    sql = "SELECT CAST(cohort_size AS STRING) FROM table"
+    ast = sqlglot.parse_one(sql, Pinot)
+    generated = Pinot().generate(expression=ast)
+
+    assert "STRING" in generated
+    assert "CHAR" not in generated
+
+
+def test_concat_with_cast_string() -> None:
+    """
+    Test CONCAT with CAST to STRING - verifies the original issue is fixed.
+    """
+    sql = """
+SELECT concat(a, cast(b AS string), ' - ')
+FROM "default".c"""
+    ast = sqlglot.parse_one(sql, Pinot)
+    generated = Pinot().generate(expression=ast)
+
+    # Verify STRING type is preserved (not converted to CHAR)
+    assert "STRING" in generated or "string" in generated.lower()
+    assert "CHAR" not in generated
+
+
+@pytest.mark.parametrize(
+    "cast_type, expected_type",
+    [
+        ("INT", "INT"),
+        ("TINYINT", "INT"),
+        ("SMALLINT", "INT"),
+        ("BIGINT", "LONG"),
+        ("LONG", "LONG"),
+        ("FLOAT", "FLOAT"),
+        ("DOUBLE", "DOUBLE"),
+        ("BOOLEAN", "BOOLEAN"),
+        ("TIMESTAMP", "TIMESTAMP"),
+        ("STRING", "STRING"),
+        ("VARCHAR", "STRING"),
+        ("CHAR", "STRING"),
+        ("TEXT", "STRING"),
+        ("BYTES", "BYTES"),
+        ("BINARY", "BYTES"),
+        ("VARBINARY", "BYTES"),
+        ("JSON", "JSON"),
+    ],
+)
+def test_type_mappings(cast_type: str, expected_type: str) -> None:
+    """
+    Test that Pinot type mappings work correctly for all basic types.
+    """
+    sql = f"SELECT CAST(col AS {cast_type}) FROM table"  # noqa: S608
+    ast = sqlglot.parse_one(sql, Pinot)
+    generated = Pinot().generate(expression=ast)
+
+    assert expected_type in generated
+
+
+def test_unsigned_type() -> None:
+    """
+    Test that unsigned integer types are handled correctly.
+    Tests the UNSIGNED_TYPE_MAPPING path in datatype_sql method.
+    """
+    from sqlglot import exp
+
+    # Create a UBIGINT DataType which is in UNSIGNED_TYPE_MAPPING
+    dt = exp.DataType(this=exp.DataType.Type.UBIGINT)
+    result = Pinot.Generator().datatype_sql(dt)
+
+    assert "UNSIGNED" in result
+    assert "BIGINT" in result
+
+
+def test_date_trunc_preserved() -> None:
+    """
+    Test that DATE_TRUNC is preserved and not converted to MySQL's DATE() function.
+    """
+    sql = "SELECT DATE_TRUNC('day', dt_column) FROM table"
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    assert "DATE_TRUNC" in result
+    assert "date_trunc('day'" in result.lower()
+    # Should not be converted to MySQL's DATE() function
+    assert result != "SELECT DATE(dt_column) FROM table"
+
+
+def test_cast_timestamp_preserved() -> None:
+    """
+    Test that CAST AS TIMESTAMP is preserved and not converted to TIMESTAMP() function.
+    """
+    sql = "SELECT CAST(dt_column AS TIMESTAMP) FROM table"
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    assert "CAST" in result
+    assert "AS TIMESTAMP" in result
+    # Should not be converted to MySQL's TIMESTAMP() function
+    assert "TIMESTAMP(dt_column)" not in result
+
+
+def test_date_trunc_with_cast_timestamp() -> None:
+    """
+    Test the original complex query with DATE_TRUNC and CAST AS TIMESTAMP.
+    Verifies that both are preserved in parse/generate round-trip.
+    """
+    sql = """
+SELECT
+  CAST(
+    DATE_TRUNC(
+      'day',
+      CAST(
+        DATETIMECONVERT(
+          dt_epoch_ms, '1:MILLISECONDS:EPOCH',
+          '1:MILLISECONDS:EPOCH', '1:MILLISECONDS'
+        ) AS TIMESTAMP
+      )
+    ) AS TIMESTAMP
+  ),
+  SUM(a) + SUM(b)
+FROM
+  "default".c
+WHERE
+  dt_epoch_ms >= 1735690800000
+  AND dt_epoch_ms < 1759328588000
+  AND locality != 'US'
+GROUP BY
+  CAST(
+    DATE_TRUNC(
+      'day',
+      CAST(
+        DATETIMECONVERT(
+          dt_epoch_ms, '1:MILLISECONDS:EPOCH',
+          '1:MILLISECONDS:EPOCH', '1:MILLISECONDS'
+        ) AS TIMESTAMP
+      )
+    ) AS TIMESTAMP
+  )
+LIMIT
+  10000
+    """
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    # Verify DATE_TRUNC and CAST are preserved
+    assert "DATE_TRUNC" in result
+    assert "CAST" in result
+
+    # Verify these are NOT converted to MySQL functions
+    assert "TIMESTAMP(DATETIMECONVERT" not in result
+    assert result.count("DATE_TRUNC") == 2  # Should appear twice (SELECT and GROUP BY)

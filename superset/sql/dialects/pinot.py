@@ -24,7 +24,9 @@ double quotes are used for identifiers instead of string literals.
 
 from __future__ import annotations
 
+from sqlglot import exp
 from sqlglot.dialects.mysql import MySQL
+from sqlglot.tokens import TokenType
 
 
 class Pinot(MySQL):
@@ -41,3 +43,66 @@ class Pinot(MySQL):
         QUOTES = ["'"]  # Only single quotes for strings
         IDENTIFIERS = ['"', "`"]  # Backticks and double quotes for identifiers
         STRING_ESCAPES = ["'", "\\"]  # Remove double quote from string escapes
+        KEYWORDS = {
+            **MySQL.Tokenizer.KEYWORDS,
+            "STRING": TokenType.TEXT,
+            "LONG": TokenType.BIGINT,
+            "BYTES": TokenType.VARBINARY,
+        }
+
+    class Generator(MySQL.Generator):
+        TYPE_MAPPING = {
+            **MySQL.Generator.TYPE_MAPPING,
+            exp.DataType.Type.TINYINT: "INT",
+            exp.DataType.Type.SMALLINT: "INT",
+            exp.DataType.Type.INT: "INT",
+            exp.DataType.Type.BIGINT: "LONG",
+            exp.DataType.Type.FLOAT: "FLOAT",
+            exp.DataType.Type.DOUBLE: "DOUBLE",
+            exp.DataType.Type.BOOLEAN: "BOOLEAN",
+            exp.DataType.Type.TIMESTAMP: "TIMESTAMP",
+            exp.DataType.Type.TIMESTAMPTZ: "TIMESTAMP",
+            exp.DataType.Type.VARCHAR: "STRING",
+            exp.DataType.Type.CHAR: "STRING",
+            exp.DataType.Type.TEXT: "STRING",
+            exp.DataType.Type.BINARY: "BYTES",
+            exp.DataType.Type.VARBINARY: "BYTES",
+            exp.DataType.Type.JSON: "JSON",
+        }
+
+        # Override MySQL's CAST_MAPPING - don't convert integer or string types
+        CAST_MAPPING = {
+            exp.DataType.Type.LONGBLOB: exp.DataType.Type.VARBINARY,
+            exp.DataType.Type.MEDIUMBLOB: exp.DataType.Type.VARBINARY,
+            exp.DataType.Type.TINYBLOB: exp.DataType.Type.VARBINARY,
+            exp.DataType.Type.UBIGINT: "UNSIGNED",
+        }
+
+        TRANSFORMS = {
+            **MySQL.Generator.TRANSFORMS,
+        }
+        # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
+        TRANSFORMS.pop(exp.DateTrunc, None)
+
+        def datatype_sql(self, expression: exp.DataType) -> str:
+            # Don't use MySQL's VARCHAR size requirement logic
+            # Just use TYPE_MAPPING for all types
+            type_value = expression.this
+            type_sql = (
+                self.TYPE_MAPPING.get(type_value, type_value.value)
+                if isinstance(type_value, exp.DataType.Type)
+                else type_value
+            )
+
+            interior = self.expressions(expression, flat=True)
+            nested = f"({interior})" if interior else ""
+
+            if expression.this in self.UNSIGNED_TYPE_MAPPING:
+                return f"{type_sql} UNSIGNED{nested}"
+
+            return f"{type_sql}{nested}"
+
+        def cast_sql(self, expression: exp.Cast, safe_prefix: str | None = None) -> str:
+            # Pinot doesn't support MySQL's TIMESTAMP() function
+            # Use standard CAST syntax instead
+            return super(MySQL.Generator, self).cast_sql(expression, safe_prefix)

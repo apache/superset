@@ -18,7 +18,14 @@
  */
 import tinycolor from 'tinycolor2';
 import { useTheme as useEmotionTheme } from '@emotion/react';
-import type { SupersetTheme, FontSizeKey, ColorVariants } from '../types';
+import { theme as antdTheme } from 'antd';
+import type {
+  SupersetTheme,
+  FontSizeKey,
+  ColorVariants,
+  AnyThemeConfig,
+} from '../types';
+import { normalizeThemeConfig } from '../utils';
 
 const fontSizeMap: Record<FontSizeKey, keyof SupersetTheme> = {
   xs: 'fontSizeXS',
@@ -111,6 +118,22 @@ export function getColorVariants(
  */
 export function isThemeDark(theme: SupersetTheme): boolean {
   return tinycolor(theme.colorBgContainer).isDark();
+}
+
+/**
+ * Check if a theme configuration results in a dark theme
+ * @param config - The theme configuration to check
+ * @returns true if the config results in a dark theme, false otherwise
+ */
+export function isThemeConfigDark(config: AnyThemeConfig): boolean {
+  try {
+    const normalizedConfig = normalizeThemeConfig(config);
+    const themeConfig = antdTheme.getDesignToken(normalizedConfig);
+
+    return tinycolor(themeConfig.colorBgContainer).isDark();
+  } catch {
+    return false;
+  }
 }
 
 /**
