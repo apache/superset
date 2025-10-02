@@ -64,6 +64,21 @@ describe('color utils', () => {
         getContrastingColor('#0000');
       }).toThrow();
     });
+
+    it('when called with 8-digit hex color (with alpha)', () => {
+      const color = getContrastingColor('#000000FF');
+      expect(color).toBe('#FFF');
+    });
+
+    it('when called with 8-digit hex color without # prefix', () => {
+      const color = getContrastingColor('000000FF');
+      expect(color).toBe('#FFF');
+    });
+
+    it('when called with 8-digit hex light color', () => {
+      const color = getContrastingColor('#FFFFFFFF');
+      expect(color).toBe('#000');
+    });
   });
   describe('addAlpha', () => {
     it('adds 20% opacity to black', () => {
@@ -86,6 +101,18 @@ describe('color utils', () => {
         addAlpha('#000000', -1);
       }).toThrow();
     });
+
+    it('replaces alpha when color already has alpha channel', () => {
+      expect(addAlpha('#000000FF', 0.5)).toBe('#00000080');
+    });
+
+    it('replaces alpha with zero opacity', () => {
+      expect(addAlpha('#FF000080', 0)).toBe('#FF000000');
+    });
+
+    it('replaces alpha with full opacity', () => {
+      expect(addAlpha('#FF000000', 1)).toBe('#FF0000FF');
+    });
   });
   describe('hexToRgb', () => {
     it('convert 3 digits hex', () => {
@@ -96,6 +123,18 @@ describe('color utils', () => {
     });
     it('convert invalid hex', () => {
       expect(hexToRgb('#ffffffffffffff')).toBe('rgb(0, 0, 0)');
+    });
+
+    it('convert 8 digits hex (with alpha)', () => {
+      expect(hexToRgb('#ff0000ff')).toBe('rgb(255, 0, 0)');
+    });
+
+    it('convert 8 digits hex ignoring alpha channel', () => {
+      expect(hexToRgb('#00ff0080')).toBe('rgb(0, 255, 0)');
+    });
+
+    it('convert 8 digits hex with zero alpha', () => {
+      expect(hexToRgb('#0000ff00')).toBe('rgb(0, 0, 255)');
     });
   });
   describe('rgbToHex', () => {
