@@ -590,3 +590,25 @@ def test_pinot_date_sub_unit_quoted() -> None:
     # The unit should be quoted: 'DAY' not DAY
     assert "DATE_SUB('DAY', -180, NOW())" in result
     assert "DATE_SUB(DAY," not in result
+
+
+def test_substr_cross_dialect_generation() -> None:
+    """
+    Test that SUBSTR is preserved when generating Pinot SQL.
+
+    Note that the MySQL dialect (in which Pinot is based) uses SUBSTRING instead of
+    SUBSTR.
+    """
+    # Parse with Pinot dialect
+    pinot_sql = "SELECT SUBSTR('hello', 0, 3) FROM users"
+    parsed = sqlglot.parse_one(pinot_sql, Pinot)
+
+    # Generate back to Pinot → should preserve SUBSTR
+    pinot_output = parsed.sql(dialect=Pinot)
+    assert "SUBSTR(" in pinot_output
+    assert "SUBSTRING(" not in pinot_output
+
+    # Generate to MySQL → should convert to SUBSTRING
+    mysql_output = parsed.sql(dialect="mysql")
+    assert "SUBSTRING(" in mysql_output
+    assert pinot_output != mysql_output  # They should be different
