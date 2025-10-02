@@ -240,12 +240,8 @@ function SelectPageSize({
 
   return (
     <span className="dt-select-page-size">
-      <VisuallyHidden htmlFor="pageSizeSelect">
-        {t('Select page size')}
-      </VisuallyHidden>
       {t('Show')}{' '}
       <Select<number>
-        id="pageSizeSelect"
         value={current}
         onChange={value => onChange(value)}
         size="small"
