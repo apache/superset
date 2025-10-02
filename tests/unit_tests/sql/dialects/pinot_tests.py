@@ -576,3 +576,17 @@ def test_pinot_date_sub_simple() -> None:
         # Verify that it generates valid SQL
         generated = parsed.sql(dialect=Pinot)
         assert "DATE_SUB" in generated.upper()
+
+
+def test_pinot_date_sub_unit_quoted() -> None:
+    """
+    Test that DATE_SUB preserves quotes around the unit argument.
+
+    Pinot requires the unit to be a quoted string, not an identifier.
+    """
+    sql = "dt_epoch_ms >= date_sub('day', -180, now())"
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    # The unit should be quoted: 'DAY' not DAY
+    assert "DATE_SUB('DAY', -180, NOW())" in result
+    assert "DATE_SUB(DAY," not in result

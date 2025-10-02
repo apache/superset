@@ -104,7 +104,7 @@ class Pinot(MySQL):
             ),
             exp.DateSub: lambda self, e: self.func(
                 "DATE_SUB",
-                e.args.get("unit"),
+                exp.Literal.string(str(e.args.get("unit").name)),
                 e.args.get("expression"),
                 e.this,
             ),
