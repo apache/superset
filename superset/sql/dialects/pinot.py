@@ -114,6 +114,36 @@ class Pinot(MySQL):
                 e.args.get("start"),
                 e.args.get("length"),
             ),
+            exp.StrPosition: lambda self, e: self.func(
+                "STRPOS",
+                e.this,
+                e.args.get("substr"),
+                e.args.get("position"),
+            ),
+            exp.StartsWith: lambda self, e: self.func(
+                "STARTSWITH",
+                e.this,
+                e.args.get("expression"),
+            ),
+            exp.Chr: lambda self, e: self.func(
+                "CHR",
+                *e.args.get("expressions", []),
+            ),
+            exp.Mod: lambda self, e: self.func(
+                "MOD",
+                e.this,
+                e.args.get("expression"),
+            ),
+            exp.ArrayAgg: lambda self, e: self.func(
+                "ARRAY_AGG",
+                e.this,
+            ),
+            exp.JSONExtractScalar: lambda self, e: self.func(
+                "JSON_EXTRACT_SCALAR",
+                e.this,
+                e.args.get("expression"),
+                e.args.get("variant"),
+            ),
         }
         # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
         TRANSFORMS.pop(exp.DateTrunc, None)
