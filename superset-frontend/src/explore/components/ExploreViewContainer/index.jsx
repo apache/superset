@@ -371,15 +371,6 @@ function ExploreViewContainer(props) {
     props.form_data,
   ]);
 
-  // Simple debounced auto-query for non-renderTrigger controls
-  const debouncedAutoQuery = useMemo(
-    () =>
-      debounce(() => {
-        onQuery();
-      }, 1000), // 1 second delay
-    [onQuery],
-  );
-
   const handleKeydown = useCallback(
     event => {
       const controlOrCommand = event.ctrlKey || event.metaKey;
@@ -573,25 +564,8 @@ function ExploreViewContainer(props) {
       if (displayControlsChanged.length > 0) {
         reRenderChart(displayControlsChanged);
       }
-
-      // Auto-update for non-renderTrigger controls
-      const queryControlsChanged = changedControlKeys.filter(
-        key =>
-          !props.controls[key].renderTrigger &&
-          !props.controls[key].dontRefreshOnChange,
-      );
-      if (queryControlsChanged.length > 0) {
-        // Check if there are no validation errors before auto-updating
-        const hasErrors = Object.values(props.controls).some(
-          control =>
-            control.validationErrors && control.validationErrors.length > 0,
-        );
-        if (!hasErrors) {
-          debouncedAutoQuery();
-        }
-      }
     }
-  }, [props.controls, props.ownState, debouncedAutoQuery]);
+  }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
