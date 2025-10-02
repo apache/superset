@@ -261,14 +261,9 @@ const DatasetUsageTab = ({
         sticky
         columns={columns}
         data={charts}
-        pagination={{
-          current: currentPage,
-          total: totalCount,
-          pageSize: PAGE_SIZE,
-          onChange: handlePageChange,
-          showSizeChanger: false,
-          size: 'default',
-        }}
+        recordCount={totalCount}
+        usePagination
+        defaultPageSize={PAGE_SIZE}
         loading={loading}
         size={TableSize.Middle}
         rowKey={(record: Chart) =>

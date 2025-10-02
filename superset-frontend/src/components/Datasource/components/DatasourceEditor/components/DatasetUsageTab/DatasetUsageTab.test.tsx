@@ -17,7 +17,9 @@
  * under the License.
  */
 import {
+  act,
   createWrapper,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -83,6 +85,9 @@ const mockChartsResponse = {
   ids: [1, 2],
 };
 
+// Store original scrollTo to restore after tests
+let originalScrollTo: typeof Element.prototype.scrollTo;
+
 const setupTest = (props = {}) => {
   const mockOnFetchCharts = jest.fn(() =>
     Promise.resolve({
@@ -101,21 +106,45 @@ const setupTest = (props = {}) => {
     ...props,
   };
 
-  return render(<DatasetUsageTab {...defaultProps} />, {
+  const result = render(<DatasetUsageTab {...defaultProps} />, {
     wrapper: createWrapper({
       useRedux: true,
       useRouter: true,
     }),
   });
+
+  return { ...result, mockOnFetchCharts };
 };
 
 beforeEach(() => {
   fetchMock.reset();
   jest.clearAllMocks();
+
+  // Save original scrollTo and mock it for JSDOM compatibility
+  originalScrollTo = Element.prototype.scrollTo;
+  Object.defineProperty(Element.prototype, 'scrollTo', {
+    value: jest.fn(),
+    configurable: true,
+    writable: true,
+  });
 });
 
 afterEach(() => {
   fetchMock.restore();
+
+  // Restore real timers in case a test with fakeTimers failed mid-test
+  jest.useRealTimers();
+
+  // Restore original scrollTo to avoid test pollution
+  if (originalScrollTo) {
+    Object.defineProperty(Element.prototype, 'scrollTo', {
+      value: originalScrollTo,
+      configurable: true,
+      writable: true,
+    });
+  } else {
+    delete (Element.prototype as any).scrollTo;
+  }
 });
 
 test('renders empty state when no charts provided', () => {
@@ -210,5 +239,156 @@ test('enables sorting for Chart and Last modified columns', async () => {
 
     expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
+  });
+});
+
+test('clears scroll timeout on unmount to prevent async updates', async () => {
+  jest.useFakeTimers();
+
+  // Reuse the scrollTo mock from beforeEach
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  scrollToMock.mockClear();
+
+  // Need enough charts to trigger pagination (PAGE_SIZE = 25)
+  const manyCharts = Array.from({ length: 51 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { unmount, mockOnFetchCharts } = setupTest({
+    charts: manyCharts,
+    totalCount: 51,
+  });
+
+  // Wait for pagination to appear
+  await waitFor(() => {
+    // Ant Design wires click handlers to the <a> element inside the <li>
+    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
+  });
+
+  // Trigger pagination change which starts a 100ms setTimeout
+  const page2Link = screen.getByRole('link', { name: '2' });
+  fireEvent.click(page2Link);
+
+  // Verify pagination was triggered
+  expect(mockOnFetchCharts).toHaveBeenCalledWith(2, 25, expect.any(String), expect.any(String));
+
+  // Unmount before timeout fires
+  unmount();
+
+  // Fast-forward time - scroll should NOT be called because timeout was cleared
+  act(() => {
+    jest.runAllTimers();
+  });
+
+  // Critical assertion: scrollTo should never be called after unmount
+  expect(scrollToMock).not.toHaveBeenCalled();
+});
+
+test('clears pending scroll timeout on rapid pagination clicks', async () => {
+  jest.useFakeTimers();
+
+  // Reuse the scrollTo mock from beforeEach
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  scrollToMock.mockClear();
+
+  // Need enough charts to trigger pagination (PAGE_SIZE = 25)
+  const manyCharts = Array.from({ length: 60 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts,
+    totalCount: 60,
+  });
+
+  // Wait for pagination to appear
+  await waitFor(() => {
+    // Ant Design wires click handlers to the <a> element inside the <li>
+    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
+  });
+
+  // Simulate rapid pagination clicks
+  const page2Link = screen.getByRole('link', { name: '2' });
+  const page3Link = screen.getByRole('link', { name: '3' });
+
+  fireEvent.click(page2Link); // Page 2 - starts timeout #1
+  expect(mockOnFetchCharts).toHaveBeenCalledWith(2, 25, expect.any(String), expect.any(String));
+
+  act(() => {
+    jest.advanceTimersByTime(50); // Halfway through timeout #1
+  });
+
+  fireEvent.click(page3Link); // Page 3 - should clear timeout #1, start timeout #2
+  expect(mockOnFetchCharts).toHaveBeenCalledWith(3, 25, expect.any(String), expect.any(String));
+
+  // Only the second timeout should execute
+  act(() => {
+    jest.runAllTimers();
+  });
+
+  // Should only scroll once (second timeout), not twice
+  expect(scrollToMock).toHaveBeenCalledTimes(1);
+  expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+});
+
+test('scrolls table to top after pagination with delay', async () => {
+  jest.useFakeTimers();
+
+  // Reuse the scrollTo mock from beforeEach
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  scrollToMock.mockClear();
+
+  // Need enough charts to trigger pagination (PAGE_SIZE = 25)
+  const manyCharts = Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts,
+    totalCount: 30,
+  });
+
+  // Wait for pagination to appear, then trigger it
+  await waitFor(() => {
+    // Ant Design wires click handlers to the <a> element inside the <li>
+    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
+  });
+
+  // Click page 2
+  const page2Link = screen.getByRole('link', { name: '2' });
+  fireEvent.click(page2Link);
+
+  // Verify pagination was triggered with correct page number
+  expect(mockOnFetchCharts).toHaveBeenCalledWith(2, 25, expect.any(String), expect.any(String));
+
+  // Scroll should not happen immediately
+  expect(scrollToMock).not.toHaveBeenCalled();
+
+  // After 100ms timeout, scroll should execute
+  act(() => {
+    jest.advanceTimersByTime(100);
+  });
+
+  expect(scrollToMock).toHaveBeenCalledWith({
+    top: 0,
+    behavior: 'smooth',
   });
 });
