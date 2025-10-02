@@ -19,153 +19,163 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { useBeforeUnload } from './index';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('useBeforeUnload', () => {
-  let addEventListenerSpy: jest.SpyInstance;
-  let removeEventListenerSpy: jest.SpyInstance;
-  let mockHandler: (e: BeforeUnloadEvent) => void;
+function setupSpies() {
+  jest.clearAllMocks();
+  jest.restoreAllMocks();
 
-  beforeEach(() => {
-    // Clear all mocks before each test
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  const handlers: Array<(e: BeforeUnloadEvent) => void> = [];
 
-    addEventListenerSpy = jest
-      .spyOn(window, 'addEventListener')
-      .mockImplementation((type, handler) => {
-        if (type === 'beforeunload') {
-          mockHandler = handler as (e: BeforeUnloadEvent) => void;
-        }
-      });
-    removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
-  });
+  const addEventListenerSpy = jest
+    .spyOn(window, 'addEventListener')
+    .mockImplementation((type, handler) => {
+      if (type === 'beforeunload') {
+        handlers.push(handler as (e: BeforeUnloadEvent) => void);
+      }
+    });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
 
-  test('should add event listener when shouldWarn is true', () => {
-    renderHook(() => useBeforeUnload(true));
+  const getMockHandler = () => handlers[handlers.length - 1];
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith(
-      'beforeunload',
-      expect.any(Function),
-    );
-  });
+  return { addEventListenerSpy, removeEventListenerSpy, getMockHandler };
+}
 
-  test('should not prevent default when shouldWarn is false', () => {
-    renderHook(() => useBeforeUnload(false));
+function createMockEvent() {
+  return {
+    preventDefault: jest.fn(),
+    returnValue: undefined as string | undefined,
+  } as unknown as BeforeUnloadEvent;
+}
 
-    const event = {
-      preventDefault: jest.fn(),
-      returnValue: undefined as string | undefined,
-    } as unknown as BeforeUnloadEvent;
+test('should add event listener when shouldWarn is true', () => {
+  const { addEventListenerSpy } = setupSpies();
 
-    mockHandler(event);
+  renderHook(() => useBeforeUnload(true));
 
-    expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(event.returnValue).toBeUndefined();
-  });
+  expect(addEventListenerSpy).toHaveBeenCalledWith(
+    'beforeunload',
+    expect.any(Function),
+  );
 
-  test('should prevent default and set returnValue when shouldWarn is true', () => {
-    renderHook(() => useBeforeUnload(true));
+  jest.restoreAllMocks();
+});
 
-    const event = {
-      preventDefault: jest.fn(),
-      returnValue: undefined as string | undefined,
-    } as unknown as BeforeUnloadEvent;
+test('should not prevent default when shouldWarn is false', () => {
+  const spies = setupSpies();
 
-    mockHandler(event);
+  renderHook(() => useBeforeUnload(false));
 
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(event.returnValue).toBe('');
-  });
+  const event = createMockEvent();
+  const handler = spies.getMockHandler();
+  handler(event);
 
-  test('should use custom message when provided', () => {
-    const customMessage = 'You have unsaved changes!';
-    renderHook(() => useBeforeUnload(true, customMessage));
+  expect(event.preventDefault).not.toHaveBeenCalled();
+  expect(event.returnValue).toBeUndefined();
 
-    const event = {
-      preventDefault: jest.fn(),
-      returnValue: undefined as string | undefined,
-    } as unknown as BeforeUnloadEvent;
+  jest.restoreAllMocks();
+});
 
-    mockHandler(event);
+test('should prevent default and set returnValue when shouldWarn is true', () => {
+  const spies = setupSpies();
 
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(event.returnValue).toBe(customMessage);
-  });
+  renderHook(() => useBeforeUnload(true));
 
-  test('should remove event listener on unmount', () => {
-    const { unmount } = renderHook(() => useBeforeUnload(true));
+  const event = createMockEvent();
+  const handler = spies.getMockHandler();
+  handler(event);
 
-    unmount();
+  expect(event.preventDefault).toHaveBeenCalled();
+  expect(event.returnValue).toBe('');
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith(
-      'beforeunload',
-      expect.any(Function),
-    );
-  });
+  jest.restoreAllMocks();
+});
 
-  test('should update handler when shouldWarn changes', () => {
-    const { rerender } = renderHook(
-      ({ shouldWarn }) => useBeforeUnload(shouldWarn),
-      {
-        initialProps: { shouldWarn: false },
-      },
-    );
+test('should use custom message when provided', () => {
+  const customMessage = 'You have unsaved changes!';
+  const spies = setupSpies();
 
-    // Initially, shouldWarn is false
-    const event = {
-      preventDefault: jest.fn(),
-      returnValue: undefined as string | undefined,
-    } as unknown as BeforeUnloadEvent;
+  renderHook(() => useBeforeUnload(true, customMessage));
 
-    mockHandler(event);
-    expect(event.preventDefault).not.toHaveBeenCalled();
+  const event = createMockEvent();
+  const handler = spies.getMockHandler();
+  handler(event);
 
-    // Clear previous calls
-    (event.preventDefault as jest.Mock).mockClear();
-    event.returnValue = undefined;
+  expect(event.preventDefault).toHaveBeenCalled();
+  expect(event.returnValue).toBe(customMessage);
 
-    // Clear spy counts before rerender to test properly
-    const initialAddCalls = addEventListenerSpy.mock.calls.length;
+  jest.restoreAllMocks();
+});
 
-    // Update to shouldWarn = true
-    rerender({ shouldWarn: true });
+test('should remove event listener on unmount', () => {
+  const { removeEventListenerSpy } = setupSpies();
 
-    // Should remove old listener and add new one
-    expect(removeEventListenerSpy).toHaveBeenCalled();
-    // Should have added at least one more listener after rerender
-    expect(addEventListenerSpy.mock.calls.length).toBeGreaterThan(
-      initialAddCalls,
-    );
+  const { unmount } = renderHook(() => useBeforeUnload(true));
 
-    // Test with new value
-    mockHandler(event);
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(event.returnValue).toBe('');
-  });
+  unmount();
 
-  test('should handle multiple instances independently', () => {
-    const { unmount: unmount1 } = renderHook(() => useBeforeUnload(true));
-    const { unmount: unmount2 } = renderHook(() => useBeforeUnload(false));
+  expect(removeEventListenerSpy).toHaveBeenCalledWith(
+    'beforeunload',
+    expect.any(Function),
+  );
 
-    // Check that each hook instance registered a listener
-    const beforeunloadCalls = addEventListenerSpy.mock.calls.filter(
-      call => call[0] === 'beforeunload',
-    );
-    expect(beforeunloadCalls.length).toBeGreaterThanOrEqual(2);
+  jest.restoreAllMocks();
+});
 
-    unmount1();
-    // Should have at least one removal call
-    expect(removeEventListenerSpy).toHaveBeenCalled();
+test('should update handler when shouldWarn changes', () => {
+  const spies = setupSpies();
 
-    const removalCount = removeEventListenerSpy.mock.calls.length;
-    unmount2();
-    // Should have more removal calls after second unmount
-    expect(removeEventListenerSpy.mock.calls.length).toBeGreaterThan(
-      removalCount,
-    );
-  });
+  const { rerender } = renderHook(
+    ({ shouldWarn }) => useBeforeUnload(shouldWarn),
+    {
+      initialProps: { shouldWarn: false },
+    },
+  );
+
+  const event = createMockEvent();
+
+  const initialHandler = spies.getMockHandler();
+  initialHandler(event);
+  expect(event.preventDefault).not.toHaveBeenCalled();
+
+  (event.preventDefault as jest.Mock).mockClear();
+  event.returnValue = undefined;
+
+  const initialAddCalls = spies.addEventListenerSpy.mock.calls.length;
+
+  rerender({ shouldWarn: true });
+
+  expect(spies.removeEventListenerSpy).toHaveBeenCalled();
+  expect(spies.addEventListenerSpy.mock.calls.length).toBeGreaterThan(
+    initialAddCalls,
+  );
+
+  const newHandler = spies.getMockHandler();
+  newHandler(event);
+  expect(event.preventDefault).toHaveBeenCalled();
+  expect(event.returnValue).toBe('');
+
+  jest.restoreAllMocks();
+});
+
+test('should handle multiple instances independently', () => {
+  const { addEventListenerSpy, removeEventListenerSpy } = setupSpies();
+
+  const { unmount: unmount1 } = renderHook(() => useBeforeUnload(true));
+  const { unmount: unmount2 } = renderHook(() => useBeforeUnload(false));
+
+  const beforeunloadCalls = addEventListenerSpy.mock.calls.filter(
+    call => call[0] === 'beforeunload',
+  );
+  expect(beforeunloadCalls.length).toBeGreaterThanOrEqual(2);
+
+  unmount1();
+  expect(removeEventListenerSpy).toHaveBeenCalled();
+
+  const removalCount = removeEventListenerSpy.mock.calls.length;
+  unmount2();
+  expect(removeEventListenerSpy.mock.calls.length).toBeGreaterThan(
+    removalCount,
+  );
+
+  jest.restoreAllMocks();
 });
