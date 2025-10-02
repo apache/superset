@@ -134,8 +134,8 @@ const DatasetUsageTab = ({
   }, [addDangerToast]);
 
   // Cleanup scroll timeout on unmount
+  // eslint-disable-next-line arrow-body-style
   useEffect(() => {
-    // eslint-disable-next-line arrow-body-style
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
