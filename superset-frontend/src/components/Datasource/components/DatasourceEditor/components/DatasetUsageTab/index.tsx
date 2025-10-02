@@ -99,6 +99,7 @@ const DatasetUsageTab = ({
 }: DatasetUsageTabProps) => {
   const addDangerToastRef = useRef(addDangerToast);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,11 +133,26 @@ const DatasetUsageTab = ({
     addDangerToastRef.current = addDangerToast;
   }, [addDangerToast]);
 
+  // Cleanup scroll timeout on unmount
+  useEffect(() => {
+    // eslint-disable-next-line arrow-body-style
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handlePageChange = useCallback(
     (page: number) => {
       handleFetchCharts(page);
 
-      setTimeout(() => {
+      // Clear any pending scroll timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
         const tableBody =
           tableContainerRef.current?.querySelector('.ant-table-body');
         if (tableBody) {
@@ -145,6 +161,7 @@ const DatasetUsageTab = ({
             behavior: 'smooth',
           });
         }
+        scrollTimeoutRef.current = null;
       }, 100);
     },
     [handleFetchCharts],
@@ -264,6 +281,7 @@ const DatasetUsageTab = ({
         recordCount={totalCount}
         usePagination
         defaultPageSize={PAGE_SIZE}
+        pagination={{ hideOnSinglePage: false }}
         loading={loading}
         size={TableSize.Middle}
         rowKey={(record: Chart) =>

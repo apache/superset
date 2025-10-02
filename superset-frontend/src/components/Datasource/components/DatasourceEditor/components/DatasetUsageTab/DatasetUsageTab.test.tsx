@@ -19,13 +19,68 @@
 import {
   act,
   createWrapper,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import DatasetUsageTab from '.';
+
+jest.mock('@superset-ui/core/components/Table', () => {
+  const actual = jest.requireActual('@superset-ui/core/components/Table');
+  const ActualTable = actual.default;
+
+  let latestPaginationHandler:
+    | ((page: number, pageSize?: number) => void)
+    | null = null;
+  let latestPaginationPageSize: number | undefined;
+  let latestOnChangeHandler:
+    | ((pagination: { current: number; pageSize?: number }) => void)
+    | null = null;
+
+  const MockTable = ({ pagination, onChange, ...rest }: any) => {
+    if (pagination?.pageSize) {
+      latestPaginationPageSize = pagination.pageSize;
+    }
+
+    if (typeof pagination?.onChange === 'function') {
+      latestPaginationHandler = pagination.onChange;
+    }
+
+    if (typeof onChange === 'function') {
+      latestOnChangeHandler = onChange;
+    }
+
+    return (
+      <ActualTable pagination={pagination} onChange={onChange} {...rest} />
+    );
+  };
+
+  return {
+    __esModule: true,
+    ...actual,
+    default: MockTable,
+    __getLatestPaginationHandler: () => latestPaginationHandler,
+    __getLatestPaginationPageSize: () => latestPaginationPageSize,
+    __getLatestOnChangeHandler: () => latestOnChangeHandler,
+    __resetPaginationHandler: () => {
+      latestPaginationHandler = null;
+      latestPaginationPageSize = undefined;
+      latestOnChangeHandler = null;
+    },
+  };
+});
+
+const tableMock = jest.requireMock('@superset-ui/core/components/Table') as {
+  __getLatestPaginationHandler: () =>
+    | ((page: number, pageSize?: number) => void)
+    | null;
+  __getLatestPaginationPageSize: () => number | undefined;
+  __resetPaginationHandler: () => void;
+  __getLatestOnChangeHandler: () =>
+    | ((pagination: { current: number; pageSize?: number }) => void)
+    | null;
+};
 
 const mockChartsResponse = {
   result: [
@@ -127,6 +182,9 @@ beforeEach(() => {
     configurable: true,
     writable: true,
   });
+
+  // eslint-disable-next-line no-underscore-dangle
+  tableMock.__resetPaginationHandler();
 });
 
 afterEach(() => {
@@ -245,11 +303,9 @@ test('enables sorting for Chart and Last modified columns', async () => {
 test('clears scroll timeout on unmount to prevent async updates', async () => {
   jest.useFakeTimers();
 
-  // Reuse the scrollTo mock from beforeEach
   const scrollToMock = Element.prototype.scrollTo as jest.Mock;
   scrollToMock.mockClear();
 
-  // Need enough charts to trigger pagination (PAGE_SIZE = 25)
   const manyCharts = Array.from({ length: 51 }, (_, i) => ({
     id: i + 1,
     slice_name: `Test Chart ${i + 1}`,
@@ -261,43 +317,45 @@ test('clears scroll timeout on unmount to prevent async updates', async () => {
   }));
 
   const { unmount, mockOnFetchCharts } = setupTest({
-    charts: manyCharts,
+    charts: manyCharts.slice(0, 25),
     totalCount: 51,
   });
 
-  // Wait for pagination to appear
-  await waitFor(() => {
-    // Ant Design wires click handlers to the <a> element inside the <li>
-    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
+  // eslint-disable-next-line no-underscore-dangle
+  const onChangeHandler = tableMock.__getLatestOnChangeHandler();
+  // eslint-disable-next-line no-underscore-dangle
+  const pageSize = tableMock.__getLatestPaginationPageSize();
+  expect(onChangeHandler).toBeDefined();
+
+  onChangeHandler?.({ current: 2, pageSize } as {
+    current: number;
+    pageSize?: number;
   });
 
-  // Trigger pagination change which starts a 100ms setTimeout
-  const page2Link = screen.getByRole('link', { name: '2' });
-  fireEvent.click(page2Link);
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
 
-  // Verify pagination was triggered
-  expect(mockOnFetchCharts).toHaveBeenCalledWith(2, 25, expect.any(String), expect.any(String));
-
-  // Unmount before timeout fires
   unmount();
 
-  // Fast-forward time - scroll should NOT be called because timeout was cleared
   act(() => {
     jest.runAllTimers();
   });
 
-  // Critical assertion: scrollTo should never be called after unmount
   expect(scrollToMock).not.toHaveBeenCalled();
 });
 
 test('clears pending scroll timeout on rapid pagination clicks', async () => {
   jest.useFakeTimers();
 
-  // Reuse the scrollTo mock from beforeEach
   const scrollToMock = Element.prototype.scrollTo as jest.Mock;
   scrollToMock.mockClear();
 
-  // Need enough charts to trigger pagination (PAGE_SIZE = 25)
   const manyCharts = Array.from({ length: 60 }, (_, i) => ({
     id: i + 1,
     slice_name: `Test Chart ${i + 1}`,
@@ -309,36 +367,54 @@ test('clears pending scroll timeout on rapid pagination clicks', async () => {
   }));
 
   const { mockOnFetchCharts } = setupTest({
-    charts: manyCharts,
+    charts: manyCharts.slice(0, 25),
     totalCount: 60,
   });
 
-  // Wait for pagination to appear
-  await waitFor(() => {
-    // Ant Design wires click handlers to the <a> element inside the <li>
-    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
+  // eslint-disable-next-line no-underscore-dangle
+  const firstOnChange = tableMock.__getLatestOnChangeHandler();
+  // eslint-disable-next-line no-underscore-dangle
+  const pageSize = tableMock.__getLatestPaginationPageSize();
+  expect(firstOnChange).toBeDefined();
+
+  firstOnChange?.({ current: 2, pageSize } as {
+    current: number;
+    pageSize?: number;
   });
-
-  // Simulate rapid pagination clicks
-  const page2Link = screen.getByRole('link', { name: '2' });
-  const page3Link = screen.getByRole('link', { name: '3' });
-
-  fireEvent.click(page2Link); // Page 2 - starts timeout #1
-  expect(mockOnFetchCharts).toHaveBeenCalledWith(2, 25, expect.any(String), expect.any(String));
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
 
   act(() => {
-    jest.advanceTimersByTime(50); // Halfway through timeout #1
+    jest.advanceTimersByTime(50);
   });
 
-  fireEvent.click(page3Link); // Page 3 - should clear timeout #1, start timeout #2
-  expect(mockOnFetchCharts).toHaveBeenCalledWith(3, 25, expect.any(String), expect.any(String));
+  // eslint-disable-next-line no-underscore-dangle
+  const secondOnChange = tableMock.__getLatestOnChangeHandler();
+  expect(secondOnChange).toBeDefined();
 
-  // Only the second timeout should execute
+  secondOnChange?.({ current: 3, pageSize } as {
+    current: number;
+    pageSize?: number;
+  });
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      3,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
   act(() => {
     jest.runAllTimers();
   });
 
-  // Should only scroll once (second timeout), not twice
   expect(scrollToMock).toHaveBeenCalledTimes(1);
   expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
 });
@@ -346,11 +422,9 @@ test('clears pending scroll timeout on rapid pagination clicks', async () => {
 test('scrolls table to top after pagination with delay', async () => {
   jest.useFakeTimers();
 
-  // Reuse the scrollTo mock from beforeEach
   const scrollToMock = Element.prototype.scrollTo as jest.Mock;
   scrollToMock.mockClear();
 
-  // Need enough charts to trigger pagination (PAGE_SIZE = 25)
   const manyCharts = Array.from({ length: 30 }, (_, i) => ({
     id: i + 1,
     slice_name: `Test Chart ${i + 1}`,
@@ -362,27 +436,32 @@ test('scrolls table to top after pagination with delay', async () => {
   }));
 
   const { mockOnFetchCharts } = setupTest({
-    charts: manyCharts,
+    charts: manyCharts.slice(0, 25),
     totalCount: 30,
   });
 
-  // Wait for pagination to appear, then trigger it
-  await waitFor(() => {
-    // Ant Design wires click handlers to the <a> element inside the <li>
-    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
+  // eslint-disable-next-line no-underscore-dangle
+  const onChangeHandler = tableMock.__getLatestOnChangeHandler();
+  // eslint-disable-next-line no-underscore-dangle
+  const pageSize = tableMock.__getLatestPaginationPageSize();
+  expect(onChangeHandler).toBeDefined();
+
+  onChangeHandler?.({ current: 2, pageSize } as {
+    current: number;
+    pageSize?: number;
   });
 
-  // Click page 2
-  const page2Link = screen.getByRole('link', { name: '2' });
-  fireEvent.click(page2Link);
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
 
-  // Verify pagination was triggered with correct page number
-  expect(mockOnFetchCharts).toHaveBeenCalledWith(2, 25, expect.any(String), expect.any(String));
-
-  // Scroll should not happen immediately
   expect(scrollToMock).not.toHaveBeenCalled();
 
-  // After 100ms timeout, scroll should execute
   act(() => {
     jest.advanceTimersByTime(100);
   });
