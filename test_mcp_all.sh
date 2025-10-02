@@ -8,7 +8,7 @@ echo "====================================="
 
 # Initialize session once
 echo -e "\n1️⃣ INITIALIZING SESSION..."
-SESSION=$(curl -sD - -X POST http://localhost:5008/mcp \
+SESSION=$(curl -sD - -X POST http://localhost:5008/mcp/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test-suite","version":"1.0.0"}},"id":1}' \
@@ -17,7 +17,7 @@ SESSION=$(curl -sD - -X POST http://localhost:5008/mcp \
 echo "Session ID: $SESSION"
 
 # Send initialized notification
-curl -s -X POST http://localhost:5008/mcp \
+curl -s -X POST http://localhost:5008/mcp/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION" \
@@ -26,7 +26,7 @@ curl -s -X POST http://localhost:5008/mcp \
 # TEST 1: List Tools
 echo -e "\n2️⃣ LISTING AVAILABLE TOOLS..."
 echo "--------------------------------"
-curl -s -X POST http://localhost:5008/mcp \
+curl -s -X POST http://localhost:5008/mcp/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION" \
@@ -36,7 +36,7 @@ curl -s -X POST http://localhost:5008/mcp \
 # TEST 2: Call list_datasets
 echo -e "\n3️⃣ CALLING list_datasets TOOL..."
 echo "--------------------------------"
-RESPONSE=$(curl -s -X POST http://localhost:5008/mcp \
+RESPONSE=$(curl -s -X POST http://localhost:5008/mcp/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION" \
@@ -69,7 +69,7 @@ echo "$RESPONSE" | grep "^data: " | tail -1 | sed 's/^data: //' | jq -r '
 # TEST 3: Call get_superset_instance_info
 echo -e "\n4️⃣ GETTING INSTANCE INFO..."
 echo "--------------------------------"
-RESPONSE=$(curl -s -X POST http://localhost:5008/mcp \
+RESPONSE=$(curl -s -X POST http://localhost:5008/mcp/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION" \
