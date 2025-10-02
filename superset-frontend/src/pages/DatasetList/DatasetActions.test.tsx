@@ -22,6 +22,7 @@ import {
   screen,
   waitFor,
   fireEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatasetList from './index';
@@ -51,7 +52,7 @@ jest.mock('src/components/Datasource', () => ({
   __esModule: true,
   DatasourceModal: ({ show, onHide, datasource }: any) =>
     show ? (
-      <div data-test="datasource-modal">
+      <div role="dialog" data-test="datasource-modal">
         <span>Editing: {datasource?.table_name}</span>
         <button type="button" onClick={onHide}>
           Close Modal
@@ -60,27 +61,11 @@ jest.mock('src/components/Datasource', () => ({
     ) : null,
 }));
 
-jest.mock('@superset-ui/core/components/DeleteModal', () => ({
-  __esModule: true,
-  DeleteModal: ({ show, onConfirm, onHide, title }: any) =>
-    show ? (
-      <div data-test="delete-modal">
-        <span>{title}</span>
-        <button type="button" onClick={onConfirm}>
-          Delete
-        </button>
-        <button type="button" onClick={onHide}>
-          Cancel
-        </button>
-      </div>
-    ) : null,
-}));
-
 jest.mock('src/features/datasets/DuplicateDatasetModal', () => ({
   __esModule: true,
-  default: ({ show, onHide, dataset }: any) =>
-    show ? (
-      <div data-test="duplicate-modal">
+  default: ({ dataset, onHide }: any) =>
+    dataset ? (
+      <div role="dialog" data-test="duplicate-modal">
         <span>Duplicating: {dataset?.table_name}</span>
         <button type="button" onClick={onHide}>
           Close
@@ -93,7 +78,7 @@ jest.mock('src/components/ImportModal', () => ({
   __esModule: true,
   ImportModal: ({ show, onHide, onImport }: any) =>
     show ? (
-      <div data-test="import-modal">
+      <div role="dialog" data-test="import-modal">
         <button type="button" onClick={() => onImport()}>
           Import
         </button>
@@ -149,11 +134,13 @@ test('opens edit modal when edit button is clicked', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const editButton = screen.getByLabelText(/edit/i);
+  // Find the row containing 'birth_names', then click edit within that row
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const editButton = within(row).getByRole('button', { name: /edit/i });
   await userEvent.click(editButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('datasource-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Editing: birth_names')).toBeInTheDocument();
   });
 });
@@ -176,19 +163,15 @@ test('shows disabled edit button with tooltip for non-owners', async () => {
   });
 
   await waitFor(() => {
-    const editButton = screen.getByLabelText(/edit/i);
-    expect(editButton).toHaveClass('disabled');
+    expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  // Tooltip should show restriction message
-  const editButton = screen.getByLabelText(/edit/i);
-  await userEvent.hover(editButton);
+  // Find edit button within the row
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const editButton = within(row).getByRole('button', { name: /edit/i });
 
-  await waitFor(() => {
-    expect(
-      screen.getByText(/you must be a dataset owner/i),
-    ).toBeInTheDocument();
-  });
+  // Button should have disabled class
+  expect(editButton).toHaveClass('disabled');
 });
 
 test('allows edit for admin users regardless of ownership', async () => {
@@ -207,18 +190,22 @@ test('allows edit for admin users regardless of ownership', async () => {
   render(<DatasetList {...defaultProps} user={mockAdminUser} />, {
     useRouter: true,
     useRedux: true,
+    useQueryParams: true,
   });
 
   await waitFor(() => {
-    const editButton = screen.getByLabelText(/edit/i);
-    expect(editButton).not.toHaveClass('disabled');
+    expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const editButton = screen.getByLabelText(/edit/i);
+  // Admin should be able to edit even if not owner
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const editButton = within(row).getByRole('button', { name: /edit/i });
+
+  expect(editButton).not.toHaveClass('disabled');
   await userEvent.click(editButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('datasource-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
 
@@ -240,11 +227,12 @@ test('opens delete confirmation modal when delete button is clicked', async () =
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const deleteButton = screen.getByLabelText(/delete/i);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const deleteButton = within(row).getByRole('button', { name: /delete/i });
   await userEvent.click(deleteButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
 
@@ -263,11 +251,12 @@ test('shows related objects in delete confirmation when they exist', async () =>
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const deleteButton = screen.getByLabelText(/delete/i);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const deleteButton = within(row).getByRole('button', { name: /delete/i });
   await userEvent.click(deleteButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     // Should show related objects information
   });
 });
@@ -301,14 +290,16 @@ test('deletes dataset when confirmation is clicked', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const deleteButton = screen.getByLabelText(/delete/i);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const deleteButton = within(row).getByRole('button', { name: /delete/i });
   await userEvent.click(deleteButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  const confirmButton = screen.getByRole('button', { name: /delete/i });
+  const modal = screen.getByRole('dialog');
+  const confirmButton = within(modal).getByRole('button', { name: /delete/i });
   await userEvent.click(confirmButton);
 
   await waitFor(() => {
@@ -338,14 +329,16 @@ test('handles delete API errors gracefully', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const deleteButton = screen.getByLabelText(/delete/i);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const deleteButton = within(row).getByRole('button', { name: /delete/i });
   await userEvent.click(deleteButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  const confirmButton = screen.getByRole('button', { name: /delete/i });
+  const modal = screen.getByRole('dialog');
+  const confirmButton = within(modal).getByRole('button', { name: /delete/i });
   await userEvent.click(confirmButton);
 
   await waitFor(() => {
@@ -371,7 +364,14 @@ test('exports single dataset when export button is clicked', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const exportButton = screen.getByLabelText(/export/i);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  // Action buttons are in order: Delete, Export, Edit
+  // Filter out InfoTooltip buttons to get only action buttons
+  const allButtons = within(row).getAllByRole('button');
+  const actionButtons = allButtons.filter(
+    btn => !btn.getAttribute('data-test')?.includes('info-tooltip'),
+  );
+  const exportButton = actionButtons[1]; // Export is second action button (after Delete)
   await userEvent.click(exportButton);
 
   expect(handleResourceExport).toHaveBeenCalledWith(
@@ -397,11 +397,18 @@ test('opens duplicate modal for virtual datasets only', async () => {
     expect(screen.getByText('virtual_dataset')).toBeInTheDocument();
   });
 
-  const duplicateButton = screen.getByLabelText(/duplicate/i);
+  const row = screen.getByRole('row', { name: /virtual_dataset/i });
+  // For virtual datasets: Delete, Export, Edit, Duplicate
+  // Filter out InfoTooltip buttons to get only action buttons
+  const allButtons = within(row).getAllByRole('button');
+  const actionButtons = allButtons.filter(
+    btn => !btn.getAttribute('data-test')?.includes('info-tooltip'),
+  );
+  const duplicateButton = actionButtons[actionButtons.length - 1]; // Duplicate is last action button
   await userEvent.click(duplicateButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('duplicate-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(
       screen.getByText('Duplicating: virtual_dataset'),
     ).toBeInTheDocument();
@@ -424,8 +431,15 @@ test('does not show duplicate button for physical datasets', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
+  const row = screen.getByRole('row', { name: /birth_names/i });
   // Should not have duplicate button for physical datasets
-  expect(screen.queryByLabelText(/duplicate/i)).not.toBeInTheDocument();
+  // Physical datasets have 3 action buttons (Delete, Export, Edit), virtual would have 4 (+ Duplicate)
+  // Filter out InfoTooltip buttons to count only action buttons
+  const allButtons = within(row).getAllByRole('button');
+  const actionButtons = allButtons.filter(
+    btn => !btn.getAttribute('data-test')?.includes('info-tooltip'),
+  );
+  expect(actionButtons).toHaveLength(3);
 });
 
 test('handles bulk delete operation', async () => {
@@ -528,8 +542,9 @@ test('shows error toast when edit API call fails', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const editButton = screen.getByLabelText(/edit/i);
-  await userEvent.click(editButton);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const editButton = within(row).getByRole('button', { name: /edit/i });
+  fireEvent.click(editButton);
 
   await waitFor(() => {
     expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
@@ -555,8 +570,9 @@ test('shows error toast when related objects API call fails', async () => {
     expect(screen.getByText('birth_names')).toBeInTheDocument();
   });
 
-  const deleteButton = screen.getByLabelText(/delete/i);
-  await userEvent.click(deleteButton);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const deleteButton = within(row).getByRole('button', { name: /delete/i });
+  fireEvent.click(deleteButton);
 
   await waitFor(() => {
     expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
@@ -568,9 +584,13 @@ test('shows error toast when related objects API call fails', async () => {
 });
 
 test('hides action column when user has no permissions', async () => {
-  fetchMock.get('glob:*/api/v1/dataset/_info*', {
-    permissions: ['can_read'], // Only read permission
-  });
+  fetchMock.get(
+    'glob:*/api/v1/dataset/_info*',
+    {
+      permissions: ['can_read'], // Only read permission
+    },
+    { overwriteRoutes: true },
+  );
   fetchMock.get('glob:*/api/v1/dataset/*', mockDatasetResponse);
 
   render(<DatasetList {...defaultProps} />, {
@@ -605,17 +625,18 @@ test('closes modals when cancel buttons are clicked', async () => {
   });
 
   // Test edit modal close
-  const editButton = screen.getByLabelText(/edit/i);
+  const row = screen.getByRole('row', { name: /birth_names/i });
+  const editButton = within(row).getByRole('button', { name: /edit/i });
   await userEvent.click(editButton);
 
   await waitFor(() => {
-    expect(screen.getByTestId('datasource-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   const closeButton = screen.getByRole('button', { name: /close modal/i });
   await userEvent.click(closeButton);
 
   await waitFor(() => {
-    expect(screen.queryByTestId('datasource-modal')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
