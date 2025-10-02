@@ -132,6 +132,7 @@ class Markdown extends PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
+    this.shouldFocusMarkdown = this.shouldFocusMarkdown.bind(this);
   }
 
   componentDidMount() {
@@ -268,6 +269,13 @@ class Markdown extends PureComponent {
     }
   }
 
+  shouldFocusMarkdown(event, container, menuRef) {
+    if (container?.contains(event.target)) return true;
+    if (menuRef?.contains(event.target)) return true;
+
+    return false;
+  }
+
   renderEditMode() {
     return (
       <MarkdownEditor
@@ -343,6 +351,7 @@ class Markdown extends PureComponent {
         {({ dragSourceRef }) => (
           <WithPopoverMenu
             onChangeFocus={this.handleChangeFocus}
+            shouldFocus={this.shouldFocusMarkdown}
             menuItems={[
               <MarkdownModeDropdown
                 id={`${component.id}-mode`}
