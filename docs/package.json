@@ -27,7 +27,7 @@
     "version:remove:components": "node scripts/manage-versions.mjs remove components"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.0.0",
+    "@ant-design/icons": "^6.1.0",
     "@docusaurus/core": "3.8.1",
     "@docusaurus/plugin-client-redirects": "3.8.1",
     "@docusaurus/preset-classic": "3.8.1",
@@ -49,7 +49,7 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^5.26.7",
+    "antd": "^5.27.4",
     "caniuse-lite": "^1.0.30001739",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
@@ -63,7 +63,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.1.1",
     "storybook": "^8.6.11",
-    "swagger-ui-react": "^5.27.1",
+    "swagger-ui-react": "^5.29.1",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4"
   },
