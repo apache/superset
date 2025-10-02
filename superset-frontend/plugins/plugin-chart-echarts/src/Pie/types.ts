@@ -35,6 +35,7 @@ export type EchartsPieFormData = QueryFormData &
     donut: boolean;
     defaultValue?: string[] | null;
     groupby: QueryFormColumn[];
+    half: boolean;
     innerRadius: number;
     labelLine: boolean;
     labelType: EchartsPieLabelType;
@@ -72,6 +73,7 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   donut: false,
   groupby: [],
   innerRadius: 30,
+  half: false,
   labelLine: false,
   labelType: EchartsPieLabelType.Key,
   legendOrientation: LegendOrientation.Top,

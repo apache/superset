@@ -77,6 +77,7 @@ function getTotalValuePadding({
   donut,
   width,
   height,
+  half,
 }: {
   chartPadding: {
     bottom: number;
@@ -87,6 +88,7 @@ function getTotalValuePadding({
   donut: boolean;
   width: number;
   height: number;
+  half: boolean;
 }) {
   const padding: {
     left?: string;
@@ -95,24 +97,28 @@ function getTotalValuePadding({
     top: donut ? 'middle' : '0',
     left: 'center',
   };
+  const getDonutBase = () => (half ? 68.5 : 50);
+  if (half) {
+    padding.top = donut
+      ? `${69 + (chartPadding.top / height / 2) * 100}%`
+      : `${(chartPadding.top / height) * 100}%`;
+  }
   if (chartPadding.top) {
     padding.top = donut
-      ? `${50 + (chartPadding.top / height / 2) * 100}%`
+      ? `${getDonutBase() + (chartPadding.top / height / 2) * 100}%`
       : `${(chartPadding.top / height) * 100}%`;
   }
   if (chartPadding.bottom) {
     padding.top = donut
-      ? `${50 - (chartPadding.bottom / height / 2) * 100}%`
+      ? `${getDonutBase() - (chartPadding.bottom / height / 2) * 100}%`
       : '0';
   }
   if (chartPadding.left) {
-    // When legend is on the left, shift text right to center it in the available space
     const leftPaddingPercent = (chartPadding.left / width) * 100;
     const adjustedLeftPercent = 50 + leftPaddingPercent * 0.25;
     padding.left = `${adjustedLeftPercent}%`;
   }
   if (chartPadding.right) {
-    // When legend is on the right, shift text left to center it in the available space
     const rightPaddingPercent = (chartPadding.right / width) * 100;
     const adjustedLeftPercent = 50 - rightPaddingPercent * 0.75;
     padding.left = `${adjustedLeftPercent}%`;
@@ -143,6 +149,7 @@ export default function transformProps(
     colorScheme,
     donut,
     groupby,
+    half,
     innerRadius,
     labelsOutside,
     labelLine,
@@ -385,7 +392,9 @@ export default function transformProps(
       animation: false,
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: ['50%', '50%'],
+      center: ['50%', half ? '70%' : '50%'],
+      startAngle: half ? 180 : 90,
+      endAngle: half ? 360 : 'auto',
       avoidLabelOverlap: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
       minShowLabelAngle,
@@ -446,7 +455,7 @@ export default function transformProps(
     graphic: showTotal
       ? {
           type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height }),
+          ...getTotalValuePadding({ chartPadding, donut, width, height, half }),
           style: {
             text: t('Total: %s', numberFormatter(totalValue)),
             fontSize: 16,
