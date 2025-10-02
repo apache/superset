@@ -532,3 +532,17 @@ def test_pinot_date_add_simple() -> None:
         # Verify that it generates valid SQL
         generated = parsed.sql(dialect=Pinot)
         assert "DATE_ADD" in generated.upper()
+
+
+def test_pinot_date_add_unit_quoted() -> None:
+    """
+    Test that DATE_ADD preserves quotes around the unit argument.
+
+    Pinot requires the unit to be a quoted string, not an identifier.
+    """
+    sql = "dt_epoch_ms >= date_add('day', -180, now())"
+    result = sqlglot.parse_one(sql, Pinot).sql(Pinot)
+
+    # The unit should be quoted: 'DAY' not DAY
+    assert "DATE_ADD('DAY', -180, NOW())" in result
+    assert "DATE_ADD(DAY," not in result

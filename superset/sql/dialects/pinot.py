@@ -93,7 +93,7 @@ class Pinot(MySQL):
             **MySQL.Generator.TRANSFORMS,
             exp.DateAdd: lambda self, e: self.func(
                 "DATE_ADD",
-                e.args.get("unit"),
+                exp.Literal.string(str(e.args.get("unit").name)),
                 e.args.get("expression"),
                 e.this,
             ),
