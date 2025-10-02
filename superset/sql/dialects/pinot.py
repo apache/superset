@@ -59,6 +59,11 @@ class Pinot(MySQL):
                 expression=seq_get(args, 1),
                 unit=seq_get(args, 0),
             ),
+            "DATE_SUB": lambda args: exp.DateSub(
+                this=seq_get(args, 2),
+                expression=seq_get(args, 1),
+                unit=seq_get(args, 0),
+            ),
         }
 
     class Generator(MySQL.Generator):
@@ -93,6 +98,12 @@ class Pinot(MySQL):
             **MySQL.Generator.TRANSFORMS,
             exp.DateAdd: lambda self, e: self.func(
                 "DATE_ADD",
+                exp.Literal.string(str(e.args.get("unit").name)),
+                e.args.get("expression"),
+                e.this,
+            ),
+            exp.DateSub: lambda self, e: self.func(
+                "DATE_SUB",
                 exp.Literal.string(str(e.args.get("unit").name)),
                 e.args.get("expression"),
                 e.this,
