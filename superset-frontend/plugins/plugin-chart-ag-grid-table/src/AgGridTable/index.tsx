@@ -131,10 +131,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
 
     const defaultColDef = useMemo<ColDef>(
       () => ({
-        flex: 1,
         filter: true,
-        enableRowGroup: true,
-        enableValue: true,
         sortable: true,
         resizable: true,
         minWidth: 100,
@@ -312,7 +309,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           onCellClicked={handleCrossFilter}
           initialState={gridInitialState}
           suppressAggFuncInHeader
-          rowGroupPanelShow="always"
           enableCellTextSelection
           quickFilterText={serverPagination ? '' : quickFilterText}
           suppressMovableColumns={!allowRearrangeColumns}
