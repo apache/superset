@@ -301,10 +301,11 @@
     "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Muestra la suma total de los parámetros seleccionados. Ten en cuenta que el límite de filas no se aplica al resultado.",
     "Total PC Commission": "Comisión PC total",
     "Total PV Commission": "Comisión PI total",
-    "Top Publisher Groups by Sales": "",
-    "Publisher group": "",
+    "Top Publisher Groups by Sales": "Principales grupos de afiliados por ventas",
+    "Publisher group": "Grupo de afiliados",
     "Total sales value": "Valor total de las ventas",
     "Total override": "Override total",
-    "Campaigns: First vs last clicks": "",
-    "KUR": ""
+    "Campaigns: First vs last clicks": "Campañas: primeros vs. últimos clics",
+    "KUR": "RCB",
+    "Comment": ""
 }
