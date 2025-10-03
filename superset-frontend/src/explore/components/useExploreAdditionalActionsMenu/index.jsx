@@ -257,7 +257,7 @@ export const useExploreAdditionalActionsMenu = (
           <Input
             allowClear
             placeholder={t('Search')}
-            prefix={<Icons.StarOutlined iconSize="l" />}
+            prefix={<Icons.SearchOutlined iconSize="l" />}
             css={css`
               width: 220px;
               margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
