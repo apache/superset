@@ -1361,7 +1361,7 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # REPORTS_CSV_NA_NAMES = None  # Use default pandas NA handling (backwards compatible)
 # REPORTS_CSV_NA_NAMES = []    # Disable all automatic NA conversion
 # REPORTS_CSV_NA_NAMES = ["", "NULL", "null"]  # Only treat these specific values as NA
-REPORTS_CSV_NA_NAMES = list(CSV_DEFAULT_NA_NAMES)
+REPORTS_CSV_NA_NAMES: list[str] | None = None
 
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
