@@ -344,13 +344,12 @@ def apply_client_processing(  # noqa: C901
             # Use custom NA values configuration for
             # reports to avoid unwanted conversions
             # This allows users to control which values should be treated as null/NA
-            na_values = current_app.config.get("REPORTS_CSV_NA_NAMES", None)
-            if na_values is not None:
-                df = pd.read_csv(
-                    StringIO(data), keep_default_na=False, na_values=na_values
-                )
-            else:
-                df = pd.read_csv(StringIO(data))
+            na_values = current_app.config["REPORTS_CSV_NA_NAMES"]
+            df = pd.read_csv(
+                StringIO(data),
+                keep_default_na=na_value is None,
+                na_values=na_values,
+            )
 
         # convert all columns to verbose (label) name
         if datasource:
