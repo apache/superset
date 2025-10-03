@@ -2657,8 +2657,8 @@ def test_pivot_multi_level_index():
 
 def test_apply_client_processing_csv_format_preserves_na_strings():
     """
-    Test that apply_client_processing preserves "NA" strings
-    when REPORTS_CSV_NA_NAMES is set to empty list.
+    Test that apply_client_processing preserves "NA" when REPORTS_CSV_NA_NAMES is [].
+
     This ensures that scheduled reports can be configured to
     preserve strings like "NA" as literal values.
     """
