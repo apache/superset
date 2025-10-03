@@ -248,6 +248,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    useEffect(() => {
+      if (gridRef.current?.api) {
+        gridRef.current.api.sizeColumnsToFit();
+      }
+    }, [width]);
+
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
