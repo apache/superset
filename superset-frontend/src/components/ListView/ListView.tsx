@@ -45,6 +45,7 @@ const ListViewStyles = styled.div`
   ${({ theme }) => `
     text-align: center;
     background-color: ${theme.colorBgLayout};
+    padding-top: ${theme.paddingXS}px;
 
     .superset-list-view {
       text-align: left;
