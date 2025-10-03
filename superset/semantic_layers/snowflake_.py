@@ -21,8 +21,9 @@ from typing import Any, Literal, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, create_model, Field, SecretStr
 from snowflake.connector import connect
+from snowflake.connector.connection import SnowflakeConnection
 
 
 class UserPasswordAuth(BaseModel):
@@ -63,8 +64,6 @@ class SnowflakeConfiguration(BaseModel):
     Parameters needed to connect to Snowflake.
     """
 
-    model_config = ConfigDict(protected_namespaces=())
-
     # account is the only required parameter
     account_identifier: str = Field(
         description="The Snowflake account identifier.",
@@ -94,8 +93,8 @@ class SnowflakeConfiguration(BaseModel):
         description="The default database to use.",
         json_schema_extra={
             "examples": ["testdb"],
-            "dynamic": True,
-            "depends_on": ["account_identifier", "auth"],
+            "x-dynamic": True,
+            "x-dependsOn": ["account_identifier", "auth"],
         },
     )
     allow_changing_database: bool = Field(
@@ -107,8 +106,8 @@ class SnowflakeConfiguration(BaseModel):
         description="The default schema to use.",
         json_schema_extra={
             "examples": ["public"],
-            "dynamic": True,
-            "depends_on": ["account_identifier", "auth", "database"],
+            "x-dynamic": True,
+            "x-dependsOn": ["account_identifier", "auth", "database"],
         },
         # `schema` is an attribute of `BaseModel` so it needs to be aliased
         alias="schema",
@@ -141,21 +140,31 @@ class SnowflakeSemanticLayer:
         explorables.
         """
         schema = cls.configuration_schema.model_json_schema()
+        properties = schema["properties"]
 
         if configuration is None:
+            # set these to empty; they will be populated when a partial configuration is
+            # passed
+            properties["database"]["enum"] = []
+            properties["schema"]["enum"] = []
+
             return schema
 
-        for field_name, field_info in schema["properties"].items():
-            dynamic = field_info.get("dynamic", False)
-            if not dynamic:
-                continue
+        connection_parameters = cls._get_connection_parameters(configuration)
+        with connect(**connection_parameters) as connection:
+            if all(
+                getattr(configuration, dependency)
+                for dependency in properties["database"].get("x-dependsOn", [])
+            ):
+                options = cls._fetch_databases(connection)
+                properties["database"]["enum"] = list(options)
 
-            depends_on = field_info.get("depends_on", [])
-
-            # check if all deps are satisfied
-            if all(getattr(configuration, dependency) for dependency in depends_on):
-                enum_values = cls._fetch_enum_values(field_name, configuration)
-                field_info["enum"] = enum_values
+            if all(
+                getattr(configuration, dependency)
+                for dependency in properties["schema"].get("x-dependsOn", [])
+            ):
+                options = cls._fetch_schemas(connection, configuration.database)
+                properties["schema"]["enum"] = list(options)
 
         return schema
 
@@ -167,36 +176,60 @@ class SnowflakeSemanticLayer:
         """
         Get the JSON schema for the runtime parameters needed to load explorables.
         """
-        pass
+        fields: dict[str, tuple[type, Field]] = {}
 
-    @classmethod
-    def _fetch_enum_values(
-        cls,
-        field_name: str,
-        configuration: SnowflakeConfiguration,
-    ) -> set[Any]:
-        """
-        Fetch enum values for a given field based on the partial configuration.
-        """
         connection_parameters = cls._get_connection_parameters(configuration)
         with connect(**connection_parameters) as connection:
-            cursor = connection.cursor()
+            if not configuration.database or configuration.allow_changing_database:
+                options = cls._fetch_databases(connection)
+                fields["database"] = (
+                    Literal[*options],
+                    Field(description="The default database to use."),
+                )
 
-            if field_name == "database":
-                query = "SHOW DATABASES"
-                return {row[1] for row in cursor.execute(query)}
+            if not configuration.schema_ or configuration.allow_changing_schema:
+                options = cls._fetch_schemas(connection, configuration.database)
+                fields["schema_"] = (
+                    Literal[*options],
+                    Field(description="The default schema to use.", alias="schema"),
+                )
 
-            if field_name == "schema":
-                query = """
-                    SELECT SCHEMA_NAME
-                    FROM INFORMATION_SCHEMA.SCHEMATA
-                    WHERE CATALOG_NAME = ?
-                """
-                cursor.execute(query, (configuration.database,))
-                return {row[0] for row in cursor.fetchall()}
+        return create_model("RuntimeParameters", **fields).model_json_schema()
 
-        # should never happen, since only database and schema are dynamic
-        raise ValueError(f"Unsupported field for enum fetching: {field_name}")
+    @classmethod
+    def _fetch_databases(cls, connection: SnowflakeConnection) -> set[str]:
+        """
+        Fetch the list of databases available in the Snowflake account.
+
+        We use `SHOW DATABASES` instead of querying the information schema since it
+        allows to retrieve the list of databases without having to specify a database
+        when connecting.
+        """
+        cursor = connection.cursor()
+        query = "SHOW DATABASES"
+        cursor.execute(query)
+        return {row[1] for row in cursor.fetchall()}
+
+    @classmethod
+    def _fetch_schemas(
+        cls,
+        connection: SnowflakeConnection,
+        database: str | None,
+    ) -> set[str]:
+        """
+        Fetch the list of schemas available in a given database.
+        """
+        if not database:
+            return set()
+
+        cursor = connection.cursor()
+        query = """
+            SELECT SCHEMA_NAME
+            FROM INFORMATION_SCHEMA.SCHEMATA
+            WHERE CATALOG_NAME = ?
+        """
+        cursor.execute(query, (database,))
+        return {row[0] for row in cursor.fetchall()}
 
     @classmethod
     def _get_connection_parameters(
@@ -208,7 +241,7 @@ class SnowflakeSemanticLayer:
         """
         params = {
             "account": configuration.account_identifier,
-            "application": "Apache Superset",  # TODO: use superset.utils.core.get_user_agent
+            "application": "Apache Superset",
             "paramstyle": "qmark",
             "insecure_mode": True,
         }
@@ -219,8 +252,8 @@ class SnowflakeSemanticLayer:
             params["warehouse"] = configuration.warehouse
         if configuration.database:
             params["database"] = configuration.database
-        if configuration.schema:
-            params["schema"] = configuration.schema
+        if configuration.schema_:
+            params["schema"] = configuration.schema_
 
         auth = configuration.auth
         if isinstance(auth, UserPasswordAuth):
@@ -269,7 +302,7 @@ if __name__ == "__main__":
             "account_identifier": "KFTRUWN-VX32922",
             "role": "ACCOUNTADMIN",
             "warehouse": "COMPUTE_WH",
-            # "database": "SAMPLE_DATA",
+            "database": "SAMPLE_DATA",
             "auth": {
                 "auth_type": "user_password",
                 "username": "vavila",
