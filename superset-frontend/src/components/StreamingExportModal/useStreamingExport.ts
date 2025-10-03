@@ -259,6 +259,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           body: new URLSearchParams({
             form_data: JSON.stringify(payload),
             filename: filename || `export.${exportType}`, // Pass filename to backend
+            expected_rows: expectedRows?.toString() || '', // Pass expected row count to backend
           }),
           signal: abortControllerRef.current.signal,
           credentials: 'same-origin',

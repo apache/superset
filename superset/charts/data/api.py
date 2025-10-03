@@ -263,8 +263,17 @@ class ChartDataRestApi(ChartRestApi):
         if filename:
             logger.info("📁 FRONTEND PROVIDED FILENAME: %s", filename)
 
+        expected_rows = request.form.get("expected_rows")
+        if expected_rows:
+            try:
+                expected_rows = int(expected_rows)
+                logger.info("📊 FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
+            except (ValueError, TypeError):
+                logger.warning("⚠️ Invalid expected_rows value: %s", expected_rows)
+                expected_rows = None
+
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource, filename=filename
+            command, form_data=form_data, datasource=query_context.datasource, filename=filename, expected_rows=expected_rows
         )
 
     @expose("/data/<cache_key>", methods=("GET",))
@@ -458,6 +467,7 @@ class ChartDataRestApi(ChartRestApi):
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
         filename: str | None = None,
+        expected_rows: int | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -479,8 +489,8 @@ class ChartDataRestApi(ChartRestApi):
             is_csv_format = result_format == ChartDataResultFormat.CSV
 
             # Check if we should use streaming for large datasets
-            if is_csv_format and self._should_use_streaming(result, form_data):
-                return self._create_streaming_csv_response(result, form_data, filename=filename)
+            if is_csv_format and True:
+                return self._create_streaming_csv_response(result, form_data, filename=filename, expected_rows=expected_rows)
 
             if len(result["queries"]) == 1:
                 # return single query results
@@ -532,6 +542,7 @@ class ChartDataRestApi(ChartRestApi):
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
         filename: str | None = None,
+        expected_rows: int | None = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -540,7 +551,7 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self._send_chart_response(result, form_data, datasource, filename)
+        return self._send_chart_response(result, form_data, datasource, filename, expected_rows)
 
     # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
@@ -590,7 +601,7 @@ class ChartDataRestApi(ChartRestApi):
         return should_use_streaming_response(query_context, result_format)
 
     def _create_streaming_csv_response(
-        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None, filename: str | None = None
+        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None, filename: str | None = None, expected_rows: int | None = None
     ) -> Response:
         """Create a streaming CSV response for large datasets."""
         from datetime import datetime
@@ -616,8 +627,11 @@ class ChartDataRestApi(ChartRestApi):
             filename = f"superset_{safe_chart_name}_{timestamp}.csv"
 
         logger.info("Creating streaming CSV response: %s (from frontend: %s)", filename, filename is not None)
+        if expected_rows:
+            logger.info("📊 Using expected_rows from frontend: %d", expected_rows)
 
         return create_streaming_csv_response(
             query_context=query_context,
             filename=filename,
+            expected_rows=expected_rows,
         )

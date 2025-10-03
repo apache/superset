@@ -97,6 +97,7 @@ def create_streaming_csv_response(
     filename: str | None = None,
     chunk_size: int | None = None,
     escape_formulas: bool = True,
+    expected_rows: int | None = None,
 ) -> Response:
     """
     Factory function to create a streaming CSV response using Flask's standard pattern.
@@ -136,15 +137,28 @@ def create_streaming_csv_response(
                     "📊 STREAMING CSV: Processing query with estimated large result set"
                 )
 
-                # Estimate total rows for progress tracking
-                # TODO: Get actual row count from frontend instead of hardcoding
-                # For now, hardcoded to 148795 for testing
-                estimated_rows = 148795
 
-                logger.info(
-                    "📊 STREAMING CSV: Using hardcoded total_rows=%d for progress tracking",
-                    estimated_rows,
-                )
+                estimated_rows = expected_rows
+
+                if estimated_rows:
+                    logger.info(
+                        "📊 STREAMING CSV: Using expected_rows from frontend: %d",
+                        estimated_rows,
+                    )
+                else:
+                    form_data = query_context.form_data
+                    estimated_rows = form_data.get('row_limit') if form_data else None
+
+                    if estimated_rows:
+                        logger.info(
+                            "📊 STREAMING CSV: Using row_limit from form_data: %d",
+                            estimated_rows,
+                        )
+                    else:
+                        logger.warning(
+                            "⚠️ STREAMING CSV: No expected_rows or row_limit available, progress percentage will be unavailable"
+                        )
+                        estimated_rows = None
 
                 # Initialize progress tracker
                 progress_tracker.create_export(

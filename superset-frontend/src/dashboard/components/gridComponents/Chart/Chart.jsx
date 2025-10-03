@@ -402,6 +402,19 @@ const Chart = props => {
         : formData;
       const resultType = isPivot ? 'post_processed' : 'full';
 
+      let actualRowCount;
+      const isTableViz = formData?.viz_type === 'table';
+
+      if (
+        isTableViz &&
+        queriesResponse?.length > 1 &&
+        queriesResponse[1]?.data?.[0]?.rowcount
+      ) {
+        actualRowCount = queriesResponse[1].data[0].rowcount;
+      } else {
+        actualRowCount = exportFormData?.row_limit;
+      }
+
       // Handle streaming CSV exports for both regular and full data exports
       const shouldUseStreaming = format === 'csv' && !isPivot;
 
@@ -415,7 +428,10 @@ const Chart = props => {
           ? exportParams => {
               setIsStreamingModalVisible(true);
               resetExport();
-              startExport(exportParams);
+              startExport({
+                ...exportParams,
+                expectedRows: actualRowCount || exportParams.expectedRows,
+              });
             }
           : null,
       });
@@ -427,6 +443,7 @@ const Chart = props => {
       props.maxRows,
       dataMask[props.id]?.ownState,
       boundActionCreators.logEvent,
+      queriesResponse,
       startExport,
       resetExport,
     ],
