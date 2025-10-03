@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def update_chart(request: UpdateChartRequest, ctx: Context) -> Dict[str, Any]:
+async def update_chart(request: UpdateChartRequest, ctx: Context) -> Dict[str, Any]:
     """
     Update existing chart with new configuration.
 
@@ -143,7 +143,9 @@ def update_chart(request: UpdateChartRequest, ctx: Context) -> Dict[str, Any]:
                     preview_request = GetChartPreviewRequest(
                         identifier=str(updated_chart.id), format=format_type
                     )
-                    preview_result = _get_chart_preview_internal(preview_request, ctx)
+                    preview_result = await _get_chart_preview_internal(
+                        preview_request, ctx
+                    )
 
                     if hasattr(preview_result, "content"):
                         previews[format_type] = preview_result.content

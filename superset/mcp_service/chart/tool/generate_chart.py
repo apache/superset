@@ -210,41 +210,34 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
                     "api_version": "v1",
                 }
 
-            # SECURITY FIX: Create chart using Superset command with transaction
-            from superset import db
-
             try:
-                # Begin transaction
-                with db.session.begin():
-                    command = CreateChartCommand(
-                        {
-                            "slice_name": chart_name,
-                            "viz_type": form_data["viz_type"],
-                            "datasource_id": dataset.id,
-                            "datasource_type": "table",
-                            "params": json.dumps(form_data),
-                        }
+                command = CreateChartCommand(
+                    {
+                        "slice_name": chart_name,
+                        "viz_type": form_data["viz_type"],
+                        "datasource_id": dataset.id,
+                        "datasource_type": "table",
+                        "params": json.dumps(form_data),
+                    }
+                )
+
+                chart = command.run()
+                chart_id = chart.id
+
+                # Ensure chart was created successfully before committing
+                if not chart or not chart.id:
+                    raise Exception("Chart creation failed - no chart ID returned")
+
+                await ctx.info(
+                    "Chart created successfully: chart_id=%s, chart_name=%s"
+                    % (
+                        chart.id,
+                        chart.slice_name,
                     )
-
-                    chart = command.run()
-                    chart_id = chart.id
-
-                    # Ensure chart was created successfully before committing
-                    if not chart or not chart.id:
-                        raise Exception("Chart creation failed - no chart ID returned")
-
-                    await ctx.info(
-                        "Chart created successfully: chart_id=%s, chart_name=%s"
-                        % (
-                            chart.id,
-                            chart.slice_name,
-                        )
-                    )
-                    # Transaction will be committed automatically on success
+                )
 
             except Exception as e:
-                # Transaction will be rolled back automatically on exception
-                logger.error("Chart creation failed, transaction rolled back: %s", e)
+                logger.error("Chart creation failed: %s", e)
                 await ctx.error("Chart creation failed: error=%s" % (str(e),))
                 raise
             # Update explore URL to use saved chart
@@ -312,7 +305,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
                         preview_request = GetChartPreviewRequest(
                             identifier=str(chart_id), format=format_type
                         )
-                        preview_result = _get_chart_preview_internal(
+                        preview_result = await _get_chart_preview_internal(
                             preview_request, ctx
                         )
 
