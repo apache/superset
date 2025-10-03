@@ -281,7 +281,12 @@ const DatasetUsageTab = ({
         recordCount={totalCount}
         usePagination
         defaultPageSize={PAGE_SIZE}
-        pagination={{ hideOnSinglePage: false }}
+        pagination={{
+          current: currentPage,
+          total: totalCount,
+          pageSize: PAGE_SIZE,
+          hideOnSinglePage: false,
+        }}
         loading={loading}
         size={TableSize.Middle}
         rowKey={(record: Chart) =>

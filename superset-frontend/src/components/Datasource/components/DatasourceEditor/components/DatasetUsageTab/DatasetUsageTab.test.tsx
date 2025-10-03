@@ -25,8 +25,37 @@ import {
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { TableProps } from '@superset-ui/core/components/Table';
+import {
+  TableProps,
+  OnChangeFunction,
+} from '@superset-ui/core/components/Table';
 import DatasetUsageTab from '.';
+
+interface Chart {
+  id?: number;
+  slice_name: string;
+  url: string;
+  certified_by?: string;
+  certification_details?: string;
+  description?: string;
+  owners: Array<{
+    first_name: string;
+    last_name: string;
+    id: number;
+  }>;
+  changed_on_delta_humanized: string;
+  changed_on?: string;
+  changed_by: {
+    first_name: string;
+    last_name: string;
+    id: number;
+  } | null;
+  dashboards: Array<{
+    id: number;
+    dashboard_title: string;
+    url: string;
+  }>;
+}
 
 jest.mock('@superset-ui/core/components/Table', () => {
   const actual = jest.requireActual('@superset-ui/core/components/Table');
@@ -38,20 +67,22 @@ jest.mock('@superset-ui/core/components/Table', () => {
   let latestPaginationPageSize: number | undefined;
   let latestPaginationCurrent: number | undefined;
   let latestPaginationTotal: number | undefined;
-  let latestOnChangeHandler:
-    | ((pagination: { current: number; pageSize?: number }) => void)
-    | null = null;
+  let latestOnChangeHandler: OnChangeFunction<Chart> | null = null;
 
   const MockTable = <RecordType extends object>({
     pagination,
     onChange,
     ...rest
   }: TableProps<RecordType>) => {
-    latestPaginationPageSize = pagination?.pageSize;
-    latestPaginationCurrent = pagination?.current;
-    latestPaginationTotal = pagination?.total;
-    latestPaginationHandler = pagination?.onChange;
-    latestOnChangeHandler = onChange;
+    if (pagination && typeof pagination !== 'boolean') {
+      latestPaginationPageSize = pagination.pageSize;
+      latestPaginationCurrent = pagination.current;
+      latestPaginationTotal = pagination.total;
+      latestPaginationHandler = pagination.onChange || null;
+    }
+    // Cast to Chart type since we know DatasetUsageTab uses Chart
+    latestOnChangeHandler =
+      (onChange as OnChangeFunction<Chart> | undefined) || null;
 
     return (
       <ActualTable pagination={pagination} onChange={onChange} {...rest} />
@@ -496,10 +527,10 @@ test('displays correct pagination and navigates between pages', async () => {
     totalCount: 30,
   });
 
-  // Page 1: Verify UI shows page 1 is active (using aria-current for robustness)
+  // Page 1: Verify UI shows page 1 is active (using Ant Design active class)
   await waitFor(() => {
     const page1Item = screen.getByRole('listitem', { name: '1' });
-    expect(page1Item).toHaveAttribute('aria-current', 'page');
+    expect(page1Item).toHaveClass('ant-pagination-item-active');
   });
 
   // Soft assertion: verify component passes correct props to Table
@@ -511,8 +542,8 @@ test('displays correct pagination and navigates between pages', async () => {
   expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
 
   // User clicks page 2 (using userEvent for realistic interaction)
-  const page2Link = screen.getByRole('link', { name: '2' });
-  await userEvent.click(page2Link);
+  const page2Item = screen.getByRole('listitem', { name: '2' });
+  await userEvent.click(page2Item);
 
   // Data fetch called for page 2
   await waitFor(() =>
@@ -524,10 +555,10 @@ test('displays correct pagination and navigates between pages', async () => {
     ),
   );
 
-  // Verify UI reflects page 2 is now active (aria-current is more resilient than class names)
+  // Verify UI reflects page 2 is now active (using Ant Design active class)
   await waitFor(() => {
     const page2Item = screen.getByRole('listitem', { name: '2' });
-    expect(page2Item).toHaveAttribute('aria-current', 'page');
+    expect(page2Item).toHaveClass('ant-pagination-item-active');
   });
 
   // Soft assertion: Table still receives correct total (catches the bug!)
@@ -555,10 +586,10 @@ test('maintains pagination state across multiple page changes', async () => {
     totalCount: 60,
   });
 
-  // Verify initial state (page 1) using aria-current
+  // Verify initial state (page 1) using Ant Design active class
   await waitFor(() => {
     const page1Item = screen.getByRole('listitem', { name: '1' });
-    expect(page1Item).toHaveAttribute('aria-current', 'page');
+    expect(page1Item).toHaveClass('ant-pagination-item-active');
   });
 
   // Soft assertion: initial props are correct
@@ -566,7 +597,7 @@ test('maintains pagination state across multiple page changes', async () => {
   expect(tableMock.__getLatestPaginationTotal()).toBe(60);
 
   // User navigates to page 2
-  await userEvent.click(screen.getByRole('link', { name: '2' }));
+  await userEvent.click(screen.getByRole('listitem', { name: '2' }));
 
   await waitFor(() => {
     expect(mockOnFetchCharts).toHaveBeenCalledWith(
@@ -576,7 +607,7 @@ test('maintains pagination state across multiple page changes', async () => {
       expect.any(String),
     );
     const page2Item = screen.getByRole('listitem', { name: '2' });
-    expect(page2Item).toHaveAttribute('aria-current', 'page');
+    expect(page2Item).toHaveClass('ant-pagination-item-active');
   });
 
   // Soft assertion: props update correctly after navigation
@@ -586,7 +617,7 @@ test('maintains pagination state across multiple page changes', async () => {
   expect(tableMock.__getLatestPaginationTotal()).toBe(60);
 
   // User navigates to page 3
-  await userEvent.click(screen.getByRole('link', { name: '3' }));
+  await userEvent.click(screen.getByRole('listitem', { name: '3' }));
 
   await waitFor(() => {
     expect(mockOnFetchCharts).toHaveBeenCalledWith(
@@ -596,7 +627,7 @@ test('maintains pagination state across multiple page changes', async () => {
       expect.any(String),
     );
     const page3Item = screen.getByRole('listitem', { name: '3' });
-    expect(page3Item).toHaveAttribute('aria-current', 'page');
+    expect(page3Item).toHaveClass('ant-pagination-item-active');
   });
 
   // Soft assertion: total remains consistent across all navigations
@@ -624,9 +655,11 @@ test('handles total count below one page (no pagination needed)', async () => {
     totalCount: 5,
   });
 
-  // Pagination should not show page 2 link since only 1 page exists
+  // Pagination should not show page 2 item since only 1 page exists
   await waitFor(() => {
-    expect(screen.queryByRole('link', { name: '2' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('listitem', { name: '2' }),
+    ).not.toBeInTheDocument();
   });
 
   // Table receives correct props
@@ -654,7 +687,9 @@ test('handles server returning fewer rows than page size', async () => {
 
   // Only page 1 should exist
   await waitFor(() => {
-    expect(screen.queryByRole('link', { name: '2' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('listitem', { name: '2' }),
+    ).not.toBeInTheDocument();
   });
 
   // Table receives correct total (not data.length!)
