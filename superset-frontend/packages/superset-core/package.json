@@ -19,7 +19,7 @@
     "@types/react": "^17.0.83",
     "install": "^0.13.0",
     "npm": "^11.1.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "antd": "^5.24.9",
