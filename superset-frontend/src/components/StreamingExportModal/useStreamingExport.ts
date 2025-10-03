@@ -202,6 +202,48 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         filename,
       });
 
+      // Start polling for progress using filename as export ID
+      const pollInterval = setInterval(async () => {
+        try {
+          const progressUrl = `/api/v1/chart/export/progress/${encodeURIComponent(
+            filename || `export.${exportType}`,
+          )}`;
+          console.log('📊 POLLING PROGRESS:', progressUrl);
+
+          const progressResponse = await SupersetClient.get({
+            endpoint: progressUrl,
+          });
+
+          if (progressResponse.json) {
+            const serverProgress = progressResponse.json;
+            console.log('📈 SERVER PROGRESS:', serverProgress);
+
+            // Update progress from server response
+            updateProgress({
+              rowsProcessed: serverProgress.rows_processed || 0,
+              totalRows: serverProgress.total_rows || expectedRows,
+              totalSize: serverProgress.bytes_processed || 0,
+              speed: serverProgress.speed_rows_per_sec || 0,
+              mbPerSecond: serverProgress.speed_mb_per_sec || 0,
+              elapsedTime: serverProgress.elapsed_time || 0,
+              status: serverProgress.status || 'streaming',
+            });
+
+            // Stop polling if completed or error
+            if (
+              serverProgress.status === 'completed' ||
+              serverProgress.status === 'error'
+            ) {
+              console.log('✅ POLLING STOPPED: Export finished');
+              clearInterval(pollInterval);
+            }
+          }
+        } catch (pollError) {
+          // Silently ignore polling errors - the main stream will handle failures
+          console.warn('⚠️ Progress polling error (non-critical):', pollError);
+        }
+      }, 500); // Poll every 500ms as requested
+
       try {
         // Initialize SupersetClient to ensure authentication and get CSRF token
         await SupersetClient.init();
@@ -216,6 +258,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           },
           body: new URLSearchParams({
             form_data: JSON.stringify(payload),
+            filename: filename || `export.${exportType}`, // Pass filename to backend
           }),
           signal: abortControllerRef.current.signal,
           credentials: 'same-origin',
@@ -242,32 +285,10 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const reader = response.body.getReader();
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
-        let actualRowCount = 0;
-        let accumulatedText = '';
         let chunkCount = 0;
 
-        // More frequent progress updates for smoother UI
-        const progressInterval = setInterval(() => {
-          const now = Date.now();
-          const elapsedTime = (now - startTimeRef.current) / 1000;
-
-          // Always use the enhanced progress calculation with actual rows when available
-          const progressData = estimateProgressFromSize(
-            receivedLength,
-            elapsedTime,
-            actualRowCount,
-          );
-
-          // 🔍 DEBUG: Log interval-based progress updates
-          console.log('⏱️ FRONTEND INTERVAL UPDATE:', {
-            receivedLength,
-            actualRowCount,
-            elapsedTime: elapsedTime.toFixed(1),
-            progressData,
-          });
-
-          updateProgress(progressData);
-        }, 200); // Update every 200ms for smoother progress
+        // Note: We rely on the polling interval (pollInterval) for progress updates
+        // No need for a separate progressInterval since the server tracks actual progress
 
         try {
           // Read the streaming response
@@ -293,8 +314,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
             chunkCount++;
             chunks.push(value);
-            const oldReceivedLength = receivedLength;
-            const oldRowCount = actualRowCount;
             receivedLength += value.length;
 
             console.log('📊 CHUNK RECEIVED:', {
@@ -302,66 +321,9 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
               chunkSize: value.length,
               totalReceived: receivedLength,
             });
-
-            // Convert chunk to text and count rows in real-time
-            try {
-              const chunkText = new TextDecoder().decode(value, {
-                stream: true,
-              });
-              accumulatedText += chunkText;
-
-              // Count complete lines (rows) in accumulated text
-              const lines = accumulatedText.split('\n');
-
-              // Keep the last incomplete line for next iteration
-              if (lines.length > 1) {
-                accumulatedText = lines[lines.length - 1]; // Keep incomplete line
-
-                // Count completed lines (subtract 1 for header if this is first chunk)
-                const completedLines = lines.length - 1;
-                if (actualRowCount === 0 && completedLines > 0) {
-                  // First chunk - subtract 1 for header row
-                  actualRowCount = completedLines - 1;
-                } else {
-                  // Subsequent chunks - add all completed lines
-                  actualRowCount += completedLines;
-                }
-              }
-
-              // 🔍 DEBUG: Log chunk processing and update progress immediately
-              if (
-                actualRowCount !== oldRowCount ||
-                receivedLength !== oldReceivedLength
-              ) {
-                console.log('📦 FRONTEND CHUNK PROCESSED:', {
-                  chunkSize: value.length,
-                  totalBytes: receivedLength,
-                  newRows: actualRowCount - oldRowCount,
-                  totalRows: actualRowCount,
-                  linesInChunk: lines.length - 1,
-                  chunkTextPreview: `${chunkText.substring(0, 100)}...`,
-                });
-
-                // Immediately update progress with actual row count from chunk
-                const now = Date.now();
-                const elapsedTime = (now - startTimeRef.current) / 1000;
-                const progressData = estimateProgressFromSize(
-                  receivedLength,
-                  elapsedTime,
-                  actualRowCount,
-                );
-                updateProgress(progressData);
-              }
-            } catch (decodeError) {
-              // If text decoding fails, fall back to byte-based estimation
-              console.warn(
-                '❌ Failed to decode chunk for row counting:',
-                decodeError,
-              );
-            }
           }
 
-          clearInterval(progressInterval);
+          clearInterval(pollInterval); // Stop polling when stream completes
 
           // Create blob from chunks
           const completeData = new Uint8Array(receivedLength);
@@ -379,48 +341,8 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           const blob = new Blob([completeData], { type: mimeType });
           const downloadUrl = URL.createObjectURL(blob);
 
-          const finalElapsedTime = (Date.now() - startTimeRef.current) / 1000;
-
-          // Try to get accurate final count from server headers first
-          const headerProgress = parseProgressFromHeaders(
-            response.headers,
-            finalElapsedTime,
-          );
-
-          let finalProgress;
-          if (headerProgress && headerProgress.rowsProcessed > 0) {
-            // Use server-provided count if available
-            finalProgress = headerProgress;
-          } else {
-            // Use the real-time counted rows if available, otherwise parse final data
-            let finalRowCount = actualRowCount;
-
-            if (finalRowCount === 0) {
-              // Fallback: parse the complete data for final count
-              try {
-                const text = new TextDecoder().decode(completeData);
-                const lines = text.split(/\r?\n/);
-                // Subtract 1 for header row, filter out empty lines
-                finalRowCount =
-                  lines.filter(line => line.trim().length > 0).length - 1;
-                finalRowCount = Math.max(0, finalRowCount);
-              } catch (e) {
-                // Final fallback to size-based estimation
-                finalRowCount = Math.floor(receivedLength / 200);
-              }
-            }
-
-            finalProgress = {
-              rowsProcessed: finalRowCount,
-              totalSize: receivedLength,
-              speed: finalRowCount / finalElapsedTime,
-              mbPerSecond: receivedLength / (1024 * 1024) / finalElapsedTime,
-              elapsedTime: finalElapsedTime,
-            };
-          }
-
+          // Mark as completed - final progress will come from the last poll
           updateProgress({
-            ...finalProgress,
             status: 'completed',
             downloadUrl,
             filename: filename || `export.${exportType}`,
@@ -428,7 +350,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
           options.onComplete?.(downloadUrl, filename || `export.${exportType}`);
         } catch (streamError) {
-          clearInterval(progressInterval);
+          clearInterval(pollInterval); // Stop polling on error
           throw streamError;
         }
       } catch (error) {

@@ -21,11 +21,14 @@ from __future__ import annotations
 
 import logging
 import time
+import uuid
 from datetime import datetime
 from typing import Any, Generator, TYPE_CHECKING
 
 from flask import current_app as app, Response
 from werkzeug.datastructures import Headers
+
+from superset.views.streaming_progress import progress_tracker
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -107,6 +110,14 @@ def create_streaming_csv_response(
     Returns:
         Flask Response configured for streaming CSV
     """
+    # Generate filename first if not provided
+    if filename is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"superset_streaming_{timestamp}.csv"
+
+    # Use filename as export ID for progress tracking (frontend knows this)
+    export_id = filename
+
     # Capture the Flask app instance in the current context
     current_app = app._get_current_object()
 
@@ -120,8 +131,24 @@ def create_streaming_csv_response(
 
             try:
                 logger.info("🚀 STREAMING CSV: Starting streaming CSV generation")
+                logger.info("📊 STREAMING CSV: Export ID: %s", export_id)
                 logger.info(
                     "📊 STREAMING CSV: Processing query with estimated large result set"
+                )
+
+                # Estimate total rows for progress tracking
+                # TODO: Get actual row count from frontend instead of hardcoding
+                # For now, hardcoded to 148795 for testing
+                estimated_rows = 148795
+
+                logger.info(
+                    "📊 STREAMING CSV: Using hardcoded total_rows=%d for progress tracking",
+                    estimated_rows,
+                )
+
+                # Initialize progress tracker
+                progress_tracker.create_export(
+                    export_id=export_id, total_rows=estimated_rows
                 )
 
                 # Get the database connection and execute raw SQL query directly
@@ -195,7 +222,7 @@ def create_streaming_csv_response(
                             if ENABLE_SLOW_STREAMING_TEST:
                                 # Testing mode: 10k rows per chunk with 0.5s delay
                                 chunk_size = 10000
-                                delay_between_chunks = 3.5
+                                delay_between_chunks = 0.5
                                 logger.info(
                                     "🧪 TESTING MODE: Using 10k row chunks with 0.5s delays"
                                 )
@@ -225,6 +252,13 @@ def create_streaming_csv_response(
                                     total_bytes += row_bytes
                                     yield csv_line
                                     row_count += 1
+
+                                # Update progress tracker after each chunk
+                                progress_tracker.update_progress(
+                                    export_id=export_id,
+                                    rows_processed=row_count,
+                                    bytes_processed=total_bytes,
+                                )
 
                                 # Performance logging every 10k rows or 5 seconds
                                 current_time = time.time()
@@ -284,6 +318,9 @@ def create_streaming_csv_response(
                                 chunk_size,
                             )
 
+                            # Mark export as completed in progress tracker
+                            progress_tracker.complete_export(export_id)
+
                         finally:
                             connection.close()
 
@@ -293,15 +330,13 @@ def create_streaming_csv_response(
 
                 logger.error("Traceback: %s", traceback.format_exc())
 
+                # Mark export as failed in progress tracker
+                progress_tracker.fail_export(export_id, str(e))
+
                 # Yield error info and fallback data
                 yield f"# Error occurred: {str(e)}\n"
                 yield "error,message\n"
                 yield f"CSV Export Error,{str(e)}\n"
-
-    # Generate filename
-    if filename is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"superset_streaming_{timestamp}.csv"
 
     # Get encoding from the captured app
     encoding = current_app.config.get("CSV_EXPORT", {}).get("encoding", "utf-8")

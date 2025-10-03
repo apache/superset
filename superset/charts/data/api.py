@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "data_from_cache"}
+    include_route_methods = {"get_data", "data", "data_from_cache", "export_progress"}
 
     @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
@@ -257,8 +257,14 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
+
+        # Extract filename from request if provided (for streaming CSV)
+        filename = request.form.get("filename")
+        if filename:
+            logger.info("📁 FRONTEND PROVIDED FILENAME: %s", filename)
+
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
+            command, form_data=form_data, datasource=query_context.datasource, filename=filename
         )
 
     @expose("/data/<cache_key>", methods=("GET",))
@@ -319,6 +325,109 @@ class ChartDataRestApi(ChartRestApi):
 
         return self._get_data_response(command, True)
 
+    @expose("/export/progress/<path:export_id>", methods=("GET",))
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".export_progress",
+        log_to_statsd=False,
+    )
+    def export_progress(self, export_id: str) -> Response:
+        """
+        Poll progress for a streaming CSV export.
+        ---
+        get:
+          summary: Get streaming export progress
+          description: >-
+            Returns the current progress of a streaming CSV export.
+            The export_id is the filename being exported.
+            This endpoint is polled by the frontend every 500ms.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: export_id
+            description: The export ID (filename)
+          responses:
+            200:
+              description: Export progress
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      export_id:
+                        type: string
+                      status:
+                        type: string
+                        enum: [streaming, completed, error]
+                      rows_processed:
+                        type: integer
+                      total_rows:
+                        type: integer
+                      bytes_processed:
+                        type: integer
+                      elapsed_time:
+                        type: number
+                      percentage:
+                        type: number
+                      speed_rows_per_sec:
+                        type: number
+                      speed_mb_per_sec:
+                        type: number
+                      error_message:
+                        type: string
+            404:
+              $ref: '#/components/responses/404'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        logger.info("🔍 POLLING API CALLED: export_id=%s", export_id)
+
+        from superset.views.streaming_progress import progress_tracker
+
+        logger.info("📊 POLLING API: Getting progress for export_id=%s", export_id)
+
+        # Get progress from tracker
+        progress = progress_tracker.get_progress(export_id)
+
+        logger.info("📈 POLLING API: Progress result=%s", progress)
+
+        if progress is None:
+            logger.warning(
+                "⚠️ POLLING API: Export not found: export_id=%s", export_id
+            )
+            # Return a response indicating export not started yet or already completed
+            return self.response(
+                200,
+                export_id=export_id,
+                status="not_found",
+                rows_processed=0,
+                total_rows=None,
+                bytes_processed=0,
+                elapsed_time=0,
+                percentage=None,
+                speed_rows_per_sec=0,
+                speed_mb_per_sec=0,
+                error_message="Export not found or not started yet",
+            )
+
+        logger.info(
+            "✅ POLLING API: Returning progress: status=%s, rows=%s, bytes=%s",
+            progress.get("status"),
+            progress.get("rows_processed"),
+            progress.get("bytes_processed"),
+        )
+
+        # Cleanup old exports periodically
+        progress_tracker.cleanup_old_exports()
+
+        return self.response(200, **progress)
+
     def _run_async(
         self, form_data: dict[str, Any], command: ChartDataCommand
     ) -> Response:
@@ -348,6 +457,7 @@ class ChartDataRestApi(ChartRestApi):
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
+        filename: str | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -367,6 +477,10 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
+
+            # Check if we should use streaming for large datasets
+            if is_csv_format and self._should_use_streaming(result, form_data):
+                return self._create_streaming_csv_response(result, form_data, filename=filename)
 
             if len(result["queries"]) == 1:
                 # return single query results
@@ -417,6 +531,7 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
+        filename: str | None = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -425,7 +540,7 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self._send_chart_response(result, form_data, datasource)
+        return self._send_chart_response(result, form_data, datasource, filename)
 
     # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
@@ -462,3 +577,47 @@ class ChartDataRestApi(ChartRestApi):
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
+
+    def _should_use_streaming(
+        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None
+    ) -> bool:
+        """Determine if streaming should be used for this response."""
+        from superset.views.streaming import should_use_streaming_response
+
+        query_context = result["query_context"]
+        result_format = query_context.result_format
+
+        return should_use_streaming_response(query_context, result_format)
+
+    def _create_streaming_csv_response(
+        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None, filename: str | None = None
+    ) -> Response:
+        """Create a streaming CSV response for large datasets."""
+        from datetime import datetime
+
+        from superset.views.streaming import create_streaming_csv_response
+
+        query_context = result["query_context"]
+
+        # Use filename from frontend if provided, otherwise generate one
+        if not filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            chart_name = "export"
+
+            if form_data and form_data.get("slice_name"):
+                chart_name = form_data["slice_name"]
+            elif form_data and form_data.get("viz_type"):
+                chart_name = form_data["viz_type"]
+
+            # Sanitize chart name for filename
+            safe_chart_name = "".join(
+                c for c in chart_name if c.isalnum() or c in ("-", "_")
+            )
+            filename = f"superset_{safe_chart_name}_{timestamp}.csv"
+
+        logger.info("Creating streaming CSV response: %s (from frontend: %s)", filename, filename is not None)
+
+        return create_streaming_csv_response(
+            query_context=query_context,
+            filename=filename,
+        )
