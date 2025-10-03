@@ -28,6 +28,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
+  StreamingExportModal,
+  useStreamingExport,
+} from 'src/components/StreamingExportModal';
+import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
@@ -175,6 +179,20 @@ const Chart = props => {
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
   const [width, setWidth] = useState(props.width);
+
+  // Streaming export state
+  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
+  const { progress, isExporting, startExport, cancelExport, resetExport } =
+    useStreamingExport({
+      onComplete: (downloadUrl, filename) => {
+        boundActionCreators.addSuccessToast(
+          t('Export completed successfully: %s', filename),
+        );
+      },
+      onError: error => {
+        boundActionCreators.addDangerToast(t('Export failed: %s', error));
+      },
+    });
   const history = useHistory();
   const resize = useCallback(
     debounce(() => {
@@ -378,12 +396,28 @@ const Chart = props => {
         slice_id: slice.slice_id,
         is_cached: isCached,
       });
+
+      const exportFormData = isFullCSV
+        ? { ...formData, row_limit: maxRows }
+        : formData;
+      const resultType = isPivot ? 'post_processed' : 'full';
+
+      // Handle streaming CSV exports for both regular and full data exports
+      const shouldUseStreaming = format === 'csv' && !isPivot;
+
       exportChart({
-        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
-        resultType: isPivot ? 'post_processed' : 'full',
+        formData: exportFormData,
+        resultType,
         resultFormat: format,
         force: true,
         ownState: dataMask[props.id]?.ownState,
+        onStartStreamingExport: shouldUseStreaming
+          ? exportParams => {
+              setIsStreamingModalVisible(true);
+              resetExport();
+              startExport(exportParams);
+            }
+          : null,
       });
     },
     [
@@ -393,6 +427,8 @@ const Chart = props => {
       props.maxRows,
       dataMask[props.id]?.ownState,
       boundActionCreators.logEvent,
+      startExport,
+      resetExport,
     ],
   );
 
@@ -544,6 +580,25 @@ const Chart = props => {
           emitCrossFilters={emitCrossFilters}
         />
       </ChartWrapper>
+
+      {/* Streaming Export Modal */}
+      <StreamingExportModal
+        visible={isStreamingModalVisible}
+        onCancel={() => {
+          if (isExporting) {
+            cancelExport();
+          }
+          setIsStreamingModalVisible(false);
+        }}
+        onRetry={() => {
+          resetExport();
+          // Note: Retry would need to store the last export parameters
+          // For now, just close the modal and let user retry manually
+          setIsStreamingModalVisible(false);
+        }}
+        progress={progress}
+        exportType="csv"
+      />
     </SliceContainer>
   );
 };

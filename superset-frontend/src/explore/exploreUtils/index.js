@@ -248,6 +248,7 @@ export const exportChart = async ({
   resultType = 'full',
   force = false,
   ownState = {},
+  onStartStreamingExport = null,
 }) => {
   let url;
   let payload;
@@ -272,7 +273,55 @@ export const exportChart = async ({
     });
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  // Check if this should use streaming export for CSV
+  const shouldUseStreaming =
+    resultFormat === 'csv' && onStartStreamingExport && !useLegacyApi;
+
+  if (shouldUseStreaming) {
+    // Use streaming export instead of opening new tab
+    const timestamp = new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[-:]/g, '')
+      .replace('T', '_');
+    const chartName = formData.slice_name || formData.viz_type || 'chart';
+    const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `superset_${safeChartName}_${timestamp}.csv`;
+
+    // Extract expected row count for progress calculation
+    // Try to get row limit from form data for accurate progress tracking
+    let expectedRows;
+    if (formData.row_limit && formData.row_limit > 0) {
+      expectedRows = formData.row_limit;
+    } else if (
+      payload.queries &&
+      payload.queries[0] &&
+      payload.queries[0].row_limit
+    ) {
+      expectedRows = payload.queries[0].row_limit;
+    } else {
+      // Default fallback - estimate based on common chart sizes
+      expectedRows = 10000; // Conservative default for progress calculation
+    }
+
+    console.log(
+      '🎯 EXPORT CHART: Setting expectedRows =',
+      expectedRows,
+      'from formData.row_limit =',
+      formData.row_limit,
+    );
+
+    onStartStreamingExport({
+      url,
+      payload,
+      filename,
+      exportType: 'csv',
+      expectedRows, // 🎯 This was missing!
+    });
+  } else {
+    // Fallback to original behavior for non-streaming exports
+    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  }
 };
 
 export const exploreChart = (formData, requestParams) => {
