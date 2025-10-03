@@ -208,7 +208,7 @@ const processCloneForVisibility = (clone: HTMLElement) => {
 const preserveCanvasContent = (original: Element, clone: Element) => {
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
-  
+
   for (let i = 0; i < originalCanvases.length; i++) {
     if (originalCanvases[i] && clonedCanvases[i]) {
       const originalCanvas = originalCanvases[i] as HTMLCanvasElement;
