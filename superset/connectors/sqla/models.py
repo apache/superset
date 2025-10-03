@@ -1467,7 +1467,7 @@ class SqlaTable(
 
             if not processed:
                 try:
-                    expression = self._process_sql_expression(
+                    expression = self._process_select_expression(
                         expression=expression,
                         database_id=self.database_id,
                         engine=self.database.backend,
@@ -1502,7 +1502,7 @@ class SqlaTable(
         """
         label = utils.get_column_name(col)
         try:
-            expression = self._process_sql_expression(
+            expression = self._process_select_expression(
                 expression=col["sqlExpression"],
                 database_id=self.database_id,
                 engine=self.database.backend,
