@@ -280,11 +280,14 @@ def test_get_chart_dataframe_with_hierarchical_columns(monkeypatch: pytest.Monke
     assert markdown_str.strip() == expected_markdown_str.strip()
 
 
- def test_get_chart_dataframe_preserves_na_string_values(monkeypatch: pytest.MonkeyPatch):
-     """
-     Test that get_chart_dataframe currently preserves rows containing "NA" string values.
-     This test verifies the existing behavior before implementing custom NA handling.
-     """
+def test_get_chart_dataframe_preserves_na_string_values(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Test that get_chart_dataframe currently preserves rows containing "NA"
+    string values.
+    This test verifies the existing behavior before implementing custom NA handling.
+    """
     monkeypatch.setattr(
         csv, "get_chart_csv_data", fake_get_chart_csv_data_with_na_values
     )
