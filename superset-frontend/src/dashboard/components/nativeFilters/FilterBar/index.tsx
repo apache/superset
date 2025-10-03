@@ -289,7 +289,9 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
-    filtersInScope.filter(isNativeFilter).forEach(filter => {
+    // Clear all native filters, not just those in scope
+    // This ensures dependent filters are cleared even if parent was cleared first
+    nativeFilterValues.forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
         setDataMaskSelected(draft => {
@@ -302,7 +304,12 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     });
     setClearAllTriggers(newClearAllTriggers);
-  }, [dataMaskSelected, filtersInScope, setDataMaskSelected, clearAllTriggers]);
+  }, [
+    dataMaskSelected,
+    nativeFilterValues,
+    setDataMaskSelected,
+    clearAllTriggers,
+  ]);
 
   const handleClearAllComplete = useCallback((filterId: string) => {
     setClearAllTriggers(prev => {
