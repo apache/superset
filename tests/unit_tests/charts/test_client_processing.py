@@ -2657,8 +2657,10 @@ def test_pivot_multi_level_index():
 
 def test_apply_client_processing_csv_format_preserves_na_strings():
     """
-    Test that apply_client_processing preserves "NA" strings when configured to do so.
-    This ensures that scheduled reports don't convert "NA" to null values unexpectedly.
+    Test that apply_client_processing preserves "NA" strings
+    when REPORTS_CSV_NA_NAMES is set to empty list.
+    This ensures that scheduled reports can be configured to
+    preserve strings like "NA" as literal values.
     """
     from unittest.mock import patch
 
@@ -2688,14 +2690,14 @@ def test_apply_client_processing_csv_format_preserves_na_strings():
         "result_type": "results",
     }
 
-    # Test with REPORTS_CSV_NA_NAMES set to None (disable NA conversion)
+    # Test with REPORTS_CSV_NA_NAMES set to empty list (disable NA conversion)
     with patch(
         "superset.charts.client_processing.current_app.config.get"
     ) as mock_config:
         # Only mock the specific config key we're testing
         def mock_get(key, default=None):
             if key == "REPORTS_CSV_NA_NAMES":
-                return None
+                return []  # Empty list disables NA conversion
             return default
 
         mock_config.side_effect = mock_get
@@ -2762,3 +2764,61 @@ def test_apply_client_processing_csv_format_custom_na_values():
             "Jeff," in lines[1]
         )  # First data row should have empty status after "Jeff,"
         assert "Alice,OK" in lines[2]  # Second data row should preserve "OK"
+
+
+def test_apply_client_processing_csv_format_default_na_behavior():
+    """
+    Test that apply_client_processing uses default pandas NA behavior
+    when REPORTS_CSV_NA_NAMES is not configured.
+    This ensures backwards compatibility.
+    """
+    from unittest.mock import patch
+
+    # CSV data with "NA" string that should be converted to null in default behavior
+    csv_data = "first_name,last_name\nJeff,Smith\nAlice,NA"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["first_name", "last_name"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    # Test with REPORTS_CSV_NA_NAMES not configured (returns None from config.get)
+    with patch(
+        "superset.charts.client_processing.current_app.config.get"
+    ) as mock_config:
+        # Only mock the specific config key we're testing
+        def mock_get(key, default=None):
+            if key == "REPORTS_CSV_NA_NAMES":
+                return None  # Not configured - use default pandas behavior
+            return default
+
+        mock_config.side_effect = mock_get
+
+        processed_result = apply_client_processing(result, form_data)
+
+        # Verify the CSV data has "NA" converted to empty (default pandas behavior)
+        output_data = processed_result["queries"][0]["data"]
+        lines = output_data.strip().split("\n")
+        assert len(lines) >= 3  # header + 2 data rows
+        # The "NA" should be converted to empty by default pandas behavior
+        assert (
+            "Alice," in lines[2]
+        )  # Second data row should have empty last_name (NA converted to null)
