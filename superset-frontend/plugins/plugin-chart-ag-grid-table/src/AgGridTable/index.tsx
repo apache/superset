@@ -82,6 +82,7 @@ export interface AgGridTableProps {
   width: number;
   onColumnStateChange?: (state: any) => void;
   gridRef?: any;
+  savedAgGridState?: JsonObject;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -117,11 +118,13 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     showTotals,
     width,
     onColumnStateChange,
+    savedAgGridState,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const rowData = useMemo(() => data, [data]);
     const containerRef = useRef<HTMLDivElement>(null);
+    const lastCapturedStateRef = useRef<string | null>(null);
 
     const searchId = `search-${id}`;
     const gridInitialState: GridState = {
@@ -238,53 +241,62 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     );
 
     // AG Grid state change handlers that capture actual state
-    const handleGridStateChange = useCallback(() => {
-      if (onColumnStateChange && gridRef.current?.api) {
-        // Use a timeout to ensure AG Grid has updated its internal state
-        setTimeout(() => {
-          if (gridRef.current?.api) {
-            try {
-              const { api } = gridRef.current;
+    // Debounced to prevent excessive Redux updates during drag operations
+    const handleGridStateChange = useCallback(
+      debounce(() => {
+        if (onColumnStateChange && gridRef.current?.api) {
+          try {
+            const { api } = gridRef.current;
 
-              // Get column state (includes order, width, visibility, pinning and sorting)
-              const columnState = api.getColumnState
-                ? api.getColumnState()
-                : [];
+            // Get column state (includes order, width, visibility, pinning and sorting)
+            const columnState = api.getColumnState ? api.getColumnState() : [];
 
-              // Get filter model
-              const filterModel = api.getFilterModel
-                ? api.getFilterModel()
-                : {};
+            // Get filter model
+            const filterModel = api.getFilterModel ? api.getFilterModel() : {};
 
-              // Extract sort information from column state
-              const sortModel = columnState
-                .filter(col => col.sort)
-                .map(col => ({
-                  colId: col.colId,
-                  sort: col.sort,
-                  sortIndex: col.sortIndex || 0,
-                }))
-                .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
+            // Extract sort information from column state
+            const sortModel = columnState
+              .filter(col => col.sort)
+              .map(col => ({
+                colId: col.colId,
+                sort: col.sort,
+                sortIndex: col.sortIndex || 0,
+              }))
+              .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
+
+            const stateToSave = {
+              columnState,
+              sortModel,
+              filterModel,
+              timestamp: Date.now(),
+            };
+
+            // Create a hash of the state (excluding timestamp) to detect duplicates
+            const stateHash = JSON.stringify({
+              columnOrder: columnState.map(c => c.colId),
+              sorts: sortModel,
+              filters: filterModel,
+            });
+
+            // Only save if the state has actually changed
+            if (stateHash !== lastCapturedStateRef.current) {
+              lastCapturedStateRef.current = stateHash;
 
               // Call the parent handler with actual AG Grid state
-              onColumnStateChange({
-                columnState,
-                sortModel,
-                filterModel,
-                timestamp: Date.now(),
-              });
-            } catch (error) {
-              console.warn('Error capturing AG Grid state:', error);
-              // Fallback with basic state
-              onColumnStateChange({
-                timestamp: Date.now(),
-                hasChanges: true,
-              });
+              onColumnStateChange(stateToSave);
             }
+          } catch (error) {
+            console.warn('Error capturing AG Grid state:', error);
+            // Fallback with basic state
+            onColumnStateChange({
+              timestamp: Date.now(),
+              hasChanges: true,
+            });
           }
-        }, 0);
-      }
-    }, [onColumnStateChange]);
+        }
+      }, 500), // Wait 500ms after the last event before saving
+      [onColumnStateChange],
+    );
 
     useEffect(() => {
       if (
@@ -309,6 +321,26 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
+
+      // Restore saved AG Grid state from permalink if available
+      if (savedAgGridState && params.api) {
+        try {
+          // Restore column state (order, width, visibility, pinning, sorting)
+          if (savedAgGridState.columnState) {
+            params.api.applyColumnState?.({
+              state: savedAgGridState.columnState as any,
+              applyOrder: true,
+            });
+          }
+
+          // Restore filter model
+          if (savedAgGridState.filterModel) {
+            params.api.setFilterModel?.(savedAgGridState.filterModel);
+          }
+        } catch (error) {
+          console.warn('Error restoring AG Grid state:', error);
+        }
+      }
     };
 
     return (
@@ -365,13 +397,14 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCrossFilter}
-          onColumnMoved={handleGridStateChange}
+          onDragStopped={handleGridStateChange}
           onColumnResized={handleGridStateChange}
           onSortChanged={handleGridStateChange}
           onFilterChanged={handleGridStateChange}
           onColumnVisible={handleGridStateChange}
           onColumnPinned={handleGridStateChange}
           initialState={gridInitialState}
+          maintainColumnOrder
           suppressAggFuncInHeader
           enableCellTextSelection
           quickFilterText={serverPagination ? '' : quickFilterText}

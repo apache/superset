@@ -218,15 +218,82 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    // Apply column ordering from AG Grid state for CSV/Excel exports
+    // Note: In Superset, "columns" are dimensions and "metrics" are measures,
+    // but AG Grid treats them all as "columns" in the UI
+    let orderedColumns = columns;
+    let orderedMetrics = metrics;
+
+    if (
+      isDownloadQuery &&
+      ownState.columnOrder &&
+      Array.isArray(ownState.columnOrder)
+    ) {
+      const orderedCols: typeof columns = [];
+      const orderedMets: typeof metrics = [];
+
+      // Process each item in the desired order
+      ownState.columnOrder.forEach((colId: string) => {
+        // Try to find in columns first
+        const matchingCol = columns.find(col => {
+          if (typeof col === 'string') {
+            return col === colId;
+          }
+          return col?.sqlExpression === colId || col?.label === colId;
+        });
+
+        if (matchingCol && !orderedCols.includes(matchingCol)) {
+          orderedCols.push(matchingCol);
+          return;
+        }
+
+        // Try to find in metrics
+        const matchingMetric = metrics?.find(met => {
+          if (typeof met === 'string') {
+            return met === colId;
+          }
+          return getMetricLabel(met) === colId || met?.label === colId;
+        });
+
+        if (matchingMetric && !orderedMets.includes(matchingMetric)) {
+          orderedMets.push(matchingMetric);
+        }
+      });
+
+      // Add any remaining columns/metrics not in columnOrder (safety fallback)
+      columns.forEach(col => {
+        if (!orderedCols.includes(col)) {
+          orderedCols.push(col);
+        }
+      });
+
+      metrics?.forEach(met => {
+        if (!orderedMets.includes(met)) {
+          orderedMets.push(met);
+        }
+      });
+
+      orderedColumns = orderedCols;
+      orderedMetrics = orderedMets;
+
+      // TODO: Mixed column+metric ordering for CSV export
+      // Currently columns and metrics are reordered separately, but the backend
+      // query engine always returns columns before metrics in the result.
+      // To support arbitrary mixing (e.g., metric, column, metric), we need to:
+      // 1. Add backend post-processing to reorder the dataframe columns, OR
+      // 2. Reorder the data on the frontend before CSV conversion
+      // For now, columns will be in user order, then metrics in user order.
+    }
+
     let queryObject = {
       ...baseQueryObject,
-      columns,
+      columns: orderedColumns,
       extras,
       orderby:
         formData.server_pagination && sortByFromOwnState
           ? sortByFromOwnState
           : orderby,
-      metrics,
+      metrics: orderedMetrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
       ...moreProps,
@@ -290,6 +357,25 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           ],
         };
       }
+    }
+
+    // Apply AG Grid filters for CSV/Excel exports (from chart state)
+    // These are converted to standard Superset filter format in Chart.jsx
+    if (
+      isDownloadQuery &&
+      Array.isArray(ownState.agGridFilters) &&
+      ownState.agGridFilters.length > 0
+    ) {
+      const agGridQueryFilters = ownState.agGridFilters.map((filter: any) => ({
+        col: filter.subject,
+        op: filter.operator,
+        val: filter.comparator,
+      }));
+
+      queryObject = {
+        ...queryObject,
+        filters: [...(queryObject.filters || []), ...agGridQueryFilters],
+      };
     }
 
     // Now since row limit control is always visible even

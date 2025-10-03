@@ -83,6 +83,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     basicColorFormatters,
     width,
     onChartStateChange,
+    savedAgGridState,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -302,6 +303,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         showTotals={showTotals}
         width={width}
         onColumnStateChange={handleColumnStateChange}
+        savedAgGridState={savedAgGridState}
       />
     </StyledChartContainer>
   );
