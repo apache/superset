@@ -164,10 +164,8 @@ def create_streaming_csv_response(
                     if isinstance(datasource, SqlaTable):
                         datasource = session.merge(datasource)
 
-                    # Generate SQL query from query context
                     query_obj = query_context.queries[0]
 
-                    # Use the datasource to get the SQL query
                     sql_query = datasource.get_query_str(query_obj.to_dict())
 
                     query_start_time = time.time()
