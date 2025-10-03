@@ -1354,6 +1354,15 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# Values that should be treated as nulls for scheduled reports CSV processing.
+# By default, uses the same values as CSV uploads. Set to None to disable
+# automatic NA conversion (preserving original string values like "NA"),
+# or provide a custom list of values that should be treated as null.
+# Examples:
+# REPORTS_CSV_NA_NAMES = None  # Disable all automatic NA conversion
+# REPORTS_CSV_NA_NAMES = ["", "NULL", "null"]  # Only treat these as NA
+REPORTS_CSV_NA_NAMES = CSV_DEFAULT_NA_NAMES
+
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
 READ_CSV_CHUNK_SIZE = 1000

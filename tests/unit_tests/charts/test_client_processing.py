@@ -2653,3 +2653,112 @@ def test_pivot_multi_level_index():
 | ('Total (Sum)', '', '')           |            210 |            105 |              0 |
     """.strip()
     )
+
+
+def test_apply_client_processing_csv_format_preserves_na_strings():
+    """
+    Test that apply_client_processing preserves "NA" strings when configured to do so.
+    This ensures that scheduled reports don't convert "NA" to null values unexpectedly.
+    """
+    from unittest.mock import patch
+
+    # CSV data with "NA" string that should be preserved
+    csv_data = "first_name,last_name\nJeff,Smith\nAlice,NA"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["first_name", "last_name"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    # Test with REPORTS_CSV_NA_NAMES set to None (disable NA conversion)
+    with patch(
+        "superset.charts.client_processing.current_app.config.get"
+    ) as mock_config:
+        # Only mock the specific config key we're testing
+        def mock_get(key, default=None):
+            if key == "REPORTS_CSV_NA_NAMES":
+                return None
+            return default
+
+        mock_config.side_effect = mock_get
+
+        processed_result = apply_client_processing(result, form_data)
+
+        # Verify the CSV data still contains "NA" as string, not converted to null
+        output_data = processed_result["queries"][0]["data"]
+        assert "NA" in output_data
+        # The "NA" should be preserved in the output CSV
+        lines = output_data.strip().split("\n")
+        assert "Alice,NA" in lines[2]  # Second data row should preserve "NA"
+
+
+def test_apply_client_processing_csv_format_custom_na_values():
+    """
+    Test that apply_client_processing respects custom NA values configuration.
+    """
+    from unittest.mock import patch
+
+    csv_data = "name,status\nJeff,MISSING\nAlice,OK"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "status"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    # Test with custom NA values - only "MISSING" should be treated as NA
+    with patch(
+        "superset.charts.client_processing.current_app.config.get"
+    ) as mock_config:
+        # Only mock the specific config key we're testing
+        def mock_get(key, default=None):
+            if key == "REPORTS_CSV_NA_NAMES":
+                return ["MISSING"]
+            return default
+
+        mock_config.side_effect = mock_get
+
+        processed_result = apply_client_processing(result, form_data)
+
+        output_data = processed_result["queries"][0]["data"]
+        lines = output_data.strip().split("\n")
+        assert len(lines) >= 3  # header + 2 data rows
+        assert (
+            "Jeff," in lines[1]
+        )  # First data row should have empty status after "Jeff,"
+        assert "Alice,OK" in lines[2]  # Second data row should preserve "OK"

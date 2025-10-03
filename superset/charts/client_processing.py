@@ -30,6 +30,7 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
+from flask import current_app
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
@@ -340,7 +341,11 @@ def apply_client_processing(  # noqa: C901
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(data))
+            # Use custom NA values configuration for
+            # reports to avoid unwanted conversions
+            # This allows users to control which values should be treated as null/NA
+            na_values = current_app.config.get("REPORTS_CSV_NA_NAMES", None)
+            df = pd.read_csv(StringIO(data), keep_default_na=False, na_values=na_values)
 
         # convert all columns to verbose (label) name
         if datasource:
