@@ -28,8 +28,6 @@ import {
   Tooltip,
   XYChart,
   buildChartTheme,
-  type SeriesProps,
-  AxisScale,
 } from '@visx/xychart';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
@@ -134,14 +132,16 @@ const SparklineCell = ({
   const xAccessor = (d: { x: number; y: number }) => d.x;
   const yAccessor = (d: { x: number; y: number }) => d.y;
 
-  const chartSeriesMap: Record<
-    SparkType,
-    (props: SeriesProps<AxisScale, AxisScale, object>) => JSX.Element
-  > = {
+  type SparklineSeriesComponent =
+    | typeof LineSeries
+    | typeof BarSeries
+    | typeof AreaSeries;
+
+  const chartSeriesMap = {
     line: LineSeries,
     bar: BarSeries,
     area: AreaSeries,
-  };
+  } as const satisfies Record<SparkType, SparklineSeriesComponent>;
 
   const SeriesComponent = chartSeriesMap[sparkType] || LineSeries;
 
