@@ -203,7 +203,13 @@ describe('SuperChartCore', () => {
       );
 
       await waitFor(() => {
-        expect(container).toBeEmptyDOMElement();
+        // Should not render any chart content, only the antd App wrapper
+        expect(
+          container.querySelector('.test-component'),
+        ).not.toBeInTheDocument();
+        expect(
+          container.querySelector('[data-test="chart-container"]'),
+        ).not.toBeInTheDocument();
       });
     });
   });
