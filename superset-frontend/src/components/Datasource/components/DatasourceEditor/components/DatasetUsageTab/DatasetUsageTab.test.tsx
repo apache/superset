@@ -23,7 +23,9 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { TableProps } from '@superset-ui/core/components/Table';
 import DatasetUsageTab from '.';
 
 jest.mock('@superset-ui/core/components/Table', () => {
@@ -34,22 +36,22 @@ jest.mock('@superset-ui/core/components/Table', () => {
     | ((page: number, pageSize?: number) => void)
     | null = null;
   let latestPaginationPageSize: number | undefined;
+  let latestPaginationCurrent: number | undefined;
+  let latestPaginationTotal: number | undefined;
   let latestOnChangeHandler:
     | ((pagination: { current: number; pageSize?: number }) => void)
     | null = null;
 
-  const MockTable = ({ pagination, onChange, ...rest }: any) => {
-    if (pagination?.pageSize) {
-      latestPaginationPageSize = pagination.pageSize;
-    }
-
-    if (typeof pagination?.onChange === 'function') {
-      latestPaginationHandler = pagination.onChange;
-    }
-
-    if (typeof onChange === 'function') {
-      latestOnChangeHandler = onChange;
-    }
+  const MockTable = <RecordType extends object>({
+    pagination,
+    onChange,
+    ...rest
+  }: TableProps<RecordType>) => {
+    latestPaginationPageSize = pagination?.pageSize;
+    latestPaginationCurrent = pagination?.current;
+    latestPaginationTotal = pagination?.total;
+    latestPaginationHandler = pagination?.onChange;
+    latestOnChangeHandler = onChange;
 
     return (
       <ActualTable pagination={pagination} onChange={onChange} {...rest} />
@@ -62,10 +64,14 @@ jest.mock('@superset-ui/core/components/Table', () => {
     default: MockTable,
     __getLatestPaginationHandler: () => latestPaginationHandler,
     __getLatestPaginationPageSize: () => latestPaginationPageSize,
+    __getLatestPaginationCurrent: () => latestPaginationCurrent,
+    __getLatestPaginationTotal: () => latestPaginationTotal,
     __getLatestOnChangeHandler: () => latestOnChangeHandler,
     __resetPaginationHandler: () => {
       latestPaginationHandler = null;
       latestPaginationPageSize = undefined;
+      latestPaginationCurrent = undefined;
+      latestPaginationTotal = undefined;
       latestOnChangeHandler = null;
     },
   };
@@ -76,6 +82,8 @@ const tableMock = jest.requireMock('@superset-ui/core/components/Table') as {
     | ((page: number, pageSize?: number) => void)
     | null;
   __getLatestPaginationPageSize: () => number | undefined;
+  __getLatestPaginationCurrent: () => number | undefined;
+  __getLatestPaginationTotal: () => number | undefined;
   __resetPaginationHandler: () => void;
   __getLatestOnChangeHandler: () =>
     | ((pagination: { current: number; pageSize?: number }) => void)
@@ -470,4 +478,188 @@ test('scrolls table to top after pagination with delay', async () => {
     top: 0,
     behavior: 'smooth',
   });
+});
+
+test('displays correct pagination and navigates between pages', async () => {
+  const manyCharts = Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 30,
+  });
+
+  // Page 1: Verify UI shows page 1 is active (using aria-current for robustness)
+  await waitFor(() => {
+    const page1Item = screen.getByRole('listitem', { name: '1' });
+    expect(page1Item).toHaveAttribute('aria-current', 'page');
+  });
+
+  // Soft assertion: verify component passes correct props to Table
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(1);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(30);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
+
+  // User clicks page 2 (using userEvent for realistic interaction)
+  const page2Link = screen.getByRole('link', { name: '2' });
+  await userEvent.click(page2Link);
+
+  // Data fetch called for page 2
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
+  // Verify UI reflects page 2 is now active (aria-current is more resilient than class names)
+  await waitFor(() => {
+    const page2Item = screen.getByRole('listitem', { name: '2' });
+    expect(page2Item).toHaveAttribute('aria-current', 'page');
+  });
+
+  // Soft assertion: Table still receives correct total (catches the bug!)
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(2);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(30);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
+});
+
+test('maintains pagination state across multiple page changes', async () => {
+  const manyCharts = Array.from({ length: 60 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 60,
+  });
+
+  // Verify initial state (page 1) using aria-current
+  await waitFor(() => {
+    const page1Item = screen.getByRole('listitem', { name: '1' });
+    expect(page1Item).toHaveAttribute('aria-current', 'page');
+  });
+
+  // Soft assertion: initial props are correct
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(60);
+
+  // User navigates to page 2
+  await userEvent.click(screen.getByRole('link', { name: '2' }));
+
+  await waitFor(() => {
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    );
+    const page2Item = screen.getByRole('listitem', { name: '2' });
+    expect(page2Item).toHaveAttribute('aria-current', 'page');
+  });
+
+  // Soft assertion: props update correctly after navigation
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(2);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(60);
+
+  // User navigates to page 3
+  await userEvent.click(screen.getByRole('link', { name: '3' }));
+
+  await waitFor(() => {
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      3,
+      25,
+      expect.any(String),
+      expect.any(String),
+    );
+    const page3Item = screen.getByRole('listitem', { name: '3' });
+    expect(page3Item).toHaveAttribute('aria-current', 'page');
+  });
+
+  // Soft assertion: total remains consistent across all navigations
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(3);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(60);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
+});
+
+test('handles total count below one page (no pagination needed)', async () => {
+  const fewCharts = Array.from({ length: 5 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  setupTest({
+    charts: fewCharts,
+    totalCount: 5,
+  });
+
+  // Pagination should not show page 2 link since only 1 page exists
+  await waitFor(() => {
+    expect(screen.queryByRole('link', { name: '2' })).not.toBeInTheDocument();
+  });
+
+  // Table receives correct props
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(5);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(1);
+});
+
+test('handles server returning fewer rows than page size', async () => {
+  const partialPage = Array.from({ length: 12 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  setupTest({
+    charts: partialPage,
+    totalCount: 12,
+  });
+
+  // Only page 1 should exist
+  await waitFor(() => {
+    expect(screen.queryByRole('link', { name: '2' })).not.toBeInTheDocument();
+  });
+
+  // Table receives correct total (not data.length!)
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(12);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
 });
