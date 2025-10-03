@@ -100,6 +100,7 @@ const DatasetUsageTab = ({
   const addDangerToastRef = useRef(addDangerToast);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,14 +117,19 @@ const DatasetUsageTab = ({
 
       try {
         await onFetchCharts(page, PAGE_SIZE, column, direction);
-        setCurrentPage(page);
-        setSortColumn(column);
-        setSortDirection(direction);
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setCurrentPage(page);
+          setSortColumn(column);
+          setSortDirection(direction);
+        }
       } catch (error) {
-        if (addDangerToastRef.current)
+        if (isMountedRef.current && addDangerToastRef.current)
           addDangerToastRef.current(t('Error fetching charts'));
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     },
     [datasourceId, onFetchCharts, sortColumn, sortDirection],
@@ -133,10 +139,15 @@ const DatasetUsageTab = ({
     addDangerToastRef.current = addDangerToast;
   }, [addDangerToast]);
 
-  // Cleanup scroll timeout on unmount
-  // eslint-disable-next-line arrow-body-style
+  // Cleanup on unmount
   useEffect(() => {
+    // Set mounted flag to true on mount (important for Strict Mode double-mount)
+    isMountedRef.current = true;
+
     return () => {
+      // Mark component as unmounted to prevent state updates
+      isMountedRef.current = false;
+      // Clear pending scroll timeout
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
@@ -281,12 +292,6 @@ const DatasetUsageTab = ({
         recordCount={totalCount}
         usePagination
         defaultPageSize={PAGE_SIZE}
-        pagination={{
-          current: currentPage,
-          total: totalCount,
-          pageSize: PAGE_SIZE,
-          hideOnSinglePage: false,
-        }}
         loading={loading}
         size={TableSize.Middle}
         rowKey={(record: Chart) =>
@@ -294,6 +299,12 @@ const DatasetUsageTab = ({
         }
         tableLayout="fixed"
         scroll={{ y: 293, x: '100%' }}
+        pagination={{
+          current: currentPage,
+          total: totalCount,
+          pageSize: PAGE_SIZE,
+          hideOnSinglePage: false,
+        }}
         css={css`
           .ant-table-pagination.ant-pagination {
             margin-bottom: 0;

@@ -72,20 +72,59 @@ jest.mock('@superset-ui/core/components/Table', () => {
   const MockTable = <RecordType extends object>({
     pagination,
     onChange,
+    recordCount,
+    defaultPageSize = 15,
+    usePagination = true,
     ...rest
   }: TableProps<RecordType>) => {
-    if (pagination && typeof pagination !== 'boolean') {
-      latestPaginationPageSize = pagination.pageSize;
-      latestPaginationCurrent = pagination.current;
-      latestPaginationTotal = pagination.total;
-      latestPaginationHandler = pagination.onChange || null;
+    // Simulate the Table wrapper's pagination merging logic
+    let mergedPagination = pagination;
+
+    if (usePagination) {
+      // Build default pagination settings like the wrapper does
+      const paginationDefaults: {
+        hideOnSinglePage: boolean;
+        pageSize: number;
+        total?: number;
+      } = {
+        hideOnSinglePage: true,
+        pageSize: defaultPageSize,
+      };
+
+      // Add total from recordCount if provided
+      if (recordCount) {
+        paginationDefaults.total = recordCount;
+      }
+
+      // Merge with pagination overrides
+      if (pagination && typeof pagination !== 'boolean') {
+        mergedPagination = { ...paginationDefaults, ...pagination };
+      } else if (!pagination) {
+        mergedPagination = paginationDefaults;
+      }
     }
+
+    // Capture the merged pagination for assertions
+    if (mergedPagination && typeof mergedPagination !== 'boolean') {
+      latestPaginationPageSize = mergedPagination.pageSize;
+      latestPaginationCurrent = mergedPagination.current;
+      latestPaginationTotal = mergedPagination.total;
+      latestPaginationHandler = mergedPagination.onChange || null;
+    }
+
     // Cast to Chart type since we know DatasetUsageTab uses Chart
     latestOnChangeHandler =
       (onChange as OnChangeFunction<Chart> | undefined) || null;
 
     return (
-      <ActualTable pagination={pagination} onChange={onChange} {...rest} />
+      <ActualTable
+        pagination={mergedPagination}
+        onChange={onChange}
+        recordCount={recordCount}
+        defaultPageSize={defaultPageSize}
+        usePagination={usePagination}
+        {...rest}
+      />
     );
   };
 
