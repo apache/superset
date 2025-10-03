@@ -1361,7 +1361,7 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # Examples:
 # REPORTS_CSV_NA_NAMES = None  # Disable all automatic NA conversion
 # REPORTS_CSV_NA_NAMES = ["", "NULL", "null"]  # Only treat these as NA
-REPORTS_CSV_NA_NAMES = CSV_DEFAULT_NA_NAMES
+REPORTS_CSV_NA_NAMES = list(CSV_DEFAULT_NA_NAMES)
 
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
