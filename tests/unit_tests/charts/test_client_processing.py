@@ -24,6 +24,7 @@ from sqlalchemy.orm.session import Session
 from superset.charts.client_processing import apply_client_processing, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import GenericDataType
+from tests.conftest import with_config
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
@@ -2655,6 +2656,7 @@ def test_pivot_multi_level_index():
     )
 
 
+@with_config({"REPORTS_CSV_NA_NAMES": []})
 def test_apply_client_processing_csv_format_preserves_na_strings():
     """
     Test that apply_client_processing preserves "NA" when REPORTS_CSV_NA_NAMES is [].
@@ -2662,7 +2664,6 @@ def test_apply_client_processing_csv_format_preserves_na_strings():
     This ensures that scheduled reports can be configured to
     preserve strings like "NA" as literal values.
     """
-    from unittest.mock import patch
 
     # CSV data with "NA" string that should be preserved
     csv_data = "first_name,last_name\nJeff,Smith\nAlice,NA"
@@ -2691,32 +2692,22 @@ def test_apply_client_processing_csv_format_preserves_na_strings():
     }
 
     # Test with REPORTS_CSV_NA_NAMES set to empty list (disable NA conversion)
-    with patch(
-        "superset.charts.client_processing.current_app.config.get"
-    ) as mock_config:
-        # Only mock the specific config key we're testing
-        def mock_get(key, default=None):
-            if key == "REPORTS_CSV_NA_NAMES":
-                return []  # Empty list disables NA conversion
-            return default
 
-        mock_config.side_effect = mock_get
+    processed_result = apply_client_processing(result, form_data)
 
-        processed_result = apply_client_processing(result, form_data)
-
-        # Verify the CSV data still contains "NA" as string, not converted to null
-        output_data = processed_result["queries"][0]["data"]
-        assert "NA" in output_data
-        # The "NA" should be preserved in the output CSV
-        lines = output_data.strip().split("\n")
-        assert "Alice,NA" in lines[2]  # Second data row should preserve "NA"
+    # Verify the CSV data still contains "NA" as string, not converted to null
+    output_data = processed_result["queries"][0]["data"]
+    assert "NA" in output_data
+    # The "NA" should be preserved in the output CSV
+    lines = output_data.strip().split("\n")
+    assert "Alice,NA" in lines[2]  # Second data row should preserve "NA"
 
 
+@with_config({"REPORTS_CSV_NA_NAMES": ["MISSING"]})
 def test_apply_client_processing_csv_format_custom_na_values():
     """
     Test that apply_client_processing respects custom NA values configuration.
     """
-    from unittest.mock import patch
 
     csv_data = "name,status\nJeff,MISSING\nAlice,OK"
 
@@ -2744,35 +2735,22 @@ def test_apply_client_processing_csv_format_custom_na_values():
     }
 
     # Test with custom NA values - only "MISSING" should be treated as NA
-    with patch(
-        "superset.charts.client_processing.current_app.config.get"
-    ) as mock_config:
-        # Only mock the specific config key we're testing
-        def mock_get(key, default=None):
-            if key == "REPORTS_CSV_NA_NAMES":
-                return ["MISSING"]
-            return default
+    processed_result = apply_client_processing(result, form_data)
 
-        mock_config.side_effect = mock_get
-
-        processed_result = apply_client_processing(result, form_data)
-
-        output_data = processed_result["queries"][0]["data"]
-        lines = output_data.strip().split("\n")
-        assert len(lines) >= 3  # header + 2 data rows
-        assert (
-            "Jeff," in lines[1]
-        )  # First data row should have empty status after "Jeff,"
-        assert "Alice,OK" in lines[2]  # Second data row should preserve "OK"
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    assert len(lines) >= 3  # header + 2 data rows
+    assert "Jeff," in lines[1]  # First data row should have empty status after "Jeff,"
+    assert "Alice,OK" in lines[2]  # Second data row should preserve "OK"
 
 
+@with_config({"REPORTS_CSV_NA_NAMES": []})
 def test_apply_client_processing_csv_format_default_na_behavior():
     """
     Test that apply_client_processing uses default pandas NA behavior
     when REPORTS_CSV_NA_NAMES is not configured.
     This ensures backwards compatibility.
     """
-    from unittest.mock import patch
 
     # CSV data with "NA" string that should be converted to null in default behavior
     csv_data = "first_name,last_name\nJeff,Smith\nAlice,NA"
@@ -2800,25 +2778,13 @@ def test_apply_client_processing_csv_format_default_na_behavior():
         "result_type": "results",
     }
 
-    # Test with REPORTS_CSV_NA_NAMES not configured (returns None from config.get)
-    with patch(
-        "superset.charts.client_processing.current_app.config.get"
-    ) as mock_config:
-        # Only mock the specific config key we're testing
-        def mock_get(key, default=None):
-            if key == "REPORTS_CSV_NA_NAMES":
-                return None  # Not configured - use default pandas behavior
-            return default
+    processed_result = apply_client_processing(result, form_data)
 
-        mock_config.side_effect = mock_get
-
-        processed_result = apply_client_processing(result, form_data)
-
-        # Verify the CSV data has "NA" converted to empty (default pandas behavior)
-        output_data = processed_result["queries"][0]["data"]
-        lines = output_data.strip().split("\n")
-        assert len(lines) >= 3  # header + 2 data rows
-        # The "NA" should be converted to empty by default pandas behavior
-        assert (
-            "Alice," in lines[2]
-        )  # Second data row should have empty last_name (NA converted to null)
+    # Verify the CSV data has "NA" converted to empty (default pandas behavior)
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    assert len(lines) >= 3  # header + 2 data rows
+    # The "NA" should be converted to empty by default pandas behavior
+    assert (
+        "Alice," in lines[2]
+    )  # Second data row should have empty last_name (NA converted to null)

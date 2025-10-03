@@ -347,7 +347,7 @@ def apply_client_processing(  # noqa: C901
             na_values = current_app.config["REPORTS_CSV_NA_NAMES"]
             df = pd.read_csv(
                 StringIO(data),
-                keep_default_na=na_value is None,
+                keep_default_na=na_values is None,
                 na_values=na_values,
             )
 
