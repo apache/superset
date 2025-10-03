@@ -64,14 +64,14 @@ const mockSystemTheme: ThemeObject = {
   is_system: true,
 };
 
-const setupFetchMocks = () => {
+beforeEach(() => {
   fetchMock.reset();
   fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
   fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
   fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
   fetchMock.post('glob:*/api/v1/theme/', { result: { ...mockTheme, id: 3 } });
   fetchMock.put('glob:*/api/v1/theme/*', { result: mockTheme });
-};
+});
 
 afterEach(() => {
   fetchMock.restore();
@@ -79,7 +79,6 @@ afterEach(() => {
 });
 
 test('renders modal with add theme dialog when show is true', () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -97,7 +96,6 @@ test('renders modal with add theme dialog when show is true', () => {
 });
 
 test('does not render modal when show is false', () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -114,7 +112,6 @@ test('does not render modal when show is false', () => {
 });
 
 test('renders edit mode title when theme is provided', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -134,7 +131,6 @@ test('renders edit mode title when theme is provided', async () => {
 });
 
 test('renders view mode title for system themes', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -156,7 +152,6 @@ test('renders view mode title for system themes', async () => {
 });
 
 test('renders theme name input field', () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -173,7 +168,6 @@ test('renders theme name input field', () => {
 });
 
 test('renders JSON configuration field', () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -190,7 +184,6 @@ test('renders JSON configuration field', () => {
 });
 
 test('disables inputs for read-only system themes', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -210,7 +203,6 @@ test('disables inputs for read-only system themes', async () => {
 });
 
 test('shows Apply button when canDevelop is true and theme exists', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -230,7 +222,6 @@ test('shows Apply button when canDevelop is true and theme exists', async () => 
 });
 
 test('does not show Apply button when canDevelop is false', () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -249,7 +240,6 @@ test('does not show Apply button when canDevelop is false', () => {
 });
 
 test('disables save button when theme name is empty', () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -268,7 +258,6 @@ test('disables save button when theme name is empty', () => {
 });
 
 test('enables save button when theme name is entered', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -290,7 +279,6 @@ test('enables save button when theme name is entered', async () => {
 });
 
 test('validates JSON format and enables save button', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -312,7 +300,6 @@ test('validates JSON format and enables save button', async () => {
 });
 
 test('shows unsaved changes alert when closing modal with modifications', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -345,7 +332,6 @@ test('shows unsaved changes alert when closing modal with modifications', async 
 });
 
 test('does not show unsaved changes alert when closing without modifications', async () => {
-  setupFetchMocks();
   const onHide = jest.fn();
   render(
     <ThemeModal
@@ -369,7 +355,6 @@ test('does not show unsaved changes alert when closing without modifications', a
 });
 
 test('allows user to keep editing after triggering cancel alert', async () => {
-  setupFetchMocks();
   render(
     <ThemeModal
       addDangerToast={jest.fn()}
@@ -406,7 +391,6 @@ test('allows user to keep editing after triggering cancel alert', async () => {
 });
 
 test('saves changes when clicking Save button in unsaved changes alert', async () => {
-  setupFetchMocks();
   const onHide = jest.fn();
   const onThemeAdd = jest.fn();
   render(
@@ -440,7 +424,6 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 });
 
 test('discards changes when clicking Discard button in unsaved changes alert', async () => {
-  setupFetchMocks();
   const onHide = jest.fn();
   render(
     <ThemeModal
@@ -473,7 +456,6 @@ test('discards changes when clicking Discard button in unsaved changes alert', a
 });
 
 test('creates new theme when saving', async () => {
-  setupFetchMocks();
   const onHide = jest.fn();
   const onThemeAdd = jest.fn();
   render(
@@ -499,7 +481,6 @@ test('creates new theme when saving', async () => {
 });
 
 test('updates existing theme when saving', async () => {
-  setupFetchMocks();
   const onHide = jest.fn();
   const onThemeAdd = jest.fn();
   render(
@@ -555,7 +536,6 @@ test('handles API errors gracefully', async () => {
 });
 
 test('applies theme locally when clicking Apply button', async () => {
-  setupFetchMocks();
   const onThemeApply = jest.fn();
   render(
     <ThemeModal
