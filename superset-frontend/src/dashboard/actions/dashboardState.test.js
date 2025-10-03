@@ -30,6 +30,7 @@ import {
   DASHBOARD_GRID_ID,
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
+  SAVE_TYPE_NEWDASHBOARD,
 } from 'src/dashboard/util/constants';
 import {
   filterId,
@@ -37,12 +38,24 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
+import { navigateTo } from 'src/utils/navigationUtils';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
 
+jest.mock('src/utils/navigationUtils', () => ({
+  navigateTo: jest.fn(),
+  navigateWithState: jest.fn(),
+}));
+
+jest.mock('src/utils/navigationUtils', () => ({
+  navigateTo: jest.fn(),
+  navigateWithState: jest.fn(),
+}));
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
   const mockState = {
     dashboardState: {
@@ -193,6 +206,35 @@ describe('dashboardState actions', () => {
         const { body } = putStub.getCall(0).args[0];
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
       });
+    });
+
+    test('should navigate to the new dashboard after Save As', async () => {
+      const newDashboardId = 999;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      postStub.restore();
+      postStub = sinon.stub(SupersetClient, 'post').resolves({
+        json: {
+          result: {
+            ...mockDashboardData,
+            id: newDashboardId,
+          },
+        },
+      });
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        null,
+        SAVE_TYPE_NEWDASHBOARD,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(postStub.callCount).toBe(1));
+      expect(navigateTo).toHaveBeenCalledWith(
+        `/superset/dashboard/${newDashboardId}/`,
+      );
     });
   });
 });

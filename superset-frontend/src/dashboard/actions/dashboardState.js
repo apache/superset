@@ -57,7 +57,7 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { isEqual } from 'lodash';
-import { navigateWithState } from 'src/utils/navigationUtils';
+import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
@@ -372,6 +372,7 @@ export function saveDashboardRequest(data, id, saveType) {
         }),
       );
       dispatch(saveDashboardFinished());
+      navigateTo(`/superset/dashboard/${response.json.result.id}/`);
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };
