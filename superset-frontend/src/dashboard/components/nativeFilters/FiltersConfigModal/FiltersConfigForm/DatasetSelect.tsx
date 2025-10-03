@@ -74,9 +74,11 @@ const DatasetSelect = ({
           const list: {
             label: string | ReactNode;
             value: string | number;
+            customLabel: string;
           }[] = filteredResult.map((item: Dataset) => ({
             label: DatasetSelectLabel(item),
             value: item.id,
+            customLabel: item.table_name,
           }));
           return {
             data: list,
@@ -99,6 +101,7 @@ const DatasetSelect = ({
       value={value}
       options={loadDatasetOptions}
       onChange={onChange}
+      optionFilterProps={['customLabel']}
       notFoundContent={t('No compatible datasets found')}
       placeholder={t('Select a dataset')}
     />
