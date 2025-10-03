@@ -59,6 +59,28 @@ export default styled.div`
       fill-opacity: 1;
     }
 
+    /* Grouping headers */
+    tr.grouping-headers th {
+      border-right: 1px solid ${theme.colorSplit};
+      border-bottom: 0;
+    }
+
+    tr.grouping-headers th:first-child {
+      border-left: none;
+    }
+
+    tr.grouping-headers th:last-child {
+      border-right: none;
+    }
+
+    tr.grouping-headers .toggle-icon {
+      float: right;
+    }
+
+    tr.grouping-headers .toggle-icon svg {
+      color: ${theme.colorIcon};
+    }
+
     /* Table body styling */
     .table > tbody > tr:first-of-type > td,
     .table > tbody > tr:first-of-type > th {
