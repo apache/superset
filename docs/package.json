@@ -78,7 +78,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "eslint-plugin-react": "^7.37.5",
-    "globals": "^16.3.0",
+    "globals": "^16.4.0",
     "prettier": "^3.6.2",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.45.0",
