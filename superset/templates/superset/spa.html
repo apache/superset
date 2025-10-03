@@ -30,6 +30,20 @@
 
     {% block head_meta %}{% endblock %}
 
+    <style>
+      body {
+        background: #fff;
+        color: #000;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #000;
+          color: #fff;
+        }
+      }
+    </style>
+
     {% block head_css %}
       {% for favicon in favicons %}
         <link
@@ -75,6 +89,8 @@
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
         <img
           src="{{ assets_prefix }}/static/assets/images/loading.gif"
+          alt=""
+          aria-label="Loading"
           style="
             width: 50px;
             position: absolute;
