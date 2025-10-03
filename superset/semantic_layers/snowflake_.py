@@ -206,9 +206,8 @@ class SnowflakeSemanticLayer:
         when connecting.
         """
         cursor = connection.cursor()
-        query = "SHOW DATABASES"
-        cursor.execute(query)
-        return {row[1] for row in cursor.fetchall()}
+        cursor.execute("SHOW DATABASES")
+        return {row[1] for row in cursor}
 
     @classmethod
     def _fetch_schemas(
@@ -228,8 +227,7 @@ class SnowflakeSemanticLayer:
             FROM INFORMATION_SCHEMA.SCHEMATA
             WHERE CATALOG_NAME = ?
         """
-        cursor.execute(query, (database,))
-        return {row[0] for row in cursor.fetchall()}
+        return {row[0] for row in cursor.execute(query, (database,))}
 
     @classmethod
     def _get_connection_parameters(
@@ -282,15 +280,35 @@ class SnowflakeSemanticLayer:
     def __init__(self, configuration: SnowflakeConfiguration):
         self.configuration = configuration
 
-    def get_explorables(self) -> list[SnowflakeExplorable]:
+    def get_explorables(
+        self,
+        runtime_configuration: BaseModel,
+    ) -> list[SnowflakeExplorable]:
         """
         Get a list of available explorables (databases/schemas).
         """
-        pass
+        # create a new configuration with the runtime parameters
+        configuration = self.configuration.model_copy(
+            update=runtime_configuration.model_dump()
+        )
+
+        connection_parameters = self._get_connection_parameters(configuration)
+        with connect(**connection_parameters) as connection:
+            cursor = connection.cursor()
+            query = """
+                SHOW SEMANTIC VIEWS
+                    ->> SELECT "name" FROM $1;
+            """
+            return [
+                SnowflakeExplorable(configuration, row[0])
+                for row in cursor.execute(query)
+            ]
 
 
 class SnowflakeExplorable:
-    pass
+    def __init__(self, configuration: SnowflakeConfiguration, name: str):
+        self.configuration = configuration
+        self.name = name
 
 
 if __name__ == "__main__":
