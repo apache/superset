@@ -100,162 +100,153 @@ const renderThemesList = (props = {}) =>
     },
   );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ThemesList', () => {
-  beforeEach(() => {
-    fetchMock.resetHistory();
-  });
+beforeEach(() => {
+  fetchMock.resetHistory();
+});
 
-  test('renders', async () => {
-    renderThemesList();
-    expect(await screen.findByText('Themes')).toBeInTheDocument();
-  });
+test('renders', async () => {
+  renderThemesList();
+  expect(await screen.findByText('Themes')).toBeInTheDocument();
+});
 
-  test('renders a ListView', async () => {
-    renderThemesList();
-    expect(await screen.findByTestId('themes-list-view')).toBeInTheDocument();
-  });
+test('renders a ListView', async () => {
+  renderThemesList();
+  expect(await screen.findByTestId('themes-list-view')).toBeInTheDocument();
+});
 
-  test('renders theme information', async () => {
-    renderThemesList();
+test('renders theme information', async () => {
+  renderThemesList();
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
+  // Wait for list to load
+  await screen.findByTestId('themes-list-view');
 
-    // Wait for data to load
-    await waitFor(() => {
-      mockThemes.forEach(theme => {
-        expect(screen.getByText(theme.theme_name)).toBeInTheDocument();
-      });
+  // Wait for data to load
+  await waitFor(() => {
+    mockThemes.forEach(theme => {
+      expect(screen.getByText(theme.theme_name)).toBeInTheDocument();
     });
   });
+});
 
-  test('shows system theme tags correctly', async () => {
-    renderThemesList();
+test('shows system theme tags correctly', async () => {
+  renderThemesList();
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
+  // Wait for list to load
+  await screen.findByTestId('themes-list-view');
 
-    // System theme should have a "System" tag
-    await waitFor(() => {
-      expect(screen.getByText('System')).toBeInTheDocument();
-    });
+  // System theme should have a "System" tag
+  await waitFor(() => {
+    expect(screen.getByText('System')).toBeInTheDocument();
   });
+});
 
-  test('handles theme deletion for non-system themes', async () => {
-    renderThemesList();
+test('handles theme deletion for non-system themes', async () => {
+  renderThemesList();
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
+  // Wait for list to load
+  await screen.findByTestId('themes-list-view');
 
-    // Find delete buttons (should only exist for non-system themes)
-    const deleteButtons = await screen.findAllByTestId('delete-action');
-    expect(deleteButtons.length).toBeGreaterThan(0);
+  // Find delete buttons (should only exist for non-system themes)
+  const deleteButtons = await screen.findAllByTestId('delete-action');
+  expect(deleteButtons.length).toBeGreaterThan(0);
 
-    fireEvent.click(deleteButtons[0]);
+  fireEvent.click(deleteButtons[0]);
 
-    // Confirm deletion modal should appear
-    await waitFor(() => {
-      expect(screen.getByText('Delete Theme?')).toBeInTheDocument();
-    });
+  // Confirm deletion modal should appear
+  await waitFor(() => {
+    expect(screen.getByText('Delete Theme?')).toBeInTheDocument();
   });
+});
 
-  test('shows apply action for themes', async () => {
-    renderThemesList();
+test('shows apply action for themes', async () => {
+  renderThemesList();
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
+  // Wait for list to load
+  await screen.findByTestId('themes-list-view');
 
-    // Find apply buttons
-    const applyButtons = await screen.findAllByTestId('apply-action');
-    expect(applyButtons.length).toBe(mockThemes.length);
+  // Find apply buttons
+  const applyButtons = await screen.findAllByTestId('apply-action');
+  expect(applyButtons.length).toBe(mockThemes.length);
+});
+
+test('fetches themes data on load', async () => {
+  renderThemesList();
+
+  await waitFor(() => {
+    const calls = fetchMock.calls(/api\/v1\/theme\/\?/);
+    expect(calls.length).toBeGreaterThan(0);
   });
+});
 
-  test('fetches themes data on load', async () => {
-    renderThemesList();
+test('shows bulk select when user has permissions', async () => {
+  renderThemesList();
 
-    await waitFor(() => {
-      const calls = fetchMock.calls(/api\/v1\/theme\/\?/);
-      expect(calls.length).toBeGreaterThan(0);
-    });
-  });
+  // Wait for list to load
+  await screen.findByText('Themes');
 
-  test('shows bulk select when user has permissions', async () => {
-    renderThemesList();
+  // Should show bulk select button
+  expect(screen.getByText('Bulk select')).toBeInTheDocument();
+});
 
-    // Wait for list to load
-    await screen.findByText('Themes');
+test('shows create theme button when user has permissions', async () => {
+  renderThemesList();
 
-    // Should show bulk select button
-    expect(screen.getByText('Bulk select')).toBeInTheDocument();
-  });
+  // Wait for list to load
+  await screen.findByText('Themes');
 
-  test('shows create theme button when user has permissions', async () => {
-    renderThemesList();
+  // Should show theme creation button
+  const addButton = screen.getByLabelText('plus');
+  expect(addButton).toBeInTheDocument();
+});
 
-    // Wait for list to load
-    await screen.findByText('Themes');
+test('uses Modal.useModal hook instead of Modal.confirm', () => {
+  const useModalSpy = jest.spyOn(Modal, 'useModal');
+  renderThemesList();
 
-    // Should show theme creation button
-    const addButton = screen.getByLabelText('plus');
-    expect(addButton).toBeInTheDocument();
-  });
+  // Verify that useModal is called when the component mounts
+  expect(useModalSpy).toHaveBeenCalled();
 
-  describe('Modal.useModal integration', () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
+  useModalSpy.mockRestore();
+});
 
-    it('uses Modal.useModal hook instead of Modal.confirm', () => {
-      const useModalSpy = jest.spyOn(Modal, 'useModal');
-      renderThemesList();
+test('renders contextHolder for modal theming', async () => {
+  const { container } = renderThemesList();
 
-      // Verify that useModal is called when the component mounts
-      expect(useModalSpy).toHaveBeenCalled();
+  // Wait for component to be rendered
+  await screen.findByText('Themes');
 
-      useModalSpy.mockRestore();
-    });
+  // The contextHolder is rendered but invisible, so we check for its presence in the DOM
+  // Modal.useModal returns elements that get rendered in the component tree
+  const contextHolderExists = container.querySelector('.ant-modal-root');
+  expect(contextHolderExists).toBeDefined();
+});
 
-    it('renders contextHolder for modal theming', async () => {
-      const { container } = renderThemesList();
+test('confirms system theme changes using themed modal', async () => {
+  const mockSetSystemDefault = jest.fn().mockResolvedValue({});
+  fetchMock.post(
+    'glob:*/api/v1/theme/*/set_system_default',
+    mockSetSystemDefault,
+  );
 
-      // Wait for component to be rendered
-      await screen.findByText('Themes');
+  renderThemesList();
 
-      // The contextHolder is rendered but invisible, so we check for its presence in the DOM
-      // Modal.useModal returns elements that get rendered in the component tree
-      const contextHolderExists = container.querySelector('.ant-modal-root');
-      expect(contextHolderExists).toBeDefined();
-    });
+  // Wait for list to load
+  await screen.findByTestId('themes-list-view');
 
-    it('confirms system theme changes using themed modal', async () => {
-      const mockSetSystemDefault = jest.fn().mockResolvedValue({});
-      fetchMock.post(
-        'glob:*/api/v1/theme/*/set_system_default',
-        mockSetSystemDefault,
-      );
+  // Since the test data doesn't render actual action buttons, we'll verify
+  // that the modal system is properly set up by checking the hook was called
+  // This is validated in the "uses Modal.useModal hook" test
+  expect(true).toBe(true);
+});
 
-      renderThemesList();
+test('does not use deprecated Modal.confirm directly', () => {
+  // Create a spy on the static Modal.confirm method
+  const confirmSpy = jest.spyOn(Modal, 'confirm');
 
-      // Wait for list to load
-      await screen.findByTestId('themes-list-view');
+  renderThemesList();
 
-      // Since the test data doesn't render actual action buttons, we'll verify
-      // that the modal system is properly set up by checking the hook was called
-      // This is validated in the "uses Modal.useModal hook" test
-      expect(true).toBe(true);
-    });
+  // The component should not call Modal.confirm directly
+  expect(confirmSpy).not.toHaveBeenCalled();
 
-    it('does not use deprecated Modal.confirm directly', () => {
-      // Create a spy on the static Modal.confirm method
-      const confirmSpy = jest.spyOn(Modal, 'confirm');
-
-      renderThemesList();
-
-      // The component should not call Modal.confirm directly
-      expect(confirmSpy).not.toHaveBeenCalled();
-
-      confirmSpy.mockRestore();
-    });
-  });
+  confirmSpy.mockRestore();
 });

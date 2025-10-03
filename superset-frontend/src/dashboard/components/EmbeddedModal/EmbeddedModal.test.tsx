@@ -174,84 +174,78 @@ test('adds extension to DashboardEmbedModal', async () => {
   extensionsRegistry.set('embedded.modal', undefined);
 });
 
-describe('Modal.useModal integration', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+test('uses Modal.useModal hook for confirmation dialogs', () => {
+  const useModalSpy = jest.spyOn(Modal, 'useModal');
+  setup();
+
+  // Verify that useModal is called when the component mounts
+  expect(useModalSpy).toHaveBeenCalled();
+
+  useModalSpy.mockRestore();
+});
+
+test('renders contextHolder for proper theming', async () => {
+  const { container } = render(<DashboardEmbedModal {...defaultProps} />, {
+    useRedux: true,
   });
 
-  test('uses Modal.useModal hook for confirmation dialogs', () => {
-    const useModalSpy = jest.spyOn(Modal, 'useModal');
-    setup();
+  // Wait for component to be rendered
+  await screen.findByText('Embed');
 
-    // Verify that useModal is called when the component mounts
-    expect(useModalSpy).toHaveBeenCalled();
+  // The contextHolder is rendered in the component tree
+  // Check that modal root elements exist for theming
+  const modalRootElements = container.querySelectorAll('.ant-modal-root');
+  expect(modalRootElements).toBeDefined();
+});
 
-    useModalSpy.mockRestore();
+test('confirmation modal inherits theme context', async () => {
+  setup();
+
+  // Click deactivate to trigger the confirmation modal
+  const deactivate = await screen.findByRole('button', {
+    name: 'Deactivate',
   });
+  fireEvent.click(deactivate);
 
-  test('renders contextHolder for proper theming', async () => {
-    const { container } = render(<DashboardEmbedModal {...defaultProps} />, {
-      useRedux: true,
-    });
+  // Wait for the modal to appear
+  const modalTitle = await screen.findByText('Disable embedding?');
+  expect(modalTitle).toBeInTheDocument();
 
-    // Wait for component to be rendered
-    await screen.findByText('Embed');
+  // Check that the modal is rendered within the component tree (not on body directly)
+  const modal = modalTitle.closest('.ant-modal-wrap');
+  expect(modal).toBeInTheDocument();
+});
 
-    // The contextHolder is rendered in the component tree
-    // Check that modal root elements exist for theming
-    const modalRootElements = container.querySelectorAll('.ant-modal-root');
-    expect(modalRootElements).toBeDefined();
+test('does not use Modal.confirm directly', () => {
+  // Spy on the static Modal.confirm method
+  const confirmSpy = jest.spyOn(Modal, 'confirm');
+
+  setup();
+
+  // The component should not call Modal.confirm directly
+  expect(confirmSpy).not.toHaveBeenCalled();
+
+  confirmSpy.mockRestore();
+});
+
+test('modal actions work correctly with useModal', async () => {
+  setup();
+
+  // Click deactivate
+  const deactivate = await screen.findByRole('button', {
+    name: 'Deactivate',
   });
+  fireEvent.click(deactivate);
 
-  test('confirmation modal inherits theme context', async () => {
-    setup();
+  // Modal should appear
+  expect(await screen.findByText('Disable embedding?')).toBeInTheDocument();
 
-    // Click deactivate to trigger the confirmation modal
-    const deactivate = await screen.findByRole('button', {
-      name: 'Deactivate',
-    });
-    fireEvent.click(deactivate);
+  // Click Cancel to close modal
+  const cancelBtn = screen.getByRole('button', { name: 'Cancel' });
+  fireEvent.click(cancelBtn);
 
-    // Wait for the modal to appear
-    const modalTitle = await screen.findByText('Disable embedding?');
-    expect(modalTitle).toBeInTheDocument();
-
-    // Check that the modal is rendered within the component tree (not on body directly)
-    const modal = modalTitle.closest('.ant-modal-wrap');
-    expect(modal).toBeInTheDocument();
-  });
-
-  test('does not use Modal.confirm directly', () => {
-    // Spy on the static Modal.confirm method
-    const confirmSpy = jest.spyOn(Modal, 'confirm');
-
-    setup();
-
-    // The component should not call Modal.confirm directly
-    expect(confirmSpy).not.toHaveBeenCalled();
-
-    confirmSpy.mockRestore();
-  });
-
-  test('modal actions work correctly with useModal', async () => {
-    setup();
-
-    // Click deactivate
-    const deactivate = await screen.findByRole('button', {
-      name: 'Deactivate',
-    });
-    fireEvent.click(deactivate);
-
-    // Modal should appear
-    expect(await screen.findByText('Disable embedding?')).toBeInTheDocument();
-
-    // Click Cancel to close modal
-    const cancelBtn = screen.getByRole('button', { name: 'Cancel' });
-    fireEvent.click(cancelBtn);
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByText('Disable embedding?')).not.toBeInTheDocument();
-    });
+  // Modal should close
+  await waitFor(() => {
+    expect(screen.queryByText('Disable embedding?')).not.toBeInTheDocument();
   });
 });
