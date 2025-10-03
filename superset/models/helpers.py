@@ -871,6 +871,40 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 raise QueryObjectValidationError(ex.message) from ex
         return expression
 
+    def _process_select_expression(
+        self,
+        expression: Optional[str],
+        database_id: int,
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """
+        Validate and process an adhoc expression used as a column or metric.
+
+        This requires prefixing the expression with a dummy SELECT statement, so it can
+        be properly parsed and validated.
+        """
+        if expression:
+            expression = f"SELECT {expression}"
+
+        if processed := self._process_sql_expression(
+            expression=expression,
+            database_id=database_id,
+            engine=engine,
+            schema=schema,
+            template_processor=template_processor,
+        ):
+            prefix, expression = re.split(
+                r"SELECT\s+",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+
+        return None
+
     def _process_orderby_expression(
         self,
         expression: Optional[str],
@@ -1200,7 +1234,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = metric.get("sqlExpression")
 
             if not processed:
-                expression = self._process_sql_expression(
+                expression = self._process_select_expression(
                     expression=metric["sqlExpression"],
                     database_id=self.database_id,
                     engine=self.database.backend,
@@ -2196,7 +2230,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if extras:
             where = extras.get("where")
             if where:
-                where = self._process_sql_expression(
+                where = self._process_select_expression(
                     expression=where,
                     database_id=self.database_id,
                     engine=self.database.backend,
@@ -2206,7 +2240,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
-                having = self._process_sql_expression(
+                having = self._process_select_expression(
                     expression=having,
                     database_id=self.database_id,
                     engine=self.database.backend,
