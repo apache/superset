@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 from marshmallow.validate import Length
 
 openapi_spec_methods_override = {
@@ -44,10 +44,10 @@ class AnnotationLayerPostSchema(Schema):
     name = fields.String(
         metadata={"description": annotation_layer_name},
         required=True,
-        validate=[Length(1, 250)],
+        validate=[validate.And(Length(1, 250),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     descr = fields.String(
-        metadata={"description": annotation_layer_descr}, allow_none=True
+        metadata={"description": annotation_layer_descr}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
 
 
@@ -55,8 +55,8 @@ class AnnotationLayerPutSchema(Schema):
     name = fields.String(
         metadata={"description": annotation_layer_name},
         required=False,
-        validate=[Length(1, 250)],
+        validate=[validate.And(Length(1, 250),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     descr = fields.String(
-        metadata={"description": annotation_layer_descr}, required=False
+        metadata={"description": annotation_layer_descr}, required=False, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
