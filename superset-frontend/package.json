@@ -152,7 +152,7 @@
     "geostyler-wfs-parser": "^2.0.3",
     "googleapis": "^154.1.0",
     "immer": "^10.1.1",
-    "interweave": "^13.1.0",
+    "interweave": "^13.1.1",
     "jquery": "^3.7.1",
     "js-levenshtein": "^1.1.6",
     "js-yaml-loader": "^1.2.2",
