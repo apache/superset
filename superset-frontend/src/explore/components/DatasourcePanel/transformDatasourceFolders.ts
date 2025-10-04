@@ -25,6 +25,26 @@ import {
   MetricItem,
 } from './types';
 
+const sortMetrics = (arr: MetricItem[]) =>
+  arr.sort((a, b) => {
+    const certCmp = Number(b?.is_certified ?? 0) - Number(a?.is_certified ?? 0);
+    if (certCmp) return certCmp;
+
+    const aName = (a.verbose_name || a.metric_name) ?? '';
+    const bName = (b.verbose_name || b.metric_name) ?? '';
+    return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+  });
+
+const sortColumns = (arr: ColumnItem[]) =>
+  arr.sort((a, b) => {
+    const certCmp = Number(b?.is_certified ?? 0) - Number(a?.is_certified ?? 0);
+    if (certCmp) return certCmp;
+
+    const aName = (a.verbose_name || a.column_name) ?? '';
+    const bName = (b.verbose_name || b.column_name) ?? '';
+    return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+  });
+
 const transformToFolderStructure = (
   metricsToDisplay: MetricItem[],
   columnsToDisplay: ColumnItem[],
@@ -102,7 +122,7 @@ const transformToFolderStructure = (
         id: 'metrics-default',
         name: t('Metrics'),
         isCollapsed: false,
-        items: metricsToDisplay,
+        items: sortMetrics(metricsToDisplay.slice()),
         totalItems: allMetrics.length,
         showingItems: metricsToDisplay.length,
       },
@@ -110,7 +130,7 @@ const transformToFolderStructure = (
         id: 'columns-default',
         name: t('Columns'),
         isCollapsed: false,
-        items: columnsToDisplay,
+        items: sortColumns(columnsToDisplay.slice()),
         totalItems: allColumns.length,
         showingItems: columnsToDisplay.length,
       },
