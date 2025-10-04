@@ -113,14 +113,11 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
       }, 500);
 
       try {
-        await SupersetClient.init();
-        const csrfToken = await SupersetClient.getCSRFToken();
 
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            ...(csrfToken && { 'X-CSRFToken': csrfToken }),
           },
           body: new URLSearchParams({
             form_data: JSON.stringify(payload),
