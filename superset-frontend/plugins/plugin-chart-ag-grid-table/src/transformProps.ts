@@ -469,7 +469,7 @@ const transformProps = (
     queriesData = [],
     ownState: serverPaginationData,
     filterState,
-    hooks: { setDataMask = () => {} },
+    hooks: { setDataMask = () => {}, onChartStateChange },
     emitCrossFilters,
   } = chartProps;
 
@@ -734,6 +734,8 @@ const transformProps = (
     basicColorColumnFormatters,
     basicColorFormatters,
     formData,
+    savedAgGridState: serverPaginationData?.savedAgGridState,
+    onChartStateChange,
   };
 };
 

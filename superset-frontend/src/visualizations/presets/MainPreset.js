@@ -99,6 +99,11 @@ export default class MainPreset extends Preset {
       ? [new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid })]
       : [];
 
+    console.log(
+      'AG_GRID_TABLE_ENABLED',
+      isFeatureEnabled(FeatureFlag.AgGridTableEnabled),
+    );
+
     super({
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
