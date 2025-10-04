@@ -18,26 +18,32 @@
  */
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Modal, Button, Typography, Space, Progress } from 'antd';
+import { Modal, Button, Typography, Progress, theme } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
-  DownloadOutlined,
   LoadingOutlined,
   StopOutlined,
 } from '@ant-design/icons';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+
+export enum ExportStatus {
+  STREAMING = 'streaming',
+  COMPLETED = 'completed',
+  ERROR = 'error',
+  CANCELLED = 'cancelled',
+}
 
 export interface StreamingProgress {
   rowsProcessed: number;
-  totalRows?: number; // total expected rows for percentage calculation
-  totalSize: number; // in bytes
-  speed: number; // rows per second
+  totalRows?: number;
+  totalSize: number;
+  speed: number;
   mbPerSecond: number;
-  elapsedTime: number; // seconds
-  estimatedTimeRemaining?: number; // seconds
-  status: 'streaming' | 'completed' | 'error' | 'cancelled';
+  elapsedTime: number;
+  estimatedTimeRemaining?: number;
+  status: ExportStatus;
   downloadUrl?: string;
   filename?: string;
   error?: string;
@@ -52,31 +58,16 @@ interface StreamingExportModalProps {
 }
 
 const ModalContent = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px 0;
-  min-height: 200px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px 0 ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ProgressSection = styled.div`
   margin: ${({ theme }) => theme.sizeUnit * 6}px 0;
 `;
 
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${({ theme }) => theme.sizeUnit * 4}px;
-  margin: ${({ theme }) => theme.sizeUnit * 4}px 0;
-`;
-
-const StatItem = styled.div`
-  text-align: center;
-  padding: ${({ theme }) => theme.sizeUnit * 3}px;
-  background: ${({ theme }) => theme.colorFillAlter};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
-
 const ActionButtons = styled.div`
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   gap: ${({ theme }) => theme.sizeUnit * 3}px;
   margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
@@ -91,6 +82,51 @@ const StatusIcon = styled.div`
   }
 `;
 
+const StyledIcon = styled.span<{ color: string }>`
+  color: ${({ color }) => color};
+`;
+
+const CenteredText = styled(Text)`
+  display: block;
+  text-align: center;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+const ProgressText = styled(Text)`
+  display: block;
+  text-align: center;
+  margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+const CancelButton = styled(Button)`
+  background-color: #f0fff8;
+  color: ${({ theme }) => theme.colorSuccess};
+  border-color: transparent;
+
+  &:hover {
+    background-color: #d9f7e8;
+    color: ${({ theme }) => theme.colorSuccess};
+    border-color: transparent;
+  }
+`;
+
+const DownloadButton = styled(Button)`
+  background-color: #2fc096;
+  color: white;
+  border-color: #2fc096;
+
+  &:hover {
+    background-color: #26a77e;
+    border-color: #26a77e;
+  }
+
+  &:disabled {
+    background-color: #f5f5f5;
+    color: rgba(0, 0, 0, 0.25);
+    border-color: #d9d9d9;
+  }
+`;
+
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -99,107 +135,194 @@ const formatFileSize = (bytes: number): string => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-const formatTime = (seconds: number): string => {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.round(seconds % 60);
-  return `${minutes}m ${remainingSeconds}s`;
-};
-
 const formatNumber = (num: number): string =>
   new Intl.NumberFormat().format(num);
+
+interface StatusIconProps {
+  status: ExportStatus;
+}
+
+const StatusIconComponent: React.FC<StatusIconProps> = ({ status }) => {
+  const { token } = theme.useToken();
+
+  const iconMap = {
+    [ExportStatus.STREAMING]: { Icon: LoadingOutlined, color: token.colorPrimary },
+    [ExportStatus.COMPLETED]: { Icon: CheckCircleOutlined, color: token.colorSuccess },
+    [ExportStatus.ERROR]: { Icon: CloseCircleOutlined, color: token.colorError },
+    [ExportStatus.CANCELLED]: { Icon: StopOutlined, color: token.colorWarning },
+  };
+
+  const { Icon, color } = iconMap[status] || iconMap[ExportStatus.STREAMING];
+  return (
+    <StatusIcon>
+      <StyledIcon color={color}>
+        <Icon />
+      </StyledIcon>
+    </StatusIcon>
+  );
+};
+
+interface ErrorContentProps {
+  error?: string;
+  onRetry?: () => void;
+  onCancel: () => void;
+}
+
+const ErrorContent: React.FC<ErrorContentProps> = ({
+  error,
+  onRetry,
+  onCancel,
+}) => (
+  <ModalContent>
+    <StatusIconComponent status={ExportStatus.ERROR} />
+    <CenteredText type="danger">
+      {error || t('An error occurred during export')}
+    </CenteredText>
+    <ActionButtons>
+      {onRetry && (
+        <Button type="primary" onClick={onRetry}>
+          {t('Retry')}
+        </Button>
+      )}
+      <Button onClick={onCancel}>{t('Close')}</Button>
+    </ActionButtons>
+  </ModalContent>
+);
+
+interface CancelledContentProps {
+  onRetry?: () => void;
+  onCancel: () => void;
+}
+
+const CancelledContent: React.FC<CancelledContentProps> = ({
+  onRetry,
+  onCancel,
+}) => (
+  <ModalContent>
+    <StatusIconComponent status={ExportStatus.CANCELLED} />
+    <CenteredText>{t('Export was cancelled')}</CenteredText>
+    <ActionButtons>
+      {onRetry && (
+        <Button type="primary" onClick={onRetry}>
+          {t('Restart Export')}
+        </Button>
+      )}
+      <Button onClick={onCancel}>{t('Close')}</Button>
+    </ActionButtons>
+  </ModalContent>
+);
+
+interface CompletedContentProps {
+  totalRows?: number;
+  rowsProcessed: number;
+  totalSize: number;
+  filename?: string;
+  downloadUrl?: string;
+  onDownload: () => void;
+  onCancel: () => void;
+}
+
+const CompletedContent: React.FC<CompletedContentProps> = ({
+  totalRows,
+  rowsProcessed,
+  totalSize,
+  filename,
+  downloadUrl,
+  onDownload,
+  onCancel,
+}) => {
+  const { token } = theme.useToken();
+
+  return (
+    <ModalContent>
+      <ProgressSection>
+        <Progress
+          percent={100}
+          status="success"
+          strokeColor={token.colorSuccess}
+          showInfo={false}
+        />
+        <ProgressText>
+          {t('Export successful %s', filename || 'export.csv')}
+        </ProgressText>
+      </ProgressSection>
+
+      <ActionButtons>
+        <CancelButton onClick={onCancel}>
+          {t('Cancel')}
+        </CancelButton>
+        <DownloadButton
+          onClick={onDownload}
+          disabled={!downloadUrl}
+        >
+          {t('Download')}
+        </DownloadButton>
+      </ActionButtons>
+    </ModalContent>
+  );
+};
+
+interface StreamingContentProps {
+  percentage: number;
+  filename?: string;
+  onCancel: () => void;
+}
+
+const StreamingContent: React.FC<StreamingContentProps> = ({
+  percentage,
+  filename,
+  onCancel,
+}) => {
+  const { token } = theme.useToken();
+
+  return (
+    <ModalContent>
+      <ProgressSection>
+        <Progress
+          percent={percentage}
+          status="active"
+          strokeColor={token.colorSuccess}
+          showInfo
+          format={percent => `${Math.round(percent || 0)}%`}
+        />
+        <ProgressText>
+          {filename
+            ? t('Processing export for %s', filename)
+            : t('Processing export for {dashboard_name}_{YYYY-MM-DD}_{HHMMSS}.csv')}
+        </ProgressText>
+      </ProgressSection>
+
+      <ActionButtons>
+        <CancelButton onClick={onCancel}>
+          {t('Cancel')}
+        </CancelButton>
+        <DownloadButton disabled>
+          {t('Download')}
+        </DownloadButton>
+      </ActionButtons>
+    </ModalContent>
+  );
+};
 
 const StreamingExportModal: React.FC<StreamingExportModalProps> = ({
   visible,
   onCancel,
   onRetry,
   progress,
-  exportType,
 }) => {
-  const {
-    rowsProcessed,
-    totalSize,
-    speed,
-    mbPerSecond,
-    elapsedTime,
-    estimatedTimeRemaining,
-    status,
-    downloadUrl,
-    filename,
-    error,
-  } = progress;
+  const { totalRows, rowsProcessed, totalSize, status, downloadUrl, filename, error } =
+    progress;
 
   const getProgressPercentage = (): number => {
-    if (status === 'completed') return 100;
+    if (status === ExportStatus.COMPLETED) return 100;
 
-    // Calculate actual percentage based on rows processed vs total expected rows
-    if (progress.totalRows && progress.totalRows > 0) {
-      // Use rows processed even if it's 0 - this allows for 0% at start
-      const percentage = Math.min(
-        99,
-        (rowsProcessed / progress.totalRows) * 100,
-      );
-      const rounded = Math.round(percentage);
-
-      // 🔍 DEBUG: Log percentage calculation
-      console.log('🎯 FRONTEND MODAL PERCENTAGE:', {
-        rowsProcessed,
-        totalRows: progress.totalRows,
-        rawPercentage: percentage.toFixed(2),
-        roundedPercentage: rounded,
-        status,
-      });
-
-      return rounded;
+    if (totalRows && totalRows > 0) {
+      const percentage = Math.min(99, (rowsProcessed / totalRows) * 100);
+      return Math.round(percentage);
     }
 
-    // Fallback: estimate based on time if we have estimatedTimeRemaining
-    if (estimatedTimeRemaining && elapsedTime > 0) {
-      const totalEstimatedTime = elapsedTime + estimatedTimeRemaining;
-      const percentage = Math.min(
-        95,
-        Math.round((elapsedTime / totalEstimatedTime) * 100),
-      );
-
-      console.log('⏰ FRONTEND MODAL TIME-BASED:', {
-        elapsedTime,
-        estimatedTimeRemaining,
-        totalEstimatedTime,
-        percentage,
-      });
-
-      return percentage;
-    }
-
-    // Default fallback for streaming status
-    const fallback = status === 'streaming' ? 10 : 0;
-    console.log('🔄 FRONTEND MODAL FALLBACK:', {
-      status,
-      fallback,
-      hasRows: rowsProcessed > 0,
-      hasTotalRows: !!progress.totalRows,
-      reasonForFallback: !progress.totalRows ? 'No totalRows' : 'Unknown',
-    });
-
-    return fallback;
+    return status === ExportStatus.STREAMING ? 10 : 0;
   };
-
-  const renderStatusIcon = () => {
-    switch (status) {
-      case 'streaming':
-        return <LoadingOutlined style={{ color: '#1890ff' }} />;
-      case 'completed':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case 'error':
-        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
-      case 'cancelled':
-        return <StopOutlined style={{ color: '#faad14' }} />;
-      default:
-        return <LoadingOutlined style={{ color: '#1890ff' }} />;
-    }
-  };
-
-  const getTitle = () => t('CSV Export');
 
   const handleDownload = () => {
     if (downloadUrl && filename) {
@@ -209,145 +332,53 @@ const StreamingExportModal: React.FC<StreamingExportModalProps> = ({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      onCancel(); // Close modal after download
+      onCancel();
     }
   };
 
-  const renderContent = () => {
-    if (status === 'error') {
-      return (
-        <ModalContent>
-          <StatusIcon>{renderStatusIcon()}</StatusIcon>
-          <Text
-            type="danger"
-            style={{ display: 'block', textAlign: 'center', marginBottom: 16 }}
-          >
-            {error || t('An error occurred during export')}
-          </Text>
-          <ActionButtons>
-            {onRetry && (
-              <Button type="primary" onClick={onRetry}>
-                {t('Retry')}
-              </Button>
-            )}
-            <Button onClick={onCancel}>{t('Close')}</Button>
-          </ActionButtons>
-        </ModalContent>
+  let content;
+  switch (status) {
+    case ExportStatus.ERROR:
+      content = <ErrorContent error={error} onRetry={onRetry} onCancel={onCancel} />;
+      break;
+    case ExportStatus.CANCELLED:
+      content = <CancelledContent onRetry={onRetry} onCancel={onCancel} />;
+      break;
+    case ExportStatus.COMPLETED:
+      content = (
+        <CompletedContent
+          totalRows={totalRows}
+          rowsProcessed={rowsProcessed}
+          totalSize={totalSize}
+          filename={filename}
+          downloadUrl={downloadUrl}
+          onDownload={handleDownload}
+          onCancel={onCancel}
+        />
       );
-    }
-
-    if (status === 'cancelled') {
-      return (
-        <ModalContent>
-          <StatusIcon>{renderStatusIcon()}</StatusIcon>
-          <Text
-            style={{ display: 'block', textAlign: 'center', marginBottom: 16 }}
-          >
-            {t('Export was cancelled')}
-          </Text>
-          <ActionButtons>
-            {onRetry && (
-              <Button type="primary" onClick={onRetry}>
-                {t('Restart Export')}
-              </Button>
-            )}
-            <Button onClick={onCancel}>{t('Close')}</Button>
-          </ActionButtons>
-        </ModalContent>
+      break;
+    default:
+      content = (
+        <StreamingContent
+          percentage={getProgressPercentage()}
+          filename={filename}
+          onCancel={onCancel}
+        />
       );
-    }
-
-    if (status === 'completed') {
-      return (
-        <ModalContent>
-          <StatusIcon>{renderStatusIcon()}</StatusIcon>
-          <Text
-            style={{ display: 'block', textAlign: 'center', marginBottom: 16 }}
-            strong
-          >
-            {t(
-              'Successfully exported %s rows (%s)',
-              formatNumber(rowsProcessed),
-              formatFileSize(totalSize),
-            )}
-          </Text>
-          {filename && (
-            <Text
-              style={{
-                display: 'block',
-                textAlign: 'center',
-                marginBottom: 16,
-              }}
-            >
-              {filename}
-            </Text>
-          )}
-          <ActionButtons>
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={handleDownload}
-              disabled={!downloadUrl}
-            >
-              {t('Download')}
-            </Button>
-            <Button onClick={onCancel}>{t('Close')}</Button>
-          </ActionButtons>
-        </ModalContent>
-      );
-    }
-
-    // Streaming status
-    return (
-      <ModalContent>
-        <ProgressSection>
-          <Progress
-            percent={getProgressPercentage()}
-            status={status === 'streaming' ? 'active' : 'normal'}
-            strokeColor="#52c41a"
-            showInfo
-            format={percent => `${Math.round(percent || 0)}%`}
-          />
-          <Text
-            style={{ display: 'block', textAlign: 'center', marginTop: 16 }}
-          >
-            {filename
-              ? t('Processing export for %s', filename)
-              : t(
-                  'Processing export for {dashboard_name}_{YYYY-MM-DD}_{HHMMSS}.csv',
-                )}
-          </Text>
-        </ProgressSection>
-
-        <ActionButtons>
-          <Button type="text" style={{ color: '#52c41a' }} onClick={onCancel}>
-            {t('Cancel')}
-          </Button>
-          <Button
-            type="default"
-            disabled={status !== 'completed'}
-            icon={<DownloadOutlined />}
-            onClick={handleDownload}
-          >
-            {t('Download')}
-          </Button>
-        </ActionButtons>
-      </ModalContent>
-    );
-  };
+  }
 
   return (
     <Modal
-      title={getTitle()}
+      title={t('CSV Export')}
       open={visible}
       onCancel={onCancel}
       footer={null}
       width={600}
       centered
       maskClosable={false}
-      closable={status !== 'streaming'}
+      closable={status !== ExportStatus.STREAMING}
     >
-      {renderContent()}
+      {content}
     </Modal>
   );
 };
