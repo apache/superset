@@ -34,7 +34,7 @@
     "@docusaurus/theme-mermaid": "^3.8.1",
     "@emotion/core": "^10.0.27",
     "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^10.0.27",
+    "@emotion/styled": "^11.14.1",
     "@mdx-js/react": "^3.1.1",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^8.6.11",
