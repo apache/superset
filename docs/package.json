@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "@docusaurus/core": "3.8.1",
+    "@docusaurus/core": "3.9.1",
     "@docusaurus/plugin-client-redirects": "3.8.1",
     "@docusaurus/preset-classic": "3.8.1",
     "@docusaurus/theme-mermaid": "^3.8.1",
