@@ -779,6 +779,38 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+// Test for checking the issue described in: https://github.com/apache/superset/issues/35132
+test('Maintains stable maxTagCount to prevent click target disappearing in oneLine mode', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+      mode="multiple"
+      oneLine
+    />,
+  );
+
+  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+
+  await userEvent.click(getSelect());
+  expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
+
+  await waitFor(() => {
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  // Close dropdown
+  await type('{esc}');
+
+  expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
 test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
