@@ -20,17 +20,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { styled, t, useTheme, css } from '@superset-ui/core';
-import { MenuProps } from 'src/components/Menu';
+import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   saveFilterBarOrientation,
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
-import { Icons } from 'src/components/Icons';
-import Checkbox from 'src/components/Checkbox';
-import { Dropdown } from 'src/components/Dropdown';
-import { Button } from 'src/components';
-import { Space } from 'src/components/Space';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button, Checkbox, Dropdown } from '@superset-ui/core/components';
+import { Space } from '@superset-ui/core/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
@@ -45,19 +43,8 @@ const StyledMenuLabel = styled.span`
   justify-content: space-between;
 
   .enable-cross-filters-text {
-    padding-left: ${({ theme }) => `${theme.gridUnit * 2}px`};
+    padding-left: ${({ theme }) => `${theme.sizeUnit * 2}px`};
   }
-`;
-
-const StyledCheckbox = styled(Checkbox)`
-  ${({ theme }) => `
-  &,
-  svg {
-    display: inline-block;
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
-  }
-`}
 `;
 
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
@@ -160,14 +147,13 @@ const FilterBarSettings = () => {
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
-        <StyledCheckbox
-          className="enable-cross-filters"
+        <Checkbox
+          name="enable-cross-filters"
           checked={crossFiltersEnabled}
-          onChange={checked => setCrossFiltersEnabled(checked || false)}
-        />{' '}
-        <span className="enable-cross-filters-text">
+          onChange={e => setCrossFiltersEnabled(e.target.checked)}
+        >
           {t('Enable cross-filtering')}
-        </span>
+        </Checkbox>
       </StyledMenuLabel>
     ),
     [crossFiltersEnabled],
@@ -204,6 +190,7 @@ const FilterBarSettings = () => {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
+        className: 'filter-bar-orientation-submenu',
         children: [
           {
             key: FilterBarOrientation.Vertical,
@@ -213,10 +200,7 @@ const FilterBarSettings = () => {
                 {selectedFilterBarOrientation ===
                   FilterBarOrientation.Vertical && (
                   <Icons.CheckOutlined
-                    iconColor={theme.colors.primary.base}
-                    css={css`
-                      vertical-align: -${theme.gridUnit * 0.03125}em;
-                    `}
+                    iconColor={theme.colorPrimary}
                     iconSize="m"
                   />
                 )}
@@ -266,9 +250,21 @@ const FilterBarSettings = () => {
           selectedKeys: [selectedFilterBarOrientation],
         }}
         trigger={['click']}
+        popupRender={menu => (
+          <div
+            css={css`
+              .filter-bar-orientation-submenu.ant-dropdown-menu-submenu-selected
+                > .ant-dropdown-menu-submenu-title {
+                color: inherit;
+              }
+            `}
+          >
+            {menu}
+          </div>
+        )}
       >
         <Button
-          type="link"
+          buttonStyle="link"
           css={css`
             padding: 0;
           `}

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
-import { TableInstance, Row } from 'react-table';
+import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
@@ -33,13 +33,14 @@ interface CardCollectionProps {
 const CardContainer = styled.div<{ showThumbnails?: boolean }>`
   ${({ theme, showThumbnails }) => `
     display: grid;
-    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
+    justify-content: start;
+    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
-    margin-top: ${theme.gridUnit * -6}px;
+    margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
-        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
+        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
+        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
   `}
 `;
@@ -47,7 +48,7 @@ const CardContainer = styled.div<{ showThumbnails?: boolean }>`
 const CardWrapper = styled.div`
   border: 2px solid transparent;
   &.card-selected {
-    border: 2px solid ${({ theme }) => theme.colors.primary.base};
+    border: 2px solid ${({ theme }) => theme.colorPrimary};
   }
   &.bulk-select {
     cursor: pointer;
@@ -64,7 +65,7 @@ export default function CardCollection({
 }: CardCollectionProps) {
   function handleClick(
     event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
-    toggleRowSelected: Row['toggleRowSelected'],
+    toggleRowSelected: (value?: boolean) => void,
   ) {
     if (bulkSelectEnabled) {
       event.preventDefault();
@@ -88,11 +89,18 @@ export default function CardCollection({
           return (
             <CardWrapper
               className={cx({
-                'card-selected': bulkSelectEnabled && row.isSelected,
+                'card-selected':
+                  bulkSelectEnabled &&
+                  (row as Row & UseRowSelectRowProps<any>).isSelected,
                 'bulk-select': bulkSelectEnabled,
               })}
               key={row.id}
-              onClick={e => handleClick(e, row.toggleRowSelected)}
+              onClick={e =>
+                handleClick(
+                  e,
+                  (row as Row & UseRowSelectRowProps<any>).toggleRowSelected,
+                )
+              }
               role="none"
             >
               {renderCard({ ...row.original, loading })}

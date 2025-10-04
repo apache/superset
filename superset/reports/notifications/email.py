@@ -22,10 +22,11 @@ from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
 import nh3
+from flask import current_app
 from flask_babel import gettext as __
 from pytz import timezone
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
@@ -94,7 +95,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     @staticmethod
     def _get_smtp_domain() -> str:
-        return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
+        return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
         call_to_action = self._get_call_to_action()
@@ -202,7 +203,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_subject(self) -> str:
         return __(
             "%(prefix)s %(title)s",
-            prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+            prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
             title=self._name,
         )
 
@@ -214,7 +215,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return self.now.strftime(name)
 
     def _get_call_to_action(self) -> str:
-        return __(app.config["EMAIL_REPORTS_CTA"])
+        return __(current_app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
@@ -240,7 +241,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 to,
                 subject,
                 content.body,
-                app.config,
+                current_app.config,
                 files=[],
                 data=content.data,
                 pdf=content.pdf,

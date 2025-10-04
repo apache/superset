@@ -127,6 +127,11 @@
   - any-glob-to-any-file:
     - 'superset/translations/es/**'
 
+"i18n:persian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/fa/**'
+
 ############################################
 # Sub-projects and monorepo packages
 ############################################

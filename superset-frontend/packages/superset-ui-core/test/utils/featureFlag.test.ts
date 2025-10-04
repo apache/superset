@@ -18,7 +18,7 @@
  */
 import * as uiCore from '@superset-ui/core';
 
-it('initializes feature flags', () => {
+test('initializes feature flags', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
@@ -26,7 +26,7 @@ it('initializes feature flags', () => {
   expect(window.featureFlags).toEqual({});
 });
 
-it('initializes feature flags with predefined values', () => {
+test('initializes feature flags with predefined values', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
@@ -37,7 +37,7 @@ it('initializes feature flags with predefined values', () => {
   expect(window.featureFlags).toEqual(featureFlags);
 });
 
-it('does nothing if feature flags are already initialized', () => {
+test('does nothing if feature flags are already initialized', () => {
   const featureFlags = { DRILL_BY: false };
   Object.defineProperty(window, 'featureFlags', {
     value: featureFlags,
@@ -46,7 +46,7 @@ it('does nothing if feature flags are already initialized', () => {
   expect(window.featureFlags).toEqual(featureFlags);
 });
 
-it('returns false and raises console error if feature flags have not been initialized', () => {
+test('returns false and raises console error if feature flags have not been initialized', () => {
   const logging = jest.spyOn(uiCore.logging, 'error');
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
@@ -56,14 +56,14 @@ it('returns false and raises console error if feature flags have not been initia
   expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
 
-it('returns false for unset feature flag', () => {
+test('returns false for unset feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {},
   });
   expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
 });
 
-it('returns true for set feature flag', () => {
+test('returns true for set feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {
       DRILL_BY: true,

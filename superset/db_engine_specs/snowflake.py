@@ -27,7 +27,7 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
@@ -82,6 +82,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine_name = "Snowflake"
     force_column_alias_quotes = True
     max_column_name_length = 256
+
+    # Snowflake doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
 
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
@@ -394,9 +397,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             else:
                 with open(auth_params["privatekey_path"], "rb") as key_temp:
                     key = key_temp.read()
+            privatekey_pass = auth_params.get("privatekey_pass", None)
+            password = privatekey_pass.encode() if privatekey_pass is not None else None
             p_key = serialization.load_pem_private_key(
                 key,
-                password=auth_params["privatekey_pass"].encode(),
+                password=password,
                 backend=default_backend(),
             )
             pkb = p_key.private_bytes(
@@ -406,9 +411,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             )
             connect_args["private_key"] = pkb
         else:
-            allowed_extra_auths = current_app.config[
-                "ALLOWED_EXTRA_AUTHENTICATIONS"
-            ].get("snowflake", {})
+            allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
+                "snowflake", {}
+            )
             if auth_method in allowed_extra_auths:
                 snowflake_auth = allowed_extra_auths.get(auth_method)
             else:

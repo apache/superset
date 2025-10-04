@@ -100,6 +100,7 @@ fetchMock.get(usersEndpoint, {
 fetchMock.delete(roleEndpoint, {});
 fetchMock.put(roleEndpoint, {});
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RolesList', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
@@ -124,12 +125,12 @@ describe('RolesList', () => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     await renderAndWait();
     expect(await screen.findByText('List Roles')).toBeInTheDocument();
   });
 
-  it('fetches roles on load', async () => {
+  test('fetches roles on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const calls = fetchMock.calls(rolesEndpoint);
@@ -137,24 +138,22 @@ describe('RolesList', () => {
     });
   });
 
-  it('fetches permissions and users on load', async () => {
+  test('fetches permissions on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const permissionCalls = fetchMock.calls(permissionsEndpoint);
-      const userCalls = fetchMock.calls(usersEndpoint);
       expect(permissionCalls.length).toBeGreaterThan(0);
-      expect(userCalls.length).toBeGreaterThan(0);
     });
   });
 
-  it('renders filters options', async () => {
+  test('renders filters options', async () => {
     await renderAndWait();
 
     const typeFilter = screen.queryAllByTestId('filters-select');
-    expect(typeFilter).toHaveLength(3);
+    expect(typeFilter).toHaveLength(4);
   });
 
-  it('renders correct list columns', async () => {
+  test('renders correct list columns', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
@@ -167,7 +166,7 @@ describe('RolesList', () => {
     expect(actionsColumn).toBeInTheDocument();
   });
 
-  it('opens add modal when Add Role button is clicked', async () => {
+  test('opens add modal when Add Role button is clicked', async () => {
     await renderAndWait();
 
     const addButton = screen.getByTestId('add-role-button');
@@ -176,7 +175,7 @@ describe('RolesList', () => {
     expect(screen.queryByTestId('Add Role-modal')).toBeInTheDocument();
   });
 
-  it('open duplicate modal when duplicate button is clicked', async () => {
+  test('open duplicate modal when duplicate button is clicked', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
@@ -191,7 +190,7 @@ describe('RolesList', () => {
     ).toBeInTheDocument();
   });
 
-  it('open edit modal when edit button is clicked', async () => {
+  test('open edit modal when edit button is clicked', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');

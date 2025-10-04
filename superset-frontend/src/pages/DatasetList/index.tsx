@@ -34,29 +34,34 @@ import {
 } from 'src/views/CRUD/utils';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { DatasourceModal } from 'src/components/Datasource';
-import DeleteModal from 'src/components/DeleteModal';
+import {
+  ConfirmStatusChange,
+  CertifiedBadge,
+  DeleteModal,
+  Tooltip,
+  InfoTooltip,
+  DatasetTypeLabel,
+  Loading,
+  List,
+} from '@superset-ui/core/components';
+import { DatasourceModal, GenericLink } from 'src/components';
+import {
+  FacePile,
+  ImportModal as ImportModelsModal,
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
+import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import { DatasetTypeLabel } from 'src/components/Label';
-import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
-import FacePile from 'src/components/FacePile';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import InfoTooltip from 'src/components/InfoTooltip';
-import ImportModelsModal from 'src/components/ImportModal/index';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
 
 import {
   PAGE_SIZE,
@@ -66,8 +71,8 @@ import {
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -77,31 +82,32 @@ const DatasetDeleteRelatedExtension = extensionsRegistry.get(
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const Actions = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIcon};
 
     .disabled {
       svg,
       i {
         &:hover {
           path {
-            fill: ${theme.colors.grayscale.light1};
+            fill: ${theme.colorText};
           }
         }
       }
-      color: ${theme.colors.grayscale.light1};
-      .antd5-menu-item:hover {
+      color: ${theme.colorTextDisabled};
+      .ant-menu-item:hover {
         cursor: default;
       }
       &::after {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextDisabled};
       }
     }
   `}
@@ -342,6 +348,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        id: 'table_name',
       },
       {
         Cell: ({
@@ -352,22 +359,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'md',
+        size: 'sm',
+        id: 'kind',
       },
       {
         Header: t('Database'),
         accessor: 'database.database_name',
-        size: 'lg',
+        size: 'xl',
+        id: 'database.database_name',
       },
       {
         Header: t('Schema'),
         accessor: 'schema',
         size: 'lg',
+        id: 'schema',
       },
       {
         accessor: 'database',
         disableSortBy: true,
         hidden: true,
+        id: 'database',
       },
       {
         Cell: ({
@@ -392,11 +403,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         accessor: 'sql',
         hidden: true,
         disableSortBy: true,
+        id: 'sql',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -456,7 +469,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
                         )
                   }
-                  placement="bottomRight"
+                  placement="bottom"
                 >
                   <span
                     role="button"
@@ -480,7 +493,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.CopyOutlined />
+                    <Icons.CopyOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -495,12 +508,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
 
-  const filterTypes: Filters = useMemo(
+  const filterTypes: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -536,6 +550,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Schema'),
@@ -552,6 +567,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Owner'),
@@ -572,6 +588,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Certified'),
@@ -605,6 +622,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [user],
@@ -617,6 +635,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr: Array<ButtonProps> = [];
 
+  if (canCreate) {
+    buttonArr.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import datasets')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined
+            iconColor={theme.colorPrimary}
+            data-test="import-button"
+            iconSize="l"
+          />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
+    });
+  }
+
   if (canDelete || canExport) {
     buttonArr.push({
       name: t('Bulk select'),
@@ -627,39 +665,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   if (canCreate) {
     buttonArr.push({
-      name: (
-        <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              vertical-align: text-top;
-            `}
-          />
-          {t('Dataset')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dataset'),
       onClick: () => {
         history.push('/dataset/add/');
       },
       buttonStyle: 'primary',
-    });
-
-    buttonArr.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import datasets')}
-          placement="bottomRight"
-        >
-          <Icons.DownloadOutlined
-            iconColor={theme.colors.primary.dark1}
-            data-test="import-button"
-          />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDatasetImportModal,
     });
   }
 
@@ -755,67 +766,85 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {datasetCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
-                  <ul>
-                    {datasetCurrentlyDeleting.dashboards.result
-                      .slice(0, 10)
-                      .map(
-                        (
-                          result: { id: Key | null | undefined; title: string },
-                          index: number,
-                        ) => (
-                          <li key={result.id}>
-                            <a
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={datasetCurrentlyDeleting.dashboards.result.slice(
+                      0,
+                      10,
+                    )}
+                    renderItem={(result: {
+                      id: Key | null | undefined;
+                      title: string;
+                    }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
                               href={`/superset/dashboard/${result.id}`}
                               target="_atRiskItem"
                             >
                               {result.title}
-                            </a>
-                          </li>
-                        ),
-                      )}
-                    {datasetCurrentlyDeleting.dashboards.result.length > 10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          datasetCurrentlyDeleting.dashboards.result.length -
-                            10,
-                        )}
-                      </li>
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      datasetCurrentlyDeleting.dashboards.result.length >
+                        10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            datasetCurrentlyDeleting.dashboards.result.length -
+                              10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
               {datasetCurrentlyDeleting.charts.count >= 1 && (
                 <>
                   <h4>{t('Affected Charts')}</h4>
-                  <ul>
-                    {datasetCurrentlyDeleting.charts.result.slice(0, 10).map(
-                      (
-                        result: {
-                          id: Key | null | undefined;
-                          slice_name: string;
-                        },
-                        index: number,
-                      ) => (
-                        <li key={result.id}>
-                          <a
-                            href={`/explore/?slice_id=${result.id}`}
-                            target="_atRiskItem"
-                          >
-                            {result.slice_name}
-                          </a>
-                        </li>
-                      ),
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={datasetCurrentlyDeleting.charts.result.slice(
+                      0,
+                      10,
                     )}
-                    {datasetCurrentlyDeleting.charts.result.length > 10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          datasetCurrentlyDeleting.charts.result.length - 10,
-                        )}
-                      </li>
+                    renderItem={(result: {
+                      id: Key | null | undefined;
+                      slice_name: string;
+                    }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
+                              href={`/explore/?slice_id=${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.slice_name}
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      datasetCurrentlyDeleting.charts.result.length > 10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            datasetCurrentlyDeleting.charts.result.length - 10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
               {DatasetDeleteRelatedExtension && (

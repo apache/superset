@@ -17,12 +17,17 @@
  * under the License.
  */
 import { t, customTimeRangeDecode } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Col, Row } from 'src/components';
-import { InputNumber } from 'src/components/Input';
-import { DatePicker } from 'src/components/DatePicker';
-import { Radio } from 'src/components/Radio';
-import Select from 'src/components/Select/Select';
+import {
+  InfoTooltip,
+  DatePicker,
+  Select,
+  Radio,
+  AntdThemeProvider,
+  Col,
+  Row,
+  InputNumber,
+  Loading,
+} from '@superset-ui/core/components';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -37,9 +42,7 @@ import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import Loading from 'src/components/Loading';
 import { Dayjs } from 'dayjs';
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import { useLocale } from 'src/hooks/useLocale';
 
 export function CustomFrame(props: FrameComponentProps) {
@@ -117,14 +120,14 @@ export function CustomFrame(props: FrameComponentProps) {
         <Row gutter={24}>
           <Col span={12}>
             <div className="control-label">
-              {t('START (INCLUSIVE)')}{' '}
-              <InfoTooltipWithTrigger
+              {t('Start (inclusive)')}{' '}
+              <InfoTooltip
                 tooltip={t('Start date included in time range')}
                 placement="right"
               />
             </div>
             <Select
-              ariaLabel={t('START (INCLUSIVE)')}
+              ariaLabel={t('Start (inclusive)')}
               options={SINCE_MODE_OPTIONS}
               value={sinceMode}
               onChange={(value: string) => onChange('sinceMode', value)}
@@ -176,14 +179,14 @@ export function CustomFrame(props: FrameComponentProps) {
           </Col>
           <Col span={12}>
             <div className="control-label">
-              {t('END (EXCLUSIVE)')}{' '}
-              <InfoTooltipWithTrigger
+              {t('End (exclusive)')}{' '}
+              <InfoTooltip
                 tooltip={t('End date excluded from time range')}
                 placement="right"
               />
             </div>
             <Select
-              ariaLabel={t('END (EXCLUSIVE)')}
+              ariaLabel={t('End (exclusive)')}
               options={UNTIL_MODE_OPTIONS}
               value={untilMode}
               onChange={(value: string) => onChange('untilMode', value)}

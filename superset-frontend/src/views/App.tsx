@@ -26,27 +26,26 @@ import {
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { css } from '@superset-ui/core';
-import { GlobalStyles } from 'src/GlobalStyles';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import Loading from 'src/components/Loading';
-import { Layout } from 'src/components';
+import { Layout, Loading } from '@superset-ui/core/components';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { ErrorBoundary } from 'src/components';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
-import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
 setupApp();
 setupPlugins();
-setupExtensions();
+setupCodeOverrides();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
@@ -77,7 +76,7 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
-      <GlobalStyles />
+      <ExtensionsStartup />
       <Menu
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
@@ -86,20 +85,22 @@ const App = () => (
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
           <Route path={path} key={path}>
             <Suspense fallback={<Fallback />}>
-              <Layout.Content
-                css={css`
-                  display: flex;
-                  flex-direction: column;
-                `}
-              >
-                <ErrorBoundary
+              <Layout>
+                <Layout.Content
                   css={css`
-                    margin: 16px;
+                    display: flex;
+                    flex-direction: column;
                   `}
                 >
-                  <Component user={bootstrapData.user} {...props} />
-                </ErrorBoundary>
-              </Layout.Content>
+                  <ErrorBoundary
+                    css={css`
+                      margin: 16px;
+                    `}
+                  >
+                    <Component user={bootstrapData.user} {...props} />
+                  </ErrorBoundary>
+                </Layout.Content>
+              </Layout>
             </Suspense>
           </Route>
         ))}

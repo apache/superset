@@ -18,8 +18,8 @@
  */
 import { memo } from 'react';
 import { css, useTheme } from '@superset-ui/core';
-import Popover from 'src/components/Popover';
-import { Icons } from 'src/components/Icons';
+import { Popover } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 import ColumnConfigPopover, {
   ColumnConfigPopoverProps,
@@ -34,59 +34,58 @@ export default memo(function ColumnConfigItem({
   width,
   height,
 }: ColumnConfigItemProps) {
-  const { colors, gridUnit } = useTheme();
-  const caretWidth = gridUnit * 6;
+  const theme = useTheme();
+  const { sizeUnit } = theme;
+  const caretWidth = sizeUnit * 6;
 
   const outerContainerStyle = css({
     display: 'flex',
     alignItems: 'center',
     cursor: 'pointer',
-    padding: `${gridUnit}px ${2 * gridUnit}px`,
-    borderBottom: `1px solid ${colors.grayscale.light2}`,
+    padding: `${sizeUnit}px ${2 * sizeUnit}px`,
+    borderBottom: `1px solid ${theme.colorBorderSecondary}`,
     position: 'relative',
     paddingRight: `${caretWidth}px`,
     ':last-child': {
       borderBottom: 'none',
     },
     ':hover': {
-      background: colors.grayscale.light4,
+      background: theme.colorFillTertiary,
     },
     '> .fa': {
-      color: colors.grayscale.light2,
+      color: theme.colorTextTertiary,
     },
     ':hover > .fa': {
-      color: colors.grayscale.light1,
+      color: theme.colorTextSecondary,
     },
   });
 
   const nameContainerStyle = css({
     display: 'flex',
     alignItems: 'center',
-    paddingLeft: column.isChildColumn ? gridUnit * 7 : gridUnit,
+    paddingLeft: column.isChildColumn ? sizeUnit * 7 : sizeUnit,
     flex: 1,
   });
 
   const nameTextStyle = css({
-    paddingLeft: gridUnit,
+    paddingLeft: sizeUnit,
   });
 
   const iconContainerStyle = css({
     display: 'flex',
     alignItems: 'center',
     position: 'absolute',
-    right: 3 * gridUnit,
-    top: 3 * gridUnit,
+    right: 3 * sizeUnit,
+    top: 3 * sizeUnit,
     transform: 'translateY(-50%)',
-    gap: gridUnit,
-    color: colors.grayscale.light1,
+    gap: sizeUnit,
+    color: theme.colorTextSecondary,
   });
 
-  const theme = useTheme();
-
   const caretIconStyle = css({
-    fontSize: `${theme.typography.sizes.s}px`,
-    fontWeight: theme.typography.weights.normal,
-    color: theme.colors.grayscale.light1,
+    fontSize: `${theme.fontSizeSM}px`,
+    fontWeight: theme.fontWeightNormal,
+    color: theme.colorIcon,
   });
 
   return (
@@ -101,8 +100,8 @@ export default memo(function ColumnConfigItem({
       )}
       trigger="click"
       placement="right"
-      overlayInnerStyle={{ width, height }}
-      overlayClassName="column-config-popover"
+      style={{ width, height }}
+      className="column-config-popover"
     >
       <div css={outerContainerStyle}>
         <div css={nameContainerStyle}>
@@ -114,10 +113,10 @@ export default memo(function ColumnConfigItem({
           {column.isChildColumn && column.config?.visible === false && (
             <Icons.EyeInvisibleOutlined
               iconSize="s"
-              iconColor={colors.grayscale.base}
+              iconColor={theme.colorIcon}
             />
           )}
-          <Icons.CaretRightOutlined css={caretIconStyle} />
+          <Icons.RightOutlined css={caretIconStyle} />
         </div>
       </div>
     </Popover>

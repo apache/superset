@@ -18,7 +18,7 @@ import logging
 import re
 from typing import Any, Optional
 
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
@@ -63,7 +63,7 @@ class ValidateSQLCommand(BaseCommand):
         catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
         try:
-            timeout = current_app.config["SQLLAB_VALIDATION_TIMEOUT"]
+            timeout = app.config["SQLLAB_VALIDATION_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 errors = self._validator.validate(sql, catalog, schema, self._model)
@@ -94,7 +94,7 @@ class ValidateSQLCommand(BaseCommand):
             raise DatabaseNotFoundError()
 
         spec = self._model.db_engine_spec
-        validators_by_engine = current_app.config["SQL_VALIDATORS_BY_ENGINE"]
+        validators_by_engine = app.config["SQL_VALIDATORS_BY_ENGINE"]
         if not validators_by_engine or spec.engine not in validators_by_engine:
             raise NoValidatorConfigFoundError(
                 SupersetError(

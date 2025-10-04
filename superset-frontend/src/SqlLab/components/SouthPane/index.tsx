@@ -19,14 +19,17 @@
 import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import Label from 'src/components/Label';
-import { Icons } from 'src/components/Icons';
+import { Label } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -36,8 +39,6 @@ import {
 import Results from './Results';
 import TablePreview from '../TablePreview';
 
-const TAB_HEIGHT = 130;
-
 /*
     editorQueries are queries executed by users passed from SqlEditor component
     dataPreviewQueries are all queries executed for preview of table data (from SqlEditorLeft)
@@ -45,18 +46,18 @@ const TAB_HEIGHT = 130;
 export interface SouthPaneProps {
   queryEditorId: string;
   latestQueryId?: string;
-  height: number;
   displayLimit: number;
   defaultQueryLimit: number;
 }
 
-type StyledPaneProps = {
-  height: number;
+const TABS_KEYS = {
+  RESULTS: 'Results',
+  HISTORY: 'History',
 };
 
-const StyledPane = styled.div<StyledPaneProps>`
+const StyledPane = styled.div`
   width: 100%;
-  height: ${props => props.height}px;
+  height: 100%;
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -75,11 +76,11 @@ const StyledPane = styled.div<StyledPaneProps>`
   }
   .tab-content {
     .alert {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
     button.fetch {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -87,12 +88,16 @@ const StyledPane = styled.div<StyledPaneProps>`
 const SouthPane = ({
   queryEditorId,
   latestQueryId,
-  height,
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
+  const { id, tabViewId } = useQueryEditor(queryEditorId, ['tabViewId']);
+  const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useDispatch();
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
+  const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -106,11 +111,8 @@ const SouthPane = ({
     ) ?? 'Results';
 
   const pinnedTables = useMemo(
-    () =>
-      tables.filter(
-        ({ queryEditorId: qeId }) => String(queryEditorId) === qeId,
-      ),
-    [queryEditorId, tables],
+    () => tables.filter(({ queryEditorId: qeId }) => String(editorId) === qeId),
+    [editorId, tables],
   );
   const pinnedTableKeys = useMemo(
     () =>
@@ -122,7 +124,6 @@ const SouthPane = ({
       ),
     [pinnedTables],
   );
-  const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
@@ -140,68 +141,84 @@ const SouthPane = ({
     [dispatch, pinnedTables],
   );
 
-  return offline ? (
-    <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-      {STATUS_OPTIONS_LOCALIZED.offline}
-    </Label>
-  ) : (
-    <StyledPane
-      data-test="south-pane"
-      className="SouthPane"
-      height={height}
-      ref={southPaneRef}
-    >
+  if (offline) {
+    return (
+      <Label type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
+        {STATUS_OPTIONS_LOCALIZED.offline}
+      </Label>
+    );
+  }
+
+  const tabItems = [
+    {
+      key: TABS_KEYS.RESULTS,
+      label: t('Results'),
+      children: (
+        <Results
+          latestQueryId={latestQueryId}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      ),
+      closable: false,
+    },
+    {
+      key: TABS_KEYS.HISTORY,
+      label: t('Query history'),
+      children: (
+        <QueryHistory
+          queryEditorId={queryEditorId}
+          displayLimit={displayLimit}
+          latestQueryId={latestQueryId}
+        />
+      ),
+      closable: false,
+    },
+    ...pinnedTables.map(({ id, dbId, catalog, schema, name }) => ({
+      key: pinnedTableKeys[id],
+      label: (
+        <>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin-bottom: ${theme.sizeUnit * 0.5}px;
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+          {`${schema}.${decodeURIComponent(name)}`}
+        </>
+      ),
+      children: (
+        <TablePreview
+          dbId={dbId}
+          catalog={catalog}
+          schema={schema}
+          tableName={name}
+        />
+      ),
+    })),
+    ...contributions.map(contribution => ({
+      key: contribution.id,
+      label: contribution.name,
+      children: getView(contribution.id),
+      forceRender: true,
+      closable: false,
+    })),
+  ];
+
+  return (
+    <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"
         onChange={switchTab}
         id={nanoid(11)}
-        fullWidth={false}
         animated={false}
         onEdit={removeTable}
         hideAdd
-      >
-        <Tabs.TabPane tab={t('Results')} key="Results" closable={false}>
-          <Results
-            height={innerTabContentHeight}
-            latestQueryId={latestQueryId}
-            displayLimit={displayLimit}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t('Query history')} key="History" closable={false}>
-          <QueryHistory
-            queryEditorId={queryEditorId}
-            displayLimit={displayLimit}
-            latestQueryId={latestQueryId}
-          />
-        </Tabs.TabPane>
-        {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
-          <Tabs.TabPane
-            tab={
-              <>
-                <Icons.InsertRowAboveOutlined
-                  iconSize="l"
-                  css={css`
-                    margin-bottom: ${theme.gridUnit * 0.5}px;
-                    margin-right: ${theme.gridUnit}px;
-                  `}
-                />
-                {`${schema}.${decodeURIComponent(name)}`}
-              </>
-            }
-            key={pinnedTableKeys[id]}
-          >
-            <TablePreview
-              dbId={dbId}
-              catalog={catalog}
-              schema={schema}
-              tableName={name}
-            />
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
+        items={tabItems}
+      />
     </StyledPane>
   );
 };

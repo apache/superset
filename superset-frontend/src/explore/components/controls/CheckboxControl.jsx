@@ -19,8 +19,8 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { styled, css } from '@superset-ui/core';
+import { Checkbox } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
-import Checkbox from '../../../components/Checkbox';
 
 const propTypes = {
   value: PropTypes.bool,
@@ -36,10 +36,13 @@ const defaultProps = {
 const CheckBoxControlWrapper = styled.div`
   ${({ theme }) => css`
     .ControlHeader label {
-      color: ${theme.colors.grayscale.dark1};
+      color: ${theme.colorText};
     }
-    span[role='checkbox'] {
-      padding-right: ${theme.gridUnit * 2}px;
+    span:has(label) {
+      padding-right: ${theme.sizeUnit * 2}px;
+    }
+    .ant-checkbox-wrapper {
+      font-size: ${theme.fontSizeSM}px;
     }
   `}
 `;

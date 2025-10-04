@@ -31,31 +31,31 @@ import {
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
 
-describe('EchartsTimeseries transformProps', () => {
-  const formData: SqlaFormData = {
-    colorScheme: 'bnbColors',
-    datasource: '3__table',
-    granularity_sqla: 'ds',
-    metric: 'sum__num',
-    groupby: ['foo', 'bar'],
-    viz_type: 'my_viz',
-  };
-  const queriesData = [
-    {
-      data: [
-        { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
-        { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
-      ],
-    },
-  ];
-  const chartPropsConfig = {
-    formData,
-    width: 800,
-    height: 600,
-    queriesData,
-    theme: supersetTheme,
-  };
+const formData: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'sum__num',
+  groupby: ['foo', 'bar'],
+  viz_type: 'my_viz',
+};
+const queriesData = [
+  {
+    data: [
+      { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
+      { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
+    ],
+  },
+];
+const chartPropsConfig = {
+  formData,
+  width: 800,
+  height: 600,
+  queriesData,
+  theme: supersetTheme,
+};
 
+describe('EchartsTimeseries transformProps', () => {
   it('should transform chart props for viz', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
@@ -240,21 +240,12 @@ describe('EchartsTimeseries transformProps', () => {
           },
         ],
       },
-      'My Timeseries': [
-        {
-          key: 'My Line',
-          values: [
-            {
-              x: 10000,
-              y: 11000,
-            },
-            {
-              x: 20000,
-              y: 21000,
-            },
-          ],
-        },
-      ],
+      'My Timeseries': {
+        records: [
+          { x: 10000, y: 11000 },
+          { x: 20000, y: 21000 },
+        ],
+      },
     };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
@@ -274,12 +265,12 @@ describe('EchartsTimeseries transformProps', () => {
       expect.objectContaining({
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
-            data: ['San Francisco', 'New York', 'My Line'],
+            data: ['San Francisco', 'New York', 'My Timeseries'],
           }),
           series: expect.arrayContaining([
             expect.objectContaining({
               type: 'line',
-              id: 'My Line',
+              id: 'My Timeseries',
             }),
             expect.objectContaining({
               type: 'line',
@@ -632,5 +623,103 @@ describe('Does transformProps transform series correctly', () => {
       'foo1, bar1': ['foo1', 'bar1'],
       'foo2, bar2': ['foo2', 'bar2'],
     });
+  });
+});
+
+describe('legend sorting', () => {
+  const legendSortData = [
+    {
+      data: [
+        {
+          Milton: 40,
+          'San Francisco': 1,
+          'New York': 2,
+          Boston: 1,
+          __timestamp: 599616000000,
+        },
+        {
+          Milton: 20,
+          'San Francisco': 3,
+          'New York': 4,
+          Boston: 1,
+          __timestamp: 599916000000,
+        },
+        {
+          Milton: 60,
+          'San Francisco': 5,
+          'New York': 8,
+          Boston: 6,
+          __timestamp: 600216000000,
+        },
+        {
+          Milton: 10,
+          'San Francisco': 2,
+          'New York': 7,
+          Boston: 2,
+          __timestamp: 600516000000,
+        },
+      ],
+    },
+  ];
+
+  const getChartProps = (formData: Partial<SqlaFormData>) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: { ...formData },
+      queriesData: legendSortData,
+    });
+
+  it('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+      sortSeriesType: 'min',
+      sortSeriesAscending: true,
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'San Francisco',
+      'Boston',
+      'New York',
+      'Milton',
+    ]);
+  });
+
+  it('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+      sortSeriesType: 'min',
+      sortSeriesAscending: true,
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'Boston',
+      'Milton',
+      'New York',
+      'San Francisco',
+    ]);
+  });
+
+  it('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+      sortSeriesType: 'min',
+      sortSeriesAscending: true,
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'San Francisco',
+      'New York',
+      'Milton',
+      'Boston',
+    ]);
   });
 });

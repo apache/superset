@@ -54,6 +54,7 @@ class TablesDatabaseCommand(BaseCommand):
 
     def run(self) -> dict[str, Any]:
         self.validate()
+        self._catalog_name = self._catalog_name or self._model.get_default_catalog()
         try:
             tables = security_manager.get_datasources_accessible_by_user(
                 database=self._model,
@@ -89,6 +90,25 @@ class TablesDatabaseCommand(BaseCommand):
                         force=self._force,
                         cache=self._model.table_cache_enabled,
                         cache_timeout=self._model.table_cache_timeout,
+                    )
+                ),
+            )
+
+            # Get materialized views if the database supports them
+            materialized_views = security_manager.get_datasources_accessible_by_user(
+                database=self._model,
+                catalog=self._catalog_name,
+                schema=self._schema_name,
+                datasource_names=sorted(
+                    DatasourceName(table.table, table.schema, table.catalog)
+                    for table in (
+                        self._model.get_all_materialized_view_names_in_schema(
+                            catalog=self._catalog_name,
+                            schema=self._schema_name,
+                            force=self._force,
+                            cache=self._model.table_cache_enabled,
+                            cache_timeout=self._model.table_cache_timeout,
+                        )
                     )
                 ),
             )
@@ -130,11 +150,21 @@ class TablesDatabaseCommand(BaseCommand):
                         "type": "view",
                     }
                     for view in views
+                ]
+                + [
+                    {
+                        "value": mv.table,
+                        "type": "materialized_view",
+                    }
+                    for mv in materialized_views
                 ],
                 key=lambda item: item["value"],
             )
 
-            payload = {"count": len(tables) + len(views), "result": options}
+            payload = {
+                "count": len(tables) + len(views) + len(materialized_views),
+                "result": options,
+            }
             return payload
         except SupersetException:
             raise

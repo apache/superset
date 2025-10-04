@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 import { getMetricOffsetsMap, isTimeComparison } from './utils';
+import { TIME_COMPARISON_SEPARATOR } from './utils/constants';
 
 export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   formData,
@@ -35,52 +36,66 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   const columns = ensureIsArray(
     queryObject.series_columns || queryObject.columns,
   );
+  const timeOffsets = ensureIsArray(formData.time_compare);
   const { truncate_metric } = formData;
   const xAxisLabel = getXAxisLabel(formData);
+  const isTimeComparisonValue = isTimeComparison(formData, queryObject);
+
   // remove or rename top level of column name(metric name) in the MultiIndex when
-  // 1) only 1 metric
-  // 2) dimension exist
-  // 3) xAxis exist
-  // 4) time comparison exist, and comparison type is "actual values"
-  // 5) truncate_metric in form_data and truncate_metric is true
+  // 1) at least 1 metric
+  // 2) xAxis exist
+  // 3a) isTimeComparisonValue
+  // 3b-1) dimension exist or multiple time shift metrics exist
+  // 3b-2) truncate_metric in form_data and truncate_metric is true
   if (
-    metrics.length === 1 &&
-    columns.length > 0 &&
+    metrics.length > 0 &&
     xAxisLabel &&
-    !(
-      // todo: we should provide an approach to handle derived metrics
-      (
-        isTimeComparison(formData, queryObject) &&
-        [
-          ComparisonType.Difference,
-          ComparisonType.Ratio,
-          ComparisonType.Percentage,
-        ].includes(formData.comparison_type)
-      )
-    ) &&
-    truncate_metric !== undefined &&
-    !!truncate_metric
+    (isTimeComparisonValue ||
+      ((columns.length > 0 || timeOffsets.length > 1) &&
+        truncate_metric !== undefined &&
+        !!truncate_metric))
   ) {
     const renamePairs: [string, string | null][] = [];
-
     if (
       // "actual values" will add derived metric.
       // we will rename the "metric" from the metricWithOffset label
       // for example: "count__1 year ago" =>	"1 year ago"
-      isTimeComparison(formData, queryObject) &&
-      formData.comparison_type === ComparisonType.Values
+      isTimeComparisonValue
     ) {
       const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
       const timeOffsets = ensureIsArray(formData.time_compare);
-      [...metricOffsetMap.keys()].forEach(metricWithOffset => {
-        const offsetLabel = timeOffsets.find(offset =>
-          metricWithOffset.includes(offset),
-        );
-        renamePairs.push([metricWithOffset, offsetLabel]);
-      });
+      [...metricOffsetMap.entries()].forEach(
+        ([metricWithOffset, metricOnly]) => {
+          const offsetLabel = timeOffsets.find(offset =>
+            metricWithOffset.includes(offset),
+          );
+          renamePairs.push([
+            formData.comparison_type === ComparisonType.Values
+              ? metricWithOffset
+              : [formData.comparison_type, metricOnly, metricWithOffset].join(
+                  TIME_COMPARISON_SEPARATOR,
+                ),
+            metrics.length > 1 ? `${metricOnly}, ${offsetLabel}` : offsetLabel,
+          ]);
+        },
+      );
     }
 
-    renamePairs.push([getMetricLabel(metrics[0]), null]);
+    if (
+      ![
+        ComparisonType.Difference,
+        ComparisonType.Percentage,
+        ComparisonType.Ratio,
+      ].includes(formData.comparison_type) &&
+      metrics.length === 1 &&
+      renamePairs.length === 0
+    ) {
+      renamePairs.push([getMetricLabel(metrics[0]), null]);
+    }
+
+    if (renamePairs.length === 0) {
+      return undefined;
+    }
 
     return {
       operation: 'rename',

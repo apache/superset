@@ -49,23 +49,34 @@ export default styled(NVD3)`
     svg {
       &.nvd3-svg {
         width: auto;
-        font-size: ${({ theme }) => theme.typography.sizes.m};
+        font-size: ${({ theme }) => theme.fontSize};
       }
     }
   }
   .superset-legacy-chart-nvd3 {
     nv-x text {
-      font-size: ${({ theme }) => theme.typography.sizes.m};
+      font-size: ${({ theme }) => theme.fontSize};
     }
     g.superset path {
       stroke-dasharray: 5, 5;
     }
+    .nvtooltip {
+      table td {
+        font-size: @font-size-s !important;
+      }
+    }
     .nvtooltip tr.highlight td {
-      font-weight: ${({ theme }) => theme.typography.weights.bold};
-      font-size: ${({ theme }) => theme.typography.sizes.m}px !important;
+      font-weight: ${({ theme }) => theme.fontWeightStrong};
+      font-size: ${({ theme }) => theme.fontSize}px !important;
     }
     text.nv-axislabel {
-      font-size: ${({ theme }) => theme.typography.sizes.m} !important;
+      font-size: ${({ theme }) => theme.fontSize} !important;
+    }
+    g.nv-axis text {
+      fill: ${({ theme }) => theme.colorText};
+    }
+    g.nv-series text {
+      fill: ${({ theme }) => theme.colorText};
     }
     g.solid path,
     line.solid {
@@ -134,22 +145,22 @@ export default styled(NVD3)`
       stroke-dasharray: 5, 5, 1, 5;
     }
     .nv-noData.body {
-      font-size: ${({ theme }) => theme.typography.sizes.m};
-      font-weight: ${({ theme }) => theme.typography.weights.normal};
+      font-size: ${({ theme }) => theme.fontSize};
+      font-weight: ${({ theme }) => theme.fontWeightNormal};
     }
   }
   .superset-legacy-chart-nvd3-tr-highlight {
     border-top: 1px solid;
     border-bottom: 1px solid;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
   .superset-legacy-chart-nvd3-tr-total {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
   .nvtooltip {
     .tooltip-header {
       white-space: nowrap;
-      font-weight: ${({ theme }) => theme.typography.weights.bold};
+      font-weight: ${({ theme }) => theme.fontWeightStrong};
     }
     tbody tr:not(.tooltip-header) td:nth-of-type(2) {
       word-break: break-word;
@@ -159,15 +170,15 @@ export default styled(NVD3)`
   .d3-tip.nv-event-annotation-layer-NATIVE {
     width: 200px;
     border-radius: 2px;
-    background-color: ${({ theme }) => theme.colors.grayscale.base};
+    background-color: ${({ theme }) => theme.colorBgContainer};
     fill-opacity: 0.6;
-    margin: ${({ theme }) => theme.gridUnit * 2}px;
-    padding: ${({ theme }) => theme.gridUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.light5};
+    margin: ${({ theme }) => theme.sizeUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px;
+    color: ${({ theme }) => theme.colorTextLightSolid};
     &:after {
       content: '\\25BC';
-      font-size: ${({ theme }) => theme.typography.sizes.m};
-      color: ${({ theme }) => theme.colors.grayscale.base};
+      font-size: ${({ theme }) => theme.fontSize};
+      color: ${({ theme }) => theme.colorText};
       position: absolute;
       bottom: -14px;
       left: 94px;

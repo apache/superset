@@ -31,9 +31,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
 
   const focusedChartStyles = useMemo(
     () => ({
-      borderColor: theme.colors.primary.light2,
+      borderColor: theme.colorPrimaryBorder,
       opacity: 1,
-      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
+      boxShadow: `0px 0px ${theme.sizeUnit * 3}px ${theme.colorPrimary}`,
       pointerEvents: 'auto',
     }),
     [theme],

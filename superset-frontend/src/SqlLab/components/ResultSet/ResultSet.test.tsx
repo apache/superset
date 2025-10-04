@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { type ReactChild } from 'react';
 import {
   render,
   screen,
@@ -27,7 +28,7 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { setupAGGridModules } from 'src/setup/setupAGGridModules';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
@@ -41,9 +42,15 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 
+jest.mock('src/components/ErrorMessage', () => ({
+  ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
+}));
+
 jest.mock(
-  'src/components/ErrorMessage/ErrorMessageWithStackTrace',
-  () => () => <div data-test="error-message">Error</div>,
+  'react-virtualized-auto-sizer',
+  () =>
+    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
+      children({ height: 500 }),
 );
 
 const mockedProps = {
@@ -143,6 +150,7 @@ const setup = (props?: any, store?: Store) =>
     ...(store && { store }),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultSet', () => {
   beforeAll(() => {
     setupAGGridModules();

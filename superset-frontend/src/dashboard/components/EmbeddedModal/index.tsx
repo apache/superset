@@ -22,16 +22,22 @@ import {
   styled,
   SupersetApiError,
   t,
+  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Modal from 'src/components/Modal';
-import Loading from 'src/components/Loading';
-import Button from 'src/components/Button';
-import { Input } from 'src/components/Input';
+import {
+  Button,
+  FormItem,
+  InfoTooltip,
+  Input,
+  Modal,
+  Loading,
+  Form,
+} from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { FormItem } from 'src/components/Form';
 import { EmbeddedDashboard } from 'src/dashboard/types';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -58,6 +64,9 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
   const [embedded, setEmbedded] = useState<EmbeddedDashboard | null>(null); // the embedded dashboard config
   const [allowedDomains, setAllowedDomains] = useState<string>('');
+
+  // Use Modal.useModal hook to ensure proper theming
+  const [modal, contextHolder] = Modal.useModal();
 
   const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
   // whether saveable changes have been made to the config
@@ -94,7 +103,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   }, [endpoint, allowedDomains]);
 
   const disableEmbedded = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: t('Disable embedding?'),
       content: t('This will remove your current embed configuration.'),
       okType: 'danger',
@@ -122,7 +131,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           });
       },
     });
-  }, [endpoint]);
+  }, [endpoint, modal]);
 
   useEffect(() => {
     setReady(false);
@@ -161,6 +170,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   return (
     <>
+      {contextHolder}
       {embedded ? (
         DocsConfigDetails ? (
           <DocsConfigDetails embeddedId={embedded.uuid} />
@@ -182,31 +192,41 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       )}
       <p>
         {t('For further instructions, consult the')}{' '}
-        <a href={docsUrl} target="_blank" rel="noreferrer">
+        <Typography.Link href={docsUrl} target="_blank" rel="noreferrer">
           {docsDescription
             ? docsDescription()
             : t('Superset Embedded SDK documentation.')}
-        </a>
+        </Typography.Link>
       </p>
       <h3>{t('Settings')}</h3>
-      <FormItem>
-        <label htmlFor="allowed-domains">
-          {t('Allowed Domains (comma separated)')}{' '}
-          <InfoTooltipWithTrigger
-            tooltip={t(
-              'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
-            )}
-          />
-        </label>
-        <Input
+      <Form layout="vertical">
+        <FormItem
           name="allowed-domains"
-          id="allowed-domains"
-          value={allowedDomains}
-          placeholder="superset.example.com"
-          onChange={event => setAllowedDomains(event.target.value)}
-        />
-      </FormItem>
-      <ButtonRow>
+          label={
+            <span>
+              {t('Allowed Domains (comma separated)')}{' '}
+              <InfoTooltip
+                placement="top"
+                tooltip={t(
+                  'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
+                )}
+              />
+            </span>
+          }
+        >
+          <Input
+            id="allowed-domains"
+            value={allowedDomains}
+            placeholder="superset.example.com"
+            onChange={event => setAllowedDomains(event.target.value)}
+          />
+        </FormItem>
+      </Form>
+      <ButtonRow
+        css={theme => css`
+          margin-top: ${theme.margin}px;
+        `}
+      >
         {embedded ? (
           <>
             <Button
@@ -246,7 +266,13 @@ const DashboardEmbedModal = (props: Props) => {
   return DashboardEmbedModalExtension ? (
     <DashboardEmbedModalExtension {...props} />
   ) : (
-    <Modal show={show} onHide={onHide} title={t('Embed')} hideFooter>
+    <Modal
+      name={t('Embed')}
+      show={show}
+      onHide={onHide}
+      hideFooter
+      title={<ModalTitleWithIcon title={t('Embed')} />}
+    >
       <DashboardEmbedControls {...props} />
     </Modal>
   );

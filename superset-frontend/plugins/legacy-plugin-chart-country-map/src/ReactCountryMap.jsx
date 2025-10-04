@@ -30,7 +30,7 @@ const CountryMap = ({ className, ...otherProps }) => (
 export default styled(CountryMap)`
   ${({ theme }) => `
     .superset-legacy-chart-country-map svg {
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgContainer};
     }
 
     .superset-legacy-chart-country-map {
@@ -38,13 +38,13 @@ export default styled(CountryMap)`
     }
 
     .superset-legacy-chart-country-map .background {
-      fill: ${theme.colors.grayscale.light5};
+      fill: ${theme.colorBgContainer};
       pointer-events: all;
     }
 
     .superset-legacy-chart-country-map .map-layer {
-      fill: ${theme.colors.grayscale.light5};
-      stroke: ${theme.colors.grayscale.light1};
+      fill: ${theme.colorBgContainer};
+      stroke: ${theme.colorBorderSecondary};
     }
 
     .superset-legacy-chart-country-map .effect-layer {
@@ -52,24 +52,26 @@ export default styled(CountryMap)`
     }
 
     .superset-legacy-chart-country-map .text-layer {
-      color: ${theme.colors.grayscale.dark1};
+      color: ${theme.colorText};
       text-anchor: middle;
       pointer-events: none;
     }
 
     .superset-legacy-chart-country-map text.result-text {
-      font-weight: ${theme.typography.weights.light};
-      font-size: ${theme.typography.sizes.xl}px;
+      fill: ${theme.colorText};
+      font-weight: ${theme.fontWeightLight};
+      font-size: ${theme.fontSizeXL}px;
     }
 
     .superset-legacy-chart-country-map text.big-text {
-      font-weight: ${theme.typography.weights.bold};
-      font-size: ${theme.typography.sizes.l}px;
+      fill: ${theme.colorText};
+      font-weight: ${theme.fontWeightStrong};
+      font-size: ${theme.fontSizeLG}px;
     }
 
     .superset-legacy-chart-country-map path.region {
       cursor: pointer;
-      stroke: ${theme.colors.grayscale.light2};
+      stroke: ${theme.colorSplit};
     }
   `}
 `;

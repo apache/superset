@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -146,8 +146,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         """Deterministic string representation of the API instance for etag_cache."""
         return (
             "Superset.tags.api.TagRestApi@v"
-            f"{self.appbuilder.app.config['VERSION_STRING']}"
-            f"{self.appbuilder.app.config['VERSION_SHA']}"
+            f"{current_app.config['VERSION_STRING']}"
+            f"{current_app.config['VERSION_SHA']}"
         )
 
     @expose("/", methods=("POST",))
@@ -583,9 +583,9 @@ class TagRestApi(BaseSupersetModelRestApi):
             if tag_ids:
                 # priotize using ids for lookups vs. names mainly using this
                 # for backward compatibility
-                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_ids(tag_ids, types)
             else:
-                tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_names(tags, types)
 
             result = [
                 self.object_entity_response_schema.dump(tagged_object)

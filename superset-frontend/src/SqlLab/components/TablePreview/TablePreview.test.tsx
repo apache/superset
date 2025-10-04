@@ -27,26 +27,25 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock(
-  'src/components/FilterableTable',
-  () =>
-    ({ data }: { data: Record<string, any>[] }) => (
-      <div>
-        {data.map((record, i) => (
-          <div key={i} data-test="mock-record-row">
-            {JSON.stringify(record)}
-          </div>
-        ))}
-      </div>
-    ),
-);
+jest.mock('src/components/FilterableTable', () => ({
+  __esModule: true,
+  FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
+    <div>
+      {data.map((record, i) => (
+        <div key={i} data-test="mock-record-row">
+          {JSON.stringify(record)}
+        </div>
+      ))}
+    </div>
+  ),
+}));
 jest.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-jest.mock('src/components/IconTooltip', () => ({
+jest.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,
@@ -136,6 +135,7 @@ test('renders preview', async () => {
   );
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
   test('refreshes table metadata when triggered', async () => {
     const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {

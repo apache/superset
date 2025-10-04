@@ -23,9 +23,10 @@ import {
   waitFor,
   cleanup,
 } from 'spec/helpers/testing-library';
-import { FormInstance } from 'antd/lib/form';
+import type { FormInstance } from '@superset-ui/core/components';
 import { createMockModal } from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterScope TreeInitialization', () => {
   let formRef: { current: FormInstance | null };
 
@@ -40,7 +41,7 @@ describe('FilterScope TreeInitialization', () => {
     jest.useRealTimers();
   });
 
-  it('correct init tree with values', async () => {
+  test('correct init tree with values', async () => {
     const { MockModalComponent } = createMockModal({
       scope: {
         rootPath: ['TAB_ID'],

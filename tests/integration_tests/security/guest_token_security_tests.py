@@ -26,8 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.security.guest_token import GuestTokenResourceType  # noqa: F401
-from superset.sql_parse import Table  # noqa: F401
+from superset.security.guest_token import GuestTokenResourceType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database

@@ -6,32 +6,11 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "strictNullChecks": true,
-
-    /* Modules */
-    "baseUrl": ".",
     "module": "esnext",
-    "moduleResolution": "node",
-    "paths": {
-      "@superset-ui/core": ["./packages/superset-ui-core/src"],
-      "@superset-ui/chart-controls": [
-        "./packages/superset-ui-chart-controls/src"
-      ],
-      "@superset-ui/legacy-plugin-chart-*": [
-        "./plugins/legacy-plugin-chart-*/src"
-      ],
-      "@superset-ui/legacy-preset-chart-*": [
-        "./plugins/legacy-preset-chart-*/src"
-      ],
-      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
-      "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
-      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"]
-    },
-    "types": [
-      "@emotion/react/types/css-prop",
-      "jest",
-      "@testing-library/jest-dom",
-      "@types/node"
-    ],
+    "moduleResolution": "bundler",
+
+    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "typeRoots": ["src/types", "node_modules/@types"],
 
     /* Emit */
     "declaration": true,
@@ -39,6 +18,8 @@
     "importHelpers": false,
     "noEmitOnError": true,
     "outDir": "./dist",
+    "rootDir": ".",
+    "declarationDir": "lib",
     "sourceMap": true,
 
     /* JavaScript Support */
@@ -46,31 +27,66 @@
 
     /* Interop Constraints */
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
 
     /* Language and Environment */
-    "target": "esnext",
-    "jsx": "preserve",
+    "target": "es2020",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
     "lib": ["dom", "dom.iterable", "esnext"],
 
     /* Projects */
     "composite": true,
 
     /* Completeness */
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@superset-ui/core": ["./packages/superset-ui-core/src"],
+      "@superset-ui/core/*": ["./packages/superset-ui-core/src/*"],
+      "@superset-ui/chart-controls": [
+        "./packages/superset-ui-chart-controls/src"
+      ],
+      "@superset-ui/chart-controls/*": [
+        "./packages/superset-ui-chart-controls/src/*"
+      ],
+      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"],
+      "@apache-superset/core": ["./packages/superset-core/src"],
+      "@apache-superset/core/*": ["./packages/superset-core/src/*"],
+      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
+      "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
+    }
   },
-  "exclude": [
-    "./packages/generator-superset/test/**/*"
-  ],
   "include": [
     "./src/**/*",
-    "./spec/**/*",
-    "./packages/*/src/**/*",
-    "./packages/*/types/**/*",
-    "./plugins/*/src/**/*",
-    "./plugins/*/types/**/*",
-    "./packages/*/test/**/*",
-    "./plugins/*/test/**/*"
-  ]
+    "./spec/**/*"
+  ],
+  "references": [
+    { "path": "./packages/superset-core" },
+    { "path": "./packages/superset-ui-core" },
+    { "path": "./packages/superset-ui-chart-controls" },
+    { "path": "./packages/superset-ui-switchboard" },
+    { "path": "./plugins/legacy-plugin-chart-calendar" },
+    { "path": "./plugins/legacy-plugin-chart-chord" },
+    { "path": "./plugins/legacy-plugin-chart-country-map" },
+    { "path": "./plugins/legacy-plugin-chart-horizon" },
+    { "path": "./plugins/legacy-plugin-chart-map-box" },
+    { "path": "./plugins/legacy-plugin-chart-paired-t-test" },
+    { "path": "./plugins/legacy-plugin-chart-parallel-coordinates" },
+    { "path": "./plugins/legacy-plugin-chart-partition" },
+    { "path": "./plugins/legacy-plugin-chart-rose" },
+    { "path": "./plugins/legacy-plugin-chart-world-map" },
+    { "path": "./plugins/legacy-preset-chart-deckgl" },
+    { "path": "./plugins/legacy-preset-chart-nvd3" },
+    { "path": "./plugins/plugin-chart-ag-grid-table" },
+    { "path": "./plugins/plugin-chart-cartodiagram" },
+    { "path": "./plugins/plugin-chart-echarts" },
+    { "path": "./plugins/plugin-chart-handlebars" },
+    { "path": "./plugins/plugin-chart-pivot-table" },
+    { "path": "./plugins/plugin-chart-table" },
+    { "path": "./plugins/plugin-chart-word-cloud" }
+  ],
+  "exclude": []
 }

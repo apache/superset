@@ -39,14 +39,14 @@ export default styled(ParallelCoordinates)`
         overflow: auto;
         div.row {
           &:hover {
-            background-color: ${theme.colors.grayscale.light2};
+            background-color: ${theme.colorBgTextHover};
           }
         }
       }
     }
     .parcoords svg,
     .parcoords canvas {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       position: absolute;
     }
     .parcoords > canvas {
@@ -55,26 +55,26 @@ export default styled(ParallelCoordinates)`
 
     .parcoords text.label {
       font: 100%;
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       cursor: drag;
     }
     .parcoords rect.background {
       fill: transparent;
     }
     .parcoords rect.background:hover {
-      fill: ${addAlpha(theme.colors.grayscale.base, 0.2)};
+      fill: ${addAlpha(theme.colorBorder, 0.2)};
     }
     .parcoords .resize rect {
-      fill: ${addAlpha(theme.colors.grayscale.dark2, 0.1)};
+      fill: ${addAlpha(theme.colorText, 0.1)};
     }
     .parcoords rect.extent {
-      fill: ${addAlpha(theme.colors.grayscale.light5, 0.25)};
-      stroke: ${addAlpha(theme.colors.grayscale.dark2, 0.6)};
+      fill: ${addAlpha(theme.colorBgContainer, 0.25)};
+      stroke: ${addAlpha(theme.colorText, 0.6)};
     }
     .parcoords .axis line,
     .parcoords .axis path {
       fill: none;
-      stroke: ${theme.colors.grayscale.dark1};
+      stroke: ${theme.colorText};
       shape-rendering: crispEdges;
     }
     .parcoords canvas {
@@ -84,7 +84,7 @@ export default styled(ParallelCoordinates)`
       -o-transition: opacity 0.3s;
     }
     .parcoords canvas.faded {
-      opacity: ${theme.opacity.mediumLight};
+      opacity: 35%;
     }
     .parcoords {
       -webkit-touch-callout: none;
@@ -93,23 +93,23 @@ export default styled(ParallelCoordinates)`
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgContainer};
     }
 
     /* data table styles */
     .parcoords .row,
     .parcoords .header {
       clear: left;
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       line-height: 18px;
       height: 18px;
       margin: 0px;
     }
     .parcoords .row:nth-of-type(odd) {
-      background: ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
+      background: ${addAlpha(theme.colorText, 0.05)};
     }
     .parcoords .header {
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
     .parcoords .cell {
       float: left;

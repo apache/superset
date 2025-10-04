@@ -22,8 +22,8 @@ import { HandlebarsViewer } from './components/Handlebars/HandlebarsViewer';
 import { HandlebarsProps, HandlebarsStylesProps } from './types';
 
 const Styles = styled.div<HandlebarsStylesProps>`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  border-radius: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
   overflow: auto;

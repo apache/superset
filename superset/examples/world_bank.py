@@ -18,24 +18,25 @@ import logging
 import os
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 import superset.utils.database
-from superset import app, db
+from superset import db
 from superset.connectors.sqla.models import BaseDatasource, SqlMetric
 from superset.examples.helpers import (
-    get_example_url,
     get_examples_folder,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
     update_slice_ids,
 )
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
 
@@ -55,8 +56,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("countries.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data("examples://countries.json.gz", compression="gzip")
             pdf.columns = [col.replace(".", "_") for col in pdf.columns]
             if database.backend == "presto":
                 pdf.year = pd.to_datetime(pdf.year)
@@ -156,7 +156,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "limit": "25",
         "granularity_sqla": "year",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",

@@ -19,7 +19,7 @@
 import configureStore from 'redux-mock-store';
 import { render, screen } from 'spec/helpers/testing-library';
 import { INVALID_DATE } from '@superset-ui/chart-controls';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import TimeOffsetControls, {
   TimeOffsetControlsProps,
 } from './TimeOffsetControl';
@@ -30,6 +30,7 @@ const defaultProps: TimeOffsetControlsProps = {
   onChange: jest.fn(),
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TimeOffsetControls', () => {
   const setup = (initialState = {}) => {
     const store = mockStore({
@@ -55,7 +56,7 @@ describe('TimeOffsetControls', () => {
     return { store, props };
   };
 
-  it('TimeOffsetControl renders DatePicker when startDate is set', () => {
+  test('TimeOffsetControl renders DatePicker when startDate is set', () => {
     setup();
     const datePickerInput = screen.getByRole('textbox');
     expect(datePickerInput).toBeInTheDocument();
@@ -64,7 +65,7 @@ describe('TimeOffsetControls', () => {
 
   // Our Time comparison control depends on this string for supporting date deletion on date picker
   // That's why this test is linked to the TimeOffsetControl component
-  it('Dayjs should return "Invalid date" when parsing an invalid date string', () => {
+  test('Dayjs should return "Invalid date" when parsing an invalid date string', () => {
     const invalidDate = extendedDayjs('not-a-date');
     expect(invalidDate.format()).toBe(INVALID_DATE);
   });

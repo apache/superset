@@ -25,9 +25,10 @@ from uuid import UUID
 import numpy as np
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import jinja_context, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,

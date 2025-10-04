@@ -18,20 +18,21 @@ import logging
 from typing import Optional
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
-from superset import app, db
+from superset import db
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
-from ..utils.database import get_example_database
+from ..utils.database import get_example_database  # noqa: TID252
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,8 +49,10 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("multiformat_time_series.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data(
+                "examples://multiformat_time_series.json.gz", compression="gzip"
+            )
+
             # TODO(bkyryliuk): move load examples data into the pytest fixture
             if database.backend == "presto":
                 pdf.ds = pd.to_datetime(pdf.ds, unit="s")
@@ -81,7 +84,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         logger.debug("Done loading table!")
         logger.debug("-" * 80)
 
-    logger.debug(f"Creating table [{tbl_name}] reference")
+    logger.debug("Creating table [%s] reference", tbl_name)
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -113,7 +116,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         slice_data = {
             "metrics": ["count"],
             "granularity_sqla": col.column_name,
-            "row_limit": app.config["ROW_LIMIT"],
+            "row_limit": current_app.config["ROW_LIMIT"],
             "since": "2015",
             "until": "2016",
             "viz_type": "cal_heatmap",
@@ -122,7 +125,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         }
 
         slc = Slice(
-            slice_name=f"Calendar Heatmap multiformat {i}",
+            slice_name="Calendar Heatmap multiformat %s" % i,
             viz_type="cal_heatmap",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,

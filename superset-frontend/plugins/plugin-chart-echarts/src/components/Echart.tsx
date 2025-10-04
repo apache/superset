@@ -25,11 +25,11 @@ import {
   useLayoutEffect,
   useCallback,
   Ref,
+  useState,
 } from 'react';
-
 import { useSelector } from 'react-redux';
 
-import { styled } from '@superset-ui/core';
+import { styled, useTheme, mergeReplaceArrays } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -46,10 +46,12 @@ import {
   TreemapChart,
   HeatmapChart,
   SunburstChart,
+  CustomChart,
 } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
+  TitleComponent,
   GridComponent,
   VisualMapComponent,
   LegendComponent,
@@ -81,6 +83,7 @@ use([
   CanvasRenderer,
   BarChart,
   BoxplotChart,
+  CustomChart,
   FunnelChart,
   GaugeChart,
   GraphChart,
@@ -102,9 +105,20 @@ use([
   LegendComponent,
   ToolboxComponent,
   TooltipComponent,
+  TitleComponent,
   VisualMapComponent,
   LabelLayout,
 ]);
+
+const loadLocale = async (locale: string) => {
+  let lang;
+  try {
+    lang = await import(`echarts/lib/i18n/lang${locale}`);
+  } catch (e) {
+    console.error(`Locale ${locale} not supported in ECharts`, e);
+  }
+  return lang?.default;
+};
 
 function Echart(
   {
@@ -115,14 +129,17 @@ function Echart(
     zrEventHandlers,
     selectedValues = {},
     refs,
+    vizType,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
+  const theme = useTheme();
   const divRef = useRef<HTMLDivElement>(null);
   if (refs) {
     // eslint-disable-next-line no-param-reassign
     refs.divRef = divRef;
   }
+  const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -148,20 +165,22 @@ function Echart(
   );
 
   useEffect(() => {
-    const loadLocaleAndInitChart = async () => {
-      if (!divRef.current) return;
-
-      const lang = await import(`echarts/lib/i18n/lang${locale}`).catch(e => {
-        console.error(`Locale ${locale} not supported in ECharts`, e);
-      });
-      if (lang?.default) {
-        registerLocale(locale, lang.default);
+    loadLocale(locale).then(localeObj => {
+      if (localeObj) {
+        registerLocale(locale, localeObj);
       }
-
+      if (!divRef.current) return;
       if (!chartRef.current) {
         chartRef.current = init(divRef.current, null, { locale });
       }
+      // did mount
+      handleSizeChange({ width, height });
+      setDidMount(true);
+    });
+  }, [locale]);
 
+  useEffect(() => {
+    if (didMount) {
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
@@ -172,14 +191,69 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
-      chartRef.current.setOption(echartOptions, true);
+      const getEchartsTheme = (options: any) => {
+        const antdTheme = theme;
+        const echartsTheme = {
+          textStyle: {
+            color: antdTheme.colorText,
+            fontFamily: antdTheme.fontFamily,
+          },
+          title: {
+            textStyle: { color: antdTheme.colorText },
+          },
+          legend: {
+            textStyle: { color: antdTheme.colorTextSecondary },
+            pageTextStyle: {
+              color: antdTheme.colorTextSecondary,
+            },
+            pageIconColor: antdTheme.colorTextSecondary,
+            pageIconInactiveColor: antdTheme.colorTextDisabled,
+            inactiveColor: antdTheme.colorTextDisabled,
+          },
+          tooltip: {
+            backgroundColor: antdTheme.colorBgContainer,
+            textStyle: { color: antdTheme.colorText },
+          },
+          axisPointer: {
+            lineStyle: { color: antdTheme.colorPrimary },
+            label: { color: antdTheme.colorText },
+          },
+        } as any;
+        if (options?.xAxis) {
+          echartsTheme.xAxis = {
+            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLabel: { color: antdTheme.colorTextSecondary },
+            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+          };
+        }
+        if (options?.yAxis) {
+          echartsTheme.yAxis = {
+            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLabel: { color: antdTheme.colorTextSecondary },
+            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+          };
+        }
+        return echartsTheme;
+      };
 
-      // did mount
-      handleSizeChange({ width, height });
-    };
+      const baseTheme = getEchartsTheme(echartOptions);
+      const globalOverrides = theme.echartsOptionsOverrides || {};
+      const chartOverrides = vizType
+        ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
+        : {};
 
-    loadLocaleAndInitChart();
-  }, [echartOptions, eventHandlers, zrEventHandlers, locale]);
+      const themedEchartOptions = mergeReplaceArrays(
+        baseTheme,
+        echartOptions,
+        globalOverrides,
+        chartOverrides,
+      );
+
+      chartRef.current?.setOption(themedEchartOptions, true);
+    }
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
+
+  useEffect(() => () => chartRef.current?.dispose(), []);
 
   // highlighting
   useEffect(() => {

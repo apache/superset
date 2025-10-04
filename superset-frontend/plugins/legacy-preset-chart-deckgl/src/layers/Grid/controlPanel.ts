@@ -33,7 +33,12 @@ import {
   viewport,
   spatial,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
+  legendPosition,
+  generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -46,6 +51,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
@@ -53,7 +60,11 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapboxStyle],
         [viewport],
-        ['color_scheme'],
+        ...generateDeckGLColorSchemeControls({
+          defaultSchemeType: COLOR_SCHEME_TYPES.categorical_palette,
+          disableCategoricalColumn: true,
+        }),
+        [legendPosition],
         [autozoom],
         [gridSize],
         [extruded],

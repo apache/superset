@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import {
   t,
   styled,
@@ -31,8 +31,8 @@ import {
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
-import { Skeleton } from 'src/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 interface QueryHistoryProps {
   queryEditorId: string | number;
@@ -42,7 +42,7 @@ interface QueryHistoryProps {
 
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
-  .antd5-empty-image img {
+  .ant-empty-image img {
     margin-right: 28px;
   }
 
@@ -64,6 +64,10 @@ const QueryHistory = ({
   displayLimit,
   latestQueryId,
 }: QueryHistoryProps) => {
+  const { id, tabViewId } = useQueryEditor(String(queryEditorId), [
+    'tabViewId',
+  ]);
+  const editorId = tabViewId ?? id;
   const [ref, hasReachedBottom] = useInView({ threshold: 0 });
   const [pageIndex, setPageIndex] = useState(0);
   const queries = useSelector(
@@ -75,7 +79,7 @@ const QueryHistory = ({
     isLoading,
     isFetching,
   } = useEditorQueriesQuery(
-    { editorId: `${queryEditorId}`, pageIndex },
+    { editorId, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
     },
@@ -88,12 +92,12 @@ const QueryHistory = ({
               queries,
               data.result.map(({ id }) => id),
             ),
-            queryEditorId,
+            editorId,
           )
             .concat(data.result)
             .reverse()
-        : getEditorQueries(queries, queryEditorId),
-    [queries, data, queryEditorId],
+        : getEditorQueries(queries, editorId),
+    [queries, data, editorId],
   );
 
   const loadNext = useEffectEvent(() => {

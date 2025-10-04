@@ -64,8 +64,9 @@ const splitSaveBtnProps = {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQuery', () => {
-  it('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
+  test('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
     const noRenderProps = {
       ...mockedProps,
       database: {
@@ -84,7 +85,7 @@ describe('SavedQuery', () => {
     );
   });
 
-  it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
+  test('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore(mockState),
@@ -95,7 +96,7 @@ describe('SavedQuery', () => {
     expect(saveBtn).toBeVisible();
   });
 
-  it('renders a save query modal when user clicks save button', () => {
+  test('renders a save query modal when user clicks save button', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore(mockState),
@@ -111,7 +112,7 @@ describe('SavedQuery', () => {
     expect(saveQueryModalHeader).toBeInTheDocument();
   });
 
-  it('renders the save query modal UI', () => {
+  test('renders the save query modal UI', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore(mockState),
@@ -146,7 +147,7 @@ describe('SavedQuery', () => {
     expect(cancelBtn).toBeInTheDocument();
   });
 
-  it('renders a "save as new" and "update" button if query already exists', () => {
+  test('renders a "save as new" and "update" button if query already exists', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore({
@@ -171,7 +172,7 @@ describe('SavedQuery', () => {
     expect(updateBtn).toBeInTheDocument();
   });
 
-  it('renders a split save button when allows_virtual_table_explore is enabled', async () => {
+  test('renders a split save button when allows_virtual_table_explore is enabled', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
       store: mockStore(mockState),
@@ -186,7 +187,7 @@ describe('SavedQuery', () => {
     });
   });
 
-  it('renders a save dataset modal when user clicks "save dataset" menu item', async () => {
+  test('renders a save dataset modal when user clicks "save dataset" menu item', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
       store: mockStore(mockState),
@@ -205,7 +206,7 @@ describe('SavedQuery', () => {
     expect(saveDatasetHeader).toBeInTheDocument();
   });
 
-  it('renders the save dataset modal UI', async () => {
+  test('renders the save dataset modal UI', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
       store: mockStore(mockState),
@@ -222,7 +223,7 @@ describe('SavedQuery', () => {
     const closeBtn = screen.getByRole('button', { name: /close/i });
     const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
     const saveRadio = screen.getByRole('radio', {
-      name: /save as new untitled/i,
+      name: /save as new/i,
     });
     const saveLabel = screen.getByText(/save as new/i);
     const saveTextbox = screen.getByRole('textbox');
@@ -244,5 +245,105 @@ describe('SavedQuery', () => {
     expect(overwriteLabel).toBeInTheDocument();
     expect(overwriteCombobox).toBeInTheDocument();
     expect(overwritePlaceholderText).toBeInTheDocument();
+  });
+
+  test('modal stays open while save is in progress and closes after completion', async () => {
+    let resolveSave: () => void;
+    const savePromise = new Promise<void>(resolve => {
+      resolveSave = resolve;
+    });
+
+    const mockOnSave = jest.fn().mockImplementation(() => savePromise);
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    // Open the modal
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    // Verify modal is open
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+
+    // Click save button in the modal
+    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+    userEvent.click(modalSaveBtn);
+
+    // Modal should still be open while save is in progress
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+
+    // Resolve the save promise
+    resolveSave!();
+
+    // Wait for modal to close after save completes
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: /save query/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(mockOnSave).toHaveBeenCalledTimes(1);
+  });
+
+  test('handles save with a new tab that has no changes', async () => {
+    const mockOnSave = jest.fn().mockResolvedValue(undefined);
+
+    // Mock state for a new tab with default SQL
+    const newTabState = {
+      ...mockState,
+      sqlLab: {
+        ...mockState.sqlLab,
+        queryEditors: [
+          {
+            id: mockedProps.queryEditorId,
+            dbId: 1,
+            catalog: null,
+            schema: 'main',
+            sql: 'SELECT ...', // Default SQL for new tabs
+            name: undefined,
+            description: undefined,
+          },
+        ],
+      },
+    };
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(newTabState),
+    });
+
+    // Open the modal
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    // Modal should open
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+
+    // The name field should have "Undefined" as default
+    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+    expect(nameInput).toHaveValue('Undefined');
+
+    // Click save button
+    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+    userEvent.click(modalSaveBtn);
+
+    // Wait for save to complete and modal to close
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: /save query/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 });
