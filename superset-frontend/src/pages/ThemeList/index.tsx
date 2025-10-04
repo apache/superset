@@ -294,10 +294,7 @@ function ThemesList({
         theme.theme_name,
       ),
       onConfirm: () => setSystemDarkTheme(theme.id!),
-      successMessage: t(
-        '"%s" is now the system dark theme',
-        theme.theme_name,
-      ),
+      successMessage: t('"%s" is now the system dark theme', theme.theme_name),
       errorMessage: 'Failed to set system dark theme: %s',
     });
   };

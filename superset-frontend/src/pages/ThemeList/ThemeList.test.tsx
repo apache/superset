@@ -201,12 +201,13 @@ describe('ThemesList', () => {
     expect(addButton).toBeInTheDocument();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Modal.useModal integration', () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-    it('uses Modal.useModal hook instead of Modal.confirm', () => {
+    test('uses Modal.useModal hook instead of Modal.confirm', () => {
       const useModalSpy = jest.spyOn(Modal, 'useModal');
       renderThemesList();
 
@@ -216,7 +217,7 @@ describe('ThemesList', () => {
       useModalSpy.mockRestore();
     });
 
-    it('renders contextHolder for modal theming', async () => {
+    test('renders contextHolder for modal theming', async () => {
       const { container } = renderThemesList();
 
       // Wait for component to be rendered
@@ -228,7 +229,7 @@ describe('ThemesList', () => {
       expect(contextHolderExists).toBeDefined();
     });
 
-    it('confirms system theme changes using themed modal', async () => {
+    test('confirms system theme changes using themed modal', async () => {
       const mockSetSystemDefault = jest.fn().mockResolvedValue({});
       fetchMock.post(
         'glob:*/api/v1/theme/*/set_system_default',
@@ -246,7 +247,7 @@ describe('ThemesList', () => {
       expect(true).toBe(true);
     });
 
-    it('does not use deprecated Modal.confirm directly', () => {
+    test('does not use deprecated Modal.confirm directly', () => {
       // Create a spy on the static Modal.confirm method
       const confirmSpy = jest.spyOn(Modal, 'confirm');
 

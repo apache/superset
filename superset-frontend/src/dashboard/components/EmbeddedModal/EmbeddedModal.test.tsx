@@ -174,6 +174,7 @@ test('adds extension to DashboardEmbedModal', async () => {
   extensionsRegistry.set('embedded.modal', undefined);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Modal.useModal integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
