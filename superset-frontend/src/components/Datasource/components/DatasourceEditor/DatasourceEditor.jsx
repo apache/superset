@@ -622,6 +622,7 @@ const ResultTable =
 class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
+    this.isComponentMounted = false;
     this.state = {
       datasource: {
         ...props.datasource,
@@ -760,11 +761,17 @@ class DatasourceEditor extends PureComponent {
 
     try {
       const response = await this.props.formatQuery(datasource.sql);
+      if (!this.isComponentMounted) {
+        return;
+      }
       this.onDatasourcePropChange('sql', response.json.result);
       this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+      if (!this.isComponentMounted) {
+        return;
+      }
       this.props.addDangerToast(
         clientError ||
           statusText ||
@@ -808,11 +815,17 @@ class DatasourceEditor extends PureComponent {
         body: JSON.stringify({ sql: datasource.sql }),
         headers: { 'Content-Type': 'application/json' },
       });
+      if (!this.isComponentMounted) {
+        return;
+      }
       this.onDatasourcePropChange('sql', response.json.result);
       this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+      if (!this.isComponentMounted) {
+        return;
+      }
       this.props.addDangerToast(
         clientError ||
           statusText ||
@@ -823,28 +836,41 @@ class DatasourceEditor extends PureComponent {
 
   async syncMetadata() {
     const { datasource } = this.state;
+    if (!this.isComponentMounted) {
+      return;
+    }
     this.setState({ metadataLoading: true });
     try {
       const newCols = await fetchSyncedColumns(datasource);
+      if (!this.isComponentMounted) {
+        return;
+      }
       const columnChanges = updateColumns(
         datasource.columns,
         newCols,
         this.props.addSuccessToast,
       );
+      if (!this.isComponentMounted) {
+        return;
+      }
       this.setColumns({
         databaseColumns: columnChanges.finalColumns.filter(
           col => !col.expression, // remove calculated columns
         ),
       });
-      this.props.addSuccessToast(t('Metadata has been synced'));
-      this.setState({ metadataLoading: false });
+      if (this.isComponentMounted) {
+        this.props.addSuccessToast(t('Metadata has been synced'));
+        this.setState({ metadataLoading: false });
+      }
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
-      this.props.addDangerToast(
-        clientError || statusText || t('An error has occurred'),
-      );
-      this.setState({ metadataLoading: false });
+      if (this.isComponentMounted) {
+        this.props.addDangerToast(
+          clientError || statusText || t('An error has occurred'),
+        );
+        this.setState({ metadataLoading: false });
+      }
     }
   }
 
@@ -901,10 +927,12 @@ class DatasourceEditor extends PureComponent {
         id: ids[index],
       }));
 
-      this.setState({
-        usageCharts: chartsWithIds,
-        usageChartsCount: json?.count || 0,
-      });
+      if (this.isComponentMounted) {
+        this.setState({
+          usageCharts: chartsWithIds,
+          usageChartsCount: json?.count || 0,
+        });
+      }
 
       return {
         charts: chartsWithIds,
@@ -914,15 +942,17 @@ class DatasourceEditor extends PureComponent {
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
-      this.props.addDangerToast(
-        clientError ||
-          statusText ||
-          t('An error occurred while fetching usage data'),
-      );
-      this.setState({
-        usageCharts: [],
-        usageChartsCount: 0,
-      });
+      if (this.isComponentMounted) {
+        this.props.addDangerToast(
+          clientError ||
+            statusText ||
+            t('An error occurred while fetching usage data'),
+        );
+        this.setState({
+          usageCharts: [],
+          usageChartsCount: 0,
+        });
+      }
       return {
         charts: [],
         count: 0,
@@ -1883,6 +1913,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   componentDidMount() {
+    this.isComponentMounted = true;
     Mousetrap.bind('ctrl+shift+f', e => {
       e.preventDefault();
       if (this.state.isEditMode) {
@@ -1894,6 +1925,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   componentWillUnmount() {
+    this.isComponentMounted = false;
     Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }
