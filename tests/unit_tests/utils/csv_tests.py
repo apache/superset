@@ -127,6 +127,21 @@ def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
+def fake_get_chart_csv_data_with_na_values(chart_url, auth_cookies=None):
+    # Return JSON with data containing "NA" string value that will be treated as null
+    fake_result = {
+        "result": [
+            {
+                "data": {"first_name": ["Jeff", "Alice"], "last_name": ["Smith", "NA"]},
+                "coltypes": [GenericDataType.STRING, GenericDataType.STRING],
+                "colnames": ["first_name", "last_name"],
+                "indexnames": ["idx1", "idx2"],
+            }
+        ]
+    }
+    return json.dumps(fake_result).encode("utf-8")
+
+
 def test_df_to_escaped_csv():
     df = pd.DataFrame(
         data={
@@ -263,3 +278,42 @@ def test_get_chart_dataframe_with_hierarchical_columns(monkeypatch: pytest.Monke
 | ('idx',) |                 2 |
 """
     assert markdown_str.strip() == expected_markdown_str.strip()
+
+
+def test_get_chart_dataframe_preserves_na_string_values(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Test that get_chart_dataframe currently preserves rows containing "NA"
+    string values.
+    This test verifies the existing behavior before implementing custom NA handling.
+    """
+    monkeypatch.setattr(
+        csv, "get_chart_csv_data", fake_get_chart_csv_data_with_na_values
+    )
+    df = get_chart_dataframe("http://dummy-url")
+    assert df is not None
+
+    # Verify the DataFrame structure
+    expected_columns = pd.MultiIndex.from_tuples([("first_name",), ("last_name",)])
+    pd.testing.assert_index_equal(df.columns, expected_columns)
+
+    expected_index = pd.MultiIndex.from_tuples([("idx1",), ("idx2",)])
+    pd.testing.assert_index_equal(df.index, expected_index)
+
+    # Check that we have both rows initially
+    assert len(df) == 2
+
+    # Verify the data contains the "NA" string value (not converted to NaN)
+    pd.testing.assert_series_equal(
+        df[("first_name",)],
+        pd.Series(["Jeff", "Alice"], name=("first_name",), index=df.index),
+    )
+    pd.testing.assert_series_equal(
+        df[("last_name",)],
+        pd.Series(["Smith", "NA"], name=("last_name",), index=df.index),
+    )
+
+    last_name_values = df[("last_name",)].values
+    assert last_name_values[0] == "Smith"
+    assert last_name_values[1] == "NA"
