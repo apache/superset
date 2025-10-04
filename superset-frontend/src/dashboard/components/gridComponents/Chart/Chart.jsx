@@ -28,6 +28,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
+  StreamingExportModal,
+  useStreamingExport,
+} from 'src/components/StreamingExportModal';
+import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
@@ -76,8 +80,7 @@ const propTypes = {
   isInView: PropTypes.bool,
 };
 
-// we use state + shouldComponentUpdate() logic to prevent perf-wrecking
-// resizing across all slices on a dashboard on every update
+
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
 
@@ -175,6 +178,19 @@ const Chart = props => {
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
   const [width, setWidth] = useState(props.width);
+
+  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
+  const { progress, isExporting, startExport, cancelExport, resetExport } =
+    useStreamingExport({
+      onComplete: (downloadUrl, filename) => {
+        boundActionCreators.addSuccessToast(
+          t('CSV file downloaded successfully'),
+        );
+      },
+      onError: () => {
+        boundActionCreators.addDangerToast(t('Export failed - please try again'));
+      },
+    });
   const history = useHistory();
   const resize = useCallback(
     debounce(() => {
@@ -378,12 +394,44 @@ const Chart = props => {
         slice_id: slice.slice_id,
         is_cached: isCached,
       });
+
+      const exportFormData = isFullCSV
+        ? { ...formData, row_limit: maxRows }
+        : formData;
+      const resultType = isPivot ? 'post_processed' : 'full';
+
+      let actualRowCount;
+      const isTableViz = formData?.viz_type === 'table';
+
+      if (
+        isTableViz &&
+        queriesResponse?.length > 1 &&
+        queriesResponse[1]?.data?.[0]?.rowcount
+      ) {
+        actualRowCount = queriesResponse[1].data[0].rowcount;
+      } else {
+        actualRowCount = exportFormData?.row_limit;
+      }
+
+      // Handle streaming CSV exports for both regular and full data exports
+      const shouldUseStreaming = format === 'csv' && !isPivot;
+
       exportChart({
-        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
-        resultType: isPivot ? 'post_processed' : 'full',
+        formData: exportFormData,
+        resultType,
         resultFormat: format,
         force: true,
         ownState: dataMask[props.id]?.ownState,
+        onStartStreamingExport: shouldUseStreaming
+          ? exportParams => {
+              setIsStreamingModalVisible(true);
+              resetExport();
+              startExport({
+                ...exportParams,
+                expectedRows: actualRowCount || exportParams.expectedRows,
+              });
+            }
+          : null,
       });
     },
     [
@@ -393,6 +441,9 @@ const Chart = props => {
       props.maxRows,
       dataMask[props.id]?.ownState,
       boundActionCreators.logEvent,
+      queriesResponse,
+      startExport,
+      resetExport,
     ],
   );
 
@@ -544,6 +595,25 @@ const Chart = props => {
           emitCrossFilters={emitCrossFilters}
         />
       </ChartWrapper>
+
+      {/* Streaming Export Modal */}
+      <StreamingExportModal
+        visible={isStreamingModalVisible}
+        onCancel={() => {
+          if (isExporting) {
+            cancelExport();
+          }
+          setIsStreamingModalVisible(false);
+        }}
+        onRetry={() => {
+          resetExport();
+          // Note: Retry would need to store the last export parameters
+          // For now, just close the modal and let user retry manually
+          setIsStreamingModalVisible(false);
+        }}
+        progress={progress}
+        exportType="csv"
+      />
     </SliceContainer>
   );
 };
