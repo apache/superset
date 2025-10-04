@@ -393,6 +393,7 @@ export const useExploreAdditionalActionsMenu = (
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
             true,
+            theme,
           )(e.domEvent);
           setIsDropdownVisible(false);
           dispatch(
