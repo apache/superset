@@ -80,8 +80,7 @@ const propTypes = {
   isInView: PropTypes.bool,
 };
 
-// we use state + shouldComponentUpdate() logic to prevent perf-wrecking
-// resizing across all slices on a dashboard on every update
+
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
 
@@ -180,17 +179,16 @@ const Chart = props => {
   const [height, setHeight] = useState(props.height);
   const [width, setWidth] = useState(props.width);
 
-  // Streaming export state
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const { progress, isExporting, startExport, cancelExport, resetExport } =
     useStreamingExport({
       onComplete: (downloadUrl, filename) => {
         boundActionCreators.addSuccessToast(
-          t('Export completed successfully: %s', filename),
+          t('CSV file downloaded successfully'),
         );
       },
-      onError: error => {
-        boundActionCreators.addDangerToast(t('Export failed: %s', error));
+      onError: () => {
+        boundActionCreators.addDangerToast(t('Export failed - please try again'));
       },
     });
   const history = useHistory();
