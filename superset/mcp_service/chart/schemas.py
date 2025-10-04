@@ -252,53 +252,6 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     )
 
 
-class GenerateChartResponse(BaseModel):
-    """Comprehensive chart creation response with rich metadata."""
-
-    # Core chart information
-    chart: ChartInfo | None = Field(None, description="Complete chart metadata")
-
-    # Multiple preview formats available
-    previews: Dict[str, "ChartPreviewContent"] = Field(
-        default_factory=dict,
-        description="Available preview formats keyed by format type",
-    )
-
-    # LLM-friendly capabilities
-    capabilities: ChartCapabilities | None = Field(
-        None, description="Chart interaction capabilities"
-    )
-    semantics: ChartSemantics | None = Field(
-        None, description="Semantic chart understanding"
-    )
-
-    # Navigation and context
-    explore_url: str | None = Field(None, description="Edit chart in Superset")
-    embed_code: str | None = Field(None, description="HTML embed snippet")
-    api_endpoints: Dict[str, str] = Field(
-        default_factory=dict, description="Related API endpoints for data/updates"
-    )
-
-    # Performance and accessibility
-    performance: PerformanceMetadata | None = Field(
-        None, description="Performance metrics"
-    )
-    accessibility: AccessibilityMetadata | None = Field(
-        None, description="Accessibility info"
-    )
-
-    # Success/error handling
-    success: bool = Field(True, description="Whether chart creation succeeded")
-    error: ChartError | None = Field(
-        None, description="Error details if creation failed"
-    )
-    warnings: List[str] = Field(default_factory=list, description="Non-fatal warnings")
-
-    # Inherit versioning
-    schema_version: str = Field("2.0", description="Response schema version")
-    api_version: str = Field("v1", description="MCP API version")
-
-
 class ChartFilter(ColumnOperator):
     """
     Filter object for chart listing.
@@ -1114,6 +1067,53 @@ ChartPreviewContent = Annotated[
     URLPreview | InteractivePreview | ASCIIPreview | VegaLitePreview | TablePreview,
     Field(discriminator="type"),
 ]
+
+
+class GenerateChartResponse(BaseModel):
+    """Comprehensive chart creation response with rich metadata."""
+
+    # Core chart information
+    chart: ChartInfo | None = Field(None, description="Complete chart metadata")
+
+    # Multiple preview formats available
+    previews: Dict[str, ChartPreviewContent] = Field(
+        default_factory=dict,
+        description="Available preview formats keyed by format type",
+    )
+
+    # LLM-friendly capabilities
+    capabilities: ChartCapabilities | None = Field(
+        None, description="Chart interaction capabilities"
+    )
+    semantics: ChartSemantics | None = Field(
+        None, description="Semantic chart understanding"
+    )
+
+    # Navigation and context
+    explore_url: str | None = Field(None, description="Edit chart in Superset")
+    embed_code: str | None = Field(None, description="HTML embed snippet")
+    api_endpoints: Dict[str, str] = Field(
+        default_factory=dict, description="Related API endpoints for data/updates"
+    )
+
+    # Performance and accessibility
+    performance: PerformanceMetadata | None = Field(
+        None, description="Performance metrics"
+    )
+    accessibility: AccessibilityMetadata | None = Field(
+        None, description="Accessibility info"
+    )
+
+    # Success/error handling
+    success: bool = Field(True, description="Whether chart creation succeeded")
+    error: ChartError | None = Field(
+        None, description="Error details if creation failed"
+    )
+    warnings: List[str] = Field(default_factory=list, description="Non-fatal warnings")
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
 
 
 class ChartPreview(BaseModel):
