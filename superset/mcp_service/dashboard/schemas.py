@@ -315,6 +315,58 @@ class DashboardList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
+class AddChartToDashboardRequest(BaseModel):
+    """Request schema for adding a chart to an existing dashboard."""
+
+    dashboard_id: int = Field(
+        ..., description="ID of the dashboard to add the chart to"
+    )
+    chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
+    target_tab: str | None = Field(
+        None, description="Target tab name (if dashboard has tabs)"
+    )
+
+
+class AddChartToDashboardResponse(BaseModel):
+    """Response schema for adding chart to dashboard."""
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The updated dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    position: dict[str, Any] | None = Field(
+        None, description="Position information for the added chart"
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+
+
+class GenerateDashboardRequest(BaseModel):
+    """Request schema for generating a dashboard."""
+
+    chart_ids: List[int] = Field(
+        ..., description="List of chart IDs to include in the dashboard", min_length=1
+    )
+    dashboard_title: str = Field(..., description="Title for the new dashboard")
+    description: str | None = Field(None, description="Description for the dashboard")
+    published: bool = Field(
+        default=True, description="Whether to publish the dashboard"
+    )
+
+
+class GenerateDashboardResponse(BaseModel):
+    """Response schema for dashboard generation."""
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The created dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    error: str | None = Field(None, description="Error message, if creation failed")
+
+
+# TODO (Phase 3+): Add GetDashboardAvailableFiltersRequest for
+# get_dashboard_available_filters tool
 class DashboardAvailableFilters(BaseModel):
     column_operators: Dict[str, Any] = Field(
         ..., description="Available filter operators and metadata for each column"
