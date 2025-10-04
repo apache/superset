@@ -51,6 +51,13 @@ def histogram(
     # convert to numeric, coercing errors to NaN
     df[column] = to_numeric(df[column], errors="coerce")
 
+    # drop rows with NULL values 
+    df = df.dropna(subset=[column])
+
+    # if the dataframe is empty after dropping NULL values, return an empty dataframe with the correct columns
+    if df.empty:
+        return DataFrame(columns=groupby + [f"bin_{i}" for i in range(bins)])
+
     # check if the column contains non-numeric values
     if df[column].isna().any():
         raise ValueError(f"Column '{column}' contains non-numeric values")
