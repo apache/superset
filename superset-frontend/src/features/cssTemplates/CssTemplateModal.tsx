@@ -17,15 +17,12 @@
  * under the License.
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
-
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
-import { Icons } from '@superset-ui/core/components/Icons';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Input, CssEditor, Modal } from '@superset-ui/core/components';
 import { Typography } from '@superset-ui/core/components/Typography';
-
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
 
@@ -84,7 +81,6 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   show,
   cssTemplate = null,
 }) => {
-  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentCssTemplate, setCurrentCssTemplate] =
     useState<TemplateObject | null>(null);
@@ -232,30 +228,21 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       show={show}
       width="55%"
       title={
-        <Typography.Title level={4} data-test="css-template-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode
-            ? t('Edit CSS template properties')
-            : t('Add CSS template')}
-        </Typography.Title>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={
+            isEditMode
+              ? t('Edit CSS template properties')
+              : t('Add CSS template')
+          }
+          data-test="css-template-modal-title"
+        />
       }
     >
       <StyledCssTemplateTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <Typography.Title level={4}>
+          {t('General information')}
+        </Typography.Title>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">

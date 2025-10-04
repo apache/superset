@@ -43,7 +43,7 @@ _modules
 _static
 build
 app.db
-apache_superset.egg-info/
+*.egg-info/
 changelog.sh
 dist
 dump.rdb
@@ -92,6 +92,7 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
+.venv
 @eaDir/
 
 # PyCharm
@@ -126,4 +127,10 @@ docker/*local*
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
+
+# LLM-related
+CLAUDE.local.md
+PROJECT.md
 .aider*
+.claude_rc*
+.env.local

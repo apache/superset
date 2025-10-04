@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
-import { themeObject } from '@superset-ui/core';
+import { useTheme, isThemeDark } from '@superset-ui/core';
 
 export type SupportedLanguage = 'sql' | 'htmlbars' | 'markdown' | 'json';
 
@@ -77,6 +77,7 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   wrapLines = true,
   style: overrideStyle,
 }) => {
+  const theme = useTheme();
   const [isLanguageReady, setIsLanguageReady] = useState(
     registeredLanguages.has(language),
   );
@@ -92,14 +93,14 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
     loadLanguage();
   }, [language]);
 
-  const isDark = themeObject.isThemeDark();
+  const isDark = isThemeDark(theme);
   const themeStyle = overrideStyle || (isDark ? tomorrow : github);
 
   const defaultCustomStyle: React.CSSProperties = {
-    background: themeObject.theme.colorBgElevated,
-    padding: themeObject.theme.sizeUnit * 4,
+    background: theme.colorBgElevated,
+    padding: theme.sizeUnit * 4,
     border: 0,
-    borderRadius: themeObject.theme.borderRadius,
+    borderRadius: theme.borderRadius,
     ...customStyle,
   };
 

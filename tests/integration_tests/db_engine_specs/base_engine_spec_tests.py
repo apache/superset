@@ -34,15 +34,15 @@ from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
-from ..fixtures.birth_names_dashboard import (
+from ..fixtures.birth_names_dashboard import (  # noqa: TID252
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
-from ..fixtures.energy_dashboard import (
+from ..fixtures.energy_dashboard import (  # noqa: TID252
     load_energy_table_data,  # noqa: F401
     load_energy_table_with_slice,  # noqa: F401
 )
-from ..fixtures.pyodbcRow import Row
+from ..fixtures.pyodbcRow import Row  # noqa: TID252
 
 
 class SupersetTestCases(SupersetTestCase):
@@ -115,6 +115,10 @@ class SupersetTestCases(SupersetTestCase):
             database=mock.ANY, schema="schema", inspector=inspector
         )
         assert base_result_expected == base_result
+
+    def test_get_column_description_limit_size(self):
+        base_result = BaseEngineSpec.get_column_description_limit_size()
+        assert base_result == 1
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):

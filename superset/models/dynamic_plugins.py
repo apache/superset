@@ -21,6 +21,7 @@ from superset.models.helpers import AuditMixinNullable
 
 
 class DynamicPlugin(Model, AuditMixinNullable):
+    __tablename__ = "dynamic_plugin"
     id = Column(Integer, primary_key=True)
     name = Column(Text, unique=True, nullable=False)
     # key corresponds to viz_type from static plugins

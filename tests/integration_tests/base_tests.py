@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from importlib.util import find_spec
 from io import BytesIO
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 from zipfile import ZipFile
 
@@ -160,12 +160,13 @@ class SupersetTestCase(TestCase):
         return user_to_create
 
     @contextmanager
-    def temporary_user(
+    def temporary_user(  # noqa: C901
         self,
         clone_user=None,
         username=None,
         extra_roles=None,
         extra_pvms=None,
+        pvms_to_remove=None,
         login=False,
     ):
         """
@@ -180,33 +181,39 @@ class SupersetTestCase(TestCase):
         temp_user = ab_models.User(
             username=username, email=f"{username}@temp.com", active=True
         )
+        pvms = []
+
         if clone_user:
-            temp_user.roles = clone_user.roles
             temp_user.first_name = clone_user.first_name
             temp_user.last_name = clone_user.last_name
             temp_user.password = clone_user.password
+            if clone_user.roles:
+                for role in clone_user.roles:
+                    pvms.extend(role.permissions)
         else:
             temp_user.first_name = temp_user.last_name = username
 
-        if clone_user:
-            temp_user.roles = clone_user.roles
-
         if extra_roles:
-            temp_user.roles.extend(extra_roles)
+            for role in extra_roles:
+                pvms.extend(role.permissions)
 
-        pvms = []
-        temp_role = None
-        if extra_pvms:
-            temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
-            for pvm in extra_pvms:
-                if isinstance(pvm, (tuple, list)):
-                    pvms.append(security_manager.find_permission_view_menu(*pvm))
-                else:
-                    pvms.append(pvm)
-            temp_role.permissions = pvms
-            temp_user.roles.append(temp_role)
-            db.session.add(temp_role)
-            db.session.commit()
+        for pvm in extra_pvms or []:
+            if isinstance(pvm, (tuple, list)):
+                pvms.append(security_manager.find_permission_view_menu(*pvm))
+            else:
+                pvms.append(pvm)
+
+        for pvm in pvms_to_remove or []:
+            if isinstance(pvm, (tuple, list)):
+                pvm = security_manager.find_permission_view_menu(*pvm)
+            if pvm in pvms:
+                pvms.remove(pvm)
+
+        temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
+        temp_role.permissions = pvms
+        temp_user.roles.append(temp_role)
+        db.session.add(temp_role)
+        db.session.commit()
 
         # Add the temp user to the session and commit to apply changes for the test
         db.session.add(temp_user)
@@ -236,8 +243,11 @@ class SupersetTestCase(TestCase):
         first_name: str = "admin",
         last_name: str = "user",
         email: str = "admin@fab.org",
-    ) -> Union[ab_models.User, bool]:
+    ) -> ab_models.User:
         role_admin = security_manager.find_role(role_name)
+        # Defensive check: return existing user if username already exists
+        if existing_user := security_manager.find_user(username):
+            return existing_user
         return security_manager.add_user(
             username, first_name, last_name, email, role_admin, password
         )
@@ -583,6 +593,16 @@ class SupersetTestCase(TestCase):
         for role in roles:
             role_obj = db.session.query(security_manager.role_model).get(role)
             obj_roles.append(role_obj)
+
+        # Defensive cleanup: remove any existing dashboard with the same slug
+        if slug:
+            existing_dashboard = (
+                db.session.query(Dashboard).filter_by(slug=slug).first()
+            )
+            if existing_dashboard:
+                db.session.delete(existing_dashboard)
+                db.session.commit()
+
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,

@@ -779,6 +779,38 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+// Test for checking the issue described in: https://github.com/apache/superset/issues/35132
+test('Maintains stable maxTagCount to prevent click target disappearing in oneLine mode', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+      mode="multiple"
+      oneLine
+    />,
+  );
+
+  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+
+  await userEvent.click(getSelect());
+  expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
+
+  await waitFor(() => {
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  // Close dropdown
+  await type('{esc}');
+
+  expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
 test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
@@ -1045,6 +1077,119 @@ test('typing and deleting the last character for a new option displays correctly
   expect(await findSelectOption('aaa')).toBeInTheDocument();
 
   jest.useRealTimers();
+});
+
+describe('grouped options search', () => {
+  const GROUPED_OPTIONS = [
+    {
+      label: 'Male',
+      options: OPTIONS.filter(option => option.gender === 'Male'),
+    },
+    {
+      label: 'Female',
+      options: OPTIONS.filter(option => option.gender === 'Female'),
+    },
+  ];
+
+  it('searches within grouped options and shows matching groups', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('John');
+
+    expect(await findSelectOption('John')).toBeInTheDocument();
+    expect(await findSelectOption('Johnny')).toBeInTheDocument();
+    expect(screen.queryByText('Female')).not.toBeInTheDocument();
+    expect(screen.queryByText('Olivia')).not.toBeInTheDocument();
+    expect(screen.getByText('Male')).toBeInTheDocument();
+    expect(screen.queryByText('Female')).not.toBeInTheDocument();
+  });
+
+  it('shows multiple groups when search matches both', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('er');
+
+    expect(screen.getByText('Male')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(await findSelectOption('Oliver')).toBeInTheDocument();
+    expect(await findSelectOption('Cher')).toBeInTheDocument();
+    expect(await findSelectOption('Her')).toBeInTheDocument();
+  });
+
+  it('handles case-insensitive search in grouped options', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('EMMA');
+
+    expect(await findSelectOption('Emma')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(screen.queryByText('Male')).not.toBeInTheDocument();
+  });
+
+  it('shows no options when search matches nothing in any group', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('xyz123');
+
+    expect(screen.queryByText('Male')).not.toBeInTheDocument();
+    expect(screen.queryByText('Female')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+    ).toBeInTheDocument();
+  });
+
+  it('works in multiple selection mode with grouped options', async () => {
+    render(
+      <Select {...defaultProps} options={GROUPED_OPTIONS} mode="multiple" />,
+    );
+    await open();
+
+    await type('John');
+
+    await userEvent.click(await findSelectOption('John'));
+
+    // Clear search and search for female name
+    await clearTypedText();
+    await type('Emma');
+    await userEvent.click(await findSelectOption('Emma'));
+
+    // Both should be selected
+    const values = await findAllSelectValues();
+    expect(values).toHaveLength(2);
+    expect(values[0]).toHaveTextContent('John');
+    expect(values[1]).toHaveTextContent('Emma');
+  });
+
+  it('preserves group structure when not searching', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    expect(screen.getByText('Male')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(await findSelectOption('John')).toBeInTheDocument();
+    expect(await findSelectOption('Emma')).toBeInTheDocument();
+  });
+
+  it('handles empty groups gracefully', async () => {
+    const optionsWithEmptyGroup = [
+      ...GROUPED_OPTIONS,
+      {
+        label: 'Empty Group',
+        options: [],
+      },
+    ];
+
+    render(<Select {...defaultProps} options={optionsWithEmptyGroup} />);
+    await open();
+
+    await type('John');
+    expect(await findSelectOption('John')).toBeInTheDocument();
+    expect(screen.queryByText('Empty Group')).not.toBeInTheDocument();
+  });
 });
 
 /*

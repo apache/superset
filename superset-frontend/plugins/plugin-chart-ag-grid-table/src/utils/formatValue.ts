@@ -19,13 +19,16 @@
 import {
   CurrencyFormatter,
   DataRecordValue,
-  GenericDataType,
   getNumberFormatter,
   isDefined,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
-import { ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
+import { GenericDataType } from '@apache-superset/core/api/core';
+import {
+  ValueFormatterParams,
+  ValueGetterParams,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 

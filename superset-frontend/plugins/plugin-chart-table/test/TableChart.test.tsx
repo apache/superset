@@ -324,6 +324,27 @@ describe('plugin-chart-table', () => {
         expect(cells[4]).toHaveTextContent('$ 2.47k');
       });
 
+      it('render data with a bigint value in a raw record mode', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps(testData.bigint)}
+                sticky={false}
+                isRawRecords
+              />
+            ),
+          }),
+        );
+        const cells = document.querySelectorAll('td');
+        expect(document.querySelectorAll('th')[0]).toHaveTextContent('name');
+        expect(document.querySelectorAll('th')[1]).toHaveTextContent('id');
+        expect(cells[0]).toHaveTextContent('Michael');
+        expect(cells[1]).toHaveTextContent('4312');
+        expect(cells[2]).toHaveTextContent('John');
+        expect(cells[3]).toHaveTextContent('1234567890123456789');
+      });
+
       it('render raw data', () => {
         const props = transformProps({
           ...testData.raw,
@@ -549,6 +570,191 @@ describe('plugin-chart-table', () => {
           }),
         );
         cells = document.querySelectorAll('td');
+      });
+
+      it('render color with string column color formatter(operator begins with)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'name',
+                        operator: 'begins with',
+                        targetValue: 'J',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
+          '',
+        );
+      });
+
+      it('render color with string column color formatter (operator ends with)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'name',
+                        operator: 'ends with',
+                        targetValue: 'ia',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+      });
+
+      it('render color with string column color formatter (operator containing)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'name',
+                        operator: 'containing',
+                        targetValue: 'c',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+      });
+
+      it('render color with string column color formatter (operator not containing)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'name',
+                        operator: 'not containing',
+                        targetValue: 'i',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
+          '',
+        );
+      });
+
+      it('render color with string column color formatter (operator =)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'name',
+                        operator: '=',
+                        targetValue: 'Joe',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
+          '',
+        );
+      });
+
+      it('render color with string column color formatter (operator None)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'name',
+                        operator: 'None',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
       });
     });
   });

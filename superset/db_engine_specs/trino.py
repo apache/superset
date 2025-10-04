@@ -23,7 +23,7 @@ import time
 from typing import Any, TYPE_CHECKING
 
 import requests
-from flask import copy_current_request_context, ctx, current_app, Flask, g
+from flask import copy_current_request_context, ctx, current_app as app, Flask, g
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -249,7 +249,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             args=(
                 execute_result,
                 execute_event,
-                current_app._get_current_object(),  # pylint: disable=protected-access
+                app._get_current_object(),  # pylint: disable=protected-access
                 g._get_current_object(),  # pylint: disable=protected-access
             ),
         )
@@ -352,9 +352,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             elif auth_method == "jwt":
                 from trino.auth import JWTAuthentication as trino_auth  # noqa
             else:
-                allowed_extra_auths = current_app.config[
-                    "ALLOWED_EXTRA_AUTHENTICATIONS"
-                ].get("trino", {})
+                allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
+                    "trino", {}
+                )
                 if auth_method in allowed_extra_auths:
                     trino_auth = allowed_extra_auths.get(auth_method)
                 else:

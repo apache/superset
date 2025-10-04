@@ -27,8 +27,10 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { capitalize } from 'lodash/fp';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type OAuthProvider = {
@@ -57,10 +59,12 @@ enum AuthType {
 
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
-    width: 40%;
+    max-width: 400px;
+    width: 100%;
     margin-top: ${theme.marginXL}px;
+    color: ${theme.colorBgContainer};
     background: ${theme.colorBgBase};
-    .antd5-form-item-label label {
+    .ant-form-item-label label {
       color: ${theme.colorPrimary};
     }
   `}
@@ -75,6 +79,7 @@ const StyledLabel = styled(Typography.Text)`
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   const bootstrapData = getBootstrapData();
 
@@ -83,11 +88,28 @@ export default function Login() {
   const authRegistration: boolean =
     bootstrapData.common.conf.AUTH_USER_REGISTRATION;
 
+  // TODO: This is a temporary solution for showing login errors after form submission.
+  // Should be replaced with proper SPA-style authentication (JSON API with error responses)
+  // when Flask-AppBuilder is updated or we implement a custom login endpoint.
+  useEffect(() => {
+    const loginAttempted = sessionStorage.getItem('login_attempted');
+
+    if (loginAttempted === 'true') {
+      sessionStorage.removeItem('login_attempted');
+      dispatch(addDangerToast(t('Invalid username or password')));
+      // Clear password field for security
+      form.setFieldsValue({ password: '' });
+    }
+  }, [dispatch, form]);
+
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-    SupersetClient.postForm('/login/', values, '').finally(() => {
-      setLoading(false);
-    });
+
+    // Mark that we're attempting login (for error detection after redirect)
+    sessionStorage.setItem('login_attempted', 'true');
+
+    // Use standard form submission for Flask-AppBuilder compatibility
+    SupersetClient.postForm('/login/', values, '');
   };
 
   const getAuthIconElement = (
@@ -110,9 +132,11 @@ export default function Login() {
   return (
     <Flex
       justify="center"
+      align="center"
       data-test="login-form"
       css={css`
         width: 100%;
+        height: calc(100vh - 200px);
       `}
     >
       <StyledCard title={t('Sign in')} padded>
@@ -172,6 +196,7 @@ export default function Login() {
                 ]}
               >
                 <Input
+                  autoFocus
                   prefix={<Icons.UserOutlined iconSize="l" />}
                   data-test="username-input"
                 />

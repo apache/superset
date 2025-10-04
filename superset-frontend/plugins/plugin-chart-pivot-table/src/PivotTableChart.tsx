@@ -64,12 +64,12 @@ const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 
 const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 

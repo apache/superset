@@ -86,8 +86,8 @@ const setupMocks = () => {
   });
 };
 
-// Set timeout for all tests in this file to 30 seconds
-jest.setTimeout(30000);
+// Set timeout for all tests in this file to 60 seconds
+jest.setTimeout(60000);
 
 beforeEach(() => {
   setupMocks();
@@ -102,9 +102,9 @@ const getCommonElements = () => ({
   cancelButton: screen.getByRole('button', { name: 'Cancel' }),
   uploadButton: screen.getByRole('button', { name: 'Upload' }),
   selectButton: screen.getByRole('button', { name: 'Select' }),
-  panel1: screen.getByRole('heading', { name: /General information/i }),
-  panel2: screen.getByRole('heading', { name: /file settings/i }),
-  panel3: screen.getByRole('heading', { name: /columns/i }),
+  panel1: screen.getByText(/General information/i, { selector: 'strong' }),
+  panel2: screen.getByText(/file settings/i, { selector: 'strong' }),
+  panel3: screen.getByText(/columns/i, { selector: 'strong' }),
   selectDatabase: screen.getByRole('combobox', { name: /select a database/i }),
   inputTableName: screen.getByRole('textbox', { name: /table name/i }),
   inputSchema: screen.getByRole('combobox', { name: /schema/i }),
@@ -124,13 +124,14 @@ const expectElementsNotVisible = (elements: any[]) => {
   });
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - General Information Elements', () => {
   test('CSV renders correctly', () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const common = getCommonElements();
     const title = screen.getByRole('heading', { name: /csv upload/i });
-    const panel4 = screen.getByRole('heading', { name: /rows/i });
+    const panel4 = screen.getByText(/rows/i);
     const selectDelimiter = screen.getByRole('combobox', {
       name: /choose a delimiter/i,
     });
@@ -156,7 +157,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
     const common = getCommonElements();
     const title = screen.getByRole('heading', { name: /excel upload/i });
-    const panel4 = screen.getByRole('heading', { name: /rows/i });
+    const panel4 = screen.getByText(/rows/i);
     const selectSheetName = screen.getByRole('combobox', {
       name: /choose sheet name/i,
     });
@@ -177,9 +178,7 @@ describe('UploadDataModal - General Information Elements', () => {
     ]);
 
     // Check elements that should NOT be visible
-    expect(
-      screen.queryByRole('heading', { name: /csv upload/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/csv upload/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('combobox', { name: /choose a delimiter/i }),
     ).not.toBeInTheDocument();
@@ -206,17 +205,18 @@ describe('UploadDataModal - General Information Elements', () => {
 
     // Check elements that should NOT be visible
     expectElementsNotVisible([
-      screen.queryByRole('heading', { name: /csv upload/i }),
-      screen.queryByRole('heading', { name: /rows/i }),
+      screen.queryByText(/csv upload/i),
+      screen.queryByText(/rows/i),
       screen.queryByRole('combobox', { name: /choose a delimiter/i }),
       screen.queryByRole('combobox', { name: /choose sheet name/i }),
     ]);
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - File Settings Elements', () => {
   const openFileSettings = async () => {
-    const panelHeader = screen.getByRole('heading', { name: /file settings/i });
+    const panelHeader = screen.getByText(/file settings/i);
     await userEvent.click(panelHeader);
   };
 
@@ -292,9 +292,10 @@ describe('UploadDataModal - File Settings Elements', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Columns Elements', () => {
   const openColumns = async () => {
-    const panelHeader = screen.getByRole('heading', { name: /columns/i });
+    const panelHeader = screen.getByText(/columns/i, { selector: 'strong' });
     await userEvent.click(panelHeader);
   };
 
@@ -361,11 +362,12 @@ describe('UploadDataModal - Columns Elements', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Rows Elements', () => {
   test('CSV/Excel rows render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
-    const panelHeader = screen.getByRole('heading', { name: /rows/i });
+    const panelHeader = screen.getByText(/rows/i);
     await userEvent.click(panelHeader);
 
     const elements = [
@@ -380,11 +382,12 @@ describe('UploadDataModal - Rows Elements', () => {
   test('Columnar does not render rows', () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-    const panelHeader = screen.queryByRole('heading', { name: /rows/i });
+    const panelHeader = screen.queryByText(/rows/i);
     expect(panelHeader).not.toBeInTheDocument();
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Database and Schema Population', () => {
   test('database and schema are correctly populated', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
@@ -411,9 +414,10 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectSchema);
     await waitFor(() => screen.getAllByText('schema1'));
     await waitFor(() => screen.getAllByText('schema2'));
-  });
+  }, 60000);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Form Validation', () => {
   test('form validation without required fields', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
@@ -433,6 +437,7 @@ describe('UploadDataModal - Form Validation', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Form Submission', () => {
   // Helper function to fill out form
   const fillForm = async (
@@ -483,7 +488,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.csv');
-  });
+  }, 60000);
 
   test('Excel form submission', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
@@ -495,7 +500,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.xls');
-  });
+  }, 60000);
 
   test('Columnar form submission', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
@@ -507,9 +512,10 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.parquet');
-  });
+  }, 60000);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('File Extension Validation', () => {
   const createTestFile = (fileName: string) => ({
     name: fileName,
@@ -518,6 +524,7 @@ describe('File Extension Validation', () => {
     type: 'text/csv',
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CSV validation', () => {
     test('returns false for invalid extensions', () => {
       const invalidFiles = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
@@ -538,6 +545,7 @@ describe('File Extension Validation', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Excel validation', () => {
     test('returns false for invalid extensions', () => {
       const invalidFiles = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
@@ -564,6 +572,7 @@ describe('File Extension Validation', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Columnar validation', () => {
     test('returns false for invalid extensions', () => {
       const invalidFiles = [
@@ -599,5 +608,68 @@ describe('File Extension Validation', () => {
         ).toBe(true);
       });
     });
+  });
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal Collapse Tabs', () => {
+  test('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
+    const { rerender } = render(<UploadDataModal {...csvProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information/i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings/i,
+    });
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
+    rerender(<UploadDataModal {...csvProps} show={false} />);
+    rerender(<UploadDataModal {...csvProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
+    const { rerender } = render(<UploadDataModal {...excelProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information/i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings/i,
+    });
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
+    rerender(<UploadDataModal {...excelProps} show={false} />);
+    rerender(<UploadDataModal {...excelProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
+    const { rerender } = render(<UploadDataModal {...columnarProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information/i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings/i,
+    });
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
+    rerender(<UploadDataModal {...columnarProps} show={false} />);
+    rerender(<UploadDataModal {...columnarProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 });

@@ -17,9 +17,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColDef } from 'ag-grid-community';
+import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord, GenericDataType } from '@superset-ui/core';
+import { DataRecord } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -93,7 +94,7 @@ const getFilterType = (col: InputColumn) => {
     case GenericDataType.Numeric:
       return 'agNumberColumnFilter';
     case GenericDataType.String:
-      return 'agMultiColumnFilter';
+      return 'agTextColumnFilter';
     case GenericDataType.Temporal:
       return 'agDateColumnFilter';
     default:

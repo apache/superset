@@ -62,7 +62,7 @@ const StyledNotificationMethod = styled.div`
       .helper {
         margin-top: ${theme.sizeUnit * 2}px;
         font-size: ${theme.fontSizeSM}px;
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorTextSecondary};
       }
     }
 

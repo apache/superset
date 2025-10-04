@@ -20,24 +20,13 @@
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { theme as antdThemeImport, ConfigProvider } from 'antd';
-import tinycolor from 'tinycolor2';
-
-import '@fontsource/inter/200.css';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
-import '@fontsource/fira-code/400.css';
-import '@fontsource/fira-code/500.css';
-import '@fontsource/fira-code/600.css';
-
 import {
   ThemeProvider,
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
-import { noop } from 'lodash';
+import { noop, mergeWith } from 'lodash';
 import { GlobalStyles } from './GlobalStyles';
-
 import {
   AntdThemeConfig,
   AnyThemeConfig,
@@ -45,77 +34,17 @@ import {
   SupersetTheme,
   allowedAntdTokens,
   SharedAntdTokens,
-  ColorVariants,
-  DeprecatedThemeColors,
-  FontSizeKey,
 } from './types';
-
-import {
-  normalizeThemeConfig,
-  serializeThemeConfig,
-  getSystemColors,
-  getDeprecatedColors,
-} from './utils';
-
-/* eslint-disable theme-colors/no-literal-colors */
+import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
 export class Theme {
   theme: SupersetTheme;
 
-  private static readonly defaultTokens = {
-    // Brand
-    brandLogoAlt: 'Apache Superset',
-    brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
-    brandLogoMargin: '18px',
-    brandLogoHref: '/',
-    brandLogoHeight: '24px',
-
-    // Default colors
-    colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
-    colorLink: '#2893B3',
-    colorError: '#e04355',
-    colorWarning: '#fcc700',
-    colorSuccess: '#5ac189',
-    colorInfo: '#66bcfe',
-
-    // Forcing some default tokens
-    fontFamily: `'Inter', Helvetica, Arial`,
-    fontFamilyCode: `'Fira Code', 'Courier New', monospace`,
-
-    // Extra tokens
-    transitionTiming: 0.3,
-    brandIconMaxWidth: 37,
-    fontSizeXS: '8',
-    fontSizeXXL: '28',
-    fontWeightNormal: '400',
-    fontWeightLight: '300',
-    fontWeightStrong: 500,
-  };
-
   private antdConfig: AntdThemeConfig;
-
-  private static readonly sizeMap: Record<FontSizeKey, string> = {
-    xs: 'fontSizeXS',
-    s: 'fontSizeSM',
-    m: 'fontSize',
-    l: 'fontSizeLG',
-    xl: 'fontSizeXL',
-    xxl: 'fontSizeXXL',
-  };
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
-
-    // Create a new config object with default tokens
-    const newConfig: AnyThemeConfig = config ? { ...config } : {};
-
-    // Ensure token property exists with defaults
-    newConfig.token = {
-      ...Theme.defaultTokens,
-      ...(config?.token || {}),
-    };
-
-    this.setConfig(newConfig);
+    this.setConfig(config || {});
   }
 
   /**
@@ -124,9 +53,24 @@ export class Theme {
    * If simple tokens are provided as { token: {...} }, they will be applied with defaults
    * If no config is provided, uses default tokens
    * Dark mode can be set via the algorithm property in the config
+   * @param config - The theme configuration
+   * @param baseTheme - Optional base theme to apply under the config
    */
-  static fromConfig(config?: AnyThemeConfig): Theme {
-    return new Theme({ config });
+  static fromConfig(
+    config?: AnyThemeConfig,
+    baseTheme?: AnyThemeConfig,
+  ): Theme {
+    let mergedConfig: AnyThemeConfig | undefined = config;
+
+    if (baseTheme && config) {
+      mergedConfig = mergeWith({}, baseTheme, config, (objValue, srcValue) =>
+        Array.isArray(srcValue) ? srcValue : undefined,
+      );
+    } else if (baseTheme && !config) {
+      mergedConfig = baseTheme;
+    }
+
+    return new Theme({ config: mergedConfig });
   }
 
   private static getFilteredAntdTheme(
@@ -154,29 +98,15 @@ export class Theme {
   setConfig(config: AnyThemeConfig): void {
     const antdConfig = normalizeThemeConfig(config);
 
-    // Apply default tokens to token property
-    antdConfig.token = {
-      ...Theme.defaultTokens,
-      ...(antdConfig.token || {}),
-    };
-
     // First phase: Let Ant Design compute the tokens
     const tokens = Theme.getFilteredAntdTheme(antdConfig);
 
     // Set the base theme properties
     this.antdConfig = antdConfig;
     this.theme = {
-      ...Theme.defaultTokens,
-      ...antdConfig.token, // Passing through the extra, superset-specific tokens
-      ...tokens,
-      colors: {} as DeprecatedThemeColors, // Placeholder that will be filled in the second phase
-    };
-
-    // Second phase: Now that theme is initialized, we can determine if it's dark
-    // and generate the legacy colors correctly
-    const systemColors = getSystemColors(tokens);
-    const isDark = this.isThemeDark(); // Now we can safely call this
-    this.theme.colors = getDeprecatedColors(systemColors, isDark);
+      ...tokens, // First apply Ant Design computed tokens
+      ...(antdConfig.token || {}), // Then override with our custom tokens
+    } as SupersetTheme;
 
     // Update the providers with the fully formed theme
     this.updateProviders(
@@ -191,22 +121,6 @@ export class Theme {
    */
   toSerializedConfig(): SerializableThemeConfig {
     return serializeThemeConfig(this.antdConfig);
-  }
-
-  private getToken(token: string): any {
-    return (this.theme as Record<string, any>)[token];
-  }
-
-  public getFontSize(size?: FontSizeKey): string {
-    const fontSizeKey = Theme.sizeMap[size || 'm'];
-    return this.getToken(fontSizeKey) || this.getToken('fontSize');
-  }
-
-  /**
-   * Check if the current theme is dark based on background color
-   */
-  isThemeDark(): boolean {
-    return tinycolor(this.theme.colorBgContainer).isDark();
   }
 
   toggleDarkMode(isDark: boolean): void {
@@ -240,45 +154,6 @@ export class Theme {
 
   json(): string {
     return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
-  }
-
-  getColorVariants(color: string): ColorVariants {
-    const firstLetterCapped = color.charAt(0).toUpperCase() + color.slice(1);
-    if (color === 'default' || color === 'grayscale') {
-      const isDark = this.isThemeDark();
-
-      const flipBrightness = (baseColor: string): string => {
-        if (!isDark) return baseColor;
-        const { r, g, b } = tinycolor(baseColor).toRgb();
-        const invertedColor = tinycolor({ r: 255 - r, g: 255 - g, b: 255 - b });
-        return invertedColor.toHexString();
-      };
-
-      return {
-        active: flipBrightness('#222'),
-        textActive: flipBrightness('#444'),
-        text: flipBrightness('#555'),
-        textHover: flipBrightness('#666'),
-        hover: flipBrightness('#888'),
-        borderHover: flipBrightness('#AAA'),
-        border: flipBrightness('#CCC'),
-        bgHover: flipBrightness('#DDD'),
-        bg: flipBrightness('#F4F4F4'),
-      };
-    }
-
-    const theme = this.getToken.bind(this);
-    return {
-      active: theme(`color${firstLetterCapped}Active`),
-      textActive: theme(`color${firstLetterCapped}TextActive`),
-      text: theme(`color${firstLetterCapped}Text`),
-      textHover: theme(`color${firstLetterCapped}TextHover`),
-      hover: theme(`color${firstLetterCapped}Hover`),
-      borderHover: theme(`color${firstLetterCapped}BorderHover`),
-      border: theme(`color${firstLetterCapped}Border`),
-      bgHover: theme(`color${firstLetterCapped}BgHover`),
-      bg: theme(`color${firstLetterCapped}Bg`),
-    };
   }
 
   private updateProviders(
@@ -318,5 +193,3 @@ export class Theme {
     );
   }
 }
-
-/* eslint-enable theme-colors/no-literal-colors */

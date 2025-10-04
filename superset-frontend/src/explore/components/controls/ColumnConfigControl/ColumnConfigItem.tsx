@@ -34,7 +34,8 @@ export default memo(function ColumnConfigItem({
   width,
   height,
 }: ColumnConfigItemProps) {
-  const { colors, sizeUnit } = useTheme();
+  const theme = useTheme();
+  const { sizeUnit } = theme;
   const caretWidth = sizeUnit * 6;
 
   const outerContainerStyle = css({
@@ -42,20 +43,20 @@ export default memo(function ColumnConfigItem({
     alignItems: 'center',
     cursor: 'pointer',
     padding: `${sizeUnit}px ${2 * sizeUnit}px`,
-    borderBottom: `1px solid ${colors.grayscale.light2}`,
+    borderBottom: `1px solid ${theme.colorBorderSecondary}`,
     position: 'relative',
     paddingRight: `${caretWidth}px`,
     ':last-child': {
       borderBottom: 'none',
     },
     ':hover': {
-      background: colors.grayscale.light4,
+      background: theme.colorFillTertiary,
     },
     '> .fa': {
-      color: colors.grayscale.light2,
+      color: theme.colorTextTertiary,
     },
     ':hover > .fa': {
-      color: colors.grayscale.light1,
+      color: theme.colorTextSecondary,
     },
   });
 
@@ -78,10 +79,8 @@ export default memo(function ColumnConfigItem({
     top: 3 * sizeUnit,
     transform: 'translateY(-50%)',
     gap: sizeUnit,
-    color: colors.grayscale.light1,
+    color: theme.colorTextSecondary,
   });
-
-  const theme = useTheme();
 
   const caretIconStyle = css({
     fontSize: `${theme.fontSizeSM}px`,
@@ -101,8 +100,8 @@ export default memo(function ColumnConfigItem({
       )}
       trigger="click"
       placement="right"
-      styles={{ body: { width, height } }}
-      rootClassName="column-config-popover"
+      style={{ width, height }}
+      className="column-config-popover"
     >
       <div css={outerContainerStyle}>
         <div css={nameContainerStyle}>
@@ -114,10 +113,10 @@ export default memo(function ColumnConfigItem({
           {column.isChildColumn && column.config?.visible === false && (
             <Icons.EyeInvisibleOutlined
               iconSize="s"
-              iconColor={colors.grayscale.base}
+              iconColor={theme.colorIcon}
             />
           )}
-          <Icons.CaretRightOutlined css={caretIconStyle} />
+          <Icons.RightOutlined css={caretIconStyle} />
         </div>
       </div>
     </Popover>

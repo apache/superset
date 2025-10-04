@@ -40,6 +40,8 @@ import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import { Point } from './types';
 import { TooltipProps } from './components/Tooltip';
+import { getColorBreakpointsBuckets } from './utils';
+import Legend from './components/Legend';
 
 type DeckGLComponentProps = {
   datasource: Datasource;
@@ -85,6 +87,7 @@ interface GetPointsType {
 export function createDeckGLComponent(
   getLayer: GetLayerType<unknown>,
   getPoints: GetPointsType,
+  getHighlightLayer?: GetLayerType<unknown>,
 ) {
   // Higher order component
   return memo((props: DeckGLComponentProps) => {
@@ -103,6 +106,9 @@ export function createDeckGLComponent(
       }
       return props.viewport;
     };
+    const [categories, setCategories] = useState<JsonObject>(
+      getColorBreakpointsBuckets(props.formData.color_breakpoints) || [],
+    );
 
     const [viewport, setViewport] = useState(getAdjustedViewport());
 
@@ -113,7 +119,7 @@ export function createDeckGLComponent(
       }
     }, []);
 
-    const computeLayer = useCallback(
+    const computeLayers = useCallback(
       (props: DeckGLComponentProps) => {
         const {
           formData,
@@ -125,7 +131,7 @@ export function createDeckGLComponent(
           emitCrossFilters,
         } = props;
 
-        return getLayer({
+        const layerProps = {
           formData,
           payload,
           onAddFilter,
@@ -134,12 +140,30 @@ export function createDeckGLComponent(
           onContextMenu,
           filterState,
           emitCrossFilters,
-        }) as Layer;
+        };
+
+        const layer = getLayer(layerProps) as Layer;
+
+        if (emitCrossFilters && filterState?.value && getHighlightLayer) {
+          const highlightLayer = getHighlightLayer(layerProps) as Layer;
+
+          return [layer, highlightLayer];
+        }
+
+        return [layer];
       },
       [setTooltip],
     );
 
-    const [layer, setLayer] = useState(computeLayer(props));
+    useEffect(() => {
+      const categories = getColorBreakpointsBuckets(
+        props.formData.color_breakpoints,
+      );
+
+      setCategories(categories);
+    }, [props]);
+
+    const [layers, setLayers] = useState(computeLayers(props));
 
     useEffect(() => {
       // Only recompute the layer if anything BUT the viewport has changed
@@ -154,24 +178,32 @@ export function createDeckGLComponent(
         viewport: null,
       };
       if (!isEqual(prevFdNoVP, currFdNoVP) || prevPayload !== props.payload) {
-        setLayer(computeLayer(props));
+        setLayers(computeLayers(props));
       }
-    }, [computeLayer, prevFormData, prevFilterState, prevPayload, props]);
+    }, [computeLayers, prevFormData, prevFilterState, prevPayload, props]);
 
     const { formData, payload, setControlValue, height, width } = props;
 
     return (
-      <DeckGLContainerStyledWrapper
-        ref={containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={viewport}
-        layers={[layer]}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-        width={width}
-        height={height}
-        onViewportChange={setViewport}
-      />
+      <div style={{ position: 'relative' }}>
+        <DeckGLContainerStyledWrapper
+          ref={containerRef}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          viewport={viewport}
+          layers={layers}
+          mapStyle={formData.mapbox_style}
+          setControlValue={setControlValue}
+          width={width}
+          height={height}
+          onViewportChange={setViewport}
+        />
+        <Legend
+          forceCategorical
+          categories={categories}
+          format={props.formData.legend_format}
+          position={props.formData.legend_position}
+        />
+      </div>
     );
   });
 }
@@ -179,6 +211,7 @@ export function createDeckGLComponent(
 export function createCategoricalDeckGLComponent(
   getLayer: GetLayerType<Layer>,
   getPoints: GetPointsType,
+  getHighlightLayer?: GetLayerType<Layer>,
 ) {
   return function Component(props: DeckGLComponentProps) {
     const {
@@ -203,6 +236,7 @@ export function createCategoricalDeckGLComponent(
         setControlValue={setControlValue}
         viewport={viewport}
         getLayer={getLayer}
+        getHighlightLayer={getHighlightLayer}
         payload={payload}
         getPoints={getPoints}
         width={width}

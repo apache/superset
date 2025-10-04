@@ -134,6 +134,7 @@ export default function PluginFilterTimegrain(
           ref={inputRef}
           options={options}
           onOpenChange={setFilterActive}
+          sortComparator={() => 0} // Disable frontend sorting to preserve backend order
         />
       </FormItem>
     </FilterPluginStyle>

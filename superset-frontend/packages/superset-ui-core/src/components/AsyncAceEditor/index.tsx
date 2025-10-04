@@ -35,6 +35,11 @@ import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
+export { useJsonValidation } from './useJsonValidation';
+export type {
+  JsonValidationAnnotation,
+  UseJsonValidationOptions,
+} from './useJsonValidation';
 
 export interface AceCompleterKeywordData {
   name: string;
@@ -118,21 +123,33 @@ export function AsyncAceEditor(
     const cssWorkerUrlPromise = import(
       'ace-builds/src-min-noconflict/worker-css'
     );
+    const javascriptWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-javascript'
+    );
+    const htmlWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-html'
+    );
     const acequirePromise = import('ace-builds/src-min-noconflict/ace');
 
     const [
       { default: ReactAceEditor },
       { config },
       { default: cssWorkerUrl },
+      { default: javascriptWorkerUrl },
+      { default: htmlWorkerUrl },
       { require: acequire },
     ] = await Promise.all([
       reactAcePromise,
       aceBuildsConfigPromise,
       cssWorkerUrlPromise,
+      javascriptWorkerUrlPromise,
+      htmlWorkerUrlPromise,
       acequirePromise,
     ]);
 
     config.setModuleUrl('ace/mode/css_worker', cssWorkerUrl);
+    config.setModuleUrl('ace/mode/javascript_worker', javascriptWorkerUrl);
+    config.setModuleUrl('ace/mode/html_worker', htmlWorkerUrl);
 
     await Promise.all(aceModules.map(x => aceModuleLoaders[x]()));
 
@@ -202,7 +219,7 @@ export function AsyncAceEditor(
 
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
-                .ace_editor.ace-textmate {
+                .ace_editor.ace-tm {
                   background-color: ${token.colorBgContainer} !important;
                   color: ${token.colorText} !important;
                 }
@@ -265,7 +282,7 @@ export function AsyncAceEditor(
                 /* Adjust tooltip styles */
                 .ace_tooltip {
                   margin-left: ${token.margin}px;
-                  padding: 0px;
+                  padding: ${token.sizeUnit * 2}px;
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorText} !important;
                   border: 1px solid ${token.colorBorderSecondary};
@@ -388,10 +405,7 @@ export const FullSQLEditor = AsyncAceEditor(
   },
 );
 
-export const MarkdownEditor = AsyncAceEditor([
-  'mode/markdown',
-  'theme/textmate',
-]);
+export const MarkdownEditor = AsyncAceEditor(['mode/markdown', 'theme/github']);
 
 export const TextAreaEditor = AsyncAceEditor([
   'mode/markdown',

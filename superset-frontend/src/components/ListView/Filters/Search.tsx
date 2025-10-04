@@ -24,7 +24,7 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import {
   Input,
   InfoTooltip,
@@ -42,10 +42,6 @@ interface SearchHeaderProps extends BaseFilter {
   name: string;
   toolTipDescription: string | undefined;
 }
-
-const StyledInput = styled(Input)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
 
 function SearchFilter(
   {
@@ -90,7 +86,7 @@ function SearchFilter(
         <FormLabel>{Header}</FormLabel>
         {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
       </Flex>
-      <StyledInput
+      <Input
         allowClear
         data-test="filters-search"
         placeholder={t('Type a value')}
@@ -100,10 +96,7 @@ function SearchFilter(
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
         prefix={
-          <Icons.SearchOutlined
-            iconColor={theme.colors.grayscale.light1}
-            iconSize="l"
-          />
+          <Icons.SearchOutlined iconColor={theme.colorIcon} iconSize="l" />
         }
       />
     </FilterContainer>

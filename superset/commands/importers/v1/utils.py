@@ -190,9 +190,22 @@ def load_configs(
                         db_ssh_tunnel_priv_key_passws[config["uuid"]]
                     )
 
+                # Normalize example data URLs before schema validation
+                if prefix == "datasets" and "data" in config:
+                    from superset.examples.helpers import normalize_example_data_url
+
+                    config["data"] = normalize_example_data_url(config["data"])
+
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:
+                logger.error(
+                    "Schema validation failed for %s (prefix: %s): %s",
+                    file_name,
+                    prefix,
+                    exc.messages,
+                )
+                logger.debug("Config content that failed validation: %s", config)
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 

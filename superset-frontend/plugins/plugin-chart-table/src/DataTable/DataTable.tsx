@@ -451,9 +451,7 @@ export default typedMemo(function DataTable<D extends object>({
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
           <StyledRow className="row">
-            <div
-              className={renderTimeComparisonDropdown ? 'col-sm-4' : 'col-sm-5'}
-            >
+            <StyledSpace size="middle">
               {hasPagination ? (
                 <SelectPageSize
                   total={resultsSize}
@@ -467,23 +465,17 @@ export default typedMemo(function DataTable<D extends object>({
                   onChange={setPageSize}
                 />
               ) : null}
-            </div>
-            {searchInput ? (
-              <StyledSpace
-                className={
-                  renderTimeComparisonDropdown ? 'col-sm-7' : 'col-sm-8'
-                }
-              >
-                {serverPagination && (
-                  <div className="search-select-container">
-                    <span className="search-by-label">Search by: </span>
-                    <SearchSelectDropdown
-                      searchOptions={searchOptions}
-                      value={serverPaginationData?.searchColumn || ''}
-                      onChange={onSearchColChange}
-                    />
-                  </div>
-                )}
+              {serverPagination && (
+                <div className="search-select-container">
+                  <span className="search-by-label">Search by: </span>
+                  <SearchSelectDropdown
+                    searchOptions={searchOptions}
+                    value={serverPaginationData?.searchColumn || ''}
+                    onChange={onSearchColChange}
+                  />
+                </div>
+              )}
+              {searchInput && (
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput
@@ -497,16 +489,11 @@ export default typedMemo(function DataTable<D extends object>({
                   serverPagination={!!serverPagination}
                   rowCount={rowCount}
                 />
-              </StyledSpace>
-            ) : null}
-            {renderTimeComparisonDropdown ? (
-              <div
-                className="col-sm-1"
-                style={{ float: 'right', marginTop: '6px' }}
-              >
-                {renderTimeComparisonDropdown()}
-              </div>
-            ) : null}
+              )}
+              {renderTimeComparisonDropdown
+                ? renderTimeComparisonDropdown()
+                : null}
+            </StyledSpace>
           </StyledRow>
         </div>
       ) : null}

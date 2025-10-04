@@ -20,7 +20,7 @@ import contextlib
 import logging
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app, g, make_response, request, Response
+from flask import current_app as app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -379,7 +379,7 @@ class ChartDataRestApi(ChartRestApi):
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
                 if result_format == ChartDataResultFormat.CSV:
-                    encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+                    encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
                     return query_data.encode(encoding)
                 return query_data
 

@@ -23,13 +23,15 @@ import {
   AsyncSelect,
   Button,
   Divider,
+  Flex,
   FormLabel,
   Input,
   Modal,
 } from '@superset-ui/core/components';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, styled, SupersetClient, useTheme } from '@superset-ui/core';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
@@ -81,9 +83,9 @@ const TagModal: FC<TagModalProps> = ({
 
   const [tagName, setTagName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const theme = useTheme();
 
   const isEditMode = !!editTag;
-  const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
 
   const clearResources = () => {
     setDashboardsToTag([]);
@@ -264,7 +266,13 @@ const TagModal: FC<TagModalProps> = ({
 
   return (
     <Modal
-      title={modalTitle}
+      name={isEditMode ? t('Edit Tag') : t('Create Tag')}
+      title={
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Tag') : t('Create Tag')}
+        />
+      }
       onHide={() => {
         if (clearOnHide) clearTagForm();
         onHide();
@@ -290,20 +298,26 @@ const TagModal: FC<TagModalProps> = ({
       }
     >
       <StyledModalBody>
-        <FormLabel>{t('Tag name')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleTagNameChange}
-          placeholder={t('Name of your tag')}
-          value={tagName}
-        />
-        <FormLabel>{t('Description')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleDescriptionChange}
-          placeholder={t('Add description of your tag')}
-          value={description}
-        />
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel htmlFor="tag-name">{t('Tag name')}</FormLabel>
+          <Input
+            id="tag-name"
+            className="tag-input"
+            onChange={handleTagNameChange}
+            placeholder={t('Name of your tag')}
+            value={tagName}
+          />
+        </Flex>
+
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel>{t('Description')}</FormLabel>
+          <Input
+            className="tag-input"
+            onChange={handleDescriptionChange}
+            placeholder={t('Add description of your tag')}
+            value={description}
+          />
+        </Flex>
         <Divider />
         <AsyncSelect
           className="tag-input"

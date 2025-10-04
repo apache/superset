@@ -21,8 +21,6 @@ import {
   styled,
   SupersetTheme,
   getExtensionsRegistry,
-  css,
-  useTheme,
 } from '@superset-ui/core';
 
 import {
@@ -69,6 +67,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -252,8 +251,9 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
+  display: flex;
+  justify-content: center;
+  padding: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
 export function dbReducer(
@@ -574,7 +574,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
-  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -702,6 +701,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Test Connection logic
   const testConnection = () => {
+    handleClearValidationErrors();
     if (!db?.sqlalchemy_uri) {
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
@@ -728,10 +728,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (errorMsg: string) => {
         setTestInProgress(false);
         addDangerToast(errorMsg);
+        setHasValidated(false);
       },
       (errorMsg: string) => {
         setTestInProgress(false);
         addSuccessToast(errorMsg);
+        setHasValidated(true);
       },
     );
   };
@@ -761,6 +763,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    clearError();
   }, [setValidationErrors, setHasValidated]);
 
   const handleParametersChange = useCallback(
@@ -820,7 +823,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
-
+    setHasValidated(false);
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
@@ -1084,18 +1087,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
         options={[
-          ...(availableDbs?.databases || [])
-            .sort((a: DatabaseForm, b: DatabaseForm) =>
-              a.name.localeCompare(b.name),
-            )
-            .map((database: DatabaseForm, index: number) => ({
+          ...(availableDbs?.databases || []).map(
+            (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
               key: `database-${index}`,
-            })),
+            }),
+          ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
         showSearch
+        sortComparator={(a, b) => {
+          // Always put "Other" at the end
+          if (a.value === 'Other') return 1;
+          if (b.value === 'Other') return -1;
+          // For all other options, sort alphabetically
+          return String(a.label).localeCompare(String(b.label));
+        }}
+        getPopupContainer={triggerNode =>
+          triggerNode.parentElement || document.body
+        }
+        dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
         showIcon
@@ -1166,6 +1178,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
+    handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
     if (importErrored) {
@@ -1831,7 +1844,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
         show={show}
-        title={<h4>{t('Connect a database')}</h4>}
+        title={
+          <ModalTitleWithIcon
+            title={t('Connect a database')}
+            icon={<Icons.InsertRowAboveOutlined />}
+          />
+        }
         width="500px"
       >
         <ModalHeader
@@ -1871,24 +1889,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.InsertRowAboveOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit database') : t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit database') : t('Connect a database')}
+          icon={
+            isEditMode ? (
+              <Icons.EditOutlined iconSize="l" />
+            ) : (
+              <Icons.InsertRowAboveOutlined iconSize="l" />
+            )
+          }
+        />
       }
       footer={modalFooter}
       maskClosable={false}
@@ -1925,14 +1936,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         target,
                       }: {
                         target: HTMLInputElement;
-                      }) =>
+                      }) => {
+                        setHasValidated(false);
                         onChange(ActionType.InputChange, {
                           type: target.type,
                           name: target.name,
                           checked: target.checked,
                           value: target.value,
-                        })
-                      }
+                        });
+                      }}
                       conf={conf}
                       testConnection={testConnection}
                       testInProgress={testInProgress}
@@ -2071,15 +2083,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          <Icons.InsertRowAboveOutlined
-            iconSize="l"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-          />
-          {t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          title={t('Connect a database')}
+          icon={<Icons.InsertRowAboveOutlined />}
+        />
       }
       footer={renderModalFooter()}
       maskClosable={false}
@@ -2156,7 +2163,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <Button
                         data-test="sqla-connect-btn"
                         buttonStyle="link"
-                        onClick={() =>
+                        onClick={() => {
+                          handleClearValidationErrors();
                           setDB({
                             type: ActionType.ConfigMethodChange,
                             payload: {
@@ -2165,8 +2173,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,
                             },
-                          })
-                        }
+                          });
+                        }}
                         css={buttonLinkStyles}
                       >
                         {t(

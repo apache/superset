@@ -43,6 +43,7 @@ interface MenuProps {
 const StyledHeader = styled.header`
   ${({ theme }) => `
       background-color: ${theme.colorBgContainer};
+      border-bottom: 1px solid ${theme.colorBorderSecondary};
       z-index: 10;
 
       &:nth-last-of-type(2) nav {
@@ -52,6 +53,8 @@ const StyledHeader = styled.header`
         display: none;
       }
       & .ant-image{
+        display: contents;
+        height: 100%;
         padding: ${theme.sizeUnit}px
           ${theme.sizeUnit * 2}px
           ${theme.sizeUnit}px
@@ -80,14 +83,14 @@ const StyledHeader = styled.header`
         }
       }
       .navbar-brand-text {
-        border-left: 1px solid ${theme.colors.grayscale.light2};
-        border-right: 1px solid ${theme.colors.grayscale.light2};
+        border-left: 1px solid ${theme.colorBorderSecondary};
+        border-right: 1px solid ${theme.colorBorderSecondary};
         height: 100%;
         color: ${theme.colorText};
         padding-left: ${theme.sizeUnit * 4}px;
         padding-right: ${theme.sizeUnit * 4}px;
         margin-right: ${theme.sizeUnit * 6}px;
-        font-size: ${theme.sizeUnit * 4}px;
+        font-size: ${theme.fontSizeLG}px;
         float: left;
         display: flex;
         flex-direction: column;
@@ -127,7 +130,7 @@ const { SubMenu } = MainNav;
 const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     [data-icon="caret-down"] {
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorIcon};
       font-size: ${theme.fontSizeXS}px;
       margin-left: ${theme.sizeUnit}px;
     }
@@ -322,6 +325,11 @@ export function Menu({
           >
             {renderBrand()}
           </Tooltip>
+          {brand.text && (
+            <div className="navbar-brand-text">
+              <span>{brand.text}</span>
+            </div>
+          )}
           <MainNav
             mode={showMenu}
             data-test="navbar-top"

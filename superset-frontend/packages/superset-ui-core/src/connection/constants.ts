@@ -32,7 +32,7 @@ export const CACHE_KEY = '@SUPERSET-UI/CONNECTION';
 export const DEFAULT_FETCH_RETRY_OPTIONS: FetchRetryOptions = {
   retries: 3,
   retryDelay: 1000,
-  retryOn: [503],
+  retryOn: [502, 503, 504],
 };
 
 export const COMMON_ERR_MESSAGES = {

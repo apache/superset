@@ -101,7 +101,7 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
         >
           <Icons.InfoCircleOutlined
             iconSize="m"
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorIcon}
             css={css`
               margin-left: ${theme.sizeUnit}px;
             `}

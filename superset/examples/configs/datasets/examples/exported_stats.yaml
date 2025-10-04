@@ -260,4 +260,4 @@ columns:
   python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
-data: https://raw.githubusercontent.com/apache-superset/examples-data/master/datasets/examples/slack/exported_stats.csv
+data: examples://datasets/examples/slack/exported_stats.csv

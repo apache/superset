@@ -36,6 +36,7 @@ class Db2EngineSpec(BaseEngineSpec):
     max_column_name_length = 30
 
     supports_dynamic_schema = True
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",

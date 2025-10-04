@@ -35,7 +35,7 @@ const DragHandleContainer = styled.div<{ position: 'left' | 'top' }>`
       transform: rotate(90deg);
     `}
     & path {
-      fill: ${theme.colors.grayscale.base};
+      fill: ${theme.colorIcon};
     }
   `}
 `;
@@ -45,7 +45,7 @@ export default function DragHandle({
 }: DragHandleProps) {
   return (
     <DragHandleContainer ref={innerRef} position={position}>
-      <Icons.Drag />
+      <Icons.Drag iconSize="xl" />
     </DragHandleContainer>
   );
 }

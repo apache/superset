@@ -40,7 +40,7 @@ const LeftPanelStyle = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 4}px;
     height: 100%;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     position: relative;
     .emptystate {
       height: auto;
@@ -73,7 +73,7 @@ const LeftPanelStyle = styled.div`
         padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         :hover {
-          background-color: ${theme.colors.grayscale.light4}
+          background-color: ${theme.colorFillTertiary}
         }
       }
 
@@ -82,7 +82,7 @@ const LeftPanelStyle = styled.div`
         padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         background-color: ${theme.colorPrimaryText};
-        color: ${theme.colors.grayscale.light5};
+        color: ${theme.colorTextLightSolid};
       }
 
       .options, .options-highlighted {
@@ -111,7 +111,7 @@ const LeftPanelStyle = styled.div`
         margin-bottom: ${theme.sizeUnit * 2.5}px;
       }
       p {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextSecondary};
       }
     }
 `}

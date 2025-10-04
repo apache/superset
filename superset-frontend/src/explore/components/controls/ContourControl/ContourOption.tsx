@@ -52,7 +52,7 @@ const ContourOption = ({
 
   const formattedColor = color
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
-    : 'undefined';
+    : 'rgba(0,0,0,0)';
 
   const formatIsoline = (threshold: number, width: number) =>
     `${t('Threshold')}: ${threshold}, ${t('color')}: ${formattedColor}, ${t(

@@ -20,7 +20,8 @@
 import { t } from '@superset-ui/core';
 import { RoleObject } from 'src/pages/RolesList';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { FormModal } from '@superset-ui/core/components';
+import { FormModal, Icons } from '@superset-ui/core/components';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { RoleNameField } from './RoleFormItems';
 import { BaseModalProps, RoleForm } from './types';
 import { createRole, updateRolePermissions } from './utils';
@@ -58,7 +59,13 @@ function RoleListDuplicateModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={t('Duplicate role %(name)s', { name })}
+      name={t('Duplicate role %(name)s', { name })}
+      title={
+        <ModalTitleWithIcon
+          title={t('Duplicate role %(name)s', { name })}
+          icon={<Icons.EditOutlined />}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={['roleName']}

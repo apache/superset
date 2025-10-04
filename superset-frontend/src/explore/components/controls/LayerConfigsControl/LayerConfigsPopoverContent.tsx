@@ -21,7 +21,6 @@ import { css, JsonValue, styled, t } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components/Button';
 import { Form } from '@superset-ui/core/components/Form';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { mix } from 'polished';
 import { Data as GsData } from 'geostyler-data';
 import { Style as GsStyle } from 'geostyler-style';
 import WfsDataParser, {
@@ -59,7 +58,7 @@ export const StyledCloseButton = styled(Button)`
     margin-right: 4px;
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colors.primary.light4};
+    background-color: ${theme.colorPrimaryBg};
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
@@ -71,11 +70,7 @@ export const StyledCloseButton = styled(Button)`
     border-style: none;
     border-color: transparent;
     &:hover {
-      background-color: ${mix(
-        0.1,
-        theme.colorPrimary,
-        theme.colors.primary.light4,
-      )};
+      background-color: ${theme.colorPrimaryBgHover};
       color: ${theme.colorPrimaryText};
     }
   `}
@@ -113,7 +108,7 @@ export const StyledSaveButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colorPrimary};
-    color: ${theme.colors.grayscale.light5};
+    color: ${theme.colorTextLightSolid};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
     text-transform: uppercase;

@@ -28,6 +28,7 @@ import {
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components/Tooltip';
+import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
@@ -94,7 +95,7 @@ const SectionHeaderTextContainer = styled.div`
   width: 100%;
 `;
 
-const SectionHeader = styled.span`
+const SectionHeader = styled(Typography.Text)`
   ${({ theme }) => css`
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
@@ -199,9 +200,9 @@ const DatasourcePanelItem = ({
             <SectionHeaderTextContainer>
               <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
               {collapsedFolderIds.has(folder.id) ? (
-                <Icons.DownOutlined iconSize="s" />
+                <Icons.DownOutlined iconSize="s" iconColor={theme.colorText} />
               ) : (
-                <Icons.UpOutlined iconSize="s" />
+                <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
               )}
             </SectionHeaderTextContainer>
           </Tooltip>

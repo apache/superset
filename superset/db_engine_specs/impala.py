@@ -24,7 +24,7 @@ from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
 import requests
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
@@ -155,7 +155,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
                     if needs_commit:
                         db.session.commit()  # pylint: disable=consider-using-transaction
-                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
                 time.sleep(sleep_interval)

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within } from 'spec/helpers/testing-library';
+import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import thunk from 'redux-thunk';
@@ -130,6 +130,7 @@ const factory = (props = mockedProps) =>
     { store: mockStore() },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
   beforeEach(() => {
     fetchMock.reset();
@@ -146,7 +147,7 @@ describe('ListView', () => {
   });
 
   // Example of converted test:
-  it('calls fetchData on mount', () => {
+  test('calls fetchData on mount', () => {
     expect(mockedProps.fetchData).toHaveBeenCalledWith({
       filters: [],
       pageIndex: 0,
@@ -155,7 +156,7 @@ describe('ListView', () => {
     });
   });
 
-  it('calls fetchData on sort', async () => {
+  test('calls fetchData on sort', async () => {
     const sortHeader = screen.getAllByTestId('sort-header')[1];
     await userEvent.click(sortHeader);
 
@@ -172,27 +173,32 @@ describe('ListView', () => {
     });
   });
 
-  // Update pagination control tests to use button role
-  it('renders pagination controls', () => {
-    expect(screen.getByRole('navigation')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '«' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '»' })).toBeInTheDocument();
+  // Update pagination control tests for Ant Design pagination
+  test('renders pagination controls', () => {
+    const paginationList = screen.getByRole('list');
+    expect(paginationList).toBeInTheDocument();
+
+    const pageOneItem = screen.getByRole('listitem', { name: '1' });
+    expect(pageOneItem).toBeInTheDocument();
   });
 
-  it('calls fetchData on page change', async () => {
-    const nextButton = screen.getByRole('button', { name: '»' });
-    await userEvent.click(nextButton);
+  test('calls fetchData on page change', async () => {
+    const pageTwoItem = screen.getByRole('listitem', { name: '2' });
+    await userEvent.click(pageTwoItem);
 
-    // Remove sortBy expectation since it's not part of the initial state
-    expect(mockedProps.fetchData).toHaveBeenCalledWith({
-      filters: [],
-      pageIndex: 1,
-      pageSize: 1,
-      sortBy: [],
+    await waitFor(() => {
+      const { calls } = mockedProps.fetchData.mock;
+      const pageChangeCall = calls.find(
+        call =>
+          call[0].pageIndex === 1 &&
+          call[0].filters.length === 0 &&
+          call[0].pageSize === 1,
+      );
+      expect(pageChangeCall).toBeDefined();
     });
   });
 
-  it('handles bulk actions on 1 row', async () => {
+  test('handles bulk actions on 1 row', async () => {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
@@ -212,12 +218,12 @@ describe('ListView', () => {
   });
 
   // Update UI filters test to use more specific selector
-  it('renders UI filters', () => {
+  test('renders UI filters', () => {
     const filterControls = screen.getAllByRole('combobox');
     expect(filterControls).toHaveLength(2);
   });
 
-  it('calls fetchData on filter', async () => {
+  test('calls fetchData on filter', async () => {
     // Handle select filter
     const selectFilter = screen.getAllByRole('combobox')[0];
     await userEvent.click(selectFilter);
@@ -247,7 +253,7 @@ describe('ListView', () => {
     );
   });
 
-  it('calls fetchData on card view sort', async () => {
+  test('calls fetchData on card view sort', async () => {
     factory({
       ...mockedProps,
       renderCard: jest.fn(),

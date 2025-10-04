@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, EventHandler } from 'react';
+import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
 import {
   t,
@@ -33,6 +33,7 @@ import {
   CollapseLabelInModal,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import {
   StyledInputContainer,
   StyledJsonEditor,
@@ -78,6 +79,31 @@ const ExtraOptions = ({
     }
     return value;
   });
+
+  // JSON validation hooks for the three editors
+  const secureExtraAnnotations = useJsonValidation(db?.masked_encrypted_extra, {
+    errorPrefix: 'Invalid secure extra JSON',
+  });
+
+  const metadataParamsValue = !Object.keys(extraJson?.metadata_params || {})
+    .length
+    ? ''
+    : typeof extraJson?.metadata_params === 'string'
+      ? extraJson?.metadata_params
+      : JSON.stringify(extraJson?.metadata_params);
+  const metadataParamsAnnotations = useJsonValidation(metadataParamsValue, {
+    errorPrefix: 'Invalid metadata parameters JSON',
+  });
+
+  const engineParamsValue = !Object.keys(extraJson?.engine_params || {}).length
+    ? ''
+    : typeof extraJson?.engine_params === 'string'
+      ? extraJson?.engine_params
+      : JSON.stringify(extraJson?.engine_params);
+  const engineParamsAnnotations = useJsonValidation(engineParamsValue, {
+    errorPrefix: 'Invalid engine parameters JSON',
+  });
+
   const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
   const ExtraExtensionLogo = extraExtension?.logo;
@@ -88,12 +114,22 @@ const ExtraOptions = ({
   const isAllowRunAsyncDisabled = isFeatureEnabled(
     FeatureFlag.ForceSqlLabRunAsync,
   );
+  const [activeKey, setActiveKey] = useState<string[] | undefined>();
+
+  useEffect(() => {
+    if (!expandableModalIsOpen && activeKey !== undefined) {
+      setActiveKey(undefined);
+    }
+    // See issue #34630 for why we omit `activeKey` from the dependency array
+  }, [expandableModalIsOpen]);
 
   return (
     <Collapse
       expandIconPosition="end"
       accordion
       modalMode
+      activeKey={activeKey}
+      onChange={key => setActiveKey(key)}
       items={[
         {
           key: 'sql-lab',
@@ -424,46 +460,25 @@ const ExtraOptions = ({
           ),
           children: (
             <>
-              <StyledInputContainer>
-                <div className="control-label">{t('Secure extra')}</div>
+              <StyledInputContainer
+                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
+              >
                 <div className="input-container">
-                  <StyledJsonEditor
-                    name="masked_encrypted_extra"
-                    value={db?.masked_encrypted_extra || ''}
-                    placeholder={t('Secure extra')}
-                    onChange={(json: string) =>
-                      onEditorChange({ json, name: 'masked_encrypted_extra' })
-                    }
-                    width="100%"
-                    height="160px"
-                  />
-                </div>
-                <div className="helper">
-                  <div>
-                    {t(
-                      'JSON string containing additional connection configuration. ' +
-                        'This is used to provide connection information for systems ' +
-                        'like Hive, Presto and BigQuery which do not conform to the ' +
-                        'username:password syntax normally used by SQLAlchemy.',
+                  <Checkbox
+                    id="per_user_caching"
+                    name="per_user_caching"
+                    indeterminate={false}
+                    checked={!!extraJson?.per_user_caching}
+                    onChange={onExtraInputChange}
+                  >
+                    {t('Per user caching')}
+                  </Checkbox>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Cache data separately for each user based on their data access roles and permissions. ' +
+                        'When disabled, a single cache will be used for all users.',
                     )}
-                  </div>
-                </div>
-              </StyledInputContainer>
-              <StyledInputContainer>
-                <div className="control-label">{t('Root certificate')}</div>
-                <div className="input-container">
-                  <Input.TextArea
-                    name="server_cert"
-                    value={db?.server_cert || ''}
-                    placeholder={t('Enter CA_BUNDLE')}
-                    onChange={onTextChange}
                   />
-                </div>
-                <div className="helper">
-                  {t(
-                    'Optional CA_BUNDLE contents to validate HTTPS requests. Only ' +
-                      'available on certain database engines.',
-                  )}
                 </div>
               </StyledInputContainer>
               <StyledInputContainer
@@ -478,7 +493,7 @@ const ExtraOptions = ({
                     onChange={onInputChange}
                   >
                     {t(
-                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
+                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
                     )}
                   </Checkbox>
                   <InfoTooltip
@@ -532,6 +547,49 @@ const ExtraOptions = ({
                   </div>
                 </StyledInputContainer>
               )}
+              <StyledInputContainer>
+                <div className="control-label">{t('Secure extra')}</div>
+                <div className="input-container">
+                  <StyledJsonEditor
+                    name="masked_encrypted_extra"
+                    value={db?.masked_encrypted_extra || ''}
+                    placeholder={t('Secure extra')}
+                    onChange={(json: string) =>
+                      onEditorChange({ json, name: 'masked_encrypted_extra' })
+                    }
+                    width="100%"
+                    height="160px"
+                    annotations={secureExtraAnnotations}
+                  />
+                </div>
+                <div className="helper">
+                  <div>
+                    {t(
+                      'JSON string containing additional connection configuration. ' +
+                        'This is used to provide connection information for systems ' +
+                        'like Hive, Presto and BigQuery which do not conform to the ' +
+                        'username:password syntax normally used by SQLAlchemy.',
+                    )}
+                  </div>
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="control-label">{t('Root certificate')}</div>
+                <div className="input-container">
+                  <Input.TextArea
+                    name="server_cert"
+                    value={db?.server_cert || ''}
+                    placeholder={t('Enter CA_BUNDLE')}
+                    onChange={onTextChange}
+                  />
+                </div>
+                <div className="helper">
+                  {t(
+                    'Optional CA_BUNDLE contents to validate HTTPS requests. Only ' +
+                      'available on certain database engines.',
+                  )}
+                </div>
+              </StyledInputContainer>
             </>
           ),
         },
@@ -594,6 +652,7 @@ const ExtraOptions = ({
                           ? extraJson?.metadata_params
                           : JSON.stringify(extraJson?.metadata_params)
                     }
+                    annotations={metadataParamsAnnotations}
                   />
                 </div>
                 <div className="helper">
@@ -620,6 +679,7 @@ const ExtraOptions = ({
                         ? ''
                         : extraJson?.engine_params
                     }
+                    annotations={engineParamsAnnotations}
                   />
                 </div>
                 <div className="helper">

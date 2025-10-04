@@ -43,7 +43,6 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
-  GenericDataType,
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
@@ -54,12 +53,12 @@ import {
   useTheme,
   SupersetTheme,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,
   Space,
   RawAntdSelect as Select,
   Dropdown,
-  Menu,
   Tooltip,
 } from '@superset-ui/core/components';
 import {
@@ -84,12 +83,12 @@ import DataTable, {
   SelectPageSizeRendererProps,
   SizeOption,
 } from './DataTable';
-
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
+import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -170,12 +169,21 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
+  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
+  theme: SupersetTheme;
 }) {
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  return `rgba(${r},0,0,0.2)`;
+  if (!colorPositiveNegative) {
+    return `${theme.colorFillSecondary}50`;
+  }
+
+  if (value < 0) {
+    return `${theme.colorError}50`;
+  }
+
+  return `${theme.colorSuccess}50`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -198,9 +206,8 @@ function SearchInput({
     <Space direction="horizontal" size={4} className="dt-global-filter">
       {t('Search')}
       <Input
-        size="small"
         aria-label={t('Search %s records', count)}
-        placeholder={tn('search.num_records', count)}
+        placeholder={tn('%s record', '%s records...', count, count)}
         value={value}
         onChange={onChange}
         onBlur={onBlur}
@@ -324,8 +331,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
-      if (typeof data?.[0]?.[key] === 'number') {
-        const nums = data.map(row => row[key]) as number[];
+      const nums = data
+        ?.map(row => row?.[key])
+        .filter(value => typeof value === 'number') as number[];
+      if (data && nums.length === data.length) {
         return (
           alignPositiveNegative
             ? [0, d3Max(nums.map(Math.abs))]
@@ -564,52 +573,62 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     return (
       <Dropdown
         placement="bottomRight"
-        visible={showComparisonDropdown}
-        onVisibleChange={(flag: boolean) => {
+        open={showComparisonDropdown}
+        onOpenChange={(flag: boolean) => {
           setShowComparisonDropdown(flag);
         }}
-        overlay={
-          <Menu
-            multiple
-            onClick={handleOnClick}
-            onBlur={handleOnBlur}
-            selectedKeys={selectedComparisonColumns}
-          >
-            <div
-              css={css`
-                max-width: 242px;
-                padding: 0 ${theme.sizeUnit * 2}px;
-                color: ${theme.colorText};
-                font-size: ${theme.fontSizeSM}px;
-              `}
-            >
-              {t(
-                'Select columns that will be displayed in the table. You can multiselect columns.',
-              )}
-            </div>
-            {comparisonColumns.map(column => (
-              <Menu.Item key={column.key}>
-                <span
+        menu={{
+          multiple: true,
+          onClick: handleOnClick,
+          onBlur: handleOnBlur,
+          selectedKeys: selectedComparisonColumns,
+          items: [
+            {
+              key: 'all',
+              label: (
+                <div
                   css={css`
+                    max-width: 242px;
+                    padding: 0 ${theme.sizeUnit * 2}px;
                     color: ${theme.colorText};
-                  `}
-                >
-                  {column.label}
-                </span>
-                <span
-                  css={css`
-                    float: right;
                     font-size: ${theme.fontSizeSM}px;
                   `}
                 >
-                  {selectedComparisonColumns.includes(column.key) && (
-                    <CheckOutlined />
+                  {t(
+                    'Select columns that will be displayed in the table. You can multiselect columns.',
                   )}
-                </span>
-              </Menu.Item>
-            ))}
-          </Menu>
-        }
+                </div>
+              ),
+              type: 'group',
+              children: comparisonColumns.map(
+                (column: { key: string; label: string }) => ({
+                  key: column.key,
+                  label: (
+                    <>
+                      <span
+                        css={css`
+                          color: ${theme.colorText};
+                        `}
+                      >
+                        {column.label}
+                      </span>
+                      <span
+                        css={css`
+                          float: right;
+                          font-size: ${theme.fontSizeSM}px;
+                        `}
+                      >
+                        {selectedComparisonColumns.includes(column.key) && (
+                          <CheckOutlined />
+                        )}
+                      </span>
+                    </>
+                  ),
+                }),
+              ),
+            },
+          ],
+        }}
         trigger={['click']}
       >
         <span>
@@ -629,7 +648,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const startPosition = value[0];
       const colSpan = value.length;
       // Retrieve the originalLabel from the first column in this group
-      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
+      const firstColumnInGroup = filteredColumnsMeta[startPosition];
+      const originalLabel = firstColumnInGroup
+        ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
+            ?.originalLabel || key
+        : key;
 
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
@@ -711,7 +734,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const {
         key,
         label: originalLabel,
-        isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
@@ -756,7 +778,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const { truncateLongCells } = config;
 
       const hasColumnColorFormatters =
-        isNumeric &&
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
@@ -868,6 +889,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 background-color: ${cellBackground({
                   value: value as number,
                   colorPositiveNegative,
+                  theme,
                 })};
               `}
           `;
@@ -922,7 +944,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             },
             className: [
               className,
-              value == null ? 'dt-is-null' : '',
+              value == null ||
+              (value instanceof DateWithFormatter && value.input == null)
+                ? 'dt-is-null'
+                : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
             tabIndex: 0,
@@ -1073,6 +1098,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       totals,
       columnColorFormatters,
       columnOrderToggle,
+      theme,
     ],
   );
 

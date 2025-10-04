@@ -833,11 +833,11 @@ msgid "Add Dashboard"
 msgstr "افزودن داشبورد"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "تقسیم‌کننده"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "فیلتر اضافه کنید"
 
 #, fuzzy
@@ -1817,7 +1817,7 @@ msgstr "فیلترهای تکمیل خودکار"
 msgid "Autocomplete query predicate"
 msgstr "پیشنهاد خودکار کوئری"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "رنگ خودکار"
 
 #, fuzzy
@@ -3255,7 +3255,7 @@ msgstr "نقشه کشور"
 msgid "Create"
 msgstr "ایجاد کنید"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "چارت ایجاد کن"
 
 msgid "Create a dataset"
@@ -3376,7 +3376,7 @@ msgstr "در حال حاضر رندر شده: %s"
 msgid "Custom"
 msgstr "سفارشی"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "قالب‌بندی شرطی سفارشی"
 
 msgid "Custom Plugin"
@@ -5859,7 +5859,7 @@ msgstr "تصویر (پی‌ان‌جی) درج‌شده در ایمیل"
 msgid "Image download failed, please refresh and try again."
 msgstr "دانلود تصویر ناموفق بود، لطفاً صفحه را تازه‌سازی کرده و دوباره تلاش کنید."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "شخصیت کاربر وارد شده را تقلید کنید (پرستو، ترینو، دریل، هایو و جی‌اسیت)"
 
 msgid "Import"
@@ -8767,7 +8767,7 @@ msgstr "منبع قبلاً یک گزارش ضمایم شده دارد."
 msgid "Resource was not found."
 msgstr "منبع پیدا نشد."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "بازیابی فیلتر"
 
 msgid "Results"
@@ -9355,7 +9355,7 @@ msgstr "روش تحویل را انتخاب کنید"
 msgid "Select Tags"
 msgstr "برچسب‌ها را انتخاب کنید"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "نوع بصری را انتخاب کنید"
 
 msgid "Select a column"
@@ -9784,7 +9784,7 @@ msgstr "نمایش حباب‌ها"
 msgid "Show CREATE VIEW statement"
 msgstr "بیان CREATE VIEW را نشان بدهید"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "نمودار میله‌ای سلول‌ها را نمایش بدهید"
 
 msgid "Show Dashboard"
@@ -13465,7 +13465,7 @@ msgstr "مرتب‌سازی محور X بر اساس"
 msgid "X-axis"
 msgstr "محور X"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "فاصله مقیاس X"
 
 msgid "XYZ"
@@ -13522,7 +13522,7 @@ msgstr "محور Y"
 msgid "Y-axis bounds"
 msgstr "محدوده‌های محور Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "فاصله مقیاس Y"
 
 msgid "Year"
@@ -13905,7 +13905,7 @@ msgstr "`row_offset` باید بزرگتر از یا برابر با ۰ باشد
 msgid "`width` must be greater or equal to 0"
 msgstr "`عرض` باید بزرگتر یا برابر با ۰ باشد."
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "رنگ‌ها را به نوارهای سلول برای + و - اضافه کنید"
 
 msgid "aggregate"
@@ -13950,7 +13950,7 @@ msgstr "خودکار"
 msgid "background"
 msgstr "پس‌زمینه"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "فرمت‌بندی شرطی پایه"
 
 msgid "basis"

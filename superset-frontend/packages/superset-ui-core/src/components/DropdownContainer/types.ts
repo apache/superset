@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { CSSProperties, ReactElement, RefObject, ReactNode } from 'react';
+import { IconType } from '../Icons';
 
 /**
  * Container item.
@@ -69,7 +70,7 @@ export interface DropdownContainerProps {
   /**
    * Icon of the dropdown trigger.
    */
-  dropdownTriggerIcon?: ReactElement;
+  dropdownTriggerIcon?: IconType;
   /**
    * Text of the dropdown trigger.
    */

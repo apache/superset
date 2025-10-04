@@ -111,7 +111,7 @@ const FilterTitlePane: FC<Props> = ({
           data-test="add-new-filter-button"
           onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
         >
-          {t('Add Filter')}
+          {t('Add filter')}
         </Button>
         <Button
           buttonSize="default"
@@ -125,7 +125,7 @@ const FilterTitlePane: FC<Props> = ({
           data-test="add-new-divider-button"
           onClick={() => handleOnAdd(NativeFilterType.Divider)}
         >
-          {t('Add Divider')}
+          {t('Add divider')}
         </Button>
       </div>
     </TabsContainer>

@@ -45,7 +45,7 @@ const RefreshLabel = ({
         onClick={disabled ? undefined : onClick}
         css={(theme: SupersetTheme) => ({
           cursor: 'pointer',
-          color: theme.colors.grayscale.base,
+          color: theme.colorIcon,
           '&:hover': { color: theme.colorPrimary },
         })}
       />

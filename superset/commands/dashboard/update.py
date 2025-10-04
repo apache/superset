@@ -19,10 +19,11 @@ import textwrap
 from functools import partial
 from typing import Any, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardColorsConfigUpdateFailedError,
@@ -175,7 +176,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                         to=email,
                         subject=f"[Report: {report.name}] Deactivated",
                         html_content=html_content,
-                        config=app.config,
+                        config=current_app.config,
                     )
 
         def deactivate_reports(reports_list: list[ReportSchedule]) -> None:

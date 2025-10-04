@@ -42,7 +42,7 @@ export default function CustomListItem(props: CustomListItemProps) {
   if (selectable) {
     css['&:hover'] = {
       cursor: 'pointer',
-      backgroundColor: theme.colors.grayscale.light4,
+      backgroundColor: theme.colorFillSecondary,
     };
   }
 

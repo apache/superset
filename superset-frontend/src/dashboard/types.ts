@@ -21,23 +21,26 @@ import {
   DataMaskStateWithId,
   DatasourceType,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   NativeFilterScope,
   NativeFiltersState,
   NativeFilterTarget,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
-
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
+
+export interface ExtendedNativeFilterScope extends NativeFilterScope {
+  selectedLayers?: string[];
+}
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -103,6 +106,8 @@ export type DashboardState = {
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
+  nativeFiltersBarOpen?: boolean;
+  css?: string;
   focusedFilterField?: {
     chartId: number;
     column: string;
@@ -146,6 +151,12 @@ export type DashboardInfo = {
   changed_by?: Owner;
   created_by?: Owner;
   owners: Owner[];
+  theme?: {
+    id: number;
+    name: string;
+  } | null;
+  theme_id?: number | null;
+  css?: string;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -210,6 +221,9 @@ type ActiveFilter = {
   targets: number[] | [Partial<NativeFilterTarget>];
   scope: number[];
   values: ExtraFormData;
+  layerScope?: {
+    [chartId: number]: number[];
+  };
 };
 
 export type ActiveFilters = {
@@ -282,4 +296,5 @@ export enum MenuKeys {
   ToggleFullscreen = 'toggle_fullscreen',
   ManageEmbedded = 'manage_embedded',
   ManageEmailReports = 'manage_email_reports',
+  ExportPivotXlsx = 'export_pivot_xlsx',
 }

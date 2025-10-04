@@ -45,7 +45,7 @@ interface HandleSelectProps {
 }
 
 const menuItemStyles = (theme: any) => css`
-  &.antd5-menu-item {
+  &.ant-menu-item {
     height: auto;
     line-height: 1.4;
 
@@ -60,12 +60,12 @@ const menuItemStyles = (theme: any) => css`
     }
 
     &:hover {
-      background: ${theme.colors.grayscale.light3};
+      background: ${theme.colorFillQuaternary};
     }
 
     &.active {
       font-weight: ${theme.fontWeightStrong};
-      background: ${theme.colors.grayscale.light2};
+      background: ${theme.colorFillTertiary};
     }
   }
 

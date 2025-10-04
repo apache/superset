@@ -19,6 +19,7 @@
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 
 export const OBJECT_TYPES_VALUES = Object.freeze([
   'dashboard',
@@ -93,7 +94,11 @@ export function fetchTags(
     endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
-      callback(json.result.tags.filter((tag: TagType) => tag.type === 1)),
+      callback(
+        json.result.tags.filter(
+          (tag: TagType) => tag.type === TagTypeEnum.Custom,
+        ),
+      ),
     )
     .catch(response => error(response));
 }

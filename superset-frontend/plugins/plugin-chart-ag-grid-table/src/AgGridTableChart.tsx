@@ -19,14 +19,17 @@
 import {
   DataRecord,
   DataRecordValue,
-  GenericDataType,
   getTimeFormatterForGranularity,
   t,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 
-import { CellClickedEvent, IMenuActionParams } from 'ag-grid-community';
+import {
+  CellClickedEvent,
+  IMenuActionParams,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import {
   AgGridTableChartTransformedProps,
   InputColumn,

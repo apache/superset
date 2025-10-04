@@ -21,32 +21,39 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t, logging, themeObject } from '@superset-ui/core';
+import {
+  type SupersetThemeConfig,
+  makeApi,
+  t,
+  logging,
+} from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
-import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { AnyThemeConfig } from 'packages/superset-ui-core/src/theme/types';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import {
+  EmbeddedContextProviders,
+  getThemeController,
+} from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
+setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
 
 function log(...info: unknown[]) {
-  if (debugMode) {
-    logging.debug(`[superset]`, ...info);
-  }
+  if (debugMode) logging.debug(`[superset]`, ...info);
 }
 
 const LazyDashboardPage = lazy(
@@ -84,14 +91,14 @@ const EmbededLazyDashboardPage = () => {
 };
 
 const EmbeddedRoute = () => (
-  <Suspense fallback={<Loading />}>
-    <RootContextProviders>
+  <EmbeddedContextProviders>
+    <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
-    </RootContextProviders>
-  </Suspense>
+    </Suspense>
+  </EmbeddedContextProviders>
 );
 
 const EmbeddedApp = () => (
@@ -245,12 +252,13 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.defineMethod(
       'setThemeConfig',
-      (payload: { themeConfig: AnyThemeConfig }) => {
+      (payload: { themeConfig: SupersetThemeConfig }) => {
         const { themeConfig } = payload;
         log('Received setThemeConfig request:', themeConfig);
 
         try {
-          themeObject.setConfig(themeConfig);
+          const themeController = getThemeController();
+          themeController.setThemeConfig(themeConfig);
           return { success: true, message: 'Theme applied' };
         } catch (error) {
           logging.error('Failed to apply theme config:', error);
@@ -258,7 +266,21 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
         }
       },
     );
+
     Switchboard.start();
+  }
+});
+
+// Clean up theme controller on page unload
+window.addEventListener('beforeunload', () => {
+  try {
+    const controller = getThemeController();
+    if (controller) {
+      log('Destroying theme controller');
+      controller.destroy();
+    }
+  } catch (error) {
+    logging.warn('Failed to destroy theme controller:', error);
   }
 });
 

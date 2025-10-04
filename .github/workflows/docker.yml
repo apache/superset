@@ -22,7 +22,7 @@ jobs:
     steps:
       - id: set_matrix
         run: |
-          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev", "lean"]'; else echo '["dev", "lean", "py310", "websocket", "dockerize", "py311"]'; fi)
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev", "lean"]'; else echo '["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]'; fi)
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
 
@@ -42,7 +42,7 @@ jobs:
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -102,7 +102,7 @@ jobs:
           docker history $IMAGE_TAG
 
       - name: docker-compose sanity check
-        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
+        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'dev'
         shell: bash
         run: |
           export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Check for file changes

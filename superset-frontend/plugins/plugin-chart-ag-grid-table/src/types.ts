@@ -26,7 +26,6 @@ import {
   DataRecord,
   DataRecordValue,
   DataRecordFilters,
-  GenericDataType,
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
@@ -36,8 +35,13 @@ import {
   JsonObject,
   Metric,
 } from '@superset-ui/core';
-import { ColDef, Column, IHeaderParams } from 'ag-grid-community';
-import { CustomCellRendererProps } from 'ag-grid-react';
+import { GenericDataType } from '@apache-superset/core/api/core';
+import {
+  ColDef,
+  Column,
+  IHeaderParams,
+  CustomCellRendererProps,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 

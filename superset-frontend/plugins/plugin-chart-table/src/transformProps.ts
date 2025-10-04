@@ -24,7 +24,6 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
-  GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -36,6 +35,7 @@ import {
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ColorFormatters,
   ConditionalFormattingConfig,
@@ -276,7 +276,7 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        formatter = currency
+        formatter = currency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
               currency,

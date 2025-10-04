@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonArray, t } from '@superset-ui/core';
+import { ensureIsArray, JsonArray, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -39,6 +39,7 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  forceMaxInterval,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -343,8 +344,9 @@ const config: ControlPanelConfig = {
                 chartState,
               ) => true,
               mapStateToProps: (state, controlState, chartState) => {
-                const value: JsonArray = state.controls.groupby
-                  .value as JsonArray;
+                const value: JsonArray = ensureIsArray(
+                  state.controls.groupby?.value,
+                ) as JsonArray;
                 const valueAsStringArr: string[][] = value.map(v => {
                   if (v) return [v.toString(), v.toString()];
                   return ['', ''];
@@ -363,6 +365,7 @@ const config: ControlPanelConfig = {
         ...createAxisControl('x'),
         [truncateXAxis],
         [xAxisBounds],
+        [forceMaxInterval],
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),

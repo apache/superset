@@ -19,7 +19,6 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import DatasetPanel, {
   REFRESHING,
-  ALT_LOADING,
   tableColumnDefinition,
   COLUMN_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
@@ -43,6 +42,7 @@ jest.mock(
     ),
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
     render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
@@ -101,8 +101,8 @@ describe('DatasetPanel', () => {
       },
     );
 
-    const blankDatasetImg = screen.getByAltText(ALT_LOADING);
-    expect(blankDatasetImg).toBeVisible();
+    const loadingIndicator = screen.getByTestId('loading-indicator');
+    expect(loadingIndicator).toBeVisible();
     const blankDatasetTitle = screen.getByText(REFRESHING);
     expect(blankDatasetTitle).toBeVisible();
   });

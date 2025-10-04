@@ -87,40 +87,40 @@ def cidr_translate_filter_func(  # noqa: C901
     if operator in (FilterOperator.IN, FilterOperator.NOT_IN):
         dict_items = [val for val in values if isinstance(val, dict)]
         single_values = [val for val in values if not isinstance(val, dict)]
-        if operator == FilterOperator.IN.value:
+        if operator == FilterOperator.IN:
             cond = col.in_(single_values)
             for dictionary in dict_items:
                 cond = cond | (col <= dictionary["end"]) & (col >= dictionary["start"])
-        elif operator == FilterOperator.NOT_IN.value:
+        elif operator == FilterOperator.NOT_IN:
             cond = ~(col.in_(single_values))
             for dictionary in dict_items:
                 cond = cond & (col > dictionary["end"]) & (col < dictionary["start"])
         return_expression = cond
     if len(values) == 1:
         value = values[0]
-        if operator == FilterOperator.EQUALS.value:
+        if operator == FilterOperator.EQUALS:
             return_expression = (
                 col == value
                 if not isinstance(value, dict)
                 else (col <= value["end"]) & (col >= value["start"])
             )
-        if operator == FilterOperator.GREATER_THAN_OR_EQUALS.value:
+        if operator == FilterOperator.GREATER_THAN_OR_EQUALS:
             return_expression = (
                 col >= value if not isinstance(value, dict) else col >= value["end"]
             )
-        if operator == FilterOperator.GREATER_THAN.value:
+        if operator == FilterOperator.GREATER_THAN:
             return_expression = (
                 col > value if not isinstance(value, dict) else col > value["end"]
             )
-        if operator == FilterOperator.LESS_THAN.value:
+        if operator == FilterOperator.LESS_THAN:
             return_expression = (
                 col < value if not isinstance(value, dict) else col < value["start"]
             )
-        if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
+        if operator == FilterOperator.LESS_THAN_OR_EQUALS:
             return_expression = (
                 col <= value if not isinstance(value, dict) else col <= value["start"]
             )
-        if operator == FilterOperator.NOT_EQUALS.value:
+        if operator == FilterOperator.NOT_EQUALS:
             return_expression = (
                 col != value
                 if not isinstance(value, dict)

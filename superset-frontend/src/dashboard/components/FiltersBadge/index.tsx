@@ -63,14 +63,14 @@ const StyledFilterCount = styled.div`
     margin-right: ${theme.sizeUnit}px;
     padding-left: ${theme.sizeUnit * 2}px;
     padding-right: ${theme.sizeUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
+    background: ${theme.colorBgContainer};
     border-radius: 4px;
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorIcon};
       &:hover {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorIconHover};
       }
     }
 
@@ -86,16 +86,6 @@ const StyledFilterCount = styled.div`
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
     margin-left: ${theme.sizeUnit * 2}px;
-    &>sup.ant-badge-count {
-      padding: 0 ${theme.sizeUnit}px;
-      min-width: ${theme.sizeUnit * 4}px;
-      height: ${theme.sizeUnit * 4}px;
-      line-height: 1.5;
-      font-weight: ${theme.fontWeightStrong};
-      font-size: ${theme.fontSizeSM - 1}px;
-      box-shadow: none;
-      padding: 0 ${theme.sizeUnit}px;
-    }
   `}
 `;
 
@@ -314,6 +304,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           data-test="applied-filter-count"
           className="applied-count"
           count={filterCount}
+          size="small"
           showZero
         />
       </StyledFilterCount>

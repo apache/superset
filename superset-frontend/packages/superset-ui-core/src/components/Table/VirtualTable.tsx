@@ -132,7 +132,7 @@ const VirtualTable = <RecordType extends object>(
         if (gridRef.current) {
           return gridRef.current?.state?.scrollLeft;
         }
-        return null;
+        return 0;
       },
       set: (scrollLeft: number) => {
         if (gridRef.current) {

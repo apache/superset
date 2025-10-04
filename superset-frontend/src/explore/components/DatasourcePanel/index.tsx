@@ -58,6 +58,7 @@ export interface IDatasource {
   sql?: string | null;
   datasource_name?: string | null;
   name?: string | null;
+  catalog?: string | null;
   schema?: string | null;
 }
 
@@ -87,7 +88,7 @@ const DatasourceContainer = styled.div`
     .field-length {
       margin-bottom: ${theme.sizeUnit * 2}px;
       font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextTertiary};
     }
     .form-control.input-md {
       display: inline-flex;
@@ -97,7 +98,7 @@ const DatasourceContainer = styled.div`
     }
     .type-label {
       font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextSecondary};
     }
     .Control {
       padding-bottom: 0;

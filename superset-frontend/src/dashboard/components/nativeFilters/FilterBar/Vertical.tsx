@@ -63,14 +63,13 @@ const Bar = styled.div<{ width: number }>`
     flex-direction: column;
     flex-grow: 1;
     width: ${width}px;
-    background: ${theme.colors.grayscale.light5};
+    background: ${theme.colorBgContainer};
     border-right: 1px solid ${theme.colorSplit};
     border-bottom: 1px solid ${theme.colorSplit};
     min-height: 100%;
     display: none;
     &.open {
       display: flex;
-      background-color: ${theme.colorBgBase};
     }
   `}
 `;
@@ -224,7 +223,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
             <div css={{ height }}>
-              <Loading />
+              <Loading size="s" muted />
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>

@@ -20,6 +20,9 @@
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
+#
+# For verbose logging during development:
+# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-volumes:
   &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
@@ -30,7 +33,7 @@ x-common-build: &common-build
   context: .
   target: dev
   cache_from:
-    - apache/superset-cache:3.10-slim-bookworm
+    - apache/superset-cache:3.10-slim-trixie
 
 services:
   redis:
