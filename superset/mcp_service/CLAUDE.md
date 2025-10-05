@@ -67,15 +67,15 @@ superset/mcp_service/
     └── tool/
 ```
 
-## Critical Convention: Tool Registration
+## Critical Convention: Tool, Prompt, and Resource Registration
 
-**IMPORTANT**: When creating new MCP tools, you MUST add their imports to `app.py` for auto-registration. Do NOT add them to `server.py` - that approach doesn't work properly.
+**IMPORTANT**: When creating new MCP tools, prompts, or resources, you MUST add their imports to `app.py` for auto-registration. Do NOT add them to `server.py` - that approach doesn't work properly.
 
 ### How to Add a New Tool
 
 1. **Create the tool file** in the appropriate directory (e.g., `chart/tool/my_new_tool.py`)
 2. **Decorate with `@mcp.tool`** to register it with FastMCP
-3. **Add import to `app.py`** at the bottom of the file where other tools are imported (around line 207-224)
+3. **Add import to `app.py`** at the bottom of the file where other tools are imported (around line 210-242)
 
 **Example**:
 ```python
@@ -101,6 +101,74 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 ```
 
 **Why this matters**: Tools use `@mcp.tool` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after the `mcp` instance is created). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
+
+### How to Add a New Prompt
+
+1. **Create the prompt file** in the appropriate directory (e.g., `chart/prompts/my_new_prompt.py`)
+2. **Decorate with `@mcp.prompt`** to register it with FastMCP
+3. **Add import to module's `__init__.py`** (e.g., `chart/prompts/__init__.py`)
+4. **Ensure module is imported in `app.py`** (around line 244-253)
+
+**Example**:
+```python
+# superset/mcp_service/chart/prompts/my_new_prompt.py
+from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import mcp_auth_hook
+
+@mcp.prompt("my_new_prompt")
+@mcp_auth_hook
+async def my_new_prompt_handler(ctx: Context) -> str:
+    """Interactive prompt for doing something."""
+    return "Prompt instructions here..."
+```
+
+**Then add to `chart/prompts/__init__.py`**:
+```python
+# superset/mcp_service/chart/prompts/__init__.py
+from . import create_chart_guided  # existing
+from . import my_new_prompt  # ADD YOUR PROMPT HERE
+```
+
+**Verify module import exists in `app.py`** (around line 248):
+```python
+# superset/mcp_service/app.py
+from superset.mcp_service.chart import prompts as chart_prompts  # This imports all prompts
+```
+
+### How to Add a New Resource
+
+1. **Create the resource file** in the appropriate directory (e.g., `chart/resources/my_new_resource.py`)
+2. **Decorate with `@mcp.resource`** to register it with FastMCP
+3. **Add import to module's `__init__.py`** (e.g., `chart/resources/__init__.py`)
+4. **Ensure module is imported in `app.py`** (around line 244-253)
+
+**Example**:
+```python
+# superset/mcp_service/chart/resources/my_new_resource.py
+from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import mcp_auth_hook
+
+@mcp.resource("superset://chart/my_resource")
+@mcp_auth_hook
+def get_my_resource() -> str:
+    """Resource description for LLMs."""
+    return "Resource data here..."
+```
+
+**Then add to `chart/resources/__init__.py`**:
+```python
+# superset/mcp_service/chart/resources/__init__.py
+from . import chart_configs  # existing
+from . import my_new_resource  # ADD YOUR RESOURCE HERE
+```
+
+**Verify module import exists in `app.py`** (around line 249):
+```python
+# superset/mcp_service/app.py
+from superset.mcp_service.chart import resources as chart_resources  # This imports all resources
+```
+
+**Why this matters**: Prompts and resources work similarly to tools - they use decorators and register on import. The module-level imports (`chart/prompts/__init__.py`, `chart/resources/__init__.py`) ensure individual files are imported when the module is imported. The `app.py` imports ensure the modules are loaded when the MCP service starts.
 
 ## Tool Development Patterns
 
@@ -417,10 +485,34 @@ MCP clients discover tools via:
 - [ ] Added `@mcp_auth_hook` decorator
 - [ ] Created Pydantic request/response schemas in `{module}/schemas.py`
 - [ ] Used DAO classes instead of direct queries
-- [ ] Added tool import to `app.py` (around line 207-224)
+- [ ] Added tool import to `app.py` (around line 210-242)
 - [ ] Added Apache license header to new files
 - [ ] Created unit tests in `tests/unit_tests/mcp_service/{module}/tool/test_{tool_name}.py`
 - [ ] Updated `DEFAULT_INSTRUCTIONS` in `app.py` if adding new capability
+- [ ] Tested locally with MCP client (e.g., Claude Desktop)
+
+## Quick Checklist for New Prompts
+
+- [ ] Created prompt file in `{module}/prompts/{prompt_name}.py`
+- [ ] Added `@mcp.prompt("prompt_name")` decorator
+- [ ] Added `@mcp_auth_hook` decorator
+- [ ] Made function async: `async def prompt_handler(ctx: Context) -> str`
+- [ ] Added import to `{module}/prompts/__init__.py`
+- [ ] Verified module import exists in `app.py` (around line 244-253)
+- [ ] Added Apache license header to new file
+- [ ] Updated `DEFAULT_INSTRUCTIONS` in `app.py` to list the new prompt
+- [ ] Tested locally with MCP client (e.g., Claude Desktop)
+
+## Quick Checklist for New Resources
+
+- [ ] Created resource file in `{module}/resources/{resource_name}.py`
+- [ ] Added `@mcp.resource("superset://{path}")` decorator with unique URI
+- [ ] Added `@mcp_auth_hook` decorator
+- [ ] Implemented resource data retrieval logic
+- [ ] Added import to `{module}/resources/__init__.py`
+- [ ] Verified module import exists in `app.py` (around line 244-253)
+- [ ] Added Apache license header to new file
+- [ ] Updated `DEFAULT_INSTRUCTIONS` in `app.py` to list the new resource
 - [ ] Tested locally with MCP client (e.g., Claude Desktop)
 
 ## Getting Help

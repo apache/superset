@@ -457,7 +457,7 @@ class InstanceInfoCore(BaseCore):
                 **base_counts,
                 **time_metrics,
                 **custom_metrics,
-                "timestamp": datetime.now(timezone.utc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             # Create response using the configured schema
