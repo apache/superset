@@ -160,6 +160,9 @@ const Chart = props => {
   const maxRows = useSelector(
     state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
   );
+  const streamingThreshold = useSelector(
+    state => state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD || 100000,
+  );
   const datasource = useSelector(
     state =>
       (chart &&
@@ -182,7 +185,7 @@ const Chart = props => {
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const { progress, isExporting, startExport, cancelExport, resetExport } =
     useStreamingExport({
-      onComplete: (downloadUrl, filename) => {
+      onComplete: () => {
         boundActionCreators.addSuccessToast(
           t('CSV file downloaded successfully'),
         );
@@ -413,8 +416,11 @@ const Chart = props => {
         actualRowCount = exportFormData?.row_limit;
       }
 
-      // Handle streaming CSV exports for both regular and full data exports
-      const shouldUseStreaming = format === 'csv' && !isPivot;
+      // Handle streaming CSV exports based on row threshold
+      const shouldUseStreaming =
+        format === 'csv' &&
+        !isPivot &&
+        actualRowCount >= streamingThreshold;
 
       exportChart({
         formData: exportFormData,
@@ -444,6 +450,7 @@ const Chart = props => {
       queriesResponse,
       startExport,
       resetExport,
+      streamingThreshold,
     ],
   );
 

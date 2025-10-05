@@ -386,7 +386,7 @@ class ChartDataRestApi(ChartRestApi):
             is_csv_format = result_format == ChartDataResultFormat.CSV
 
             # Check if we should use streaming for large datasets
-            if is_csv_format and True:
+            if is_csv_format and self._should_use_streaming(result, form_data):
                 return self._create_streaming_csv_response(result, form_data, filename=filename, expected_rows=expected_rows)
 
             if len(result["queries"]) == 1:
@@ -489,13 +489,44 @@ class ChartDataRestApi(ChartRestApi):
     def _should_use_streaming(
         self, result: dict[Any, Any], form_data: dict[str, Any] | None = None
     ) -> bool:
-        """Determine if streaming should be used for this response."""
-        from superset.views.streaming import should_use_streaming_response
+        """Determine if streaming should be used based on actual row count threshold."""
+        from flask import current_app as app
 
         query_context = result["query_context"]
         result_format = query_context.result_format
 
-        return should_use_streaming_response(query_context, result_format)
+        # Only support CSV streaming currently
+        if result_format.lower() != "csv":
+            return False
+
+        # Get streaming threshold from config
+        threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
+
+        # Extract actual row count (same logic as frontend)
+        actual_row_count = None
+        viz_type = form_data.get("viz_type") if form_data else None
+
+        # For table viz, try to get actual row count from query results
+        if viz_type == "table" and result.get("queries"):
+            # Check if we have rowcount in the second query result (like frontend does)
+            queries = result.get("queries", [])
+            if len(queries) > 1 and queries[1].get("data"):
+                data = queries[1]["data"]
+                if isinstance(data, list) and len(data) > 0:
+                    actual_row_count = data[0].get("rowcount")
+
+        # Fallback to row_limit if actual count not available
+        if actual_row_count is None:
+            if form_data and "row_limit" in form_data:
+                actual_row_count = form_data.get("row_limit", 0)
+            elif query_context.form_data and "row_limit" in query_context.form_data:
+                actual_row_count = query_context.form_data.get("row_limit", 0)
+
+        # Use streaming if row count meets or exceeds threshold
+        if actual_row_count is not None and actual_row_count >= threshold:
+            return True
+
+        return False
 
     def _create_streaming_csv_response(
         self, result: dict[Any, Any], form_data: dict[str, Any] | None = None, filename: str | None = None, expected_rows: int | None = None

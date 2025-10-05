@@ -121,6 +121,7 @@ FRONTEND_CONF_KEYS = (
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
+    "CSV_STREAMING_ROW_THRESHOLD",
 )
 
 logger = logging.getLogger(__name__)
