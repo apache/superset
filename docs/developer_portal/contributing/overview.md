@@ -24,127 +24,143 @@ under the License.
 
 # Contributing to Apache Superset
 
-Welcome to the Apache Superset community! We're excited to have you contribute to this open-source data exploration and visualization platform.
+Superset is an [Apache Software foundation](https://www.apache.org/theapacheway/index.html) project.
+The core contributors (or committers) to Superset communicate primarily in the following channels (which can be joined by anyone):
 
-## Ways to Contribute
+- [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
+- [Apache Superset Slack community](http://bit.ly/join-superset-slack)
+- [GitHub issues](https://github.com/apache/superset/issues)
+- [GitHub pull requests](https://github.com/apache/superset/pulls)
+- [GitHub discussions](https://github.com/apache/superset/discussions)
+- [Superset Community Calendar](https://superset.apache.org/community)
 
-### Code Contributions
-- **Bug fixes**: Help us squash bugs and improve stability
-- **Feature development**: Implement new features from our roadmap
-- **Performance improvements**: Optimize queries, rendering, and load times
-- **Security enhancements**: Identify and fix security vulnerabilities
-- **Test coverage**: Add unit, integration, and end-to-end tests
+More references:
 
-### Non-Code Contributions
-- **Documentation**: Improve guides, API docs, and examples
-- **Translations**: Help localize Superset for global users
-- **Design**: Create mockups and improve UX/UI
-- **Bug reports**: File detailed issue reports
-- **Feature requests**: Propose and discuss new features
-- **Community support**: Help others in discussions and Slack
+- [Superset Wiki (code guidelines and additional resources)](https://github.com/apache/superset/wiki)
 
-## Community Guidelines
+## Orientation
 
-### Code of Conduct
-We follow the [Apache Software Foundation Code of Conduct](https://www.apache.org/foundation/policies/conduct). Please:
-- Be respectful and inclusive
-- Welcome newcomers and help them get started
-- Focus on constructive criticism
-- Respect differing viewpoints and experiences
+Here's a list of repositories that contain Superset-related packages:
 
-### Communication Channels
+- [apache/superset](https://github.com/apache/superset)
+  is the main repository containing the `apache_superset` Python package
+  distributed on
+  [pypi](https://pypi.org/project/apache_superset/). This repository
+  also includes Superset's main TypeScript/JavaScript bundles and react apps under
+  the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
+  folder.
+- [github.com/apache-superset](https://github.com/apache-superset) is the
+  GitHub organization under which we manage Superset-related
+  small tools, forks and Superset-related experimental ideas.
 
-#### GitHub
-- **Issues**: [Bug reports and feature requests](https://github.com/apache/superset/issues)
-- **Discussions**: [Community Q&A and ideas](https://github.com/apache/superset/discussions)
-- **Pull Requests**: [Code contributions](https://github.com/apache/superset/pulls)
+## Types of Contributions
 
-#### Mailing Lists
-- **dev@superset.apache.org**: Development discussions
-- **commits@superset.apache.org**: Commit notifications
-- **security@superset.apache.org**: Security issues (private)
+### Report Bug
 
-#### Slack
-- Join our [Apache Superset Slack](https://join.slack.com/t/apache-superset/shared_invite/)
-- Channels: #general, #development, #troubleshooting, #beginners
+The best way to report a bug is to file an issue on GitHub. Please include:
 
-## Contribution Workflow
+- Your operating system name and version.
+- Superset version.
+- Detailed steps to reproduce the bug.
+- Any details about your local setup that might be helpful in troubleshooting.
 
-### 1. Find Something to Work On
-- Check ["good first issue"](https://github.com/apache/superset/labels/good%20first%20issue) labels
-- Look for ["help wanted"](https://github.com/apache/superset/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) issues
-- Review the [roadmap](https://github.com/orgs/apache/projects/180) for upcoming features
-- Ask in Slack #beginners if you need guidance
+When posting Python stack traces, please quote them using
+[Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
-### 2. Before You Start
-- **Check existing work**: Search issues/PRs to avoid duplication
-- **Discuss large changes**: Open an issue or discussion first
-- **Claim the issue**: Comment that you're working on it
-- **Ask questions**: Get clarity before investing significant time
+_Please note that feature requests opened as GitHub Issues will be moved to Discussions._
 
-### 3. Development Process
-1. Fork the repository
-2. Set up your [development environment](./development-setup)
-3. Create a feature branch
-4. Make your changes following [coding guidelines](../coding-guidelines/overview)
-5. Add/update tests
-6. Update documentation
-7. Run linters and tests
-8. [Submit a pull request](./submitting-pr)
+### Submit Ideas or Feature Requests
 
-### 4. Pull Request Review
-- **Be patient**: Reviews can take time
-- **Be responsive**: Address feedback promptly
-- **Be open**: Consider reviewer suggestions
-- **Be thorough**: Ensure CI checks pass
+The best way is to start an ["Ideas" Discussion thread](https://github.com/apache/superset/discussions/categories/ideas) on GitHub:
 
-## Recognition
+- Explain in detail how it would work.
+- Keep the scope as narrow as possible, to make it easier to implement.
+- Remember that this is a volunteer-driven project, and that your contributions are as welcome as anyone's :)
 
-### Contributors
-- Listed in release notes
-- Recognition in community calls
-- GitHub contributor badge
+To propose large features or major changes to codebase, and help usher in those changes, please create a **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
 
-### Becoming a Committer
-Consistent, high-quality contributions may lead to:
-1. **Contributor status**: Regular contributors with track record
-2. **Committer status**: Write access and voting rights
-3. **PMC membership**: Project governance participation
+### Fix Bugs
 
-Learn more about [Apache roles](https://www.apache.org/foundation/how-it-works.html#roles)
+Look through the GitHub issues. Issues tagged with `#bug` are
+open to whoever wants to implement them.
 
-## Legal
+### Implement Features
 
-### Contributor License Agreement (CLA)
-By contributing, you agree that:
-- Your contributions are your original work
-- You grant Apache Software Foundation license to use
-- You have the right to grant this license
+Look through the GitHub issues. Issues tagged with
+`#feature` are open to whoever wants to implement them.
 
-No separate CLA signing required - implicit in PR submission.
+### Improve Documentation
 
-### License
-All contributions are licensed under [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+Superset could always use better documentation,
+whether as part of the official Superset docs,
+in docstrings, `docs/*.rst` or even on the web as blog posts or
+articles. See [Documentation](./howtos#contributing-to-documentation) for more details.
 
-## Getting Help
+### Add Translations
 
-### Resources
-- [Contributing Guide](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
-- [API Documentation](https://superset.apache.org/docs/api/)
-- [Architecture Overview](../architecture/overview)
+If you are proficient in a non-English language, you can help translate
+text strings from Superset's UI. You can jump into the existing
+language dictionaries at
+`superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
+even create a dictionary for a new language altogether.
+See [Translating](./howtos#contributing-translations) for more details.
 
-### Mentorship
-- **Slack #beginners**: Get help starting out
-- **Office Hours**: Weekly community calls (check mailing list)
-- **GitHub Discussions**: Ask questions and share ideas
+### Ask Questions
 
-## Next Steps
+There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
 
-Ready to contribute? Start here:
+## Types of Contributors
+
+Following the project governance model of the Apache Software Foundation (ASF), Apache Superset has a specific set of contributor roles:
+
+### PMC Member
+
+A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project. PMC members are responsible for the overall health of the project, including community development, release management, and project governance. PMC members are also responsible for the technical direction of the project.
+
+For more information about Apache Project PMCs, please refer to https://www.apache.org/foundation/governance/pmcs.html
+
+### Committer
+
+A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. They can modify the code, documentation, and website and accept contributions from others.
+
+The official list of committers and PMC members can be found [here](https://projects.apache.org/committee.html?superset).
+
+### Contributor
+
+A contributor is a person who has contributed to the project in any way, including but not limited to code, tests, documentation, issues, and discussions.
+
+> You can also review the Superset project's guidelines for PMC member promotion here: https://github.com/apache/superset/wiki/Guidelines-for-promoting-Superset-Committers-to-the-Superset-PMC
+
+### Security Team
+
+The security team is a selected subset of PMC members, committers and non-committers who are responsible for handling security issues.
+
+New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
+
+This security team must follow the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
+
+Each new security issue is tracked as a JIRA ticket on the [ASF's JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
+
+Security team members must:
+
+- Have an [ICLA](https://www.apache.org/licenses/contributor-agreements.html) signed with Apache Software Foundation.
+- Not reveal information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, e.g., if the security team agrees that diagnosing and solving an issue requires the involvement of external experts.
+
+A release manager, the contributor overseeing the release of a specific version of Apache Superset, is by default a member of the security team.  However, they are not expected to be active in assessing, discussing, and fixing security issues.
+
+Security team members should also follow these general expectations:
+
+- Actively participate in assessing, discussing, fixing, and releasing security issues in Superset.
+- Avoid discussing security fixes in public forums. Pull request (PR) descriptions should not contain any information about security issues. The corresponding JIRA ticket should contain a link to the PR.
+- Security team members who contribute to a fix may be listed as remediation developers in the CVE report, along with their job affiliation (if they choose to include it).
+
+## Getting Started
+
+Ready to contribute? Here's how to get started:
 
 1. **[Set up your environment](./development-setup)** - Get Superset running locally
-2. **[Learn the codebase](../architecture/overview)** - Understand the architecture
-3. **[Follow coding guidelines](../coding-guidelines/overview)** - Write quality code
-4. **[Submit your first PR](./submitting-pr)** - Make your contribution
+2. **[Find something to work on](#types-of-contributions)** - Pick an issue or feature
+3. **[Submit your contribution](./submitting-pr)** - Create a pull request
+4. **[Follow guidelines](./guidelines)** - Ensure code quality
 
-Welcome aboard! We look forward to your contributions. 🚀
+Welcome to the Apache Superset community! 🚀
