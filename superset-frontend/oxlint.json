@@ -1,6 +1,6 @@
 {
   "$schema": "https://oxc-project.github.io/oxlint/schema.json",
-  "plugins": ["import", "react", "jsx-a11y", "typescript", "unicorn"],
+  "plugins": ["import", "react", "jsx-a11y", "typescript", "unicorn", "superset"],
   "env": {
     "browser": true,
     "node": true,
@@ -12,6 +12,12 @@
     }
   },
   "rules": {
+    // === Custom Superset rules (built into our custom OXC binary) ===
+    "superset/no-fa-icons": "error",
+    "superset/no-template-vars": "error",
+    "superset/no-literal-colors": "error",
+    "superset/sentence-case-buttons": "warn",
+
     // === Core ESLint rules ===
     // Error prevention
     "no-console": "warn",
