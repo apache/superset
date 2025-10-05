@@ -37,6 +37,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Extensions',
+      collapsed: true,
       items: [
         'extensions/architectural-principles',
         'extensions/high-level-architecture',

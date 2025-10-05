@@ -31,7 +31,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Extensions',
-      collapsed: false,
+      collapsed: true,
       items: [
         'extensions/architectural-principles',
         'extensions/high-level-architecture',
@@ -58,7 +58,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Testing',
-      collapsed: false,
+      collapsed: true,
       items: [
         'testing/overview',
         'testing/frontend-testing',
@@ -70,7 +70,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Coding Guidelines',
-      collapsed: false,
+      collapsed: true,
       items: [
         'guidelines/coding',
         'guidelines/typescript',
@@ -83,7 +83,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Contributing to Superset',
-      collapsed: false,
+      collapsed: true,
       items: [
         'contributing/overview',
         'contributing/development-setup',
