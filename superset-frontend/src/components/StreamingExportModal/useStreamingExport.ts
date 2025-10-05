@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useState, useCallback, useRef } from 'react';
-import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
 
 interface UseStreamingExportOptions {
@@ -77,43 +76,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         filename,
       });
 
-      const pollInterval = setInterval(async () => {
-        try {
-          const progressUrl = `/api/v1/chart/export/progress/${encodeURIComponent(
-            filename || `export.${exportType}`,
-          )}`;
-
-          const progressResponse = await SupersetClient.get({
-            endpoint: progressUrl,
-          });
-
-          if (progressResponse.json) {
-            const serverProgress = progressResponse.json;
-
-            updateProgress({
-              rowsProcessed: serverProgress.rows_processed || 0,
-              totalRows: serverProgress.total_rows || expectedRows,
-              totalSize: serverProgress.bytes_processed || 0,
-              speed: serverProgress.speed_rows_per_sec || 0,
-              mbPerSecond: serverProgress.speed_mb_per_sec || 0,
-              elapsedTime: serverProgress.elapsed_time || 0,
-              status: serverProgress.status || ExportStatus.STREAMING,
-            });
-
-            if (
-              serverProgress.status === 'completed' ||
-              serverProgress.status === 'error'
-            ) {
-              clearInterval(pollInterval);
-            }
-          }
-        } catch (error) {
-          // Ignore polling errors
-        }
-      }, 500);
-
       try {
-
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -141,6 +104,8 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const reader = response.body.getReader();
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
+        let rowsProcessed = 0;
+        const NEWLINE_BYTE = 10; // '\n' character code
 
         try {
           while (true) {
@@ -154,9 +119,24 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
             chunks.push(value);
             receivedLength += value.length;
-          }
 
-          clearInterval(pollInterval);
+            // Count newlines directly in binary (faster than decoding + regex)
+            let newlineCount = 0;
+            for (let i = 0; i < value.length; i++) {
+              if (value[i] === NEWLINE_BYTE) {
+                newlineCount++;
+              }
+            }
+            rowsProcessed += newlineCount;
+
+            // Update progress based on rows processed
+            updateProgress({
+              status: ExportStatus.STREAMING,
+              rowsProcessed,
+              totalRows: expectedRows,
+              totalSize: receivedLength,
+            });
+          }
 
           const completeData = new Uint8Array(receivedLength);
           let position = 0;
@@ -181,7 +161,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
           options.onComplete?.(downloadUrl, filename || `export.${exportType}`);
         } catch (streamError) {
-          clearInterval(pollInterval);
           throw streamError;
         }
       } catch (error) {

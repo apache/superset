@@ -28,8 +28,6 @@ from typing import Any, Generator, TYPE_CHECKING
 from flask import current_app as app, Response
 from werkzeug.datastructures import Headers
 
-from superset.views.streaming_progress import progress_tracker
-
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
@@ -48,15 +46,22 @@ def create_streaming_csv_response_simple(
     """
     from flask import Response
 
-    # Create response with proper headers
+    # Create response with proper headers to disable buffering
+    # CRITICAL: Set direct_passthrough=False to ensure Flask actually iterates the generator
     response = Response(
         data_generator,
         mimetype=f"text/csv; charset={encoding}",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "X-Superset-Streaming": "true",  # Identify streaming responses
         },
+        direct_passthrough=False,  # Flask must iterate generator, not pass to WSGI directly
     )
+
+    # Force chunked transfer encoding (critical for streaming)
+    response.implicit_sequence_conversion = False
 
     logger.info("Created simple streaming CSV response for file: %s", filename)
     return response
@@ -160,11 +165,6 @@ def create_streaming_csv_response(
                         )
                         estimated_rows = None
 
-                # Initialize progress tracker
-                progress_tracker.create_export(
-                    export_id=export_id, total_rows=estimated_rows
-                )
-
                 # Get the database connection and execute raw SQL query directly
                 from superset import db
                 from superset.connectors.sqla.models import SqlaTable
@@ -247,13 +247,19 @@ def create_streaming_csv_response(
                             streaming_start_time = time.time()
                             last_progress_time = streaming_start_time
 
+                            # Buffer to accumulate data before yielding (forces flush)
+                            # WSGI servers need ~50KB minimum to start streaming
+                            buffer = []
+                            buffer_size = 0
+                            FLUSH_THRESHOLD = 65536  # 64KB - exceeds WSGI buffering threshold
+
                             while True:
                                 # Fetch chunk of rows
                                 rows = result_proxy.fetchmany(chunk_size)
                                 if not rows:
                                     break
 
-                                # Yield CSV rows
+                                # Build CSV rows and accumulate in buffer
                                 for row in rows:
                                     csv_row = ",".join(
                                         f'"{str(cell) if cell is not None else ""}"'
@@ -262,15 +268,34 @@ def create_streaming_csv_response(
                                     csv_line = csv_row + "\n"
                                     row_bytes = len(csv_line.encode("utf-8"))
                                     total_bytes += row_bytes
-                                    yield csv_line
                                     row_count += 1
 
-                                # Update progress tracker after each chunk
-                                progress_tracker.update_progress(
-                                    export_id=export_id,
-                                    rows_processed=row_count,
-                                    bytes_processed=total_bytes,
-                                )
+                                    buffer.append(csv_line)
+                                    buffer_size += row_bytes
+
+                                    # Yield when buffer exceeds threshold (forces immediate flush)
+                                    if buffer_size >= FLUSH_THRESHOLD:
+                                        chunk_data = "".join(buffer)
+                                        logger.info(
+                                            "🔥 YIELDING CHUNK: %d bytes at %s",
+                                            len(chunk_data),
+                                            time.strftime("%H:%M:%S")
+                                        )
+                                        yield chunk_data
+                                        buffer = []
+                                        buffer_size = 0
+
+                                        # Apply testing delay after yield for visible streaming
+                                        if (
+                                            ENABLE_SLOW_STREAMING_TEST
+                                            and delay_between_chunks > 0
+                                        ):
+                                            logger.info(
+                                                "⏱️  SLEEPING for %s seconds...",
+                                                delay_between_chunks
+                                            )
+                                            time.sleep(delay_between_chunks)
+                                            logger.info("⏱️  WAKE UP - continuing...")
 
                                 # Performance logging every 10k rows or 5 seconds
                                 current_time = time.time()
@@ -305,6 +330,12 @@ def create_streaming_csv_response(
                                 ):
                                     time.sleep(delay_between_chunks)
 
+                            # Flush remaining buffer
+                            if buffer:
+                                yield "".join(buffer)
+                                buffer = []
+                                buffer_size = 0
+
                             # Final performance summary
                             total_time = time.time() - start_time
                             streaming_time = time.time() - streaming_start_time
@@ -330,9 +361,6 @@ def create_streaming_csv_response(
                                 chunk_size,
                             )
 
-                            # Mark export as completed in progress tracker
-                            progress_tracker.complete_export(export_id)
-
                         finally:
                             connection.close()
 
@@ -341,9 +369,6 @@ def create_streaming_csv_response(
                 import traceback
 
                 logger.error("Traceback: %s", traceback.format_exc())
-
-                # Mark export as failed in progress tracker
-                progress_tracker.fail_export(export_id, str(e))
 
                 # Yield error info and fallback data
                 yield f"# Error occurred: {str(e)}\n"
