@@ -76,6 +76,14 @@ class GuestUser(AnonymousUserMixin):
         But guest users need to have their own role independent of Public.
         """
         return False
+    
+    @property
+    def is_active(self) -> bool:
+        """
+        Property to match Flask-AppBuilder User model interface.
+        Returns the active status of the guest user.
+        """
+        return self.active
 
     def __init__(self, token: GuestToken, roles: list[Role]):
         user = token["user"]
@@ -87,3 +95,4 @@ class GuestUser(AnonymousUserMixin):
         self.groups: list[Group] = []  # Guest users don't belong to any groups
         self.resources = token["resources"]
         self.rls = token.get("rls_rules", [])
+        self.active = True  # Guest users are active by definition
