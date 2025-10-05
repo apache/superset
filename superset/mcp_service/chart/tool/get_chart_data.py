@@ -48,7 +48,14 @@ async def get_chart_data(  # noqa: C901
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
 
-    Returns underlying data in json, csv, or excel format.
+    Returns the actual data behind a chart for LLM analysis without image rendering.
+
+    Supports:
+    - Numeric ID or UUID lookup
+    - Multiple formats: json, csv, excel
+    - Cache control: use_cache, force_refresh, cache_timeout
+
+    Returns underlying data in requested format with cache status.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s"

@@ -54,7 +54,22 @@ async def generate_chart(  # noqa: C901
 ) -> GenerateChartResponse:
     """Create and save a chart in Superset.
 
-    Validates config, executes query, returns chart ID and preview URL.
+    IMPORTANT BEHAVIOR:
+    - Charts ARE saved by default (save_chart=True)
+    - Set save_chart=False for temporary preview only
+    - LLM clients MUST display returned chart URL to users
+    - Embed preview_url as image: ![Chart Preview](preview_url)
+
+    VALIDATION:
+    - 5-layer pipeline: Schema, business logic, dataset, Superset compatibility, runtime
+    - XSS/SQL injection prevention
+    - Column existence validation with fuzzy match suggestions
+    - Aggregate function type compatibility checking
+
+    Returns:
+    - Chart ID and metadata (if saved)
+    - Preview URL and explore URL
+    - Detailed validation errors with suggestions
     """
     start_time = time.time()
     await ctx.info(
