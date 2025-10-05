@@ -52,10 +52,21 @@ logger = logging.getLogger(__name__)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
-    """
-    Update existing chart with new configuration.
+    """Update existing chart with new configuration.
 
-    Returns updated chart info and preview URL.
+    IMPORTANT:
+    - Chart must already be saved (from generate_chart with save_chart=True)
+    - LLM clients MUST display updated chart URL to users
+    - Embed preview_url as image: ![Updated Chart](preview_url)
+
+    Use when:
+    - Modifying existing saved chart
+    - Updating title, filters, or visualization settings
+    - Changing chart type or data columns
+
+    Returns:
+    - Updated chart info and metadata
+    - Preview URL and explore URL for further editing
     """
     start_time = time.time()
 

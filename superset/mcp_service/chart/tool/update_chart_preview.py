@@ -50,10 +50,20 @@ logger = logging.getLogger(__name__)
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
-    """
-    Update chart preview without saving.
+    """Update cached chart preview without saving.
 
-    Returns new form_data_key and explore URL.
+    IMPORTANT:
+    - Modifies cached form_data from generate_chart (save_chart=False)
+    - Original form_data_key is invalidated, new one returned
+    - LLM clients MUST display explore_url to users
+    - Embed preview_url as image: ![Chart Preview](preview_url)
+
+    Use when:
+    - Modifying preview before deciding to save
+    - Iterating on chart design without creating permanent charts
+    - Testing different configurations
+
+    Returns new form_data_key, preview images, and explore URL.
     """
     start_time = time.time()
 
