@@ -48,7 +48,7 @@ def histogram(
     if groupby is None:
         groupby = []
 
-    # # drop empty values from the histogram column
+    # drop empty values from the histogram column
     df = df.dropna(subset=[column])
 
     # convert to numeric, coercing errors to NaN
