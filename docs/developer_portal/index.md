@@ -34,9 +34,9 @@ Welcome to the Apache Superset Developer Portal - your comprehensive resource fo
 - [Your First PR](/developer_portal/contributing/submitting-pr)
 
 ### Extension Development
-- [Your First Extension](/developer_portal/get-started/your-first-extension)
+- [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
 - [Extension Architecture](/developer_portal/architecture/overview)
-- [SQL Lab Examples](/developer_portal/examples/sql-lab-extensions)
+- [Extension Architecture](/developer_portal/extensions/high-level-architecture)
 
 ## 📚 Documentation Sections
 
@@ -54,8 +54,8 @@ Learn how to contribute to the Apache Superset project.
 Build extensions to enhance Superset's capabilities.
 
 - **[Architecture Overview](/developer_portal/architecture/overview)** - Understand the extension system
-- **[Your First Extension](/developer_portal/get-started/your-first-extension)** - Step-by-step tutorial
-- **[SQL Lab Extensions](/developer_portal/examples/sql-lab-extensions)** - Real-world examples
+- **[Extension Project Structure](/developer_portal/extensions/extension-project-structure)** - Extension development guide
+- **[Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)** - Extension capabilities
 - **[Frontend API](/developer_portal/api/frontend)** - Complete API reference
 - **[Extension CLI](/developer_portal/cli/overview)** - Development tools
 
@@ -76,7 +76,7 @@ Build extensions to enhance Superset's capabilities.
 ### Advanced Topics
 Deep dive into Superset internals.
 
-- **[Extension Host Architecture](/developer_portal/advanced/extension-host)** - How extensions are loaded
+- **[High-level Architecture](/developer_portal/extensions/high-level-architecture)** - Extension system overview
 - **[Extension Manifest](/developer_portal/references/manifest)** - Configuration format
 - **[Contribution Points](/developer_portal/references/contribution-points)** - Extension capabilities
 - **[Activation Events](/developer_portal/references/activation-events)** - Lifecycle management
@@ -138,8 +138,8 @@ Deep dive into Superset internals.
 
 **I want to build an extension**
 1. [Learn the architecture](/developer_portal/architecture/overview)
-2. [Build your first extension](/developer_portal/get-started/your-first-extension)
-3. [Explore examples](/developer_portal/examples/sql-lab-extensions)
+2. [Learn extension structure](/developer_portal/extensions/extension-project-structure)
+3. [Explore architecture](/developer_portal/extensions/high-level-architecture)
 
 </td>
 </tr>

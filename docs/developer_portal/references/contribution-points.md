@@ -472,4 +472,4 @@ These contribution points are planned for future releases:
 - [Extension Manifest](/developer_portal/references/manifest)
 - [Activation Events](/developer_portal/references/activation-events)
 - [API Reference](/developer_portal/api/frontend)
-- [SQL Lab Extension Examples](/developer_portal/examples/sql-lab-extensions)
+- [Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)

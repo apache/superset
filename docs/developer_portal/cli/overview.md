@@ -573,6 +573,6 @@ superset-extensions --version
 
 - [Extension Architecture](/developer_portal/architecture/overview)
 - [API Reference](/developer_portal/api/frontend)
-- [SQL Lab Extension Examples](/developer_portal/examples/sql-lab-extensions)
+- [Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)
 - [GitHub Repository](https://github.com/apache/superset)
 - [Community Forum](https://github.com/apache/superset/discussions)

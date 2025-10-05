@@ -520,7 +520,7 @@ If migrating from older extension formats:
 
 ## Related Documentation
 
-- [Extension Development Guide](/developer_portal/get-started/your-first-extension)
+- [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
 - [Contribution Points](/developer_portal/references/contribution-points)
 - [Activation Events](/developer_portal/references/activation-events)
 - [API Reference](/developer_portal/api/frontend)

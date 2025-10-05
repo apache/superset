@@ -188,7 +188,7 @@ Planned enhancements include:
 ## Getting Started
 
 Ready to build your first extension? Check out:
-- [Extension Development Guide](/developer_portal/get-started/your-first-extension)
+- [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
 - [API Reference](/developer_portal/api/frontend)
 - [CLI Documentation](/developer_portal/cli/overview)
-- [SQL Lab Extensions](/developer_portal/examples/sql-lab-extensions)
+- [Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)
