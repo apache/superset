@@ -20,7 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const BINARY_PATH = path.join(
   __dirname,
@@ -103,7 +103,7 @@ function buildCustomOXC() {
 
   // Check if Rust is installed
   try {
-    execSync('which cargo', { stdio: 'ignore' });
+    execFileSync('which', ['cargo'], { stdio: 'ignore' });
   } catch (e) {
     console.error('❌ Rust not installed!');
     console.error('');
@@ -128,8 +128,8 @@ function buildCustomOXC() {
   }
 
   try {
-    // Run the build script
-    execSync(BUILD_SCRIPT, {
+    // Run the build script using execFileSync for security
+    execFileSync('/bin/bash', [BUILD_SCRIPT], {
       stdio: 'inherit',
       cwd: path.dirname(BUILD_SCRIPT),
     });
