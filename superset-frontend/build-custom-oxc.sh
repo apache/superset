@@ -19,7 +19,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-OXC_VERSION="0.30.0"
+OXC_VERSION="oxlint_v1.19.0"
 BUILD_DIR="oxc-custom-build"
 RULES_DIR="oxc-superset-rules"
 OUTPUT_DIR="node_modules/.bin"
@@ -39,7 +39,7 @@ cd $BUILD_DIR
 # Clone OXC if not exists
 if [ ! -d "oxc" ]; then
     echo "📥 Cloning OXC repository..."
-    git clone --depth 1 --branch v${OXC_VERSION} https://github.com/oxc-project/oxc.git
+    git clone --depth 1 --branch ${OXC_VERSION} https://github.com/oxc-project/oxc.git
 fi
 
 cd oxc
