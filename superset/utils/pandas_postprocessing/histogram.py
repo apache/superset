@@ -48,11 +48,11 @@ def histogram(
     if groupby is None:
         groupby = []
 
+    # # drop empty values from the histogram column
+    df = df.dropna(subset=[column])
+
     # convert to numeric, coercing errors to NaN
     df[column] = to_numeric(df[column], errors="coerce")
-
-    # drop rows with NULL values 
-    df = df.dropna(subset=[column])
 
     # check if the column contains non-numeric values
     if df[column].isna().any():
