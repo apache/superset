@@ -18,8 +18,8 @@
  */
 /* eslint-disable react/require-default-props */
 import PropTypes from 'prop-types';
-import { PureComponent } from 'react';
-import { CanvasOverlay } from 'react-map-gl';
+import { PureComponent, createRef } from 'react';
+import { useMap } from 'react-map-gl/mapbox';
 import { kmToPixels, MILES_PER_KM } from './utils/geo';
 import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
@@ -76,7 +76,43 @@ const computeClusterLabel = (properties, aggregation) => {
 class ScatterPlotGlowOverlay extends PureComponent {
   constructor(props) {
     super(props);
+    this.canvasRef = createRef();
+    this.containerRef = createRef();
     this.redraw = this.redraw.bind(this);
+    this.updateCanvasSize = this.updateCanvasSize.bind(this);
+  }
+
+  componentDidMount() {
+    this.updateCanvasSize();
+    this.redraw();
+    if (this.props.mapRef?.current) {
+      this.props.mapRef.current.on('move', this.redraw);
+      this.props.mapRef.current.on('moveend', this.redraw);
+    }
+  }
+
+  componentDidUpdate() {
+    this.updateCanvasSize();
+    this.redraw();
+  }
+
+  componentWillUnmount() {
+    if (this.props.mapRef?.current) {
+      this.props.mapRef.current.off('move', this.redraw);
+      this.props.mapRef.current.off('moveend', this.redraw);
+    }
+  }
+
+  updateCanvasSize() {
+    const canvas = this.canvasRef.current;
+    const container = this.containerRef.current;
+    if (!canvas || !container) return;
+
+    const { width, height } = container.getBoundingClientRect();
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
   }
 
   drawText(ctx, pixel, options = {}) {
@@ -116,7 +152,20 @@ class ScatterPlotGlowOverlay extends PureComponent {
   }
 
   // Modified: https://github.com/uber/react-map-gl/blob/master/overlays/scatterplot.react.js
-  redraw({ width, height, ctx, isDragging, project }) {
+  redraw() {
+    const canvas = this.canvasRef.current;
+    if (!canvas) return;
+
+    const { current: map } = this.props.mapRef;
+    if (!map) return;
+
+    const ctx = canvas.getContext('2d');
+    const { width, height } = canvas;
+    const project = coords => {
+      const point = map.project(coords);
+      return [point.x, point.y];
+    };
+    const { isDragging } = this.props;
     const {
       aggregation,
       compositeOperation,
@@ -270,11 +319,39 @@ class ScatterPlotGlowOverlay extends PureComponent {
   }
 
   render() {
-    return <CanvasOverlay redraw={this.redraw} />;
+    return (
+      <div
+        ref={this.containerRef}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+        }}
+      >
+        <canvas
+          ref={this.canvasRef}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+    );
   }
 }
 
 ScatterPlotGlowOverlay.propTypes = propTypes;
 ScatterPlotGlowOverlay.defaultProps = defaultProps;
 
-export default ScatterPlotGlowOverlay;
+function ScatterPlotGlowOverlayWithMap(props) {
+  const { current: map } = useMap();
+  const mapRef = { current: map };
+  return <ScatterPlotGlowOverlay {...props} mapRef={mapRef} />;
+}
+
+export default ScatterPlotGlowOverlayWithMap;
