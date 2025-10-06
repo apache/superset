@@ -150,6 +150,31 @@ function main() {
   const args = process.argv.slice(2);
   let files = args;
 
+  // Define ignore patterns once
+  const ignorePatterns = [
+    /\.test\./,
+    /\.spec\./,
+    /\/test\//,
+    /\/tests\//,
+    /\/storybook\//,
+    /\.stories\./,
+    /\/demo\//,
+    /\/examples\//,
+    /\/color\/colorSchemes\//,
+    /\/cypress\//,
+    /\/cypress-base\//,
+    /packages\/superset-ui-demo\//,
+    /\/esm\//,
+    /\/lib\//,
+    /\/dist\//,
+    /plugins\/legacy-/, // Legacy plugins can have old color patterns
+    /\/vendor\//,       // Third-party vendor code
+    /spec\/fixtures\//,  // Test fixtures
+    /theme\/exampleThemes/, // Theme examples legitimately have colors
+    /\/color\/utils/,    // Color utility functions legitimately work with colors
+    /\/theme\/utils/,    // Theme utility functions legitimately work with colors
+  ];
+
   // If no files specified, check all
   if (files.length === 0) {
     files = glob.sync('src/**/*.{ts,tsx,js,jsx}', {
@@ -170,6 +195,12 @@ function main() {
         '**/esm/**', // Build artifacts
         '**/lib/**', // Build artifacts
         '**/dist/**', // Build artifacts
+        'plugins/legacy-*/**', // Legacy plugins
+        '**/vendor/**',
+        'spec/fixtures/**',
+        '**/theme/exampleThemes/**',
+        '**/color/utils/**',
+        '**/theme/utils/**',
       ],
     });
   } else {
@@ -177,27 +208,7 @@ function main() {
     files = files
       .filter(f => /\.(ts|tsx|js|jsx)$/.test(f))
       .map(f => f.replace(/^superset-frontend\//, ''))
-      .filter(f => {
-        // Apply the same ignore patterns when files are passed in
-        const ignorePatterns = [
-          /\.test\./,
-          /\.spec\./,
-          /\/test\//,
-          /\/tests\//,
-          /\/storybook\//,
-          /\.stories\./,
-          /\/demo\//,
-          /\/examples\//,
-          /\/color\/colorSchemes\//,
-          /\/cypress\//,
-          /\/cypress-base\//,
-          /packages\/superset-ui-demo\//,
-          /\/esm\//,
-          /\/lib\//,
-          /\/dist\//,
-        ];
-        return !ignorePatterns.some(pattern => pattern.test(f));
-      });
+      .filter(f => !ignorePatterns.some(pattern => pattern.test(f)));
   }
 
   if (files.length === 0) {
