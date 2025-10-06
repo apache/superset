@@ -134,9 +134,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [legendPosition],
         [legendFormat],
-        ...generateDeckGLColorSchemeControls({
-          defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
-        }),
+        ...generateDeckGLColorSchemeControls({}),
       ],
     },
     {
