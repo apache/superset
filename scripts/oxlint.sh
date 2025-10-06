@@ -44,7 +44,8 @@ done
 if [ ${#js_ts_files[@]} -gt 0 ]; then
   # Skip custom OXC build in pre-commit for speed
   export SKIP_CUSTOM_OXC=true
-  npm run lint-fix -- "${js_ts_files[@]}"
+  # Use quiet mode in pre-commit to reduce noise (only show errors)
+  npx oxlint --config oxlint.json --fix --quiet "${js_ts_files[@]}"
 else
   echo "No JavaScript/TypeScript files to lint"
 fi
