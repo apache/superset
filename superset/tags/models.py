@@ -141,17 +141,24 @@ class TaggedObject(Model, AuditMixinNullable):
         return f"<TaggedObject: {self.object_type}:{self.object_id} TAG:{self.tag_id}>"
 
 
-def get_tag(
+def get_or_create_tag(
     name: str,
     session: orm.Session,  # pylint: disable=disallowed-name
     type_: TagType,
 ) -> Tag:
+    from sqlalchemy.exc import IntegrityError
+
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
         tag = Tag(name=tag_name, type=type_)
         session.add(tag)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            # Another transaction created the tag concurrently, fetch it
+            session.rollback()
+            tag = session.query(Tag).filter_by(name=tag_name, type=type_).one()
     return tag
 
 
@@ -210,7 +217,7 @@ class ObjectUpdater:
         tag_ids = set()
         for user_id in cls.get_editor_user_ids(target):
             name = f"editor:{user_id}"
-            tag = get_tag(name, session, TagType.editor)
+            tag = get_or_create_tag(name, session, TagType.editor)
             tag_ids.add(tag.id)
         return tag_ids
 
@@ -222,7 +229,7 @@ class ObjectUpdater:
     ) -> None:
         for user_id in cls.get_editor_user_ids(target):
             name: str = f"editor:{user_id}"
-            tag = get_tag(name, session, TagType.editor)
+            tag = get_or_create_tag(name, session, TagType.editor)
             cls.add_tag_object_if_not_tagged(
                 session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
@@ -265,7 +272,7 @@ class ObjectUpdater:
             cls._add_editors(session, target)
 
             # add `type:` tags
-            tag = get_tag(f"type:{cls.object_type}", session, TagType.type)
+            tag = get_or_create_tag(f"type:{cls.object_type}", session, TagType.type)
             cls.add_tag_object_if_not_tagged(
                 session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
@@ -378,7 +385,7 @@ class FavStarUpdater:
 
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
-            tag = get_tag(name, session, TagType.favorited_by)
+            tag = get_or_create_tag(name, session, TagType.favorited_by)
             tagged_object = TaggedObject(
                 tag_id=tag.id,
                 object_id=target.obj_id,
