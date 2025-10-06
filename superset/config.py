@@ -2196,6 +2196,14 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
+# CUSTOM_DATABASE_ERRORS: Configure custom error messages for database exceptions
+# in superset/custom_database_errors.py.
+# Transform raw database errors into user-friendly messages with optional documentation
+try:
+    from superset.custom_database_errors import CUSTOM_DATABASE_ERRORS
+except ImportError:
+    CUSTOM_DATABASE_ERRORS = {}
+
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None

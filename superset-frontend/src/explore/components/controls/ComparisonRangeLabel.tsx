@@ -144,7 +144,7 @@ export const ComparisonRangeLabel = ({
               );
               const startDateDayjs = extendedDayjs(parseDttmToDate(startDate));
               if (
-                startDateDayjs.isSameOrBefore(parsedDateDayjs) ||
+                (startDateDayjs.isSame(parsedDateDayjs) || startDateDayjs.isBefore(parsedDateDayjs)) ||
                 !startDate
               ) {
                 const postProcessedShifts = getTimeOffset({

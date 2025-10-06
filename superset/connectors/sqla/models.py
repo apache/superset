@@ -62,7 +62,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import column, ColumnElement, literal_column, table
+from sqlalchemy.sql import column, ColumnElement, literal_column, quoted_name, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -1403,13 +1403,19 @@ class SqlaTable(
         # project.dataset.table format
         if self.catalog and self.database.db_engine_spec.supports_cross_catalog_queries:
             # SQLAlchemy doesn't have built-in catalog support for TableClause,
-            # so we need to construct the full identifier manually
-            if self.schema:
-                full_name = f"{self.catalog}.{self.schema}.{self.table_name}"
-            else:
-                full_name = f"{self.catalog}.{self.table_name}"
+            # so we need to construct the full identifier manually with proper quoting
+            catalog_quoted = self.quote_identifier(self.catalog)
+            table_quoted = self.quote_identifier(self.table_name)
 
-            return table(full_name)
+            if self.schema:
+                schema_quoted = self.quote_identifier(self.schema)
+                full_name = f"{catalog_quoted}.{schema_quoted}.{table_quoted}"
+            else:
+                full_name = f"{catalog_quoted}.{table_quoted}"
+
+            # Use quoted_name with quote=False to prevent SQLAlchemy from re-quoting
+            # the already-quoted identifier components
+            return table(quoted_name(full_name, quote=False))
 
         if self.schema:
             return table(self.table_name, schema=self.schema)
@@ -1461,7 +1467,7 @@ class SqlaTable(
 
             if not processed:
                 try:
-                    expression = self._process_sql_expression(
+                    expression = self._process_select_expression(
                         expression=expression,
                         database_id=self.database_id,
                         engine=self.database.backend,
@@ -1496,7 +1502,7 @@ class SqlaTable(
         """
         label = utils.get_column_name(col)
         try:
-            expression = self._process_sql_expression(
+            expression = self._process_select_expression(
                 expression=col["sqlExpression"],
                 database_id=self.database_id,
                 engine=self.database.backend,
@@ -1648,7 +1654,10 @@ class SqlaTable(
             )
             db_engine_spec = self.db_engine_spec
             errors = [
-                dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
+                dataclasses.asdict(error)
+                for error in db_engine_spec.extract_errors(
+                    ex, database_name=self.database.unique_name
+                )
             ]
             error_message = utils.error_msg_from_exception(ex)
 

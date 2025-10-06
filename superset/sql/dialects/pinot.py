@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from sqlglot import exp
 from sqlglot.dialects.mysql import MySQL
+from sqlglot.helper import seq_get
 from sqlglot.tokens import TokenType
 
 
@@ -48,6 +49,21 @@ class Pinot(MySQL):
             "STRING": TokenType.TEXT,
             "LONG": TokenType.BIGINT,
             "BYTES": TokenType.VARBINARY,
+        }
+
+    class Parser(MySQL.Parser):
+        FUNCTIONS = {
+            **MySQL.Parser.FUNCTIONS,
+            "DATE_ADD": lambda args: exp.DateAdd(
+                this=seq_get(args, 2),
+                expression=seq_get(args, 1),
+                unit=seq_get(args, 0),
+            ),
+            "DATE_SUB": lambda args: exp.DateSub(
+                this=seq_get(args, 2),
+                expression=seq_get(args, 1),
+                unit=seq_get(args, 0),
+            ),
         }
 
     class Generator(MySQL.Generator):
@@ -78,6 +94,60 @@ class Pinot(MySQL):
             exp.DataType.Type.UBIGINT: "UNSIGNED",
         }
 
+        TRANSFORMS = {
+            **MySQL.Generator.TRANSFORMS,
+            exp.DateAdd: lambda self, e: self.func(
+                "DATE_ADD",
+                exp.Literal.string(str(e.args.get("unit").name)),
+                e.args.get("expression"),
+                e.this,
+            ),
+            exp.DateSub: lambda self, e: self.func(
+                "DATE_SUB",
+                exp.Literal.string(str(e.args.get("unit").name)),
+                e.args.get("expression"),
+                e.this,
+            ),
+            exp.Substring: lambda self, e: self.func(
+                "SUBSTR",
+                e.this,
+                e.args.get("start"),
+                e.args.get("length"),
+            ),
+            exp.StrPosition: lambda self, e: self.func(
+                "STRPOS",
+                e.this,
+                e.args.get("substr"),
+                e.args.get("position"),
+            ),
+            exp.StartsWith: lambda self, e: self.func(
+                "STARTSWITH",
+                e.this,
+                e.args.get("expression"),
+            ),
+            exp.Chr: lambda self, e: self.func(
+                "CHR",
+                *e.args.get("expressions", []),
+            ),
+            exp.Mod: lambda self, e: self.func(
+                "MOD",
+                e.this,
+                e.args.get("expression"),
+            ),
+            exp.ArrayAgg: lambda self, e: self.func(
+                "ARRAY_AGG",
+                e.this,
+            ),
+            exp.JSONExtractScalar: lambda self, e: self.func(
+                "JSON_EXTRACT_SCALAR",
+                e.this,
+                e.args.get("expression"),
+                e.args.get("variant"),
+            ),
+        }
+        # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
+        TRANSFORMS.pop(exp.DateTrunc, None)
+
         def datatype_sql(self, expression: exp.DataType) -> str:
             # Don't use MySQL's VARCHAR size requirement logic
             # Just use TYPE_MAPPING for all types
@@ -95,3 +165,8 @@ class Pinot(MySQL):
                 return f"{type_sql} UNSIGNED{nested}"
 
             return f"{type_sql}{nested}"
+
+        def cast_sql(self, expression: exp.Cast, safe_prefix: str | None = None) -> str:
+            # Pinot doesn't support MySQL's TIMESTAMP() function
+            # Use standard CAST syntax instead
+            return super(MySQL.Generator, self).cast_sql(expression, safe_prefix)
