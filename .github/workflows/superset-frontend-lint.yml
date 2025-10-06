@@ -47,6 +47,11 @@ jobs:
           cd superset-frontend
           npm ci
 
+      - name: Build plugins
+        run: |
+          cd superset-frontend
+          npm run plugins:build
+
       - name: Run linting with OXC
         run: |
           cd superset-frontend
