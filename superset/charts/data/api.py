@@ -534,7 +534,11 @@ class ChartDataRestApi(ChartRestApi):
         """Create a streaming CSV response for large datasets."""
         from datetime import datetime
 
-        from superset.views.streaming import create_streaming_csv_response
+        from flask import Response
+
+        from superset.commands.chart.data.streaming_export_command import (
+            StreamingCSVExportCommand,
+        )
 
         query_context = result["query_context"]
 
@@ -558,8 +562,31 @@ class ChartDataRestApi(ChartRestApi):
         if expected_rows:
             logger.info("📊 Using expected_rows from frontend: %d", expected_rows)
 
-        return create_streaming_csv_response(
-            query_context=query_context,
-            filename=filename,
-            expected_rows=expected_rows,
+        # Execute streaming command
+        chunk_size = 1000
+        command = StreamingCSVExportCommand(query_context, chunk_size)
+        command.validate()
+
+        # Get the callable that returns the generator
+        csv_generator_callable = command.run()
+
+        # Get encoding from config
+        encoding = app.config.get("CSV_EXPORT", {}).get("encoding", "utf-8")
+
+        # Create response with streaming headers
+        response = Response(
+            csv_generator_callable(),  # Call the callable to get generator
+            mimetype=f"text/csv; charset={encoding}",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+                "X-Superset-Streaming": "true",  # Identify streaming responses
+            },
+            direct_passthrough=False,  # Flask must iterate generator
         )
+
+        # Force chunked transfer encoding
+        response.implicit_sequence_conversion = False
+
+        return response
