@@ -163,6 +163,25 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
           }));
         }
         case COLOR_SCHEME_TYPES.categorical_palette: {
+          // If no dimension selected, fall back to fixed color
+          if (!fd.dimension) {
+            const fallbackColor = fd.color_picker || {
+              r: 0,
+              g: 0,
+              b: 0,
+              a: 100,
+            };
+            return data.map(d => ({
+              ...d,
+              color: [
+                fallbackColor.r,
+                fallbackColor.g,
+                fallbackColor.b,
+                fallbackColor.a * 255,
+              ],
+            }));
+          }
+
           return data.map(d => ({
             ...d,
             color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
