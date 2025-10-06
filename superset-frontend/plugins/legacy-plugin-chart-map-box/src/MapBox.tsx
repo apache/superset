@@ -17,9 +17,11 @@
  * under the License.
  */
 import { Component } from 'react';
-import Map, { MapEvent } from 'react-map-gl/mapbox';
+import Map, { ViewStateChangeEvent } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
-import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
+import ScatterPlotGlowOverlay, {
+  AggregationType,
+} from './ScatterPlotGlowOverlay';
 import './MapBox.css';
 
 const NOOP = () => {};
@@ -52,7 +54,7 @@ interface Viewport {
 }
 
 interface MapBoxProps {
-  aggregatorName?: string;
+  aggregatorName?: AggregationType;
   bounds: [[number, number], [number, number]];
   clusterer: Clusterer;
   globalOpacity?: number;
@@ -107,8 +109,9 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
 
-  handleViewportChange(evt: MapEvent) {
-    const viewport = evt.viewState as Viewport;
+  handleViewportChange(evt: ViewStateChangeEvent) {
+    const { latitude, longitude, zoom } = evt.viewState;
+    const viewport: Viewport = { latitude, longitude, zoom };
     this.setState({ viewport });
     const { onViewportChange } = this.props;
     if (onViewportChange) {
@@ -122,7 +125,6 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       height,
       aggregatorName,
       clusterer,
-      globalOpacity,
       mapStyle,
       mapboxApiKey,
       pointRadius,
@@ -167,7 +169,6 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
             dotRadius={pointRadius}
             pointRadiusUnit={pointRadiusUnit}
             rgb={rgb}
-            globalOpacity={globalOpacity}
             compositeOperation="screen"
             renderWhileDragging={renderWhileDragging}
             aggregation={hasCustomMetric ? aggregatorName : undefined}

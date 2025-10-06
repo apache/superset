@@ -24,7 +24,7 @@ import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-type AggregationType = 'sum' | 'min' | 'max' | 'mean' | 'var' | 'stdev';
+export type AggregationType = 'sum' | 'min' | 'max' | 'mean' | 'var' | 'stdev';
 
 interface LocationProperties {
   cluster?: boolean;
@@ -36,7 +36,13 @@ interface LocationProperties {
   [key: string]: unknown;
 }
 
+interface Geometry {
+  coordinates: [number, number];
+  type: string;
+}
+
 interface Location {
+  geometry: Geometry;
   properties: LocationProperties;
   [key: string]: unknown;
 }
@@ -67,10 +73,10 @@ const defaultProps: Partial<ScatterPlotGlowOverlayProps> = {
   // Same as browser default.
   compositeOperation: 'source-over',
   dotRadius: 4,
-  lngLatAccessor: (location: Location) => [
-    location[0] as number,
-    location[1] as number,
-  ],
+  lngLatAccessor: (location: Location) => {
+    const { coordinates } = location.geometry;
+    return [coordinates[0], coordinates[1]];
+  },
   renderWhileDragging: true,
 };
 
@@ -127,9 +133,20 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
     }
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: ScatterPlotGlowOverlayProps) {
     this.updateCanvasSize();
-    this.redraw();
+
+    const shouldRedraw =
+      prevProps.locations !== this.props.locations ||
+      prevProps.dotRadius !== this.props.dotRadius ||
+      prevProps.rgb !== this.props.rgb ||
+      prevProps.aggregation !== this.props.aggregation ||
+      prevProps.compositeOperation !== this.props.compositeOperation ||
+      prevProps.pointRadiusUnit !== this.props.pointRadiusUnit;
+
+    if (shouldRedraw) {
+      this.redraw();
+    }
   }
 
   componentWillUnmount() {
@@ -242,7 +259,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
         const pixel = project(
           lngLatAccessor
             ? lngLatAccessor(location)
-            : ([location[0], location[1]] as [number, number]),
+            : [
+                location.geometry.coordinates[0],
+                location.geometry.coordinates[1],
+              ],
         );
         const pixelRounded: [number, number] = [
           roundDecimal(pixel[0], 1),

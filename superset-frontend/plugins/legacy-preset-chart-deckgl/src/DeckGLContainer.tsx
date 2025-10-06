@@ -33,7 +33,7 @@ import {
   useRef,
 } from 'react';
 import { isEqual } from 'lodash';
-import StaticMap from 'react-map-gl/mapbox';
+import Map from 'react-map-gl/mapbox';
 import DeckGL from '@deck.gl/react';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
@@ -173,7 +173,7 @@ export const DeckGLContainer = memo(
             }}
           >
             {props.mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
-              <StaticMap
+              <Map
                 preserveDrawingBuffer
                 mapStyle={props.mapStyle || 'light'}
                 mapboxAccessToken={props.mapboxApiAccessToken}
