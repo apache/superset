@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import g, current_app as app
+from flask import current_app as app, g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -447,7 +447,6 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if mutate_label:
             return f"{label}_{md5_sha_from_str(label)[:6]}"
         return label
-
 
     @classmethod
     def adjust_engine_params(

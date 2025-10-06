@@ -249,6 +249,7 @@ def test_connect_make_label_compatible_with_extra(
     from superset.db_engine_specs.clickhouse import (
         ClickHouseConnectEngineSpec as spec,  # noqa: N813
     )
+
     mock_database = Mock()
     mock_database.get_extra = Mock(return_value=extra or {})
     g.database = mock_database
