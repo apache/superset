@@ -79,8 +79,7 @@ export default function EchartsMixedTimeseries({
             filters:
               values.length === 0
                 ? []
-                : [
-                    ...currentGroupBy.map((col, idx) => {
+                : currentGroupBy.map((col, idx) => {
                       const val: DataRecordValue[] = groupbyValues.map(
                         v => v[idx],
                       );
@@ -95,7 +94,6 @@ export default function EchartsMixedTimeseries({
                         val: val as (string | number | boolean)[],
                       };
                     }),
-                  ],
           },
           filterState: {
             value: !groupbyValues.length ? null : groupbyValues,

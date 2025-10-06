@@ -280,9 +280,8 @@ const ResultSet = ({
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
-        ...{
+        
           all_columns: results.columns.map(column => column.column_name),
-        },
       });
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,

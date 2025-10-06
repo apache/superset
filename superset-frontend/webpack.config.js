@@ -36,7 +36,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package');
+const packageConfig = require('./package.json');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -607,7 +607,7 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const dir = relativeDir.replace('file:', '');
 
   if (
-    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    (pkg.startsWith('@superset-ui') || pkg.startsWith('@apache-superset')) &&
     fs.existsSync(srcPath)
   ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);

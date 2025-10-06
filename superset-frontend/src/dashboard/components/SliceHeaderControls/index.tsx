@@ -366,7 +366,7 @@ const SliceHeaderControls = (
       ),
       disabled: props.chartStatus === 'loading',
       style: { height: 'auto', lineHeight: 'initial' },
-      ...{ 'data-test': 'refresh-chart-menu-item' }, // Typescript hack to get around MenuItem type
+       'data-test': 'refresh-chart-menu-item', // Typescript hack to get around MenuItem type
     },
     {
       key: MenuKeys.Fullscreen,
@@ -394,7 +394,7 @@ const SliceHeaderControls = (
           {t('Edit chart')}
         </Tooltip>
       ),
-      ...{ 'data-test-edit-chart-name': slice.slice_name },
+       'data-test-edit-chart-name': slice.slice_name,
     });
   }
 

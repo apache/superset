@@ -140,7 +140,7 @@ test('sorts columns', async () => {
     getAllByTestId('mock-column-element').map(el => el.textContent),
   ).toEqual(table.columns.map(col => col.name));
   fireEvent.click(getByText('Sort columns alphabetically'));
-  const sorted = [...table.columns.map(col => col.name)].sort();
+  const sorted = table.columns.map(col => col.name).sort();
   expect(
     getAllByTestId('mock-column-element').map(el => el.textContent),
   ).toEqual(sorted);

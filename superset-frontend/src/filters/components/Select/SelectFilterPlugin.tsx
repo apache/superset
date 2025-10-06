@@ -296,7 +296,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = new Set([...data.map(el => el[col])]);
+    const allOptions = new Set(data.map(el => el[col]));
     return [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,

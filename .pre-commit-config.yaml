@@ -60,9 +60,9 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-      - id: eslint-frontend
-        name: eslint (frontend)
-        entry: ./scripts/eslint.sh
+      - id: oxlint-frontend
+        name: oxlint (frontend)
+        entry: ./scripts/oxlint.sh
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$

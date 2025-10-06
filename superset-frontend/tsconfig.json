@@ -61,7 +61,11 @@
   },
   "include": [
     "./src/**/*",
-    "./spec/**/*"
+    "./spec/**/*",
+    "./plugins/**/*",
+    "./packages/**/*",
+    "./scripts/**/*",
+    "./webpack*.js"
   ],
   "references": [
     { "path": "./packages/superset-core" },

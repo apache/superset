@@ -404,7 +404,7 @@ export default function PivotTableChart(props: PivotTableProps) {
 
       const [key, val] = filtersEntries[filtersEntries.length - 1];
 
-      let updatedFilters = { ...(selectedFilters || {}) };
+      let updatedFilters = { ...selectedFilters };
       // multi select
       // if (selectedFilters && isActiveFilterValue(key, val)) {
       //   updatedFilters[key] = selectedFilters[key].filter((x: DataRecordValue) => x !== val);

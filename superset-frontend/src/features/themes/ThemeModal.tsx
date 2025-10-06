@@ -53,7 +53,7 @@ interface ThemeModalProps {
 
 type ThemeStringKeys = keyof Pick<
   ThemeObject,
-  OnlyKeyWithType<ThemeObject, String>
+  OnlyKeyWithType<ThemeObject, string>
 >;
 
 const StyledJsonEditor = styled.div`
@@ -139,13 +139,13 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
-        const update_id = currentTheme.id;
+        const updateId = currentTheme.id;
         delete currentTheme.id;
         delete currentTheme.created_by;
         delete currentTheme.changed_by;
         delete currentTheme.changed_on_delta_humanized;
 
-        updateResource(update_id, currentTheme).then(response => {
+        updateResource(updateId, currentTheme).then(response => {
           if (!response) {
             return;
           }
@@ -184,7 +184,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         if (addSuccessToast) {
           addSuccessToast(t('Local theme set for preview'));
         }
-      } catch (error) {
+      } catch {
         addDangerToast(t('Failed to apply theme: Invalid JSON'));
       }
     }
@@ -217,7 +217,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     try {
       JSON.parse(str);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };

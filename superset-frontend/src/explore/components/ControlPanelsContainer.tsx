@@ -868,7 +868,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   expandIconPosition="end"
                   ghost
                   bordered
-                  items={[...querySections.map(renderControlPanelSection)]}
+                  items={querySections.map(renderControlPanelSection)}
                 />
               </>
             ),
@@ -884,9 +884,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                       expandIconPosition="end"
                       ghost
                       bordered
-                      items={[
-                        ...customizeSections.map(renderControlPanelSection),
-                      ]}
+                      items={customizeSections.map(renderControlPanelSection)}
                     />
                   ),
                 },
@@ -932,9 +930,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         expandIconPosition="right"
                         ghost
                         bordered
-                        items={[
-                          ...matrixifySections.map(renderControlPanelSection),
-                        ]}
+                        items={matrixifySections.map(renderControlPanelSection)}
                       />
                     </>
                   ),
