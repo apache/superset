@@ -1,58 +1,50 @@
-name: "CodeQL"
+name: CodeQL
 
 on:
   push:
-    branches: ["master", "[0-9].[0-9]*"]
+    branches: [ main ]
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: ["master"]
+    branches: [ main ]
   schedule:
-    - cron: "0 4 * * *"
+    - cron: '0 6 * * 1'  # weekly
 
-# cancel previous workflow jobs for PRs
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
   analyze:
-    name: Analyze
-    runs-on: ubuntu-24.04
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        language: ["python", "javascript"]
-        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+        language: [ 'javascript-typescript', 'python' ]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      # Limit what CodeQL scans to your code, not vendored/build outputs
+      - name: Prune large/non-source dirs
+        run: |
+          rm -rf superset-frontend/node_modules || true
+          rm -rf **/dist || true
+          rm -rf **/build || true
 
-      # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          # If you wish to specify custom queries, you can do so here or in a config file.
-          # By default, queries listed here will override any specified in a config file.
-          # Prefix the list here with "+" to use these queries and those in the config file.
+          build-mode: none     # <-- avoids autobuild failures
+          queries: security-and-quality
 
-          # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-          # queries: security-extended,security-and-quality
+      # Optional: if you truly need a build (usually not for static scan),
+      # replace build-mode:none with autobuild OR run a custom build here.
 
       - name: Perform CodeQL Analysis
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{matrix.language}}"
+          category: "/language:${{ matrix.language }}"
