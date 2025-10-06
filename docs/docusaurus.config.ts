@@ -137,8 +137,8 @@ if (!versionsConfig.developer_portal.disabled) {
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'guidelines/coding',
-        label: 'Coding Guidelines',
+        docId: 'guidelines/design-guidelines',
+        label: 'Guidelines',
       },
       {
         type: 'doc',

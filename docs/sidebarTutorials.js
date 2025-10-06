@@ -69,62 +69,6 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Design Guidelines',
-      collapsed: true,
-      items: [
-        'guidelines/design-guidelines',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Frontend Style Guidelines',
-      collapsed: true,
-      items: [
-        'guidelines/frontend-style-guidelines',
-        {
-          type: 'category',
-          label: 'Component Style Guidelines and Best Practices',
-          collapsed: true,
-          items: [
-            'guidelines/frontend/component-style-guidelines',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Emotion Styling Guidelines and Best Practices',
-          collapsed: true,
-          items: [
-            'guidelines/frontend/emotion-styling-guidelines',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Testing Guidelines and Best Practices',
-          collapsed: true,
-          items: [
-            'guidelines/frontend/testing-guidelines',
-          ],
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Backend Style Guidelines',
-      collapsed: true,
-      items: [
-        'guidelines/backend-style-guidelines',
-        {
-          type: 'category',
-          label: 'DAO Style Guidelines and Best Practices',
-          collapsed: true,
-          items: [
-            'guidelines/backend/dao-style-guidelines',
-          ],
-        },
-      ],
-    },
-    {
-      type: 'category',
       label: 'Contributing to Superset',
       collapsed: true,
       items: [
@@ -137,6 +81,34 @@ const sidebars = {
         'contributing/howtos',
         'contributing/release-process',
         'contributing/resources',
+        {
+          type: 'category',
+          label: 'Contribution Guidelines',
+          collapsed: true,
+          items: [
+            'guidelines/design-guidelines',
+            {
+              type: 'category',
+              label: 'Frontend Style Guidelines',
+              collapsed: true,
+              items: [
+                'guidelines/frontend-style-guidelines',
+                'guidelines/frontend/component-style-guidelines',
+                'guidelines/frontend/emotion-styling-guidelines',
+                'guidelines/frontend/testing-guidelines',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Backend Style Guidelines',
+              collapsed: true,
+              items: [
+                'guidelines/backend-style-guidelines',
+                'guidelines/backend/dao-style-guidelines',
+              ],
+            },
+          ],
+        },
       ],
     },
   ],
