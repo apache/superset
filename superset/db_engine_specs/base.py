@@ -1651,7 +1651,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -1665,7 +1665,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table: Table instance
-        :param engine: SqlAlchemy Engine instance
+        :param dialect: SqlAlchemy Dialect instance
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -1685,7 +1685,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
 
-        full_table_name = cls.quote_table(table, engine.dialect)
+        full_table_name = cls.quote_table(table, dialect)
         qry = select(fields).select_from(text(full_table_name))
 
         qry = qry.limit(limit)

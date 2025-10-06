@@ -252,7 +252,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     Test the ``select_star`` method.
     """
     database = mocker.MagicMock()
-    engine = mocker.MagicMock()
+    dialect = mocker.MagicMock()
 
     def quote_table(table: Table, dialect: Dialect) -> str:
         return ".".join(
@@ -264,7 +264,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     spec.select_star(
         database=database,
         table=Table("my_table", "my_schema", "my_catalog"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=False,
         indent=True,
