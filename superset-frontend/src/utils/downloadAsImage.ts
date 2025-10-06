@@ -209,9 +209,8 @@ const preserveCanvasContent = (original: Element, clone: Element) => {
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
 
-  for (let i = 0; i < originalCanvases.length; i++) {
+  originalCanvases.forEach((originalCanvas, i) => {
     if (originalCanvases[i] && clonedCanvases[i]) {
-      const originalCanvas = originalCanvases[i] as HTMLCanvasElement;
       const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement;
       const ctx = clonedCanvas.getContext('2d');
       if (ctx) {
@@ -220,7 +219,7 @@ const preserveCanvasContent = (original: Element, clone: Element) => {
         ctx.drawImage(originalCanvas, 0, 0);
       }
     }
-  }
+  });
 };
 
 const createEnhancedClone = (
