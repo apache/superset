@@ -134,12 +134,11 @@ const mockedProps = {
 };
 
 const mockedPropsWithoutSqlRole = {
-  
-    ...mockedProps,
-    user: {
-      ...mockedProps.user,
-      roles: {},
-    },
+  ...mockedProps,
+  user: {
+    ...mockedProps.user,
+    roles: {},
+  },
 };
 
 jest.mock('@superset-ui/core', () => ({

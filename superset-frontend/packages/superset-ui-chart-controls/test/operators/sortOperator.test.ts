@@ -57,7 +57,7 @@ test('should ignore the sortOperator', () => {
     sortOperator(
       {
         ...formData,
-        
+
           x_axis_sort: undefined,
           x_axis_sort_asc: true,
       },
@@ -70,7 +70,7 @@ test('should ignore the sortOperator', () => {
     sortOperator(
       {
         ...formData,
-        
+
           x_axis_sort: 'metric label',
           x_axis_sort_asc: true,
           groupby: ['col1'],
@@ -86,7 +86,7 @@ test('should sort by metric', () => {
     sortOperator(
       {
         ...formData,
-        
+
           metrics: ['a metric label'],
           x_axis_sort: 'a metric label',
           x_axis_sort_asc: true,
@@ -107,7 +107,7 @@ test('should sort by axis', () => {
     sortOperator(
       {
         ...formData,
-        
+
           x_axis_sort: 'Categorical Column',
           x_axis_sort_asc: true,
           x_axis: 'Categorical Column',

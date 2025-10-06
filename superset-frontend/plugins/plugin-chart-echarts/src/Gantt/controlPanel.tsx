@@ -107,7 +107,11 @@ const config: ControlPanelConfig = {
         ...legendSection,
         ['zoomable'],
         [showExtraControls],
-        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [
+          <ControlSubSectionHeader key="x-axis">
+            {t('X Axis')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'x_axis_time_bounds',
@@ -126,7 +130,11 @@ const config: ControlPanelConfig = {
           },
         ],
         ['x_axis_time_format'],
-        [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
+        [
+          <ControlSubSectionHeader key="tooltip">
+            {t('Tooltip')}
+          </ControlSubSectionHeader>,
+        ],
         [tooltipTimeFormatControl],
         [tooltipValuesFormatControl],
       ],
