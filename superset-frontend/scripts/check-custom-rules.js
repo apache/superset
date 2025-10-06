@@ -153,13 +153,51 @@ function main() {
   // If no files specified, check all
   if (files.length === 0) {
     files = glob.sync('src/**/*.{ts,tsx,js,jsx}', {
-      ignore: ['**/*.test.*', '**/*.spec.*', '**/test/**', '**/tests/**', '**/node_modules/**'],
+      ignore: [
+        '**/*.test.*',
+        '**/*.spec.*',
+        '**/test/**',
+        '**/tests/**',
+        '**/node_modules/**',
+        '**/storybook/**',
+        '**/*.stories.*',
+        '**/demo/**',
+        '**/examples/**',
+        '**/color/colorSchemes/**', // Color scheme definitions legitimately contain colors
+        '**/cypress/**',
+        '**/cypress-base/**',
+        'packages/superset-ui-demo/**', // Demo package
+        '**/esm/**', // Build artifacts
+        '**/lib/**', // Build artifacts
+        '**/dist/**', // Build artifacts
+      ],
     });
   } else {
     // Filter to only JS/TS files and remove superset-frontend prefix
     files = files
       .filter(f => /\.(ts|tsx|js|jsx)$/.test(f))
-      .map(f => f.replace(/^superset-frontend\//, ''));
+      .map(f => f.replace(/^superset-frontend\//, ''))
+      .filter(f => {
+        // Apply the same ignore patterns when files are passed in
+        const ignorePatterns = [
+          /\.test\./,
+          /\.spec\./,
+          /\/test\//,
+          /\/tests\//,
+          /\/storybook\//,
+          /\.stories\./,
+          /\/demo\//,
+          /\/examples\//,
+          /\/color\/colorSchemes\//,
+          /\/cypress\//,
+          /\/cypress-base\//,
+          /packages\/superset-ui-demo\//,
+          /\/esm\//,
+          /\/lib\//,
+          /\/dist\//,
+        ];
+        return !ignorePatterns.some(pattern => pattern.test(f));
+      });
   }
 
   if (files.length === 0) {
