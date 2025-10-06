@@ -156,14 +156,11 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       switch (selectedColorScheme) {
         case COLOR_SCHEME_TYPES.fixed_color: {
           color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
+          const colorArray = [color.r, color.g, color.b, color.a * 255];
 
-          return data.map(d => ({
-            ...d,
-            color: [color.r, color.g, color.b, color.a * 255],
-          }));
+          return data.map(d => ({ ...d, color: colorArray }));
         }
         case COLOR_SCHEME_TYPES.categorical_palette: {
-          // If no dimension selected, fall back to fixed color
           if (!fd.dimension) {
             const fallbackColor = fd.color_picker || {
               r: 0,
@@ -171,15 +168,13 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
               b: 0,
               a: 100,
             };
-            return data.map(d => ({
-              ...d,
-              color: [
-                fallbackColor.r,
-                fallbackColor.g,
-                fallbackColor.b,
-                fallbackColor.a * 255,
-              ],
-            }));
+            const colorArray = [
+              fallbackColor.r,
+              fallbackColor.g,
+              fallbackColor.b,
+              fallbackColor.a * 255,
+            ];
+            return data.map(d => ({ ...d, color: colorArray }));
           }
 
           return data.map(d => ({
@@ -209,17 +204,17 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
                   d.metric <= breakpoint.maxValue,
               );
 
-            return {
-              ...d,
-              color: breakpointForPoint
-                ? [
-                    breakpointForPoint?.color.r,
-                    breakpointForPoint?.color.g,
-                    breakpointForPoint?.color.b,
-                    breakpointForPoint?.color.a * 255,
-                  ]
-                : defaultBreakpointColor,
-            };
+            if (breakpointForPoint) {
+              const pointColor = [
+                breakpointForPoint.color.r,
+                breakpointForPoint.color.g,
+                breakpointForPoint.color.b,
+                breakpointForPoint.color.a * 255,
+              ];
+              return { ...d, color: pointColor };
+            }
+
+            return { ...d, color: defaultBreakpointColor };
           });
         }
         default: {
