@@ -186,49 +186,7 @@ export function deactivate() {
 }
 ```
 
-## Step 5: Configure Webpack
-
-Update `frontend/webpack.config.js` for Module Federation:
-
-```javascript
-const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
-
-module.exports = {
-  mode: 'production',
-  entry: './src/index.tsx',
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-    ],
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-  },
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'hello_world',
-      filename: 'remoteEntry.[contenthash].js',
-      exposes: {
-        './index': './src/index.tsx',
-      },
-      externalsType: 'window',
-      externals: {
-        '@apache-superset/core': 'superset',
-      },
-      shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
-      }
-    })
-  ],
-};
-```
-
-## Step 6: Build the Extension
+## Step 5: Build the Extension
 
 Build your extension assets:
 
@@ -244,7 +202,9 @@ superset-extensions build
 # This creates a dist/ folder with your built assets
 ```
 
-## Step 7: Package the Extension
+> **Note:** The `superset-extensions` CLI handles webpack configuration automatically. Superset already has Module Federation configured, so you don't need to set up webpack yourself unless you have specific advanced requirements.
+
+## Step 6: Package the Extension
 
 Create the distributable `.supx` file:
 
@@ -254,7 +214,7 @@ superset-extensions bundle
 # This creates hello_world-1.0.0.supx
 ```
 
-## Step 8: Install in Superset
+## Step 7: Install in Superset
 
 Upload your extension to a running Superset instance:
 
