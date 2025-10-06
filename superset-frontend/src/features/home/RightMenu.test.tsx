@@ -132,7 +132,7 @@ const createProps = (): RightMenuProps => ({
 });
 
 const mockNonExamplesDB = Array.from({ length: 2 })
-  .fill()
+  .fill(undefined)
   .map((_, i) => ({
     changed_by: {
       first_name: `user`,

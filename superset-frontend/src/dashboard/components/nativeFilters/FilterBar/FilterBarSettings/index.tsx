@@ -246,7 +246,6 @@ const FilterBarSettings = () => {
             ),
           },
         ],
-        'data-test': 'dropdown-selectable-icon-submenu',
       });
     }
     return items;

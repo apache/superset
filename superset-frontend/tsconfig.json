@@ -65,6 +65,7 @@
     "./plugins/**/*",
     "./packages/**/*",
     "./scripts/**/*",
+    "./webpack.config.js",
     "./webpack*.js"
   ],
   "references": [
