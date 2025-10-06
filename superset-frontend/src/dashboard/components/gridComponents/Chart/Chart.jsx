@@ -422,6 +422,19 @@ const Chart = props => {
         !isPivot &&
         actualRowCount >= streamingThreshold;
 
+      // Generate filename for streaming exports
+      let filename;
+      if (shouldUseStreaming) {
+        const timestamp = new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/[-:]/g, '')
+          .replace('T', '_');
+        const chartName = formData.slice_name || formData.viz_type || 'chart';
+        const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        filename = `superset_${safeChartName}_${timestamp}.csv`;
+      }
+
       exportChart({
         formData: exportFormData,
         resultType,
@@ -434,7 +447,8 @@ const Chart = props => {
               resetExport();
               startExport({
                 ...exportParams,
-                expectedRows: actualRowCount || exportParams.expectedRows,
+                filename,
+                expectedRows: actualRowCount,
               });
             }
           : null,

@@ -273,15 +273,15 @@ export const exportChart = async ({
     });
   }
 
-  // Check if streaming export handler is provided (only available from dashboard)
+  // Check if streaming export handler is provided (from dashboard Chart.jsx)
   if (onStartStreamingExport) {
-    // Streaming is handled by the caller (Chart.jsx in dashboard)
+    // Streaming is handled by the caller - just pass URL and payload
     onStartStreamingExport({
       url,
       payload,
     });
   } else {
-    // Fallback to original behavior for explore view
+    // Fallback to original behavior for non-streaming exports
     SupersetClient.postForm(url, { form_data: safeStringify(payload) });
   }
 };
