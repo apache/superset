@@ -86,7 +86,7 @@ const useChildElementTruncation = () => {
     return () => {
       obs.disconnect();
     };
-  }, [plusRef.current]); // plus is rendered dynamically - the component rerenders the hook when plus appears, this makes sure that useLayoutEffect is rerun
+  }, []); // plus is rendered dynamically - the component rerenders the hook when plus appears, this makes sure that useLayoutEffect is rerun
 
   return [elementRef, plusRef, elementsTruncated, hasHiddenElements] as const;
 };

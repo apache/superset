@@ -80,7 +80,7 @@ export default function CardCollection({
       {loading &&
         rows.length === 0 &&
         new Array(25)
-          .fill()
+          .fill(undefined)
           .map((e, i) => <div key={i}>{renderCard({ loading })}</div>)}
       {rows.length > 0 &&
         rows.map(row => {
