@@ -40,11 +40,9 @@ for file in "$@"; do
   fi
 done
 
-# Only run if we have JS/TS files to lint
+# Only run if we have JS/TS files to check
 if [ ${#js_ts_files[@]} -gt 0 ]; then
-  # Skip custom OXC build in pre-commit for speed
-  export SKIP_CUSTOM_OXC=true
-  npm run lint-fix -- "${js_ts_files[@]}"
+  node scripts/check-custom-rules.js "${js_ts_files[@]}"
 else
-  echo "No JavaScript/TypeScript files to lint"
+  echo "No JavaScript/TypeScript files to check for custom rules"
 fi

@@ -66,6 +66,12 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: custom-rules-frontend
+        name: custom rules (frontend)
+        entry: ./scripts/check-custom-rules.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
         entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --quiet $FILES'
