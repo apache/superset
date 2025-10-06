@@ -33,9 +33,9 @@ const RELEASE_BASE = 'https://github.com/apache/superset/releases/download';
 const VERSION = 'oxlint-superset-v1.0.0';
 
 function getPlatformBinary() {
-  const platform = process.platform;
-  const arch = process.arch;
-  
+  const { platform } = process;
+  const { arch } = process;
+
   const mapping = {
     'darwin-x64': 'oxlint-superset-darwin-x64',
     'darwin-arm64': 'oxlint-superset-darwin-arm64',
@@ -43,7 +43,7 @@ function getPlatformBinary() {
     'linux-arm64': 'oxlint-superset-linux-arm64',
     'win32-x64': 'oxlint-superset-win-x64.exe',
   };
-  
+
   const key = `${platform}-${arch}`;
   return mapping[key];
 }
@@ -51,30 +51,32 @@ function getPlatformBinary() {
 function downloadBinary(url, dest) {
   return new Promise((resolve, reject) => {
     console.log(`📥 Downloading pre-built oxlint-superset from ${url}`);
-    
+
     const file = fs.createWriteStream(dest);
-    https.get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        // Follow redirects
-        https.get(response.headers.location, (res) => {
-          res.pipe(file);
+    https
+      .get(url, response => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          // Follow redirects
+          https.get(response.headers.location, res => {
+            res.pipe(file);
+            file.on('finish', () => {
+              file.close();
+              fs.chmodSync(dest, '755');
+              resolve();
+            });
+          });
+        } else if (response.statusCode === 200) {
+          response.pipe(file);
           file.on('finish', () => {
             file.close();
             fs.chmodSync(dest, '755');
             resolve();
           });
-        });
-      } else if (response.statusCode === 200) {
-        response.pipe(file);
-        file.on('finish', () => {
-          file.close();
-          fs.chmodSync(dest, '755');
-          resolve();
-        });
-      } else {
-        reject(new Error(`Failed to download: ${response.statusCode}`));
-      }
-    }).on('error', reject);
+        } else {
+          reject(new Error(`Failed to download: ${response.statusCode}`));
+        }
+      })
+      .on('error', reject);
   });
 }
 
@@ -84,16 +86,16 @@ async function main() {
     console.log('✅ oxlint-superset binary already exists');
     return;
   }
-  
+
   const binaryName = getPlatformBinary();
   if (!binaryName) {
     console.error('❌ Unsupported platform:', process.platform, process.arch);
     console.log('Falling back to standard oxlint');
     return;
   }
-  
+
   const url = `${RELEASE_BASE}/${VERSION}/${binaryName}`;
-  
+
   try {
     fs.mkdirSync(path.dirname(BINARY_PATH), { recursive: true });
     await downloadBinary(url, BINARY_PATH);

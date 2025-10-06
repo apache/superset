@@ -76,7 +76,7 @@ test('should accept empty Dataset or queryResponse', () => {
   expect(
     getTemporalColumns({
       ...TestDataset,
-      
+
         columns: [],
         main_dttm_col: undefined,
     } as any as Dataset),
@@ -88,9 +88,9 @@ test('should accept empty Dataset or queryResponse', () => {
   expect(
     getTemporalColumns({
       ...testQueryResponse,
-      
+
         columns: [],
-        results: { ...testQueryResults.results, ...{ columns: [] } },
+        results: { ...testQueryResults.results,  columns: [] },
     }),
   ).toEqual({
     temporalColumns: [],

@@ -26,7 +26,7 @@ fi
 # Build for each target
 for target in "${TARGETS[@]}"; do
   echo "Building for $target..."
-  
+
   # Map target to output name
   case "$target" in
     x86_64-unknown-linux-gnu)
@@ -46,22 +46,22 @@ for target in "${TARGETS[@]}"; do
       continue
       ;;
   esac
-  
+
   # Build with cross for better compatibility
   cross build --release --target $target --bin oxlint
-  
+
   # Copy to output directory
   if [[ "$target" == *"windows"* ]]; then
     cp target/$target/release/oxlint.exe $OUTPUT_DIR/$output_name
   else
     cp target/$target/release/oxlint $OUTPUT_DIR/$output_name
   fi
-  
+
   # Make executable (for non-Windows)
   if [[ "$target" != *"windows"* ]]; then
     chmod +x $OUTPUT_DIR/$output_name
   fi
-  
+
   echo "✅ Built $output_name"
 done
 

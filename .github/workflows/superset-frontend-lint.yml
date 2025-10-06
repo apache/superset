@@ -1,0 +1,90 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: Frontend Lint with Custom OXC
+
+on:
+  push:
+    paths:
+      - 'superset-frontend/**'
+      - '.github/workflows/superset-frontend-lint.yml'
+  pull_request:
+    paths:
+      - 'superset-frontend/**'
+      - '.github/workflows/superset-frontend-lint.yml'
+
+jobs:
+  frontend-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: superset-frontend/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      # Cache Rust dependencies and build artifacts
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            superset-frontend/oxc-custom-build/oxc/target/
+          key: ${{ runner.os }}-cargo-oxc-${{ hashFiles('superset-frontend/oxc-superset-rules/**/*.rs', 'superset-frontend/build-custom-oxc.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-oxc-
+
+      # Cache the built OXC binary
+      - name: Cache OXC binary
+        uses: actions/cache@v4
+        with:
+          path: superset-frontend/node_modules/.bin/oxlint-superset
+          key: ${{ runner.os }}-oxlint-superset-${{ hashFiles('superset-frontend/oxc-superset-rules/**/*.rs', 'superset-frontend/build-custom-oxc.sh') }}
+
+      - name: Install dependencies
+        run: |
+          cd superset-frontend
+          npm ci
+
+      - name: Build custom OXC (if needed)
+        run: |
+          cd superset-frontend
+          # The ensure-oxc script will check if rebuild is needed
+          npm run ensure-oxc
+
+      - name: Run linting
+        run: |
+          cd superset-frontend
+          npm run lint
+
+      - name: Run type checking
+        run: |
+          cd superset-frontend
+          npm run type

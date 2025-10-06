@@ -396,8 +396,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   useEffect(() => {
     if (
       isChangedByUser.current &&
-      filterState.value &&
-      filterState.value.every((value?: any) =>
+      filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
       )
     )
@@ -419,13 +418,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }
     }
   }, [
-    defaultToFirstItem,
-    updateDataMask,
-    formData,
-    data,
-    JSON.stringify(filterState.value),
-    isChangedByUser.current,
-  ]);
+	defaultToFirstItem,
+	updateDataMask,
+	formData,
+	data,
+	JSON.stringify(filterState.value)
+]);
 
   useEffect(() => {
     setDataMask(dataMask);
