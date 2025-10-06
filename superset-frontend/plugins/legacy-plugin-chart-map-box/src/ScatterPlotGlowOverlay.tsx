@@ -16,51 +16,81 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable react/require-default-props */
-import PropTypes from 'prop-types';
-import { PureComponent, createRef } from 'react';
+import { PureComponent, createRef, RefObject } from 'react';
 import { useMap } from 'react-map-gl/mapbox';
+import type { MapRef } from 'react-map-gl/mapbox';
 import { kmToPixels, MILES_PER_KM } from './utils/geo';
 import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const propTypes = {
-  aggregation: PropTypes.string,
-  compositeOperation: PropTypes.string,
-  dotRadius: PropTypes.number,
-  lngLatAccessor: PropTypes.func,
-  locations: PropTypes.arrayOf(PropTypes.object).isRequired,
-  pointRadiusUnit: PropTypes.string,
-  renderWhileDragging: PropTypes.bool,
-  rgb: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  ),
-  zoom: PropTypes.number,
-};
+type AggregationType = 'sum' | 'min' | 'max' | 'mean' | 'var' | 'stdev';
 
-const defaultProps = {
+interface LocationProperties {
+  cluster?: boolean;
+  point_count?: number;
+  sum?: number;
+  squaredSum?: number;
+  radius?: number | null;
+  metric?: number | string | null;
+  [key: string]: unknown;
+}
+
+interface Location {
+  properties: LocationProperties;
+  [key: string]: unknown;
+}
+
+interface ScatterPlotGlowOverlayProps {
+  aggregation?: AggregationType;
+  compositeOperation?: GlobalCompositeOperation;
+  dotRadius?: number;
+  isDragging?: boolean;
+  lngLatAccessor?: (location: Location) => [number, number];
+  locations: Location[];
+  mapRef?: { current: MapRef | null | undefined };
+  pointRadiusUnit?: string;
+  renderWhileDragging?: boolean;
+  rgb?: [number, number, number, number];
+  zoom?: number;
+}
+
+interface DrawTextOptions {
+  fontHeight?: number;
+  label?: string | number;
+  radius?: number;
+  rgb?: [number, number, number, number];
+  shadow?: boolean;
+}
+
+const defaultProps: Partial<ScatterPlotGlowOverlayProps> = {
   // Same as browser default.
   compositeOperation: 'source-over',
   dotRadius: 4,
-  lngLatAccessor: location => [location[0], location[1]],
+  lngLatAccessor: (location: Location) => [
+    location[0] as number,
+    location[1] as number,
+  ],
   renderWhileDragging: true,
 };
 
-const computeClusterLabel = (properties, aggregation) => {
-  const count = properties.point_count;
+const computeClusterLabel = (
+  properties: LocationProperties,
+  aggregation?: AggregationType,
+): number => {
+  const count = properties.point_count || 0;
   if (!aggregation) {
     return count;
   }
   if (aggregation === 'sum' || aggregation === 'min' || aggregation === 'max') {
-    return properties[aggregation];
+    return (properties[aggregation] as number) || 0;
   }
-  const { sum } = properties;
+  const sum = properties.sum || 0;
   const mean = sum / count;
   if (aggregation === 'mean') {
     return Math.round(100 * mean) / 100;
   }
-  const { squaredSum } = properties;
+  const squaredSum = properties.squaredSum || 0;
   const variance = squaredSum / count - (sum / count) ** 2;
   if (aggregation === 'var') {
     return Math.round(100 * variance) / 100;
@@ -73,11 +103,17 @@ const computeClusterLabel = (properties, aggregation) => {
   return count;
 };
 
-class ScatterPlotGlowOverlay extends PureComponent {
-  constructor(props) {
+class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> {
+  static defaultProps = defaultProps;
+
+  private canvasRef: RefObject<HTMLCanvasElement>;
+
+  private containerRef: RefObject<HTMLDivElement>;
+
+  constructor(props: ScatterPlotGlowOverlayProps) {
     super(props);
-    this.canvasRef = createRef();
-    this.containerRef = createRef();
+    this.canvasRef = createRef<HTMLCanvasElement>();
+    this.containerRef = createRef<HTMLDivElement>();
     this.redraw = this.redraw.bind(this);
     this.updateCanvasSize = this.updateCanvasSize.bind(this);
   }
@@ -115,13 +151,17 @@ class ScatterPlotGlowOverlay extends PureComponent {
     }
   }
 
-  drawText(ctx, pixel, options = {}) {
+  drawText(
+    ctx: CanvasRenderingContext2D,
+    pixel: [number, number],
+    options: DrawTextOptions = {},
+  ) {
     const IS_DARK_THRESHOLD = 110;
     const {
       fontHeight = 0,
       label = '',
       radius = 0,
-      rgb = [0, 0, 0],
+      rgb = [0, 0, 0, 0],
       shadow = false,
     } = options;
     const maxWidth = radius * 1.8;
@@ -137,7 +177,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
       ctx.shadowColor = luminance <= IS_DARK_THRESHOLD ? 'black' : '';
     }
 
-    const textWidth = ctx.measureText(label).width;
+    const textWidth = ctx.measureText(String(label)).width;
     if (textWidth > maxWidth) {
       const scale = fontHeight / textWidth;
       ctx.font = `${scale * maxWidth}px sans-serif`;
@@ -145,8 +185,8 @@ class ScatterPlotGlowOverlay extends PureComponent {
 
     const { compositeOperation } = this.props;
 
-    ctx.fillText(label, pixel[0], pixel[1]);
-    ctx.globalCompositeOperation = compositeOperation;
+    ctx.fillText(String(label), pixel[0], pixel[1]);
+    ctx.globalCompositeOperation = compositeOperation || 'source-over';
     ctx.shadowBlur = 0;
     ctx.shadowColor = '';
   }
@@ -156,12 +196,14 @@ class ScatterPlotGlowOverlay extends PureComponent {
     const canvas = this.canvasRef.current;
     if (!canvas) return;
 
-    const { current: map } = this.props.mapRef;
+    const { current: map } = this.props.mapRef || {};
     if (!map) return;
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const { width, height } = canvas;
-    const project = coords => {
+    const project = (coords: [number, number]): [number, number] => {
       const point = map.project(coords);
       return [point.x, point.y];
     };
@@ -178,8 +220,8 @@ class ScatterPlotGlowOverlay extends PureComponent {
       zoom,
     } = this.props;
 
-    const radius = dotRadius;
-    const clusterLabelMap = [];
+    const radius = dotRadius || 4;
+    const clusterLabelMap: number[] = [];
 
     locations.forEach((location, i) => {
       if (location.properties.cluster) {
@@ -188,17 +230,21 @@ class ScatterPlotGlowOverlay extends PureComponent {
           aggregation,
         );
       }
-    }, this);
+    });
 
     const maxLabel = Math.max(...clusterLabelMap.filter(v => !Number.isNaN(v)));
 
     ctx.clearRect(0, 0, width, height);
-    ctx.globalCompositeOperation = compositeOperation;
+    ctx.globalCompositeOperation = compositeOperation || 'source-over';
 
     if ((renderWhileDragging || !isDragging) && locations) {
-      locations.forEach(function _forEach(location, i) {
-        const pixel = project(lngLatAccessor(location));
-        const pixelRounded = [
+      locations.forEach((location, i) => {
+        const pixel = project(
+          lngLatAccessor
+            ? lngLatAccessor(location)
+            : ([location[0], location[1]] as [number, number]),
+        );
+        const pixelRounded: [number, number] = [
           roundDecimal(pixel[0], 1),
           roundDecimal(pixel[1], 1),
         ];
@@ -211,7 +257,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
         ) {
           ctx.beginPath();
           if (location.properties.cluster) {
-            let clusterLabel = clusterLabelMap[i];
+            let clusterLabel: number | string = clusterLabelMap[i];
             const scaledRadius = roundDecimal(
               (clusterLabel / maxLabel) ** 0.5 * radius,
               1,
@@ -227,13 +273,14 @@ class ScatterPlotGlowOverlay extends PureComponent {
               0,
             );
 
+            const rgbColor = rgb || [0, 0, 0, 0];
             gradient.addColorStop(
               1,
-              `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0.8)`,
+              `rgba(${rgbColor[1]}, ${rgbColor[2]}, ${rgbColor[3]}, 0.8)`,
             );
             gradient.addColorStop(
               0,
-              `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0)`,
+              `rgba(${rgbColor[1]}, ${rgbColor[2]}, ${rgbColor[3]}, 0)`,
             );
             ctx.arc(
               pixelRounded[0],
@@ -245,7 +292,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (Number.isFinite(parseFloat(clusterLabel))) {
+            if (Number.isFinite(parseFloat(String(clusterLabel)))) {
               if (clusterLabel >= 10000) {
                 clusterLabel = `${Math.round(clusterLabel / 1000)}k`;
               } else if (clusterLabel >= 1000) {
@@ -255,7 +302,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
                 fontHeight,
                 label: clusterLabel,
                 radius: scaledRadius,
-                rgb,
+                rgb: rgbColor,
                 shadow: true,
               });
             }
@@ -265,27 +312,27 @@ class ScatterPlotGlowOverlay extends PureComponent {
             const pointMetric = location.properties.metric;
             let pointRadius =
               radiusProperty === null ? defaultRadius : radiusProperty;
-            let pointLabel;
+            let pointLabel: string | number | undefined;
 
-            if (radiusProperty !== null) {
+            if (radiusProperty !== null && lngLatAccessor) {
               const pointLatitude = lngLatAccessor(location)[1];
-              if (pointRadiusUnit === 'Kilometers') {
+              if (pointRadiusUnit === 'Kilometers' && pointRadius) {
                 pointLabel = `${roundDecimal(pointRadius, 2)}km`;
-                pointRadius = kmToPixels(pointRadius, pointLatitude, zoom);
-              } else if (pointRadiusUnit === 'Miles') {
+                pointRadius = kmToPixels(pointRadius, pointLatitude, zoom || 0);
+              } else if (pointRadiusUnit === 'Miles' && pointRadius) {
                 pointLabel = `${roundDecimal(pointRadius, 2)}mi`;
                 pointRadius = kmToPixels(
                   pointRadius * MILES_PER_KM,
                   pointLatitude,
-                  zoom,
+                  zoom || 0,
                 );
               }
             }
 
             if (pointMetric !== null) {
-              pointLabel = Number.isFinite(parseFloat(pointMetric))
-                ? roundDecimal(pointMetric, 2)
-                : pointMetric;
+              pointLabel = Number.isFinite(parseFloat(String(pointMetric)))
+                ? roundDecimal(Number(pointMetric), 2)
+                : String(pointMetric);
             }
 
             // Fall back to default points if pointRadius wasn't a numerical column
@@ -300,7 +347,8 @@ class ScatterPlotGlowOverlay extends PureComponent {
               0,
               Math.PI * 2,
             );
-            ctx.fillStyle = `rgb(${rgb[1]}, ${rgb[2]}, ${rgb[3]})`;
+            const rgbColor = rgb || [0, 0, 0, 0];
+            ctx.fillStyle = `rgb(${rgbColor[1]}, ${rgbColor[2]}, ${rgbColor[3]})`;
             ctx.fill();
 
             if (pointLabel !== undefined) {
@@ -308,13 +356,13 @@ class ScatterPlotGlowOverlay extends PureComponent {
                 fontHeight: roundDecimal(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
-                rgb,
+                rgb: rgbColor,
                 shadow: false,
               });
             }
           }
         }
-      }, this);
+      });
     }
   }
 
@@ -345,10 +393,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
   }
 }
 
-ScatterPlotGlowOverlay.propTypes = propTypes;
-ScatterPlotGlowOverlay.defaultProps = defaultProps;
-
-function ScatterPlotGlowOverlayWithMap(props) {
+function ScatterPlotGlowOverlayWithMap(props: ScatterPlotGlowOverlayProps) {
   const { current: map } = useMap();
   const mapRef = { current: map };
   return <ScatterPlotGlowOverlay {...props} mapRef={mapRef} />;
