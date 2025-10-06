@@ -60,6 +60,7 @@
     "oxlint": "npx oxlint --config oxlint.json",
     "oxlint:fix": "npx oxlint --config oxlint.json --fix",
     "watch-oxc": "node scripts/watch-oxc-rules.js",
+    "ensure-oxc": "echo 'OXC linter is ready' && npx oxlint --version",
     "postinstall": "npm run ensure-oxc",
     "lint-full": "npm run eslint -- . && npm run type",
     "lint-full-fix": "npm run eslint -- . --fix",
