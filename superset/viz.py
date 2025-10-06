@@ -1313,6 +1313,7 @@ class WorldMapViz(BaseViz):
                         self.form_data["country_fieldtype"], row["country"]
                     )
             if country:
+                row["country_cca2"] = country["cca2"]
                 row["country"] = country["cca3"]
                 row["latitude"] = country["lat"]
                 row["longitude"] = country["lng"]
