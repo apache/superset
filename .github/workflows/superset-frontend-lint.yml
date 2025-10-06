@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-name: Frontend Lint with Custom OXC
+name: Frontend Lint
 
 on:
   push:
@@ -42,47 +42,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: superset-frontend/package-lock.json
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      # Cache Rust dependencies and build artifacts
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            superset-frontend/oxc-custom-build/oxc/target/
-          key: ${{ runner.os }}-cargo-oxc-${{ hashFiles('superset-frontend/oxc-superset-rules/**/*.rs', 'superset-frontend/build-custom-oxc.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-oxc-
-
-      # Cache the built OXC binary
-      - name: Cache OXC binary
-        uses: actions/cache@v4
-        with:
-          path: superset-frontend/node_modules/.bin/oxlint-superset
-          key: ${{ runner.os }}-oxlint-superset-${{ hashFiles('superset-frontend/oxc-superset-rules/**/*.rs', 'superset-frontend/build-custom-oxc.sh') }}
-
       - name: Install dependencies
         run: |
           cd superset-frontend
           npm ci
 
-      - name: Build custom OXC (if needed)
-        run: |
-          cd superset-frontend
-          # The ensure-oxc script will check if rebuild is needed
-          npm run ensure-oxc
-
-      - name: Run linting
+      - name: Run linting with OXC
         run: |
           cd superset-frontend
           npm run lint
+
+      - name: Run custom rules check
+        run: |
+          cd superset-frontend
+          npm run check:custom-rules
 
       - name: Run type checking
         run: |
