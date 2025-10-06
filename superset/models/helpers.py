@@ -951,8 +951,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         db_engine_spec = self.db_engine_spec
         # add quotes to tables
         if db_engine_spec.get_allows_alias_in_select(self.database):
-            label = db_engine_spec.make_label_compatible(label_expected)
-            sqla_col = sqla_col.label(label)
+            # Temporarily store database in g for db-specific label mutation logic
+            previous_db = getattr(g, "database", None)
+            try:
+                g.database = self.database
+                label = db_engine_spec.make_label_compatible(label_expected)
+                sqla_col = sqla_col.label(label)
+            finally:
+                # Restore prev value/remove if it didn't exist
+                if previous_db is not None:
+                    g.database = previous_db
+                elif hasattr(g, "database"):
+                    delattr(g, "database")
         sqla_col.key = label_expected
         return sqla_col
 

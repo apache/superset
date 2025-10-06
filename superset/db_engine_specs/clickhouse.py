@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import current_app as app
+from flask import g, current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -411,14 +411,40 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
-         Conditionally suffix the label with the first six characters from the md5
-         of the label to avoid collisions with original column names when the
-         `CLICKHOUSE_CONNECT_ENABLE_LABEL_MUTATION` setting is enabled (Default).
+        Conditionally suffix the label with the first six characters from the md5
+        of the label to avoid collisions with original column names.
 
-         :param label: Expected expression label
-         :return: Mutated label if mutation is enabled, otherwise the original label
-         """
-        if current_app.config.get("CLICKHOUSE_CONNECT_ENABLE_LABEL_MUTATION", True):
+        By default, labels are mutated for backward compatibility. To disable this
+        behavior on a per-database basis, set `engine_params.mutate_label_name` to
+        `false` in the database's "extra" JSON configuration:
+
+            {
+                "engine_params": {
+                    "mutate_label_name": false
+                }
+            }
+
+        This is useful when your ClickHouse queries refer to their own aliases
+        within the same SELECT statement.
+
+        :param label: Expected expression label
+        :return: Mutated label if mutation is enabled, otherwise the original label
+        """
+        mutate_label = True
+
+        if hasattr(g, "database") and g.database:
+            try:
+                extra = g.database.get_extra()
+                engine_params = extra.get("engine_params", {})
+                mutate_label = engine_params.get("mutate_label_name", True)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Error retrieving mutate_label_name setting. Falling back to "
+                    "default behavior of True."
+                )
+                pass
+
+        if mutate_label:
             return f"{label}_{md5_sha_from_str(label)[:6]}"
         return label
 
