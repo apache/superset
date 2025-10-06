@@ -24,7 +24,7 @@ under the License.
 
 # High-level Architecture
 
-It is important to note that this SIP is not intended to address every aspect of the architecture in a single document. Rather, it should be seen as a chapter in an ongoing book: it establishes foundational concepts and direction, while recognizing that many important topics remain to be explored. Items not covered here are listed under the [Future Work](/developer_portal/extensions/future-work) section and are expected to be addressed in subsequent SIPs as the architecture and community needs evolve.
+It is important to note that this SIP is not intended to address every aspect of the architecture in a single document. Rather, it should be seen as a chapter in an ongoing book: it establishes foundational concepts and direction, while recognizing that many important topics remain to be explored. Many topics not covered here are expected to be addressed in subsequent SIPs as the architecture and community needs evolve.
 
 The following diagram illustrates the overall architecture, emphasizing the relationships between the host application, extensions, and the supporting packages that will be developed to enable this ecosystem.
 

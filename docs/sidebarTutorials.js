@@ -69,15 +69,58 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Coding Guidelines',
+      label: 'Design Guidelines',
       collapsed: true,
       items: [
-        'guidelines/coding',
-        'guidelines/typescript',
-        'guidelines/python',
-        'guidelines/react',
-        'guidelines/sql',
-        'guidelines/documentation',
+        'guidelines/design-guidelines',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Frontend Style Guidelines',
+      collapsed: true,
+      items: [
+        'guidelines/frontend-style-guidelines',
+        {
+          type: 'category',
+          label: 'Component Style Guidelines and Best Practices',
+          collapsed: true,
+          items: [
+            'guidelines/frontend/component-style-guidelines',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Emotion Styling Guidelines and Best Practices',
+          collapsed: true,
+          items: [
+            'guidelines/frontend/emotion-styling-guidelines',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Testing Guidelines and Best Practices',
+          collapsed: true,
+          items: [
+            'guidelines/frontend/testing-guidelines',
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Backend Style Guidelines',
+      collapsed: true,
+      items: [
+        'guidelines/backend-style-guidelines',
+        {
+          type: 'category',
+          label: 'DAO Style Guidelines and Best Practices',
+          collapsed: true,
+          items: [
+            'guidelines/backend/dao-style-guidelines',
+          ],
+        },
       ],
     },
     {
