@@ -20,7 +20,7 @@
 /* eslint-disable react/forbid-prop-types, react/require-default-props */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import MapGL from 'react-map-gl';
+import Map from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
 import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
 import './MapBox.css';
@@ -79,7 +79,8 @@ class MapBox extends Component {
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
 
-  handleViewportChange(viewport) {
+  handleViewportChange(evt) {
+    const viewport = evt.viewState;
     this.setState({ viewport });
     const { onViewportChange } = this.props;
     onViewportChange(viewport);
@@ -120,33 +121,34 @@ class MapBox extends Component {
     const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
     return (
-      <MapGL
-        {...viewport}
-        mapStyle={mapStyle}
-        width={width}
-        height={height}
-        mapboxApiAccessToken={mapboxApiKey}
-        onViewportChange={this.handleViewportChange}
-        preserveDrawingBuffer
-      >
-        <ScatterPlotGlowOverlay
+      <div style={{ width, height }}>
+        <Map
           {...viewport}
-          isDragging={isDragging}
-          locations={clusters}
-          dotRadius={pointRadius}
-          pointRadiusUnit={pointRadiusUnit}
-          rgb={rgb}
-          globalOpacity={globalOpacity}
-          compositeOperation="screen"
-          renderWhileDragging={renderWhileDragging}
-          aggregation={hasCustomMetric ? aggregatorName : null}
-          lngLatAccessor={location => {
-            const { coordinates } = location.geometry;
+          mapStyle={mapStyle}
+          mapboxAccessToken={mapboxApiKey}
+          onMove={this.handleViewportChange}
+          preserveDrawingBuffer
+          style={{ width: '100%', height: '100%' }}
+        >
+          <ScatterPlotGlowOverlay
+            {...viewport}
+            isDragging={isDragging}
+            locations={clusters}
+            dotRadius={pointRadius}
+            pointRadiusUnit={pointRadiusUnit}
+            rgb={rgb}
+            globalOpacity={globalOpacity}
+            compositeOperation="screen"
+            renderWhileDragging={renderWhileDragging}
+            aggregation={hasCustomMetric ? aggregatorName : null}
+            lngLatAccessor={location => {
+              const { coordinates } = location.geometry;
 
-            return [coordinates[0], coordinates[1]];
-          }}
-        />
-      </MapGL>
+              return [coordinates[0], coordinates[1]];
+            }}
+          />
+        </Map>
+      </div>
     );
   }
 }

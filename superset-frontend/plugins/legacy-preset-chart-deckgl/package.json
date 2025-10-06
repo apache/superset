@@ -50,6 +50,7 @@
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",
+    "react-map-gl": "^8.0.4",
     "underscore": "^1.13.7",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"
@@ -67,8 +68,7 @@
     "dayjs": "^1.11.19",
     "mapbox-gl": "*",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-map-gl": "^6.1.19"
+    "react-dom": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"
