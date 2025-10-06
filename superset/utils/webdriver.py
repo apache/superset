@@ -358,6 +358,7 @@ class WebDriverSelenium(WebDriverProxy):
                 for name, value in driver_opts.get("preferences", {}).items():
                     options.profile.set_preference(str(name), value)
             kwargs |= {
+                "options": options,
                 "service": service_class(**driver_srv),
             }
 
