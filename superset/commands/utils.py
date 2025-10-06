@@ -183,9 +183,12 @@ def update_tags(
     ]
     if tag_ids_to_add:
         tags_to_add = TagDAO.find_by_ids(tag_ids_to_add)
-        TagDAO.create_custom_tagged_objects(
-            object_type, object_id, [tag.name for tag in tags_to_add]
-        )
+        # Only add custom tags - system tags are managed automatically
+        custom_tags_to_add = [tag for tag in tags_to_add if tag.type == TagType.custom]
+        if custom_tags_to_add:
+            TagDAO.create_custom_tagged_objects(
+                object_type, object_id, [tag.name for tag in custom_tags_to_add]
+            )
 
 
 def update_chart_config_dataset(
