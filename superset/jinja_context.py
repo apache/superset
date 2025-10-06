@@ -1086,7 +1086,13 @@ def metric_macro(
     if not dataset_id:
         dataset_id = get_dataset_id_from_context(metric_key)
 
-    dataset = DatasetDAO.find_by_id(dataset_id)
+    # Embedded user access is validated at the dashboard level, so we bypass
+    # the regular DAO filter for them
+    dataset = (
+        DatasetDAO.find_by_id(dataset_id)
+        if not security_manager.is_guest_user()
+        else DatasetDAO.find_by_id(dataset_id, skip_base_filter=True)
+    )
     if not dataset:
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
 
