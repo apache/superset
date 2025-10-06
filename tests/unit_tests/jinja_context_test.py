@@ -1252,6 +1252,79 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
         assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
+def test_metric_macro_regular_user_uses_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` uses base filter for regular users.
+
+    Regular users should have standard RBAC/RLS filters applied when accessing datasets.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called without skip_base_filter
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_regular_user_raises_no_access(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` raises for regular user without dataset access.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = None
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError) as excinfo:
+        assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    assert str(excinfo.value) == "Dataset ID 1 not found."
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` skips base filter for embedded users.
+
+    Embedded users have dashboard-level access control via their embedding token,
+    so we bypass the regular dataset DAO filters for them.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = True
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called with skip_base_filter=True
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=True)
+
+
 @pytest.mark.parametrize(
     "description,args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
     [
