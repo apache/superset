@@ -1978,7 +1978,7 @@ msgid "Big Number"
 msgstr "Карточка"
 
 msgid "Big Number Font Size"
-msgstr "РРазмер шрифта карточки"
+msgstr "Размер шрифта карточки"
 
 msgid "Big Number with Time Period Comparison"
 msgstr "Карточка со сравнением периодов времени"
