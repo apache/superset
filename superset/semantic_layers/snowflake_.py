@@ -368,19 +368,12 @@ class SnowflakeExplorable:
         """
         dimensions: set[Dimension] = set()
 
-        query = f"""
-            DESC SEMANTIC VIEW {self.uid()}
-                ->> SELECT "object_name", "property", "property_value"
-                    FROM $1
-                    WHERE
-                        "object_kind" = 'DIMENSION' AND
-                        "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
-        """  # noqa: S608
-
+        query = f"SHOW SEMANTIC DIMENSIONS IN {self.uid};"
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor(DictCursor)
             rows = cursor.execute(query).fetchall()
+            print(rows)
 
         for name, group in itertools.groupby(rows, key=lambda x: x["object_name"]):
             attributes = defaultdict(set)
