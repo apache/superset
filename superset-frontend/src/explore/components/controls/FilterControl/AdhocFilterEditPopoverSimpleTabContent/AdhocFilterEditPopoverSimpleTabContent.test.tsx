@@ -103,10 +103,9 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
     options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
     datasource: {
       ...TestDataset,
-      ...{
+      
         columns: [],
         filter_select: false,
-      },
     },
     partitionColumn: 'test',
     ...overrides,
@@ -126,10 +125,9 @@ function setup(overrides?: Record<string, any>) {
     options,
     datasource: {
       ...TestDataset,
-      ...{
+      
         columns: [],
         filter_select: false,
-      },
     },
     partitionColumn: 'test',
     ...overrides,

@@ -96,7 +96,7 @@ const config: ControlPanelConfig = {
     },
     {
       ...sections.titleControls,
-      controlSetRows: [...sections.titleControls.controlSetRows.slice(0, -1)],
+      controlSetRows: sections.titleControls.controlSetRows.slice(0, -1),
     },
     {
       label: t('Chart Options'),

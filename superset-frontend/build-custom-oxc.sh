@@ -291,9 +291,10 @@ WRAPPER_EOF
 
 chmod +x ../../../$OUTPUT_DIR/oxlint
 
-# Clean up build directory (optional)
+# Clean up build directory but keep the git clone and target for caching
 cd ../../..
-# rm -rf $BUILD_DIR
+# Keep the build directory for faster rebuilds
+echo "📁 Keeping build cache for faster future builds"
 
 echo -e "${GREEN}✅ Custom OXC built successfully!${NC}"
 echo -e "${YELLOW}📍 Binary installed at: $OUTPUT_DIR/oxlint-superset${NC}"

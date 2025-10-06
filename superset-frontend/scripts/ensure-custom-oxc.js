@@ -105,17 +105,11 @@ function buildCustomOXC() {
   try {
     execFileSync('which', ['cargo'], { stdio: 'ignore' });
   } catch (e) {
-    console.error('❌ Rust not installed!');
-    console.error('');
-    console.error('To use custom Superset lint rules, please install Rust:');
-    console.error(
-      '  curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh',
+    console.log('ℹ️  Rust not installed, using standard oxlint');
+    console.log('   To enable custom Superset lint rules, install Rust:');
+    console.log(
+      '   curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh',
     );
-    console.error('');
-    console.error('Or use standard OXC without custom rules by running:');
-    console.error('  npm install -g oxlint');
-    console.error('');
-    console.error('Falling back to standard OXC for now...');
     return false;
   }
 
@@ -149,12 +143,64 @@ function buildCustomOXC() {
 }
 
 /**
+ * Try to install standard oxlint if custom build is not available
+ */
+function installStandardOxlint() {
+  console.log('📦 Installing standard oxlint...');
+  try {
+    execFileSync('npm', ['install', 'oxlint', '--no-save'], {
+      stdio: 'inherit',
+      cwd: path.dirname(BUILD_SCRIPT),
+    });
+    console.log('✅ Standard oxlint installed');
+    return true;
+  } catch (e) {
+    console.error('❌ Failed to install standard oxlint:', e.message);
+    return false;
+  }
+}
+
+/**
  * Main function
  */
 function main() {
   // Skip in CI if we're using pre-built binary
   if (process.env.CI && process.env.SKIP_OXC_BUILD === 'true') {
     console.log('ℹ️  Skipping OXC build in CI (using pre-built binary)');
+    return;
+  }
+
+  // Skip custom build if explicitly requested (e.g., for pre-commit speed)
+  if (process.env.SKIP_CUSTOM_OXC === 'true') {
+    console.log('ℹ️  Skipping custom OXC build (using standard oxlint)');
+    return;
+  }
+
+  // Check if standard oxlint exists as fallback
+  const standardOxlintPath = path.join(
+    __dirname,
+    '../node_modules/.bin/oxlint',
+  );
+  const hasStandardOxlint = fs.existsSync(standardOxlintPath);
+
+  // Check if Rust is available for custom build
+  let hasRust = false;
+  try {
+    execFileSync('which', ['cargo'], { stdio: 'ignore' });
+    hasRust = true;
+  } catch (e) {
+    // Rust not available
+  }
+
+  if (!hasRust) {
+    console.log(
+      '⚠️  Rust not installed, using standard oxlint instead of custom build',
+    );
+    if (!hasStandardOxlint) {
+      installStandardOxlint();
+    } else {
+      console.log('✅ Standard oxlint is available');
+    }
     return;
   }
 
@@ -166,6 +212,9 @@ function main() {
     if (success) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`⏱️  Build completed in ${elapsed}s`);
+    } else if (!hasStandardOxlint) {
+      // If custom build failed and no standard oxlint, install it
+      installStandardOxlint();
     }
   } else {
     // Binary is up to date

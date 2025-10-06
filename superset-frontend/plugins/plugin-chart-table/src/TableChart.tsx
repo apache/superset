@@ -1270,7 +1270,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleSearch = (searchText: string) => {
     const modifiedOwnState = {
-      ...(serverPaginationData || {}),
+      ...serverPaginationData,
       searchColumn:
         serverPaginationData?.searchColumn || searchOptions[0]?.value,
       searchText,
@@ -1284,7 +1284,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleChangeSearchCol = (searchCol: string) => {
     if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
       const modifiedOwnState = {
-        ...(serverPaginationData || {}),
+        ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
       };

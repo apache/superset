@@ -333,7 +333,7 @@ class DatasourceControl extends PureComponent {
           editText
         ),
         disabled: !allowEdit,
-        ...{ 'data-test': 'edit-dataset' },
+         'data-test': 'edit-dataset',
       });
     }
 

@@ -47,9 +47,8 @@ test('should skip renameOperator for empty metrics', () => {
   expect(
     renameOperator(formData, {
       ...queryObject,
-      ...{
+      
         metrics: [],
-      },
     }),
   ).toEqual(undefined);
 });
@@ -58,9 +57,8 @@ test('should skip renameOperator if series does not exist', () => {
   expect(
     renameOperator(formData, {
       ...queryObject,
-      ...{
+      
         columns: [],
-      },
     }),
   ).toEqual(undefined);
 });
@@ -68,12 +66,11 @@ test('should skip renameOperator if series does not exist', () => {
 test('should skip renameOperator if series does not exist and a single time shift exists', () => {
   expect(
     renameOperator(
-      { ...formData, ...{ time_compare: ['1 year ago'] } },
+      { ...formData,  time_compare: ['1 year ago'] },
       {
         ...queryObject,
-        ...{
+        
           columns: [],
-        },
       },
     ),
   ).toEqual(undefined);
@@ -84,9 +81,9 @@ test('should skip renameOperator if does not exist x_axis and is_timeseries', ()
     renameOperator(
       {
         ...formData,
-        ...{ x_axis: null },
+         x_axis: null,
       },
-      { ...queryObject, ...{ is_timeseries: false } },
+      { ...queryObject,  is_timeseries: false },
     ),
   ).toEqual(undefined);
 });
@@ -95,7 +92,7 @@ test('should skip renameOperator if not is_timeseries and multi metrics', () => 
   expect(
     renameOperator(formData, {
       ...queryObject,
-      ...{ is_timeseries: false, metrics: ['count(*)', 'sum(val)'] },
+       is_timeseries: false, metrics: ['count(*)', 'sum(val)'],
     }),
   ).toEqual(undefined);
 });
@@ -112,13 +109,12 @@ test('should add renameOperator if a metric exists and multiple time shift', () 
     renameOperator(
       {
         ...formData,
-        ...{ time_compare: ['1 year ago', '2 years ago'] },
+         time_compare: ['1 year ago', '2 years ago'],
       },
       {
         ...queryObject,
-        ...{
+        
           columns: [],
-        },
       },
     ),
   ).toEqual({
@@ -137,16 +133,14 @@ test('should add renameOperator if exists derived metrics', () => {
       renameOperator(
         {
           ...formData,
-          ...{
+          
             comparison_type: type,
             time_compare: ['1 year ago'],
-          },
         },
         {
           ...queryObject,
-          ...{
+          
             metrics: ['count(*)'],
-          },
         },
       ),
     ).toEqual({
@@ -170,17 +164,15 @@ test('should add renameOperator if isTimeComparisonValue without columns', () =>
       renameOperator(
         {
           ...formData,
-          ...{
+          
             comparison_type: type,
             time_compare: ['1 year ago'],
-          },
         },
         {
           ...queryObject,
-          ...{
+          
             columns: [],
             metrics: ['sum(val)', 'avg(val2)'],
-          },
         },
       ),
     ).toEqual({
@@ -203,7 +195,7 @@ test('should add renameOperator if x_axis does not exist', () => {
     renameOperator(
       {
         ...formData,
-        ...{ x_axis: null, granularity_sqla: 'time column' },
+         x_axis: null, granularity_sqla: 'time column',
       },
       queryObject,
     ),
@@ -218,7 +210,7 @@ test('should add renameOperator if based on series_columns', () => {
     renameOperator(
       {
         ...formData,
-        ...{ x_axis: null, granularity_sqla: 'time column' },
+         x_axis: null, granularity_sqla: 'time column',
       },
       {
         ...queryObject,
@@ -237,10 +229,9 @@ test('should add renameOperator if exist "actual value" time comparison', () => 
     renameOperator(
       {
         ...formData,
-        ...{
+        
           comparison_type: ComparisonType.Values,
           time_compare: ['1 year ago', '1 year later'],
-        },
       },
       queryObject,
     ),
@@ -262,10 +253,9 @@ test('should add renameOperator if derived time comparison exists', () => {
     renameOperator(
       {
         ...formData,
-        ...{
+        
           comparison_type: ComparisonType.Ratio,
           time_compare: ['1 year ago', '1 year later'],
-        },
       },
       queryObject,
     ),
@@ -287,16 +277,14 @@ test('should add renameOperator if multiple metrics exist', () => {
     renameOperator(
       {
         ...formData,
-        ...{
+        
           comparison_type: ComparisonType.Values,
           time_compare: ['1 year ago'],
-        },
       },
       {
         ...queryObject,
-        ...{
+        
           metrics: ['count(*)', 'sum(sales)'],
-        },
       },
     ),
   ).toEqual({

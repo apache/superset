@@ -1,0 +1,93 @@
+# Example GitHub Actions workflow for building and caching oxlint-superset
+# This would go in .github/workflows/oxlint-custom.yml
+
+name: Build Custom OXC Linter
+
+on:
+  push:
+    paths:
+      - 'superset-frontend/oxc-superset-rules/**'
+      - 'superset-frontend/build-custom-oxc.sh'
+  pull_request:
+    paths:
+      - 'superset-frontend/oxc-superset-rules/**'
+      - 'superset-frontend/build-custom-oxc.sh'
+  workflow_dispatch:
+
+jobs:
+  build-oxlint-superset:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: oxlint-superset-linux-x64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: oxlint-superset-darwin-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: oxlint-superset-darwin-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: oxlint-superset-win-x64.exe
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build custom OXC
+        run: |
+          cd superset-frontend
+          chmod +x build-custom-oxc.sh
+          ./build-custom-oxc.sh
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact }}
+          path: superset-frontend/node_modules/.bin/oxlint-superset
+  
+  # Job that runs in regular CI to use pre-built binaries
+  lint-with-custom-oxc:
+    needs: build-oxlint-superset
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: superset-frontend/package-lock.json
+      
+      - name: Download pre-built binary
+        uses: actions/download-artifact@v3
+        with:
+          name: oxlint-superset-linux-x64
+          path: superset-frontend/node_modules/.bin/
+      
+      - name: Make binary executable
+        run: chmod +x superset-frontend/node_modules/.bin/oxlint-superset
+      
+      - name: Run custom OXC linter
+        run: |
+          cd superset-frontend
+          npm run oxlint
