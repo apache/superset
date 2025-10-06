@@ -150,9 +150,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             )
             if len(dashboards) != len(dashboard_ids):
                 exceptions.append(DashboardsNotFoundValidationError())
-
-            # Then, validate user has access to any NEW dashboard relationships
-            self._validate_new_dashboard_access(dashboards, exceptions)
+            else:
+                # Then, validate user has access to any NEW dashboard relationships
+                self._validate_new_dashboard_access(dashboards, exceptions)
             self._properties["dashboards"] = dashboards
 
         if exceptions:
