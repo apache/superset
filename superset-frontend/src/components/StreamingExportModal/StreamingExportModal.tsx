@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable theme-colors/no-literal-colors */
 import { styled, t } from '@superset-ui/core';
 import { Modal, Button, Typography, Progress } from 'antd';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const { Text } = Typography;
 
@@ -56,6 +58,19 @@ const ModalContent = styled.div`
 
 const ProgressSection = styled.div`
   margin: ${({ theme }) => theme.sizeUnit * 6}px 0;
+  position: relative;
+`;
+
+const ProgressWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit * 3}px;
+`;
+
+const SuccessIcon = styled(Icons.CheckCircleFilled)`
+  color: #52c41a;
+  font-size: 24px;
+  flex-shrink: 0;
 `;
 
 const ActionButtons = styled.div`
@@ -76,9 +91,49 @@ const ErrorText = styled(Text)`
   margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const CancelButton = styled(Button)``;
+const CancelButton = styled(Button)`
+  background-color: #f0fff8;
+  color: #1c997a;
+  border-color: #f0fff8;
 
-const DownloadButton = styled(Button)``;
+  &:hover {
+    background-color: #f0fff8;
+    color: #1c997a;
+    border-color: #1c997a;
+  }
+
+  &:focus {
+    background-color: #f0fff8;
+    color: #1c997a;
+    border-color: #1c997a;
+  }
+`;
+
+const DownloadButton = styled(Button)`
+  &.ant-btn-primary {
+    background-color: #2ec196;
+    border-color: #2ec196;
+    color: #ffffff;
+
+    &:hover:not(:disabled) {
+      background-color: #26a880;
+      border-color: #26a880;
+      color: #ffffff;
+    }
+
+    &:focus:not(:disabled) {
+      background-color: #2ec196;
+      border-color: #2ec196;
+      color: #ffffff;
+    }
+
+    &:disabled {
+      background-color: #f2f2f2;
+      border-color: #f2f2f2;
+      color: #b5b5b5;
+    }
+  }
+`;
 
 const StreamingExportModal = ({
   visible,
@@ -155,7 +210,15 @@ const StreamingExportModal = ({
     content = (
       <ModalContent>
         <ProgressSection>
-          <Progress percent={100} status="success" showInfo={false} />
+          <ProgressWrapper>
+            <Progress
+              percent={100}
+              status="success"
+              showInfo={false}
+              style={{ flex: 1 }}
+            />
+            <SuccessIcon />
+          </ProgressWrapper>
           <ProgressText>
             {t('Export successful: %s', filename || 'export.csv')}
           </ProgressText>
@@ -178,7 +241,8 @@ const StreamingExportModal = ({
         <ProgressSection>
           <Progress
             percent={getProgressPercentage()}
-            status="active"
+            status="normal"
+            strokeColor="#52c41a"
             showInfo
             format={percent => `${Math.round(percent || 0)}%`}
           />
@@ -206,6 +270,7 @@ const StreamingExportModal = ({
       footer={null}
       width={600}
       maskClosable={false}
+      centered
     >
       {content}
     </Modal>
