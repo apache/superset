@@ -421,18 +421,15 @@ const Chart = props => {
       // Handle streaming CSV exports based on row threshold
       const shouldUseStreaming =
         format === 'csv' && !isPivot && actualRowCount >= streamingThreshold;
-
-      // Generate filename for streaming exports
       let filename;
       if (shouldUseStreaming) {
-        const timestamp = new Date()
-          .toISOString()
-          .slice(0, 19)
-          .replace(/[-:]/g, '')
-          .replace('T', '_');
-        const chartName = formData.slice_name || formData.viz_type || 'chart';
+        const now = new Date();
+        const date = now.toISOString().slice(0, 10);
+        const time = now.toISOString().slice(11, 19).replace(/:/g, '');
+        const timestamp = `_${date}_${time}`;
+        const chartName = slice.slice_name || formData.viz_type || 'chart';
         const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
-        filename = `superset_${safeChartName}_${timestamp}.csv`;
+        filename = `${safeChartName}${timestamp}.csv`;
       }
 
       exportChart({
