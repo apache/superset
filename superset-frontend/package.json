@@ -288,7 +288,6 @@
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
     "eslint": "^8.56.0",
-    "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-import-resolver-typescript": "^4.4.4",
