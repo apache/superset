@@ -276,21 +276,28 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       orderedColumns = orderedCols;
       orderedMetrics = orderedMets;
 
-      // TODO: Mixed column+metric ordering for CSV export
-      // Currently columns and metrics are reordered separately, but the backend
-      // query engine always returns columns before metrics in the result.
-      // To support arbitrary mixing (e.g., metric, column, metric), we need to:
-      // 1. Add backend post-processing to reorder the dataframe columns, OR
-      // 2. Reorder the data on the frontend before CSV conversion
-      // For now, columns will be in user order, then metrics in user order.
+      // Mixed column+metric ordering for CSV export is handled by:
+      // 1. Frontend: Pass column_order in extras (done here)
+      // 2. Backend: Reorder dataframe columns in assign_column_label() based on column_order
+      // This enables arbitrary mixing (e.g., metric, column, metric) in exports.
     }
 
     let queryObject = {
       ...baseQueryObject,
       columns: orderedColumns,
-      extras,
+      extras: {
+        ...extras,
+        // Flag to indicate AG Grid chart - enables metric column filtering
+        is_ag_grid_chart: true,
+        // Pass column order for CSV/Excel exports to enable mixed column+metric ordering
+        ...(isDownloadQuery &&
+        ownState.columnOrder &&
+        Array.isArray(ownState.columnOrder)
+          ? { column_order: ownState.columnOrder }
+          : {}),
+      },
       orderby:
-        formData.server_pagination && sortByFromOwnState
+        (formData.server_pagination || isDownloadQuery) && sortByFromOwnState
           ? sortByFromOwnState
           : orderby,
       metrics: orderedMetrics,
@@ -360,16 +367,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     // Apply AG Grid filters for CSV/Excel exports (from chart state)
-    // These are converted to standard Superset filter format in Chart.jsx
+    // Convert from adhoc filter format (subject, operator, comparator)
+    // to backend query filter format (col, op, val)
     if (
       isDownloadQuery &&
       Array.isArray(ownState.agGridFilters) &&
       ownState.agGridFilters.length > 0
     ) {
       const agGridQueryFilters = ownState.agGridFilters.map((filter: any) => ({
-        col: filter.subject,
-        op: filter.operator,
-        val: filter.comparator,
+        col: filter.subject || filter.col,
+        op: filter.operator || filter.op,
+        val: filter.comparator !== undefined ? filter.comparator : filter.val,
       }));
 
       queryObject = {

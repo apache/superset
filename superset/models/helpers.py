@@ -2001,8 +2001,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
 
-        where_clause_and = []
-        having_clause_and = []
+        where_clause_and: list[ColumnElement] = []
+        having_clause_and: list[ColumnElement] = []
 
         for flt in filter:  # type: ignore
             if not all(flt.get(s) for s in ["col", "op"]):
@@ -2013,6 +2013,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             op = utils.FilterOperator(flt["op"].upper())
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
+            is_metric_filter = (
+                False  # Track if this is a filter on a metric (needs HAVING clause)
+            )
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
@@ -2023,12 +2026,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
             else:
+                # Check if it's a regular column first
                 col_obj = columns_by_name.get(cast(str, flt_col))
+                # If not found in columns, check if it's a metric
+                # This supports AG Grid table filters on metric columns
+                if (
+                    col_obj is None
+                    and extras.get("is_ag_grid_chart")
+                    and isinstance(flt_col, str)
+                    and flt_col in metrics_by_name
+                ):
+                    # Convert metric to SQLA column expression
+                    sqla_col = metrics_by_name[flt_col].get_sqla_col(
+                        template_processor=template_processor
+                    )
+                    is_metric_filter = True
             filter_grain = flt.get("grain")
 
             if get_column_name(flt_col) in removed_filters:
                 # Skip generating SQLA filter when the jinja template handles it.
                 continue
+
+            # Determine which clause list to use: HAVING for metrics, WHERE for columns
+            # Metric filters use HAVING clause because they involve aggregate functions
+            target_clause_list = (
+                having_clause_and if is_metric_filter else where_clause_and
+            )
 
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:
@@ -2087,7 +2110,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _(bus_resp["error_message"])
                         )
 
-                    where_clause_and.append(
+                    target_clause_list.append(
                         ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
                             sqla_col, op, bus_resp["values"]
                         )
@@ -2110,20 +2133,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
-                    where_clause_and.append(cond)
+                    target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
                     utils.FilterOperator.IS_NOT_NULL,
                 }:
-                    where_clause_and.append(
+                    target_clause_list.append(
                         db_engine_spec.handle_null_filter(sqla_col, op)
                     )
                 elif op == utils.FilterOperator.IS_TRUE:
-                    where_clause_and.append(
+                    target_clause_list.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, True)
                     )
                 elif op == utils.FilterOperator.IS_FALSE:
-                    where_clause_and.append(
+                    target_clause_list.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, False)
                     )
                 else:
@@ -2149,7 +2172,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.GREATER_THAN_OR_EQUALS,
                         utils.FilterOperator.LESS_THAN_OR_EQUALS,
                     }:
-                        where_clause_and.append(
+                        target_clause_list.append(
                             db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
                         )
                     elif op in {
@@ -2160,14 +2183,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.LIKE:
-                            where_clause_and.append(sqla_col.like(eq))
+                            target_clause_list.append(sqla_col.like(eq))
                         else:
-                            where_clause_and.append(sqla_col.ilike(eq))
+                            target_clause_list.append(sqla_col.ilike(eq))
                     elif op in {utils.FilterOperator.NOT_LIKE}:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        where_clause_and.append(sqla_col.not_like(eq))
+                        target_clause_list.append(sqla_col.not_like(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
@@ -2178,7 +2201,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_shift=time_shift,
                             extras=extras,
                         )
-                        where_clause_and.append(
+                        target_clause_list.append(
                             self.get_time_filter(
                                 time_col=col_obj,
                                 start_dttm=_since,
@@ -2192,6 +2215,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
+            else:
+                # col_obj is None and sqla_col is None - column not found!
+                # Silently skip - this can happen for removed columns or invalid filters
+                pass
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -2219,6 +2246,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
+
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:

@@ -1629,6 +1629,23 @@ class SqlaTable(
                 if len(df.columns) > len(labels_expected):
                     df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
+
+                # Reorder columns for AG Grid charts based on user's column order
+                extras = query_obj.get("extras", {})
+                if extras.get("is_ag_grid_chart"):
+                    # Check if we have column order from AG Grid state
+                    column_order = extras.get("column_order")
+                    if column_order and isinstance(column_order, list):
+                        # Only reorder columns that exist in the dataframe
+                        existing_cols = [
+                            col for col in column_order if col in df.columns
+                        ]
+                        # Add any columns not in the order list at the end
+                        remaining_cols = [
+                            col for col in df.columns if col not in existing_cols
+                        ]
+                        final_order = existing_cols + remaining_cols
+                        df = df[final_order]
             return df
 
         try:
