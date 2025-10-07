@@ -24,13 +24,63 @@ interface UseStreamingExportOptions {
   onError?: (error: string) => void;
 }
 
+interface StreamingExportPayload {
+  [key: string]: unknown;
+}
+
 interface StreamingExportParams {
   url: string;
-  payload: any;
+  payload: StreamingExportPayload;
   filename?: string;
   exportType: 'csv' | 'xlsx';
   expectedRows?: number;
 }
+
+const NEWLINE_BYTE = 10; // '\n' character code
+
+const createFetchRequest = (
+  url: string,
+  payload: StreamingExportPayload,
+  filename: string,
+  exportType: string,
+  expectedRows: number | undefined,
+  signal: AbortSignal,
+): RequestInit => ({
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  },
+  body: new URLSearchParams({
+    form_data: JSON.stringify(payload),
+    filename,
+    expected_rows: expectedRows?.toString() || '',
+  }),
+  signal,
+  credentials: 'same-origin',
+});
+
+const countNewlines = (value: Uint8Array): number =>
+  value.filter(byte => byte === NEWLINE_BYTE).length;
+
+const createBlob = (
+  chunks: Uint8Array[],
+  receivedLength: number,
+  exportType: string,
+): Blob => {
+  const completeData = new Uint8Array(receivedLength);
+  let position = 0;
+  for (const chunk of chunks) {
+    completeData.set(chunk, position);
+    position += chunk.length;
+  }
+
+  const mimeType =
+    exportType === 'csv'
+      ? 'text/csv;charset=utf-8'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  return new Blob([completeData], { type: mimeType });
+};
 
 export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
   const [progress, setProgress] = useState<StreamingProgress>({
@@ -74,19 +124,20 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
       });
 
       try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            form_data: JSON.stringify(payload),
-            filename: filename || `export.${exportType}`,
-            expected_rows: expectedRows?.toString() || '',
-          }),
-          signal: abortControllerRef.current.signal,
-          credentials: 'same-origin',
-        });
+        const defaultFilename = `export.${exportType}`;
+        const finalFilename = filename || defaultFilename;
+
+        const response = await fetch(
+          url,
+          createFetchRequest(
+            url,
+            payload,
+            finalFilename,
+            exportType,
+            expectedRows,
+            abortControllerRef.current.signal,
+          ),
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -102,7 +153,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
         let rowsProcessed = 0;
-        const NEWLINE_BYTE = 10; // '\n' character code
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -118,14 +168,10 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           chunks.push(value);
           receivedLength += value.length;
 
-          // Count newlines directly in binary (faster than decoding + regex)
-          let newlineCount = 0;
-          for (let i = 0; i < value.length; i += 1) {
-            if (value[i] === NEWLINE_BYTE) {
-              newlineCount += 1;
-            }
-          }
-          rowsProcessed += newlineCount;
+          // Count newlines using filter (more efficient than loop)
+          // Note: This counts all newlines, including those within quoted CSV fields.
+          // For an exact row count, server should send row count in response headers.
+          rowsProcessed += countNewlines(value);
 
           // Update progress based on rows processed
           updateProgress({
@@ -136,28 +182,16 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           });
         }
 
-        const completeData = new Uint8Array(receivedLength);
-        let position = 0;
-        for (const chunk of chunks) {
-          completeData.set(chunk, position);
-          position += chunk.length;
-        }
-
-        const mimeType =
-          exportType === 'csv'
-            ? 'text/csv;charset=utf-8'
-            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-        const blob = new Blob([completeData], { type: mimeType });
+        const blob = createBlob(chunks, receivedLength, exportType);
         const downloadUrl = URL.createObjectURL(blob);
 
         updateProgress({
           status: ExportStatus.COMPLETED,
           downloadUrl,
-          filename: filename || `export.${exportType}`,
+          filename: finalFilename,
         });
 
-        options.onComplete?.(downloadUrl, filename || `export.${exportType}`);
+        options.onComplete?.(downloadUrl, finalFilename);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error occurred';

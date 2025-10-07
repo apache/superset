@@ -18,6 +18,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import logging
 import time
 from typing import Callable, Generator, TYPE_CHECKING
@@ -103,15 +105,21 @@ class StreamingCSVExportCommand(BaseCommand):
 
                                 columns = list(result_proxy.keys())
 
-                                # Yield CSV header
-                                header_row = (
-                                    ",".join(f'"{col}"' for col in columns) + "\n"
+                                # Use StringIO buffer with csv.writer for proper escaping
+                                buffer = io.StringIO()
+                                csv_writer = csv.writer(
+                                    buffer, quoting=csv.QUOTE_MINIMAL
                                 )
-                                total_bytes += len(header_row.encode("utf-8"))
-                                yield header_row
+
+                                # Write CSV header
+                                csv_writer.writerow(columns)
+                                header_data = buffer.getvalue()
+                                total_bytes += len(header_data.encode("utf-8"))
+                                yield header_data
+                                buffer.seek(0)
+                                buffer.truncate()
 
                                 row_count = 0
-                                buffer = []
                                 buffer_size = 0
                                 flush_threshold = 65536  # 64KB
 
@@ -121,26 +129,27 @@ class StreamingCSVExportCommand(BaseCommand):
                                         break
 
                                     for row in rows:
-                                        csv_row = ",".join(
-                                            f'"{str(cell) if cell is not None else ""}"'
-                                            for cell in row
-                                        )
-                                        csv_line = csv_row + "\n"
-                                        row_bytes = len(csv_line.encode("utf-8"))
-                                        total_bytes += row_bytes
+                                        csv_writer.writerow(row)
                                         row_count += 1
 
-                                        buffer.append(csv_line)
-                                        buffer_size += row_bytes
-
-                                        if buffer_size >= flush_threshold:
-                                            yield "".join(buffer)
-                                            buffer = []
+                                        # Check buffer size and flush if needed
+                                        current_size = buffer.tell()
+                                        if current_size >= flush_threshold:
+                                            data = buffer.getvalue()
+                                            data_bytes = len(data.encode("utf-8"))
+                                            total_bytes += data_bytes
+                                            buffer_size = data_bytes
+                                            yield data
+                                            buffer.seek(0)
+                                            buffer.truncate()
                                             buffer_size = 0
+                                            time.sleep(0.125)  # Testing: delay between chunks
 
                                 # Flush remaining buffer
-                                if buffer:
-                                    yield "".join(buffer)
+                                remaining_data = buffer.getvalue()
+                                if remaining_data:
+                                    total_bytes += len(remaining_data.encode("utf-8"))
+                                    yield remaining_data
 
                                 # Log completion
                                 total_time = time.time() - start_time

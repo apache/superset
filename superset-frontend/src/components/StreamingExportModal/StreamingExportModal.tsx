@@ -48,7 +48,6 @@ interface StreamingExportModalProps {
   onCancel: () => void;
   onRetry?: () => void;
   progress: StreamingProgress;
-  exportType: 'csv' | 'xlsx';
 }
 
 const ModalContent = styled.div`
@@ -135,13 +134,189 @@ const DownloadButton = styled(Button)`
   }
 `;
 
+interface ModalStateContentProps {
+  status: ExportStatus;
+  progress: StreamingProgress;
+  onCancel: () => void;
+  onRetry?: () => void;
+  onDownload: () => void;
+  getProgressPercentage: () => number;
+}
+
+const ErrorContent = ({
+  error,
+  onCancel,
+  onRetry,
+}: {
+  error?: string;
+  onCancel: () => void;
+  onRetry?: () => void;
+}) => (
+  <ModalContent>
+    <ProgressSection>
+      <Progress percent={0} status="exception" showInfo={false} />
+      <ErrorText type="danger">{error || t('Export failed')}</ErrorText>
+    </ProgressSection>
+    <ActionButtons>
+      <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
+      {onRetry && (
+        <DownloadButton type="primary" onClick={onRetry}>
+          {t('Retry')}
+        </DownloadButton>
+      )}
+    </ActionButtons>
+  </ModalContent>
+);
+
+const CancelledContent = ({
+  getProgressPercentage,
+  onCancel,
+  onRetry,
+}: {
+  getProgressPercentage: () => number;
+  onCancel: () => void;
+  onRetry?: () => void;
+}) => (
+  <ModalContent>
+    <ProgressSection>
+      <Progress
+        percent={getProgressPercentage()}
+        status="exception"
+        showInfo={false}
+      />
+      <ProgressText>{t('Export cancelled')}</ProgressText>
+    </ProgressSection>
+    <ActionButtons>
+      <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
+      {onRetry && (
+        <DownloadButton type="primary" onClick={onRetry}>
+          {t('Retry')}
+        </DownloadButton>
+      )}
+    </ActionButtons>
+  </ModalContent>
+);
+
+const CompletedContent = ({
+  filename,
+  downloadUrl,
+  onCancel,
+  onDownload,
+}: {
+  filename?: string;
+  downloadUrl?: string;
+  onCancel: () => void;
+  onDownload: () => void;
+}) => (
+  <ModalContent>
+    <ProgressSection>
+      <ProgressWrapper>
+        <Progress
+          percent={100}
+          status="success"
+          showInfo={false}
+          style={{ flex: 1 }}
+        />
+        <SuccessIcon />
+      </ProgressWrapper>
+      <ProgressText>
+        {t('Export successful: %s', filename || 'export')}
+      </ProgressText>
+    </ProgressSection>
+    <ActionButtons>
+      <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
+      <DownloadButton
+        type="primary"
+        onClick={onDownload}
+        disabled={!downloadUrl}
+      >
+        {t('Download')}
+      </DownloadButton>
+    </ActionButtons>
+  </ModalContent>
+);
+
+const StreamingContent = ({
+  filename,
+  getProgressPercentage,
+  onCancel,
+}: {
+  filename?: string;
+  getProgressPercentage: () => number;
+  onCancel: () => void;
+}) => (
+  <ModalContent>
+    <ProgressSection>
+      <Progress
+        percent={getProgressPercentage()}
+        status="normal"
+        strokeColor="#52c41a"
+        showInfo
+        format={percent => `${Math.round(percent || 0)}%`}
+      />
+      <ProgressText>
+        {filename
+          ? t('Processing export for %s', filename)
+          : t('Processing export...')}
+      </ProgressText>
+    </ProgressSection>
+    <ActionButtons>
+      <CancelButton onClick={onCancel}>{t('Cancel')}</CancelButton>
+      <DownloadButton type="primary" disabled>
+        {t('Download')}
+      </DownloadButton>
+    </ActionButtons>
+  </ModalContent>
+);
+
+const ModalStateContent = ({
+  status,
+  progress,
+  onCancel,
+  onRetry,
+  onDownload,
+  getProgressPercentage,
+}: ModalStateContentProps) => {
+  const { downloadUrl, filename, error } = progress;
+
+  switch (status) {
+    case ExportStatus.ERROR:
+      return <ErrorContent error={error} onCancel={onCancel} onRetry={onRetry} />;
+    case ExportStatus.CANCELLED:
+      return (
+        <CancelledContent
+          getProgressPercentage={getProgressPercentage}
+          onCancel={onCancel}
+          onRetry={onRetry}
+        />
+      );
+    case ExportStatus.COMPLETED:
+      return (
+        <CompletedContent
+          filename={filename}
+          downloadUrl={downloadUrl}
+          onCancel={onCancel}
+          onDownload={onDownload}
+        />
+      );
+    default:
+      return (
+        <StreamingContent
+          filename={filename}
+          getProgressPercentage={getProgressPercentage}
+          onCancel={onCancel}
+        />
+      );
+  }
+};
+
 const StreamingExportModal = ({
   visible,
   onCancel,
   onRetry,
   progress,
 }: StreamingExportModalProps) => {
-  const { status, downloadUrl, filename, error } = progress;
+  const { status, downloadUrl, filename } = progress;
 
   const getProgressPercentage = (): number => {
     if (status === ExportStatus.COMPLETED) return 100;
@@ -156,111 +331,16 @@ const StreamingExportModal = ({
   };
 
   const handleDownload = () => {
-    if (downloadUrl) {
+    if (downloadUrl && filename) {
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = filename || 'export.csv';
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       onCancel();
     }
   };
-
-  let content;
-  if (status === ExportStatus.ERROR) {
-    content = (
-      <ModalContent>
-        <ProgressSection>
-          <Progress percent={0} status="exception" showInfo={false} />
-          <ErrorText type="danger">{error || t('Export failed')}</ErrorText>
-        </ProgressSection>
-        <ActionButtons>
-          <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
-          {onRetry && (
-            <DownloadButton type="primary" onClick={onRetry}>
-              {t('Retry')}
-            </DownloadButton>
-          )}
-        </ActionButtons>
-      </ModalContent>
-    );
-  } else if (status === ExportStatus.CANCELLED) {
-    content = (
-      <ModalContent>
-        <ProgressSection>
-          <Progress
-            percent={getProgressPercentage()}
-            status="exception"
-            showInfo={false}
-          />
-          <ProgressText>{t('Export cancelled')}</ProgressText>
-        </ProgressSection>
-        <ActionButtons>
-          <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
-          {onRetry && (
-            <DownloadButton type="primary" onClick={onRetry}>
-              {t('Retry')}
-            </DownloadButton>
-          )}
-        </ActionButtons>
-      </ModalContent>
-    );
-  } else if (status === ExportStatus.COMPLETED) {
-    content = (
-      <ModalContent>
-        <ProgressSection>
-          <ProgressWrapper>
-            <Progress
-              percent={100}
-              status="success"
-              showInfo={false}
-              style={{ flex: 1 }}
-            />
-            <SuccessIcon />
-          </ProgressWrapper>
-          <ProgressText>
-            {t('Export successful: %s', filename || 'export.csv')}
-          </ProgressText>
-        </ProgressSection>
-        <ActionButtons>
-          <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
-          <DownloadButton
-            type="primary"
-            onClick={handleDownload}
-            disabled={!downloadUrl}
-          >
-            {t('Download')}
-          </DownloadButton>
-        </ActionButtons>
-      </ModalContent>
-    );
-  } else {
-    content = (
-      <ModalContent>
-        <ProgressSection>
-          <Progress
-            percent={getProgressPercentage()}
-            status="normal"
-            strokeColor="#52c41a"
-            showInfo
-            format={percent => `${Math.round(percent || 0)}%`}
-          />
-          <ProgressText>
-            {filename
-              ? t('Processing export for %s', filename)
-              : t('Processing export...')}
-          </ProgressText>
-        </ProgressSection>
-        <ActionButtons>
-          <CancelButton onClick={onCancel}>{t('Cancel')}</CancelButton>
-          <DownloadButton type="primary" disabled>
-            {t('Download')}
-          </DownloadButton>
-        </ActionButtons>
-      </ModalContent>
-    );
-  }
 
   return (
     <Modal
@@ -272,7 +352,14 @@ const StreamingExportModal = ({
       maskClosable={false}
       centered
     >
-      {content}
+      <ModalStateContent
+        status={status}
+        progress={progress}
+        onCancel={onCancel}
+        onRetry={onRetry}
+        onDownload={handleDownload}
+        getProgressPercentage={getProgressPercentage}
+      />
     </Modal>
   );
 };
