@@ -20,10 +20,10 @@ import userEvent from '@testing-library/user-event';
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { themeObject } from '../ui/theme';
+import { themeObject } from './theme';
 
 // Define the wrapper component outside
-const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
+const Providers = ({ children }: { children: React.ReactNode }) => (
   <themeObject.SupersetThemeProvider>
     {children}
   </themeObject.SupersetThemeProvider>
@@ -33,7 +33,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
 const customRender = (
   ui: ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>,
-) => render(ui, { wrapper: AllTheProviders, ...options });
+) => render(ui, { wrapper: Providers, ...options });
 
 export {
   createEvent,

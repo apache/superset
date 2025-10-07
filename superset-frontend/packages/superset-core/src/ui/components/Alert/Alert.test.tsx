@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import React from 'react';
-import { Alert, render } from '@apache-superset/core';
+import { render } from '@apache-superset/core/src/ui/testing';
+import { Alert } from '.';
 
 test('renders Alert with default props', async () => {
   const { container } = render(<Alert />);

@@ -20,9 +20,9 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
-import { supersetTheme } from '../../../theme';
 
 // Mock the MatrixifyGridGenerator
 jest.mock('./MatrixifyGridGenerator', () => ({

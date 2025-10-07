@@ -19,9 +19,9 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core';
+import * as themeUtils from '@apache-superset/core/src/ui/theme/utils/themeUtils';
 import { ThemedAgGridReact } from './index';
-import * as themeUtils from '../../theme/utils/themeUtils';
 
 // Mock useThemeMode hook
 jest.mock('../../theme/utils/themeUtils', () => ({
