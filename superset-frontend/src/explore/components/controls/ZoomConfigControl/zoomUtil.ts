@@ -29,6 +29,7 @@ import {
   ZoomConfigsExp,
 } from './types';
 
+
 /**
  * Compute the position for a drag graphic.
  *
@@ -95,10 +96,8 @@ export const createDragGraphicOption = ({
     y: position[1],
     invisible: false,
     style: {
-      // eslint-disable-next-line theme-colors/no-literal-colors
-      fill: '#ffffff',
-      // eslint-disable-next-line theme-colors/no-literal-colors
-      stroke: '#aaa',
+      fill: 'white',
+      stroke: 'gray',
     },
     cursor: 'ew-resize',
     draggable: 'horizontal',

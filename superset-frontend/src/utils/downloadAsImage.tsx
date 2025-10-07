@@ -24,6 +24,7 @@ import { SupersetTheme, t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
+const TRANSPARENT_RGBA = 'transparent';
 
 /**
  * generate a consistent file stem from a description and date
@@ -82,7 +83,7 @@ const CRITICAL_STYLE_PROPERTIES = new Set([
 
 const styleCache = new WeakMap<Element, CSSStyleDeclaration>();
 
-const copyAllComputedStyles = (original: Element, clone: Element) => {
+const copyAllComputedStyles = (original: Element, clone: Element, theme?: SupersetTheme) => {
   const queue: Array<[Element, Element]> = [[original, clone]];
   const processed = new WeakSet<Element>();
 
@@ -110,8 +111,8 @@ const copyAllComputedStyles = (original: Element, clone: Element) => {
 
     if (origNode.textContent?.trim()) {
       const { color } = computed;
-      if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') {
-        (cloneNode as HTMLElement).style.color = '#000';
+      if (!color || color === 'transparent' || color === TRANSPARENT_RGBA) {
+        (cloneNode as HTMLElement).style.color = theme?.colorTextBase || 'black';
       }
       (cloneNode as HTMLElement).style.visibility = 'visible';
       if (computed.display === 'none') {
@@ -187,7 +188,7 @@ const processCloneForVisibility = (clone: HTMLElement) => {
     if (element.textContent?.trim()) {
       const computed = window.getComputedStyle(element);
       if (computed.color === 'transparent') {
-        element.style.color = '#000';
+        element.style.color = 'black';
       }
       element.style.visibility = 'visible';
       if (computed.display === 'none') {
@@ -224,9 +225,10 @@ const preserveCanvasContent = (original: Element, clone: Element) => {
 
 const createEnhancedClone = (
   originalElement: Element,
+  theme?: SupersetTheme,
 ): { clone: HTMLElement; cleanup: () => void } => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
-  copyAllComputedStyles(originalElement, clone);
+  copyAllComputedStyles(originalElement, clone, theme);
   preserveCanvasContent(originalElement, clone);
 
   const tempContainer = document.createElement('div');
@@ -274,7 +276,7 @@ export default function downloadAsImageOptimized(
     let cleanup: (() => void) | null = null;
 
     try {
-      const { clone, cleanup: cleanupFn } = createEnhancedClone(elementToPrint);
+      const { clone, cleanup: cleanupFn } = createEnhancedClone(elementToPrint, theme);
       cleanup = cleanupFn;
 
       const filter = (node: Element) =>

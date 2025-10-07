@@ -17,4 +17,12 @@
  * under the License.
  */
 
-export const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
+import { SupersetTheme } from '@superset-ui/core';
+
+export const getAccessibleColorBounds = (theme: SupersetTheme): string[] => [
+  theme.colorError,    // Red variant for negative/danger
+  theme.colorPrimary,  // Blue variant for positive/primary
+];
+
+// Default fallback for backward compatibility
+export const ACCESSIBLE_COLOR_BOUNDS = ['crimson', 'steelblue'];

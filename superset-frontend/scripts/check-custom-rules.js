@@ -38,6 +38,46 @@ let errorCount = 0;
 let warningCount = 0;
 
 /**
+ * Check if a node has an eslint-disable comment
+ */
+function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
+  const { node, parent } = path;
+
+  // Check leadingComments on the node itself
+  if (node.leadingComments) {
+    const hasDisable = node.leadingComments.some(comment =>
+      comment.value.includes('eslint-disable-next-line') &&
+      comment.value.includes(ruleName)
+    );
+    if (hasDisable) return true;
+  }
+
+  // Check leadingComments on parent nodes (for expressions in assignments, etc.)
+  if (parent && parent.leadingComments) {
+    const hasDisable = parent.leadingComments.some(comment =>
+      comment.value.includes('eslint-disable-next-line') &&
+      comment.value.includes(ruleName)
+    );
+    if (hasDisable) return true;
+  }
+
+  // Check if parent is a statement with leading comments
+  let current = path;
+  while (current.parent) {
+    current = current.parent;
+    if (current.node && current.node.leadingComments) {
+      const hasDisable = current.node.leadingComments.some(comment =>
+        comment.value.includes('eslint-disable-next-line') &&
+        comment.value.includes(ruleName)
+      );
+      if (hasDisable) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Check for literal color values (hex, rgb, rgba)
  */
 function checkNoLiteralColors(ast, filepath) {
@@ -51,6 +91,11 @@ function checkNoLiteralColors(ast, filepath) {
     StringLiteral(path) {
       const { value } = path.node;
       if (colorPatterns.some(pattern => pattern.test(value))) {
+        // Check if this line has an eslint-disable comment
+        if (hasEslintDisable(path)) {
+          return; // Skip this violation
+        }
+
         // eslint-disable-next-line no-console
         console.error(`${RED}✖${RESET} ${filepath}: Literal color "${value}" found. Use theme colors instead.`);
         errorCount += 1;
@@ -62,6 +107,11 @@ function checkNoLiteralColors(ast, filepath) {
         const value = quasi.value.raw;
         // Look for CSS color properties
         if (value.match(/(?:color|background|border-color|outline-color):\s*(#[0-9A-Fa-f]{3,6}|rgb|rgba)/)) {
+          // Check if this line has an eslint-disable comment
+          if (hasEslintDisable(path)) {
+            return; // Skip this violation
+          }
+
           // eslint-disable-next-line no-console
           console.error(`${RED}✖${RESET} ${filepath}: Literal color in styled component. Use theme colors instead.`);
           errorCount += 1;
@@ -130,6 +180,7 @@ function processFile(filepath) {
     const ast = parser.parse(code, {
       sourceType: 'module',
       plugins: ['jsx', 'typescript', 'decorators-legacy'],
+      attachComments: true,
     });
 
     // Run all checks
