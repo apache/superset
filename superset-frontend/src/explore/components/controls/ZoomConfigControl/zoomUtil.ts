@@ -77,6 +77,8 @@ export const createDragGraphicOption = ({
   barWidth,
   chart,
   add,
+  fillColor = 'white',
+  strokeColor = 'gray',
 }: CreateDragGraphicOption) => {
   const position = getDragGraphicPosition({
     chart,
@@ -96,8 +98,8 @@ export const createDragGraphicOption = ({
     y: position[1],
     invisible: false,
     style: {
-      fill: 'white',
-      stroke: 'gray',
+      fill: fillColor,
+      stroke: strokeColor,
     },
     cursor: 'ew-resize',
     draggable: 'horizontal',
@@ -128,6 +130,8 @@ export const createDragGraphicOptions = ({
   onHeightDrag,
   barWidth,
   chart,
+  fillColor,
+  strokeColor,
 }: CreateDragGraphicOptions) => {
   const graphics: any[] = [];
   data.forEach((dataItem: number[], dataIndex: number) => {
@@ -139,6 +143,8 @@ export const createDragGraphicOptions = ({
       dataItemIndex: 0,
       onDrag: onWidthDrag,
       add: false,
+      fillColor,
+      strokeColor,
     });
     graphics.push(widthGraphic);
     const heightGraphic = createDragGraphicOption({
@@ -149,6 +155,8 @@ export const createDragGraphicOptions = ({
       dataItemIndex: 1,
       onDrag: onHeightDrag,
       add: true,
+      fillColor,
+      strokeColor,
     });
     graphics.push(heightGraphic);
   });
