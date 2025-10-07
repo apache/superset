@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 from flask_appbuilder import Model
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
@@ -212,6 +212,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
     sql: str | None = None
     owners: list[User]
+    roles: list[Role]
     update_from_object_fields: list[str]
 
     extra_import_fields = ["is_managed_externally", "external_url"]
@@ -230,6 +231,16 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 "id": o.id,
             }
             for o in self.owners
+        ]
+
+    @property
+    def roles_data(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": role.name,
+                "id": role.id,
+            }
+            for role in self.roles
         ]
 
     @property
@@ -655,6 +666,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             setattr(self, attr, obj.get(attr))
 
         self.owners = obj.get("owners", [])
+        self.roles = obj.get("roles", [])
 
         # Syncing metrics
         metrics = (
@@ -1136,6 +1148,14 @@ sqlatable_user = DBTable(
     Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
 )
 
+sqlatable_roles = DBTable(
+    "sqlatable_roles",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("role_id", Integer, ForeignKey("ab_role.id", ondelete="CASCADE")),
+    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
+)
+
 
 class SqlaTable(
     Model,
@@ -1162,6 +1182,7 @@ class SqlaTable(
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
+    role_class = security_manager.role_model
 
     __tablename__ = "tables"
 
@@ -1181,6 +1202,7 @@ class SqlaTable(
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
+    roles = relationship(role_class, secondary=sqlatable_roles, backref="tables")
     database: Database = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
@@ -1428,6 +1450,7 @@ class SqlaTable(
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
             data_["owners"] = self.owners_data
+            data_["roles"] = self.roles_data
             data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
         return data_

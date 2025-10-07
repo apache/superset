@@ -1,0 +1,24 @@
+services:
+  # Postgresql
+  postgresql:
+    image: postgres:15
+    container_name: postgresql
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: superset
+    ports:
+      - "5432:5432"
+
+  # Redis
+  redis:
+    image: redis:7
+    container_name: superset_cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"

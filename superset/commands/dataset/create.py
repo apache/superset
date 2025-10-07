@@ -30,6 +30,7 @@ from superset.commands.dataset.exceptions import (
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
+from superset.commands.utils import populate_roles
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
@@ -51,7 +52,9 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         dataset.fetch_metadata()
         return dataset
 
-    def validate(self) -> None:
+    def validate(  # noqa: C901
+        self,
+    ) -> None:
         exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
         catalog = self._properties.get("catalog")
@@ -59,6 +62,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
+        role_ids: Optional[list[int]] = self._properties.get("roles")
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -98,6 +102,15 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         try:
             owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners
+        except ValidationError as ex:
+            exceptions.append(ex)
+        if exceptions:
+            raise DatasetInvalidError(exceptions=exceptions)
+
+        # Validate roles
+        try:
+            roles = populate_roles(role_ids)
+            self._properties["roles"] = roles
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:

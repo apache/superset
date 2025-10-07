@@ -31,6 +31,7 @@ from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
+from superset.utils.datasets import get_datasets_authorized_for_user_roles
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -122,6 +123,14 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_feature_enabled("DASHBOARD_RBAC"):
             is_rbac_disabled_filter.append(~dashboard_has_roles)
 
+        # Select datasets authorized for this user's roles
+        feature_flagged_filters = []
+        if not is_feature_enabled("DASHBOARD_RBAC") and is_feature_enabled(
+            "DATASET_RBAC"
+        ):
+            roles_based_query = get_datasets_authorized_for_user_roles()
+            feature_flagged_filters.append(SqlaTable.id.in_(roles_based_query))
+
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
@@ -131,9 +140,12 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 and_(
                     Dashboard.published.is_(True),
                     *is_rbac_disabled_filter,
-                    get_dataset_access_filters(
-                        Slice,
-                        security_manager.can_access_all_datasources(),
+                    or_(
+                        get_dataset_access_filters(
+                            Slice,
+                            security_manager.can_access_all_datasources(),
+                        ),
+                        *feature_flagged_filters,
                     ),
                 )
             )

@@ -86,7 +86,11 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.error_handling import handle_api_exception
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import (
+    BaseFilterRelatedRoles,
+    BaseFilterRelatedUsers,
+    FilterRelatedOwners,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +134,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.id",
         "owners.first_name",
         "owners.last_name",
+        "roles.id",
+        "roles.name",
         "catalog",
         "schema",
         "sql",
@@ -168,6 +174,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.id",
         "owners.first_name",
         "owners.last_name",
+        "roles.id",
+        "roles.name",
         "columns.advanced_data_type",
         "columns.changed_on",
         "columns.column_name",
@@ -228,7 +236,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
+    add_columns = [
+        "database",
+        "catalog",
+        "schema",
+        "table_name",
+        "sql",
+        "owners",
+        "roles",
+    ]
     edit_columns = [
         "table_name",
         "sql",
@@ -246,6 +262,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "is_sqllab_view",
         "template_params",
         "owners",
+        "roles",
         "columns",
         "metrics",
         "extra",
@@ -256,6 +273,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
@@ -270,6 +288,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id",
         "database",
         "owners",
+        "roles",
         "catalog",
         "schema",
         "sql",
@@ -277,7 +296,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "created_by",
         "changed_by",
     ]
-    allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
+    allowed_rel_fields = {"database", "owners", "roles", "created_by", "changed_by"}
     allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {

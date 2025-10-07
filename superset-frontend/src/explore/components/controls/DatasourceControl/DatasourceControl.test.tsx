@@ -36,6 +36,7 @@ const mockDatasource = {
   type: 'table',
   columns: [],
   owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
+  roles: [{ name: 'Gamma', id: 1 }],
   sql: 'SELECT * FROM mock_datasource_sql',
 };
 const createProps = (overrides: JsonObject = {}) => ({
@@ -221,6 +222,7 @@ test('Edit dataset should be disabled when user is not admin', async () => {
   // @ts-expect-error
   props.user.roles = {};
   props.datasource.owners = [];
+  props.datasource.roles = [];
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
   );

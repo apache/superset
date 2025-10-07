@@ -39,6 +39,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     DatasetUpdateFailedError,
 )
+from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
@@ -76,9 +77,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         assert self._model
         return DatasetDAO.update(self._model, attributes=self._properties)
 
-    def validate(self) -> None:
+    def validate(  # noqa: C901
+        self,
+    ) -> None:
         exceptions: list[ValidationError] = []
         owner_ids: Optional[list[int]] = self._properties.get("owners")
+        role_ids: Optional[list[int]] = self._properties.get("roles")
 
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
@@ -126,6 +130,15 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
+
+        # Validate roles
+        try:
+            roles = populate_roles(role_ids)
+            self._properties["roles"] = roles
+        except ValidationError as ex:
+            exceptions.append(ex)
+        if exceptions:
+            raise DatasetInvalidError(exceptions=exceptions)
 
         # Validate columns
         if columns := self._properties.get("columns"):

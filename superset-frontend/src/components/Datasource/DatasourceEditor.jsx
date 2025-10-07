@@ -584,6 +584,34 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
+function RolesSelector({ datasource, onChange }) {
+  const loadOptions = useCallback((search = '', page, pageSize) => {
+    const query = rison.encode({ search, page, page_size: pageSize });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/related/roles?q=${query}`,
+    }).then(response => ({
+      data: response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
+      })),
+      totalCount: response.json.count,
+    }));
+  }, []);
+
+  return (
+    <AsyncSelect
+      ariaLabel={t('Select roles')}
+      mode="multiple"
+      name="roles"
+      value={datasource.roles}
+      options={loadOptions}
+      onChange={onChange}
+      header={<FormLabel>{t('Roles')}</FormLabel>}
+      allowClear
+    />
+  );
+}
+
 class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
@@ -593,6 +621,10 @@ class DatasourceEditor extends PureComponent {
         owners: props.datasource.owners.map(owner => ({
           value: owner.value || owner.id,
           label: owner.label || `${owner.first_name} ${owner.last_name}`,
+        })),
+        roles: props.datasource.roles.map(role => ({
+          value: role.value || role.id,
+          label: role.name,
         })),
         metrics: props.datasource.metrics?.map(metric => {
           const {
@@ -871,10 +903,29 @@ class DatasourceEditor extends PureComponent {
             }
           />
         )}
+      </Fieldset>
+    );
+  }
+
+  renderSecurityFieldset() {
+    const { datasource } = this.state;
+    return (
+      <Fieldset
+        title={t('Access')}
+        item={datasource}
+        onChange={this.onDatasourceChange}
+      >
         <OwnersSelector
           datasource={datasource}
           onChange={newOwners => {
             this.onDatasourceChange({ ...datasource, owners: newOwners });
+          }}
+        />
+
+        <RolesSelector
+          datasource={datasource}
+          onChange={newRoles => {
+            this.onDatasourceChange({ ...datasource, roles: newRoles });
           }}
         />
       </Fieldset>
@@ -1445,6 +1496,8 @@ class DatasourceEditor extends PureComponent {
                 <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
               </Col>
               <Col xs={24} md={12}>
+                <FormContainer>{this.renderSecurityFieldset()}</FormContainer>
+                <br />
                 <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
               </Col>
             </Row>

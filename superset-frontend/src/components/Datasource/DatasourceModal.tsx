@@ -178,6 +178,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     owners: datasource.owners.map(
       (o: Record<string, number>) => o.value || o.id,
     ),
+    roles: datasource.roles.map((o: Record<string, number>) => o.value || o.id),
   });
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object

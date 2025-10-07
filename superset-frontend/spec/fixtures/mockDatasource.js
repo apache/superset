@@ -170,6 +170,7 @@ export default {
     main_dttm_col: 'ds',
     name: 'birth_names',
     owners: [{ first_name: 'joe', last_name: 'man', id: 1 }],
+    roles: [{ name: 'Gamma', id: 1 }],
     database: {
       name: 'main',
       backend: 'sqlite',

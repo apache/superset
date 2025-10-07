@@ -20,6 +20,7 @@
 import json
 
 import pytest
+from flask import g
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -28,6 +29,7 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
+from superset.security.guest_token import GuestTokenResourceType
 from superset.security.manager import (
     query_context_modified,
     SupersetSecurityManager,
@@ -86,6 +88,17 @@ def test_raise_for_access_guest_user_ok(
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "is_guest_user", return_value=True)
     mocker.patch.object(sm, "can_access", return_value=True)
+    g.user = sm.get_guest_user_from_token(
+        {
+            "user": {},
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}
+            ],
+            "rls_rules": [],
+            "iat": 0,
+            "exp": 0,
+        }
+    )
 
     query_context = mocker.MagicMock()
     query_context.slice_.id = 42
@@ -116,6 +129,17 @@ def test_raise_for_access_guest_user_ok_subset(
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "is_guest_user", return_value=True)
     mocker.patch.object(sm, "can_access", return_value=True)
+    g.user = sm.get_guest_user_from_token(
+        {
+            "user": {},
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}
+            ],
+            "rls_rules": [],
+            "iat": 0,
+            "exp": 0,
+        }
+    )
 
     query_context = mocker.MagicMock()
     query_context.slice_.id = 42
