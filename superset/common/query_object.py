@@ -193,8 +193,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
+            x if is_str_or_adhoc(x) else x["label"] for x in metrics  # type: ignore
         ]
 
     def _set_post_processing(
@@ -362,13 +361,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _sanitize_sql_expressions(self) -> None:
         """
-        Sanitize SQL expressions in adhoc metrics and orderby to ensure
-        consistent cache keys. This processes SQL expressions before cache key
-        generation, preventing cache mismatches due to later processing during
-        query execution.
+        Sanitize SQL expressions in adhoc metrics and orderby for consistent cache keys.
+
+        This processes SQL expressions before cache key generation, preventing cache
+        mismatches due to later processing during query execution.
         """
         if not self.datasource or not hasattr(
-            self.datasource, "_process_sql_expression"
+            self.datasource,
+            "_process_sql_expression",
         ):
             return
 
@@ -381,7 +381,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self._sanitize_orderby_expressions()
 
     def _sanitize_metrics_expressions(self) -> None:
-        """Process SQL expressions in adhoc metrics."""
+        """
+        Process SQL expressions in adhoc metrics.
+        """
         # datasource is checked in parent method, assert for type checking
         assert self.datasource is not None
 
