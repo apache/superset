@@ -712,14 +712,18 @@ export const testDatabaseConnection = (
   connection: Partial<DatabaseObject>,
   handleErrorMsg: (errorMsg: string) => void,
   addSuccessToast: (arg0: string) => void,
+  onEngineInfo?: (engineInfo: any) => void,
 ) => {
   SupersetClient.post({
     endpoint: 'api/v1/database/test_connection/',
     body: JSON.stringify(connection),
     headers: { 'Content-Type': 'application/json' },
   }).then(
-    () => {
+    (response) => {
       addSuccessToast(t('Connection looks good!'));
+      if (onEngineInfo && response?.json?.engine_information) {
+        onEngineInfo(response.json.engine_information);
+      }
     },
     createErrorHandler((errMsg: Record<string, string[] | string> | string) => {
       handleErrorMsg(t('ERROR: %s', parsedErrorMessage(errMsg)));
