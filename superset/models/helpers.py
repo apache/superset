@@ -1819,11 +1819,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 assert isinstance(metric, dict)
+                # SQL expressions are already processed during QueryObject.validate()
+                # via _sanitize_sql_expressions()
                 metrics_exprs.append(
                     self.adhoc_metric_to_sqla(
                         metric=metric,
                         columns_by_name=columns_by_name,
                         template_processor=template_processor,
+                        processed=True,
                     )
                 )
             elif isinstance(metric, str) and metric in metrics_by_name:
@@ -1855,14 +1858,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
-                if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_orderby_expression(
-                        expression=col["sqlExpression"],
-                        database_id=self.database_id,
-                        engine=self.database.backend,
-                        schema=self.schema,
-                        template_processor=template_processor,
-                    )
+                # SQL expressions are already processed during QueryObject.validate()
+                # via _sanitize_sql_expressions(), so we pass processed=True to skip
+                # re-processing and avoid mutation
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(
