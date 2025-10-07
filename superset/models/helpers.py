@@ -1819,14 +1819,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 assert isinstance(metric, dict)
-                # SQL expressions are already processed during QueryObject.validate()
-                # via _sanitize_sql_expressions()
+                # SQL expressions are sanitized during QueryObject.validate() via
+                # _sanitize_sql_expressions(), but we still process here to handle
+                # Jinja templates. sanitize_clause() is idempotent so re-sanitizing
+                # is safe.
                 metrics_exprs.append(
                     self.adhoc_metric_to_sqla(
                         metric=metric,
                         columns_by_name=columns_by_name,
                         template_processor=template_processor,
-                        processed=True,
                     )
                 )
             elif isinstance(metric, str) and metric in metrics_by_name:
@@ -1858,15 +1859,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
-                # SQL expressions are already processed during QueryObject.validate()
-                # via _sanitize_sql_expressions(), so we pass processed=True to skip
-                # re-processing and avoid mutation
+                # SQL expressions are sanitized during QueryObject.validate() via
+                # _sanitize_sql_expressions(). We still process here to handle
+                # Jinja templates. The removal of the _process_orderby_expression()
+                # call (which mutated the dict) prevents cache key mismatches.
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
-                        processed=True,
+                        template_processor=template_processor,
                     )
                     # use the existing instance, if possible
                     col = metrics_exprs_by_expr.get(str(col), col)
