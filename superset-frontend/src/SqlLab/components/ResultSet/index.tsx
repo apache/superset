@@ -87,6 +87,7 @@ import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { makeUrl } from 'src/utils/pathUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -315,7 +316,7 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    ensureAppRoot(`/api/v1/sqllab/export/${clientId}/`);
+    makeUrl(`/api/v1/sqllab/export/${clientId}/`);
 
   const handleCloseStreamingModal = () => {
     cancelExport();

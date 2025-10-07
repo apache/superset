@@ -72,6 +72,7 @@ import {
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import { makeUrl } from 'src/utils/pathUtils';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -787,7 +788,7 @@ class DatasourceEditor extends PureComponent {
       autorun: true,
       isDataset: true,
     });
-    return `/sqllab/?${queryParams.toString()}`;
+    return makeUrl(`/sqllab/?${queryParams.toString()}`);
   }
 
   openOnSqlLab() {
