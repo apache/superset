@@ -415,13 +415,11 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         of the label to avoid collisions with original column names.
 
         By default, labels are mutated for backward compatibility. To disable this
-        behavior on a per-database basis, set `engine_params.mutate_label_name` to
-        `false` in the database's "extra" JSON configuration:
+        behavior on a per-database basis, set `mutate_label_name` to `false` in
+        the database's "extra" JSON configuration:
 
             {
-                "engine_params": {
-                    "mutate_label_name": false
-                }
+                "mutate_label_name": false
             }
 
         This is useful when your ClickHouse queries refer to their own aliases
@@ -435,8 +433,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if hasattr(g, "database") and g.database:
             try:
                 extra = g.database.get_extra()
-                engine_params = extra.get("engine_params", {})
-                mutate_label = engine_params.get("mutate_label_name", True)
+                mutate_label = extra.get("mutate_label_name", True)
             except Exception:  # pylint: disable=broad-except
                 logger.warning(
                     "Error retrieving mutate_label_name setting. Falling back to "
