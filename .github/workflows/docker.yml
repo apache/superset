@@ -5,6 +5,9 @@ on:
     branches:
       - "master"
       - "[0-9].[0-9]*"
+      - "feat/*"
+      - "fix/*"
+      - "chore/*"
   pull_request:
     branches:
       - "master"
@@ -22,7 +25,7 @@ jobs:
     steps:
       - id: set_matrix
         run: |
-          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev", "lean"]'; else echo '["dev", "lean", "py310", "websocket", "dockerize", "py311"]'; fi)
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "push" ]; then echo '["dev", "lean"]'; else echo '["dev", "lean", "py310", "websocket", "dockerize", "py311"]'; fi)
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
 
@@ -37,9 +40,17 @@ jobs:
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      IMAGE_TAG: mgdis/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
+      DOCKERHUB_REPO: mgdis/superset
 
     steps:
+      - name: "Define Docker Image tag"
+        run: |
+          BRANCH_NAME="${{github.ref_name}}"
+          # Branch name in lowercase
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]')
+          # Replaces forbidden characters (/ . _) with a dash
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's#[^a-z0-9._-]#-#g')
+          echo "IMAGE_TAG=mgdis/superset:$BRANCH_NAME-${{ matrix.build_preset }}" >> $GITHUB_ENV
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -69,6 +80,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_REPO: mgdis/superset
         run: |
           # Single platform builds in pull_request context to speed things up
           if [ "${{ github.event_name }}" = "push" ]; then
