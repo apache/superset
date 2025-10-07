@@ -80,7 +80,6 @@ const propTypes = {
   isInView: PropTypes.bool,
 };
 
-
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
 
@@ -161,7 +160,8 @@ const Chart = props => {
     state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
   );
   const streamingThreshold = useSelector(
-    state => state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD || 100000,
+    state =>
+      state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD || 100000,
   );
   const datasource = useSelector(
     state =>
@@ -191,7 +191,9 @@ const Chart = props => {
         );
       },
       onError: () => {
-        boundActionCreators.addDangerToast(t('Export failed - please try again'));
+        boundActionCreators.addDangerToast(
+          t('Export failed - please try again'),
+        );
       },
     });
   const history = useHistory();
@@ -418,9 +420,7 @@ const Chart = props => {
 
       // Handle streaming CSV exports based on row threshold
       const shouldUseStreaming =
-        format === 'csv' &&
-        !isPivot &&
-        actualRowCount >= streamingThreshold;
+        format === 'csv' && !isPivot && actualRowCount >= streamingThreshold;
 
       // Generate filename for streaming exports
       let filename;

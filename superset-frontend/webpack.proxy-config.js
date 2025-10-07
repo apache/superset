@@ -165,7 +165,8 @@ module.exports = newManifest => {
         if (isHTML(response)) {
           processHTML(proxyResponse, response);
         } else {
-          const isStreaming = proxyResponse.headers['x-superset-streaming'] === 'true';
+          const isStreaming =
+            proxyResponse.headers['x-superset-streaming'] === 'true';
 
           if (isStreaming) {
             proxyResponse.on('data', chunk => {

@@ -45,12 +45,9 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
   const [isExporting, setIsExporting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const updateProgress = useCallback(
-    (updates: Partial<StreamingProgress>) => {
-      setProgress(prev => ({ ...prev, ...updates }));
-    },
-    [],
-  );
+  const updateProgress = useCallback((updates: Partial<StreamingProgress>) => {
+    setProgress(prev => ({ ...prev, ...updates }));
+  }, []);
 
   const startExport = useCallback(
     async ({
@@ -107,62 +104,60 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         let rowsProcessed = 0;
         const NEWLINE_BYTE = 10; // '\n' character code
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          // eslint-disable-next-line no-await-in-loop
+          const { done, value } = await reader.read();
 
-            if (done) break;
+          if (done) break;
 
-            if (abortControllerRef.current?.signal.aborted) {
-              throw new Error('Export cancelled by user');
-            }
-
-            chunks.push(value);
-            receivedLength += value.length;
-
-            // Count newlines directly in binary (faster than decoding + regex)
-            let newlineCount = 0;
-            for (let i = 0; i < value.length; i++) {
-              if (value[i] === NEWLINE_BYTE) {
-                newlineCount++;
-              }
-            }
-            rowsProcessed += newlineCount;
-
-            // Update progress based on rows processed
-            updateProgress({
-              status: ExportStatus.STREAMING,
-              rowsProcessed,
-              totalRows: expectedRows,
-              totalSize: receivedLength,
-            });
+          if (abortControllerRef.current?.signal.aborted) {
+            throw new Error('Export cancelled by user');
           }
 
-          const completeData = new Uint8Array(receivedLength);
-          let position = 0;
-          for (const chunk of chunks) {
-            completeData.set(chunk, position);
-            position += chunk.length;
+          chunks.push(value);
+          receivedLength += value.length;
+
+          // Count newlines directly in binary (faster than decoding + regex)
+          let newlineCount = 0;
+          for (let i = 0; i < value.length; i += 1) {
+            if (value[i] === NEWLINE_BYTE) {
+              newlineCount += 1;
+            }
           }
+          rowsProcessed += newlineCount;
 
-          const mimeType =
-            exportType === 'csv'
-              ? 'text/csv;charset=utf-8'
-              : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-          const blob = new Blob([completeData], { type: mimeType });
-          const downloadUrl = URL.createObjectURL(blob);
-
+          // Update progress based on rows processed
           updateProgress({
-            status: ExportStatus.COMPLETED,
-            downloadUrl,
-            filename: filename || `export.${exportType}`,
+            status: ExportStatus.STREAMING,
+            rowsProcessed,
+            totalRows: expectedRows,
+            totalSize: receivedLength,
           });
-
-          options.onComplete?.(downloadUrl, filename || `export.${exportType}`);
-        } catch (streamError) {
-          throw streamError;
         }
+
+        const completeData = new Uint8Array(receivedLength);
+        let position = 0;
+        for (const chunk of chunks) {
+          completeData.set(chunk, position);
+          position += chunk.length;
+        }
+
+        const mimeType =
+          exportType === 'csv'
+            ? 'text/csv;charset=utf-8'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+        const blob = new Blob([completeData], { type: mimeType });
+        const downloadUrl = URL.createObjectURL(blob);
+
+        updateProgress({
+          status: ExportStatus.COMPLETED,
+          downloadUrl,
+          filename: filename || `export.${exportType}`,
+        });
+
+        options.onComplete?.(downloadUrl, filename || `export.${exportType}`);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error occurred';

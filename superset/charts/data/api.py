@@ -257,23 +257,14 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
-
-        # Extract filename from request if provided (for streaming CSV)
-        filename = request.form.get("filename")
-        if filename:
-            logger.info("📁 FRONTEND PROVIDED FILENAME: %s", filename)
-
-        expected_rows = request.form.get("expected_rows")
-        if expected_rows:
-            try:
-                expected_rows = int(expected_rows)
-                logger.info("📊 FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
-            except (ValueError, TypeError):
-                logger.warning("⚠️ Invalid expected_rows value: %s", expected_rows)
-                expected_rows = None
+        filename, expected_rows = self._extract_export_params_from_request()
 
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource, filename=filename, expected_rows=expected_rows
+            command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            filename=filename,
+            expected_rows=expected_rows,
         )
 
     @expose("/data/<cache_key>", methods=("GET",))
@@ -387,7 +378,9 @@ class ChartDataRestApi(ChartRestApi):
 
             # Check if we should use streaming for large datasets
             if is_csv_format and self._should_use_streaming(result, form_data):
-                return self._create_streaming_csv_response(result, form_data, filename=filename, expected_rows=expected_rows)
+                return self._create_streaming_csv_response(
+                    result, form_data, filename=filename, expected_rows=expected_rows
+                )
 
             if len(result["queries"]) == 1:
                 # return single query results
@@ -448,7 +441,25 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self._send_chart_response(result, form_data, datasource, filename, expected_rows)
+        return self._send_chart_response(
+            result, form_data, datasource, filename, expected_rows
+        )
+
+    def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
+        """Extract filename and expected_rows from request for streaming exports."""
+        filename = request.form.get("filename")
+        if filename:
+            logger.info("📁 FRONTEND PROVIDED FILENAME: %s", filename)
+
+        expected_rows = None
+        if expected_rows_str := request.form.get("expected_rows"):
+            try:
+                expected_rows = int(expected_rows_str)
+                logger.info("📊 FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
+            except (ValueError, TypeError):
+                logger.warning("⚠️ Invalid expected_rows value: %s", expected_rows_str)
+
+        return filename, expected_rows
 
     # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
@@ -529,7 +540,11 @@ class ChartDataRestApi(ChartRestApi):
         return False
 
     def _create_streaming_csv_response(
-        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None, filename: str | None = None, expected_rows: int | None = None
+        self,
+        result: dict[Any, Any],
+        form_data: dict[str, Any] | None = None,
+        filename: str | None = None,
+        expected_rows: int | None = None,
     ) -> Response:
         """Create a streaming CSV response for large datasets."""
         from datetime import datetime
@@ -558,7 +573,11 @@ class ChartDataRestApi(ChartRestApi):
             )
             filename = f"superset_{safe_chart_name}_{timestamp}.csv"
 
-        logger.info("Creating streaming CSV response: %s (from frontend: %s)", filename, filename is not None)
+        logger.info(
+            "Creating streaming CSV response: %s (from frontend: %s)",
+            filename,
+            filename is not None,
+        )
         if expected_rows:
             logger.info("📊 Using expected_rows from frontend: %d", expected_rows)
 

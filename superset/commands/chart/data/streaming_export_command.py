@@ -113,7 +113,7 @@ class StreamingCSVExportCommand(BaseCommand):
                                 row_count = 0
                                 buffer = []
                                 buffer_size = 0
-                                FLUSH_THRESHOLD = 65536  # 64KB
+                                flush_threshold = 65536  # 64KB
 
                                 while True:
                                     rows = result_proxy.fetchmany(self._chunk_size)
@@ -133,7 +133,7 @@ class StreamingCSVExportCommand(BaseCommand):
                                         buffer.append(csv_line)
                                         buffer_size += row_bytes
 
-                                        if buffer_size >= FLUSH_THRESHOLD:
+                                        if buffer_size >= flush_threshold:
                                             yield "".join(buffer)
                                             buffer = []
                                             buffer_size = 0
