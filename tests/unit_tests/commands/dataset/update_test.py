@@ -118,9 +118,6 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
 def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     """
     Test that updating a dataset with SQL to an unauthorized schema raises an error.
-
-    This test addresses SEC-114: Prevents low-privilege users from updating a dataset's
-    SQL query to access schemas they don't have permission for.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
     mock_database = mocker.MagicMock()

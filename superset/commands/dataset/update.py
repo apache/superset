@@ -167,7 +167,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             exceptions.append(DatasetExistsValidationError(table))
 
-        # Validate schema access for SQL queries
         if sql := self._properties.get("sql"):
             try:
                 security_manager.raise_for_access(
