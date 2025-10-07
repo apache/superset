@@ -2435,15 +2435,10 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.37.0":
+"@eslint/js@9.37.0", "@eslint/js@^9.37.0":
   version "9.37.0"
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.37.0.tgz#0cfd5aa763fe5d1ee60bedf84cd14f54bcf9e21b"
   integrity sha512-jaS+NJ+hximswBG6pjNX0uEJZkrT0zwpVi3BA3vX22aFGjJjmgSTSmPpZCRKmoBL5VY/M6p0xsSJx7rk7sy5gg==
-
-"@eslint/js@^9.32.0":
-  version "9.36.0"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.36.0.tgz#b1a3893dd6ce2defed5fd49de805ba40368e8fef"
-  integrity sha512-uhCbYtYynH30iZErszX78U+nR3pJU3RHGQ57NXy5QupD4SBVwDeU8TNBy+MjMngc1UyIW9noKqsRqfjQTBU2dw==
 
 "@eslint/object-schema@^2.1.6":
   version "2.1.6"
@@ -5250,6 +5245,11 @@ caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001702, caniuse-lite@^1.0.30001746, can
   version "1.0.30001749"
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001749.tgz#21a43b923577932097fe32bcaabb6da7f4677632"
   integrity sha512-0rw2fJOmLfnzCRbkm8EyHL8SvI2Apu5UbnQuTsJ0ClgrH8hcwFooJ1s5R0EP8o8aVrFu8++ae29Kt9/gZAZp/Q==
+
+caniuse-lite@^1.0.30001748:
+  version "1.0.30001748"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001748.tgz#628a5a9293014e58f8ba1216bb4966b04c58bee0"
+  integrity sha512-5P5UgAr0+aBmNiplks08JLw+AW/XG/SurlgZLgB1dDLfAw7EfRGxIwzPHxdSCGY/BTKDqIVyJL87cCN6s0ZR0w==
 
 ccount@^2.0.0:
   version "2.0.1"
@@ -13171,10 +13171,10 @@ swagger-client@^3.35.7:
     ramda "^0.30.1"
     ramda-adjunct "^5.1.0"
 
-swagger-ui-react@^5.29.2:
-  version "5.29.2"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.29.2.tgz#404948b505f154d98ba73adc7edf7d444bb6c21c"
-  integrity sha512-Bn7wuGs87PDNxLVUKtKmMuYR3G2hlqLW1fpdl3j5xiePKV8uvuQNzXgacX4+H1rQ8qsWrKap/lk5OC4h62VMBg==
+swagger-ui-react@^5.29.3:
+  version "5.29.3"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.29.3.tgz#a132c3c3c4553c2acd0aca1f02c8484ca4c78183"
+  integrity sha512-cx47SmqrxXCP86+6NHEzXUBEG/MGbNK/H8BQphzUVomxGpG9lZCUo6hIGFNe1i7fP5eaMxpLV/qoqaWVo3TSvw==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"

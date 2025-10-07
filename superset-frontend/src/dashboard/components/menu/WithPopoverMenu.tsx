@@ -165,7 +165,7 @@ export default class WithPopoverMenu extends PureComponent<
     this.menuRef = ref;
   }
 
-  shouldHandleFocusChange(shouldFocus: Boolean): boolean {
+  shouldHandleFocusChange(shouldFocus: boolean): boolean {
     const { disableClick } = this.props;
     const { isFocused } = this.state;
 

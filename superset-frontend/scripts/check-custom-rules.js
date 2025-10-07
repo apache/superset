@@ -224,6 +224,7 @@ function main() {
     /theme\/exampleThemes/, // Theme examples legitimately have colors
     /\/color\/utils/,    // Color utility functions legitimately work with colors
     /\/theme\/utils/,    // Theme utility functions legitimately work with colors
+    /packages\/superset-ui-core\/src\/color\/index\.ts/, // Core brand color constants
   ];
 
   // If no files specified, check all
@@ -252,6 +253,7 @@ function main() {
         '**/theme/exampleThemes/**',
         '**/color/utils/**',
         '**/theme/utils/**',
+        'packages/superset-ui-core/src/color/index.ts', // Core brand color constants
       ],
     });
   } else {
