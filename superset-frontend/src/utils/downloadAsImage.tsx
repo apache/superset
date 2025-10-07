@@ -98,7 +98,7 @@ const copyAllComputedStyles = (original: Element, clone: Element, theme?: Supers
       styleCache.set(origNode, computed);
     }
 
-    for (const property of CRITICAL_STYLE_PROPERTIES) {
+    for (const property of Array.from(CRITICAL_STYLE_PROPERTIES)) {
       const value = computed.getPropertyValue(property);
       if (value && value !== 'initial' && value !== 'inherit') {
         (cloneNode as HTMLElement).style.setProperty(
