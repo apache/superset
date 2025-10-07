@@ -33,6 +33,7 @@ from superset.commands.dataset.exceptions import (
     DatasetColumnNotFoundValidationError,
     DatasetColumnsDuplicateValidationError,
     DatasetColumnsExistsValidationError,
+    DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetForbiddenError,
     DatasetInvalidError,
@@ -46,7 +47,7 @@ from superset.commands.dataset.exceptions import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
@@ -165,6 +166,25 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._model_id,
         ):
             exceptions.append(DatasetExistsValidationError(table))
+
+        # Validate schema access for SQL queries
+        if sql := self._properties.get("sql"):
+            try:
+                security_manager.raise_for_access(
+                    database=db,
+                    sql=sql,
+                    catalog=catalog,
+                    schema=schema,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
