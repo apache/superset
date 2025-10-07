@@ -1034,7 +1034,7 @@ class ChartDataExtrasSchema(Schema):
             "description": (
                 "Ordered list of column names for AG Grid table exports. "
                 "Used to preserve user's column reordering (including mixed "
-                "columns and metrics) in CSV/Excel exports."
+                "columns and metrics)"
             )
         },
         allow_none=True,
