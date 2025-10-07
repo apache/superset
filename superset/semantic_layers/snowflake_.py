@@ -478,7 +478,7 @@ if __name__ == "__main__":
             "auth": {
                 "auth_type": "user_password",
                 "username": "vavila",
-                "password": "V!tor1995V!tor1995",
+                "password": "XXX",
             },
             "allow_changing_database": True,
             "allow_changing_schema": True,
