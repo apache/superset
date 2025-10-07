@@ -13,7 +13,9 @@
   "dependencies": {
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1"
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/fira-code": "^5.2.6",
+    "@fontsource/inter": "^5.2.6"
   },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
