@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render } from '@apache-superset/core/src/ui/testing';
+import { render } from '../../testing';
 import { Alert } from '.';
 
 test('renders Alert with default props', async () => {

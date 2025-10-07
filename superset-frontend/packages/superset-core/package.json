@@ -16,7 +16,8 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/fira-code": "^5.2.6",
     "@fontsource/inter": "^5.2.6",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "tinycolor2": "^1.4.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
@@ -34,7 +35,8 @@
     "@testing-library/react": "^12.1.5",
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^12.8.3",
-    "@types/lodash": "^4.17.20"
+    "@types/lodash": "^4.17.20",
+    "@types/tinycolor2": "^1.4.3"
   },
   "peerDependencies": {
     "antd": "^5.24.9",
