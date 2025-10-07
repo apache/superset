@@ -365,15 +365,26 @@ class SnowflakeExplorable:
     def get_dimensions(self) -> set[Dimension]:
         """
         Get the dimensions defined in the explorable.
+
+        Even though Snowflake supports `SHOW SEMANTIC DIMENSIONS IN my_semantic_view`,
+        it doesn't return the expression of dimensions, so we use a slightly more
+        complicated query to get all the information we need in one go.
         """
         dimensions: set[Dimension] = set()
 
-        query = f"SHOW SEMANTIC DIMENSIONS IN {self.uid};"
+        query = f"""
+            DESC SEMANTIC VIEW {self.uid()}
+                ->> SELECT "object_name", "property", "property_value"
+                    FROM $1
+                    WHERE
+                        "object_kind" = 'DIMENSION' AND
+                        "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
+        """  # noqa: S608
+
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor(DictCursor)
             rows = cursor.execute(query).fetchall()
-            print(rows)
 
         for name, group in itertools.groupby(rows, key=lambda x: x["object_name"]):
             attributes = defaultdict(set)
