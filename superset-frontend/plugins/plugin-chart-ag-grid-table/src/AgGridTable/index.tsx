@@ -22,12 +22,14 @@ import {
   useMemo,
   useRef,
   memo,
+  FunctionComponent,
   useState,
   ChangeEvent,
   useEffect,
+  type RefObject,
 } from 'react';
 
-import { ThemedAgGridReact } from '@superset-ui/core/components';
+import { Constants, ThemedAgGridReact } from '@superset-ui/core/components';
 import {
   AgGridReact,
   AllCommunityModule,
@@ -39,7 +41,6 @@ import {
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import { type FunctionComponent } from 'react';
 import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
@@ -48,6 +49,11 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import { PAGE_SIZE_OPTIONS } from '../consts';
+
+export interface AgGridState extends Partial<GridState> {
+  timestamp?: number;
+  hasChanges?: boolean;
+}
 
 export interface AgGridTableProps {
   gridTheme?: string;
@@ -80,8 +86,8 @@ export interface AgGridTableProps {
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
-  onColumnStateChange?: (state: any) => void;
-  gridRef?: any;
+  onColumnStateChange?: (state: AgGridState) => void;
+  gridRef?: RefObject<AgGridReact>;
   savedAgGridState?: JsonObject;
 }
 
@@ -240,21 +246,16 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
 
-    // AG Grid state change handlers that capture actual state
-    // Debounced to prevent excessive Redux updates during drag operations
     const handleGridStateChange = useCallback(
       debounce(() => {
         if (onColumnStateChange && gridRef.current?.api) {
           try {
             const { api } = gridRef.current;
 
-            // Get column state (includes order, width, visibility, pinning and sorting)
             const columnState = api.getColumnState ? api.getColumnState() : [];
 
-            // Get filter model
             const filterModel = api.getFilterModel ? api.getFilterModel() : {};
 
-            // Extract sort information from column state
             const sortModel = columnState
               .filter(col => col.sort)
               .map(col => ({
@@ -271,30 +272,26 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               timestamp: Date.now(),
             };
 
-            // Create a hash of the state (excluding timestamp) to detect duplicates
             const stateHash = JSON.stringify({
               columnOrder: columnState.map(c => c.colId),
               sorts: sortModel,
               filters: filterModel,
             });
 
-            // Only save if the state has actually changed
             if (stateHash !== lastCapturedStateRef.current) {
               lastCapturedStateRef.current = stateHash;
 
-              // Call the parent handler with actual AG Grid state
               onColumnStateChange(stateToSave);
             }
           } catch (error) {
             console.warn('Error capturing AG Grid state:', error);
-            // Fallback with basic state
             onColumnStateChange({
               timestamp: Date.now(),
               hasChanges: true,
             });
           }
         }
-      }, 500), // Wait 500ms after the last event before saving
+      }, Constants.SLOW_DEBOUNCE),
       [onColumnStateChange],
     );
 
@@ -325,7 +322,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       // Restore saved AG Grid state from permalink if available
       if (savedAgGridState && params.api) {
         try {
-          // Restore column state (order, width, visibility, pinning, sorting)
           if (savedAgGridState.columnState) {
             params.api.applyColumnState?.({
               state: savedAgGridState.columnState as any,
@@ -333,7 +329,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             });
           }
 
-          // Restore filter model
           if (savedAgGridState.filterModel) {
             params.api.setFilterModel?.(savedAgGridState.filterModel);
           }

@@ -204,7 +204,6 @@ const Chart = props => {
   // Chart state handler for AG Grid tables
   const handleChartStateChange = useCallback(
     chartState => {
-      // Only handle chart state for AG Grid tables (viz_type uses hyphens)
       if (slice?.viz_type === 'ag-grid-table') {
         dispatch(updateChartState(props.id, slice.viz_type, chartState));
       }
@@ -394,7 +393,6 @@ const Chart = props => {
         is_cached: isCached,
       });
 
-      // Start with existing ownState from dataMask
       let ownState = dataMask[props.id]?.ownState || {};
 
       // For AG Grid tables, convert AG Grid state to backend-compatible format
@@ -424,8 +422,6 @@ const Chart = props => {
           };
         }
 
-        // Convert AG Grid filterModel to standard Superset adhoc_filters format
-        // This makes it compatible with the backend and other chart types
         if (
           agGridState.filterModel &&
           Object.keys(agGridState.filterModel).length > 0
@@ -464,10 +460,7 @@ const Chart = props => {
                         : filter.filter,
               };
               agGridFilters.push(clause);
-            }
-
-            // Number filter
-            else if (
+            } else if (
               filter.filterType === 'number' &&
               filter.filter !== undefined
             ) {
@@ -491,10 +484,7 @@ const Chart = props => {
                 comparator: filter.filter,
               };
               agGridFilters.push(clause);
-            }
-
-            // Set filter (multi-select)
-            else if (
+            } else if (
               filter.filterType === 'set' &&
               Array.isArray(filter.values) &&
               filter.values.length > 0
@@ -509,11 +499,10 @@ const Chart = props => {
             }
           });
 
-          // Store converted filters in a format buildQuery can understand
           if (agGridFilters.length > 0) {
             ownState = {
               ...ownState,
-              agGridFilters, // Standard Superset filter format
+              agGridFilters,
             };
           }
         }
@@ -678,7 +667,6 @@ const Chart = props => {
           labelsColorMap={labelsColorMap}
           ownState={{
             ...dataMask[props.id]?.ownState,
-            // Include saved AG Grid state for restoration
             ...(slice.viz_type === 'ag-grid-table' &&
             chartStates[props.id]?.state
               ? { savedAgGridState: chartStates[props.id].state }

@@ -72,7 +72,6 @@ export default function URLShortLinkButton({
             slice.viz_type === 'ag_grid_table',
         );
 
-      // Only include chart state for AG Grid tables
       const includeChartState =
         hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
 

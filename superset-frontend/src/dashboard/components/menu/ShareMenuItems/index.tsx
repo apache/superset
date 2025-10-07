@@ -58,20 +58,39 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     disabled,
     ...rest
   } = props;
-  const { dataMask, activeTabs } = useSelector(
+  const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
     (state: RootState) => ({
       dataMask: state.dataMask,
       activeTabs: state.dashboardState.activeTabs,
+      chartStates: state.dashboardState.chartStates,
+      sliceEntities: state.sliceEntities,
     }),
     shallowEqual,
   );
 
   async function generateUrl() {
+    // Check if dashboard has AG Grid tables
+    const hasAgGridTables =
+      sliceEntities &&
+      Object.values(sliceEntities).some(
+        slice =>
+          slice &&
+          typeof slice === 'object' &&
+          'viz_type' in slice &&
+          slice.viz_type === 'ag_grid_table',
+      );
+
+    // Only include chart state for AG Grid tables
+    const includeChartState =
+      hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
+
     return getDashboardPermalink({
       dashboardId,
       dataMask,
       activeTabs,
       anchor: dashboardComponentId,
+      chartStates: includeChartState ? chartStates : undefined,
+      includeChartState,
     });
   }
 

@@ -112,11 +112,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     comparisonColumns?.[0]?.key,
   ]);
 
-  // AG Grid state change handler
   const handleColumnStateChange = useCallback(
     agGridState => {
       if (onChartStateChange) {
-        // Pass through the actual AG Grid state received from the grid component
         onChartStateChange(agGridState);
       }
     },

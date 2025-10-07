@@ -57,7 +57,6 @@ const getDashboardPermalink = async ({
     sliceEntities: state?.sliceEntities,
   };
 
-  // Check if dashboard has AG Grid tables (Table V2)
   const hasAgGridTables =
     sliceEntities &&
     Object.values(sliceEntities).some(
@@ -68,7 +67,6 @@ const getDashboardPermalink = async ({
         slice.viz_type === 'ag_grid_table',
     );
 
-  // Only include chart state for AG Grid tables
   const includeChartState =
     hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
 

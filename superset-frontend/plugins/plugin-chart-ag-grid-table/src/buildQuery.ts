@@ -218,7 +218,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
-    // Apply column ordering from AG Grid state for CSV/Excel exports
     // Note: In Superset, "columns" are dimensions and "metrics" are measures,
     // but AG Grid treats them all as "columns" in the UI
     let orderedColumns = columns;
@@ -232,9 +231,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       const orderedCols: typeof columns = [];
       const orderedMets: typeof metrics = [];
 
-      // Process each item in the desired order
       ownState.columnOrder.forEach((colId: string) => {
-        // Try to find in columns first
         const matchingCol = columns.find(col => {
           if (typeof col === 'string') {
             return col === colId;
@@ -247,7 +244,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           return;
         }
 
-        // Try to find in metrics
         const matchingMetric = metrics?.find(met => {
           if (typeof met === 'string') {
             return met === colId;
@@ -260,7 +256,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         }
       });
 
-      // Add any remaining columns/metrics not in columnOrder (safety fallback)
       columns.forEach(col => {
         if (!orderedCols.includes(col)) {
           orderedCols.push(col);
@@ -275,11 +270,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
       orderedColumns = orderedCols;
       orderedMetrics = orderedMets;
-
-      // Mixed column+metric ordering for CSV export is handled by:
-      // 1. Frontend: Pass column_order in extras (done here)
-      // 2. Backend: Reorder dataframe columns in assign_column_label() based on column_order
-      // This enables arbitrary mixing (e.g., metric, column, metric) in exports.
     }
 
     let queryObject = {
@@ -289,7 +279,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ...extras,
         // Flag to indicate AG Grid chart - enables metric column filtering
         is_ag_grid_chart: true,
-        // Pass column order for CSV/Excel exports to enable mixed column+metric ordering
+        // Pass column order to enable mixed column+metric ordering
         ...(isDownloadQuery &&
         ownState.columnOrder &&
         Array.isArray(ownState.columnOrder)
@@ -366,9 +356,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
-    // Apply AG Grid filters for CSV/Excel exports (from chart state)
-    // Convert from adhoc filter format (subject, operator, comparator)
-    // to backend query filter format (col, op, val)
     if (
       isDownloadQuery &&
       Array.isArray(ownState.agGridFilters) &&
