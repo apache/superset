@@ -40,46 +40,14 @@ Welcome to the Apache Superset Developer Portal - your comprehensive resource fo
 
 ## 📚 Documentation Sections
 
-### Contributing to Superset
-Learn how to contribute to the Apache Superset project.
-
-- **[Overview](/developer_portal/contributing/overview)** - Ways to contribute and community guidelines
-- **[Development Setup](/developer_portal/contributing/development-setup)** - Set up your local environment
-- **[Submitting PRs](/developer_portal/contributing/submitting-pr)** - Create and submit pull requests
-- **[Code Review](/developer_portal/contributing/code-review)** - Understand the review process
-- **[Issue Reporting](/developer_portal/contributing/issue-reporting)** - Report bugs and request features
-- **[Release Process](/developer_portal/contributing/release-process)** - Apache release procedures
-
 ### Extensions
-Build extensions to enhance Superset's capabilities.
-
-- **[Architecture Overview](/developer_portal/architecture/overview)** - Understand the extension system
-- **[Extension Project Structure](/developer_portal/extensions/extension-project-structure)** - Extension development guide
-- **[Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)** - Extension capabilities
-- **[Frontend API](/developer_portal/api/frontend)** - Complete API reference
-- **[Extension CLI](/developer_portal/cli/overview)** - Development tools
+Learn how to build powerful extensions that enhance Superset's capabilities. This section covers the extension architecture, development patterns, and deployment strategies. You'll find comprehensive guides on creating frontend contributions, managing extension lifecycles, and understanding security implications.
 
 ### Testing
-🚧 **Coming Soon** 🚧
-- Frontend Testing
-- Backend Testing
-- End-to-End Testing
-- CI/CD Pipeline
+Comprehensive testing strategies for Superset development. This section covers frontend testing with Jest and React Testing Library, backend testing with pytest, end-to-end testing with Playwright, and CI/CD pipeline best practices.
 
-### Coding Guidelines
-- **[Overview](/developer_portal/coding-guidelines/overview)** - General coding standards
-- 🚧 TypeScript Guidelines
-- 🚧 Python Guidelines
-- 🚧 React Best Practices
-- 🚧 SQL Standards
-
-### Advanced Topics
-Deep dive into Superset internals.
-
-- **[High-level Architecture](/developer_portal/extensions/high-level-architecture)** - Extension system overview
-- **[Extension Manifest](/developer_portal/references/manifest)** - Configuration format
-- **[Contribution Points](/developer_portal/references/contribution-points)** - Extension capabilities
-- **[Activation Events](/developer_portal/references/activation-events)** - Lifecycle management
+### Contributing to Superset
+Everything you need to contribute to the Apache Superset project. This section includes community guidelines, development environment setup, pull request processes, code review workflows, issue reporting guidelines, and Apache release procedures. You'll also find style guidelines for both frontend and backend development.
 
 ## 🛠️ Development Resources
 

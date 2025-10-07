@@ -25,7 +25,7 @@ const sidebars = {
   DeveloperPortalSidebar: [
     {
       type: 'doc',
-      label: 'Developer Portal Overview',
+      label: 'Overview',
       id: 'index',
     },
     {
@@ -33,6 +33,7 @@ const sidebars = {
       label: 'Extensions',
       collapsed: true,
       items: [
+        'extensions/overview',
         'extensions/architectural-principles',
         'extensions/high-level-architecture',
         'extensions/extension-project-structure',
