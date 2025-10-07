@@ -27,7 +27,7 @@
     "version:remove:components": "node scripts/manage-versions.mjs remove components"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.0.0",
+    "@ant-design/icons": "^6.1.0",
     "@docusaurus/core": "3.8.1",
     "@docusaurus/plugin-client-redirects": "3.8.1",
     "@docusaurus/preset-classic": "3.8.1",
@@ -49,8 +49,8 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^5.26.7",
-    "caniuse-lite": "^1.0.30001739",
+    "antd": "^5.27.4",
+    "caniuse-lite": "^1.0.30001748",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
     "less": "^4.4.0",
@@ -63,26 +63,26 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.1.1",
     "storybook": "^8.6.11",
-    "swagger-ui-react": "^5.27.1",
+    "swagger-ui-react": "^5.29.3",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.8.1",
     "@docusaurus/tsconfig": "^3.8.1",
-    "@eslint/js": "^9.32.0",
+    "@eslint/js": "^9.37.0",
     "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.42.0",
-    "eslint": "^9.34.0",
+    "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "eslint-plugin-react": "^7.37.5",
-    "globals": "^16.3.0",
+    "globals": "^16.4.0",
     "prettier": "^3.6.2",
-    "typescript": "~5.9.2",
-    "typescript-eslint": "^8.39.0",
-    "webpack": "^5.101.0"
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "webpack": "^5.102.0"
   },
   "browserslist": {
     "production": [

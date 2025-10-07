@@ -68,7 +68,7 @@ superset/
 
 ### Apache License Headers
 - **New files require ASF license headers** - When creating new code files, include the standard Apache Software Foundation license header
-- **LLM instruction files are excluded** - Files like LLMS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
+- **LLM instruction files are excluded** - Files like AGENTS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
 
 ### Code Comments
 - **Avoid time-specific language** - Don't use words like "now", "currently", "today" in code comments as they become outdated

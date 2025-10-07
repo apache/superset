@@ -168,6 +168,9 @@ const StyledToolbar = styled.div`
 
 const StyledSidebar = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledSqlEditor = styled.div`
