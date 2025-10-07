@@ -281,7 +281,9 @@ const ModalStateContent = ({
 
   switch (status) {
     case ExportStatus.ERROR:
-      return <ErrorContent error={error} onCancel={onCancel} onRetry={onRetry} />;
+      return (
+        <ErrorContent error={error} onCancel={onCancel} onRetry={onRetry} />
+      );
     case ExportStatus.CANCELLED:
       return (
         <CancelledContent

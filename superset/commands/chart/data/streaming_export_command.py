@@ -105,7 +105,7 @@ class StreamingCSVExportCommand(BaseCommand):
 
                                 columns = list(result_proxy.keys())
 
-                                # Use StringIO buffer with csv.writer for proper escaping
+                                # Use StringIO with csv.writer for proper escaping
                                 buffer = io.StringIO()
                                 csv_writer = csv.writer(
                                     buffer, quoting=csv.QUOTE_MINIMAL
@@ -120,7 +120,6 @@ class StreamingCSVExportCommand(BaseCommand):
                                 buffer.truncate()
 
                                 row_count = 0
-                                buffer_size = 0
                                 flush_threshold = 65536  # 64KB
 
                                 while True:
@@ -138,12 +137,9 @@ class StreamingCSVExportCommand(BaseCommand):
                                             data = buffer.getvalue()
                                             data_bytes = len(data.encode("utf-8"))
                                             total_bytes += data_bytes
-                                            buffer_size = data_bytes
                                             yield data
                                             buffer.seek(0)
                                             buffer.truncate()
-                                            buffer_size = 0
-                                            time.sleep(0.125)  # Testing: delay between chunks
 
                                 # Flush remaining buffer
                                 remaining_data = buffer.getvalue()
