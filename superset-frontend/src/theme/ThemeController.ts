@@ -26,7 +26,7 @@ import {
   ThemeMode,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import { normalizeThemeConfig } from '@apache-superset/core/ui/theme';
+import { normalizeThemeConfig } from '@apache-superset/core/ui';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
