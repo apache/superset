@@ -17,7 +17,7 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import Any, Optional
+from typing import Any, cast, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -27,9 +27,11 @@ from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseChangeValidationError,
+    DatabaseNotFoundValidationError,
     DatasetColumnNotFoundValidationError,
     DatasetColumnsDuplicateValidationError,
     DatasetColumnsExistsValidationError,
+    DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetForbiddenError,
     DatasetInvalidError,
@@ -41,8 +43,9 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
-from superset.sql_parse import Table
+from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.models.core import Database
+from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -99,10 +102,25 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 self._model.database.get_default_catalog()
             )
 
+        new_db_connection: Database | None = None
+
+        if database_id and database_id != self._model.database.id:
+            if new_db_connection := DatasetDAO.get_database_by_id(database_id):
+                self._properties["database"] = new_db_connection
+            else:
+                exceptions.append(DatabaseNotFoundValidationError())
+        db = new_db_connection or self._model.database
+
         table = Table(
             self._properties.get("table_name"),  # type: ignore
             self._properties.get("schema"),
             catalog,
+        )
+
+        schema = (
+            self._properties["schema"]
+            if "schema" in self._properties
+            else self._model.schema
         )
 
         # Validate uniqueness
@@ -127,6 +145,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
 
+        # Validate SQL access
+        self._validate_sql_access(db, catalog, schema, exceptions)
+
         # Validate columns
         if columns := self._properties.get("columns"):
             self._validate_columns(columns, exceptions)
@@ -137,6 +158,36 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    def _validate_sql_access(
+        self,
+        db: Database,
+        catalog: str | None,
+        schema: str | None,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """Validate SQL query access if SQL is being updated."""
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+
+        sql = self._properties.get("sql")
+        if sql and sql != self._model.sql:
+            try:
+                security_manager.raise_for_access(
+                    database=db,
+                    sql=sql,
+                    catalog=catalog,
+                    schema=schema,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
 
     def _validate_columns(
         self, columns: list[dict[str, Any]], exceptions: list[ValidationError]
