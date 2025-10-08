@@ -16,7 +16,6 @@
 # under the License.
 """Default MCP service configuration for Apache Superset"""
 
-import secrets
 from typing import Any, Dict
 
 # MCP Service Configuration
@@ -66,11 +65,6 @@ MCP_FACTORY_CONFIG = {
     "exclude_tags": None,  # Exclude no tags
     "config": None,  # No additional config
 }
-
-
-def generate_secret_key() -> str:
-    """Generate a secure random secret key for Superset"""
-    return secrets.token_urlsafe(42)
 
 
 def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
