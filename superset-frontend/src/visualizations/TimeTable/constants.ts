@@ -25,4 +25,6 @@ export const getAccessibleColorBounds = (theme: SupersetTheme): string[] => [
 ];
 
 // Default fallback for backward compatibility
-export const ACCESSIBLE_COLOR_BOUNDS = ['crimson', 'steelblue'];
+/* eslint-disable theme-colors/no-literal-colors */
+export const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
+/* eslint-enable theme-colors/no-literal-colors */
