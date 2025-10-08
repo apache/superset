@@ -102,7 +102,7 @@ Setting SameSite to 'None' requires that SESSION_COOKIE_SECURE is also set to Tr
 
 While Superset's built-in database authentication is convenient, for production it's highly recommended to integrate with an enterprise-grade identity provider (IdP).
 
-  * **Use an Enterprise IdP:** Configure authentication via OAuth, OIDC, SAML, or LDAP to leverage your organization's existing identity management system. This provides benefits like Single Sign-On (SSO), Multi-Factor Authentication (MFA), and centralized user provisioning/deprovisioning.
+  * **Use an Enterprise IdP:** Configure authentication via OAuth or LDAP to leverage your organization's existing identity management system. This provides benefits like Single Sign-On (SSO), Multi-Factor Authentication (MFA), and centralized user provisioning/deprovisioning.
   * **Principle of Least Privilege:** Assign users to the most restrictive roles necessary for their jobs. Avoid over-provisioning users with Admin or Alpha roles, and ensure row-level security is applied where appropriate.
   * **Admin Accounts:** Delete or disable the default admin user after a new administrative account has been configured.
 
@@ -153,7 +153,7 @@ Here's the documentation section how how to set up Talisman: https://superset.ap
   - [ ] `DEBUG` mode is set to `False`.
   - [ ] Talisman is explicitly enabled and configured with a strict Content Security Policy.
   - [ ] Database connections use dedicated, limited-privilege accounts.
-  - [ ] Authentication is integrated with an enterprise identity provider (OAuth/LDAP/SAML).
+  - [ ] Authentication is integrated with an enterprise identity provider (OAuth/LDAP).
   - [ ] A Web Application Firewall (WAF) is deployed in front of Superset.
   - [ ] Logging is configured and logs are shipped to a central monitoring system.
 
