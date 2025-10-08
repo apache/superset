@@ -17,41 +17,21 @@
  * under the License.
  */
 
-export interface AgGridColumnState {
-  colId: string;
-  width?: number;
-  hide?: boolean;
-  pinned?: 'left' | 'right' | null;
-  sort?: 'asc' | 'desc' | null;
-  sortIndex?: number;
-  aggFunc?: string;
-}
+// Re-export AG Grid types from @superset-ui/core for convenience
+import type { AgGridChartState } from '@superset-ui/core';
 
-export interface AgGridSortModel {
-  colId: string;
-  sort: 'asc' | 'desc';
-  sortIndex?: number;
-}
-
-export interface AgGridFilterModel {
-  [colId: string]: {
-    filterType: string;
-    type?: string;
-    filter?: any;
-    condition1?: any;
-    condition2?: any;
-    operator?: string;
-  };
-}
-
-export interface AgGridChartState {
-  columnState: AgGridColumnState[];
-  sortModel: AgGridSortModel[];
-  filterModel: AgGridFilterModel;
-  columnOrder?: string[];
-  pageSize?: number;
-  currentPage?: number;
-}
+export type {
+  AgGridColumnState,
+  AgGridSortModel,
+  AgGridFilterModel,
+  AgGridChartState,
+  AgGridQueryFilterClause,
+} from '@superset-ui/core';
+export {
+  AgGridFilterType,
+  AgGridTextFilterOperator,
+  AgGridNumberFilterOperator,
+} from '@superset-ui/core';
 
 export interface ChartState {
   chartId: number;

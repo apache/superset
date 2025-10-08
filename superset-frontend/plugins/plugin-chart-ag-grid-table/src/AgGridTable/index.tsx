@@ -41,7 +41,13 @@ import {
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
+import {
+  JsonObject,
+  DataRecordValue,
+  DataRecord,
+  t,
+  type AgGridColumnState,
+} from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -324,7 +330,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         try {
           if (savedAgGridState.columnState) {
             params.api.applyColumnState?.({
-              state: savedAgGridState.columnState as any,
+              state: savedAgGridState.columnState as AgGridColumnState[],
               applyOrder: true,
             });
           }

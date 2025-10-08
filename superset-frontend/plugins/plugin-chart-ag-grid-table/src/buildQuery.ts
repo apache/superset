@@ -28,6 +28,7 @@ import {
   removeDuplicates,
   PostProcessingRule,
   BuildQuery,
+  type AgGridQueryFilterClause,
 } from '@superset-ui/core';
 import {
   isTimeComparison,
@@ -361,15 +362,20 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       Array.isArray(ownState.agGridFilters) &&
       ownState.agGridFilters.length > 0
     ) {
-      const agGridQueryFilters = ownState.agGridFilters.map((filter: any) => ({
-        col: filter.subject || filter.col,
-        op: filter.operator || filter.op,
-        val: filter.comparator !== undefined ? filter.comparator : filter.val,
-      }));
+      const agGridQueryFilters = ownState.agGridFilters.map(
+        (filter: AgGridQueryFilterClause) => ({
+          col: filter.subject,
+          op: filter.operator,
+          val: filter.comparator,
+        }),
+      ) as QueryObject['filters'];
 
       queryObject = {
         ...queryObject,
-        filters: [...(queryObject.filters || []), ...agGridQueryFilters],
+        filters: [
+          ...(queryObject.filters || []),
+          ...(agGridQueryFilters || []),
+        ],
       };
     }
 
