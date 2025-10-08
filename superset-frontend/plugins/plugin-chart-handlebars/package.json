@@ -32,6 +32,7 @@
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
+    "@apache-superset/core": "*",
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
     "handlebars": "^4.7.8",
