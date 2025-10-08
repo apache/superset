@@ -3,7 +3,7 @@ title: Securing Your Superset Installation for Production
 sidebar_position: 3
 ---
 
-> *This guide applies to Apache Superset version 4.0 and later.*
+> *This guide applies to Apache Superset version 4.0 and later and is an evolving set of best practices that administrators should adapt to their specific deployment architecture.*
 
 The default Apache Superset configuration is optimized for ease of use and development, not for security. For any production deployment, it is **critical** that you review and apply the following security configurations to harden your instance, protect user data, and prevent unauthorized access.
 
@@ -43,7 +43,7 @@ Properly configuring user sessions is essential to prevent session hijacking and
 
 #### **Use a Server-Side Session Backend (Strongly Recommended for Production)**
 
-The default stateless cookie-based session handling presents challenges for immediate session invalidation upon logout. For all production deployments, we strongly recommend configuring a server-side session backend like Redis, Memcached, or a database. This ensures that session data is stored securely on the server and can be instantly destroyed upon logout, rendering any copied session cookies immediately useless.
+The default stateless cookie-based session handling presents challenges for immediate session invalidation upon logout. For all production deployments, we strongly recommend configuring an optional server-side session backend like Redis, Memcached, or a database. This ensures that session data is stored securely on the server and can be instantly destroyed upon logout, rendering any copied session cookies immediately useless.
 
 **Example `superset_config.py` for Redis:**
 
@@ -104,6 +104,7 @@ While Superset's built-in database authentication is convenient, for production 
 
   * **Use an Enterprise IdP:** Configure authentication via OAuth, OIDC, SAML, or LDAP to leverage your organization's existing identity management system. This provides benefits like Single Sign-On (SSO), Multi-Factor Authentication (MFA), and centralized user provisioning/deprovisioning.
   * **Principle of Least Privilege:** Assign users to the most restrictive roles necessary for their jobs. Avoid over-provisioning users with Admin or Alpha roles, and ensure row-level security is applied where appropriate.
+  * **Admin Accounts:** Delete or disable the default admin user after a new administrative account has been configured.
 
 ### **Content Security Policy (CSP) and Other Headers**
 
@@ -113,37 +114,7 @@ Superset can use Flask-Talisman to set security headers. However, it must be exp
 >
 > In Superset 4.0 and later, Talisman is disabled by default (`TALISMAN_ENABLED = False`). You **must** explicitly enable it in your `superset_config.py` for the security headers defined in `TALISMAN_CONFIG` to take effect.
 
-```python
-# superset_config.py
-# The DEBUG flag MUST be set to False in production
-DEBUG = False
-
-# You must explicitly enable Talisman for it to take effect
-TALISMAN_ENABLED = True
-
-# Define a strict Content Security Policy for production
-TALISMAN_CONFIG = {
-    'content_security_policy': {
-        'default-src': ["'self'"],
-        'img-src': ["'self'", 'data:', 'blob:'],
-        'worker-src': ["'self'", 'blob:'],
-        'connect-src': [
-            "'self'",
-            'https://api.mapbox.com',
-            'https://events.mapbox.com',
-            'https://tile.openstreetmap.org',
-            'https://tile.osm.ch',
-        ],
-        'object-src': "'none'",
-        'style-src': ["'self'", "'unsafe-inline'"],
-        'script-src': ["'self'"],
-    },
-    'force_https': False, # HTTPS should be handled by a reverse proxy and workers may need the HTTP route for Alerts & Reports
-    'strict_transport_security': True,
-    'session_cookie_secure': True,
-    'frame_options': 'SAMEORIGIN',
-}
-```
+Here's the documentation section how how to set up Talisman: https://superset.apache.org/docs/security/#content-security-policy-csp
 
 ### **Database Security**
 
