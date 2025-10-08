@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useCallback, useRef } from 'react';
+import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
 
 interface UseStreamingExportOptions {
@@ -38,26 +39,47 @@ interface StreamingExportParams {
 
 const NEWLINE_BYTE = 10; // '\n' character code
 
-const createFetchRequest = (
-  url: string,
+const createFetchRequest = async (
+  _url: string,
   payload: StreamingExportPayload,
   filename: string,
-  exportType: string,
+  _exportType: string,
   expectedRows: number | undefined,
   signal: AbortSignal,
-): RequestInit => ({
-  method: 'POST',
-  headers: {
+): Promise<RequestInit> => {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
-  },
-  body: new URLSearchParams({
-    form_data: JSON.stringify(payload),
+  };
+
+  // Get CSRF token using SupersetClient
+  const csrfToken = await SupersetClient.getCSRFToken();
+  if (csrfToken) {
+    headers['X-CSRFToken'] = csrfToken;
+  }
+
+  // Build form data - if payload has client_id, it's SQL Lab export
+  // Otherwise it's a chart export with form_data
+  const formParams: Record<string, string> = {
     filename,
     expected_rows: expectedRows?.toString() || '',
-  }),
-  signal,
-  credentials: 'same-origin',
-});
+  };
+
+  if ('client_id' in payload) {
+    // SQL Lab export - pass client_id directly
+    formParams.client_id = String(payload.client_id);
+  } else {
+    // Chart export - wrap payload in form_data
+    formParams.form_data = JSON.stringify(payload);
+  }
+
+  return {
+    method: 'POST',
+    headers,
+    body: new URLSearchParams(formParams),
+    signal,
+    credentials: 'same-origin',
+  };
+};
 
 const countNewlines = (value: Uint8Array): number =>
   value.filter(byte => byte === NEWLINE_BYTE).length;
@@ -107,7 +129,9 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
       exportType,
       expectedRows,
     }: StreamingExportParams) => {
-      if (isExporting) return;
+      if (isExporting) {
+        return;
+      }
 
       setIsExporting(true);
       abortControllerRef.current = new AbortController();
@@ -127,17 +151,16 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const defaultFilename = `export.${exportType}`;
         const finalFilename = filename || defaultFilename;
 
-        const response = await fetch(
+        const fetchOptions = await createFetchRequest(
           url,
-          createFetchRequest(
-            url,
-            payload,
-            finalFilename,
-            exportType,
-            expectedRows,
-            abortControllerRef.current.signal,
-          ),
+          payload,
+          finalFilename,
+          exportType,
+          expectedRows,
+          abortControllerRef.current.signal,
         );
+
+        const response = await fetch(url, fetchOptions);
 
         if (!response.ok) {
           throw new Error(

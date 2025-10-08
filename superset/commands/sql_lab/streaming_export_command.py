@@ -1,0 +1,237 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Command for streaming CSV exports of SQL Lab query results."""
+
+from __future__ import annotations
+
+import csv
+import io
+import logging
+import time
+from typing import Callable, Generator, TYPE_CHECKING
+
+from flask import current_app as app
+from flask_babel import gettext as __
+
+from superset import db
+from superset.commands.base import BaseCommand
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.models.sql_lab import Query
+from superset.sql.parse import SQLScript
+from superset.sqllab.limiting_factor import LimitingFactor
+
+if TYPE_CHECKING:
+    pass
+
+logger = logging.getLogger(__name__)
+
+
+class StreamingSqlResultExportCommand(BaseCommand):
+    """
+    Command to execute a streaming CSV export of SQL Lab query results.
+
+    This command handles the business logic for:
+    - Fetching SQL Lab query results
+    - Generating CSV data in chunks
+    - Managing database connections
+    - Buffering data for efficient streaming
+    """
+
+    def __init__(
+        self,
+        client_id: str,
+        chunk_size: int = 1000,
+    ):
+        """
+        Initialize the streaming export command.
+
+        Args:
+            client_id: The SQL Lab query client ID
+            chunk_size: Number of rows to fetch per database query (default: 1000)
+        """
+        self._client_id = client_id
+        self._chunk_size = chunk_size
+        self._current_app = app._get_current_object()
+        self._query: Query | None = None
+
+    def validate(self) -> None:
+        """Validate permissions and query existence."""
+        self._query = (
+            db.session.query(Query).filter_by(client_id=self._client_id).one_or_none()
+        )
+        if self._query is None:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "The query associated with these results could not be found. "
+                        "You need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=404,
+            )
+
+        try:
+            self._query.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("Cannot access the query"),
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=403,
+            ) from ex
+
+    def run(self) -> Callable[[], Generator[str, None, None]]:  # noqa: C901
+        """
+        Execute the streaming CSV export.
+
+        Returns:
+            A callable that returns a generator yielding CSV data chunks as strings.
+            The callable is needed to maintain Flask app context during streaming.
+        """
+        # Load all Query attributes while session is still active
+        # to avoid DetachedInstanceError
+        assert self._query is not None
+
+        select_sql = self._query.select_sql
+        executed_sql = self._query.executed_sql
+        limiting_factor = self._query.limiting_factor
+        database = self._query.database
+
+        # Get the SQL and limit
+        if select_sql:
+            sql = select_sql
+            limit = None
+        else:
+            sql = executed_sql
+            script = SQLScript(sql, database.db_engine_spec.engine)
+            # when a query has multiple statements only the last one returns data
+            limit = script.statements[-1].get_limit_value()
+
+        if limit is not None and limiting_factor in {
+            LimitingFactor.QUERY,
+            LimitingFactor.DROPDOWN,
+            LimitingFactor.QUERY_AND_DROPDOWN,
+        }:
+            # remove extra row from `increased_limit`
+            limit -= 1
+
+        def csv_generator() -> Generator[str, None, None]:  # noqa: C901
+            """Generator that yields CSV data from SQL Lab query results."""
+            with self._current_app.app_context():
+                start_time = time.time()
+                total_bytes = 0
+
+                try:
+                    # Create a new session to keep database object attached
+                    with db.session() as session:
+                        # Merge database to prevent DetachedInstanceError
+                        merged_database = session.merge(database)
+
+                        # Execute query with streaming
+                        with merged_database.get_sqla_engine() as engine:
+                            connection = engine.connect()
+
+                            try:
+                                from sqlalchemy import text
+
+                                result_proxy = connection.execution_options(
+                                    stream_results=True
+                                ).execute(text(sql))
+
+                                columns = list(result_proxy.keys())
+
+                                # Use StringIO with csv.writer for proper escaping
+                                buffer = io.StringIO()
+                                csv_writer = csv.writer(
+                                    buffer, quoting=csv.QUOTE_MINIMAL
+                                )
+
+                                # Write CSV header
+                                csv_writer.writerow(columns)
+                                header_data = buffer.getvalue()
+                                total_bytes += len(header_data.encode("utf-8"))
+                                yield header_data
+                                buffer.seek(0)
+                                buffer.truncate()
+
+                                row_count = 0
+                                flush_threshold = 65536  # 64KB
+
+                                while True:
+                                    rows = result_proxy.fetchmany(self._chunk_size)
+                                    if not rows:
+                                        break
+
+                                    for row in rows:
+                                        # Apply limit if specified
+                                        if limit is not None and row_count >= limit:
+                                            break
+
+                                        csv_writer.writerow(row)
+                                        row_count += 1
+
+                                        # Check buffer size and flush if needed
+                                        current_size = buffer.tell()
+                                        if current_size >= flush_threshold:
+                                            data = buffer.getvalue()
+                                            data_bytes = len(data.encode("utf-8"))
+                                            total_bytes += data_bytes
+                                            yield data
+                                            buffer.seek(0)
+                                            buffer.truncate()
+
+                                    # Break outer loop if limit reached
+                                    if limit is not None and row_count >= limit:
+                                        break
+
+                                # Flush remaining buffer
+                                remaining_data = buffer.getvalue()
+                                if remaining_data:
+                                    total_bytes += len(remaining_data.encode("utf-8"))
+                                    yield remaining_data
+
+                                # Log completion
+                                total_time = time.time() - start_time
+                                total_mb = total_bytes / (1024 * 1024)
+                                logger.info(
+                                    "SQL Lab streaming CSV completed: %s rows, "
+                                    "%.1fMB in %.2fs",
+                                    f"{row_count:,}",
+                                    total_mb,
+                                    total_time,
+                                )
+
+                            finally:
+                                connection.close()
+
+                except Exception as e:
+                    logger.error("Error in SQL Lab streaming CSV generator: %s", e)
+                    import traceback
+
+                    logger.error("Traceback: %s", traceback.format_exc())
+
+                    # Yield error info and fallback data
+                    yield f"# Error occurred: {str(e)}\n"
+                    yield "error,message\n"
+                    yield f"CSV Export Error,{str(e)}\n"
+
+        return csv_generator

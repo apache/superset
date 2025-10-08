@@ -294,6 +294,128 @@ class SqlLabRestApi(BaseSupersetApi):
         )
         return response
 
+    @expose("/export_streaming/", methods=("POST",))
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.export_streaming_csv",
+        log_to_statsd=False,
+    )
+    def export_streaming_csv(self) -> Response:
+        """Export SQL query results using streaming for large datasets.
+        ---
+        post:
+          summary: Export SQL query results to CSV with streaming
+          requestBody:
+            description: Export parameters
+            required: true
+            content:
+              application/x-www-form-urlencoded:
+                schema:
+                  type: object
+                  properties:
+                    client_id:
+                      type: string
+                      description: The SQL query result identifier
+                    filename:
+                      type: string
+                      description: Optional filename for the export
+                    expected_rows:
+                      type: integer
+                      description: Optional expected row count for progress tracking
+          responses:
+            200:
+              description: Streaming CSV export
+              content:
+                text/csv:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Extract parameters from form data
+        client_id = request.form.get("client_id")
+        filename = request.form.get("filename")
+
+        if not client_id:
+            return self.response_400(message="client_id is required")
+
+        expected_rows = None
+        if expected_rows_str := request.form.get("expected_rows"):
+            try:
+                expected_rows = int(expected_rows_str)
+            except (ValueError, TypeError):
+                logger.warning("Invalid expected_rows value: %s", expected_rows_str)
+
+        return self._create_streaming_csv_response(client_id, filename, expected_rows)
+
+    def _create_streaming_csv_response(
+        self,
+        client_id: str,
+        filename: str | None = None,
+        expected_rows: int | None = None,
+    ) -> Response:
+        """Create a streaming CSV response for large SQL Lab result sets."""
+        from datetime import datetime
+
+        from superset.commands.sql_lab.streaming_export_command import (
+            StreamingSqlResultExportCommand,
+        )
+
+        # Execute streaming command
+        chunk_size = 1000
+        command = StreamingSqlResultExportCommand(client_id, chunk_size)
+        command.validate()
+
+        # Generate filename if not provided
+        if not filename:
+            query = command._query
+            assert query is not None
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_name = "".join(
+                c for c in (query.name or "query") if c.isalnum() or c in ("-", "_")
+            )
+            filename = f"sqllab_{safe_name}_{timestamp}.csv"
+
+        # Get the callable that returns the generator
+        csv_generator_callable = command.run()
+
+        # Get encoding from config
+        encoding = app.config.get("CSV_EXPORT", {}).get("encoding", "utf-8")
+
+        # Create response with streaming headers
+        response = Response(
+            csv_generator_callable(),  # Call the callable to get generator
+            mimetype=f"text/csv; charset={encoding}",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+                "X-Superset-Streaming": "true",  # Identify streaming responses
+            },
+            direct_passthrough=False,  # Flask must iterate generator
+        )
+
+        # Force chunked transfer encoding
+        response.implicit_sequence_conversion = False
+
+        logger.info(
+            "SQL Lab streaming CSV export started: client_id=%s, filename=%s",
+            client_id,
+            filename,
+        )
+
+        return response
+
     @expose("/results/")
     @protect()
     @statsd_metrics
