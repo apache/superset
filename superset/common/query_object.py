@@ -193,8 +193,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]
-            for x in metrics  # type: ignore
+            x if is_str_or_adhoc(x) else x["label"]  # type: ignore[misc,index]
+            for x in metrics
         ]
 
     def _set_post_processing(
@@ -384,12 +384,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _sanitize_metrics_expressions(self) -> None:
         """
         Process SQL expressions in adhoc metrics.
+        Creates new metric dictionaries to avoid mutating shared references.
         """
         # datasource is checked in parent method, assert for type checking
         assert self.datasource is not None
 
-        for metric in self.metrics or []:
+        if not self.metrics:
+            return
+
+        sanitized_metrics = []
+        for metric in self.metrics:
             if not (is_adhoc_metric(metric) and isinstance(metric, dict)):
+                sanitized_metrics.append(metric)
                 continue
             if sql_expr := metric.get("sqlExpression"):
                 try:
@@ -401,18 +407,34 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         template_processor=None,
                     )
                     if processed and processed != sql_expr:
-                        metric["sqlExpression"] = processed
+                        # Create new dict to avoid mutating shared references
+                        sanitized_metrics.append({**metric, "sqlExpression": processed})
+                    else:
+                        sanitized_metrics.append(metric)
                 except Exception as ex:  # pylint: disable=broad-except
                     # If processing fails, leave as-is and let execution handle it
                     logger.debug("Failed to sanitize metric SQL expression: %s", ex)
+                    sanitized_metrics.append(metric)
+            else:
+                sanitized_metrics.append(metric)
+
+        self.metrics = sanitized_metrics
 
     def _sanitize_orderby_expressions(self) -> None:
-        """Process SQL expressions in orderby items."""
+        """
+        Process SQL expressions in orderby items.
+        Creates new tuples and dictionaries to avoid mutating shared references.
+        """
         # datasource is checked in parent method, assert for type checking
         assert self.datasource is not None
 
-        for col, _ascending in self.orderby or []:
+        if not self.orderby:
+            return
+
+        sanitized_orderby = []
+        for col, ascending in self.orderby:
             if not (isinstance(col, dict) and col.get("sqlExpression")):
+                sanitized_orderby.append((col, ascending))
                 continue
             try:
                 processed = self.datasource._process_orderby_expression(
@@ -423,10 +445,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     template_processor=None,
                 )
                 if processed and processed != col["sqlExpression"]:
-                    col["sqlExpression"] = processed
+                    # Create new dict to avoid mutating shared references
+                    sanitized_orderby.append(
+                        ({**col, "sqlExpression": processed}, ascending)  # type: ignore[arg-type]
+                    )
+                else:
+                    sanitized_orderby.append((col, ascending))
             except Exception as ex:  # pylint: disable=broad-except
                 # If processing fails, leave as-is
                 logger.debug("Failed to sanitize orderby SQL expression: %s", ex)
+                sanitized_orderby.append((col, ascending))
+
+        self.orderby = sanitized_orderby
 
     def _validate_there_are_no_missing_series(self) -> None:
         missing_series = [col for col in self.series_columns if col not in self.columns]
