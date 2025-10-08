@@ -65,7 +65,7 @@ class StreamingCSVExportCommand(BaseCommand):
         """Validate permissions and query context."""
         self._query_context.raise_for_access()
 
-    def run(self) -> Callable[[], Generator[str, None, None]]:
+    def run(self) -> Callable[[], Generator[str, None, None]]:  # noqa: C901
         """
         Execute the streaming CSV export.
 
@@ -74,7 +74,7 @@ class StreamingCSVExportCommand(BaseCommand):
             The callable is needed to maintain Flask app context during streaming.
         """
 
-        def csv_generator() -> Generator[str, None, None]:
+        def csv_generator() -> Generator[str, None, None]:  # noqa: C901
             """Generator that yields CSV data from database query."""
             with self._current_app.app_context():
                 start_time = time.time()
@@ -166,9 +166,11 @@ class StreamingCSVExportCommand(BaseCommand):
 
                     logger.error("Traceback: %s", traceback.format_exc())
 
-                    # Yield error info and fallback data
-                    yield f"# Error occurred: {str(e)}\n"
-                    yield "error,message\n"
-                    yield f"CSV Export Error,{str(e)}\n"
+                    # Send error marker for frontend to detect
+                    error_marker = (
+                        "__STREAM_ERROR__:Export failed. "
+                        "Please try again in some time.\n"
+                    )
+                    yield error_marker
 
         return csv_generator

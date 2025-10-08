@@ -235,14 +235,15 @@ const ResultSet = ({
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
 
   // Streaming export hook
-  const { progress, startExport, resetExport } = useStreamingExport({
-    onComplete: () => {
-      // Modal will show download button
-    },
-    onError: error => {
-      addDangerToast(t('Export failed: %s', error));
-    },
-  });
+  const { progress, startExport, resetExport, retryExport } =
+    useStreamingExport({
+      onComplete: () => {
+        // Modal will show download button
+      },
+      onError: error => {
+        addDangerToast(t('Export failed: %s', error));
+      },
+    });
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -786,6 +787,7 @@ const ResultSet = ({
           <StreamingExportModal
             visible={showStreamingModal}
             onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
             progress={progress}
           />
         </ResultContainer>
@@ -798,6 +800,7 @@ const ResultSet = ({
           <StreamingExportModal
             visible={showStreamingModal}
             onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
             progress={progress}
           />
         </>
@@ -826,6 +829,7 @@ const ResultSet = ({
           <StreamingExportModal
             visible={showStreamingModal}
             onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
             progress={progress}
           />
         </>
@@ -844,6 +848,7 @@ const ResultSet = ({
           <StreamingExportModal
             visible={showStreamingModal}
             onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
             progress={progress}
           />
         </>

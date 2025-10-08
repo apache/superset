@@ -115,25 +115,18 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
     status: ExportStatus.STREAMING,
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastExportParamsRef = useRef<StreamingExportParams | null>(null);
 
   const updateProgress = useCallback((updates: Partial<StreamingProgress>) => {
     setProgress(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const startExport = useCallback(
-    async ({
-      url,
-      payload,
-      filename,
-      exportType,
-      expectedRows,
-    }: StreamingExportParams) => {
-      if (isExporting) {
-        return;
-      }
+  const executeExport = useCallback(
+    async (params: StreamingExportParams) => {
+      const { url, payload, filename, exportType, expectedRows } = params;
 
-      setIsExporting(true);
       abortControllerRef.current = new AbortController();
 
       updateProgress({
@@ -176,16 +169,44 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
         let rowsProcessed = 0;
+        let hasError = false;
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
           // eslint-disable-next-line no-await-in-loop
           const { done, value } = await reader.read();
 
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           if (abortControllerRef.current?.signal.aborted) {
             throw new Error('Export cancelled by user');
+          }
+
+          // Check for error marker in the chunk
+          const textDecoder = new TextDecoder();
+          const chunkText = textDecoder.decode(value);
+
+          if (chunkText.includes('__STREAM_ERROR__')) {
+            const errorMatch = chunkText.match(/__STREAM_ERROR__:(.+)/);
+            const errorMsg = errorMatch
+              ? errorMatch[1].trim()
+              : 'Export failed. Please try again in some time.';
+
+            // Update progress to show error with current progress preserved
+            updateProgress({
+              status: ExportStatus.ERROR,
+              error: errorMsg,
+              rowsProcessed,
+              totalRows: expectedRows,
+              totalSize: receivedLength,
+            });
+
+            setIsExporting(false);
+            options.onError?.(errorMsg);
+            hasError = true;
+            break;
           }
 
           chunks.push(value);
@@ -203,6 +224,11 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
             totalRows: expectedRows,
             totalSize: receivedLength,
           });
+        }
+
+        // Check if we exited early due to error marker
+        if (hasError) {
+          return;
         }
 
         const blob = createBlob(chunks, receivedLength, exportType);
@@ -226,20 +252,57 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           updateProgress({
             status: ExportStatus.CANCELLED,
           });
+          setIsExporting(false);
         } else {
           updateProgress({
             status: ExportStatus.ERROR,
             error: errorMessage,
           });
           options.onError?.(errorMessage);
+          setIsExporting(false);
         }
       } finally {
-        setIsExporting(false);
         abortControllerRef.current = null;
       }
     },
-    [isExporting, updateProgress, options],
+    [updateProgress, options],
   );
+
+  const startExport = useCallback(
+    async (params: StreamingExportParams) => {
+      if (isExporting) {
+        return;
+      }
+
+      setIsExporting(true);
+      setRetryCount(0);
+      lastExportParamsRef.current = params;
+
+      updateProgress({
+        rowsProcessed: 0,
+        totalRows: params.expectedRows,
+        totalSize: 0,
+        speed: 0,
+        mbPerSecond: 0,
+        elapsedTime: 0,
+        status: ExportStatus.STREAMING,
+        filename: params.filename,
+      });
+
+      executeExport(params);
+    },
+    [isExporting, updateProgress, executeExport],
+  );
+
+  const retryExport = useCallback(() => {
+    if (!lastExportParamsRef.current) {
+      return;
+    }
+
+    setIsExporting(true);
+    setRetryCount(0);
+    executeExport(lastExportParamsRef.current);
+  }, [executeExport]);
 
   const cancelExport = useCallback(() => {
     if (abortControllerRef.current) {
@@ -267,8 +330,10 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
   return {
     progress,
     isExporting,
+    retryCount,
     startExport,
     cancelExport,
     resetExport,
+    retryExport,
   };
 };

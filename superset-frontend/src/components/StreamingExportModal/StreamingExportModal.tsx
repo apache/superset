@@ -41,6 +41,7 @@ export interface StreamingProgress {
   speed?: number;
   mbPerSecond?: number;
   elapsedTime?: number;
+  retryCount?: number;
 }
 
 interface StreamingExportModalProps {
@@ -70,6 +71,22 @@ const SuccessIcon = styled(Icons.CheckCircleFilled)`
   color: #52c41a;
   font-size: 24px;
   flex-shrink: 0;
+`;
+
+const ErrorIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: #ff4d4f;
+  border-radius: 50%;
+  flex-shrink: 0;
+`;
+
+const ErrorIconStyled = styled(Icons.CloseOutlined)`
+  color: white;
+  font-size: 10px;
 `;
 
 const ActionButtons = styled.div`
@@ -147,14 +164,26 @@ const ErrorContent = ({
   error,
   onCancel,
   onRetry,
+  getProgressPercentage,
 }: {
   error?: string;
   onCancel: () => void;
   onRetry?: () => void;
+  getProgressPercentage: () => number;
 }) => (
   <ModalContent>
     <ProgressSection>
-      <Progress percent={0} status="exception" showInfo={false} />
+      <ProgressWrapper>
+        <Progress
+          percent={getProgressPercentage()}
+          status="exception"
+          showInfo={false}
+          style={{ flex: 1 }}
+        />
+        <ErrorIconWrapper>
+          <ErrorIconStyled />
+        </ErrorIconWrapper>
+      </ProgressWrapper>
       <ErrorText type="danger">{error || t('Export failed')}</ErrorText>
     </ProgressSection>
     <ActionButtons>
@@ -282,7 +311,12 @@ const ModalStateContent = ({
   switch (status) {
     case ExportStatus.ERROR:
       return (
-        <ErrorContent error={error} onCancel={onCancel} onRetry={onRetry} />
+        <ErrorContent
+          error={error}
+          onCancel={onCancel}
+          onRetry={onRetry}
+          getProgressPercentage={getProgressPercentage}
+        />
       );
     case ExportStatus.CANCELLED:
       return (

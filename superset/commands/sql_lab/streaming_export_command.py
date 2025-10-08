@@ -229,9 +229,11 @@ class StreamingSqlResultExportCommand(BaseCommand):
 
                     logger.error("Traceback: %s", traceback.format_exc())
 
-                    # Yield error info and fallback data
-                    yield f"# Error occurred: {str(e)}\n"
-                    yield "error,message\n"
-                    yield f"CSV Export Error,{str(e)}\n"
+                    # Send error marker for frontend to detect
+                    error_marker = (
+                        "__STREAM_ERROR__:Export failed. "
+                        "Please try again in some time.\n"
+                    )
+                    yield error_marker
 
         return csv_generator
