@@ -651,7 +651,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
-                chart_id=chart.id,
+                chart_id=str(chart.id),
                 window_size=window_size,
                 thumb_size=thumb_size,
                 force=force,
@@ -787,7 +787,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_chart_thumbnail.delay(
                 current_user=current_user,
-                chart_id=chart.id,
+                chart_id=str(chart.id),
                 force=False,
             )
             return self.response(
