@@ -56,6 +56,8 @@
       "@apache-superset/core": ["./packages/superset-core/src"],
       "@apache-superset/core/*": ["./packages/superset-core/src/*"],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
+      "@superset-ui/legacy-plugin-chart-*": ["./plugins/legacy-plugin-chart-*/src"],
+      "@superset-ui/legacy-preset-chart-*": ["./plugins/legacy-preset-chart-*/src"],
       "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
     }
   },
