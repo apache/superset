@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState, useEffect, useCallback } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import { useSelector } from 'react-redux';
 import {
   styled,
@@ -108,6 +114,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modal, contextHolder] = Modal.useModal();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -185,6 +199,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
+    if (!isMountedRef.current) {
+      return;
+    }
     setIsSaving(true);
     try {
       await SupersetClient.put({
@@ -195,6 +212,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+      if (!isMountedRef.current) {
+        return;
+      }
+      setIsSaving(false);
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
@@ -204,8 +225,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       });
       onHide();
     } catch (response) {
-      setIsSaving(false);
       const error = await getClientErrorObject(response);
+      if (!isMountedRef.current) {
+        return;
+      }
+      setIsSaving(false);
       let errorResponse: SupersetError | undefined;
       let errorText: string | undefined;
       // sip-40 error response

@@ -17,13 +17,148 @@
  * under the License.
  */
 import {
+  act,
   createWrapper,
   render,
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import {
+  TableProps,
+  OnChangeFunction,
+} from '@superset-ui/core/components/Table';
 import DatasetUsageTab from '.';
+
+interface Chart {
+  id?: number;
+  slice_name: string;
+  url: string;
+  certified_by?: string;
+  certification_details?: string;
+  description?: string;
+  owners: Array<{
+    first_name: string;
+    last_name: string;
+    id: number;
+  }>;
+  changed_on_delta_humanized: string;
+  changed_on?: string;
+  changed_by: {
+    first_name: string;
+    last_name: string;
+    id: number;
+  } | null;
+  dashboards: Array<{
+    id: number;
+    dashboard_title: string;
+    url: string;
+  }>;
+}
+
+jest.mock('@superset-ui/core/components/Table', () => {
+  const actual = jest.requireActual('@superset-ui/core/components/Table');
+  const ActualTable = actual.default;
+
+  let latestPaginationHandler:
+    | ((page: number, pageSize?: number) => void)
+    | null = null;
+  let latestPaginationPageSize: number | undefined;
+  let latestPaginationCurrent: number | undefined;
+  let latestPaginationTotal: number | undefined;
+  let latestOnChangeHandler: OnChangeFunction<Chart> | null = null;
+
+  const MockTable = <RecordType extends object>({
+    pagination,
+    onChange,
+    recordCount,
+    defaultPageSize = 15,
+    usePagination = true,
+    ...rest
+  }: TableProps<RecordType>) => {
+    // Simulate the Table wrapper's pagination merging logic
+    let mergedPagination = pagination;
+
+    if (usePagination) {
+      // Build default pagination settings like the wrapper does
+      const paginationDefaults: {
+        hideOnSinglePage: boolean;
+        pageSize: number;
+        total?: number;
+      } = {
+        hideOnSinglePage: true,
+        pageSize: defaultPageSize,
+      };
+
+      // Add total from recordCount if provided
+      if (recordCount) {
+        paginationDefaults.total = recordCount;
+      }
+
+      // Merge with pagination overrides
+      if (pagination && typeof pagination !== 'boolean') {
+        mergedPagination = { ...paginationDefaults, ...pagination };
+      } else if (!pagination) {
+        mergedPagination = paginationDefaults;
+      }
+    }
+
+    // Capture the merged pagination for assertions
+    if (mergedPagination && typeof mergedPagination !== 'boolean') {
+      latestPaginationPageSize = mergedPagination.pageSize;
+      latestPaginationCurrent = mergedPagination.current;
+      latestPaginationTotal = mergedPagination.total;
+      latestPaginationHandler = mergedPagination.onChange || null;
+    }
+
+    // Cast to Chart type since we know DatasetUsageTab uses Chart
+    latestOnChangeHandler =
+      (onChange as OnChangeFunction<Chart> | undefined) || null;
+
+    return (
+      <ActualTable
+        pagination={mergedPagination}
+        onChange={onChange}
+        recordCount={recordCount}
+        defaultPageSize={defaultPageSize}
+        usePagination={usePagination}
+        {...rest}
+      />
+    );
+  };
+
+  return {
+    __esModule: true,
+    ...actual,
+    default: MockTable,
+    __getLatestPaginationHandler: () => latestPaginationHandler,
+    __getLatestPaginationPageSize: () => latestPaginationPageSize,
+    __getLatestPaginationCurrent: () => latestPaginationCurrent,
+    __getLatestPaginationTotal: () => latestPaginationTotal,
+    __getLatestOnChangeHandler: () => latestOnChangeHandler,
+    __resetPaginationHandler: () => {
+      latestPaginationHandler = null;
+      latestPaginationPageSize = undefined;
+      latestPaginationCurrent = undefined;
+      latestPaginationTotal = undefined;
+      latestOnChangeHandler = null;
+    },
+  };
+});
+
+const tableMock = jest.requireMock('@superset-ui/core/components/Table') as {
+  __getLatestPaginationHandler: () =>
+    | ((page: number, pageSize?: number) => void)
+    | null;
+  __getLatestPaginationPageSize: () => number | undefined;
+  __getLatestPaginationCurrent: () => number | undefined;
+  __getLatestPaginationTotal: () => number | undefined;
+  __resetPaginationHandler: () => void;
+  __getLatestOnChangeHandler: () =>
+    | ((pagination: { current: number; pageSize?: number }) => void)
+    | null;
+};
 
 const mockChartsResponse = {
   result: [
@@ -83,6 +218,9 @@ const mockChartsResponse = {
   ids: [1, 2],
 };
 
+// Store original scrollTo to restore after tests
+let originalScrollTo: typeof Element.prototype.scrollTo;
+
 const setupTest = (props = {}) => {
   const mockOnFetchCharts = jest.fn(() =>
     Promise.resolve({
@@ -101,21 +239,48 @@ const setupTest = (props = {}) => {
     ...props,
   };
 
-  return render(<DatasetUsageTab {...defaultProps} />, {
+  const result = render(<DatasetUsageTab {...defaultProps} />, {
     wrapper: createWrapper({
       useRedux: true,
       useRouter: true,
     }),
   });
+
+  return { ...result, mockOnFetchCharts };
 };
 
 beforeEach(() => {
   fetchMock.reset();
   jest.clearAllMocks();
+
+  // Save original scrollTo and mock it for JSDOM compatibility
+  originalScrollTo = Element.prototype.scrollTo;
+  Object.defineProperty(Element.prototype, 'scrollTo', {
+    value: jest.fn(),
+    configurable: true,
+    writable: true,
+  });
+
+  // eslint-disable-next-line no-underscore-dangle
+  tableMock.__resetPaginationHandler();
 });
 
 afterEach(() => {
   fetchMock.restore();
+
+  // Restore real timers in case a test with fakeTimers failed mid-test
+  jest.useRealTimers();
+
+  // Restore original scrollTo to avoid test pollution
+  if (originalScrollTo) {
+    Object.defineProperty(Element.prototype, 'scrollTo', {
+      value: originalScrollTo,
+      configurable: true,
+      writable: true,
+    });
+  } else {
+    delete (Element.prototype as any).scrollTo;
+  }
 });
 
 test('renders empty state when no charts provided', () => {
@@ -211,4 +376,364 @@ test('enables sorting for Chart and Last modified columns', async () => {
     expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });
+});
+
+test('clears scroll timeout on unmount to prevent async updates', async () => {
+  jest.useFakeTimers();
+
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  scrollToMock.mockClear();
+
+  const manyCharts = Array.from({ length: 51 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { unmount, mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 51,
+  });
+
+  // eslint-disable-next-line no-underscore-dangle
+  const onChangeHandler = tableMock.__getLatestOnChangeHandler();
+  // eslint-disable-next-line no-underscore-dangle
+  const pageSize = tableMock.__getLatestPaginationPageSize();
+  expect(onChangeHandler).toBeDefined();
+
+  onChangeHandler?.({ current: 2, pageSize } as {
+    current: number;
+    pageSize?: number;
+  });
+
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
+  unmount();
+
+  act(() => {
+    jest.runAllTimers();
+  });
+
+  expect(scrollToMock).not.toHaveBeenCalled();
+});
+
+test('clears pending scroll timeout on rapid pagination clicks', async () => {
+  jest.useFakeTimers();
+
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  scrollToMock.mockClear();
+
+  const manyCharts = Array.from({ length: 60 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 60,
+  });
+
+  // eslint-disable-next-line no-underscore-dangle
+  const firstOnChange = tableMock.__getLatestOnChangeHandler();
+  // eslint-disable-next-line no-underscore-dangle
+  const pageSize = tableMock.__getLatestPaginationPageSize();
+  expect(firstOnChange).toBeDefined();
+
+  firstOnChange?.({ current: 2, pageSize } as {
+    current: number;
+    pageSize?: number;
+  });
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(50);
+  });
+
+  // eslint-disable-next-line no-underscore-dangle
+  const secondOnChange = tableMock.__getLatestOnChangeHandler();
+  expect(secondOnChange).toBeDefined();
+
+  secondOnChange?.({ current: 3, pageSize } as {
+    current: number;
+    pageSize?: number;
+  });
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      3,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
+  act(() => {
+    jest.runAllTimers();
+  });
+
+  expect(scrollToMock).toHaveBeenCalledTimes(1);
+  expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+});
+
+test('scrolls table to top after pagination with delay', async () => {
+  jest.useFakeTimers();
+
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  scrollToMock.mockClear();
+
+  const manyCharts = Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 30,
+  });
+
+  // eslint-disable-next-line no-underscore-dangle
+  const onChangeHandler = tableMock.__getLatestOnChangeHandler();
+  // eslint-disable-next-line no-underscore-dangle
+  const pageSize = tableMock.__getLatestPaginationPageSize();
+  expect(onChangeHandler).toBeDefined();
+
+  onChangeHandler?.({ current: 2, pageSize } as {
+    current: number;
+    pageSize?: number;
+  });
+
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
+  expect(scrollToMock).not.toHaveBeenCalled();
+
+  act(() => {
+    jest.advanceTimersByTime(100);
+  });
+
+  expect(scrollToMock).toHaveBeenCalledWith({
+    top: 0,
+    behavior: 'smooth',
+  });
+});
+
+test('displays correct pagination and navigates between pages', async () => {
+  const manyCharts = Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 30,
+  });
+
+  // Page 1: Verify UI shows page 1 is active (using Ant Design active class)
+  await waitFor(() => {
+    const page1Item = screen.getByRole('listitem', { name: '1' });
+    expect(page1Item).toHaveClass('ant-pagination-item-active');
+  });
+
+  // Soft assertion: verify component passes correct props to Table
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(1);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(30);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
+
+  // User clicks page 2 (using userEvent for realistic interaction)
+  const page2Item = screen.getByRole('listitem', { name: '2' });
+  await userEvent.click(page2Item);
+
+  // Data fetch called for page 2
+  await waitFor(() =>
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    ),
+  );
+
+  // Verify UI reflects page 2 is now active (using Ant Design active class)
+  await waitFor(() => {
+    const page2Item = screen.getByRole('listitem', { name: '2' });
+    expect(page2Item).toHaveClass('ant-pagination-item-active');
+  });
+
+  // Soft assertion: Table still receives correct total (catches the bug!)
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(2);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(30);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
+});
+
+test('maintains pagination state across multiple page changes', async () => {
+  const manyCharts = Array.from({ length: 60 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  const { mockOnFetchCharts } = setupTest({
+    charts: manyCharts.slice(0, 25),
+    totalCount: 60,
+  });
+
+  // Verify initial state (page 1) using Ant Design active class
+  await waitFor(() => {
+    const page1Item = screen.getByRole('listitem', { name: '1' });
+    expect(page1Item).toHaveClass('ant-pagination-item-active');
+  });
+
+  // Soft assertion: initial props are correct
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(60);
+
+  // User navigates to page 2
+  await userEvent.click(screen.getByRole('listitem', { name: '2' }));
+
+  await waitFor(() => {
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2,
+      25,
+      expect.any(String),
+      expect.any(String),
+    );
+    const page2Item = screen.getByRole('listitem', { name: '2' });
+    expect(page2Item).toHaveClass('ant-pagination-item-active');
+  });
+
+  // Soft assertion: props update correctly after navigation
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(2);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(60);
+
+  // User navigates to page 3
+  await userEvent.click(screen.getByRole('listitem', { name: '3' }));
+
+  await waitFor(() => {
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      3,
+      25,
+      expect.any(String),
+      expect.any(String),
+    );
+    const page3Item = screen.getByRole('listitem', { name: '3' });
+    expect(page3Item).toHaveClass('ant-pagination-item-active');
+  });
+
+  // Soft assertion: total remains consistent across all navigations
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(3);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(60);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
+});
+
+test('handles total count below one page (no pagination needed)', async () => {
+  const fewCharts = Array.from({ length: 5 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  setupTest({
+    charts: fewCharts,
+    totalCount: 5,
+  });
+
+  // Pagination should not show page 2 item since only 1 page exists
+  await waitFor(() => {
+    expect(
+      screen.queryByRole('listitem', { name: '2' }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Table receives correct props
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(5);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationCurrent()).toBe(1);
+});
+
+test('handles server returning fewer rows than page size', async () => {
+  const partialPage = Array.from({ length: 12 }, (_, i) => ({
+    id: i + 1,
+    slice_name: `Test Chart ${i + 1}`,
+    url: `/explore/${i + 1}/`,
+    owners: [],
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: null,
+    dashboards: [],
+  }));
+
+  setupTest({
+    charts: partialPage,
+    totalCount: 12,
+  });
+
+  // Only page 1 should exist
+  await waitFor(() => {
+    expect(
+      screen.queryByRole('listitem', { name: '2' }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Table receives correct total (not data.length!)
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationTotal()).toBe(12);
+  // eslint-disable-next-line no-underscore-dangle
+  expect(tableMock.__getLatestPaginationPageSize()).toBe(25);
 });
