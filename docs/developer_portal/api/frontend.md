@@ -1,477 +1,772 @@
 ---
 title: Frontend API Reference
 sidebar_position: 1
-hide_title: true
 ---
 
 <!--
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
 -->
 
-# Frontend API Reference
+# Frontend Extension API Reference
 
-The `@apache-superset/core` package provides comprehensive APIs for frontend extension development. All APIs are organized into logical namespaces for easy discovery and use.
+The `@apache-superset/core` package provides comprehensive APIs for frontend extensions to interact with Apache Superset. All APIs are versioned and follow semantic versioning principles.
 
-## Core API
+## Core APIs
 
-The core namespace provides fundamental extension functionality.
+### Extension Context
 
-### registerView
-
-Registers a new view or panel in the specified contribution point.
+Every extension receives a context object during activation that provides access to the extension system.
 
 ```typescript
-core.registerView(
-  id: string,
-  component: React.ComponentType
+interface ExtensionContext {
+  // Unique extension identifier
+  extensionId: string;
+
+  // Extension metadata
+  extensionPath: string;
+  extensionUri: Uri;
+
+  // Storage paths
+  globalStorageUri: Uri;
+  workspaceStorageUri: Uri;
+
+  // Subscription management
+  subscriptions: Disposable[];
+
+  // State management
+  globalState: Memento;
+  workspaceState: Memento;
+
+  // Extension-specific APIs
+  registerView(viewId: string, component: React.Component): Disposable;
+  registerCommand(commandId: string, handler: CommandHandler): Disposable;
+}
+```
+
+### Lifecycle Methods
+
+```typescript
+// Required: Called when extension is activated
+export function activate(context: ExtensionContext): void | Promise<void> {
+  console.log('Extension activated');
+}
+
+// Optional: Called when extension is deactivated
+export function deactivate(): void | Promise<void> {
+  console.log('Extension deactivated');
+}
+```
+
+## SQL Lab APIs
+
+The `sqlLab` namespace provides APIs specific to SQL Lab functionality.
+
+### Query Management
+
+```typescript
+// Get current query editor content
+sqlLab.getCurrentQuery(): string | undefined
+
+// Get active tab information
+sqlLab.getCurrentTab(): Tab | undefined
+
+// Get all open tabs
+sqlLab.getTabs(): Tab[]
+
+// Get available databases
+sqlLab.getDatabases(): Database[]
+
+// Get schemas for a database
+sqlLab.getSchemas(databaseId: number): Promise<Schema[]>
+
+// Get tables for a schema
+sqlLab.getTables(databaseId: number, schema: string): Promise<Table[]>
+
+// Insert text at cursor position
+sqlLab.insertText(text: string): void
+
+// Replace entire query
+sqlLab.replaceQuery(query: string): void
+
+// Execute current query
+sqlLab.executeQuery(): Promise<QueryResult>
+
+// Stop query execution
+sqlLab.stopQuery(queryId: string): Promise<void>
+```
+
+### Event Subscriptions
+
+```typescript
+// Query execution events
+sqlLab.onDidQueryRun(
+  listener: (event: QueryRunEvent) => void
+): Disposable
+
+sqlLab.onDidQueryComplete(
+  listener: (event: QueryCompleteEvent) => void
+): Disposable
+
+sqlLab.onDidQueryFail(
+  listener: (event: QueryFailEvent) => void
+): Disposable
+
+// Editor events
+sqlLab.onDidChangeEditorContent(
+  listener: (content: string) => void
+): Disposable
+
+sqlLab.onDidChangeActiveTab(
+  listener: (tab: Tab) => void
+): Disposable
+
+// Panel events
+sqlLab.onDidOpenPanel(
+  listener: (panel: Panel) => void
+): Disposable
+
+sqlLab.onDidClosePanel(
+  listener: (panel: Panel) => void
 ): Disposable
 ```
 
-**Example:**
-```typescript
-const panel = context.core.registerView('my-extension.panel', () => (
-  <MyPanelComponent />
-));
-```
-
-### getActiveView
-
-Gets the currently active view in a contribution area.
+### Types
 
 ```typescript
-core.getActiveView(area: string): View | undefined
+interface Tab {
+  id: string;
+  title: string;
+  query: string;
+  database: Database;
+  schema?: string;
+  isActive: boolean;
+  queryId?: string;
+  status?: 'pending' | 'running' | 'success' | 'error';
+}
+
+interface Database {
+  id: number;
+  name: string;
+  backend: string;
+  allows_subquery: boolean;
+  allows_ctas: boolean;
+  allows_cvas: boolean;
+}
+
+interface QueryResult {
+  queryId: string;
+  status: 'success' | 'error';
+  data?: any[];
+  columns?: Column[];
+  error?: string;
+  startTime: number;
+  endTime: number;
+  rows: number;
+}
 ```
 
 ## Commands API
 
-Manages command registration and execution.
+Register and execute commands within Superset.
 
-### registerCommand
-
-Registers a new command that can be triggered by menus, shortcuts, or programmatically.
+### Registration
 
 ```typescript
+interface CommandHandler {
+  execute(...args: any[]): any | Promise<any>;
+  isEnabled?(): boolean;
+  isVisible?(): boolean;
+}
+
+// Register a command
 commands.registerCommand(
-  id: string,
+  commandId: string,
   handler: CommandHandler
 ): Disposable
 
-interface CommandHandler {
+// Register with metadata
+commands.registerCommand(
+  commandId: string,
+  metadata: CommandMetadata,
+  handler: (...args: any[]) => any
+): Disposable
+
+interface CommandMetadata {
   title: string;
+  category?: string;
   icon?: string;
-  execute: (...args: any[]) => any;
-  isEnabled?: (...args: any[]) => boolean;
+  enablement?: string;
+  when?: string;
 }
 ```
 
-**Example:**
+### Execution
+
 ```typescript
-const cmd = context.commands.registerCommand('my-extension.analyze', {
-  title: 'Analyze Query',
-  icon: 'BarChartOutlined',
-  execute: () => {
-    const query = context.sqlLab.getCurrentQuery();
-    // Perform analysis
-  },
-  isEnabled: () => {
-    return context.sqlLab.hasActiveEditor();
-  }
-});
+// Execute a command
+commands.executeCommand<T>(
+  commandId: string,
+  ...args: any[]
+): Promise<T>
+
+// Get all registered commands
+commands.getCommands(): Promise<string[]>
+
+// Check if command exists
+commands.hasCommand(commandId: string): boolean
 ```
 
-### executeCommand
-
-Executes a registered command by ID.
+### Built-in Commands
 
 ```typescript
-commands.executeCommand(id: string, ...args: any[]): Promise<any>
+// SQL Lab commands
+'sqllab.executeQuery'
+'sqllab.formatQuery'
+'sqllab.saveQuery'
+'sqllab.shareQuery'
+'sqllab.downloadResults'
+
+// Editor commands
+'editor.action.formatDocument'
+'editor.action.commentLine'
+'editor.action.findReferences'
+
+// Extension commands
+'extensions.installExtension'
+'extensions.uninstallExtension'
+'extensions.enableExtension'
+'extensions.disableExtension'
 ```
 
-## SQL Lab API
+## UI Components
 
-Provides access to SQL Lab functionality and events.
+Pre-built components from `@apache-superset/core` for consistent UI.
 
-### Query Access
+### Basic Components
 
 ```typescript
-// Get current tab
-sqlLab.getCurrentTab(): Tab | undefined
-
-// Get all tabs
-sqlLab.getTabs(): Tab[]
-
-// Get current query
-sqlLab.getCurrentQuery(): string
-
-// Get selected text
-sqlLab.getSelectedText(): string | undefined
+import {
+  Button,
+  Input,
+  Select,
+  Checkbox,
+  Radio,
+  Switch,
+  Slider,
+  DatePicker,
+  TimePicker,
+  Tooltip,
+  Popover,
+  Modal,
+  Drawer,
+  Alert,
+  Message,
+  Notification,
+  Spin,
+  Progress
+} from '@apache-superset/core';
 ```
 
-### Database Access
+### Data Display
 
 ```typescript
-// Get available databases
-sqlLab.getDatabases(): Database[]
-
-// Get database by ID
-sqlLab.getDatabase(id: number): Database | undefined
-
-// Get schemas for database
-sqlLab.getSchemas(databaseId: number): Promise<string[]>
-
-// Get tables for schema
-sqlLab.getTables(
-  databaseId: number,
-  schema: string
-): Promise<Table[]>
+import {
+  Table,
+  List,
+  Card,
+  Collapse,
+  Tabs,
+  Tag,
+  Badge,
+  Statistic,
+  Timeline,
+  Tree,
+  Empty,
+  Result
+} from '@apache-superset/core';
 ```
 
-### Events
+### Form Components
 
 ```typescript
-// Query execution events
-sqlLab.onDidQueryRun: Event<QueryResult>
-sqlLab.onDidQueryStop: Event<QueryResult>
-sqlLab.onDidQueryFail: Event<QueryError>
-
-// Editor events
-sqlLab.onDidChangeEditorContent: Event<string>
-sqlLab.onDidChangeSelection: Event<Selection>
-
-// Tab events
-sqlLab.onDidChangeActiveTab: Event<Tab>
-sqlLab.onDidCloseTab: Event<Tab>
-sqlLab.onDidChangeTabTitle: Event<{tab: Tab, title: string}>
-
-// Panel events
-sqlLab.onDidOpenPanel: Event<Panel>
-sqlLab.onDidClosePanel: Event<Panel>
-sqlLab.onDidChangeActivePanel: Event<Panel>
-```
-
-**Event Usage Example:**
-```typescript
-const disposable = context.sqlLab.onDidQueryRun((result) => {
-  console.log('Query executed:', result.query);
-  console.log('Rows returned:', result.rowCount);
-  console.log('Execution time:', result.executionTime);
-});
-
-// Remember to dispose when done
-context.subscriptions.push(disposable);
+import {
+  Form,
+  FormItem,
+  FormList,
+  InputNumber,
+  TextArea,
+  Upload,
+  Rate,
+  Cascader,
+  AutoComplete,
+  Mentions
+} from '@apache-superset/core';
 ```
 
 ## Authentication API
 
-Handles authentication and security tokens.
-
-### getCSRFToken
-
-Gets the current CSRF token for API requests.
+Access authentication and user information.
 
 ```typescript
-authentication.getCSRFToken(): Promise<string>
-```
-
-### getCurrentUser
-
-Gets information about the current user.
-
-```typescript
-authentication.getCurrentUser(): User
+// Get current user
+authentication.getCurrentUser(): User | undefined
 
 interface User {
   id: number;
   username: string;
   email: string;
+  firstName: string;
+  lastName: string;
   roles: Role[];
-  permissions: Permission[];
-}
-```
-
-### hasPermission
-
-Checks if the current user has a specific permission.
-
-```typescript
-authentication.hasPermission(permission: string): boolean
-```
-
-## Extensions API
-
-Manages extension lifecycle and inter-extension communication.
-
-### getExtension
-
-Gets information about an installed extension.
-
-```typescript
-extensions.getExtension(id: string): Extension | undefined
-
-interface Extension {
-  id: string;
-  name: string;
-  version: string;
   isActive: boolean;
-  metadata: ExtensionMetadata;
+  isAnonymous: boolean;
 }
-```
 
-### getActiveExtensions
+// Get CSRF token for API requests
+authentication.getCSRFToken(): Promise<string>
 
-Gets all currently active extensions.
+// Check permissions
+authentication.hasPermission(
+  permission: string,
+  resource?: string
+): boolean
 
-```typescript
-extensions.getActiveExtensions(): Extension[]
-```
+// Get user preferences
+authentication.getPreferences(): UserPreferences
 
-### Events
-
-```typescript
-// Extension lifecycle events
-extensions.onDidActivateExtension: Event<Extension>
-extensions.onDidDeactivateExtension: Event<Extension>
-```
-
-## UI Components
-
-Import pre-built UI components from `@apache-superset/core`:
-
-```typescript
-import {
-  Button,
-  Select,
-  Input,
-  Table,
-  Modal,
-  Alert,
-  Tabs,
-  Card,
-  Dropdown,
-  Menu,
-  Tooltip,
-  Icon,
-  // ... many more
-} from '@apache-superset/core';
-```
-
-### Example Component Usage
-
-```typescript
-import { Button, Alert } from '@apache-superset/core';
-
-function MyExtensionPanel() {
-  return (
-    <div>
-      <Alert
-        message="Extension Loaded"
-        description="Your extension is ready to use"
-        type="success"
-      />
-      <Button
-        type="primary"
-        onClick={() => console.log('Clicked!')}
-      >
-        Execute Action
-      </Button>
-    </div>
-  );
-}
+// Update preferences
+authentication.setPreference(
+  key: string,
+  value: any
+): Promise<void>
 ```
 
 ## Storage API
 
-Provides persistent storage for extension data.
+Persist data across sessions.
 
-### Local Storage
+### Global Storage
 
 ```typescript
-// Store data
-storage.local.set(key: string, value: any): Promise<void>
+// Shared across all workspaces
+const globalState = context.globalState;
 
-// Retrieve data
-storage.local.get(key: string): Promise<any>
+// Get value
+const value = globalState.get<T>(key: string): T | undefined
 
-// Remove data
-storage.local.remove(key: string): Promise<void>
+// Set value
+await globalState.update(key: string, value: any): Promise<void>
 
-// Clear all extension data
-storage.local.clear(): Promise<void>
+// Get all keys
+globalState.keys(): readonly string[]
 ```
 
 ### Workspace Storage
 
-Workspace storage is shared across all users for collaborative features.
-
 ```typescript
-storage.workspace.set(key: string, value: any): Promise<void>
-storage.workspace.get(key: string): Promise<any>
-storage.workspace.remove(key: string): Promise<void>
+// Specific to current workspace
+const workspaceState = context.workspaceState;
+
+// Same API as globalState
+workspaceState.get<T>(key: string): T | undefined
+workspaceState.update(key: string, value: any): Promise<void>
+workspaceState.keys(): readonly string[]
 ```
 
-## Network API
-
-Utilities for making API calls to Superset.
-
-### fetch
-
-Enhanced fetch with CSRF token handling.
+### Secrets Storage
 
 ```typescript
-network.fetch(url: string, options?: RequestInit): Promise<Response>
+// Secure storage for sensitive data
+secrets.store(key: string, value: string): Promise<void>
+secrets.get(key: string): Promise<string | undefined>
+secrets.delete(key: string): Promise<void>
 ```
 
-### API Client
+## Events API
 
-Type-safe API client for Superset endpoints.
+Subscribe to and emit custom events.
 
 ```typescript
-// Get chart data
-network.api.charts.get(id: number): Promise<Chart>
+// Create an event emitter
+const onDidChange = new EventEmitter<ChangeEvent>();
 
-// Query database
-network.api.sqlLab.execute(
-  databaseId: number,
-  query: string
-): Promise<QueryResult>
+// Expose as event
+export const onChange = onDidChange.event;
 
-// Get datasets
-network.api.datasets.list(): Promise<Dataset[]>
+// Fire event
+onDidChange.fire({
+  type: 'update',
+  data: newData
+});
+
+// Subscribe to event
+const disposable = onChange((event) => {
+  console.log('Changed:', event);
+});
+
+// Cleanup
+disposable.dispose();
 ```
 
-## Utility Functions
+## Window API
 
-### Formatting
+Interact with the UI window.
 
-```typescript
-// Format numbers
-utils.formatNumber(value: number, format?: string): string
-
-// Format dates
-utils.formatDate(date: Date, format?: string): string
-
-// Format SQL
-utils.formatSQL(sql: string): string
-```
-
-### Validation
+### Notifications
 
 ```typescript
-// Validate SQL syntax
-utils.validateSQL(sql: string): ValidationResult
+// Show info message
+window.showInformationMessage(
+  message: string,
+  ...items: string[]
+): Promise<string | undefined>
 
-// Check if valid database ID
-utils.isValidDatabaseId(id: any): boolean
-```
+// Show warning
+window.showWarningMessage(
+  message: string,
+  ...items: string[]
+): Promise<string | undefined>
 
-## TypeScript Types
+// Show error
+window.showErrorMessage(
+  message: string,
+  ...items: string[]
+): Promise<string | undefined>
 
-Import common types for type safety:
+// Show with options
+window.showInformationMessage(
+  message: string,
+  options: MessageOptions,
+  ...items: MessageItem[]
+): Promise<MessageItem | undefined>
 
-```typescript
-import type {
-  Database,
-  Dataset,
-  Chart,
-  Dashboard,
-  Query,
-  QueryResult,
-  Tab,
-  Panel,
-  User,
-  Role,
-  Permission,
-  ExtensionContext,
-  Disposable,
-  Event,
-  // ... more types
-} from '@apache-superset/core';
-```
-
-## Extension Context
-
-The context object passed to your extension's `activate` function:
-
-```typescript
-interface ExtensionContext {
-  // Subscription management
-  subscriptions: Disposable[];
-
-  // Extension metadata
-  extensionId: string;
-  extensionPath: string;
-
-  // API namespaces
-  core: CoreAPI;
-  commands: CommandsAPI;
-  sqlLab: SqlLabAPI;
-  authentication: AuthenticationAPI;
-  extensions: ExtensionsAPI;
-  storage: StorageAPI;
-  network: NetworkAPI;
-  utils: UtilsAPI;
-
-  // Logging
-  logger: Logger;
+interface MessageOptions {
+  modal?: boolean;
+  detail?: string;
 }
 ```
 
-## Event Handling
-
-Events follow the VS Code pattern with subscribe/dispose:
+### Input Dialogs
 
 ```typescript
-// Subscribe to event
-const disposable = sqlLab.onDidQueryRun((result) => {
-  // Handle event
+// Show input box
+window.showInputBox(
+  options?: InputBoxOptions
+): Promise<string | undefined>
+
+interface InputBoxOptions {
+  title?: string;
+  prompt?: string;
+  placeHolder?: string;
+  value?: string;
+  password?: boolean;
+  validateInput?(value: string): string | null;
+}
+
+// Show quick pick
+window.showQuickPick(
+  items: string[] | QuickPickItem[],
+  options?: QuickPickOptions
+): Promise<string | QuickPickItem | undefined>
+
+interface QuickPickOptions {
+  title?: string;
+  placeHolder?: string;
+  canPickMany?: boolean;
+  matchOnDescription?: boolean;
+  matchOnDetail?: boolean;
+}
+```
+
+### Progress
+
+```typescript
+// Show progress
+window.withProgress<T>(
+  options: ProgressOptions,
+  task: (progress: Progress<{message?: string}>) => Promise<T>
+): Promise<T>
+
+interface ProgressOptions {
+  location: ProgressLocation;
+  title?: string;
+  cancellable?: boolean;
+}
+
+// Example usage
+await window.withProgress(
+  {
+    location: ProgressLocation.Notification,
+    title: "Processing",
+    cancellable: true
+  },
+  async (progress) => {
+    progress.report({ message: 'Step 1...' });
+    await step1();
+    progress.report({ message: 'Step 2...' });
+    await step2();
+  }
+);
+```
+
+## Workspace API
+
+Access workspace information and configuration.
+
+```typescript
+// Get workspace folders
+workspace.workspaceFolders: readonly WorkspaceFolder[]
+
+// Get configuration
+workspace.getConfiguration(
+  section?: string
+): WorkspaceConfiguration
+
+// Update configuration
+workspace.getConfiguration('myExtension')
+  .update('setting', value, ConfigurationTarget.Workspace)
+
+// Watch for configuration changes
+workspace.onDidChangeConfiguration(
+  listener: (e: ConfigurationChangeEvent) => void
+): Disposable
+
+// File system operations
+workspace.fs.readFile(uri: Uri): Promise<Uint8Array>
+workspace.fs.writeFile(uri: Uri, content: Uint8Array): Promise<void>
+workspace.fs.delete(uri: Uri): Promise<void>
+workspace.fs.rename(oldUri: Uri, newUri: Uri): Promise<void>
+workspace.fs.copy(source: Uri, destination: Uri): Promise<void>
+workspace.fs.createDirectory(uri: Uri): Promise<void>
+workspace.fs.readDirectory(uri: Uri): Promise<[string, FileType][]>
+workspace.fs.stat(uri: Uri): Promise<FileStat>
+```
+
+## HTTP Client API
+
+Make HTTP requests from extensions.
+
+```typescript
+import { api } from '@apache-superset/core';
+
+// GET request
+const response = await api.get('/api/v1/chart/');
+
+// POST request
+const response = await api.post('/api/v1/chart/', {
+  data: chartData
 });
 
-// Dispose when done
-disposable.dispose();
+// PUT request
+const response = await api.put('/api/v1/chart/123', {
+  data: updatedData
+});
 
-// Or add to context for automatic cleanup
-context.subscriptions.push(disposable);
+// DELETE request
+const response = await api.delete('/api/v1/chart/123');
+
+// Custom headers
+const response = await api.get('/api/v1/chart/', {
+  headers: {
+    'X-Custom-Header': 'value'
+  }
+});
+
+// Query parameters
+const response = await api.get('/api/v1/chart/', {
+  params: {
+    page: 1,
+    page_size: 20
+  }
+});
+```
+
+## Theming API
+
+Access and customize theme settings.
+
+```typescript
+// Get current theme
+theme.getActiveTheme(): Theme
+
+interface Theme {
+  name: string;
+  isDark: boolean;
+  colors: ThemeColors;
+  typography: Typography;
+  spacing: Spacing;
+}
+
+// Listen for theme changes
+theme.onDidChangeTheme(
+  listener: (theme: Theme) => void
+): Disposable
+
+// Get theme colors
+const colors = theme.colors;
+colors.primary
+colors.success
+colors.warning
+colors.error
+colors.info
+colors.text
+colors.background
+colors.border
+```
+
+## Disposable Pattern
+
+Manage resource cleanup consistently.
+
+```typescript
+interface Disposable {
+  dispose(): void;
+}
+
+// Create a disposable
+class MyDisposable implements Disposable {
+  dispose() {
+    // Cleanup logic
+  }
+}
+
+// Combine disposables
+const composite = Disposable.from(
+  disposable1,
+  disposable2,
+  disposable3
+);
+
+// Dispose all at once
+composite.dispose();
+
+// Use in extension
+export function activate(context: ExtensionContext) {
+  // All disposables added here are cleaned up on deactivation
+  context.subscriptions.push(
+    registerCommand(...),
+    registerView(...),
+    onDidChange(...)
+  );
+}
+```
+
+## Type Definitions
+
+Complete TypeScript definitions are available:
+
+```typescript
+import type {
+  ExtensionContext,
+  Disposable,
+  Event,
+  EventEmitter,
+  Uri,
+  Command,
+  QuickPickItem,
+  InputBoxOptions,
+  Progress,
+  CancellationToken
+} from '@apache-superset/core';
+```
+
+## Version Compatibility
+
+The API follows semantic versioning:
+
+```typescript
+// Check API version
+const version = superset.version;
+
+// Version components
+version.major // Breaking changes
+version.minor // New features
+version.patch // Bug fixes
+
+// Check minimum version
+if (version.major < 1) {
+  throw new Error('Requires Superset API v1.0.0 or higher');
+}
+```
+
+## Migration Guide
+
+### From v0.x to v1.0
+
+```typescript
+// Before (v0.x)
+sqlLab.runQuery(query);
+
+// After (v1.0)
+sqlLab.executeQuery();
+
+// Before (v0.x)
+core.registerPanel(id, component);
+
+// After (v1.0)
+context.registerView(id, component);
 ```
 
 ## Best Practices
 
-1. **Always dispose subscriptions** to prevent memory leaks
-2. **Use TypeScript** for better IDE support and type safety
-3. **Handle errors gracefully** with try-catch blocks
-4. **Check permissions** before sensitive operations
-5. **Use provided UI components** for consistency
-6. **Cache API responses** when appropriate
-7. **Validate user input** before processing
+### Error Handling
 
-## Version Compatibility
-
-The frontend API follows semantic versioning:
-
-- **Major version**: Breaking changes
-- **Minor version**: New features, backward compatible
-- **Patch version**: Bug fixes
-
-Check compatibility in your `extension.json`:
-
-```json
-{
-  "engines": {
-    "@apache-superset/core": "^1.0.0"
+```typescript
+export async function activate(context: ExtensionContext) {
+  try {
+    await initializeExtension();
+  } catch (error) {
+    console.error('Failed to initialize:', error);
+    window.showErrorMessage(
+      `Extension failed to activate: ${error.message}`
+    );
   }
+}
+```
+
+### Resource Management
+
+```typescript
+// Always use disposables
+const disposables: Disposable[] = [];
+
+disposables.push(
+  commands.registerCommand(...),
+  sqlLab.onDidQueryRun(...),
+  workspace.onDidChangeConfiguration(...)
+);
+
+// Cleanup in deactivate
+export function deactivate() {
+  disposables.forEach(d => d.dispose());
+}
+```
+
+### Type Safety
+
+```typescript
+// Use type guards
+function isDatabase(obj: any): obj is Database {
+  return obj && typeof obj.id === 'number' && typeof obj.name === 'string';
+}
+
+// Use generics
+function getValue<T>(key: string, defaultValue: T): T {
+  return context.globalState.get(key) ?? defaultValue;
 }
 ```

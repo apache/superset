@@ -36,6 +36,33 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'Extensions',
+      collapsed: true,
+      items: [
+        'extensions/architectural-principles',
+        'extensions/high-level-architecture',
+        'extensions/extension-project-structure',
+        'extensions/extension-metadata',
+        'extensions/frontend-contribution-types',
+        'extensions/interacting-with-host',
+        'extensions/dynamic-module-loading',
+        'extensions/deploying-extension',
+        'extensions/lifecycle-management',
+        'extensions/development-mode',
+        'extensions/versioning',
+        'extensions/security-implications',
+        {
+          type: 'doc',
+          id: 'extensions/built-in-features',
+          customProps: {
+            disabled: true,
+          },
+        },
+        'extensions/proof-of-concept',
+      ],
+    },
+    {
+      type: 'category',
       label: 'API Reference',
       items: [
         'api/frontend',

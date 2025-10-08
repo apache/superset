@@ -7,7 +7,7 @@
     "docusaurus": "docusaurus",
     "_init": "cat src/intro_header.txt ../README.md > docs/intro.md",
     "start": "yarn run _init && NODE_ENV=development docusaurus start",
-    "stop": "pkill -f 'docusaurus start' || echo 'No docusaurus server running'",
+    "stop": "pkill -f 'docusaurus start' || pkill -f 'docusaurus serve' || echo 'No docusaurus server running'",
     "build": "yarn run _init && DEBUG=docusaurus:* docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
