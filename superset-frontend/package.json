@@ -51,7 +51,7 @@
     "eslint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx --quiet",
     "eslint-minimal": "eslint --no-eslintrc --config .eslintrc.minimal.js --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx --quiet --no-inline-config",
     "format": "npm run _prettier -- --write",
-    "lint": "npx oxlint --config oxlint.json --quiet && npm run type",
+    "lint": "npx oxlint --config oxlint.json --quiet",
     "lint:all": "npx oxlint --config oxlint.json && npm run type",
     "lint-fix": "npx oxlint --config oxlint.json --fix --quiet",
     "lint-fix:all": "npx oxlint --config oxlint.json --fix",

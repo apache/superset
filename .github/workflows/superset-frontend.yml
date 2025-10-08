@@ -135,10 +135,10 @@ jobs:
         run: |
           docker load < docker-image.tar.gz
 
-      - name: eslint
+      - name: lint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run lint"
+          "npm i && npm run plugins:build && npm run lint"
 
       - name: tsc
         run: |
