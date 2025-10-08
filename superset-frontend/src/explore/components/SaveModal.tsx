@@ -33,7 +33,6 @@ import {
   Loading,
   Divider,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import {
   DatasourceType,
   isDefined,
@@ -41,7 +40,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';

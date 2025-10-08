@@ -18,14 +18,13 @@
  */
 import { useContext, useMemo, useState } from 'react';
 import { DatasourceType, Metric, QueryFormData, t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
 import { Constants, Input } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';

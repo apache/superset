@@ -27,7 +27,7 @@ import {
 import { omit } from 'lodash';
 
 import { t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
@@ -44,7 +44,6 @@ import {
   Space,
   Tooltip,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
 

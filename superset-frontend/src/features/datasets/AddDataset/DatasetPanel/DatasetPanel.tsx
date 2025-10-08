@@ -17,10 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, Alert } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import Table, {
   ColumnsType,
   TableSize,

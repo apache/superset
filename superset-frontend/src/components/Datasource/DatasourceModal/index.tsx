@@ -24,7 +24,7 @@ import {
   t,
   SupersetError,
 } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 
 import {
   Icons,
@@ -33,7 +33,6 @@ import {
   Modal,
   AsyncEsmComponent,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';

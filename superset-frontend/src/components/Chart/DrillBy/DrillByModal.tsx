@@ -29,7 +29,7 @@ import {
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme, Alert } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
@@ -39,7 +39,6 @@ import {
   Breadcrumb,
   Flex,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';

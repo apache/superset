@@ -20,7 +20,7 @@ import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import { ClientErrorObject, getExtensionsRegistry, t } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled, Alert } from '@apache-superset/core/ui';
 import {
   SafeMarkdown,
   Breadcrumb,
@@ -29,7 +29,6 @@ import {
   Dropdown,
   Skeleton,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';

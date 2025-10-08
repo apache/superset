@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { t, getClientErrorObject, VizType } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme, Alert } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
@@ -37,7 +37,6 @@ import {
   LabeledErrorBoundInput,
   type CronError,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';

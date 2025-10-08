@@ -23,9 +23,8 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, Alert } from '@apache-superset/core/ui';
 import { CssEditor, Select } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';

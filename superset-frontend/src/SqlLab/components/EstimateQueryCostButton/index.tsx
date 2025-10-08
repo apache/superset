@@ -19,7 +19,7 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled, Alert } from '@apache-superset/core/ui';
 
 import {
   Button,
@@ -28,7 +28,6 @@ import {
   TableView,
   EmptyWrapperType,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 

@@ -39,7 +39,6 @@ import {
   Label,
   Loading,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import {
   CopyToClipboard,
   FilterableTable,
@@ -55,7 +54,7 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,
   ISimpleColumn,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, Alert } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
@@ -30,7 +30,6 @@ import {
   Loading,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';

@@ -40,7 +40,7 @@ import {
   QueryResponse,
   Query,
 } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import type {
   QueryEditor,
   SqlLabRootState,
@@ -57,7 +57,6 @@ import {
   Modal,
   Timer,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';

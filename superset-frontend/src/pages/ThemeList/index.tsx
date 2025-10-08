@@ -19,7 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, Alert } from '@apache-superset/core/ui';
 import {
   Tag,
   DeleteModal,
@@ -29,7 +29,6 @@ import {
   Space,
   Modal,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';

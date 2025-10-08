@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { SupersetClient, t, getClientErrorObject } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, Alert } from '@apache-superset/core/ui';
 import {
   Button,
   Constants,
@@ -36,7 +36,6 @@ import {
   Modal,
   TableView,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import {
   ServerPagination,
   SortByType,

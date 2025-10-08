@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, getExtensionsRegistry } from '@superset-ui/core';
-import { styled, SupersetTheme } from '@apache-superset/core/ui';
+import { styled, SupersetTheme, Alert } from '@apache-superset/core/ui';
 
 import {
   FunctionComponent,
@@ -48,7 +48,6 @@ import {
   type UploadFile,
   FormLabel,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/ui';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {

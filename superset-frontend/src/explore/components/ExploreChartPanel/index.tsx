@@ -30,14 +30,13 @@ import {
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { Alert } from '@apache-superset/core/ui';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
