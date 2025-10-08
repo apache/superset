@@ -41,7 +41,10 @@
     "curly": "off",
     // TODO: Gradually enforce destructuring patterns
     "prefer-destructuring": "warn",
-    "prefer-const": ["error", { "destructuring": "any", "ignoreReadBeforeAssign": true }],
+    "prefer-const": [
+      "error",
+      { "destructuring": "any", "ignoreReadBeforeAssign": true }
+    ],
     "prefer-template": "error",
     "prefer-spread": "error",
     "prefer-rest-params": "error",
@@ -57,8 +60,16 @@
     "no-plusplus": "error",
     "no-nested-ternary": "off",
     "no-unneeded-ternary": ["error", { "defaultAssignment": false }],
-    "object-shorthand": ["error", "always", { "ignoreConstructors": false, "avoidQuotes": true }],
-    "arrow-body-style": ["error", "as-needed", { "requireReturnForObjectLiteral": false }],
+    "object-shorthand": [
+      "error",
+      "always",
+      { "ignoreConstructors": false, "avoidQuotes": true }
+    ],
+    "arrow-body-style": [
+      "error",
+      "as-needed",
+      { "requireReturnForObjectLiteral": false }
+    ],
 
     // === Import plugin rules ===
     "import/no-unresolved": "error",
@@ -87,32 +98,38 @@
     "import/prefer-default-export": "off",
     "import/no-relative-packages": "off",
     "import/no-import-module-exports": "off",
-    "import/no-extraneous-dependencies": ["error", {
-      "devDependencies": [
-        "test/**",
-        "tests/**",
-        "spec/**",
-        "**/__tests__/**",
-        "**/__mocks__/**",
-        "*.test.{js,jsx,ts,tsx}",
-        "*.spec.{js,jsx,ts,tsx}",
-        "**/*.test.{js,jsx,ts,tsx}",
-        "**/*.spec.{js,jsx,ts,tsx}",
-        "**/jest.config.js",
-        "**/jest.setup.js",
-        "**/webpack.config.js",
-        "**/webpack.config.*.js",
-        "**/.eslintrc.js"
-      ],
-      "optionalDependencies": false
-    }],
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": [
+          "test/**",
+          "tests/**",
+          "spec/**",
+          "**/__tests__/**",
+          "**/__mocks__/**",
+          "*.test.{js,jsx,ts,tsx}",
+          "*.spec.{js,jsx,ts,tsx}",
+          "**/*.test.{js,jsx,ts,tsx}",
+          "**/*.spec.{js,jsx,ts,tsx}",
+          "**/jest.config.js",
+          "**/jest.setup.js",
+          "**/webpack.config.js",
+          "**/webpack.config.*.js",
+          "**/.eslintrc.js"
+        ],
+        "optionalDependencies": false
+      }
+    ],
 
     // === React plugin rules ===
     "react/prop-types": "off",
     "react/require-default-props": "off",
     "react/forbid-prop-types": "off",
     "react/forbid-component-props": "warn",
-    "react/jsx-filename-extension": ["warn", { "extensions": [".jsx", ".tsx"] }],
+    "react/jsx-filename-extension": [
+      "warn",
+      { "extensions": [".jsx", ".tsx"] }
+    ],
     "react/jsx-fragments": ["warn", "syntax"],
     "react/jsx-no-bind": "off",
     "react/jsx-props-no-spreading": "off",
@@ -124,7 +141,10 @@
     "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
     "react/jsx-no-comment-textnodes": "error",
     "react/jsx-no-useless-fragment": "off",
-    "react/jsx-curly-brace-presence": ["error", { "props": "never", "children": "never" }],
+    "react/jsx-curly-brace-presence": [
+      "error",
+      { "props": "never", "children": "never" }
+    ],
     "react/no-array-index-key": "off",
     "react/no-children-prop": "error",
     "react/no-danger": "warn",
@@ -141,7 +161,10 @@
     "react/no-unused-state": "error",
     "react/no-will-update-set-state": "error",
     "react/prefer-es6-class": ["error", "always"],
-    "react/prefer-stateless-function": ["error", { "ignorePureComponents": true }],
+    "react/prefer-stateless-function": [
+      "error",
+      { "ignorePureComponents": true }
+    ],
     "react/require-render-return": "error",
     "react/self-closing-comp": "error",
     "react/void-dom-elements-no-children": "error",
@@ -158,7 +181,10 @@
     "react/react-in-jsx-scope": "off",
     "react/function-component-definition": "off",
     "react/default-props-match-prop-types": "off",
-    "react/button-has-type": ["error", { "button": true, "submit": true, "reset": false }],
+    "react/button-has-type": [
+      "error",
+      { "button": true, "submit": true, "reset": false }
+    ],
 
     // === React Hooks rules ===
     // TODO: Fix conditional hook usage and anonymous component issues

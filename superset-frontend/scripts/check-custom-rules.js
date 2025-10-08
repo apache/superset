@@ -45,18 +45,20 @@ function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
 
   // Check leadingComments on the node itself
   if (node.leadingComments) {
-    const hasDisable = node.leadingComments.some(comment =>
-      comment.value.includes('eslint-disable-next-line') &&
-      comment.value.includes(ruleName)
+    const hasDisable = node.leadingComments.some(
+      comment =>
+        comment.value.includes('eslint-disable-next-line') &&
+        comment.value.includes(ruleName),
     );
     if (hasDisable) return true;
   }
 
   // Check leadingComments on parent nodes (for expressions in assignments, etc.)
   if (parent && parent.leadingComments) {
-    const hasDisable = parent.leadingComments.some(comment =>
-      comment.value.includes('eslint-disable-next-line') &&
-      comment.value.includes(ruleName)
+    const hasDisable = parent.leadingComments.some(
+      comment =>
+        comment.value.includes('eslint-disable-next-line') &&
+        comment.value.includes(ruleName),
     );
     if (hasDisable) return true;
   }
@@ -66,9 +68,10 @@ function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
   while (current.parent) {
     current = current.parent;
     if (current.node && current.node.leadingComments) {
-      const hasDisable = current.node.leadingComments.some(comment =>
-        comment.value.includes('eslint-disable-next-line') &&
-        comment.value.includes(ruleName)
+      const hasDisable = current.node.leadingComments.some(
+        comment =>
+          comment.value.includes('eslint-disable-next-line') &&
+          comment.value.includes(ruleName),
       );
       if (hasDisable) return true;
     }
@@ -97,7 +100,9 @@ function checkNoLiteralColors(ast, filepath) {
         }
 
         // eslint-disable-next-line no-console
-        console.error(`${RED}✖${RESET} ${filepath}: Literal color "${value}" found. Use theme colors instead.`);
+        console.error(
+          `${RED}✖${RESET} ${filepath}: Literal color "${value}" found. Use theme colors instead.`,
+        );
         errorCount += 1;
       }
     },
@@ -106,14 +111,20 @@ function checkNoLiteralColors(ast, filepath) {
       path.node.quasis.forEach(quasi => {
         const value = quasi.value.raw;
         // Look for CSS color properties
-        if (value.match(/(?:color|background|border-color|outline-color):\s*(#[0-9A-Fa-f]{3,6}|rgb|rgba)/)) {
+        if (
+          value.match(
+            /(?:color|background|border-color|outline-color):\s*(#[0-9A-Fa-f]{3,6}|rgb|rgba)/,
+          )
+        ) {
           // Check if this line has an eslint-disable comment
           if (hasEslintDisable(path)) {
             return; // Skip this violation
           }
 
           // eslint-disable-next-line no-console
-          console.error(`${RED}✖${RESET} ${filepath}: Literal color in styled component. Use theme colors instead.`);
+          console.error(
+            `${RED}✖${RESET} ${filepath}: Literal color in styled component. Use theme colors instead.`,
+          );
           errorCount += 1;
         }
       });
@@ -130,16 +141,24 @@ function checkNoFaIcons(ast, filepath) {
       const source = path.node.source.value;
       if (source.includes('@fortawesome') || source.includes('font-awesome')) {
         // eslint-disable-next-line no-console
-        console.error(`${RED}✖${RESET} ${filepath}: FontAwesome import detected. Use @superset-ui/core/components/Icons instead.`);
+        console.error(
+          `${RED}✖${RESET} ${filepath}: FontAwesome import detected. Use @superset-ui/core/components/Icons instead.`,
+        );
         errorCount += 1;
       }
     },
     JSXAttribute(path) {
       if (path.node.name.name === 'className') {
         const { value } = path.node;
-        if (value && value.type === 'StringLiteral' && value.value.includes('fa-')) {
+        if (
+          value &&
+          value.type === 'StringLiteral' &&
+          value.value.includes('fa-')
+        ) {
           // eslint-disable-next-line no-console
-          console.error(`${RED}✖${RESET} ${filepath}: FontAwesome class detected. Use Icons component instead.`);
+          console.error(
+            `${RED}✖${RESET} ${filepath}: FontAwesome class detected. Use Icons component instead.`,
+          );
           errorCount += 1;
         }
       }
@@ -155,13 +174,18 @@ function checkI18nTemplates(ast, filepath) {
     CallExpression(path) {
       const { callee } = path.node;
       // Check for t() or tn() functions
-      if (callee.type === 'Identifier' && (callee.name === 't' || callee.name === 'tn')) {
+      if (
+        callee.type === 'Identifier' &&
+        (callee.name === 't' || callee.name === 'tn')
+      ) {
         const args = path.node.arguments;
         if (args.length > 0 && args[0].type === 'TemplateLiteral') {
           const templateLiteral = args[0];
           if (templateLiteral.expressions.length > 0) {
             // eslint-disable-next-line no-console
-            console.error(`${RED}✖${RESET} ${filepath}: Template variables in t() function. Use parameterized messages instead.`);
+            console.error(
+              `${RED}✖${RESET} ${filepath}: Template variables in t() function. Use parameterized messages instead.`,
+            );
             errorCount += 1;
           }
         }
@@ -189,7 +213,9 @@ function processFile(filepath) {
     checkI18nTemplates(ast, filepath);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.warn(`${YELLOW}⚠${RESET} Could not parse ${filepath}: ${error.message}`);
+    console.warn(
+      `${YELLOW}⚠${RESET} Could not parse ${filepath}: ${error.message}`,
+    );
     warningCount += 1;
   }
 }
@@ -219,11 +245,11 @@ function main() {
     /\/lib\//,
     /\/dist\//,
     /plugins\/legacy-/, // Legacy plugins can have old color patterns
-    /\/vendor\//,       // Third-party vendor code
-    /spec\/fixtures\//,  // Test fixtures
+    /\/vendor\//, // Third-party vendor code
+    /spec\/fixtures\//, // Test fixtures
     /theme\/exampleThemes/, // Theme examples legitimately have colors
-    /\/color\/utils/,    // Color utility functions legitimately work with colors
-    /\/theme\/utils/,    // Theme utility functions legitimately work with colors
+    /\/color\/utils/, // Color utility functions legitimately work with colors
+    /\/theme\/utils/, // Theme utility functions legitimately work with colors
     /packages\/superset-ui-core\/src\/color\/index\.ts/, // Core brand color constants
   ];
 
