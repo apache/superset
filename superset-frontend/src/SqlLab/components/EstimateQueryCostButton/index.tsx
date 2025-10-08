@@ -21,13 +21,13 @@ import { useSelector } from 'react-redux';
 import { css, styled, t } from '@superset-ui/core';
 
 import {
-  Alert,
   Button,
   Loading,
   ModalTrigger,
   TableView,
   EmptyWrapperType,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 

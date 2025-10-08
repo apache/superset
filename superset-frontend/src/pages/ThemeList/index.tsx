@@ -24,11 +24,11 @@ import {
   DeleteModal,
   ConfirmStatusChange,
   Loading,
-  Alert,
   Tooltip,
   Space,
   Modal,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';

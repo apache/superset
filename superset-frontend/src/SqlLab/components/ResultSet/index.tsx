@@ -30,7 +30,6 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import {
-  Alert,
   Button,
   ButtonGroup,
   Tooltip,
@@ -40,6 +39,7 @@ import {
   Label,
   Loading,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import {
   CopyToClipboard,
   FilterableTable,

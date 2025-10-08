@@ -24,7 +24,6 @@ import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import {
   InfoTooltip,
-  Alert,
   Button,
   AsyncSelect,
   Form,
@@ -34,6 +33,7 @@ import {
   Loading,
   Divider,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import {
   css,
   DatasourceType,

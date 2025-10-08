@@ -35,7 +35,6 @@ import SupersetText from 'src/utils/textUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  Alert,
   Button,
   Form,
   Input,
@@ -44,6 +43,7 @@ import {
   Space,
   Tooltip,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
 

@@ -52,7 +52,6 @@ import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, isEmpty, noop } from 'lodash';
 import Mousetrap from 'mousetrap';
 import {
-  Alert,
   Button,
   Dropdown,
   EmptyState,
@@ -60,6 +59,7 @@ import {
   Modal,
   Timer,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';

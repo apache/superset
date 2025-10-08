@@ -18,7 +18,8 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Alert, Loading } from '@superset-ui/core/components';
+import { Loading } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import Table, {
   ColumnsType,
   TableSize,

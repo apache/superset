@@ -26,7 +26,8 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Select, Tooltip, Alert } from '@superset-ui/core/components';
+import { Select, Tooltip } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {

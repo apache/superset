@@ -32,7 +32,6 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import {
-  Alert,
   Button,
   Constants,
   EmptyWrapperType,
@@ -41,6 +40,7 @@ import {
   Modal,
   TableView,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import {
   ServerPagination,
   SortByType,

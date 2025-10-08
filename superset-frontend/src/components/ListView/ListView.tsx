@@ -22,7 +22,6 @@ import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
-  Alert,
   Button,
   Checkbox,
   Icons,
@@ -30,6 +29,7 @@ import {
   Loading,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';

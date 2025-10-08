@@ -35,12 +35,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   Button,
-  Alert,
   Modal,
   Loading,
   Breadcrumb,
   Flex,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';

@@ -28,7 +28,6 @@ export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
-export { Alert, type AlertProps } from '@apache-superset/core/ui';
 export { CertifiedBadge } from './CertifiedBadge';
 export * from './Icons';
 export * from './Timer';

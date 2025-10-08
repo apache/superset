@@ -19,12 +19,12 @@
 import { useState } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 import {
-  Alert,
   Icons,
   Modal,
   Tooltip,
   Typography,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import type { ErrorAlertProps } from './types';
 
 export const ErrorAlert: React.FC<ErrorAlertProps> = ({

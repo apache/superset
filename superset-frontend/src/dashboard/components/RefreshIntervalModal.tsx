@@ -18,7 +18,8 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { Alert, Form } from '@superset-ui/core/components';
+import { Form } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import { StandardModal } from 'src/components/Modal';
 import {
   RefreshFrequencySelect,

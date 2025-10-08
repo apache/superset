@@ -39,7 +39,6 @@ import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
-  Alert,
   Button,
   Icons,
   LabeledErrorBoundInput as ValidatedInput,
@@ -53,6 +52,7 @@ import {
   type UploadFile,
   FormLabel,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {

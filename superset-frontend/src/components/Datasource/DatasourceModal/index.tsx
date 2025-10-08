@@ -30,12 +30,12 @@ import {
 
 import {
   Icons,
-  Alert,
   Button,
   Checkbox,
   Modal,
   AsyncEsmComponent,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';

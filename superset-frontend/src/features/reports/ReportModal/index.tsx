@@ -37,11 +37,11 @@ import {
   editReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
-  Alert,
   Input,
   LabeledErrorBoundInput,
   type CronError,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';

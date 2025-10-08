@@ -28,13 +28,13 @@ import {
 } from '@superset-ui/core';
 import {
   SafeMarkdown,
-  Alert,
   Breadcrumb,
   Button,
   Card,
   Dropdown,
   Skeleton,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
