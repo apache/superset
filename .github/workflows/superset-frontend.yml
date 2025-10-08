@@ -138,7 +138,7 @@ jobs:
       - name: eslint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run eslint -- . --quiet"
+          "npm i && npm run lint"
 
       - name: tsc
         run: |
