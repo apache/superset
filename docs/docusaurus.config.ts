@@ -110,8 +110,8 @@ if (!versionsConfig.components.disabled) {
   });
 }
 
-// Add Developer Portal navbar item if not disabled
-if (!versionsConfig.developer_portal.disabled) {
+// Add Developer Portal navbar item if not hidden from nav
+if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_portal.hideFromNav) {
   dynamicNavbarItems.push({
     label: 'Developer Portal',
     position: 'left',
