@@ -12,7 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "@fontsource/fira-code": "^5.2.6",
-    "@fontsource/inter": "^5.2.6"
+    "@fontsource/inter": "^5.2.6",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
@@ -24,7 +25,8 @@
     "install": "^0.13.0",
     "npm": "^11.1.0",
     "typescript": "^5.0.0",
-    "@emotion/styled": "^11.14.1"
+    "@emotion/styled": "^11.14.1",
+    "@types/lodash": "^4.17.20"
   },
   "peerDependencies": {
     "antd": "^5.24.9",
