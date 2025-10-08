@@ -60,6 +60,9 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   forceMaxInterval?: boolean;
   tooltipTimeFormat?: string;
   zoomable: boolean;
+  zoomableClipYAxis: boolean;
+  zoomableStart: number;
+  zoomableEnd: number;
   richTooltip: boolean;
   showQueryIdentifiers?: boolean;
   xAxisLabelRotation: number;
@@ -134,6 +137,9 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   groupby: [],
   groupbyB: [],
   zoomable: TIMESERIES_DEFAULTS.zoomable,
+  zoomableClipYAxis: TIMESERIES_DEFAULTS.zoomableClipYAxis,
+  zoomableStart: TIMESERIES_DEFAULTS.zoomableStart,
+  zoomableEnd: TIMESERIES_DEFAULTS.zoomableEnd,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
   showQueryIdentifiers: false,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,
