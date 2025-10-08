@@ -183,19 +183,23 @@ const Chart = props => {
   const [width, setWidth] = useState(props.width);
 
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
-  const { progress, isExporting, startExport, cancelExport, resetExport } =
-    useStreamingExport({
-      onComplete: () => {
-        boundActionCreators.addSuccessToast(
-          t('CSV file downloaded successfully'),
-        );
-      },
-      onError: () => {
-        boundActionCreators.addDangerToast(
-          t('Export failed - please try again'),
-        );
-      },
-    });
+  const {
+    progress,
+    isExporting,
+    startExport,
+    cancelExport,
+    resetExport,
+    retryExport,
+  } = useStreamingExport({
+    onComplete: () => {
+      boundActionCreators.addSuccessToast(
+        t('CSV file downloaded successfully'),
+      );
+    },
+    onError: () => {
+      boundActionCreators.addDangerToast(t('Export failed - please try again'));
+    },
+  });
   const history = useHistory();
   const resize = useCallback(
     debounce(() => {
@@ -623,12 +627,7 @@ const Chart = props => {
           }
           setIsStreamingModalVisible(false);
         }}
-        onRetry={() => {
-          resetExport();
-          // Note: Retry would need to store the last export parameters
-          // For now, just close the modal and let user retry manually
-          setIsStreamingModalVisible(false);
-        }}
+        onRetry={retryExport}
         progress={progress}
         exportType="csv"
       />
