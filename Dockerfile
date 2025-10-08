@@ -84,10 +84,10 @@ FROM superset-node-ci AS superset-node
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/root/.npm \
     if [ "${DEV_MODE}" = "false" ]; then \
-        echo "Running 'npm run ${BUILD_CMD}'"; \
-        npm run ${BUILD_CMD}; \
+        echo "Running 'npm run plugins:build && npm run ${BUILD_CMD}'"; \
+        npm run plugins:build && npm run ${BUILD_CMD}; \
     else \
-        echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
+        echo "Skipping 'npm run plugins:build && npm run ${BUILD_CMD}' in dev mode"; \
     fi;
 
 # Copy translation files
