@@ -41,6 +41,7 @@ import {
   VizType,
   FeatureFlag,
   isFeatureEnabled,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import dayjs from 'dayjs';
@@ -227,39 +228,50 @@ export const SaveDatasetModal = ({
     }
     setLoading(true);
 
-    const [, key] = await Promise.all([
-      updateDataset(
-        datasource?.dbId,
-        datasetToOverwrite?.datasetid,
-        datasource?.sql,
-        datasource?.columns?.map(
-          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.column_name,
-            type: d.type,
-            is_dttm: d.is_dttm,
-          }),
+    try {
+      const [, key] = await Promise.all([
+        updateDataset(
+          datasource?.dbId,
+          datasetToOverwrite?.datasetid,
+          datasource?.sql,
+          datasource?.columns?.map(
+            (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+              column_name: d.column_name,
+              type: d.type,
+              is_dttm: d.is_dttm,
+            }),
+          ),
+          datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+          true,
         ),
-        datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
-        true,
-      ),
-      postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...formDataWithDefaults,
-        datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === VizType.Table && {
-          all_columns: datasource?.columns?.map(column => column.column_name),
+        postFormData(datasetToOverwrite.datasetid, 'table', {
+          ...formDataWithDefaults,
+          datasource: `${datasetToOverwrite.datasetid}__table`,
+          ...(defaultVizType === VizType.Table && {
+            all_columns: datasource?.columns?.map(column => column.column_name),
+          }),
         }),
-      }),
-    ]);
-    setLoading(false);
+      ]);
+      setLoading(false);
 
-    const url = mountExploreUrl(null, {
-      [URL_PARAMS.formDataKey.name]: key,
-    });
-    createWindow(url);
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      createWindow(url);
 
-    setShouldOverwriteDataset(false);
-    setDatasetName(getDefaultDatasetName());
-    onHide();
+      setShouldOverwriteDataset(false);
+      setDatasetName(getDefaultDatasetName());
+      onHide();
+    } catch (error) {
+      setLoading(false);
+      getClientErrorObject(error).then((e: { error: string }) => {
+        dispatch(
+          addDangerToast(
+            e.error || t('An error occurred while overwriting the dataset'),
+          ),
+        );
+      });
+    }
   };
 
   const loadDatasetOverwriteOptions = useCallback(
