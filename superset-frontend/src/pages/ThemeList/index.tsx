@@ -83,15 +83,6 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
-interface ConfirmModalConfig {
-  visible: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => Promise<any>;
-  successMessage: string;
-  errorMessage: string;
-}
-
 interface ThemesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -126,9 +117,8 @@ function ThemesList({
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
-  // State for confirmation modal
-  const [confirmModalConfig, setConfirmModalConfig] =
-    useState<ConfirmModalConfig | null>(null);
+  // Use Modal.useModal hook to ensure proper theming
+  const [modal, contextHolder] = Modal.useModal();
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -256,83 +246,60 @@ function ThemesList({
   };
 
   // Generic confirmation modal utility to reduce code duplication
-  const showThemeConfirmation = useCallback(
-    (config: {
-      title: string;
-      content: string;
-      onConfirm: () => Promise<any>;
-      successMessage: string;
-      errorMessage: string;
-    }) => {
-      setConfirmModalConfig({
-        visible: true,
-        title: config.title,
-        message: config.content,
-        onConfirm: config.onConfirm,
-        successMessage: config.successMessage,
-        errorMessage: config.errorMessage,
-      });
-    },
-    [],
-  );
-
-  const handleConfirmModalOk = async () => {
-    if (!confirmModalConfig) return;
-
-    try {
-      await confirmModalConfig.onConfirm();
-      refreshData();
-      addSuccessToast(confirmModalConfig.successMessage);
-      setConfirmModalConfig(null);
-    } catch (err: any) {
-      addDangerToast(t(confirmModalConfig.errorMessage, err.message));
-    }
+  const showThemeConfirmation = (config: {
+    title: string;
+    content: string;
+    onConfirm: () => Promise<any>;
+    successMessage: string;
+    errorMessage: string;
+  }) => {
+    modal.confirm({
+      title: config.title,
+      content: config.content,
+      onOk: () => {
+        config
+          .onConfirm()
+          .then(() => {
+            refreshData();
+            addSuccessToast(config.successMessage);
+          })
+          .catch(err => {
+            addDangerToast(t(config.errorMessage, err.message));
+          });
+      },
+    });
   };
 
-  const handleConfirmModalCancel = () => {
-    setConfirmModalConfig(null);
+  const handleSetSystemDefault = (theme: ThemeObject) => {
+    showThemeConfirmation({
+      title: t('Set System Default Theme'),
+      content: t(
+        'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
+        theme.theme_name,
+      ),
+      onConfirm: () => setSystemDefaultTheme(theme.id!),
+      successMessage: t(
+        '"%s" is now the system default theme',
+        theme.theme_name,
+      ),
+      errorMessage: 'Failed to set system default theme: %s',
+    });
   };
 
-  const handleSetSystemDefault = useCallback(
-    (theme: ThemeObject) => {
-      showThemeConfirmation({
-        title: t('Set System Default Theme'),
-        content: t(
-          'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
-          theme.theme_name,
-        ),
-        onConfirm: () => setSystemDefaultTheme(theme.id!),
-        successMessage: t(
-          '"%s" is now the system default theme',
-          theme.theme_name,
-        ),
-        errorMessage: 'Failed to set system default theme: %s',
-      });
-    },
-    [showThemeConfirmation],
-  );
+  const handleSetSystemDark = (theme: ThemeObject) => {
+    showThemeConfirmation({
+      title: t('Set System Dark Theme'),
+      content: t(
+        'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
+        theme.theme_name,
+      ),
+      onConfirm: () => setSystemDarkTheme(theme.id!),
+      successMessage: t('"%s" is now the system dark theme', theme.theme_name),
+      errorMessage: 'Failed to set system dark theme: %s',
+    });
+  };
 
-  const handleSetSystemDark = useCallback(
-    (theme: ThemeObject) => {
-      showThemeConfirmation({
-        title: t('Set System Dark Theme'),
-        content: t(
-          'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
-          theme.theme_name,
-        ),
-        onConfirm: () => setSystemDarkTheme(theme.id!),
-        successMessage: t(
-          '"%s" is now the system dark theme',
-          theme.theme_name,
-          theme.theme_name,
-        ),
-        errorMessage: 'Failed to set system dark theme: %s',
-      });
-    },
-    [showThemeConfirmation],
-  );
-
-  const handleUnsetSystemDefault = useCallback(() => {
+  const handleUnsetSystemDefault = () => {
     showThemeConfirmation({
       title: t('Remove System Default Theme'),
       content: t(
@@ -342,9 +309,9 @@ function ThemesList({
       successMessage: t('System default theme removed'),
       errorMessage: 'Failed to remove system default theme: %s',
     });
-  }, [showThemeConfirmation]);
+  };
 
-  const handleUnsetSystemDark = useCallback(() => {
+  const handleUnsetSystemDark = () => {
     showThemeConfirmation({
       title: t('Remove System Dark Theme'),
       content: t(
@@ -354,7 +321,7 @@ function ThemesList({
       successMessage: t('System dark theme removed'),
       errorMessage: 'Failed to remove system dark theme: %s',
     });
-  }, [showThemeConfirmation]);
+  };
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
@@ -626,6 +593,7 @@ function ThemesList({
 
   return (
     <>
+      {contextHolder}
       <SubMenu {...menuData} />
       <ThemeModal
         addDangerToast={addDangerToast}
@@ -732,17 +700,6 @@ function ThemesList({
         }}
       </ConfirmStatusChange>
       {preparingExport && <Loading />}
-      {confirmModalConfig?.visible && (
-        <Modal
-          title={confirmModalConfig.title}
-          show={confirmModalConfig.visible}
-          onHide={handleConfirmModalCancel}
-          onHandledPrimaryAction={handleConfirmModalOk}
-          primaryButtonName={t('Yes')}
-        >
-          {confirmModalConfig.message}
-        </Modal>
-      )}
     </>
   );
 }

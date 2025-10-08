@@ -79,8 +79,6 @@ import { Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
-const { confirm } = Modal;
-
 const TABS_KEYS = {
   DATA: 'DATA',
   CUSTOMIZE: 'CUSTOMIZE',
@@ -287,6 +285,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const theme = useTheme();
   const pluginContext = useContext(PluginContext);
+  const [modal, contextHolder] = Modal.useModal();
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
@@ -324,7 +323,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           filter.subject === x_axis,
       );
       if (noFilter) {
-        confirm({
+        modal.confirm({
           title: t('The X-axis is not on the filters list'),
           content:
             t(`The X-axis is not on the filters list which will prevent it from being used in
@@ -851,110 +850,116 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }
 
   return (
-    <Styles ref={containerRef}>
-      <Tabs
-        id="controlSections"
-        data-test="control-tabs"
-        allowOverflow={false}
-        items={[
-          {
-            key: TABS_KEYS.DATA,
-            label: dataTabTitle,
-            children: (
-              <>
-                {showDatasourceAlert && <DatasourceAlert />}
-                <Collapse
-                  defaultActiveKey={expandedQuerySections}
-                  expandIconPosition="end"
-                  ghost
-                  bordered
-                  items={[...querySections.map(renderControlPanelSection)]}
-                />
-              </>
-            ),
-          },
-          ...(showCustomizeTab
-            ? [
-                {
-                  key: TABS_KEYS.CUSTOMIZE,
-                  label: t('Customize'),
-                  children: (
-                    <Collapse
-                      defaultActiveKey={expandedCustomizeSections}
-                      expandIconPosition="end"
-                      ghost
-                      bordered
-                      items={[
-                        ...customizeSections.map(renderControlPanelSection),
-                      ]}
-                    />
-                  ),
-                },
-              ]
-            : []),
-          ...(showMatrixifyTab
-            ? [
-                {
-                  key: TABS_KEYS.MATRIXIFY,
-                  label: matrixifyTabLabel,
-                  children: (
-                    <>
-                      {/* Render Enable Matrixify control outside collapsible sections */}
-                      {matrixifyEnableControl &&
-                        (
-                          matrixifyEnableControl as ControlPanelSectionConfig
-                        ).controlSetRows.map(
-                          (controlSetRow: CustomControlItem[], i: number) => (
-                            <div
-                              key={`matrixify-enable-${i}`}
-                              css={css`
-                                padding: ${theme.sizeUnit * 4}px;
-                                border-bottom: 1px solid ${theme.colorBorder};
-                              `}
-                            >
-                              {controlSetRow.map(
-                                (control: CustomControlItem, j: number) => {
-                                  if (!control || typeof control === 'string') {
-                                    return null;
-                                  }
-                                  return (
-                                    <div key={`control-${i}-${j}`}>
-                                      {renderControl(control)}
-                                    </div>
-                                  );
-                                },
-                              )}
-                            </div>
-                          ),
-                        )}
+    <>
+      {contextHolder}
+      <Styles ref={containerRef}>
+        <Tabs
+          id="controlSections"
+          data-test="control-tabs"
+          allowOverflow={false}
+          items={[
+            {
+              key: TABS_KEYS.DATA,
+              label: dataTabTitle,
+              children: (
+                <>
+                  {showDatasourceAlert && <DatasourceAlert />}
+                  <Collapse
+                    defaultActiveKey={expandedQuerySections}
+                    expandIconPosition="end"
+                    ghost
+                    bordered
+                    items={[...querySections.map(renderControlPanelSection)]}
+                  />
+                </>
+              ),
+            },
+            ...(showCustomizeTab
+              ? [
+                  {
+                    key: TABS_KEYS.CUSTOMIZE,
+                    label: t('Customize'),
+                    children: (
                       <Collapse
-                        defaultActiveKey={expandedMatrixifySections}
-                        expandIconPosition="right"
+                        defaultActiveKey={expandedCustomizeSections}
+                        expandIconPosition="end"
                         ghost
                         bordered
                         items={[
-                          ...matrixifySections.map(renderControlPanelSection),
+                          ...customizeSections.map(renderControlPanelSection),
                         ]}
                       />
-                    </>
-                  ),
-                },
-              ]
-            : []),
-        ]}
-      />
-      <div css={actionButtonsContainerStyles}>
-        <RunQueryButton
-          onQuery={props.onQuery}
-          onStop={props.onStop}
-          errorMessage={props.buttonErrorMessage || props.errorMessage}
-          loading={props.chart.chartStatus === 'loading'}
-          isNewChart={!props.chart.queriesResponse}
-          canStopQuery={props.canStopQuery}
-          chartIsStale={props.chartIsStale}
+                    ),
+                  },
+                ]
+              : []),
+            ...(showMatrixifyTab
+              ? [
+                  {
+                    key: TABS_KEYS.MATRIXIFY,
+                    label: matrixifyTabLabel,
+                    children: (
+                      <>
+                        {/* Render Enable Matrixify control outside collapsible sections */}
+                        {matrixifyEnableControl &&
+                          (
+                            matrixifyEnableControl as ControlPanelSectionConfig
+                          ).controlSetRows.map(
+                            (controlSetRow: CustomControlItem[], i: number) => (
+                              <div
+                                key={`matrixify-enable-${i}`}
+                                css={css`
+                                  padding: ${theme.sizeUnit * 4}px;
+                                  border-bottom: 1px solid ${theme.colorBorder};
+                                `}
+                              >
+                                {controlSetRow.map(
+                                  (control: CustomControlItem, j: number) => {
+                                    if (
+                                      !control ||
+                                      typeof control === 'string'
+                                    ) {
+                                      return null;
+                                    }
+                                    return (
+                                      <div key={`control-${i}-${j}`}>
+                                        {renderControl(control)}
+                                      </div>
+                                    );
+                                  },
+                                )}
+                              </div>
+                            ),
+                          )}
+                        <Collapse
+                          defaultActiveKey={expandedMatrixifySections}
+                          expandIconPosition="right"
+                          ghost
+                          bordered
+                          items={[
+                            ...matrixifySections.map(renderControlPanelSection),
+                          ]}
+                        />
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
         />
-      </div>
-    </Styles>
+        <div css={actionButtonsContainerStyles}>
+          <RunQueryButton
+            onQuery={props.onQuery}
+            onStop={props.onStop}
+            errorMessage={props.buttonErrorMessage || props.errorMessage}
+            loading={props.chart.chartStatus === 'loading'}
+            isNewChart={!props.chart.queriesResponse}
+            canStopQuery={props.canStopQuery}
+            chartIsStale={props.chartIsStale}
+          />
+        </div>
+      </Styles>
+    </>
   );
 };
 
