@@ -295,6 +295,8 @@ class SqlLabRestApi(BaseSupersetApi):
         return response
 
     @expose("/export_streaming/", methods=("POST",))
+    @protect()
+    @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self,
