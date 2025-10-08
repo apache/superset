@@ -192,7 +192,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
             const errorMatch = chunkText.match(/__STREAM_ERROR__:(.+)/);
             const errorMsg = errorMatch
               ? errorMatch[1].trim()
-              : 'Export failed. Please try again in some time.';
+              : 'Export failed. Please try again.';
 
             // Update progress to show error with current progress preserved
             updateProgress({
