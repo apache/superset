@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  styled,
-  SupersetTheme,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import { t, getExtensionsRegistry } from '@superset-ui/core';
+import { styled, SupersetTheme } from '@apache-superset/core/ui';
 
 import {
   FunctionComponent,

@@ -48,16 +48,14 @@ import {
 import { nanoid } from 'nanoid';
 import {
   QueryState,
-  styled,
   t,
   tn,
-  useTheme,
   usePrevious,
-  css,
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,
   ISimpleColumn,

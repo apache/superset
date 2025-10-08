@@ -35,14 +35,13 @@ import {
 } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/ui';
 import {
-  css,
   DatasourceType,
   isDefined,
   logging,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';

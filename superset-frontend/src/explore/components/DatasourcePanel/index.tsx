@@ -17,15 +17,8 @@
  * under the License.
  */
 import { useContext, useMemo, useState } from 'react';
-import {
-  css,
-  DatasourceType,
-  Metric,
-  QueryFormData,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { DatasourceType, Metric, QueryFormData, t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';

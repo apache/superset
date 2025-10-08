@@ -30,7 +30,8 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getFilterBarTestId } from './utils';

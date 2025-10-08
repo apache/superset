@@ -26,11 +26,11 @@ import {
 import type { SelectValue } from '@superset-ui/core/components';
 
 import {
-  styled,
   t,
   getClientErrorMessage,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   FormLabel,
   CertifiedBadge,

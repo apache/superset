@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  EmotionCacheProvider,
-  createEmotionCache,
-  supersetTheme,
-  ThemeProvider,
-} from '@superset-ui/core';
+import { EmotionCacheProvider, createEmotionCache } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
 
 const emotionCache = createEmotionCache({
   key: 'test',

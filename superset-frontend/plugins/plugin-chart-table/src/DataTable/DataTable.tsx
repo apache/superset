@@ -27,7 +27,8 @@ import {
   DragEvent,
   useEffect,
 } from 'react';
-import { styled, typedMemo, usePrevious } from '@superset-ui/core';
+import { typedMemo, usePrevious } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   useTable,
   usePagination,

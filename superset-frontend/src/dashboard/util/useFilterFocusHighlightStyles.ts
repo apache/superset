@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { Filter, useTheme } from '@superset-ui/core';
+import { Filter } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 
 import { RootState } from 'src/dashboard/types';

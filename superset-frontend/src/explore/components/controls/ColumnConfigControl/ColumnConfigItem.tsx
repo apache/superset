@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo } from 'react';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Popover } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';

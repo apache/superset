@@ -30,13 +30,9 @@ import {
 import {
   ensureIsArray,
   t,
-  styled,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
-  css,
-  SupersetTheme,
-  useTheme,
   isDefined,
   JsonValue,
   NO_TIME_RANGE,
@@ -44,6 +40,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   ControlPanelSectionConfig,
   ControlState,

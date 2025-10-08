@@ -22,19 +22,17 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
-  css,
   isFeatureEnabled,
   getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
-  styled,
   SupersetClient,
-  themeObject,
   t,
   withTheme,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { css, styled, themeObject } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';

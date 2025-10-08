@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Form } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/ui';
 import { StandardModal } from 'src/components/Modal';

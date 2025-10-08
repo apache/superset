@@ -19,13 +19,8 @@
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import {
-  ClientErrorObject,
-  css,
-  getExtensionsRegistry,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { ClientErrorObject, getExtensionsRegistry, t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import {
   SafeMarkdown,
   Breadcrumb,

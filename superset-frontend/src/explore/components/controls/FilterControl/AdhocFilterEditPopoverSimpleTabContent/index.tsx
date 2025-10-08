@@ -23,12 +23,10 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   isDefined,
-  styled,
   SupersetClient,
-  useTheme,
   t,
-  css,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import {
   Operators,
   OPERATORS_OPTIONS,

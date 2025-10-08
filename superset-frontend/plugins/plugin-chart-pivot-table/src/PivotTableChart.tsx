@@ -31,10 +31,9 @@ import {
   isFeatureEnabled,
   isPhysicalColumn,
   NumberFormatter,
-  styled,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,

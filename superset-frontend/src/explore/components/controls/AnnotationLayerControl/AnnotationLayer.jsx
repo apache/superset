@@ -32,11 +32,11 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
-  styled,
   getColumnLabel,
   withTheme,
   VizType,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';

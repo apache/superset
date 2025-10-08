@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState, memo } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';

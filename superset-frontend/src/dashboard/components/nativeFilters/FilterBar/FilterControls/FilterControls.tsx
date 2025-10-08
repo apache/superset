@@ -31,11 +31,10 @@ import {
   DataMaskStateWithId,
   Filter,
   Divider,
-  css,
-  SupersetTheme,
   t,
   isNativeFilterWithDataMask,
 } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import {
   createHtmlPortalNode,
   InPortal,

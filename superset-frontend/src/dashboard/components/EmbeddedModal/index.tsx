@@ -19,12 +19,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   makeApi,
-  styled,
   SupersetApiError,
   t,
-  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import {
   Button,
   FormItem,

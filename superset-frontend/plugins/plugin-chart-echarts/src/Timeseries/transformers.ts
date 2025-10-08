@@ -27,11 +27,11 @@ import {
   IntervalAnnotationLayer,
   isThemeDark,
   LegendState,
-  SupersetTheme,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import type {
   CallbackDataParams,
   DefaultStatesMixin,

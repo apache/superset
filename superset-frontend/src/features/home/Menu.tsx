@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css, useTheme } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { styled, t, css } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { CertifiedBadge, InfoTooltip } from '@superset-ui/core/components';
 import Table, {
   TableSize,

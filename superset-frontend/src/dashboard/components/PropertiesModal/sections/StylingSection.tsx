@@ -19,11 +19,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   t,
-  styled,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { CssEditor, Select } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/ui';
 import rison from 'rison';
