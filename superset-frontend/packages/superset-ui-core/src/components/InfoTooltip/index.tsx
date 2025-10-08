@@ -19,8 +19,8 @@
 import { KeyboardEvent, useMemo } from 'react';
 import { SerializedStyles, CSSObject } from '@emotion/react';
 import { kebabCase } from 'lodash';
-import { t, getFontSize } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@superset-ui/core';
+import { css, useTheme, getFontSize } from '@apache-superset/core/ui';
 import {
   CloseCircleOutlined,
   InfoCircleOutlined,

@@ -25,13 +25,12 @@ import {
   FilterState,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  isThemeDark,
   LegendState,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme, isThemeDark } from '@apache-superset/core/ui';
 import type {
   CallbackDataParams,
   DefaultStatesMixin,

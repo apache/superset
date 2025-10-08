@@ -28,11 +28,16 @@ import {
   FeatureFlag,
   SupersetClient,
   t,
-  withTheme,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, themeObject } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  themeObject,
+  Alert,
+  withTheme,
+} from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -43,7 +48,6 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import {
-  Alert,
   AsyncSelect,
   Badge,
   Button,
