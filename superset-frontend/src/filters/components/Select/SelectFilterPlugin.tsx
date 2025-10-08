@@ -418,12 +418,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }
     }
   }, [
-	defaultToFirstItem,
-	updateDataMask,
-	formData,
-	data,
-	JSON.stringify(filterState.value)
-]);
+    defaultToFirstItem,
+    updateDataMask,
+    formData,
+    data,
+    JSON.stringify(filterState.value),
+  ]);
 
   useEffect(() => {
     setDataMask(dataMask);

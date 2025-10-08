@@ -20,8 +20,8 @@
 import { SupersetTheme } from '@superset-ui/core';
 
 export const getAccessibleColorBounds = (theme: SupersetTheme): string[] => [
-  theme.colorError,    // Red variant for negative/danger
-  theme.colorPrimary,  // Blue variant for positive/primary
+  theme.colorError, // Red variant for negative/danger
+  theme.colorPrimary, // Blue variant for positive/primary
 ];
 
 // Default fallback for backward compatibility

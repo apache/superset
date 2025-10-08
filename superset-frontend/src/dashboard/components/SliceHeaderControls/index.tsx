@@ -354,7 +354,7 @@ const SliceHeaderControls = (
   };
 
   const newMenuItems: MenuItem[] = [
-    ({
+    {
       key: MenuKeys.ForceRefresh,
       label: (
         <>
@@ -367,7 +367,7 @@ const SliceHeaderControls = (
       disabled: props.chartStatus === 'loading',
       style: { height: 'auto', lineHeight: 'initial' },
       'data-test': 'refresh-chart-menu-item', // Typescript hack to get around MenuItem type
-    } as any),
+    } as any,
     {
       key: MenuKeys.Fullscreen,
       label: fullscreenLabel,

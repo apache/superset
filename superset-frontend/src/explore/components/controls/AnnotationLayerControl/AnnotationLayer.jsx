@@ -855,7 +855,9 @@ class AnnotationLayer extends PureComponent {
                 this.setState({ color: AUTOMATIC_COLOR });
               } else {
                 // Set to first theme color or dark color as fallback
-                this.setState({ color: colorScheme[0] || this.props.theme.colorTextBase });
+                this.setState({
+                  color: colorScheme[0] || this.props.theme.colorTextBase,
+                });
               }
             }}
           />

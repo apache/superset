@@ -66,7 +66,9 @@ const AntDFunctionalColors = () => {
               <strong>{type}</strong>
             </td>
             {variants.map(variant => {
-              const color = (themeObject as any).getColorVariants?.(type)?.[variant];
+              const color = (themeObject as any).getColorVariants?.(type)?.[
+                variant
+              ];
               return (
                 <td
                   key={variant}

@@ -936,7 +936,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                           expandIconPosition="end"
                           ghost
                           bordered
-                          items={matrixifySections.map(renderControlPanelSection)}
+                          items={matrixifySections.map(
+                            renderControlPanelSection,
+                          )}
                         />
                       </>
                     ),

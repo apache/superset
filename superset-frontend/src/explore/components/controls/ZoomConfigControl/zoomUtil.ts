@@ -29,7 +29,6 @@ import {
   ZoomConfigsExp,
 } from './types';
 
-
 /**
  * Compute the position for a drag graphic.
  *

@@ -58,8 +58,8 @@ test('should ignore the sortOperator', () => {
       {
         ...formData,
 
-          x_axis_sort: undefined,
-          x_axis_sort_asc: true,
+        x_axis_sort: undefined,
+        x_axis_sort_asc: true,
       },
       queryObject,
     ),
@@ -71,10 +71,10 @@ test('should ignore the sortOperator', () => {
       {
         ...formData,
 
-          x_axis_sort: 'metric label',
-          x_axis_sort_asc: true,
-          groupby: ['col1'],
-          x_axis: 'axis column',
+        x_axis_sort: 'metric label',
+        x_axis_sort_asc: true,
+        groupby: ['col1'],
+        x_axis: 'axis column',
       },
       queryObject,
     ),
@@ -87,9 +87,9 @@ test('should sort by metric', () => {
       {
         ...formData,
 
-          metrics: ['a metric label'],
-          x_axis_sort: 'a metric label',
-          x_axis_sort_asc: true,
+        metrics: ['a metric label'],
+        x_axis_sort: 'a metric label',
+        x_axis_sort_asc: true,
       },
       queryObject,
     ),
@@ -108,9 +108,9 @@ test('should sort by axis', () => {
       {
         ...formData,
 
-          x_axis_sort: 'Categorical Column',
-          x_axis_sort_asc: true,
-          x_axis: 'Categorical Column',
+        x_axis_sort: 'Categorical Column',
+        x_axis_sort_asc: true,
+        x_axis: 'Categorical Column',
       },
       queryObject,
     ),
