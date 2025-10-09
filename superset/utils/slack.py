@@ -50,8 +50,9 @@ def get_slack_client() -> WebClient:
         token = token()
     client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
 
-    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
+    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=4)
     client.retry_handlers.append(rate_limit_handler)
+    logger.info("Slack client initialized with rate limit handler (max_retry_count=4)")
 
     return client
 
@@ -74,16 +75,40 @@ def get_channels() -> list[SlackChannelSchema]:
     extra_params = {"types": ",".join(SlackChannelTypes)}
     cursor = None
 
-    while True:
-        response = client.conversations_list(
-            limit=999, cursor=cursor, exclude_archived=True, **extra_params
-        )
-        channels.extend(
-            channel_schema.load(channel) for channel in response.data["channels"]
-        )
-        cursor = response.data.get("response_metadata", {}).get("next_cursor")
-        if not cursor:
-            break
+    try:
+        while True:
+            try:
+                response = client.conversations_list(
+                    limit=999, cursor=cursor, exclude_archived=True, **extra_params
+                )
+                channels.extend(
+                    channel_schema.load(channel)
+                    for channel in response.data["channels"]
+                )
+                cursor = response.data.get("response_metadata", {}).get("next_cursor")
+                if not cursor:
+                    break
+            except SlackApiError as ex:
+                # Check if this is a rate limit error
+                if (
+                    hasattr(ex.response, "status_code")
+                    and ex.response.status_code == 429
+                ):
+                    retry_after = ex.response.headers.get("Retry-After", "unknown")
+                    logger.error(
+                        "Slack API rate limit exceeded (HTTP 429). "
+                        "Retry-After: %s seconds. "
+                        "This may indicate the retry handler failed or "
+                        "exhausted retries (max 4). Error: %s",
+                        retry_after,
+                        ex,
+                    )
+                else:
+                    logger.error("Slack API error: %s", ex)
+                raise
+    except Exception:
+        logger.exception("Unexpected error fetching Slack channels")
+        raise
 
     return channels
 
