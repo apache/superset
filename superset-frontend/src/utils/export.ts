@@ -16,34 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import parseCookie from 'src/utils/parseCookie';
+import { SupersetClient, logging } from '@superset-ui/core';
 import rison from 'rison';
-import { nanoid } from 'nanoid';
+import contentDisposition from 'content-disposition';
 import { ensureAppRoot } from './pathUtils';
 
-export default function handleResourceExport(
+export default async function handleResourceExport(
   resource: string,
   ids: number[],
   done: () => void,
-  interval = 200,
-): void {
-  const token = nanoid();
-  const url = ensureAppRoot(
-    `/api/v1/${resource}/export/?q=${rison.encode(ids)}&token=${token}`,
+): Promise<void> {
+  const endpoint = ensureAppRoot(
+    `/api/v1/${resource}/export/?q=${rison.encode(ids)}`,
   );
 
-  // create new iframe for export
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = url;
-  document.body.appendChild(iframe);
+  try {
+    // Use fetch with blob response instead of iframe to avoid CSP frame-src violations
+    const response = await SupersetClient.get({
+      endpoint,
+      headers: {
+        Accept: 'application/zip, application/x-zip-compressed, text/plain',
+      },
+      parseMethod: 'raw',
+    });
 
-  const timer = window.setInterval(() => {
-    const cookie: { [cookieId: string]: string } = parseCookie();
-    if (cookie[token] === 'done') {
-      window.clearInterval(timer);
-      document.body.removeChild(iframe);
-      done();
+    // Parse filename from Content-Disposition header
+    const disposition = response.headers.get('Content-Disposition');
+    let fileName = `${resource}_export.zip`;
+
+    if (disposition) {
+      try {
+        const parsed = contentDisposition.parse(disposition);
+        if (parsed?.parameters?.filename) {
+          fileName = parsed.parameters.filename;
+        }
+      } catch (error) {
+        logging.warn('Failed to parse Content-Disposition header:', error);
+      }
     }
-  }, interval);
+
+    // Convert response to blob and trigger download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    done();
+  } catch (error) {
+    logging.error('Resource export failed:', error);
+    done();
+    throw error;
+  }
 }
