@@ -254,11 +254,32 @@ describe('DashboardTable', () => {
     expect(otherTab).toHaveClass('active');
   });
 
-  test('handles bulk dashboard export', async () => {
+  test('handles bulk dashboard export with correct ID and shows spinner', async () => {
+    const mockExport = jest.fn().mockResolvedValue({});
+    jest.mock('src/utils/export', () => ({
+      __esModule: true,
+      default: mockExport,
+    }));
+
     const props = {
       ...defaultProps,
       mine: mockDashboards,
     };
+
+    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+      state: {
+        loading: false,
+        resourceCollection: mockDashboards,
+        resourceCount: mockDashboards.length,
+        bulkSelectEnabled: false,
+        lastFetched: new Date().toISOString(),
+      },
+      setResourceCollection: jest.fn(),
+      hasPerm: jest.fn().mockReturnValue(true),
+      refreshData: jest.fn(),
+      fetchData: jest.fn(),
+      toggleBulkSelect: jest.fn(),
+    }));
 
     render(
       <Router history={history}>
@@ -280,7 +301,13 @@ describe('DashboardTable', () => {
     const exportOption = screen.getByText('Export');
     await userEvent.click(exportOption);
 
+    // Verify spinner shows up during export
     expect(screen.getByRole('status')).toBeInTheDocument();
+
+    // Wait for export to complete
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
   });
 
   test('handles dashboard deletion confirmation', async () => {

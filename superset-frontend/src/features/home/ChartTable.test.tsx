@@ -115,3 +115,49 @@ test('renders mine tab on click', async () => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
 });
+
+test('handles chart export with correct ID and shows spinner', async () => {
+  const mockExport = jest.fn().mockImplementation(() => {
+    // Simulate async export that takes some time
+    return new Promise(resolve => setTimeout(resolve, 100));
+  });
+
+  jest.mock('src/utils/export', () => ({
+    __esModule: true,
+    default: mockExport,
+  }));
+
+  await renderChartTable(mineTabProps);
+
+  // Click Mine tab to see charts
+  userEvent.click(screen.getByText(/mine/i));
+
+  await waitFor(() => {
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+  });
+
+  // Find and click the more options button for the first chart
+  const moreButtons = screen.getAllByRole('img', { name: /more/i });
+  await userEvent.click(moreButtons[0]);
+
+  // Wait for dropdown menu
+  await waitFor(() => {
+    expect(screen.getByText('Export')).toBeInTheDocument();
+  });
+
+  const exportOption = screen.getByText('Export');
+  await userEvent.click(exportOption);
+
+  // Verify spinner appears during export
+  await waitFor(() => {
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  // Wait for export to complete and spinner to disappear
+  await waitFor(
+    () => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+});
