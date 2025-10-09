@@ -74,15 +74,20 @@ beforeEach(() => {
   createObjectURLSpy = jest
     .spyOn(window.URL, 'createObjectURL')
     .mockReturnValue('blob:mock-url');
-  revokeObjectURLSpy = jest
-    .spyOn(window.URL, 'revokeObjectURL')
-    .mockImplementation(() => {});
+
+  // Create revokeObjectURL if it doesn't exist
+  if (!window.URL.revokeObjectURL) {
+    window.URL.revokeObjectURL = jest.fn();
+  }
+  revokeObjectURLSpy = jest.spyOn(window.URL, 'revokeObjectURL');
 });
 
 afterEach(() => {
   createElementSpy.mockRestore();
   createObjectURLSpy.mockRestore();
-  revokeObjectURLSpy.mockRestore();
+  if (revokeObjectURLSpy) {
+    revokeObjectURLSpy.mockRestore();
+  }
 });
 
 test('exports resource with correct endpoint and headers', async () => {
