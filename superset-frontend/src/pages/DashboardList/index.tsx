@@ -274,9 +274,7 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const handleBulkDashboardExport = async (
-    dashboardsToExport: Dashboard[],
-  ) => {
+  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
     setPreparingExport(true);
     try {
