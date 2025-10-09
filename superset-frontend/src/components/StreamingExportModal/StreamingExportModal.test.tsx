@@ -81,7 +81,7 @@ test('shows completed state when export finishes', () => {
   expect(
     screen.getByText(/Export successful: test_export.csv/i),
   ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Download' })).not.toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Download' })).toBeEnabled();
 });
 
 test('shows error state when export fails', () => {
@@ -159,7 +159,7 @@ test('triggers download when download button is clicked', async () => {
   );
 
   const downloadButton = screen.getByRole('button', { name: 'Download' });
-  expect(downloadButton).not.toBeDisabled();
+  expect(downloadButton).toBeEnabled();
 
   await userEvent.click(downloadButton);
 
