@@ -42,6 +42,7 @@ import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVis
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
+import { convertAgGridFiltersToSQL, type AgGridFilterModel } from './utils/agGridFilterConverter';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -250,6 +251,26 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask, serverPagination],
   );
 
+  const handleAgGridColumnFiltersChange = useCallback(
+    (filterModel: AgGridFilterModel) => {
+      if (!serverPagination) return;
+
+      // Convert AG Grid filters to SQLAlchemy format
+      const converted = convertAgGridFiltersToSQL(filterModel);
+
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        agGridFilterModel: filterModel, // Store raw filter model for state restoration
+        agGridSimpleFilters: converted.simpleFilters,
+        agGridComplexWhere: converted.complexWhere,
+        currentPage: 0, // Reset to first page when filtering
+      };
+
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask, serverPagination, serverPaginationData],
+  );
+
   const renderTimeComparisonVisibility = (): JSX.Element => (
     <TimeComparisonVisibility
       comparisonColumns={comparisonColumns}
@@ -277,6 +298,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
         onSortChange={handleSortByChange}
+        onAgGridColumnFiltersChange={handleAgGridColumnFiltersChange}
         id={slice_id}
         handleCrossFilter={toggleFilter}
         percentMetrics={percentMetrics}

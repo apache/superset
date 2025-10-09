@@ -257,9 +257,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      // Create a copy of extras without the WHERE clause
+      // AG Grid filters in extras.where can reference calculated columns
+      // which aren't available in the totals subquery
+      const totalsExtras = { ...extras };
+      delete totalsExtras.where; // Remove AG Grid WHERE clause from totals query
+
       extraQueries.push({
         ...queryObject,
         columns: [],
+        extras: totalsExtras, // Use extras without WHERE clause
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
@@ -288,6 +295,28 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               val: `${ownState.searchText}%`,
             },
           ],
+        };
+      }
+
+      // Add AG Grid column filters from ownState
+      if (ownState.agGridSimpleFilters && ownState.agGridSimpleFilters.length > 0) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            ...ownState.agGridSimpleFilters,
+          ],
+        };
+      }
+
+      // Add AG Grid complex WHERE clause from ownState
+      if (ownState.agGridComplexWhere) {
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...(queryObject.extras || {}),
+            where: ownState.agGridComplexWhere,
+          },
         };
       }
     }

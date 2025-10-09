@@ -132,12 +132,21 @@ export type SearchOption = {
   label: string;
 };
 
+export interface AgGridColumnFilter {
+  col: string;
+  op: string;
+  val: any;
+}
+
 export interface ServerPaginationData {
   pageSize?: number;
   currentPage?: number;
   sortBy?: SortByItem[];
   searchText?: string;
   searchColumn?: string;
+  agGridFilterModel?: Record<string, any>; // Raw AG Grid filter model for state restoration
+  agGridSimpleFilters?: AgGridColumnFilter[];
+  agGridComplexWhere?: string;
 }
 
 export interface AgGridTableChartTransformedProps<
