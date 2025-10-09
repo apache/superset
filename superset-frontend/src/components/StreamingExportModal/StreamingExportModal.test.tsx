@@ -47,7 +47,9 @@ test('renders modal with streaming state', () => {
   render(<StreamingExportModal {...defaultProps} />);
 
   expect(screen.getByText('Exporting Data')).toBeInTheDocument();
-  expect(screen.getByText(/Processing export for test_export.csv/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/Processing export for test_export.csv/i),
+  ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Download' })).toBeDisabled();
 });
@@ -76,7 +78,9 @@ test('shows completed state when export finishes', () => {
 
   render(<StreamingExportModal {...defaultProps} progress={progress} />);
 
-  expect(screen.getByText(/Export successful: test_export.csv/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/Export successful: test_export.csv/i),
+  ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Download' })).not.toBeDisabled();
 });
 
@@ -102,7 +106,9 @@ test('shows cancelled state when export is cancelled', () => {
   render(<StreamingExportModal {...defaultProps} progress={progress} />);
 
   expect(screen.getByText('Export cancelled')).toBeInTheDocument();
-  expect(screen.getAllByRole('button', { name: 'Close' })[0]).toBeInTheDocument();
+  expect(
+    screen.getAllByRole('button', { name: 'Close' })[0],
+  ).toBeInTheDocument();
 });
 
 test('calls onCancel when cancel button is clicked during streaming', async () => {
@@ -122,7 +128,11 @@ test('calls onRetry when retry button is clicked after error', async () => {
   };
 
   render(
-    <StreamingExportModal {...defaultProps} progress={progress} onRetry={onRetry} />,
+    <StreamingExportModal
+      {...defaultProps}
+      progress={progress}
+      onRetry={onRetry}
+    />,
   );
 
   await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -141,7 +151,11 @@ test('triggers download when download button is clicked', async () => {
 
   const onCancel = jest.fn();
   render(
-    <StreamingExportModal {...defaultProps} progress={progress} onCancel={onCancel} />,
+    <StreamingExportModal
+      {...defaultProps}
+      progress={progress}
+      onCancel={onCancel}
+    />,
   );
 
   const downloadButton = screen.getByRole('button', { name: 'Download' });
@@ -196,10 +210,16 @@ test('handles retry button visibility based on onRetry prop', () => {
   };
 
   const { rerender } = render(
-    <StreamingExportModal {...defaultProps} progress={progress} onRetry={undefined} />,
+    <StreamingExportModal
+      {...defaultProps}
+      progress={progress}
+      onRetry={undefined}
+    />,
   );
 
-  expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Retry' }),
+  ).not.toBeInTheDocument();
 
   rerender(
     <StreamingExportModal
@@ -222,4 +242,3 @@ test('shows generic error message when error details are not provided', () => {
 
   expect(screen.getByText('Export failed')).toBeInTheDocument();
 });
-
