@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 import contentDisposition from 'content-disposition';
 import handleResourceExport from './export';
 
@@ -214,7 +214,6 @@ test('parses filename from Content-Disposition with quotes', async () => {
 });
 
 test('warns when export exceeds maximum blob size', async () => {
-  const { logging } = jest.requireMock('@superset-ui/core');
   const largeFileSize = 150 * 1024 * 1024; // 150MB
 
   mockResponse = {
