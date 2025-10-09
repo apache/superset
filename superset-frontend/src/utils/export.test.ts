@@ -117,6 +117,7 @@ test('creates blob and triggers download', async () => {
   const anchor = document.createElement('a');
   expect(anchor.href).toBe('blob:mock-url');
   expect(anchor.download).toBe('dashboard_export.zip');
+  expect(anchor.style.display).toBe('none');
 
   // Check that click was triggered
   expect(anchor.click).toHaveBeenCalled();
@@ -210,6 +211,28 @@ test('parses filename from Content-Disposition with quotes', async () => {
 
   const anchor = document.createElement('a');
   expect(anchor.download).toBe('my_custom_export.zip');
+});
+
+test('warns when export exceeds maximum blob size', async () => {
+  const { logging } = jest.requireMock('@superset-ui/core');
+  const largeFileSize = 150 * 1024 * 1024; // 150MB
+
+  mockResponse = {
+    headers: new Headers({
+      'Content-Length': largeFileSize.toString(),
+      'Content-Disposition': 'attachment; filename="large_export.zip"',
+    }),
+    blob: jest.fn().mockResolvedValue(mockBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  const doneMock = jest.fn();
+  await handleResourceExport('dashboard', [1], doneMock);
+
+  expect(logging.warn).toHaveBeenCalledWith(
+    expect.stringContaining('exceeds maximum blob size'),
+  );
+  expect(doneMock).toHaveBeenCalled();
 });
 
 test('handles various resource types', async () => {

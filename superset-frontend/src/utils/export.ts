@@ -21,6 +21,29 @@ import rison from 'rison';
 import contentDisposition from 'content-disposition';
 import { ensureAppRoot } from './pathUtils';
 
+// Maximum blob size for in-memory downloads (100MB)
+const MAX_BLOB_SIZE = 100 * 1024 * 1024;
+
+/**
+ * Downloads a blob as a file using a temporary anchor element
+ * @param blob - The blob to download
+ * @param fileName - The filename to use for the download
+ */
+function downloadBlob(blob: Blob, fileName: string): void {
+  const url = window.URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    window.URL.revokeObjectURL(url);
+  }
+}
+
 export default async function handleResourceExport(
   resource: string,
   ids: number[],
@@ -40,6 +63,14 @@ export default async function handleResourceExport(
       parseMethod: 'raw',
     });
 
+    // Check content length to prevent memory issues with large exports
+    const contentLength = response.headers.get('Content-Length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_BLOB_SIZE) {
+      logging.warn(
+        `Export file size (${contentLength} bytes) exceeds maximum blob size (${MAX_BLOB_SIZE} bytes). Large exports may cause memory issues.`,
+      );
+    }
+
     // Parse filename from Content-Disposition header
     const disposition = response.headers.get('Content-Disposition');
     let fileName = `${resource}_export.zip`;
@@ -57,14 +88,7 @@ export default async function handleResourceExport(
 
     // Convert response to blob and trigger download
     const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    downloadBlob(blob, fileName);
 
     done();
   } catch (error) {
