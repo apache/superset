@@ -23,6 +23,7 @@ import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
+import { hasAgGridTables } from 'src/dashboard/util/agGridHelpers';
 
 export interface ShareMenuItemProps
   extends ComponentProps<typeof Menu.SubMenu> {
@@ -63,26 +64,17 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       dataMask: state.dataMask,
       activeTabs: state.dashboardState.activeTabs,
       chartStates: state.dashboardState.chartStates,
-      sliceEntities: state.sliceEntities,
+      sliceEntities: state.sliceEntities?.slices,
     }),
     shallowEqual,
   );
 
   async function generateUrl() {
-    // Check if dashboard has AG Grid tables
-    const hasAgGridTables =
-      sliceEntities &&
-      Object.values(sliceEntities).some(
-        slice =>
-          slice &&
-          typeof slice === 'object' &&
-          'viz_type' in slice &&
-          slice.viz_type === 'ag_grid_table',
-      );
-
     // Only include chart state for AG Grid tables
     const includeChartState =
-      hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
+      hasAgGridTables(sliceEntities) &&
+      chartStates &&
+      Object.keys(chartStates).length > 0;
 
     return getDashboardPermalink({
       dashboardId,

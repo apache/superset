@@ -28,7 +28,6 @@ import {
   removeDuplicates,
   PostProcessingRule,
   BuildQuery,
-  type AgGridQueryFilterClause,
 } from '@superset-ui/core';
 import {
   isTimeComparison,
@@ -229,48 +228,48 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ownState.columnOrder &&
       Array.isArray(ownState.columnOrder)
     ) {
-      const orderedCols: typeof columns = [];
-      const orderedMets: typeof metrics = [];
-
-      ownState.columnOrder.forEach((colId: string) => {
-        const matchingCol = columns.find(col => {
-          if (typeof col === 'string') {
-            return col === colId;
+      const findMatchingItem = <T>(
+        items: T[],
+        colId: string,
+        matcher: (item: T, colId: string) => boolean,
+      ): T | undefined =>
+        items.find(item => {
+          if (typeof item === 'string') {
+            return item === colId;
           }
-          return col?.sqlExpression === colId || col?.label === colId;
+          return matcher(item, colId);
         });
 
-        if (matchingCol && !orderedCols.includes(matchingCol)) {
-          orderedCols.push(matchingCol);
-          return;
-        }
+      const reorderItems = <T>(
+        items: T[],
+        matcher: (item: T, colId: string) => boolean,
+      ): T[] => {
+        const ordered: T[] = [];
+        const itemSet = new Set(items);
 
-        const matchingMetric = metrics?.find(met => {
-          if (typeof met === 'string') {
-            return met === colId;
+        ownState.columnOrder.forEach((colId: string) => {
+          const match = findMatchingItem(items, colId, matcher);
+          if (match && itemSet.has(match)) {
+            ordered.push(match);
+            itemSet.delete(match);
           }
-          return getMetricLabel(met) === colId || met?.label === colId;
         });
 
-        if (matchingMetric && !orderedMets.includes(matchingMetric)) {
-          orderedMets.push(matchingMetric);
-        }
+        // Append remaining unordered items
+        itemSet.forEach(item => ordered.push(item));
+
+        return ordered;
+      };
+
+      orderedColumns = reorderItems(columns, (col, colId) => {
+        if (typeof col === 'string') return false;
+        return col?.sqlExpression === colId || col?.label === colId;
       });
 
-      columns.forEach(col => {
-        if (!orderedCols.includes(col)) {
-          orderedCols.push(col);
-        }
+      orderedMetrics = reorderItems(metrics || [], (met, colId) => {
+        if (typeof met === 'string') return false;
+        return getMetricLabel(met) === colId || met?.label === colId;
       });
-
-      metrics?.forEach(met => {
-        if (!orderedMets.includes(met)) {
-          orderedMets.push(met);
-        }
-      });
-
-      orderedColumns = orderedCols;
-      orderedMetrics = orderedMets;
     }
 
     let queryObject = {
@@ -357,25 +356,15 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    // Apply AG Grid filters from export (already in standard filter format)
     if (
       isDownloadQuery &&
-      Array.isArray(ownState.agGridFilters) &&
-      ownState.agGridFilters.length > 0
+      Array.isArray(ownState.filters) &&
+      ownState.filters.length > 0
     ) {
-      const agGridQueryFilters = ownState.agGridFilters.map(
-        (filter: AgGridQueryFilterClause) => ({
-          col: filter.subject,
-          op: filter.operator,
-          val: filter.comparator,
-        }),
-      ) as QueryObject['filters'];
-
       queryObject = {
         ...queryObject,
-        filters: [
-          ...(queryObject.filters || []),
-          ...(agGridQueryFilters || []),
-        ],
+        filters: [...(queryObject.filters || []), ...ownState.filters],
       };
     }
 

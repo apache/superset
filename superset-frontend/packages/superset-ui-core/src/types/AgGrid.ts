@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import type { ColumnState, SortModelItem } from 'ag-grid-community';
+
 // AG Grid filter type enums
 export enum AgGridFilterType {
   Text = 'text',
@@ -48,19 +50,15 @@ export enum AgGridNumberFilterOperator {
   NotBlank = 'notBlank',
 }
 
-export interface AgGridColumnState {
-  colId: string;
-  width?: number;
-  hide?: boolean;
-  pinned?: 'left' | 'right' | null;
-  sort?: 'asc' | 'desc' | null;
-  sortIndex?: number;
-  aggFunc?: string;
-}
+/**
+ * @deprecated Use ColumnState from 'ag-grid-community' instead
+ */
+export type AgGridColumnState = ColumnState;
 
-export interface AgGridSortModel {
-  colId: string;
-  sort: 'asc' | 'desc';
+/**
+ * Extend AG Grid's SortModelItem to add sortIndex for multi-column sorting support
+ */
+export interface AgGridSortModel extends SortModelItem {
   sortIndex?: number;
 }
 
@@ -100,7 +98,7 @@ export interface AgGridFilterModel {
 }
 
 export interface AgGridChartState {
-  columnState: AgGridColumnState[];
+  columnState: ColumnState[];
   sortModel: AgGridSortModel[];
   filterModel: AgGridFilterModel;
   columnOrder?: string[];

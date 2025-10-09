@@ -426,83 +426,76 @@ const Chart = props => {
           agGridState.filterModel &&
           Object.keys(agGridState.filterModel).length > 0
         ) {
-          const agGridFilters = [];
+          // Map AG Grid filter operators to backend operators
+          const TEXT_FILTER_OPERATORS = {
+            equals: '==',
+            notEqual: '!=',
+            contains: 'ILIKE',
+            notContains: 'NOT ILIKE',
+            startsWith: 'ILIKE',
+            endsWith: 'ILIKE',
+          };
+
+          const NUMBER_FILTER_OPERATORS = {
+            equals: '==',
+            notEqual: '!=',
+            lessThan: '<',
+            lessThanOrEqual: '<=',
+            greaterThan: '>',
+            greaterThanOrEqual: '>=',
+          };
+
+          const getTextComparator = (type, value) => {
+            if (type === 'contains' || type === 'notContains') {
+              return `%${value}%`;
+            }
+            if (type === 'startsWith') {
+              return `${value}%`;
+            }
+            if (type === 'endsWith') {
+              return `%${value}`;
+            }
+            return value;
+          };
+
+          const filters = [];
 
           Object.keys(agGridState.filterModel).forEach(colId => {
             const filter = agGridState.filterModel[colId];
 
             // Text filter
             if (filter.filterType === 'text' && filter.filter) {
-              const clause = {
-                expressionType: 'SIMPLE',
-                subject: colId,
-                operator:
-                  filter.type === 'equals'
-                    ? '=='
-                    : filter.type === 'notEqual'
-                      ? '!='
-                      : filter.type === 'contains'
-                        ? 'ILIKE'
-                        : filter.type === 'notContains'
-                          ? 'NOT ILIKE'
-                          : filter.type === 'startsWith'
-                            ? 'ILIKE'
-                            : filter.type === 'endsWith'
-                              ? 'ILIKE'
-                              : 'ILIKE',
-                comparator:
-                  filter.type === 'contains' || filter.type === 'notContains'
-                    ? `%${filter.filter}%`
-                    : filter.type === 'startsWith'
-                      ? `${filter.filter}%`
-                      : filter.type === 'endsWith'
-                        ? `%${filter.filter}`
-                        : filter.filter,
-              };
-              agGridFilters.push(clause);
+              filters.push({
+                col: colId,
+                op: TEXT_FILTER_OPERATORS[filter.type] || 'ILIKE',
+                val: getTextComparator(filter.type, filter.filter),
+              });
             } else if (
               filter.filterType === 'number' &&
               filter.filter !== undefined
             ) {
-              const clause = {
-                expressionType: 'SIMPLE',
-                subject: colId,
-                operator:
-                  filter.type === 'equals'
-                    ? '=='
-                    : filter.type === 'notEqual'
-                      ? '!='
-                      : filter.type === 'lessThan'
-                        ? '<'
-                        : filter.type === 'lessThanOrEqual'
-                          ? '<='
-                          : filter.type === 'greaterThan'
-                            ? '>'
-                            : filter.type === 'greaterThanOrEqual'
-                              ? '>='
-                              : '==',
-                comparator: filter.filter,
-              };
-              agGridFilters.push(clause);
+              filters.push({
+                col: colId,
+                op: NUMBER_FILTER_OPERATORS[filter.type] || '==',
+                val: filter.filter,
+              });
             } else if (
               filter.filterType === 'set' &&
               Array.isArray(filter.values) &&
               filter.values.length > 0
             ) {
-              const clause = {
-                expressionType: 'SIMPLE',
-                subject: colId,
-                operator: 'IN',
-                comparator: filter.values,
-              };
-              agGridFilters.push(clause);
+              filters.push({
+                col: colId,
+                op: 'IN',
+                val: filter.values,
+              });
             }
           });
 
-          if (agGridFilters.length > 0) {
+          if (filters.length > 0) {
             ownState = {
               ...ownState,
-              agGridFilters,
+              filters,
             };
           }
         }

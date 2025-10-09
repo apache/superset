@@ -35,19 +35,14 @@ import {
   AllCommunityModule,
   ClientSideRowModelModule,
   type ColDef,
+  type ColumnState,
   ModuleRegistry,
   GridReadyEvent,
   GridState,
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import {
-  JsonObject,
-  DataRecordValue,
-  DataRecord,
-  t,
-  type AgGridColumnState,
-} from '@superset-ui/core';
+import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -330,7 +325,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         try {
           if (savedAgGridState.columnState) {
             params.api.applyColumnState?.({
-              state: savedAgGridState.columnState as AgGridColumnState[],
+              state: savedAgGridState.columnState as ColumnState[],
               applyOrder: true,
             });
           }
@@ -338,8 +333,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           if (savedAgGridState.filterModel) {
             params.api.setFilterModel?.(savedAgGridState.filterModel);
           }
-        } catch (error) {
-          console.warn('Error restoring AG Grid state:', error);
+        } catch {
+          // Silently fail if state restoration fails
         }
       }
     };
@@ -398,12 +393,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCrossFilter}
-          onDragStopped={handleGridStateChange}
-          onColumnResized={handleGridStateChange}
-          onSortChanged={handleGridStateChange}
-          onFilterChanged={handleGridStateChange}
-          onColumnVisible={handleGridStateChange}
-          onColumnPinned={handleGridStateChange}
+          onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
           maintainColumnOrder
           suppressAggFuncInHeader

@@ -21,6 +21,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
+import { hasAgGridTables } from '../dashboard/util/agGridHelpers';
 
 const bootstrapData = getBootstrapData();
 
@@ -54,21 +55,13 @@ const getDashboardPermalink = async ({
     dataMask: state?.dataMask,
     activeTabs: state.dashboardState?.activeTabs,
     chartStates: state.dashboardState?.chartStates,
-    sliceEntities: state?.sliceEntities,
+    sliceEntities: state?.sliceEntities?.slices,
   };
 
-  const hasAgGridTables =
-    sliceEntities &&
-    Object.values(sliceEntities).some(
-      slice =>
-        slice &&
-        typeof slice === 'object' &&
-        'viz_type' in slice &&
-        slice.viz_type === 'ag_grid_table',
-    );
-
   const includeChartState =
-    hasAgGridTables && chartStates && Object.keys(chartStates).length > 0;
+    hasAgGridTables(sliceEntities) &&
+    chartStates &&
+    Object.keys(chartStates).length > 0;
 
   return getDashboardPermalinkUtil({
     dashboardId,
