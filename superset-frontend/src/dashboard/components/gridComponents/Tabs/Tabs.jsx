@@ -334,6 +334,30 @@ const Tabs = props => {
     }
   }, []);
 
+  const handleTabsReorder = useCallback(
+    (oldIndex, newIndex) => {
+      const { component, updateComponents } = props;
+      const newTabIds = [...component.children];
+      const [removed] = newTabIds.splice(oldIndex, 1);
+      newTabIds.splice(newIndex, 0, removed);
+
+      updateComponents({
+        [component.id]: {
+          ...component,
+          children: newTabIds,
+        },
+      });
+
+      // Update active key if needed
+      const activeTabId = component.children[selectedTabIndex];
+      const newActiveIndex = newTabIds.indexOf(activeTabId);
+      if (newActiveIndex !== selectedTabIndex) {
+        setSelectedTabIndex(newActiveIndex);
+      }
+    },
+    [props.component, props.updateComponents, selectedTabIndex],
+  );
+
   const {
     depth,
     component: tabsComponent,
@@ -480,6 +504,7 @@ const Tabs = props => {
         handleClickTab={handleClickTab}
         handleEdit={handleEdit}
         tabBarPaddingLeft={tabBarPaddingLeft}
+        onTabsReorder={handleTabsReorder}
       />
     ),
     [
@@ -493,6 +518,7 @@ const Tabs = props => {
       handleClickTab,
       handleEdit,
       tabBarPaddingLeft,
+      handleTabsReorder,
     ],
   );
 
