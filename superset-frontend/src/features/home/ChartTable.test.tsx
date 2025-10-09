@@ -47,7 +47,7 @@ fetchMock.get(chartsEndpoint, {
 });
 
 fetchMock.get(chartsInfoEndpoint, {
-  permissions: ['can_add', 'can_edit', 'can_delete'],
+  permissions: ['can_add', 'can_edit', 'can_delete', 'can_export'],
 });
 
 fetchMock.get(chartFavoriteStatusEndpoint, {
