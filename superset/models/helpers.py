@@ -871,6 +871,74 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 raise QueryObjectValidationError(ex.message) from ex
         return expression
 
+    def _process_select_expression(
+        self,
+        expression: Optional[str],
+        database_id: int,
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """
+        Validate and process an adhoc expression used as a column or metric.
+
+        This requires prefixing the expression with a dummy SELECT statement, so it can
+        be properly parsed and validated.
+        """
+        if expression:
+            expression = f"SELECT {expression}"
+
+        if processed := self._process_sql_expression(
+            expression=expression,
+            database_id=database_id,
+            engine=engine,
+            schema=schema,
+            template_processor=template_processor,
+        ):
+            prefix, expression = re.split(
+                r"SELECT\s+",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+
+        return None
+
+    def _process_orderby_expression(
+        self,
+        expression: Optional[str],
+        database_id: int,
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """
+        Validate and process an ORDER BY clause expression.
+
+        This requires prefixing the expression with a dummy SELECT statement, so it can
+        be properly parsed and validated.
+        """
+        if expression:
+            expression = f"SELECT 1 ORDER BY {expression}"
+
+        if processed := self._process_sql_expression(
+            expression=expression,
+            database_id=database_id,
+            engine=engine,
+            schema=schema,
+            template_processor=template_processor,
+        ):
+            prefix, expression = re.split(
+                r"ORDER\s+BY",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+
+        return None
+
     def make_sqla_column_compatible(
         self, sqla_col: ColumnElement, label: Optional[str] = None
     ) -> ColumnElement:
@@ -1053,7 +1121,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             db_engine_spec = self.db_engine_spec
             errors = [
-                dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
+                dataclasses.asdict(error)
+                for error in db_engine_spec.extract_errors(
+                    ex, database_name=self.database.unique_name
+                )
             ]
             error_message = utils.error_msg_from_exception(ex)
 
@@ -1139,6 +1210,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         metric: AdhocMetric,
         columns_by_name: dict[str, "TableColumn"],  # pylint: disable=unused-argument
         template_processor: Optional[BaseTemplateProcessor] = None,
+        processed: bool = False,
     ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
@@ -1146,6 +1218,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param dict metric: Adhoc metric definition
         :param dict columns_by_name: Columns for the current table
         :param template_processor: template_processor instance
+        :param bool processed: Whether the sqlExpression has already been processed
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
@@ -1158,13 +1231,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = self._process_sql_expression(
-                expression=metric["sqlExpression"],
-                database_id=self.database_id,
-                engine=self.database.backend,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
+            expression = metric.get("sqlExpression")
+
+            if not processed:
+                expression = self._process_select_expression(
+                    expression=metric["sqlExpression"],
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1779,7 +1856,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_sql_expression(
+                    col["sqlExpression"] = self._process_orderby_expression(
                         expression=col["sqlExpression"],
                         database_id=self.database_id,
                         engine=self.database.backend,
@@ -1788,9 +1865,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
-                    col = self.adhoc_metric_to_sqla(col, columns_by_name)
-                    # if the adhoc metric has been defined before
-                    # use the existing instance.
+                    col = self.adhoc_metric_to_sqla(
+                        col,
+                        columns_by_name,
+                        processed=True,
+                    )
+                    # use the existing instance, if possible
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
             elif col in metrics_exprs_by_label:
@@ -1842,12 +1922,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             template_processor=template_processor,
                         )
                     else:
-                        selected = validate_adhoc_subquery(
-                            selected,
-                            self.database,
-                            self.catalog,
-                            self.schema,
-                            self.database.db_engine_spec.engine,
+                        selected = self._process_select_expression(
+                            expression=selected,
+                            database_id=self.database_id,
+                            engine=self.database.backend,
+                            schema=self.schema,
+                            template_processor=template_processor,
                         )
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
@@ -1871,12 +1951,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     _sql = quote(selected)
                     _column_label = selected
 
-                selected = validate_adhoc_subquery(
-                    _sql,
-                    self.database,
-                    self.catalog,
-                    self.schema,
-                    self.database.db_engine_spec.engine,
+                selected = self._process_select_expression(
+                    expression=_sql,
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
                 )
 
                 select_exprs.append(
@@ -2150,7 +2230,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if extras:
             where = extras.get("where")
             if where:
-                where = self._process_sql_expression(
+                where = self._process_select_expression(
                     expression=where,
                     database_id=self.database_id,
                     engine=self.database.backend,
@@ -2160,7 +2240,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
-                having = self._process_sql_expression(
+                having = self._process_select_expression(
                     expression=having,
                     database_id=self.database_id,
                     engine=self.database.backend,

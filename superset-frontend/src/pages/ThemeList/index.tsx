@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Tag,
@@ -72,6 +72,11 @@ const FlexRowContainer = styled.div`
   }
 `;
 
+const IconTag = styled(Tag)`
+  display: inline-flex;
+  align-items: center;
+`;
+
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more themes that already exist. ' +
     'Overwriting might cause you to lose some of your work. Are you ' +
@@ -111,6 +116,9 @@ function ThemesList({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
+
+  // Use Modal.useModal hook to ensure proper theming
+  const [modal, contextHolder] = Modal.useModal();
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -189,20 +197,23 @@ function ThemesList({
     setThemeModalOpen(true);
   }
 
-  function handleThemeApply(themeObj: ThemeObject) {
-    if (themeObj.json_data) {
-      try {
-        const themeConfig = JSON.parse(themeObj.json_data);
-        setTemporaryTheme(themeConfig);
-        setAppliedThemeId(themeObj.id || null);
-        addSuccessToast(t('Local theme set to "%s"', themeObj.theme_name));
-      } catch (error) {
-        addDangerToast(
-          t('Failed to set local theme: Invalid JSON configuration'),
-        );
+  const handleThemeApply = useCallback(
+    (themeObj: ThemeObject) => {
+      if (themeObj.json_data) {
+        try {
+          const themeConfig = JSON.parse(themeObj.json_data);
+          setTemporaryTheme(themeConfig);
+          setAppliedThemeId(themeObj.id || null);
+          addSuccessToast(t('Local theme set to "%s"', themeObj.theme_name));
+        } catch (error) {
+          addDangerToast(
+            t('Failed to set local theme: Invalid JSON configuration'),
+          );
+        }
       }
-    }
-  }
+    },
+    [setTemporaryTheme, addSuccessToast, addDangerToast],
+  );
 
   function handleThemeModalApply() {
     // Clear any previously applied theme ID when applying from modal
@@ -242,7 +253,7 @@ function ThemesList({
     successMessage: string;
     errorMessage: string;
   }) => {
-    Modal.confirm({
+    modal.confirm({
       title: config.title,
       content: config.content,
       onOk: () => {
@@ -340,16 +351,16 @@ function ThemesList({
               )}
               {original.is_system_default && (
                 <Tooltip title={t('This is the system default theme')}>
-                  <Tag color="warning">
-                    <Icons.SunOutlined /> {t('Default')}
-                  </Tag>
+                  <IconTag color="warning" icon={<Icons.SunOutlined />}>
+                    {t('Default')}
+                  </IconTag>
                 </Tooltip>
               )}
               {original.is_system_dark && (
                 <Tooltip title={t('This is the system dark theme')}>
-                  <Tag color="default">
-                    <Icons.MoonOutlined /> {t('Dark')}
-                  </Tag>
+                  <IconTag color="default" icon={<Icons.MoonOutlined />}>
+                    {t('Dark')}
+                  </IconTag>
                 </Tooltip>
               )}
             </FlexRowContainer>
@@ -487,12 +498,19 @@ function ThemesList({
       },
     ],
     [
+      canEdit,
       canDelete,
-      canCreate,
       canApply,
       canExport,
-      canSetSystemThemes,
+      getCurrentCrudThemeId,
       appliedThemeId,
+      canSetSystemThemes,
+      addDangerToast,
+      handleThemeApply,
+      handleSetSystemDefault,
+      handleUnsetSystemDefault,
+      handleSetSystemDark,
+      handleUnsetSystemDark,
     ],
   );
 
@@ -570,11 +588,12 @@ function ThemesList({
         paginate: true,
       },
     ],
-    [],
+    [user],
   );
 
   return (
     <>
+      {contextHolder}
       <SubMenu {...menuData} />
       <ThemeModal
         addDangerToast={addDangerToast}

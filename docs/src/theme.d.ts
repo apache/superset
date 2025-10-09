@@ -16,25 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
-  "env": {
-    "jest/globals": true
-  },
-  "settings": {
-    "jest": {
-      "version": "detect"
-    }
-  },
-  "extends": [
-    "plugin:jest/recommended",
-    "plugin:jest-dom/recommended",
-    "plugin:testing-library/react"
-  ],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "jest/consistent-test-it": "error",
-    "no-only-tests/no-only-tests": "error",
-    "prefer-promise-reject-errors": 0
+
+declare module '@theme/Layout' {
+  import type { ReactNode } from 'react';
+
+  export interface Props {
+    readonly children?: ReactNode;
+    readonly noFooter?: boolean;
+    readonly wrapperClassName?: string;
+    readonly title?: string;
+    readonly description?: string;
   }
+
+  export default function Layout(props: Props): ReactNode;
 }
